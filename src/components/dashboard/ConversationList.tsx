@@ -189,8 +189,8 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              {getTabIcon(selectedTab)}
-              {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)}
+              {getTabIcon(selectedTab || 'inbox')}
+              {(selectedTab || 'inbox').charAt(0).toUpperCase() + (selectedTab || 'inbox').slice(1)}
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="ml-2">{unreadCount}</Badge>
               )}
