@@ -29,9 +29,11 @@ const Index = () => {
     );
   }
 
-  if (user) {
+  // Temporarily show dashboard for development (bypass auth)
+  // Comment out the auth check to view inbox without logging in
+  // if (user) {
     return <Dashboard />;
-  }
+  // }
 
   // Landing page for non-authenticated users
   return (
