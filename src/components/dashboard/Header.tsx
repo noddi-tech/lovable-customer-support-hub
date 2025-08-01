@@ -12,6 +12,7 @@ import {
 import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
+import { EmailAccountConnection } from './EmailAccountConnection';
 
 interface HeaderProps {
   organizationName?: string;
@@ -55,6 +56,9 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center space-x-2 md:space-x-4">
+        {/* Email Accounts */}
+        <EmailAccountConnection />
+
         {/* Search - Hidden on mobile */}
         <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hidden sm:flex">
           <Search className="h-4 w-4" />

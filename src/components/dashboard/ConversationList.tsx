@@ -12,6 +12,8 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface Conversation {
   id: string;
@@ -34,7 +36,6 @@ interface Conversation {
 }
 
 interface ConversationListProps {
-  conversations: Conversation[];
   selectedConversation?: string;
   onSelectConversation: (id: string) => void;
 }
@@ -122,11 +123,26 @@ const priorityColors = {
 };
 
 export const ConversationList: React.FC<ConversationListProps> = ({ 
-  conversations = mockConversations, 
   selectedConversation, 
   onSelectConversation 
 }) => {
-  const formatTime = (date: Date) => {
+  
+  // Fetch conversations from database
+  const { data: conversations = [], isLoading } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_conversations', {});
+
+      if (error) {
+        console.error('Error fetching conversations:', error);
+        return [];
+      }
+      return data;
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / (1000 * 60));
@@ -138,6 +154,27 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     return `${days}d ago`;
   };
 
+  if (isLoading) {
+    return (
+      <div className="w-full md:w-96 bg-card border-r border-border h-full flex flex-col">
+        <div className="p-3 md:p-4 border-b border-border">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base md:text-lg font-semibold text-foreground">Conversations</h2>
+            <div className="animate-pulse bg-muted h-5 w-16 rounded"></div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="animate-pulse p-4 border rounded-lg">
+              <div className="bg-muted h-4 w-3/4 rounded mb-2"></div>
+              <div className="bg-muted h-3 w-1/2 rounded"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full md:w-96 bg-card border-r border-border h-full flex flex-col">
       {/* Header */}
@@ -146,7 +183,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
           <h2 className="text-base md:text-lg font-semibold text-foreground">Conversations</h2>
           <div className="flex items-center space-x-2">
             <Badge variant="secondary" className="text-xs">
-              {conversations.filter(c => c.isUnread).length} unread
+              {conversations.filter((c: any) => !c.is_read).length} unread
             </Badge>
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
               <MoreHorizontal className="h-4 w-4" />
@@ -157,8 +194,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
-        {conversations.map((conversation) => {
-          const ChannelIcon = channelIcons[conversation.channel];
+        {conversations.map((conversation: any) => {
+          const ChannelIcon = channelIcons[conversation.channel] || Mail;
           const isSelected = selectedConversation === conversation.id;
           
           return (
@@ -166,17 +203,17 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               key={conversation.id}
               className={cn(
                 "p-3 md:p-4 border-b border-border cursor-pointer transition-colors",
-                isSelected ? "bg-inbox-selected" : "hover:bg-inbox-hover",
-                conversation.isUnread && !isSelected ? "border-l-4 border-l-primary" : ""
+                isSelected ? "bg-accent" : "hover:bg-accent/50",
+                !conversation.is_read && !isSelected ? "border-l-4 border-l-primary" : ""
               )}
               onClick={() => onSelectConversation(conversation.id)}
             >
               <div className="flex items-start space-x-3">
                 {/* Customer Avatar */}
                 <Avatar className="h-10 w-10 flex-shrink-0">
-                  <AvatarImage src={conversation.customer.avatar} />
+                  <AvatarImage src={conversation.customer?.avatar_url} />
                   <AvatarFallback className="bg-muted text-muted-foreground">
-                    {conversation.customer.name[0]}
+                    {conversation.customer?.full_name?.[0] || conversation.customer?.email?.[0] || 'U'}
                   </AvatarFallback>
                 </Avatar>
 
@@ -186,21 +223,18 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                     <div className="flex items-center space-x-2">
                       <span className={cn(
                         "font-medium text-sm truncate",
-                        conversation.isUnread ? "text-foreground" : "text-muted-foreground"
+                        !conversation.is_read ? "text-foreground" : "text-muted-foreground"
                       )}>
-                        {conversation.customer.name}
+                        {conversation.customer?.full_name || conversation.customer?.email || 'Unknown'}
                       </span>
-                      <ChannelIcon className={cn(
-                        "h-3 w-3 flex-shrink-0",
-                        `text-channel-${conversation.channel}`
-                      )} />
+                      <ChannelIcon className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
                     </div>
                     <div className="flex items-center space-x-1">
                       {conversation.priority === 'urgent' && (
                         <Star className="h-3 w-3 text-destructive fill-current" />
                       )}
                       <span className="text-xs text-muted-foreground">
-                        {formatTime(conversation.lastMessage)}
+                        {formatTime(conversation.updated_at)}
                       </span>
                     </div>
                   </div>
@@ -208,14 +242,14 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                   {/* Subject */}
                   <h4 className={cn(
                     "text-sm font-medium truncate mb-1",
-                    conversation.isUnread ? "text-foreground" : "text-muted-foreground"
+                    !conversation.is_read ? "text-foreground" : "text-muted-foreground"
                   )}>
-                    {conversation.subject}
+                    {conversation.subject || 'No Subject'}
                   </h4>
 
                   {/* Preview */}
                   <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                    {conversation.preview}
+                    Latest conversation message
                   </p>
 
                   {/* Footer Row */}
@@ -227,16 +261,16 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                       >
                         {conversation.status}
                       </Badge>
-                      {conversation.assignee && (
+                      {conversation.assigned_to && (
                         <div className="flex items-center space-x-1">
                           <Avatar className="h-4 w-4">
-                            <AvatarImage src={conversation.assignee.avatar} />
+                            <AvatarImage src={conversation.assigned_to.avatar_url} />
                             <AvatarFallback className="text-xs bg-muted">
-                              {conversation.assignee.name[0]}
+                              {conversation.assigned_to.full_name?.[0] || 'A'}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-xs text-muted-foreground">
-                            {conversation.assignee.name}
+                            {conversation.assigned_to.full_name}
                           </span>
                         </div>
                       )}

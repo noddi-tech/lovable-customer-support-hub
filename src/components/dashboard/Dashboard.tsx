@@ -64,7 +64,6 @@ export const Dashboard: React.FC = () => {
             flex-col
           `}>
             <ConversationList 
-              conversations={[]} 
               selectedConversation={selectedConversation}
               onSelectConversation={handleSelectConversation}
             />
