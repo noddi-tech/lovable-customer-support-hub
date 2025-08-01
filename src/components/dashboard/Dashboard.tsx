@@ -5,16 +5,40 @@ import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+type ConversationStatus = "open" | "pending" | "resolved" | "closed";
+type ConversationPriority = "low" | "normal" | "high" | "urgent";
+type ConversationChannel = "email" | "chat" | "phone" | "social";
+
+interface Conversation {
+  id: string;
+  subject: string;
+  status: ConversationStatus;
+  priority: ConversationPriority;
+  is_read: boolean;
+  channel: ConversationChannel;
+  updated_at: string;
+  customer?: {
+    id: string;
+    full_name: string;
+    email: string;
+  };
+  assigned_to?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string;
+  };
+}
+
 export const Dashboard: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState('all');
-  const [selectedConversation, setSelectedConversation] = useState<string>('1');
+  const [selectedTab, setSelectedTab] = useState('inbox');
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
   const isMobile = useIsMobile();
   const isTablet = window.innerWidth <= 1024;
 
-  const handleSelectConversation = (id: string) => {
-    setSelectedConversation(id);
+  const handleSelectConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
     if (isMobile) {
       setShowConversationList(false);
     }
@@ -64,6 +88,7 @@ export const Dashboard: React.FC = () => {
             flex-col
           `}>
             <ConversationList 
+              selectedTab={selectedTab}
               selectedConversation={selectedConversation}
               onSelectConversation={handleSelectConversation}
             />
@@ -75,7 +100,7 @@ export const Dashboard: React.FC = () => {
             flex-1 flex-col
           `}>
             <ConversationView 
-              conversationId={selectedConversation}
+              conversationId={selectedConversation?.id || null}
             />
           </div>
         </div>

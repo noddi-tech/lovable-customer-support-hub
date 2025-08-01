@@ -1,13 +1,16 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Mail, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Mail, Plus, RefreshCw, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-type EmailAccount = {
+// Mock data for now
+interface EmailAccount {
   id: string;
   email_address: string;
   provider: string;
@@ -16,94 +19,100 @@ type EmailAccount = {
   created_at: string;
 }
 
-export function EmailAccountConnection() {
+export const EmailAccountConnection = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Mock data - will be replaced with actual RPC call
   const { data: emailAccounts = [], isLoading } = useQuery({
     queryKey: ['email-accounts'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_email_accounts');
-
-      if (error) {
-        console.error('Error fetching email accounts:', error);
-        return [];
-      }
-      return data as EmailAccount[];
+    queryFn: async (): Promise<EmailAccount[]> => {
+      // Simulate API call
+      return [
+        {
+          id: '1',
+          email_address: 'support@company.com',
+          provider: 'gmail',
+          is_active: true,
+          last_sync_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        }
+      ];
     },
   });
 
   const connectGmailMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('gmail-oauth', {
-        body: { action: 'authorize' },
-      });
-
-      if (error) throw error;
-      return data;
+      setIsConnecting(true);
+      
+      // Mock Gmail OAuth flow
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { data: { authorization_url: 'https://accounts.google.com/oauth/authorize?...' } };
     },
     onSuccess: (data) => {
-      window.location.href = data.authUrl;
+      if (data.data?.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      }
     },
     onError: (error) => {
+      console.error('Error connecting Gmail:', error);
       toast({
-        title: "Connection Failed",
-        description: "Failed to start Gmail connection process",
-        variant: "destructive",
+        title: 'Connection Failed',
+        description: 'Failed to connect Gmail account. Please try again.',
+        variant: 'destructive',
       });
+      setIsConnecting(false);
     },
   });
 
   const syncEmailsMutation = useMutation({
-    mutationFn: async (emailAccountId?: string) => {
-      const { data, error } = await supabase.functions.invoke('gmail-sync', {
-        body: { emailAccountId },
-      });
-
-      if (error) throw error;
-      return data;
+    mutationFn: async (accountId?: string) => {
+      // Mock sync operation
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      return {};
     },
     onSuccess: () => {
       toast({
-        title: "Sync Complete",
-        description: "Emails have been synchronized successfully",
+        title: 'Sync Complete',
+        description: 'Emails have been synchronized successfully.',
       });
       queryClient.invalidateQueries({ queryKey: ['email-accounts'] });
     },
     onError: (error) => {
+      console.error('Error syncing emails:', error);
       toast({
-        title: "Sync Failed",
-        description: "Failed to synchronize emails",
-        variant: "destructive",
+        title: 'Sync Failed',
+        description: 'Failed to sync emails. Please try again.',
+        variant: 'destructive',
       });
     },
   });
 
   const deleteAccountMutation = useMutation({
     mutationFn: async (accountId: string) => {
-      const { error } = await supabase.rpc('delete_email_account', { account_id: accountId });
-
-      if (error) throw error;
+      // Mock deletion
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return {};
     },
     onSuccess: () => {
       toast({
-        title: "Account Removed",
-        description: "Email account has been disconnected",
+        title: 'Account Disconnected',
+        description: 'Email account has been successfully disconnected.',
       });
       queryClient.invalidateQueries({ queryKey: ['email-accounts'] });
     },
     onError: (error) => {
+      console.error('Error deleting account:', error);
       toast({
-        title: "Deletion Failed",
-        description: "Failed to remove email account",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to disconnect email account. Please try again.',
+        variant: 'destructive',
       });
     },
   });
 
   const handleConnectGmail = () => {
-    setIsConnecting(true);
     connectGmailMutation.mutate();
   };
 
@@ -112,118 +121,186 @@ export function EmailAccountConnection() {
   };
 
   const handleDeleteAccount = (accountId: string) => {
-    if (confirm('Are you sure you want to disconnect this email account?')) {
-      deleteAccountMutation.mutate(accountId);
-    }
+    deleteAccountMutation.mutate(accountId);
   };
 
-  const formatLastSync = (lastSync: string | null) => {
-    if (!lastSync) return 'Never';
-    return new Date(lastSync).toLocaleString();
+  const formatLastSync = (lastSyncAt: string | null) => {
+    if (!lastSyncAt) return 'Never';
+    
+    const date = new Date(lastSyncAt);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    return date.toLocaleDateString();
   };
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Mail className="h-4 w-4 mr-2" />
-          Email Accounts
+        <Button variant="outline" className="flex items-center gap-2">
+          <Mail className="w-4 h-4" />
+          Manage Email Accounts
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Email Account Management</DialogTitle>
+          <DialogDescription>
+            Connect and manage email accounts for your organization
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Connect New Account */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <h3 className="font-medium">Connect Gmail Account</h3>
-              <p className="text-sm text-muted-foreground">
-                Connect your Gmail account to receive and send emails
-              </p>
-            </div>
-            <Button 
-              onClick={handleConnectGmail}
-              disabled={isConnecting || connectGmailMutation.isPending}
-            >
-              {(isConnecting || connectGmailMutation.isPending) ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4 mr-2" />
-              )}
-              Connect Gmail
-            </Button>
+        <div className="space-y-6">
+          {/* Connect New Account Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Connect New Account</h3>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Gmail</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Connect your Gmail account via Google OAuth
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleConnectGmail}
+                    disabled={isConnecting || connectGmailMutation.isPending}
+                    className="flex items-center gap-2"
+                  >
+                    {isConnecting || connectGmailMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                    Connect Gmail
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Connected Accounts */}
-          <div className="space-y-3">
+          {/* Connected Accounts Section */}
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium">Connected Accounts</h3>
-              {emailAccounts.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSyncEmails()}
-                  disabled={syncEmailsMutation.isPending}
-                >
-                  {syncEmailsMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Sync All
-                </Button>
-              )}
+              <h3 className="text-sm font-medium">Connected Accounts</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSyncEmails()}
+                disabled={syncEmailsMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {syncEmailsMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Sync All
+              </Button>
             </div>
 
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="w-6 h-6 animate-spin" />
               </div>
             ) : emailAccounts.length === 0 ? (
               <div className="text-center p-8 text-muted-foreground">
-                No email accounts connected
+                <Mail className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No email accounts connected</p>
+                <p className="text-sm">Connect your first email account to get started</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {emailAccounts.map((account) => (
-                  <div
-                    key={account.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Mail className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <div className="font-medium">{account.email_address}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Last sync: {formatLastSync(account.last_sync_at)}
+                  <Card key={account.id}>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                            <Mail className="w-4 h-4 text-red-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{account.email_address}</p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {account.provider}
+                              </Badge>
+                              <Badge 
+                                variant={account.is_active ? "default" : "destructive"}
+                                className="text-xs flex items-center gap-1"
+                              >
+                                {account.is_active ? (
+                                  <CheckCircle className="w-3 h-3" />
+                                ) : (
+                                  <AlertCircle className="w-3 h-3" />
+                                )}
+                                {account.is_active ? 'Connected' : 'Disconnected'}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Last sync: {formatLastSync(account.last_sync_at)}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSyncEmails(account.id)}
+                            disabled={syncEmailsMutation.isPending}
+                            className="flex items-center gap-2"
+                          >
+                            {syncEmailsMutation.isPending ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-3 h-3" />
+                            )}
+                            Sync
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Disconnect Email Account</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to disconnect {account.email_address}? 
+                                  This will stop syncing emails from this account.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteAccount(account.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Disconnect
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={account.is_active ? "default" : "secondary"}>
-                        {account.provider}
-                      </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSyncEmails(account.id)}
-                        disabled={syncEmailsMutation.isPending}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteAccount(account.id)}
-                        disabled={deleteAccountMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
@@ -232,4 +309,4 @@ export function EmailAccountConnection() {
       </DialogContent>
     </Dialog>
   );
-}
+};

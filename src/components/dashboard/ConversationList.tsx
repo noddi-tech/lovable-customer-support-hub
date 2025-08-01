@@ -1,288 +1,311 @@
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { 
-  Mail, 
-  MessageCircle, 
-  Camera, 
-  Phone, 
-  Clock,
-  Star,
-  MoreHorizontal
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Filter, Inbox, Clock, Archive, Star, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type ConversationStatus = "open" | "pending" | "resolved" | "closed";
+type ConversationPriority = "low" | "normal" | "high" | "urgent";
+type ConversationChannel = "email" | "chat" | "phone" | "social";
+
+interface Customer {
+  id: string;
+  full_name: string;
+  email: string;
+}
+
+interface AssignedTo {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+}
 
 interface Conversation {
   id: string;
-  customer: {
-    name: string;
-    email: string;
-    avatar?: string;
-  };
   subject: string;
-  preview: string;
-  channel: 'email' | 'facebook' | 'instagram' | 'whatsapp';
-  status: 'open' | 'pending' | 'resolved';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  isUnread: boolean;
-  lastMessage: Date;
-  assignee?: {
-    name: string;
-    avatar?: string;
-  };
+  status: ConversationStatus;
+  priority: ConversationPriority;
+  is_read: boolean;
+  channel: ConversationChannel;
+  updated_at: string;
+  customer?: Customer;
+  assigned_to?: AssignedTo;
 }
 
 interface ConversationListProps {
-  selectedConversation?: string;
-  onSelectConversation: (id: string) => void;
+  selectedTab: string;
+  onSelectConversation: (conversation: Conversation) => void;
+  selectedConversation?: Conversation;
 }
 
-// Mock data for demonstration
-const mockConversations: Conversation[] = [
-  {
-    id: '1',
-    customer: {
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@email.com',
-      avatar: '/placeholder-avatar.jpg'
-    },
-    subject: 'Issue with recent order delivery',
-    preview: 'Hi, I ordered a product last week and it still hasn\'t arrived. Could you please check the status of my order #12345?',
-    channel: 'email',
-    status: 'open',
-    priority: 'high',
-    isUnread: true,
-    lastMessage: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-    assignee: { name: 'John Doe' }
-  },
-  {
-    id: '2',
-    customer: {
-      name: 'Mike Chen',
-      email: 'mike.chen@email.com'
-    },
-    subject: 'Product question',
-    preview: 'Does this product come with a warranty? I\'m particularly interested in the coverage for water damage.',
-    channel: 'facebook',
-    status: 'pending',
-    priority: 'normal',
-    isUnread: true,
-    lastMessage: new Date(Date.now() - 1000 * 60 * 45), // 45 minutes ago
-  },
-  {
-    id: '3',
-    customer: {
-      name: 'Lisa Anderson',
-      email: 'lisa.anderson@email.com'
-    },
-    subject: 'Return request',
-    preview: 'I would like to return this item as it doesn\'t fit properly. What\'s your return policy?',
-    channel: 'instagram',
-    status: 'resolved',
-    priority: 'normal',
-    isUnread: false,
-    lastMessage: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-  },
-  {
-    id: '4',
-    customer: {
-      name: 'David Wilson',
-      email: 'david.wilson@email.com'
-    },
-    subject: 'Technical support needed',
-    preview: 'The app keeps crashing when I try to access my account. This is very frustrating!',
-    channel: 'whatsapp',
-    status: 'open',
-    priority: 'urgent',
-    isUnread: true,
-    lastMessage: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-  }
-];
-
-const channelIcons = {
-  email: Mail,
-  facebook: MessageCircle,
-  instagram: Camera,
-  whatsapp: Phone
+const priorityColors = {
+  low: "bg-gray-100 text-gray-800",
+  normal: "bg-blue-100 text-blue-800",
+  high: "bg-orange-100 text-orange-800",
+  urgent: "bg-red-100 text-red-800",
 };
 
 const statusColors = {
-  open: 'bg-primary text-primary-foreground',
-  pending: 'bg-warning text-warning-foreground',
-  resolved: 'bg-success text-success-foreground'
+  open: "bg-green-100 text-green-800",
+  pending: "bg-yellow-100 text-yellow-800",
+  resolved: "bg-blue-100 text-blue-800",
+  closed: "bg-gray-100 text-gray-800",
 };
 
-const priorityColors = {
-  low: 'text-muted-foreground',
-  normal: 'text-foreground',
-  high: 'text-warning',
-  urgent: 'text-destructive'
+const channelIcons = {
+  email: "📧",
+  chat: "💬",
+  phone: "📞",
+  social: "📱",
 };
 
-export const ConversationList: React.FC<ConversationListProps> = ({ 
-  selectedConversation, 
-  onSelectConversation 
-}) => {
-  
-  // Fetch conversations from database
-  const { data: conversations = [], isLoading } = useQuery({
-    queryKey: ['conversations'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_conversations');
-
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        return [];
-      }
-      return data;
-    },
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="w-full md:w-96 bg-card border-r border-border h-full flex flex-col">
-        <div className="p-3 md:p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base md:text-lg font-semibold text-foreground">Conversations</h2>
-            <div className="animate-pulse bg-muted h-5 w-16 rounded"></div>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="animate-pulse p-4 border rounded-lg">
-              <div className="bg-muted h-4 w-3/4 rounded mb-2"></div>
-              <div className="bg-muted h-3 w-1/2 rounded"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+const getTabIcon = (tab: string) => {
+  switch (tab) {
+    case "inbox":
+      return <Inbox className="w-4 h-4" />;
+    case "pending":
+      return <Clock className="w-4 h-4" />;
+    case "archived":
+      return <Archive className="w-4 h-4" />;
+    case "starred":
+      return <Star className="w-4 h-4" />;
+    case "urgent":
+      return <AlertCircle className="w-4 h-4" />;
+    default:
+      return <Inbox className="w-4 h-4" />;
   }
+};
+
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return "Just now";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  
+  return date.toLocaleDateString();
+};
+
+export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation }: ConversationListProps) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+
+  // Mock data for now - will be replaced with actual data fetching
+  const mockConversations: Conversation[] = [
+    {
+      id: "1",
+      subject: "Need help with order #12345",
+      status: "open",
+      priority: "high",
+      is_read: false,
+      channel: "email",
+      updated_at: new Date(Date.now() - 3600000).toISOString(),
+      customer: {
+        id: "c1",
+        full_name: "John Doe",
+        email: "john@example.com",
+      },
+      assigned_to: {
+        id: "a1",
+        full_name: "Alice Smith",
+        avatar_url: "https://avatar.iran.liara.run/public/1",
+      },
+    },
+    {
+      id: "2",
+      subject: "Product inquiry",
+      status: "pending",
+      priority: "normal",
+      is_read: true,
+      channel: "chat",
+      updated_at: new Date(Date.now() - 7200000).toISOString(),
+      customer: {
+        id: "c2",
+        full_name: "Jane Wilson",
+        email: "jane@example.com",
+      },
+    },
+    {
+      id: "3",
+      subject: "Urgent: Payment issue",
+      status: "open",
+      priority: "urgent",
+      is_read: false,
+      channel: "email",
+      updated_at: new Date(Date.now() - 1800000).toISOString(),
+      customer: {
+        id: "c3",
+        full_name: "Bob Johnson",
+        email: "bob@example.com",
+      },
+    },
+  ];
+
+  const conversations = mockConversations;
+
+  const filteredConversations = conversations.filter((conversation) => {
+    const matchesSearch = conversation.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conversation.customer?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conversation.customer?.email.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || conversation.status === statusFilter;
+    const matchesPriority = priorityFilter === "all" || conversation.priority === priorityFilter;
+    
+    const matchesTab = (() => {
+      switch (selectedTab) {
+        case "inbox":
+          return conversation.status === "open" || conversation.status === "pending";
+        case "pending":
+          return conversation.status === "pending";
+        case "archived":
+          return conversation.status === "closed";
+        case "starred":
+          return false; // Placeholder for starred conversations
+        case "urgent":
+          return conversation.priority === "urgent";
+        default:
+          return true;
+      }
+    })();
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesTab;
+  });
+
+  const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
   return (
-    <div className="w-full md:w-96 bg-card border-r border-border h-full flex flex-col">
-      {/* Header */}
-      <div className="p-3 md:p-4 border-b border-border">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base md:text-lg font-semibold text-foreground">Conversations</h2>
-          <div className="flex items-center space-x-2">
-            <Badge variant="secondary" className="text-xs">
-              {conversations.filter((c: any) => !c.is_read).length} unread
-            </Badge>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <MoreHorizontal className="h-4 w-4" />
+    <div className="flex flex-col h-full">
+      <Card className="flex-1 flex flex-col">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              {getTabIcon(selectedTab)}
+              {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)}
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-2">{unreadCount}</Badge>
+              )}
+            </CardTitle>
+            <Button variant="outline" size="sm">
+              <Filter className="w-4 h-4 mr-2" />
+              Filter
             </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Conversation List */}
-      <div className="flex-1 overflow-y-auto">
-        {conversations.map((conversation: any) => {
-          const ChannelIcon = channelIcons[conversation.channel] || Mail;
-          const isSelected = selectedConversation === conversation.id;
           
-          return (
-            <div
-              key={conversation.id}
-              className={cn(
-                "p-3 md:p-4 border-b border-border cursor-pointer transition-colors",
-                isSelected ? "bg-accent" : "hover:bg-accent/50",
-                !conversation.is_read && !isSelected ? "border-l-4 border-l-primary" : ""
-              )}
-              onClick={() => onSelectConversation(conversation.id)}
-            >
-              <div className="flex items-start space-x-3">
-                {/* Customer Avatar */}
-                <Avatar className="h-10 w-10 flex-shrink-0">
-                  <AvatarImage src={conversation.customer?.avatar_url} />
-                  <AvatarFallback className="bg-muted text-muted-foreground">
-                    {conversation.customer?.full_name?.[0] || conversation.customer?.email?.[0] || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-
-                <div className="flex-1 min-w-0">
-                  {/* Header Row */}
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center space-x-2">
-                      <span className={cn(
-                        "font-medium text-sm truncate",
-                        !conversation.is_read ? "text-foreground" : "text-muted-foreground"
-                      )}>
-                        {conversation.customer?.full_name || conversation.customer?.email || 'Unknown'}
-                      </span>
-                      <ChannelIcon className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="resolved">Resolved</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priority</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="flex-1 p-0">
+          <div className="space-y-0">
+            {filteredConversations.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No conversations found</p>
+                <p className="text-sm">Try adjusting your search or filters</p>
+              </div>
+            ) : (
+              filteredConversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  onClick={() => onSelectConversation(conversation)}
+                  className={cn(
+                    "p-4 border-b border-border hover:bg-muted/50 cursor-pointer transition-colors",
+                    selectedConversation?.id === conversation.id && "bg-muted",
+                    !conversation.is_read && "border-l-4 border-l-primary"
+                  )}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{channelIcons[conversation.channel]}</span>
+                        <h3 className={cn(
+                          "text-sm truncate",
+                          !conversation.is_read ? "font-semibold" : "font-normal"
+                        )}>
+                          {conversation.subject}
+                        </h3>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge 
+                          variant="secondary" 
+                          className={cn("text-xs", statusColors[conversation.status])}
+                        >
+                          {conversation.status}
+                        </Badge>
+                        <Badge 
+                          variant="secondary" 
+                          className={cn("text-xs", priorityColors[conversation.priority])}
+                        >
+                          {conversation.priority}
+                        </Badge>
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground">
+                        <p>From: {conversation.customer?.full_name || "Unknown"}</p>
+                        {conversation.assigned_to && (
+                          <p>Assigned to: {conversation.assigned_to.full_name}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      {conversation.priority === 'urgent' && (
-                        <Star className="h-3 w-3 text-destructive fill-current" />
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(conversation.updated_at)}
-                      </span>
+                    
+                    <div className="text-xs text-muted-foreground ml-2">
+                      {formatTimeAgo(conversation.updated_at)}
                     </div>
-                  </div>
-
-                  {/* Subject */}
-                  <h4 className={cn(
-                    "text-sm font-medium truncate mb-1",
-                    !conversation.is_read ? "text-foreground" : "text-muted-foreground"
-                  )}>
-                    {conversation.subject || 'No Subject'}
-                  </h4>
-
-                  {/* Preview */}
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                    Latest conversation message
-                  </p>
-
-                  {/* Footer Row */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Badge 
-                        variant="outline" 
-                        className={cn("text-xs", statusColors[conversation.status])}
-                      >
-                        {conversation.status}
-                      </Badge>
-                      {conversation.assigned_to && (
-                        <div className="flex items-center space-x-1">
-                          <Avatar className="h-4 w-4">
-                            <AvatarImage src={conversation.assigned_to.avatar_url} />
-                            <AvatarFallback className="text-xs bg-muted">
-                              {conversation.assigned_to.full_name?.[0] || 'A'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-xs text-muted-foreground">
-                            {conversation.assigned_to.full_name}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <Clock className="h-3 w-3 text-muted-foreground" />
                   </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
