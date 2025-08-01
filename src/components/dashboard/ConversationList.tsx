@@ -131,7 +131,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_conversations', {});
+      const { data, error } = await supabase.rpc('get_conversations');
 
       if (error) {
         console.error('Error fetching conversations:', error);

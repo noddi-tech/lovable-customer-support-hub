@@ -24,7 +24,7 @@ export function EmailAccountConnection() {
   const { data: emailAccounts = [], isLoading } = useQuery({
     queryKey: ['email-accounts'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_email_accounts', {});
+      const { data, error } = await supabase.rpc('get_email_accounts');
 
       if (error) {
         console.error('Error fetching email accounts:', error);
