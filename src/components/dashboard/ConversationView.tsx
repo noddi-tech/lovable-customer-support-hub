@@ -107,7 +107,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   return (
     <div className="flex-1 flex flex-col bg-background">
       {/* Conversation Header */}
-      <div className="p-4 border-b border-border bg-card">
+      <div className="p-3 md:p-4 border-b border-border bg-card">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar className="h-10 w-10">
@@ -115,12 +115,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               <AvatarFallback>{conversation.customer.name[0]}</AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="font-semibold text-foreground">{conversation.subject}</h2>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <span>{conversation.customer.name}</span>
-                <span>•</span>
-                <span>{conversation.customer.email}</span>
-                <span>•</span>
+              <h2 className="font-semibold text-foreground text-sm md:text-base line-clamp-1">{conversation.subject}</h2>
+              <div className="flex items-center space-x-2 text-xs md:text-sm text-muted-foreground">
+                <span className="truncate">{conversation.customer.name}</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden sm:inline truncate">{conversation.customer.email}</span>
+                <span className="hidden sm:inline">•</span>
                 <Badge variant="outline" className="text-xs">
                   {conversation.channel}
                 </Badge>
@@ -128,25 +128,27 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 md:space-x-2">
             <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'}>
               {conversation.status}
             </Badge>
             <Badge variant={conversation.priority === 'high' ? 'destructive' : 'secondary'}>
               {conversation.priority}
             </Badge>
-            <Button variant="outline" size="sm">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Assign
-            </Button>
-            <Button variant="outline" size="sm">
-              <Archive className="h-4 w-4 mr-2" />
-              Archive
-            </Button>
-            <Button variant="outline" size="sm">
-              <Clock className="h-4 w-4 mr-2" />
-              Snooze
-            </Button>
+            <div className="hidden sm:flex items-center space-x-2">
+              <Button variant="outline" size="sm">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign
+              </Button>
+              <Button variant="outline" size="sm">
+                <Archive className="h-4 w-4 mr-2" />
+                Archive
+              </Button>
+              <Button variant="outline" size="sm">
+                <Clock className="h-4 w-4 mr-2" />
+                Snooze
+              </Button>
+            </div>
             <Button variant="ghost" size="sm">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
@@ -158,7 +160,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         {/* Messages Area */}
         <div className="flex-1 flex flex-col">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-6">
             {conversation.messages.map((message, index) => {
               const showDate = index === 0 || 
                 formatDate(message.timestamp) !== formatDate(conversation.messages[index - 1].timestamp);
@@ -174,7 +176,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   )}
                   
                   <div className={`flex ${message.sender === 'agent' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-2xl ${message.sender === 'agent' ? 'ml-12' : 'mr-12'}`}>
+                    <div className={`max-w-2xl ${message.sender === 'agent' ? 'ml-6 md:ml-12' : 'mr-6 md:mr-12'}`}>
                       {message.isInternal && (
                         <div className="text-xs text-warning mb-1 flex items-center">
                           <Star className="h-3 w-3 mr-1" />
@@ -220,7 +222,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
 
           {/* Reply Area */}
-          <div className="border-t border-border bg-card p-4">
+          <div className="border-t border-border bg-card p-3 md:p-4">
             <div className="space-y-3">
               {/* Toolbar */}
               <div className="flex items-center justify-between">
@@ -286,8 +288,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
 
-        {/* Customer Info Sidebar */}
-        <div className="w-80 border-l border-border bg-card p-4 overflow-y-auto">
+        {/* Customer Info Sidebar - Hidden on mobile */}
+        <div className="hidden lg:block w-80 border-l border-border bg-card p-4 overflow-y-auto">
           <div className="space-y-6">
             {/* Customer Details */}
             <Card>

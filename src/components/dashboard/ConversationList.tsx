@@ -139,11 +139,11 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   };
 
   return (
-    <div className="w-96 bg-card border-r border-border h-full flex flex-col">
+    <div className="w-full md:w-96 bg-card border-r border-border h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-border">
+      <div className="p-3 md:p-4 border-b border-border">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
+          <h2 className="text-base md:text-lg font-semibold text-foreground">Conversations</h2>
           <div className="flex items-center space-x-2">
             <Badge variant="secondary" className="text-xs">
               {conversations.filter(c => c.isUnread).length} unread
@@ -165,7 +165,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
             <div
               key={conversation.id}
               className={cn(
-                "p-4 border-b border-border cursor-pointer transition-colors",
+                "p-3 md:p-4 border-b border-border cursor-pointer transition-colors",
                 isSelected ? "bg-inbox-selected" : "hover:bg-inbox-hover",
                 conversation.isUnread && !isSelected ? "border-l-4 border-l-primary" : ""
               )}

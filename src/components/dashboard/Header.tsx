@@ -9,34 +9,54 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Search, Settings, LogOut, User } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
 
 interface HeaderProps {
   organizationName?: string;
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
+  onBackClick?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ organizationName = "Support Hub" }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  organizationName = "Support Hub", 
+  onMenuClick, 
+  showMenuButton = false,
+  onBackClick 
+}) => {
   const { user, signOut } = useAuth();
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 shadow-sm">
-      <div className="flex items-center space-x-4">
+    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 shadow-sm">
+      <div className="flex items-center space-x-2 md:space-x-4">
+        {/* Mobile Menu/Back Button */}
+        {showMenuButton && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onBackClick || onMenuClick}
+            className="md:hidden"
+          >
+            {onBackClick ? <ArrowLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        )}
+        
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">CS</span>
           </div>
-          <div>
-            <h1 className="font-semibold text-foreground">{organizationName}</h1>
-            <p className="text-xs text-muted-foreground">Customer Support Hub</p>
+          <div className="hidden sm:block">
+            <h1 className="font-semibold text-foreground text-sm md:text-base">{organizationName}</h1>
+            <p className="text-xs text-muted-foreground hidden md:block">Customer Support Hub</p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
-        {/* Search */}
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+      <div className="flex items-center space-x-2 md:space-x-4">
+        {/* Search - Hidden on mobile */}
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hidden sm:flex">
           <Search className="h-4 w-4" />
         </Button>
 
@@ -48,8 +68,8 @@ export const Header: React.FC<HeaderProps> = ({ organizationName = "Support Hub"
           </Badge>
         </Button>
 
-        {/* Settings */}
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+        {/* Settings - Hidden on mobile */}
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hidden sm:flex">
           <Settings className="h-4 w-4" />
         </Button>
 
