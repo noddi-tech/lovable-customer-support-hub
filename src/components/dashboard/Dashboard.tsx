@@ -51,8 +51,17 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex bg-background">
-      {/* Sidebar */}
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header */}
+      <Header 
+        organizationName="Noddi Support"
+        showMenuButton={isMobile}
+        onMenuClick={() => setShowSidebar(!showSidebar)}
+      />
+      
+      {/* Main Content */}
+      <div className="flex-1 flex bg-background">
+        {/* Sidebar */}
       <div className={`
         ${isMobile ? 'fixed left-0 top-0 bottom-0 z-50 transform transition-transform' : ''}
         ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}
@@ -72,8 +81,8 @@ export const Dashboard: React.FC = () => {
         />
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+        {/* Content Area */}
+        <div className="flex-1 flex overflow-hidden">
         {/* Conversation List */}
         <div className={`
           ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
@@ -109,6 +118,7 @@ export const Dashboard: React.FC = () => {
           <ConversationView 
             conversationId={selectedConversation?.id || null}
           />
+        </div>
         </div>
       </div>
     </div>

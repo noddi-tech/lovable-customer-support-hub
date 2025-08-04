@@ -99,7 +99,7 @@ export const Auth: React.FC = () => {
       
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -112,7 +112,13 @@ export const Auth: React.FC = () => {
       
       if (error) throw error;
       
-      setSuccess('Check your email for the confirmation link!');
+      // If user is created and confirmed immediately, redirect
+      if (data.user && !data.user.email_confirmed_at) {
+        setSuccess('Account created! Please check your email for the confirmation link.');
+      } else if (data.user) {
+        // User is immediately confirmed, redirect to main app
+        window.location.href = '/';
+      }
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign up');
     } finally {
