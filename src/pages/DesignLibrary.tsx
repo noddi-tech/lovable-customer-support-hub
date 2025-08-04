@@ -82,8 +82,9 @@ const DesignLibrary = () => {
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        <Tabs defaultValue="buttons" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="colors" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="colors">Colors</TabsTrigger>
             <TabsTrigger value="buttons">Buttons</TabsTrigger>
             <TabsTrigger value="forms">Forms</TabsTrigger>
             <TabsTrigger value="cards">Cards</TabsTrigger>
@@ -91,6 +92,231 @@ const DesignLibrary = () => {
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
             <TabsTrigger value="icons">Icons</TabsTrigger>
           </TabsList>
+
+          {/* Colors Section */}
+          <TabsContent value="colors" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Color Palette</CardTitle>
+                <CardDescription>
+                  Complete design system color palette with semantic naming
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                {/* Primary Colors */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Primary Colors</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-primary rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Primary</div>
+                        <div className="text-muted-foreground">--primary</div>
+                        <div className="text-muted-foreground">HSL(217, 91%, 60%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-primary-foreground border rounded-lg"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Primary Foreground</div>
+                        <div className="text-muted-foreground">--primary-foreground</div>
+                        <div className="text-muted-foreground">HSL(0, 0%, 98%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-secondary rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Secondary</div>
+                        <div className="text-muted-foreground">--secondary</div>
+                        <div className="text-muted-foreground">HSL(220, 14%, 96%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-secondary-foreground rounded-lg"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Secondary Foreground</div>
+                        <div className="text-muted-foreground">--secondary-foreground</div>
+                        <div className="text-muted-foreground">HSL(220, 9%, 46%)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Status Colors */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Status Colors</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-green-500 rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Success</div>
+                        <div className="text-muted-foreground">--success</div>
+                        <div className="text-muted-foreground">HSL(142, 76%, 36%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-yellow-500 rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Warning</div>
+                        <div className="text-muted-foreground">--warning</div>
+                        <div className="text-muted-foreground">HSL(38, 92%, 50%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-destructive rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Destructive</div>
+                        <div className="text-muted-foreground">--destructive</div>
+                        <div className="text-muted-foreground">HSL(0, 84%, 60%)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Background Colors */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Background Colors</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-background border rounded-lg"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Background</div>
+                        <div className="text-muted-foreground">--background</div>
+                        <div className="text-muted-foreground">HSL(250, 50%, 98%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-card border rounded-lg"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Card</div>
+                        <div className="text-muted-foreground">--card</div>
+                        <div className="text-muted-foreground">HSL(0, 0%, 100%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-muted border rounded-lg"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Muted</div>
+                        <div className="text-muted-foreground">--muted</div>
+                        <div className="text-muted-foreground">HSL(220, 14%, 96%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-accent border rounded-lg"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Accent</div>
+                        <div className="text-muted-foreground">--accent</div>
+                        <div className="text-muted-foreground">HSL(217, 91%, 95%)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Channel Colors */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Channel Colors</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-blue-600 rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Email</div>
+                        <div className="text-muted-foreground">--channel-email</div>
+                        <div className="text-muted-foreground">HSL(217, 91%, 60%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-blue-800 rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Facebook</div>
+                        <div className="text-muted-foreground">--channel-facebook</div>
+                        <div className="text-muted-foreground">HSL(221, 44%, 41%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-pink-600 rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Instagram</div>
+                        <div className="text-muted-foreground">--channel-instagram</div>
+                        <div className="text-muted-foreground">HSL(329, 69%, 56%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-green-600 rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">WhatsApp</div>
+                        <div className="text-muted-foreground">--channel-whatsapp</div>
+                        <div className="text-muted-foreground">HSL(142, 76%, 36%)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Text Colors */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Text Colors</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-foreground rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Foreground</div>
+                        <div className="text-muted-foreground">--foreground</div>
+                        <div className="text-muted-foreground">HSL(224, 71%, 4%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-muted-foreground rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Muted Foreground</div>
+                        <div className="text-muted-foreground">--muted-foreground</div>
+                        <div className="text-muted-foreground">HSL(220, 9%, 46%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-border rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Border</div>
+                        <div className="text-muted-foreground">--border</div>
+                        <div className="text-muted-foreground">HSL(220, 13%, 91%)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Gradients */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Gradients</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Primary Gradient</div>
+                        <div className="text-muted-foreground">--gradient-primary</div>
+                        <div className="text-muted-foreground">135deg, HSL(217 91% 60%), HSL(217 91% 55%)</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-16 w-full bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border"></div>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">Surface Gradient</div>
+                        <div className="text-muted-foreground">--gradient-surface</div>
+                        <div className="text-muted-foreground">135deg, HSL(0 0% 100%), HSL(220 14% 98%)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Buttons Section */}
           <TabsContent value="buttons" className="space-y-6">
