@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,57 +23,60 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 interface ConversationViewProps {
-  conversationId?: string;
+  conversationId?: string | null;
 }
-
-// Mock conversation data
-const mockConversation = {
-  id: '1',
-  customer: {
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@email.com',
-    avatar: '/placeholder-avatar.jpg',
-    organization: 'Noddi Customer',
-    customerSince: '2023-01-15'
-  },
-  subject: 'Issue with recent order delivery',
-  channel: 'email',
-  status: 'open',
-  priority: 'high',
-  assignee: {
-    name: 'John Doe',
-    avatar: '/placeholder-avatar.jpg'
-  },
-  messages: [
-    {
-      id: '1',
-      sender: 'customer',
-      content: 'Hi, I ordered a product last week and it still hasn\'t arrived. Could you please check the status of my order #12345? This is quite urgent as I need it for an important meeting tomorrow.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      isInternal: false
-    },
-    {
-      id: '2',
-      sender: 'agent',
-      content: 'Hi Sarah, thank you for contacting us. I\'m looking into your order #12345 right now. I can see that it was shipped yesterday and should arrive by tomorrow morning. I\'ll send you the tracking information shortly.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      isInternal: false,
-      agentName: 'John Doe'
-    },
-    {
-      id: '3',
-      sender: 'agent',
-      content: 'Internal note: Customer seems frustrated. Priority order due to business meeting. Follow up if not delivered by tomorrow.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 25),
-      isInternal: true,
-      agentName: 'John Doe'
-    }
-  ]
-};
 
 export const ConversationView: React.FC<ConversationViewProps> = ({ conversationId }) => {
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
+
+  // Fetch conversation details
+  const { data: conversation, isLoading: conversationLoading } = useQuery({
+    queryKey: ['conversation', conversationId],
+    queryFn: async () => {
+      if (!conversationId) return null;
+      
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          *,
+          customer:customers(*),
+          assigned_to:profiles(*)
+        `)
+        .eq('id', conversationId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching conversation:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!conversationId,
+  });
+
+  // Fetch messages for this conversation
+  const { data: messages = [], isLoading: messagesLoading } = useQuery({
+    queryKey: ['messages', conversationId],
+    queryFn: async () => {
+      if (!conversationId) return [];
+      
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return [];
+      }
+      
+      return data;
+    },
+    enabled: !!conversationId,
+  });
 
   if (!conversationId) {
     return (
@@ -96,7 +101,27 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     );
   }
 
-  const conversation = mockConversation;
+  if (conversationLoading || messagesLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Clock className="h-8 w-8 mx-auto text-muted-foreground animate-spin" />
+          <p className="text-muted-foreground">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!conversation) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground" />
+          <p className="text-muted-foreground">Conversation not found</p>
+        </div>
+      </div>
+    );
+  }
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
@@ -122,15 +147,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={conversation.customer.avatar} />
-              <AvatarFallback>{conversation.customer.name[0]}</AvatarFallback>
+              <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
             </Avatar>
             <div>
               <h2 className="font-semibold text-foreground text-sm md:text-base line-clamp-1">{conversation.subject}</h2>
               <div className="flex items-center space-x-2 text-xs md:text-sm text-muted-foreground">
-                <span className="truncate">{conversation.customer.name}</span>
+                <span className="truncate">{conversation.customer?.full_name || 'Unknown Customer'}</span>
                 <span className="hidden sm:inline">•</span>
-                <span className="hidden sm:inline truncate">{conversation.customer.email}</span>
+                <span className="hidden sm:inline truncate">{conversation.customer?.email}</span>
                 <span className="hidden sm:inline">•</span>
                 <Badge variant="outline" className="text-xs">
                   {conversation.channel}
@@ -143,7 +167,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'}>
               {conversation.status}
             </Badge>
-            <Badge variant={conversation.priority === 'high' ? 'destructive' : 'secondary'}>
+            <Badge variant={conversation.priority === 'high' || conversation.priority === 'urgent' ? 'destructive' : 'secondary'}>
               {conversation.priority}
             </Badge>
             <div className="hidden sm:flex items-center space-x-2">
@@ -172,64 +196,72 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         <div className="flex-1 flex flex-col">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-6">
-            {conversation.messages.map((message, index) => {
-              const showDate = index === 0 || 
-                formatDate(message.timestamp) !== formatDate(conversation.messages[index - 1].timestamp);
-              
-              return (
-                <div key={message.id}>
-                  {showDate && (
-                    <div className="flex items-center justify-center my-6">
-                      <div className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                        {formatDate(message.timestamp)}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className={`flex ${message.sender === 'agent' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-2xl ${message.sender === 'agent' ? 'ml-6 md:ml-12' : 'mr-6 md:mr-12'}`}>
-                      {message.isInternal && (
-                        <div className="text-xs text-warning mb-1 flex items-center">
-                          <Star className="h-3 w-3 mr-1" />
-                          Internal Note
+            {messages.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No messages in this conversation yet</p>
+              </div>
+            ) : (
+              messages.map((message, index) => {
+                const messageDate = new Date(message.created_at);
+                const showDate = index === 0 || 
+                  formatDate(messageDate) !== formatDate(new Date(messages[index - 1].created_at));
+                
+                return (
+                  <div key={message.id}>
+                    {showDate && (
+                      <div className="flex items-center justify-center my-6">
+                        <div className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                          {formatDate(messageDate)}
                         </div>
-                      )}
-                      
-                      <Card className={`${
-                        message.isInternal 
-                          ? 'bg-warning-muted border-warning' 
-                          : message.sender === 'agent' 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-card'
-                      }`}>
-                        <CardContent className="p-4">
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                      </div>
+                    )}
+                    
+                    <div className={`flex ${message.sender_type === 'agent' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-2xl ${message.sender_type === 'agent' ? 'ml-6 md:ml-12' : 'mr-6 md:mr-12'}`}>
+                        {message.is_internal && (
+                          <div className="text-xs text-warning mb-1 flex items-center">
+                            <Star className="h-3 w-3 mr-1" />
+                            Internal Note
+                          </div>
+                        )}
+                        
+                        <Card className={`${
+                          message.is_internal 
+                            ? 'bg-warning-muted border-warning' 
+                            : message.sender_type === 'agent' 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'bg-card'
+                        }`}>
+                          <CardContent className="p-4">
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
                             <div className="flex items-center space-x-2">
-                              {message.sender === 'agent' && (
+                              {message.sender_type === 'agent' && (
                                 <>
                                   <Avatar className="h-4 w-4">
                                     <AvatarFallback className="text-xs">
-                                      {message.agentName?.[0] || 'A'}
+                                      A
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="text-xs opacity-70">
-                                    {message.agentName}
+                                    Agent
                                   </span>
                                 </>
                               )}
                             </div>
-                            <span className="text-xs opacity-70">
-                              {formatTime(message.timestamp)}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
+                              <span className="text-xs opacity-70">
+                                {formatTime(messageDate)}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* Reply Area */}
@@ -310,12 +342,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={conversation.customer.avatar} />
-                    <AvatarFallback>{conversation.customer.name[0]}</AvatarFallback>
+                    <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h4 className="font-medium text-foreground">{conversation.customer.name}</h4>
-                    <p className="text-sm text-muted-foreground">{conversation.customer.email}</p>
+                    <h4 className="font-medium text-foreground">{conversation.customer?.full_name || 'Unknown Customer'}</h4>
+                    <p className="text-sm text-muted-foreground">{conversation.customer?.email}</p>
                   </div>
                 </div>
                 
@@ -323,13 +354,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Organization:</span>
-                    <span className="text-foreground">{conversation.customer.organization}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Customer since:</span>
                     <span className="text-foreground">
-                      {new Date(conversation.customer.customerSince).toLocaleDateString()}
+                      {conversation.customer?.created_at ? new Date(conversation.customer.created_at).toLocaleDateString() : 'Unknown'}
                     </span>
                   </div>
                 </div>
