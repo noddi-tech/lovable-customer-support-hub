@@ -70,9 +70,52 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Customer email not found');
     }
 
-    if (!emailAccount?.access_token) {
-      console.error('No Gmail access token found');
+    if (!emailAccount?.access_token || !emailAccount?.refresh_token) {
+      console.error('No Gmail tokens found');
       throw new Error('Gmail account not properly connected');
+    }
+
+    // Check if token is expired and refresh if needed
+    let accessToken = emailAccount.access_token;
+    const tokenExpiry = new Date(emailAccount.token_expires_at);
+    const now = new Date();
+    
+    if (tokenExpiry <= now) {
+      console.log('Access token expired, refreshing...');
+      
+      const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: emailAccount.refresh_token,
+          client_id: Deno.env.get('GOOGLE_CLIENT_ID') ?? '',
+          client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
+        }),
+      });
+
+      if (!refreshResponse.ok) {
+        const errorText = await refreshResponse.text();
+        console.error('Token refresh failed:', refreshResponse.status, errorText);
+        throw new Error('Failed to refresh Gmail access token. Please reconnect your Gmail account.');
+      }
+
+      const refreshData = await refreshResponse.json();
+      accessToken = refreshData.access_token;
+      
+      // Update the database with new token
+      const newExpiryTime = new Date(Date.now() + (refreshData.expires_in * 1000));
+      await supabaseClient
+        .from('email_accounts')
+        .update({ 
+          access_token: accessToken,
+          token_expires_at: newExpiryTime.toISOString()
+        })
+        .eq('id', emailAccount.id);
+      
+      console.log('Token refreshed successfully');
     }
 
     // Create email content in RFC 2822 format
@@ -113,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
     const gmailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${emailAccount.access_token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
