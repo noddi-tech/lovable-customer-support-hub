@@ -15,9 +15,9 @@ interface OAuthRequest {
 const GOOGLE_CLIENT_ID = "1072539713646-gvkvnmg9v5d15fttugh6om7safekmh4p.apps.googleusercontent.com";
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET');
 const REDIRECT_URI = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/gmail-oauth`;
-
-// Simplified scopes - only for sending emails, not reading
+// Scopes for Gmail integration
 const SCOPES = [
+  'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/userinfo.email'
 ].join(' ');
@@ -28,6 +28,143 @@ serve(async (req: Request) => {
   }
 
   try {
+    const url = new URL(req.url);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+
+    // If there's a code parameter, this is a callback from Google
+    if (code && state) {
+      console.log('Processing OAuth callback with code:', code);
+      
+      // Exchange code for tokens
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET!,
+          code,
+          grant_type: 'authorization_code',
+          redirect_uri: REDIRECT_URI,
+        }),
+      });
+
+      const tokens = await tokenResponse.json();
+      
+      if (!tokens.access_token) {
+        console.error('Token exchange failed:', tokens);
+        return new Response(`
+          <html>
+            <body>
+              <h1>Error</h1>
+              <p>Failed to connect Gmail account. Please try again.</p>
+              <script>
+                setTimeout(() => window.close(), 3000);
+              </script>
+            </body>
+          </html>
+        `, {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        });
+      }
+
+      // Get user info from Google
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      });
+      const userInfo = await userInfoResponse.json();
+
+      // Create Supabase client with service role key for callback
+      const supabaseClient = createClient(
+        'https://qgfaycwsangsqzpveoup.supabase.co',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      // Get user's organization using the state parameter (user ID)
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', state)
+        .single();
+
+      if (!profile) {
+        console.error('User profile not found for user ID:', state);
+        return new Response(`
+          <html>
+            <body>
+              <h1>Error</h1>
+              <p>User profile not found. Please try again.</p>
+              <script>
+                setTimeout(() => window.close(), 3000);
+              </script>
+            </body>
+          </html>
+        `, {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        });
+      }
+
+      // Store email account
+      const { data: emailAccount, error } = await supabaseClient
+        .from('email_accounts')
+        .upsert({
+          organization_id: profile.organization_id,
+          user_id: state,
+          email_address: userInfo.email,
+          provider: 'gmail',
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+          is_active: true,
+        }, {
+          onConflict: 'email_address,organization_id'
+        })
+        .select();
+
+      if (error) {
+        console.error('Error storing email account:', error);
+        return new Response(`
+          <html>
+            <body>
+              <h1>Error</h1>
+              <p>Failed to store email account. Please try again.</p>
+              <script>
+                setTimeout(() => window.close(), 3000);
+              </script>
+            </body>
+          </html>
+        `, {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        });
+      }
+
+      console.log('Gmail account connected successfully:', userInfo.email);
+
+      // Return success page that closes the popup
+      return new Response(`
+        <html>
+          <body>
+            <h1>Success!</h1>
+            <p>Gmail account "${userInfo.email}" connected successfully.</p>
+            <script>
+              // Send message to parent window
+              if (window.opener) {
+                window.opener.postMessage({ type: 'gmail_connected', email: '${userInfo.email}' }, '*');
+              }
+              setTimeout(() => window.close(), 2000);
+            </script>
+          </body>
+        </html>
+      `, {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+      });
+    }
+
+    // If no code, this is an authorization request - need authentication
     const supabaseClient = createClient(
       'https://qgfaycwsangsqzpveoup.supabase.co',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -46,91 +183,7 @@ serve(async (req: Request) => {
       });
     }
 
-    const url = new URL(req.url);
-    const code = url.searchParams.get('code');
-    const state = url.searchParams.get('state');
-
-    // If there's a code parameter, this is a callback from Google
-    if (code) {
-      // Exchange code for tokens
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: GOOGLE_CLIENT_ID,
-          client_secret: GOOGLE_CLIENT_SECRET!,
-          code,
-          grant_type: 'authorization_code',
-          redirect_uri: REDIRECT_URI,
-        }),
-      });
-
-      const tokens = await tokenResponse.json();
-      
-      if (!tokens.access_token) {
-        console.error('Token exchange failed:', tokens);
-        return new Response(JSON.stringify({ error: 'Token exchange failed' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Get user info from Google
-      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${tokens.access_token}` },
-      });
-      const userInfo = await userInfoResponse.json();
-
-      // Get user's organization
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) {
-        return new Response(JSON.stringify({ error: 'User profile not found' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Store email account
-      const { data: emailAccount, error } = await supabaseClient
-        .from('email_accounts')
-        .upsert({
-          organization_id: profile.organization_id,
-          user_id: user.id,
-          email_address: userInfo.email,
-          provider: 'gmail',
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-          token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-          is_active: true,
-        }, {
-          onConflict: 'email_address,organization_id'
-        })
-        .select();
-
-      if (error) {
-        console.error('Error storing email account:', error);
-        return new Response(JSON.stringify({ error: 'Failed to store email account' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Redirect to success page
-      return new Response(null, {
-        status: 302,
-        headers: {
-          ...corsHeaders,
-          'Location': `${url.origin}/?gmail_connected=true`,
-        },
-      });
-    }
-
-    // If no code, this is an authorization request - generate auth URL
+    // Generate auth URL
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
     authUrl.searchParams.set('redirect_uri', REDIRECT_URI);

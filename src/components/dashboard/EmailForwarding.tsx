@@ -195,25 +195,65 @@ export function EmailForwarding() {
     syncEmailsMutation.mutate(accountId);
   };
 
-  const handleGmailConnect = () => {
-    // Open Gmail OAuth popup
-    const popup = window.open(
-      'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/gmail-oauth',
-      'gmail-auth',
-      'width=500,height=600'
-    );
-    
-    // Listen for popup to close and refresh data
-    const checkClosed = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(checkClosed);
-        queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+  const handleGmailConnect = async () => {
+    try {
+      // First, get the auth URL from our edge function
+      const { data, error } = await supabase.functions.invoke('gmail-oauth');
+      
+      if (error) {
         toast({
-          title: "Gmail Connected",
-          description: "Your Gmail account has been connected successfully.",
+          title: "Error",
+          description: "Failed to initiate Gmail connection",
+          variant: "destructive",
         });
+        return;
       }
-    }, 1000);
+
+      // Open the Google OAuth URL in a popup
+      const popup = window.open(
+        data.authUrl,
+        'gmail-auth',
+        'width=500,height=600'
+      );
+
+      if (!popup) {
+        toast({
+          title: "Error",
+          description: "Popup blocked. Please allow popups and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Listen for messages from the popup
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data.type === 'gmail_connected') {
+          queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+          toast({
+            title: "Gmail Connected",
+            description: `Gmail account "${event.data.email}" connected successfully.`,
+          });
+          window.removeEventListener('message', handleMessage);
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+
+      // Also check if popup is closed manually
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
+        }
+      }, 1000);
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect Gmail account",
+        variant: "destructive",
+      });
+    }
   };
 
   const copyForwardingAddress = async (address: string) => {
