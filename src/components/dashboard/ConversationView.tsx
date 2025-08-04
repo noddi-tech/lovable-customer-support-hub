@@ -227,6 +227,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   // Delete a failed message
   const deleteMessage = async (messageId: string) => {
     try {
+      // Optimistically update the UI
+      queryClient.setQueryData(['messages', conversationId], (oldMessages: any[]) => {
+        if (!oldMessages) return [];
+        return oldMessages.filter(msg => msg.id !== messageId);
+      });
+
       const { error } = await supabase
         .from('messages')
         .delete()
@@ -234,10 +240,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      // Invalidate and refetch to ensure consistency
+      await queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       toast.success('Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       toast.error('Failed to delete message');
     }
   };
