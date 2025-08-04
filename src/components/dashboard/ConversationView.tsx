@@ -30,43 +30,56 @@ interface ConversationViewProps {
 export const ConversationView: React.FC<ConversationViewProps> = ({ conversationId }) => {
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const queryClient = useQueryClient();
 
-  // Mutation to send reply/note
-  const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, isInternal }: { content: string; isInternal: boolean }) => {
-      if (!conversationId) throw new Error('No conversation selected');
-      
-      const { error } = await supabase
+  const handleSendMessage = async () => {
+    if (!replyText.trim()) return;
+    
+    try {
+      // First, save the message to the database
+      const { data: newMessage, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          content: content.trim(),
-          is_internal: isInternal,
+          content: replyText.trim(),
+          is_internal: isInternalNote,
           sender_type: 'agent',
           content_type: 'text'
-        });
-      
+        })
+        .select()
+        .single();
+
       if (error) throw error;
-    },
-    onSuccess: () => {
+
+      // If it's not an internal note, send the actual email
+      if (!isInternalNote && newMessage) {
+        console.log('Calling email sending function for message:', newMessage.id);
+        
+        const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
+          body: { messageId: newMessage.id },
+        });
+
+        if (emailError) {
+          console.error('Error sending email:', emailError);
+          toast.error('Reply saved but email failed to send');
+        } else {
+          console.log('Email sent successfully');
+          toast.success('Reply sent successfully');
+        }
+      } else {
+        toast.success('Internal note added');
+      }
+
+      // Reset form and refresh data
       setReplyText('');
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(isInternalNote ? 'Internal note added' : 'Reply sent');
-    },
-    onError: (error) => {
+      
+    } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
     }
-  });
-
-  const handleSendMessage = () => {
-    if (!replyText.trim()) return;
-    sendMessageMutation.mutate({ 
-      content: replyText, 
-      isInternal: isInternalNote 
-    });
   };
 
   // Fetch conversation details
@@ -360,11 +373,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 </div>
                 <Button 
                   className="bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
-                  disabled={!replyText.trim() || sendMessageMutation.isPending}
-                  onClick={handleSendMessage}
+                  disabled={!replyText.trim() || isSending}
+                  onClick={async () => {
+                    setIsSending(true);
+                    await handleSendMessage();
+                    setIsSending(false);
+                  }}
                 >
                   <Send className="h-4 w-4 mr-2" />
-                  {sendMessageMutation.isPending 
+                  {isSending 
                     ? (isInternalNote ? 'Adding...' : 'Sending...') 
                     : (isInternalNote ? 'Add Note' : 'Send Reply')
                   }
