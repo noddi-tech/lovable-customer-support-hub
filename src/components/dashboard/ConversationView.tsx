@@ -67,9 +67,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         console.log('Calling email sending function for message:', newMessage.id);
         
         try {
-          const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
+          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-reply-email', {
             body: { messageId: newMessage.id },
           });
+
+          console.log('Email function response:', { data: emailData, error: emailError });
 
           if (emailError) {
             console.error('Error sending email:', emailError);
@@ -80,16 +82,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               .update({ email_status: 'failed' })
               .eq('id', newMessage.id);
             
-            toast.error('Reply saved but email failed to send');
-          } else {
-            console.log('Email sent successfully');
+            toast.error(`Email failed to send: ${emailError.message}`);
+          } else if (emailData?.error) {
+            console.error('Email function returned error:', emailData.error);
             
-            // Update message status to sent
+            // Update message status to failed
             await supabase
               .from('messages')
-              .update({ email_status: 'sent' })
+              .update({ email_status: 'failed' })
               .eq('id', newMessage.id);
             
+            toast.error(`Email failed to send: ${emailData.error}`);
+          } else {
+            console.log('Email sent successfully:', emailData);
             toast.success('Reply sent successfully');
           }
         } catch (emailError) {
