@@ -18,7 +18,9 @@ import {
   Bold,
   Italic,
   Link2,
-  MessageSquare
+  MessageSquare,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -36,8 +38,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const handleSendMessage = async () => {
     if (!replyText.trim()) return;
     
+    setIsSending(true);
+    
     try {
-      // First, save the message to the database
+      // First, save the message to the database with 'sending' status
       const { data: newMessage, error } = await supabase
         .from('messages')
         .insert({
@@ -45,40 +49,72 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           content: replyText.trim(),
           is_internal: isInternalNote,
           sender_type: 'agent',
-          content_type: 'text'
+          content_type: 'text',
+          email_status: isInternalNote ? 'sent' : 'sending'  // Internal notes don't need email sending
         })
         .select()
         .single();
 
       if (error) throw error;
 
+      // Reset form and refresh data immediately to show the message
+      setReplyText('');
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+
       // If it's not an internal note, send the actual email
       if (!isInternalNote && newMessage) {
         console.log('Calling email sending function for message:', newMessage.id);
         
-        const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
-          body: { messageId: newMessage.id },
-        });
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
+            body: { messageId: newMessage.id },
+          });
 
-        if (emailError) {
-          console.error('Error sending email:', emailError);
+          if (emailError) {
+            console.error('Error sending email:', emailError);
+            
+            // Update message status to failed
+            await supabase
+              .from('messages')
+              .update({ email_status: 'failed' })
+              .eq('id', newMessage.id);
+            
+            toast.error('Reply saved but email failed to send');
+          } else {
+            console.log('Email sent successfully');
+            
+            // Update message status to sent
+            await supabase
+              .from('messages')
+              .update({ email_status: 'sent' })
+              .eq('id', newMessage.id);
+            
+            toast.success('Reply sent successfully');
+          }
+        } catch (emailError) {
+          console.error('Error in email sending:', emailError);
+          
+          // Update message status to failed
+          await supabase
+            .from('messages')
+            .update({ email_status: 'failed' })
+            .eq('id', newMessage.id);
+          
           toast.error('Reply saved but email failed to send');
-        } else {
-          console.log('Email sent successfully');
-          toast.success('Reply sent successfully');
         }
+        
+        // Refresh data again to show updated status
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       } else {
         toast.success('Internal note added');
       }
-
-      // Reset form and refresh data
-      setReplyText('');
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -174,6 +210,25 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       </div>
     );
   }
+
+  // Helper function to get status icon
+  const getStatusIcon = (message: any) => {
+    if (message.is_internal) {
+      return <CheckCircle className="h-3 w-3 text-green-500" />;
+    }
+    
+    switch (message.email_status) {
+      case 'sent':
+        return <CheckCircle className="h-3 w-3 text-green-500" />;
+      case 'sending':
+        return <Clock className="h-3 w-3 text-orange-500 animate-spin" />;
+      case 'failed':
+        return <XCircle className="h-3 w-3 text-red-500" />;
+      case 'pending':
+      default:
+        return <Clock className="h-3 w-3 text-orange-500" />;
+    }
+  };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
@@ -288,23 +343,26 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           <CardContent className="p-4">
                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                             <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                            <div className="flex items-center space-x-2">
-                              {message.sender_type === 'agent' && (
-                                <>
-                                  <Avatar className="h-4 w-4">
-                                    <AvatarFallback className="text-xs">
-                                      A
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-xs opacity-70">
-                                    Agent
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                              <span className="text-xs opacity-70">
-                                {formatTime(messageDate)}
-                              </span>
+                              <div className="flex items-center space-x-2">
+                                {message.sender_type === 'agent' && (
+                                  <>
+                                    <Avatar className="h-4 w-4">
+                                      <AvatarFallback className="text-xs">
+                                        A
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-xs opacity-70">
+                                      Agent
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {message.sender_type === 'agent' && getStatusIcon(message)}
+                                <span className="text-xs opacity-70">
+                                  {formatTime(messageDate)}
+                                </span>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>

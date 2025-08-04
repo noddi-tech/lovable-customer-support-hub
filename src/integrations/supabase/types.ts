@@ -243,6 +243,7 @@ export type Database = {
           created_at: string
           email_headers: Json | null
           email_message_id: string | null
+          email_status: string | null
           email_subject: string | null
           email_thread_id: string | null
           external_id: string | null
@@ -259,6 +260,7 @@ export type Database = {
           created_at?: string
           email_headers?: Json | null
           email_message_id?: string | null
+          email_status?: string | null
           email_subject?: string | null
           email_thread_id?: string | null
           external_id?: string | null
@@ -275,6 +277,7 @@ export type Database = {
           created_at?: string
           email_headers?: Json | null
           email_message_id?: string | null
+          email_status?: string | null
           email_subject?: string | null
           email_thread_id?: string | null
           external_id?: string | null

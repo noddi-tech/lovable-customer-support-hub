@@ -136,6 +136,16 @@ const handler = async (req: Request): Promise<Response> => {
     const gmailResult = await gmailResponse.json();
     console.log('Email sent successfully via Gmail:', gmailResult);
 
+    // Update message status to 'sent' in the database
+    const { error: updateError } = await supabaseClient
+      .from('messages')
+      .update({ email_status: 'sent' })
+      .eq('id', messageId);
+
+    if (updateError) {
+      console.error('Error updating message status:', updateError);
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       messageId: gmailResult.id,
