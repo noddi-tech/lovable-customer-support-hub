@@ -52,7 +52,7 @@ export default function Settings() {
         <div className="max-w-6xl mx-auto">
           <Tabs defaultValue="inboxes" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-1">
-              <TabsTrigger value="inboxes" disabled={!isAdmin} className="flex items-center gap-2">
+              <TabsTrigger value="inboxes" className="flex items-center gap-2">
                 <Inbox className="w-4 h-4" />
                 Inboxes
               </TabsTrigger>
@@ -85,16 +85,7 @@ export default function Settings() {
 
             {/* Inboxes Management */}
             <TabsContent value="inboxes" className="space-y-6">
-              {isAdmin ? (
-                <InboxManagement />
-              ) : (
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    You don't have permission to manage inboxes. Only administrators can manage organization inboxes.
-                  </AlertDescription>
-                </Alert>
-              )}
+              <InboxManagement />
             </TabsContent>
 
             {/* General Settings */}

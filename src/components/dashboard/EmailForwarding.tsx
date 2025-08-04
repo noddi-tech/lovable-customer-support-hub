@@ -19,16 +19,35 @@ interface EmailAccount {
   is_active: boolean;
   last_sync_at?: string;
   created_at: string;
+  inbox_id: string | null;
+}
+
+interface Inbox {
+  id: string;
+  name: string;
+  color: string;
+  is_default: boolean;
 }
 
 export function EmailForwarding() {
   const [email, setEmail] = useState("");
+  const [selectedInbox, setSelectedInbox] = useState<string>("");
   const [copiedForwarding, setCopiedForwarding] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, loading } = useAuth();
 
   console.log("EmailForwarding - User state:", { user: user?.id, loading });
+
+  // Fetch inboxes
+  const { data: inboxes = [] } = useQuery({
+    queryKey: ["inboxes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_inboxes");
+      if (error) throw error;
+      return data as Inbox[];
+    },
+  });
 
   // Fetch email accounts
   const { data: accounts = [], isLoading } = useQuery({
@@ -42,7 +61,7 @@ export function EmailForwarding() {
 
   // Add email forwarding mutation
   const addEmailMutation = useMutation({
-    mutationFn: async (emailAddress: string) => {
+    mutationFn: async ({ emailAddress, inboxId }: { emailAddress: string; inboxId: string }) => {
       console.log("Starting email forwarding setup for:", emailAddress);
       
       if (!user) {
@@ -85,6 +104,7 @@ export function EmailForwarding() {
         is_active: true,
         organization_id: profile.organization_id,
         user_id: user.id,
+        inbox_id: inboxId,
       };
 
       console.log("Inserting data:", insertData);
@@ -111,6 +131,7 @@ export function EmailForwarding() {
         description: "Your email forwarding has been configured successfully.",
       });
       setEmail("");
+      setSelectedInbox("");
     },
     onError: (error) => {
       toast({
@@ -187,8 +208,16 @@ export function EmailForwarding() {
       });
       return;
     }
+    if (!selectedInbox) {
+      toast({
+        title: "Inbox required",
+        description: "Please select an inbox for this email account.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (email) {
-      addEmailMutation.mutate(email);
+      addEmailMutation.mutate({ emailAddress: email, inboxId: selectedInbox });
     }
   };
 
@@ -355,6 +384,28 @@ export function EmailForwarding() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <Label htmlFor="inbox">Select Inbox</Label>
+              <Select value={selectedInbox} onValueChange={setSelectedInbox}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose which inbox to connect this email to" />
+                </SelectTrigger>
+                <SelectContent>
+                  {inboxes.map((inbox) => (
+                    <SelectItem key={inbox.id} value={inbox.id}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: inbox.color }}
+                        />
+                        <span>{inbox.name}</span>
+                        {inbox.is_default && <span className="text-xs text-muted-foreground">(Default)</span>}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="email">Your Email Address</Label>
               <Input
                 id="email"
@@ -396,6 +447,27 @@ export function EmailForwarding() {
               {/* Quick Add Form in Empty State */}
               <div className="max-w-md mx-auto">
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="empty-inbox">Select Inbox</Label>
+                    <Select value={selectedInbox} onValueChange={setSelectedInbox}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose inbox" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {inboxes.map((inbox) => (
+                          <SelectItem key={inbox.id} value={inbox.id}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: inbox.color }}
+                              />
+                              <span>{inbox.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Input
                     type="email"
                     placeholder="Enter your email address"
@@ -430,6 +502,17 @@ export function EmailForwarding() {
                         }`}>
                           {account.is_active ? "Active" : "Inactive"}
                         </span>
+                        {account.inbox_id && (
+                          <div className="flex items-center gap-1">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: inboxes.find(i => i.id === account.inbox_id)?.color || '#3B82F6' }}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {inboxes.find(i => i.id === account.inbox_id)?.name || 'Unknown Inbox'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       
                       {account.forwarding_address && (
