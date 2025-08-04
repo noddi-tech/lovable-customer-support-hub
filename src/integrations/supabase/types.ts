@@ -234,6 +234,66 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          body_background_color: string | null
+          body_text_color: string | null
+          created_at: string
+          created_by_id: string | null
+          footer_background_color: string | null
+          footer_content: string | null
+          footer_text_color: string | null
+          header_background_color: string | null
+          header_content: string | null
+          header_text_color: string | null
+          id: string
+          include_agent_name: boolean | null
+          is_default: boolean | null
+          name: string
+          organization_id: string
+          signature_content: string | null
+          updated_at: string
+        }
+        Insert: {
+          body_background_color?: string | null
+          body_text_color?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          footer_background_color?: string | null
+          footer_content?: string | null
+          footer_text_color?: string | null
+          header_background_color?: string | null
+          header_content?: string | null
+          header_text_color?: string | null
+          id?: string
+          include_agent_name?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          organization_id: string
+          signature_content?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body_background_color?: string | null
+          body_text_color?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          footer_background_color?: string | null
+          footer_content?: string | null
+          footer_text_color?: string | null
+          header_background_color?: string | null
+          header_content?: string | null
+          header_text_color?: string | null
+          id?: string
+          include_agent_name?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          organization_id?: string
+          signature_content?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachments: Json | null

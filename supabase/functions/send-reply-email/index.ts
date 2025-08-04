@@ -28,16 +28,18 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Message ID is required');
     }
 
-    // Get message details with conversation and customer info
+    // Get message details with conversation, customer, and sender info
     const { data: message, error: messageError } = await supabaseClient
       .from('messages')
       .select(`
         *,
         conversation:conversations(
           subject,
+          organization_id,
           customer:customers(email, full_name),
           email_account:email_accounts(*)
-        )
+        ),
+        sender:profiles(full_name, email)
       `)
       .eq('id', messageId)
       .single();
@@ -132,10 +134,73 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('Token refreshed successfully');
     }
 
+    // Get email template for the organization
+    const { data: template, error: templateError } = await supabaseClient
+      .from('email_templates')
+      .select('*')
+      .eq('organization_id', message.conversation.organization_id)
+      .eq('is_default', true)
+      .single();
+
+    if (templateError) {
+      console.log('No template found, using default styling');
+    }
+
+    // Use template settings or defaults
+    const templateSettings = template || {
+      header_background_color: '#3B82F6',
+      header_text_color: '#FFFFFF',
+      header_content: '',
+      footer_background_color: '#F8F9FA', 
+      footer_text_color: '#6B7280',
+      footer_content: 'Best regards,<br>Support Team',
+      body_background_color: '#FFFFFF',
+      body_text_color: '#374151',
+      signature_content: 'Best regards,<br>{{agent_name}}<br>Support Team',
+      include_agent_name: true
+    };
+
+    // Replace placeholders in signature
+    let signature = templateSettings.signature_content;
+    if (templateSettings.include_agent_name && message.sender?.full_name) {
+      signature = signature.replace('{{agent_name}}', message.sender.full_name);
+    } else {
+      signature = signature.replace('{{agent_name}}', 'Support Team');
+    }
+
     // Create email content in RFC 2822 format
     const subject = `Re: ${message.conversation.subject}`;
     const fromEmail = emailAccount.email_address;
     const toEmail = customer.email;
+    
+    // Build email HTML with custom template
+    const emailHTML = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: ${templateSettings.body_background_color};">
+        ${templateSettings.header_content ? `
+          <div style="background-color: ${templateSettings.header_background_color}; color: ${templateSettings.header_text_color}; padding: 20px; text-align: center;">
+            ${templateSettings.header_content}
+          </div>
+        ` : ''}
+        
+        <div style="padding: 30px; color: ${templateSettings.body_text_color}; line-height: 1.6;">
+          ${message.content.replace(/\n/g, '<br>')}
+        </div>
+        
+        ${signature ? `
+          <div style="padding: 20px 30px; margin-top: 20px;">
+            <div style="border-top: 1px solid #E5E7EB; padding-top: 20px;">
+              ${signature}
+            </div>
+          </div>
+        ` : ''}
+        
+        ${templateSettings.footer_content ? `
+          <div style="background-color: ${templateSettings.footer_background_color}; color: ${templateSettings.footer_text_color}; padding: 20px; text-align: center; font-size: 12px;">
+            ${templateSettings.footer_content}
+          </div>
+        ` : ''}
+      </div>
+    `;
     
     const emailContent = [
       `From: ${fromEmail}`,
@@ -143,19 +208,7 @@ const handler = async (req: Request): Promise<Response> => {
       `Subject: ${subject}`,
       'Content-Type: text/html; charset=utf-8',
       '',
-      `<div style="font-family: Arial, sans-serif; max-width: 600px;">`,
-      `<p>Hello ${customer.full_name || 'there'},</p>`,
-      `<div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">`,
-      message.content.replace(/\n/g, '<br>'),
-      `</div>`,
-      `<p style="color: #666; font-size: 14px; margin-top: 30px;">`,
-      `This email was sent in response to your message regarding: ${message.conversation.subject}`,
-      `</p>`,
-      `<hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">`,
-      `<p style="color: #888; font-size: 12px;">`,
-      `Best regards,<br>Support Team`,
-      `</p>`,
-      `</div>`
+      emailHTML
     ].join('\r\n');
 
     // Encode email content in base64url format

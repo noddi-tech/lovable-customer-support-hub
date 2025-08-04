@@ -10,7 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
 import { AdminPortal } from '@/components/admin/AdminPortal';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera } from 'lucide-react';
+import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette } from 'lucide-react';
+import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
@@ -48,7 +49,7 @@ export default function Settings() {
       <div className="container mx-auto py-6 px-4">
         <div className="max-w-6xl mx-auto">
           <Tabs defaultValue="inbox" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="inbox" className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Inbox
@@ -64,6 +65,10 @@ export default function Settings() {
               <TabsTrigger value="notifications" className="flex items-center gap-2">
                 <Bell className="w-4 h-4" />
                 Notifications
+              </TabsTrigger>
+              <TabsTrigger value="email-templates" className="flex items-center gap-2">
+                <Palette className="w-4 h-4" />
+                Email Design
               </TabsTrigger>
               <TabsTrigger value="admin" disabled={!isAdmin} className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
@@ -263,6 +268,11 @@ export default function Settings() {
                   </p>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Email Template Settings */}
+            <TabsContent value="email-templates" className="space-y-6">
+              <EmailTemplateSettings />
             </TabsContent>
 
             {/* Admin Portal */}
