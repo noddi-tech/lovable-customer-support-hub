@@ -33,6 +33,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendingTimeouts, setSendingTimeouts] = useState<Map<string, NodeJS.Timeout>>(new Map());
   const queryClient = useQueryClient();
 
   const handleSendMessage = async () => {
@@ -66,12 +67,47 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       if (!isInternalNote && newMessage) {
         console.log('Calling email sending function for message:', newMessage.id);
         
+        // Set up 15-second timeout
+        const timeoutId = setTimeout(async () => {
+          console.log('Email sending timeout reached for message:', newMessage.id);
+          
+          // Update message status to failed
+          await supabase
+            .from('messages')
+            .update({ email_status: 'failed' })
+            .eq('id', newMessage.id);
+          
+          // Remove timeout from tracking
+          setSendingTimeouts(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(newMessage.id);
+            return newMap;
+          });
+          
+          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+          toast.error('Email sending timed out after 15 seconds');
+        }, 15000);
+        
+        // Track the timeout
+        setSendingTimeouts(prev => new Map(prev).set(newMessage.id, timeoutId));
+        
         try {
           const { data: emailData, error: emailError } = await supabase.functions.invoke('send-reply-email', {
             body: { messageId: newMessage.id },
           });
 
           console.log('Email function response:', { data: emailData, error: emailError });
+
+          // Clear timeout on any response
+          const timeoutId = sendingTimeouts.get(newMessage.id);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            setSendingTimeouts(prev => {
+              const newMap = new Map(prev);
+              newMap.delete(newMessage.id);
+              return newMap;
+            });
+          }
 
           if (emailError) {
             console.error('Error sending email:', emailError);
@@ -120,6 +156,88 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       toast.error('Failed to send message');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Retry sending a failed message
+  const retryMessage = async (messageId: string) => {
+    try {
+      // Update status to sending
+      await supabase
+        .from('messages')
+        .update({ email_status: 'sending' })
+        .eq('id', messageId);
+
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+
+      // Set up timeout
+      const timeoutId = setTimeout(async () => {
+        await supabase
+          .from('messages')
+          .update({ email_status: 'failed' })
+          .eq('id', messageId);
+        
+        setSendingTimeouts(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(messageId);
+          return newMap;
+        });
+        
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+        toast.error('Email sending timed out after 15 seconds');
+      }, 15000);
+
+      setSendingTimeouts(prev => new Map(prev).set(messageId, timeoutId));
+
+      // Attempt to send email
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-reply-email', {
+        body: { messageId },
+      });
+
+      // Clear timeout
+      const timeoutIdToCancel = sendingTimeouts.get(messageId);
+      if (timeoutIdToCancel) {
+        clearTimeout(timeoutIdToCancel);
+        setSendingTimeouts(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(messageId);
+          return newMap;
+        });
+      }
+
+      if (emailError || emailData?.error) {
+        await supabase
+          .from('messages')
+          .update({ email_status: 'failed' })
+          .eq('id', messageId);
+        
+        toast.error('Email failed to send again');
+      } else {
+        toast.success('Email sent successfully');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+    } catch (error) {
+      console.error('Error retrying message:', error);
+      toast.error('Failed to retry sending message');
+    }
+  };
+
+  // Delete a failed message
+  const deleteMessage = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      toast.success('Message deleted');
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error('Failed to delete message');
     }
   };
 
@@ -338,39 +456,68 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           </div>
                         )}
                         
-                        <Card className={`${
-                          message.is_internal 
-                            ? 'bg-warning-muted border-warning' 
-                            : message.sender_type === 'agent' 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'bg-card'
-                        }`}>
-                          <CardContent className="p-4">
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                              <div className="flex items-center space-x-2">
-                                {message.sender_type === 'agent' && (
-                                  <>
-                                    <Avatar className="h-4 w-4">
-                                      <AvatarFallback className="text-xs">
-                                        A
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-xs opacity-70">
-                                      Agent
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                {message.sender_type === 'agent' && getStatusIcon(message)}
-                                <span className="text-xs opacity-70">
-                                  {formatTime(messageDate)}
-                                </span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
+                         <Card className={`${
+                           message.is_internal 
+                             ? 'bg-warning-muted border-warning' 
+                             : message.sender_type === 'agent' 
+                               ? 'bg-primary text-primary-foreground' 
+                               : 'bg-card'
+                         }`}>
+                           <CardContent className="p-4">
+                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                             <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                               <div className="flex items-center space-x-2">
+                                 {message.sender_type === 'agent' && (
+                                   <>
+                                     <Avatar className="h-4 w-4">
+                                       <AvatarFallback className="text-xs">
+                                         A
+                                       </AvatarFallback>
+                                     </Avatar>
+                                     <span className="text-xs opacity-70">
+                                       Agent
+                                     </span>
+                                   </>
+                                 )}
+                               </div>
+                               <div className="flex items-center space-x-2">
+                                 {message.sender_type === 'agent' && getStatusIcon(message)}
+                                 <span className="text-xs opacity-70">
+                                   {formatTime(messageDate)}
+                                 </span>
+                               </div>
+                             </div>
+                             
+                             {/* Failed message actions */}
+                             {message.sender_type === 'agent' && message.email_status === 'failed' && (
+                               <div className="mt-3 pt-3 border-t border-border/50">
+                                 <div className="flex items-center justify-between">
+                                   <span className="text-xs text-red-500">
+                                     Failed to send email
+                                   </span>
+                                   <div className="flex items-center space-x-2">
+                                     <Button
+                                       variant="outline"
+                                       size="sm"
+                                       onClick={() => retryMessage(message.id)}
+                                       className="h-6 px-2 text-xs"
+                                     >
+                                       Try Again
+                                     </Button>
+                                     <Button
+                                       variant="destructive"
+                                       size="sm"
+                                       onClick={() => deleteMessage(message.id)}
+                                       className="h-6 px-2 text-xs"
+                                     >
+                                       Delete
+                                     </Button>
+                                   </div>
+                                 </div>
+                               </div>
+                             )}
+                           </CardContent>
+                         </Card>
                       </div>
                     </div>
                   </div>
