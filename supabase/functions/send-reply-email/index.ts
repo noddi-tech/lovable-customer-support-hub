@@ -88,7 +88,14 @@ const handler = async (req: Request): Promise<Response> => {
       
       console.log('Client ID available:', !!clientId);
       console.log('Client Secret available:', !!clientSecret);
+      console.log('Client Secret length:', clientSecret.length);
       console.log('Refresh token available:', !!emailAccount.refresh_token);
+      console.log('Refresh token length:', emailAccount.refresh_token?.length);
+      
+      if (!clientSecret) {
+        console.error('GOOGLE_CLIENT_SECRET not found in environment variables');
+        throw new Error('Google Client Secret not configured. Please check your edge function secrets.');
+      }
       
       const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
