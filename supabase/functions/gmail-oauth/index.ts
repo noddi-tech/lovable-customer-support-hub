@@ -39,6 +39,7 @@ serve(async (req: Request) => {
       console.log('Processing OAuth callback with code:', code.substring(0, 20) + '...');
       
       // Exchange code for tokens
+      console.log('Exchanging code for tokens...');
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -52,6 +53,12 @@ serve(async (req: Request) => {
       });
 
       const tokens = await tokenResponse.json();
+      console.log('Token response status:', tokenResponse.status);
+      console.log('Tokens received:', { 
+        hasAccessToken: !!tokens.access_token, 
+        hasRefreshToken: !!tokens.refresh_token,
+        error: tokens.error 
+      });
       
       if (!tokens.access_token) {
         console.error('Token exchange failed:', tokens);
@@ -59,7 +66,7 @@ serve(async (req: Request) => {
           <html>
             <body>
               <h1>Error</h1>
-              <p>Failed to connect Gmail account. Please try again.</p>
+              <p>Failed to exchange authorization code for tokens: ${tokens.error_description || tokens.error || 'Unknown error'}</p>
               <script>
                 setTimeout(() => window.close(), 3000);
               </script>
@@ -72,12 +79,15 @@ serve(async (req: Request) => {
       }
 
       // Get user info from Google
+      console.log('Getting user info from Google...');
       const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       });
       const userInfo = await userInfoResponse.json();
+      console.log('User info:', { email: userInfo.email, verified: userInfo.verified_email });
 
       // Create Supabase client with service role key for callback
+      console.log('Creating Supabase client...');
       const supabaseClient = createClient(
         'https://qgfaycwsangsqzpveoup.supabase.co',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -102,11 +112,14 @@ serve(async (req: Request) => {
         });
       }
 
+      console.log('Looking up user profile for state:', state);
       const { data: profile } = await supabaseClient
         .from('profiles')
         .select('organization_id')
         .eq('user_id', state)
         .single();
+
+      console.log('Profile lookup result:', { profile, hasOrgId: !!profile?.organization_id });
 
       if (!profile) {
         console.error('User profile not found for user ID:', state);
@@ -127,6 +140,13 @@ serve(async (req: Request) => {
       }
 
       // Store email account
+      console.log('Storing email account...', {
+        organization_id: profile.organization_id,
+        user_id: state,
+        email_address: userInfo.email,
+        provider: 'gmail'
+      });
+
       const { data: emailAccount, error } = await supabaseClient
         .from('email_accounts')
         .upsert({
@@ -143,13 +163,19 @@ serve(async (req: Request) => {
         })
         .select();
 
+      console.log('Email account storage result:', { 
+        success: !error, 
+        error: error?.message,
+        accountId: emailAccount?.[0]?.id 
+      });
+
       if (error) {
         console.error('Error storing email account:', error);
         return new Response(`
           <html>
             <body>
               <h1>Error</h1>
-              <p>Failed to store email account. Please try again.</p>
+              <p>Failed to store email account: ${error.message}</p>
               <script>
                 setTimeout(() => window.close(), 3000);
               </script>
