@@ -25,7 +25,9 @@ export function EmailForwarding() {
   const [copiedForwarding, setCopiedForwarding] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  console.log("EmailForwarding - User state:", { user: user?.id, loading });
 
   // Fetch email accounts
   const { data: accounts = [], isLoading } = useQuery({
@@ -144,6 +146,14 @@ export function EmailForwarding() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please make sure you're logged in to set up email forwarding.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (email) {
       addEmailMutation.mutate(email);
     }
@@ -177,6 +187,31 @@ export function EmailForwarding() {
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     return `${Math.floor(diffInHours / 24)} days ago`;
   };
+
+  // Show loading state if authentication is still loading
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <p>Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication required if user is not logged in
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Authentication Required:</strong> Please log in to set up email forwarding and manage your inbox settings.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
