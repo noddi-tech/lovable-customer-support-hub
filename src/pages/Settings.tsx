@@ -49,7 +49,7 @@ export default function Settings() {
       <div className="container mx-auto py-6 px-4">
         <div className="max-w-6xl mx-auto">
           <Tabs defaultValue="inbox" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
               <TabsTrigger value="inbox" className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Inbox
