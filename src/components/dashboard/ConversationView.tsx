@@ -229,18 +229,26 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     const queryKey = ['messages', conversationId];
     
     try {
-      console.log('Deleting message:', messageId);
+      console.log('Deleting message:', messageId, 'conversationId:', conversationId);
+      
+      // Get current messages to verify structure
+      const currentMessages = queryClient.getQueryData(queryKey);
+      console.log('Current messages in cache:', currentMessages);
       
       // Cancel any outgoing refetches so they don't overwrite our optimistic update
       await queryClient.cancelQueries({ queryKey });
 
-      // Snapshot the previous value
-      const previousMessages = queryClient.getQueryData(queryKey);
-
       // Optimistically update to remove the message
-      queryClient.setQueryData(queryKey, (old: any[]) => {
-        if (!old) return [];
-        const filtered = old.filter(msg => msg.id !== messageId);
+      queryClient.setQueryData(queryKey, (old: any) => {
+        console.log('Cache update - old data:', old);
+        if (!old || !Array.isArray(old)) {
+          console.log('No valid data in cache');
+          return old;
+        }
+        const filtered = old.filter(msg => {
+          console.log('Checking message:', msg.id, 'vs target:', messageId);
+          return msg.id !== messageId;
+        });
         console.log('Optimistic update - before:', old.length, 'after:', filtered.length);
         return filtered;
       });
@@ -256,14 +264,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       console.log('Message deleted successfully from database');
       toast.success('Message deleted');
       
-      // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey });
+      // Force a refetch to ensure consistency
+      await queryClient.refetchQueries({ queryKey });
       
     } catch (error) {
       console.error('Error deleting message:', error);
       
-      // If the mutation fails, use the context returned from onMutate to roll back
-      queryClient.invalidateQueries({ queryKey });
+      // If the mutation fails, refetch to restore correct state
+      queryClient.refetchQueries({ queryKey });
       toast.error('Failed to delete message');
     }
   };
