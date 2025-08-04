@@ -209,8 +209,29 @@ export function EmailForwarding() {
           ) : accounts.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No email accounts connected yet.</p>
-              <p className="text-sm">Add your first email account above to get started.</p>
+              <p className="font-medium mb-2">No email accounts connected yet.</p>
+              <p className="text-sm mb-6">Add your first email account to get started with forwarding.</p>
+              
+              {/* Quick Add Form in Empty State */}
+              <div className="max-w-md mx-auto">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <Input
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="text-left"
+                  />
+                  <Button 
+                    type="submit" 
+                    disabled={addEmailMutation.isPending}
+                    className="w-full"
+                  >
+                    {addEmailMutation.isPending ? "Generating..." : "Generate Forwarding Address"}
+                  </Button>
+                </form>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
