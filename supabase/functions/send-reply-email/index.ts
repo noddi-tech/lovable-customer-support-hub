@@ -91,7 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           refresh_token: emailAccount.refresh_token,
-          client_id: Deno.env.get('GOOGLE_CLIENT_ID') ?? '',
+          client_id: Deno.env.get('1072539713646-gvkvnmg9v5d15fttugh6om7safekmh4p.apps.googleusercontent.com') ?? '',
           client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
         }),
       });
