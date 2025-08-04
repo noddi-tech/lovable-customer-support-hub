@@ -15,29 +15,59 @@ import {
   Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface InboxSidebarProps {
   selectedTab: string;
   onTabChange: (tab: string) => void;
 }
 
-const sidebarItems = [
-  { id: 'all', label: 'All Conversations', icon: Inbox, count: 24 },
-  { id: 'unread', label: 'Unread', icon: Inbox, count: 8 },
-  { id: 'assigned', label: 'Assigned to me', icon: Users, count: 5 },
-  { id: 'archived', label: 'Archived', icon: Archive, count: 156 },
-  { id: 'snoozed', label: 'Snoozed', icon: Clock, count: 3 },
-];
-
-const channelItems = [
-  { id: 'email', label: 'Email', icon: Mail, count: 12, color: 'channel-email' },
-  { id: 'facebook', label: 'Facebook', icon: MessageCircle, count: 6, color: 'channel-facebook' },
-  { id: 'instagram', label: 'Instagram', icon: Camera, count: 4, color: 'channel-instagram' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: Phone, count: 2, color: 'channel-whatsapp' },
-];
 
 export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabChange }) => {
   const [expandedChannels, setExpandedChannels] = useState(true);
+
+  // Fetch conversation counts
+  const { data: conversationCounts = {}, isLoading } = useQuery({
+    queryKey: ['conversation-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_conversations');
+      if (error) {
+        console.error('Error fetching conversation counts:', error);
+        return {};
+      }
+
+      const conversations = data || [];
+      
+      return {
+        all: conversations.length,
+        unread: conversations.filter((conv: any) => !conv.is_read).length,
+        assigned: conversations.filter((conv: any) => conv.assigned_to?.id).length,
+        archived: conversations.filter((conv: any) => conv.is_archived).length,
+        snoozed: 0, // Not implemented yet
+        email: conversations.filter((conv: any) => conv.channel === 'email').length,
+        facebook: conversations.filter((conv: any) => conv.channel === 'facebook').length,
+        instagram: conversations.filter((conv: any) => conv.channel === 'instagram').length,
+        whatsapp: conversations.filter((conv: any) => conv.channel === 'whatsapp').length,
+      };
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const sidebarItems = [
+    { id: 'all', label: 'All Conversations', icon: Inbox, count: conversationCounts.all || 0 },
+    { id: 'unread', label: 'Unread', icon: Inbox, count: conversationCounts.unread || 0 },
+    { id: 'assigned', label: 'Assigned to me', icon: Users, count: conversationCounts.assigned || 0 },
+    { id: 'archived', label: 'Archived', icon: Archive, count: conversationCounts.archived || 0 },
+    { id: 'snoozed', label: 'Snoozed', icon: Clock, count: conversationCounts.snoozed || 0 },
+  ];
+
+  const channelItems = [
+    { id: 'email', label: 'Email', icon: Mail, count: conversationCounts.email || 0, color: 'channel-email' },
+    { id: 'facebook', label: 'Facebook', icon: MessageCircle, count: conversationCounts.facebook || 0, color: 'channel-facebook' },
+    { id: 'instagram', label: 'Instagram', icon: Camera, count: conversationCounts.instagram || 0, color: 'channel-instagram' },
+    { id: 'whatsapp', label: 'WhatsApp', icon: Phone, count: conversationCounts.whatsapp || 0, color: 'channel-whatsapp' },
+  ];
 
   return (
     <div className="w-64 bg-card border-r border-border h-full flex flex-col">
