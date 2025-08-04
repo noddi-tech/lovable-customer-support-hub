@@ -188,6 +188,7 @@ export type Database = {
           access_token: string | null
           created_at: string
           email_address: string
+          forwarding_address: string | null
           id: string
           is_active: boolean | null
           last_sync_at: string | null
@@ -203,6 +204,7 @@ export type Database = {
           access_token?: string | null
           created_at?: string
           email_address: string
+          forwarding_address?: string | null
           id?: string
           is_active?: boolean | null
           last_sync_at?: string | null
@@ -218,6 +220,7 @@ export type Database = {
           access_token?: string | null
           created_at?: string
           email_address?: string
+          forwarding_address?: string | null
           id?: string
           is_active?: boolean | null
           last_sync_at?: string | null
@@ -470,6 +473,7 @@ export type Database = {
           is_active: boolean
           last_sync_at: string
           created_at: string
+          forwarding_address: string
         }[]
       }
       get_user_organization_id: {

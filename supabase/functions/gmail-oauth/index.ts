@@ -16,10 +16,9 @@ const GOOGLE_CLIENT_ID = "1072539713646-gvkvnmg9v5d15fttugh6om7safekmh4p.apps.go
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET');
 const REDIRECT_URI = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/gmail-oauth`;
 
+// Simplified scopes - only for sending emails, not reading
 const SCOPES = [
-  'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/userinfo.email'
 ].join(' ');
 
