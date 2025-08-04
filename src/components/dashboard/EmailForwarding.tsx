@@ -40,7 +40,14 @@ export function EmailForwarding() {
   // Add email forwarding mutation
   const addEmailMutation = useMutation({
     mutationFn: async (emailAddress: string) => {
-      if (!user) throw new Error("User not authenticated");
+      console.log("Starting email forwarding setup for:", emailAddress);
+      
+      if (!user) {
+        console.error("User not authenticated");
+        throw new Error("User not authenticated");
+      }
+
+      console.log("User ID:", user.id);
 
       // Get user's organization
       const { data: profile, error: profileError } = await supabase
@@ -49,27 +56,49 @@ export function EmailForwarding() {
         .eq("user_id", user.id)
         .single();
 
-      if (profileError || !profile) throw new Error("User profile not found");
+      console.log("Profile query result:", { profile, profileError });
+
+      if (profileError) {
+        console.error("Profile error:", profileError);
+        throw new Error(`Profile lookup failed: ${profileError.message}`);
+      }
+      
+      if (!profile) {
+        console.error("No profile found for user");
+        throw new Error("User profile not found");
+      }
 
       // Generate unique forwarding address based on organization
       const orgSlug = profile.organization_id.substring(0, 8);
       const randomId = Math.random().toString(36).substring(2, 8);
       const forwardingAddress = `support-${orgSlug}-${randomId}@helpdesk.example.com`;
 
+      console.log("Generated forwarding address:", forwardingAddress);
+
+      const insertData = {
+        email_address: emailAddress,
+        forwarding_address: forwardingAddress,
+        provider: "forwarding",
+        is_active: true,
+        organization_id: profile.organization_id,
+        user_id: user.id,
+      };
+
+      console.log("Inserting data:", insertData);
+
       const { data, error } = await supabase
         .from("email_accounts")
-        .insert({
-          email_address: emailAddress,
-          forwarding_address: forwardingAddress,
-          provider: "forwarding",
-          is_active: true,
-          organization_id: profile.organization_id,
-          user_id: user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      console.log("Insert result:", { data, error });
+
+      if (error) {
+        console.error("Insert error:", error);
+        throw new Error(`Database insert failed: ${error.message}`);
+      }
+      
       return data;
     },
     onSuccess: () => {
