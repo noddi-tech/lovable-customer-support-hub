@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Copy, Check, Mail, AlertCircle, RefreshCw, Plus } from "lucide-react";
+import { Copy, Check, Mail, AlertCircle, RefreshCw, Plus, Edit, Save, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,8 @@ interface Inbox {
 export function EmailForwarding() {
   const [email, setEmail] = useState("");
   const [selectedInbox, setSelectedInbox] = useState<string>("");
+  const [editingAccount, setEditingAccount] = useState<string | null>(null);
+  const [editingInbox, setEditingInbox] = useState<string>("");
   const [copiedForwarding, setCopiedForwarding] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -142,6 +144,33 @@ export function EmailForwarding() {
     },
   });
 
+  // Update email account inbox assignment
+  const updateAccountMutation = useMutation({
+    mutationFn: async ({ accountId, inboxId }: { accountId: string; inboxId: string }) => {
+      const { error } = await supabase
+        .from("email_accounts")
+        .update({ inbox_id: inboxId })
+        .eq("id", accountId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+      setEditingAccount(null);
+      setEditingInbox("");
+      toast({
+        title: "Inbox updated",
+        description: "Email account has been reassigned to the selected inbox.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update inbox assignment.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Remove email account mutation
   const removeAccountMutation = useMutation({
     mutationFn: async (accountId: string) => {
@@ -197,6 +226,20 @@ export function EmailForwarding() {
       });
     },
   });
+
+  const handleUpdateAccount = (accountId: string, inboxId: string) => {
+    updateAccountMutation.mutate({ accountId, inboxId });
+  };
+
+  const startEditingAccount = (accountId: string, currentInboxId: string | null) => {
+    setEditingAccount(accountId);
+    setEditingInbox(currentInboxId || "");
+  };
+
+  const cancelEditing = () => {
+    setEditingAccount(null);
+    setEditingInbox("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -502,21 +545,77 @@ export function EmailForwarding() {
                         }`}>
                           {account.is_active ? "Active" : "Inactive"}
                         </span>
-                        {account.inbox_id && (
-                          <div className="flex items-center gap-1">
-                            <div 
-                              className="w-2 h-2 rounded-full" 
-                              style={{ backgroundColor: inboxes.find(i => i.id === account.inbox_id)?.color || '#3B82F6' }}
-                            />
-                            <span className="text-xs text-muted-foreground">
-                              {inboxes.find(i => i.id === account.inbox_id)?.name || 'Unknown Inbox'}
-                            </span>
+                      </div>
+                      
+                      {/* Inbox Assignment Section */}
+                      <div className="mt-2">
+                        {editingAccount === account.id ? (
+                          <div className="flex items-center gap-2">
+                            <Select value={editingInbox} onValueChange={setEditingInbox}>
+                              <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Select inbox" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {inboxes.map((inbox) => (
+                                  <SelectItem key={inbox.id} value={inbox.id}>
+                                    <div className="flex items-center gap-2">
+                                      <div 
+                                        className="w-3 h-3 rounded-full" 
+                                        style={{ backgroundColor: inbox.color }}
+                                      />
+                                      <span>{inbox.name}</span>
+                                      {inbox.is_default && <span className="text-xs text-muted-foreground">(Default)</span>}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateAccount(account.id, editingInbox)}
+                              disabled={updateAccountMutation.isPending || !editingInbox}
+                            >
+                              <Save className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={cancelEditing}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span>Inbox:</span>
+                              {account.inbox_id ? (
+                                <div className="flex items-center gap-1">
+                                  <div 
+                                    className="w-2 h-2 rounded-full" 
+                                    style={{ backgroundColor: inboxes.find(i => i.id === account.inbox_id)?.color || '#3B82F6' }}
+                                  />
+                                  <span className="font-medium">
+                                    {inboxes.find(i => i.id === account.inbox_id)?.name || 'Unknown Inbox'}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-orange-600">Not assigned</span>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditingAccount(account.id, account.inbox_id)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           </div>
                         )}
                       </div>
                       
                       {account.forwarding_address && (
-                        <div className="space-y-1">
+                        <div className="space-y-1 mt-3">
                           <Label className="text-sm text-muted-foreground">Forwarding Address:</Label>
                           <div className="flex items-center gap-2">
                             <code className="flex-1 p-2 bg-muted rounded text-sm">
@@ -540,7 +639,7 @@ export function EmailForwarding() {
                         </div>
                       )}
 
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground mt-2">
                         Last sync: {formatLastSync(account.last_sync_at)}
                       </div>
                     </div>
