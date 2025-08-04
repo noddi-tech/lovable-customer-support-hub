@@ -83,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (tokenExpiry <= now) {
       console.log('Access token expired, refreshing...');
       
-      const clientId = Deno.env.get('1072539713646-gvkvnmg9v5d15fttugh6om7safekmh4p.apps.googleusercontent.com') ?? '';
+      const clientId = '1072539713646-gvkvnmg9v5d15fttugh6om7safekmh4p.apps.googleusercontent.com';
       const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
       
       console.log('Client ID available:', !!clientId);
