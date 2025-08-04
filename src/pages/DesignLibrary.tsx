@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,160 @@ const DesignLibrary = () => {
   const [inputValue, setInputValue] = useState('');
   const [textareaValue, setTextareaValue] = useState('');
   const [switchValue, setSwitchValue] = useState(false);
+
+  // Color state for customization
+  const [colors, setColors] = useState({
+    primary: '#3b82f6',
+    primaryForeground: '#fafafa',
+    secondary: '#f1f5f9',
+    secondaryForeground: '#64748b',
+    success: '#22c55e',
+    warning: '#eab308',
+    destructive: '#ef4444',
+    background: '#fdfdfe',
+    card: '#ffffff',
+    muted: '#f1f5f9',
+    accent: '#e0f2fe',
+    foreground: '#0f172a',
+    mutedForeground: '#64748b',
+    border: '#e2e8f0',
+  });
+
+  // Convert hex to HSL
+  const hexToHsl = (hex: string): string => {
+    // Remove the hash if it exists
+    hex = hex.replace('#', '');
+    
+    // Parse the hex values
+    const r = parseInt(hex.substr(0, 2), 16) / 255;
+    const g = parseInt(hex.substr(2, 2), 16) / 255;
+    const b = parseInt(hex.substr(4, 2), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+
+    if (max === min) {
+      h = s = 0; // achromatic
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  };
+
+  // Update CSS custom properties
+  const updateCSSVariable = (property: string, value: string) => {
+    document.documentElement.style.setProperty(`--${property}`, hexToHsl(value));
+  };
+
+  // Handle color change
+  const handleColorChange = (colorKey: string, newColor: string) => {
+    setColors(prev => ({ ...prev, [colorKey]: newColor }));
+    
+    // Map color keys to CSS custom property names
+    const cssPropertyMap: { [key: string]: string } = {
+      primary: 'primary',
+      primaryForeground: 'primary-foreground',
+      secondary: 'secondary',
+      secondaryForeground: 'secondary-foreground',
+      success: 'success',
+      warning: 'warning',
+      destructive: 'destructive',
+      background: 'background',
+      card: 'card',
+      muted: 'muted',
+      accent: 'accent',
+      foreground: 'foreground',
+      mutedForeground: 'muted-foreground',
+      border: 'border',
+    };
+
+    const cssProperty = cssPropertyMap[colorKey];
+    if (cssProperty) {
+      updateCSSVariable(cssProperty, newColor);
+    }
+  };
+
+  // Reset colors to defaults
+  const resetColors = () => {
+    const defaultColors = {
+      primary: '#3b82f6',
+      primaryForeground: '#fafafa',
+      secondary: '#f1f5f9',
+      secondaryForeground: '#64748b',
+      success: '#22c55e',
+      warning: '#eab308',
+      destructive: '#ef4444',
+      background: '#fdfdfe',
+      card: '#ffffff',
+      muted: '#f1f5f9',
+      accent: '#e0f2fe',
+      foreground: '#0f172a',
+      mutedForeground: '#64748b',
+      border: '#e2e8f0',
+    };
+
+    setColors(defaultColors);
+    Object.entries(defaultColors).forEach(([key, value]) => {
+      handleColorChange(key, value);
+    });
+
+    toast({
+      title: "Colors Reset",
+      description: "All colors have been reset to their default values.",
+    });
+  };
+
+  // Color picker component
+  const ColorPicker = ({ label, colorKey, description, hslValue }: { 
+    label: string; 
+    colorKey: string; 
+    description: string;
+    hslValue: string;
+  }) => (
+    <div className="space-y-2">
+      <div 
+        className="h-16 w-full rounded-lg border cursor-pointer relative group overflow-hidden"
+        style={{ backgroundColor: colors[colorKey as keyof typeof colors] }}
+      >
+        <input
+          type="color"
+          value={colors[colorKey as keyof typeof colors]}
+          onChange={(e) => handleColorChange(colorKey, e.target.value)}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+          <span className="text-white/0 group-hover:text-white/80 text-xs font-medium transition-colors">
+            Click to edit
+          </span>
+        </div>
+      </div>
+      <div className="text-xs space-y-1">
+        <div className="font-medium">{label}</div>
+        <div className="text-muted-foreground">{description}</div>
+        <div className="text-muted-foreground">HSL({hslValue})</div>
+        <div className="flex items-center space-x-2">
+          <input
+            type="text"
+            value={colors[colorKey as keyof typeof colors]}
+            onChange={(e) => handleColorChange(colorKey, e.target.value)}
+            className="text-xs bg-muted px-2 py-1 rounded border text-muted-foreground font-mono"
+            placeholder="#000000"
+          />
+        </div>
+      </div>
+    </div>
+  );
 
   const showToast = (type: string) => {
     switch (type) {
@@ -97,9 +251,14 @@ const DesignLibrary = () => {
           <TabsContent value="colors" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Color Palette</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  Color Palette
+                  <Button onClick={resetColors} variant="outline" size="sm">
+                    Reset to Defaults
+                  </Button>
+                </CardTitle>
                 <CardDescription>
-                  Complete design system color palette with semantic naming
+                  Interactive color palette - click any color or use hex inputs to customize your design system in real-time
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
@@ -107,38 +266,30 @@ const DesignLibrary = () => {
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Primary Colors</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-primary rounded-lg border"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Primary</div>
-                        <div className="text-muted-foreground">--primary</div>
-                        <div className="text-muted-foreground">HSL(217, 91%, 60%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-primary-foreground border rounded-lg"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Primary Foreground</div>
-                        <div className="text-muted-foreground">--primary-foreground</div>
-                        <div className="text-muted-foreground">HSL(0, 0%, 98%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-secondary rounded-lg border"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Secondary</div>
-                        <div className="text-muted-foreground">--secondary</div>
-                        <div className="text-muted-foreground">HSL(220, 14%, 96%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-secondary-foreground rounded-lg"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Secondary Foreground</div>
-                        <div className="text-muted-foreground">--secondary-foreground</div>
-                        <div className="text-muted-foreground">HSL(220, 9%, 46%)</div>
-                      </div>
-                    </div>
+                    <ColorPicker
+                      label="Primary"
+                      colorKey="primary"
+                      description="--primary"
+                      hslValue="217, 91%, 60%"
+                    />
+                    <ColorPicker
+                      label="Primary Foreground"
+                      colorKey="primaryForeground"
+                      description="--primary-foreground"
+                      hslValue="0, 0%, 98%"
+                    />
+                    <ColorPicker
+                      label="Secondary"
+                      colorKey="secondary"
+                      description="--secondary"
+                      hslValue="220, 14%, 96%"
+                    />
+                    <ColorPicker
+                      label="Secondary Foreground"
+                      colorKey="secondaryForeground"
+                      description="--secondary-foreground"
+                      hslValue="220, 9%, 46%"
+                    />
                   </div>
                 </div>
 
@@ -148,30 +299,24 @@ const DesignLibrary = () => {
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Status Colors</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-green-500 rounded-lg border"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Success</div>
-                        <div className="text-muted-foreground">--success</div>
-                        <div className="text-muted-foreground">HSL(142, 76%, 36%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-yellow-500 rounded-lg border"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Warning</div>
-                        <div className="text-muted-foreground">--warning</div>
-                        <div className="text-muted-foreground">HSL(38, 92%, 50%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-destructive rounded-lg border"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Destructive</div>
-                        <div className="text-muted-foreground">--destructive</div>
-                        <div className="text-muted-foreground">HSL(0, 84%, 60%)</div>
-                      </div>
-                    </div>
+                    <ColorPicker
+                      label="Success"
+                      colorKey="success"
+                      description="--success"
+                      hslValue="142, 76%, 36%"
+                    />
+                    <ColorPicker
+                      label="Warning"
+                      colorKey="warning"
+                      description="--warning"
+                      hslValue="38, 92%, 50%"
+                    />
+                    <ColorPicker
+                      label="Destructive"
+                      colorKey="destructive"
+                      description="--destructive"
+                      hslValue="0, 84%, 60%"
+                    />
                   </div>
                 </div>
 
@@ -181,38 +326,30 @@ const DesignLibrary = () => {
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Background Colors</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-background border rounded-lg"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Background</div>
-                        <div className="text-muted-foreground">--background</div>
-                        <div className="text-muted-foreground">HSL(250, 50%, 98%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-card border rounded-lg"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Card</div>
-                        <div className="text-muted-foreground">--card</div>
-                        <div className="text-muted-foreground">HSL(0, 0%, 100%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-muted border rounded-lg"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Muted</div>
-                        <div className="text-muted-foreground">--muted</div>
-                        <div className="text-muted-foreground">HSL(220, 14%, 96%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-accent border rounded-lg"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Accent</div>
-                        <div className="text-muted-foreground">--accent</div>
-                        <div className="text-muted-foreground">HSL(217, 91%, 95%)</div>
-                      </div>
-                    </div>
+                    <ColorPicker
+                      label="Background"
+                      colorKey="background"
+                      description="--background"
+                      hslValue="250, 50%, 98%"
+                    />
+                    <ColorPicker
+                      label="Card"
+                      colorKey="card"
+                      description="--card"
+                      hslValue="0, 0%, 100%"
+                    />
+                    <ColorPicker
+                      label="Muted"
+                      colorKey="muted"
+                      description="--muted"
+                      hslValue="220, 14%, 96%"
+                    />
+                    <ColorPicker
+                      label="Accent"
+                      colorKey="accent"
+                      description="--accent"
+                      hslValue="217, 91%, 95%"
+                    />
                   </div>
                 </div>
 
@@ -263,30 +400,24 @@ const DesignLibrary = () => {
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Text Colors</h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-foreground rounded-lg border"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Foreground</div>
-                        <div className="text-muted-foreground">--foreground</div>
-                        <div className="text-muted-foreground">HSL(224, 71%, 4%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-muted-foreground rounded-lg border"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Muted Foreground</div>
-                        <div className="text-muted-foreground">--muted-foreground</div>
-                        <div className="text-muted-foreground">HSL(220, 9%, 46%)</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-16 w-full bg-border rounded-lg border"></div>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">Border</div>
-                        <div className="text-muted-foreground">--border</div>
-                        <div className="text-muted-foreground">HSL(220, 13%, 91%)</div>
-                      </div>
-                    </div>
+                    <ColorPicker
+                      label="Foreground"
+                      colorKey="foreground"
+                      description="--foreground"
+                      hslValue="224, 71%, 4%"
+                    />
+                    <ColorPicker
+                      label="Muted Foreground"
+                      colorKey="mutedForeground"
+                      description="--muted-foreground"
+                      hslValue="220, 9%, 46%"
+                    />
+                    <ColorPicker
+                      label="Border"
+                      colorKey="border"
+                      description="--border"
+                      hslValue="220, 13%, 91%"
+                    />
                   </div>
                 </div>
 
