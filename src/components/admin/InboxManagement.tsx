@@ -11,8 +11,10 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare } from 'lucide-react';
+import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
 
 interface InboxData {
   id: string;
@@ -174,7 +176,7 @@ export function InboxManagement() {
         <div>
           <h2 className="text-2xl font-bold">Inbox Management</h2>
           <p className="text-muted-foreground">
-            Manage your organization's inboxes and routing rules
+            Manage inboxes and email connections for your organization
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -257,6 +259,30 @@ export function InboxManagement() {
         </Dialog>
       </div>
 
+      {/* Email Account Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Email Account Management
+          </CardTitle>
+          <CardDescription>
+            Connect email accounts to your inboxes for automatic conversation routing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmailForwarding />
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      <div>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Inbox className="h-5 w-5" />
+          All Inboxes
+        </h3>
+        
       {isLoadingInboxes ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(3)].map((_, i) => (
@@ -356,6 +382,7 @@ export function InboxManagement() {
           ))}
         </div>
       )}
+      </div>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingInbox} onOpenChange={(open) => !open && setEditingInbox(null)}>
