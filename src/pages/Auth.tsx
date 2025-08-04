@@ -97,27 +97,33 @@ export const Auth: React.FC = () => {
     try {
       cleanupAuthState();
       
-      const redirectUrl = `${window.location.origin}/`;
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName,
           }
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        // Handle user already registered case
+        if (error.message.includes('already registered')) {
+          setError('This email is already registered. Please sign in instead.');
+          return;
+        }
+        throw error;
+      }
       
-      // If user is created and confirmed immediately, redirect
-      if (data.user && !data.user.email_confirmed_at) {
-        setSuccess('Account created! Please check your email for the confirmation link.');
-      } else if (data.user) {
-        // User is immediately confirmed, redirect to main app
-        window.location.href = '/';
+      // Check if user was created and is immediately confirmed
+      if (data.user) {
+        if (data.user.email_confirmed_at) {
+          // User is immediately confirmed, redirect to main app
+          window.location.href = '/';
+        } else {
+          setSuccess('Account created! Please check your email for the confirmation link.');
+        }
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign up');
