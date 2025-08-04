@@ -488,34 +488,34 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                </div>
                              </div>
                              
-                             {/* Failed message actions */}
-                             {message.sender_type === 'agent' && message.email_status === 'failed' && (
-                               <div className="mt-3 pt-3 border-t border-border/50">
-                                 <div className="flex items-center justify-between">
-                                   <span className="text-xs text-red-500">
-                                     Failed to send email
-                                   </span>
-                                   <div className="flex items-center space-x-2">
-                                     <Button
-                                       variant="outline"
-                                       size="sm"
-                                       onClick={() => retryMessage(message.id)}
-                                       className="h-6 px-2 text-xs"
-                                     >
-                                       Try Again
-                                     </Button>
-                                     <Button
-                                       variant="destructive"
-                                       size="sm"
-                                       onClick={() => deleteMessage(message.id)}
-                                       className="h-6 px-2 text-xs"
-                                     >
-                                       Delete
-                                     </Button>
-                                   </div>
-                                 </div>
-                               </div>
-                             )}
+                              {/* Failed message actions */}
+                              {message.sender_type === 'agent' && message.email_status === 'failed' && (
+                                <div className="mt-3 pt-3 border-t border-border/50">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-destructive-foreground font-medium">
+                                      Failed to send email
+                                    </span>
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => retryMessage(message.id)}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        Try Again
+                                      </Button>
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => deleteMessage(message.id)}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        Delete
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                            </CardContent>
                          </Card>
                       </div>
