@@ -154,33 +154,75 @@ async function refreshAccessToken(account: any, supabaseClient: any) {
 
 async function syncGmailMessages(account: any, supabaseClient: any) {
   try {
+    console.log(`Starting Gmail sync for account: ${account.email_address}`);
+    console.log(`Account details:`, {
+      id: account.id,
+      email: account.email_address,
+      hasAccessToken: !!account.access_token,
+      tokenExpiry: account.token_expires_at
+    });
+
     // Get messages from Gmail API
-    const response = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:inbox&maxResults=50`,
-      {
-        headers: { Authorization: `Bearer ${account.access_token}` },
-      }
-    );
+    const gmailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:inbox&maxResults=50`;
+    console.log(`Fetching messages from: ${gmailUrl}`);
+    
+    const response = await fetch(gmailUrl, {
+      headers: { 
+        Authorization: `Bearer ${account.access_token}`,
+        'Content-Type': 'application/json'
+      },
+    });
+
+    console.log(`Gmail API response status: ${response.status}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Gmail API error: ${response.status} - ${errorText}`);
+      return { success: false, error: `Gmail API error: ${response.status}` };
+    }
 
     const data = await response.json();
+    console.log(`Gmail API response:`, {
+      hasMessages: !!data.messages,
+      messageCount: data.messages?.length || 0,
+      resultSizeEstimate: data.resultSizeEstimate,
+      nextPageToken: !!data.nextPageToken
+    });
     
     if (!data.messages) {
+      console.log('No messages found in Gmail inbox');
       return { success: true, messageCount: 0 };
     }
 
     let processedCount = 0;
+    console.log(`Processing ${Math.min(data.messages.length, 10)} messages...`);
 
     for (const message of data.messages.slice(0, 10)) { // Limit to 10 for now
       try {
+        console.log(`Processing message ID: ${message.id}`);
+        
         // Get full message details
         const messageResponse = await fetch(
           `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}`,
           {
-            headers: { Authorization: `Bearer ${account.access_token}` },
+            headers: { 
+              Authorization: `Bearer ${account.access_token}`,
+              'Content-Type': 'application/json'
+            },
           }
         );
 
+        if (!messageResponse.ok) {
+          console.error(`Failed to fetch message ${message.id}: ${messageResponse.status}`);
+          continue;
+        }
+
         const fullMessage = await messageResponse.json();
+        console.log(`Fetched message details for ${message.id}:`, {
+          hasPayload: !!fullMessage.payload,
+          hasHeaders: !!fullMessage.payload?.headers,
+          threadId: fullMessage.threadId
+        });
         
         // Check if message already exists
         const { data: existingMessage } = await supabaseClient
