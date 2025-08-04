@@ -13,6 +13,8 @@ import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft } from 'lucide-re
 import { useAuth } from '@/components/auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HeaderProps {
   organizationName?: string;
@@ -29,6 +31,21 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Get unread conversation count for notifications
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unread-conversations'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_conversations');
+      if (error) {
+        console.error('Error fetching conversations for notifications:', error);
+        return 0;
+      }
+      // Count unread conversations
+      return data?.filter((conv: any) => !conv.is_read).length || 0;
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 shadow-sm">
@@ -65,9 +82,11 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Notifications */}
         <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground relative">
           <Bell className="h-4 w-4" />
-          <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center">
-            3
-          </Badge>
+          {unreadCount > 0 && (
+            <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Badge>
+          )}
         </Button>
 
         {/* Settings - Hidden on mobile */}
