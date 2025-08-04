@@ -97,6 +97,8 @@ export const Auth: React.FC = () => {
     try {
       cleanupAuthState();
       
+      console.log('Starting signup process...');
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -107,7 +109,10 @@ export const Auth: React.FC = () => {
         }
       });
       
+      console.log('Signup response:', { data, error });
+      
       if (error) {
+        console.error('Signup error:', error);
         // Handle user already registered case
         if (error.message.includes('already registered')) {
           setError('This email is already registered. Please sign in instead.');
@@ -118,10 +123,15 @@ export const Auth: React.FC = () => {
       
       // Check if user was created and is immediately confirmed
       if (data.user) {
+        console.log('User created:', data.user);
+        console.log('Email confirmed at:', data.user.email_confirmed_at);
+        
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed, redirect to main app
+          console.log('User immediately confirmed, redirecting...');
           window.location.href = '/';
         } else {
+          console.log('User needs email confirmation');
           setSuccess('Account created! Please check your email for the confirmation link.');
         }
       }
