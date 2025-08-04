@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
 import { AdminPortal } from '@/components/admin/AdminPortal';
+import { UserManagement } from '@/components/admin/UserManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette } from 'lucide-react';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
@@ -49,7 +50,7 @@ export default function Settings() {
       <div className="container mx-auto py-6 px-4">
         <div className="max-w-6xl mx-auto">
           <Tabs defaultValue="inbox" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-1">
               <TabsTrigger value="inbox" className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Inbox
@@ -69,6 +70,10 @@ export default function Settings() {
               <TabsTrigger value="email-templates" className="flex items-center gap-2">
                 <Palette className="w-4 h-4" />
                 Email Design
+              </TabsTrigger>
+              <TabsTrigger value="users" disabled={!isAdmin} className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Users
               </TabsTrigger>
               <TabsTrigger value="admin" disabled={!isAdmin} className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
@@ -273,6 +278,20 @@ export default function Settings() {
             {/* Email Template Settings */}
             <TabsContent value="email-templates" className="space-y-6">
               <EmailTemplateSettings />
+            </TabsContent>
+
+            {/* Users Management */}
+            <TabsContent value="users" className="space-y-6">
+              {isAdmin ? (
+                <UserManagement />
+              ) : (
+                <Alert>
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    You don't have permission to manage users. Only administrators can manage organization users.
+                  </AlertDescription>
+                </Alert>
+              )}
             </TabsContent>
 
             {/* Admin Portal */}
