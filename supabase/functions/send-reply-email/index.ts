@@ -83,6 +83,13 @@ const handler = async (req: Request): Promise<Response> => {
     if (tokenExpiry <= now) {
       console.log('Access token expired, refreshing...');
       
+      const clientId = Deno.env.get('1072539713646-gvkvnmg9v5d15fttugh6om7safekmh4p.apps.googleusercontent.com') ?? '';
+      const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
+      
+      console.log('Client ID available:', !!clientId);
+      console.log('Client Secret available:', !!clientSecret);
+      console.log('Refresh token available:', !!emailAccount.refresh_token);
+      
       const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -91,8 +98,8 @@ const handler = async (req: Request): Promise<Response> => {
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           refresh_token: emailAccount.refresh_token,
-          client_id: Deno.env.get('1072539713646-gvkvnmg9v5d15fttugh6om7safekmh4p.apps.googleusercontent.com') ?? '',
-          client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
+          client_id: clientId,
+          client_secret: clientSecret,
         }),
       });
 
