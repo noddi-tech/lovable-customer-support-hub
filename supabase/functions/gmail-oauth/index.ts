@@ -48,27 +48,11 @@ serve(async (req: Request) => {
     }
 
     const url = new URL(req.url);
-    const action = url.searchParams.get('action') || 'authorize';
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
 
-    if (action === 'authorize') {
-      // Generate authorization URL
-      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
-      authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
-      authUrl.searchParams.set('scope', SCOPES);
-      authUrl.searchParams.set('response_type', 'code');
-      authUrl.searchParams.set('access_type', 'offline');
-      authUrl.searchParams.set('prompt', 'consent');
-      authUrl.searchParams.set('state', user.id);
-
-      return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (action === 'callback' && code) {
+    // If there's a code parameter, this is a callback from Google
+    if (code) {
       // Exchange code for tokens
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -147,7 +131,18 @@ serve(async (req: Request) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    // If no code, this is an authorization request - generate auth URL
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
+    authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
+    authUrl.searchParams.set('scope', SCOPES);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('access_type', 'offline');
+    authUrl.searchParams.set('prompt', 'consent');
+    authUrl.searchParams.set('state', user.id);
+
+    return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
