@@ -63,3 +63,6 @@ verify_jwt = true
 
 [functions.email-webhook]
 verify_jwt = false
+
+[functions.email-sync-scheduler]
+verify_jwt = false

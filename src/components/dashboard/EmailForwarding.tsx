@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Copy, Check, Mail, AlertCircle } from "lucide-react";
+import { Copy, Check, Mail, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,6 +144,38 @@ export function EmailForwarding() {
     },
   });
 
+  // Sync emails mutation
+  const syncEmailsMutation = useMutation({
+    mutationFn: async (accountId?: string) => {
+      const { data, error } = await supabase.functions.invoke('gmail-sync', {
+        body: { emailAccountId: accountId },
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+      const totalMessages = data.syncResults?.reduce((sum: number, result: any) => 
+        sum + (result.messageCount || 0), 0
+      ) || 0;
+      toast({
+        title: "Sync Complete",
+        description: `Synced ${totalMessages} new messages`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Sync Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -157,6 +189,31 @@ export function EmailForwarding() {
     if (email) {
       addEmailMutation.mutate(email);
     }
+  };
+
+  const handleSyncEmails = (accountId?: string) => {
+    syncEmailsMutation.mutate(accountId);
+  };
+
+  const handleGmailConnect = () => {
+    // Open Gmail OAuth popup
+    const popup = window.open(
+      'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/gmail-oauth',
+      'gmail-auth',
+      'width=500,height=600'
+    );
+    
+    // Listen for popup to close and refresh data
+    const checkClosed = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(checkClosed);
+        queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+        toast({
+          title: "Gmail Connected",
+          description: "Your Gmail account has been connected successfully.",
+        });
+      }
+    }, 1000);
   };
 
   const copyForwardingAddress = async (address: string) => {
@@ -219,8 +276,27 @@ export function EmailForwarding() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <strong>HelpScout-style Email Setup:</strong> Set up your email address below to get a unique forwarding address. 
-          Then forward your emails to this address to receive them in your inbox. You can reply directly from the system using OAuth.
+          <strong>Gmail Integration:</strong> Connect your Gmail account to automatically sync emails as conversations. 
+          The system polls your Gmail for new messages. You can also manually sync anytime.
+          <div className="mt-3 flex gap-2">
+            <Button 
+              onClick={() => handleSyncEmails()}
+              disabled={syncEmailsMutation.isPending}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncEmailsMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncEmailsMutation.isPending ? 'Syncing...' : 'Sync All Accounts'}
+            </Button>
+            <Button 
+              onClick={handleGmailConnect}
+              variant="outline"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Connect Gmail
+            </Button>
+          </div>
         </AlertDescription>
       </Alert>
 
@@ -345,14 +421,24 @@ export function EmailForwarding() {
                       </div>
                     </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeAccountMutation.mutate(account.id)}
-                      disabled={removeAccountMutation.isPending}
-                    >
-                      Remove
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSyncEmails(account.id)}
+                        disabled={syncEmailsMutation.isPending}
+                      >
+                        <RefreshCw className={`h-4 w-4 ${syncEmailsMutation.isPending ? 'animate-spin' : ''}`} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeAccountMutation.mutate(account.id)}
+                        disabled={removeAccountMutation.isPending}
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
