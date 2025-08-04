@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Inbox, Clock, Archive, Star, AlertCircle } from "lucide-react";
+import { Search, Filter, Inbox, Star, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -45,41 +43,17 @@ interface ConversationListProps {
 }
 
 const priorityColors = {
-  low: "bg-gray-100 text-gray-800",
-  normal: "bg-blue-100 text-blue-800",
-  high: "bg-orange-100 text-orange-800",
-  urgent: "bg-red-100 text-red-800",
+  low: "bg-gray-100 text-gray-700",
+  normal: "bg-blue-100 text-blue-700",
+  high: "bg-orange-100 text-orange-700",
+  urgent: "bg-red-100 text-red-700",
 };
 
 const statusColors = {
-  open: "bg-green-100 text-green-800",
-  pending: "bg-yellow-100 text-yellow-800",
-  resolved: "bg-blue-100 text-blue-800",
-  closed: "bg-gray-100 text-gray-800",
-};
-
-const channelIcons = {
-  email: "📧",
-  chat: "💬",
-  phone: "📞",
-  social: "📱",
-};
-
-const getTabIcon = (tab: string) => {
-  switch (tab) {
-    case "inbox":
-      return <Inbox className="w-4 h-4" />;
-    case "pending":
-      return <Clock className="w-4 h-4" />;
-    case "archived":
-      return <Archive className="w-4 h-4" />;
-    case "starred":
-      return <Star className="w-4 h-4" />;
-    case "urgent":
-      return <AlertCircle className="w-4 h-4" />;
-    default:
-      return <Inbox className="w-4 h-4" />;
-  }
+  open: "bg-green-100 text-green-700",
+  pending: "bg-yellow-100 text-yellow-700",
+  resolved: "bg-blue-100 text-blue-700",
+  closed: "bg-gray-100 text-gray-700",
 };
 
 const formatTimeAgo = (dateString: string) => {
@@ -127,7 +101,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       status: "pending",
       priority: "normal",
       is_read: true,
-      channel: "chat",
+      channel: "email",
       updated_at: new Date(Date.now() - 7200000).toISOString(),
       customer: {
         id: "c2",
@@ -163,16 +137,16 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
     
     const matchesTab = (() => {
       switch (selectedTab) {
-        case "inbox":
-          return conversation.status === "open" || conversation.status === "pending";
-        case "pending":
-          return conversation.status === "pending";
+        case "all":
+          return true;
+        case "unread":
+          return !conversation.is_read;
+        case "assigned":
+          return !!conversation.assigned_to;
         case "archived":
           return conversation.status === "closed";
-        case "starred":
-          return false; // Placeholder for starred conversations
-        case "urgent":
-          return conversation.priority === "urgent";
+        case "snoozed":
+          return false; // Placeholder for snoozed conversations
         default:
           return true;
       }
@@ -184,128 +158,125 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
   return (
-    <div className="flex flex-col h-full">
-      <Card className="flex-1 flex flex-col">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              {getTabIcon(selectedTab || 'inbox')}
-              {(selectedTab || 'inbox').charAt(0).toUpperCase() + (selectedTab || 'inbox').slice(1)}
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-2">{unreadCount}</Badge>
-              )}
-            </CardTitle>
-            <Button variant="outline" size="sm">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </Button>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="flex-1 p-0">
-          <div className="space-y-0">
-            {filteredConversations.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No conversations found</p>
-                <p className="text-sm">Try adjusting your search or filters</p>
-              </div>
-            ) : (
-              filteredConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  onClick={() => onSelectConversation(conversation)}
-                  className={cn(
-                    "p-4 border-b border-border hover:bg-muted/50 cursor-pointer transition-colors",
-                    selectedConversation?.id === conversation.id && "bg-muted",
-                    !conversation.is_read && "border-l-4 border-l-primary"
-                  )}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{channelIcons[conversation.channel]}</span>
-                        <h3 className={cn(
-                          "text-sm truncate",
-                          !conversation.is_read ? "font-semibold" : "font-normal"
-                        )}>
-                          {conversation.subject}
-                        </h3>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge 
-                          variant="secondary" 
-                          className={cn("text-xs", statusColors[conversation.status])}
-                        >
-                          {conversation.status}
-                        </Badge>
-                        <Badge 
-                          variant="secondary" 
-                          className={cn("text-xs", priorityColors[conversation.priority])}
-                        >
-                          {conversation.priority}
-                        </Badge>
-                      </div>
-                      
-                      <div className="text-xs text-muted-foreground">
-                        <p>From: {conversation.customer?.full_name || "Unknown"}</p>
-                        {conversation.assigned_to && (
-                          <p>Assigned to: {conversation.assigned_to.full_name}</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="text-xs text-muted-foreground ml-2">
-                      {formatTimeAgo(conversation.updated_at)}
-                    </div>
-                  </div>
-                </div>
-              ))
+    <div className="flex-1 flex flex-col bg-background">
+      {/* Header */}
+      <div className="p-4 border-b border-border bg-background">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Inbox className="h-5 w-5" />
+            <h2 className="font-semibold text-lg">Inbox</h2>
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="h-5 px-2 text-xs">
+                {unreadCount}
+              </Badge>
             )}
           </div>
-        </CardContent>
-      </Card>
+          <Button variant="outline" size="sm">
+            <Filter className="w-4 h-4 mr-2" />
+            Filter
+          </Button>
+        </div>
+        
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="All Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priority</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="normal">Normal</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {/* Conversation List */}
+      <div className="flex-1 overflow-y-auto">
+        {filteredConversations.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">
+            <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No conversations found</p>
+            <p className="text-sm">Try adjusting your search or filters</p>
+          </div>
+        ) : (
+          filteredConversations.map((conversation) => (
+            <div
+              key={conversation.id}
+              onClick={() => onSelectConversation(conversation)}
+              className={cn(
+                "p-4 border-b border-border hover:bg-muted/50 cursor-pointer transition-colors",
+                selectedConversation?.id === conversation.id && "bg-muted",
+                !conversation.is_read && "border-l-4 border-l-blue-500 bg-blue-50/30"
+              )}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {conversation.priority === "urgent" && (
+                    <Star className="h-4 w-4 text-red-500" fill="currentColor" />
+                  )}
+                  <h3 className={cn(
+                    "text-sm font-medium truncate max-w-64",
+                    !conversation.is_read ? "font-semibold" : "font-normal"
+                  )}>
+                    {conversation.subject}
+                  </h3>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                  {formatTimeAgo(conversation.updated_at)}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2 mb-2">
+                <Badge 
+                  variant="secondary" 
+                  className={cn("text-xs font-normal", statusColors[conversation.status])}
+                >
+                  {conversation.status}
+                </Badge>
+                <Badge 
+                  variant="secondary" 
+                  className={cn("text-xs font-normal", priorityColors[conversation.priority])}
+                >
+                  {conversation.priority}
+                </Badge>
+              </div>
+              
+              <div className="text-xs text-muted-foreground">
+                <p>From: {conversation.customer?.full_name || "Unknown"}</p>
+                {conversation.assigned_to && (
+                  <p>Assigned to: {conversation.assigned_to.full_name}</p>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };

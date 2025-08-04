@@ -75,11 +75,22 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   if (!conversationId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-muted/10">
-        <div className="text-center">
-          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No conversation selected</h3>
-          <p className="text-muted-foreground">Choose a conversation from the list to start viewing messages</p>
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <div className="text-center space-y-6 max-w-md mx-auto px-4">
+          {/* Email Icon */}
+          <div className="flex justify-center">
+            <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
+              <MessageSquare className="h-12 w-12 text-muted-foreground" />
+            </div>
+          </div>
+          
+          {/* Empty State Text */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium text-foreground">No conversation selected</h3>
+            <p className="text-muted-foreground">
+              Choose a conversation from the list to start viewing messages
+            </p>
+          </div>
         </div>
       </div>
     );

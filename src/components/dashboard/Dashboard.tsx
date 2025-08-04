@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { InboxSidebar } from './InboxSidebar';
 import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
+import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -30,12 +31,11 @@ interface Conversation {
 }
 
 export const Dashboard: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState('inbox');
+  const [selectedTab, setSelectedTab] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
   const isMobile = useIsMobile();
-  const isTablet = window.innerWidth <= 1024;
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
@@ -51,58 +51,74 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      <Header 
-        organizationName="Noddi Support" 
-        onMenuClick={() => setShowSidebar(!showSidebar)}
-        showMenuButton={isMobile}
-        onBackClick={isMobile && !showConversationList ? handleBackToList : undefined}
-      />
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Mobile Sidebar Overlay */}
-        {isMobile && showSidebar && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setShowSidebar(false)}
-          />
-        )}
-        
-        {/* Sidebar */}
+    <div className="h-screen flex bg-background">
+      {/* Sidebar */}
+      <div className={`
+        ${isMobile ? 'fixed left-0 top-0 bottom-0 z-50 transform transition-transform' : ''}
+        ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}
+        w-64 border-r border-border bg-card
+      `}>
+        <InboxSidebar 
+          selectedTab={selectedTab} 
+          onTabChange={setSelectedTab}
+        />
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && showSidebar && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Conversation List */}
         <div className={`
-          ${isMobile ? 'fixed left-0 top-16 bottom-0 z-50 transform transition-transform' : ''}
-          ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}
-          ${!isMobile && isTablet ? 'w-16' : !isMobile ? 'w-64' : 'w-64'}
+          ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
+          w-96 border-r border-border bg-background flex-col
         `}>
-          <InboxSidebar 
-            selectedTab={selectedTab} 
-            onTabChange={setSelectedTab}
+          {/* Header with "Generate Forwarding Address" button */}
+          <div className="p-4 border-b border-border bg-primary">
+            <Button 
+              className="w-full bg-white/10 hover:bg-white/20 text-white border-white/20"
+              variant="outline"
+            >
+              Generate Forwarding Address
+            </Button>
+          </div>
+
+          <ConversationList 
+            selectedTab={selectedTab}
+            selectedConversation={selectedConversation}
+            onSelectConversation={handleSelectConversation}
           />
         </div>
         
-        {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Conversation List */}
-          <div className={`
-            ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
-            ${isTablet && !isMobile ? 'w-80' : 'w-96'}
-            flex-col
-          `}>
-            <ConversationList 
-              selectedTab={selectedTab}
-              selectedConversation={selectedConversation}
-              onSelectConversation={handleSelectConversation}
-            />
-          </div>
-          
-          {/* Conversation View */}
-          <div className={`
-            ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'flex'}
-            flex-1 flex-col
-          `}>
-            <ConversationView 
-              conversationId={selectedConversation?.id || null}
-            />
-          </div>
+        {/* Conversation View */}
+        <div className={`
+          ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'flex'}
+          flex-1 flex-col bg-background
+        `}>
+          {/* Mobile Header */}
+          {isMobile && (
+            <div className="p-4 border-b border-border bg-card flex items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleBackToList}
+                className="mr-2"
+              >
+                ← Back
+              </Button>
+              <h1 className="font-semibold">Noddi Support</h1>
+            </div>
+          )}
+
+          <ConversationView 
+            conversationId={selectedConversation?.id || null}
+          />
         </div>
       </div>
     </div>
