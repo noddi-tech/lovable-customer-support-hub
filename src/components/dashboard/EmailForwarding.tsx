@@ -51,9 +51,10 @@ export function EmailForwarding() {
 
       if (profileError || !profile) throw new Error("User profile not found");
 
-      // Generate unique forwarding address
-      const randomId = Math.random().toString(36).substring(2, 15);
-      const forwardingAddress = `support-${randomId}@yourdomain.com`;
+      // Generate unique forwarding address based on organization
+      const orgSlug = profile.organization_id.substring(0, 8);
+      const randomId = Math.random().toString(36).substring(2, 8);
+      const forwardingAddress = `support-${orgSlug}-${randomId}@helpdesk.example.com`;
 
       const { data, error } = await supabase
         .from("email_accounts")

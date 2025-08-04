@@ -12,7 +12,7 @@ import {
 import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
-import { EmailAccountConnection } from './EmailAccountConnection';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   organizationName?: string;
@@ -28,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onBackClick 
 }) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 shadow-sm">
@@ -56,9 +57,6 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center space-x-2 md:space-x-4">
-        {/* Email Accounts */}
-        <EmailAccountConnection />
-
         {/* Search - Hidden on mobile */}
         <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hidden sm:flex">
           <Search className="h-4 w-4" />
@@ -73,7 +71,12 @@ export const Header: React.FC<HeaderProps> = ({
         </Button>
 
         {/* Settings - Hidden on mobile */}
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hidden sm:flex">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-muted-foreground hover:text-foreground hidden sm:flex"
+          onClick={() => navigate('/settings')}
+        >
           <Settings className="h-4 w-4" />
         </Button>
 
@@ -103,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
             </DropdownMenuItem>

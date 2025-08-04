@@ -79,16 +79,6 @@ export const Dashboard: React.FC = () => {
           ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
           w-96 border-r border-border bg-background flex-col
         `}>
-          {/* Header with "Generate Forwarding Address" button */}
-          <div className="p-4 border-b border-border bg-primary">
-            <Button 
-              className="w-full bg-white/10 hover:bg-white/20 text-white border-white/20"
-              variant="outline"
-            >
-              Generate Forwarding Address
-            </Button>
-          </div>
-
           <ConversationList 
             selectedTab={selectedTab}
             selectedConversation={selectedConversation}
