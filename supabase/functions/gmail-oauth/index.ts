@@ -113,23 +113,39 @@ serve(async (req: Request) => {
       }
 
       console.log('Looking up user profile for state:', state);
-      const { data: profile } = await supabaseClient
+      
+      const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
-        .select('organization_id')
+        .select('organization_id, user_id, email')
         .eq('user_id', state)
         .single();
 
-      console.log('Profile lookup result:', { profile, hasOrgId: !!profile?.organization_id });
+      console.log('Profile lookup result:', { 
+        profile, 
+        profileError: profileError?.message,
+        hasOrgId: !!profile?.organization_id,
+        stateUsed: state 
+      });
 
-      if (!profile) {
-        console.error('User profile not found for user ID:', state);
+      if (profileError || !profile) {
+        console.error('User profile lookup failed:', { profileError, state });
+        
+        // Try to find any profile to debug
+        const { data: allProfiles } = await supabaseClient
+          .from('profiles')
+          .select('user_id, email')
+          .limit(5);
+        
+        console.log('Available profiles for debugging:', allProfiles);
+        
         return new Response(`
           <html>
             <body>
               <h1>Error</h1>
-              <p>User profile not found. Please try again.</p>
+              <p>User profile not found for user ID: ${state}</p>
+              <p>Error: ${profileError?.message || 'Profile not found'}</p>
               <script>
-                setTimeout(() => window.close(), 3000);
+                setTimeout(() => window.close(), 5000);
               </script>
             </body>
           </html>
