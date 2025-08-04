@@ -56,7 +56,7 @@ enable_confirmations = false
 enabled = true
 
 [functions.gmail-oauth]
-verify_jwt = true
+verify_jwt = false
 
 [functions.gmail-sync]
 verify_jwt = true
