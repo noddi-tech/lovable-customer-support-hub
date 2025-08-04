@@ -10,8 +10,9 @@ import { Separator } from '@/components/ui/separator';
 import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
 import { AdminPortal } from '@/components/admin/AdminPortal';
 import { UserManagement } from '@/components/admin/UserManagement';
+import { InboxManagement } from '@/components/admin/InboxManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette } from 'lucide-react';
+import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette, Inbox } from 'lucide-react';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { useNavigate } from 'react-router-dom';
 
@@ -50,10 +51,14 @@ export default function Settings() {
       <div className="container mx-auto py-6 px-4">
         <div className="max-w-6xl mx-auto">
           <Tabs defaultValue="inbox" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-1">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-1">
               <TabsTrigger value="inbox" className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Inbox
+              </TabsTrigger>
+              <TabsTrigger value="inboxes" disabled={!isAdmin} className="flex items-center gap-2">
+                <Inbox className="w-4 h-4" />
+                Inboxes
               </TabsTrigger>
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <SettingsIcon className="w-4 h-4" />
@@ -222,6 +227,20 @@ export default function Settings() {
                 </Button>
                 <Button>Save</Button>
               </div>
+            </TabsContent>
+
+            {/* Inboxes Management */}
+            <TabsContent value="inboxes" className="space-y-6">
+              {isAdmin ? (
+                <InboxManagement />
+              ) : (
+                <Alert>
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    You don't have permission to manage inboxes. Only administrators can manage organization inboxes.
+                  </AlertDescription>
+                </Alert>
+              )}
             </TabsContent>
 
             {/* General Settings */}

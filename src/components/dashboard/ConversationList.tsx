@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
-type ConversationChannel = "email" | "chat" | "phone" | "social";
+type ConversationChannel = "email" | "chat" | "phone" | "social" | "facebook" | "instagram" | "whatsapp";
 
 interface Customer {
   id: string;
@@ -32,6 +32,7 @@ interface Conversation {
   is_read: boolean;
   channel: ConversationChannel;
   updated_at: string;
+  inbox_id?: string;
   customer?: Customer;
   assigned_to?: AssignedTo;
 }
@@ -120,7 +121,20 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
           return conversation.status === "closed";
         case "snoozed":
           return false; // Placeholder for snoozed conversations
+        case "email":
+          return conversation.channel === "email";
+        case "facebook":
+          return conversation.channel === "facebook";
+        case "instagram":
+          return conversation.channel === "instagram";
+        case "whatsapp":
+          return conversation.channel === "whatsapp";
         default:
+          // Handle inbox-specific filtering
+          if (selectedTab.startsWith('inbox-')) {
+            const inboxId = selectedTab.replace('inbox-', '');
+            return conversation.inbox_id === inboxId;
+          }
           return true;
       }
     })();

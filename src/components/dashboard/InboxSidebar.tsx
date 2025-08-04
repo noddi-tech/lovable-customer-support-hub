@@ -23,9 +23,30 @@ interface InboxSidebarProps {
   onTabChange: (tab: string) => void;
 }
 
+interface InboxData {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  is_default: boolean;
+  is_active: boolean;
+  conversation_count: number;
+}
+
 
 export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabChange }) => {
   const [expandedChannels, setExpandedChannels] = useState(true);
+  const [expandedInboxes, setExpandedInboxes] = useState(true);
+
+  // Fetch inboxes
+  const { data: inboxes = [] } = useQuery({
+    queryKey: ['inboxes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_inboxes');
+      if (error) throw error;
+      return data as InboxData[];
+    }
+  });
 
   // Fetch conversation counts
   const { data: conversationCounts = {}, isLoading } = useQuery({
@@ -165,6 +186,57 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
                         className="ml-auto h-5 text-xs"
                       >
                         {item.count}
+                      </Badge>
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <Separator className="my-4" />
+
+        {/* Inboxes */}
+        <div className="px-2">
+          <div className="flex items-center justify-between px-2 py-2">
+            <h3 className="text-sm font-medium text-muted-foreground">INBOXES</h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 w-6 p-0"
+              onClick={() => setExpandedInboxes(!expandedInboxes)}
+            >
+              <Filter className="h-3 w-3" />
+            </Button>
+          </div>
+          
+          {expandedInboxes && (
+            <div className="space-y-1">
+              {inboxes.filter(inbox => inbox.is_active).map((inbox) => {
+                const isSelected = selectedTab === `inbox-${inbox.id}`;
+                
+                return (
+                  <Button
+                    key={inbox.id}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start px-2 py-2 h-auto font-normal",
+                      isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
+                    )}
+                    onClick={() => onTabChange(`inbox-${inbox.id}`)}
+                  >
+                    <div 
+                      className="mr-3 w-3 h-3 rounded-full flex-shrink-0" 
+                      style={{ backgroundColor: inbox.color }}
+                    />
+                    <span className="flex-1 text-left truncate">{inbox.name}</span>
+                    {inbox.conversation_count > 0 && (
+                      <Badge 
+                        variant={isSelected ? "default" : "secondary"} 
+                        className="ml-auto h-5 text-xs"
+                      >
+                        {inbox.conversation_count}
                       </Badge>
                     )}
                   </Button>

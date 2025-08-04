@@ -24,6 +24,7 @@ export type Database = {
           email_account_id: string | null
           external_id: string | null
           id: string
+          inbox_id: string | null
           is_archived: boolean | null
           is_read: boolean | null
           metadata: Json | null
@@ -42,6 +43,7 @@ export type Database = {
           email_account_id?: string | null
           external_id?: string | null
           id?: string
+          inbox_id?: string | null
           is_archived?: boolean | null
           is_read?: boolean | null
           metadata?: Json | null
@@ -60,6 +62,7 @@ export type Database = {
           email_account_id?: string | null
           external_id?: string | null
           id?: string
+          inbox_id?: string | null
           is_archived?: boolean | null
           is_read?: boolean | null
           metadata?: Json | null
@@ -190,6 +193,7 @@ export type Database = {
           email_address: string
           forwarding_address: string | null
           id: string
+          inbox_id: string | null
           is_active: boolean | null
           last_sync_at: string | null
           organization_id: string
@@ -206,6 +210,7 @@ export type Database = {
           email_address: string
           forwarding_address?: string | null
           id?: string
+          inbox_id?: string | null
           is_active?: boolean | null
           last_sync_at?: string | null
           organization_id: string
@@ -222,6 +227,7 @@ export type Database = {
           email_address?: string
           forwarding_address?: string | null
           id?: string
+          inbox_id?: string | null
           is_active?: boolean | null
           last_sync_at?: string | null
           organization_id?: string
@@ -290,6 +296,51 @@ export type Database = {
           name?: string
           organization_id?: string
           signature_content?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inboxes: {
+        Row: {
+          auto_assignment_rules: Json | null
+          color: string | null
+          created_at: string
+          created_by_id: string | null
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_assignment_rules?: Json | null
+          color?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_assignment_rules?: Json | null
+          color?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          organization_id?: string
           updated_at?: string
         }
         Relationships: []
@@ -537,6 +588,22 @@ export type Database = {
           last_sync_at: string
           created_at: string
           forwarding_address: string
+        }[]
+      }
+      get_inboxes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          description: string
+          department_id: string
+          is_default: boolean
+          auto_assignment_rules: Json
+          color: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          conversation_count: number
         }[]
       }
       get_organization_by_email_domain: {
