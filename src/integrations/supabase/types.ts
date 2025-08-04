@@ -476,6 +476,10 @@ export type Database = {
           forwarding_address: string
         }[]
       }
+      get_organization_by_email_domain: {
+        Args: { email_domain: string }
+        Returns: string
+      }
       get_user_organization_id: {
         Args: Record<PropertyKey, never>
         Returns: string
