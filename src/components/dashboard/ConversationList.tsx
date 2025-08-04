@@ -74,58 +74,31 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
 
-  // Mock data for now - will be replaced with actual data fetching
-  const mockConversations: Conversation[] = [
-    {
-      id: "1",
-      subject: "Need help with order #12345",
-      status: "open",
-      priority: "high",
-      is_read: false,
-      channel: "email",
-      updated_at: new Date(Date.now() - 3600000).toISOString(),
-      customer: {
-        id: "c1",
-        full_name: "John Doe",
-        email: "john@example.com",
-      },
-      assigned_to: {
-        id: "a1",
-        full_name: "Alice Smith",
-        avatar_url: "https://avatar.iran.liara.run/public/1",
-      },
+  // Fetch real conversations from database
+  const { data: conversations = [], isLoading } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_conversations');
+      if (error) {
+        console.error('Error fetching conversations:', error);
+        return [];
+      }
+      // Transform the data to match our interface
+      return (data as any[])?.map(conv => ({
+        ...conv,
+        customer: conv.customer ? {
+          id: conv.customer.id,
+          full_name: conv.customer.full_name,
+          email: conv.customer.email,
+        } : undefined,
+        assigned_to: conv.assigned_to ? {
+          id: conv.assigned_to.id,
+          full_name: conv.assigned_to.full_name,
+          avatar_url: conv.assigned_to.avatar_url,
+        } : undefined,
+      })) as Conversation[] || [];
     },
-    {
-      id: "2",
-      subject: "Product inquiry",
-      status: "pending",
-      priority: "normal",
-      is_read: true,
-      channel: "email",
-      updated_at: new Date(Date.now() - 7200000).toISOString(),
-      customer: {
-        id: "c2",
-        full_name: "Jane Wilson",
-        email: "jane@example.com",
-      },
-    },
-    {
-      id: "3",
-      subject: "Urgent: Payment issue",
-      status: "open",
-      priority: "urgent",
-      is_read: false,
-      channel: "email",
-      updated_at: new Date(Date.now() - 1800000).toISOString(),
-      customer: {
-        id: "c3",
-        full_name: "Bob Johnson",
-        email: "bob@example.com",
-      },
-    },
-  ];
-
-  const conversations = mockConversations;
+  });
 
   const filteredConversations = conversations.filter((conversation) => {
     const matchesSearch = conversation.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -218,11 +191,16 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredConversations.length === 0 ? (
+        {isLoading ? (
+          <div className="p-8 text-center text-muted-foreground">
+            <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
+            <p>Loading conversations...</p>
+          </div>
+        ) : filteredConversations.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No conversations found</p>
-            <p className="text-sm">Try adjusting your search or filters</p>
+            <p className="text-sm">Send an email to {`joachim@noddi.no`} to create your first conversation</p>
           </div>
         ) : (
           filteredConversations.map((conversation) => (

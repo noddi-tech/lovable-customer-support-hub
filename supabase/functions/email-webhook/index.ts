@@ -24,7 +24,7 @@ serve(async (req: Request) => {
 
   try {
     const supabaseClient = createClient(
-      'https://qgfaycwsangsqzpveoup.supabase.co',
+      Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
