@@ -264,14 +264,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       console.log('Message deleted successfully from database');
       toast.success('Message deleted');
       
-      // Force a refetch to ensure consistency
-      await queryClient.refetchQueries({ queryKey });
+      // Don't refetch - let the optimistic update stay
+      // The cache is already updated correctly
       
     } catch (error) {
       console.error('Error deleting message:', error);
       
-      // If the mutation fails, refetch to restore correct state
-      queryClient.refetchQueries({ queryKey });
+      // If the mutation fails, invalidate to restore correct state
+      queryClient.invalidateQueries({ queryKey });
       toast.error('Failed to delete message');
     }
   };
