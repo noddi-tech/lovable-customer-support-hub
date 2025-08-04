@@ -226,13 +226,26 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   // Delete a failed message
   const deleteMessage = async (messageId: string) => {
+    const queryKey = ['messages', conversationId];
+    
     try {
-      // Optimistically update the UI
-      queryClient.setQueryData(['messages', conversationId], (oldMessages: any[]) => {
-        if (!oldMessages) return [];
-        return oldMessages.filter(msg => msg.id !== messageId);
+      console.log('Deleting message:', messageId);
+      
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData(queryKey);
+
+      // Optimistically update to remove the message
+      queryClient.setQueryData(queryKey, (old: any[]) => {
+        if (!old) return [];
+        const filtered = old.filter(msg => msg.id !== messageId);
+        console.log('Optimistic update - before:', old.length, 'after:', filtered.length);
+        return filtered;
       });
 
+      // Perform the deletion
       const { error } = await supabase
         .from('messages')
         .delete()
@@ -240,13 +253,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       if (error) throw error;
 
-      // Invalidate and refetch to ensure consistency
-      await queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      console.log('Message deleted successfully from database');
       toast.success('Message deleted');
+      
+      // Refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey });
+      
     } catch (error) {
       console.error('Error deleting message:', error);
-      // Revert optimistic update on error
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.invalidateQueries({ queryKey });
       toast.error('Failed to delete message');
     }
   };
