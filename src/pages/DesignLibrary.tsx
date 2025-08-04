@@ -165,7 +165,7 @@ const DesignLibrary = () => {
           onChange={(e) => handleColorChange(colorKey, e.target.value)}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
           <span className="text-white/0 group-hover:text-white/80 text-xs font-medium transition-colors">
             Click to edit
           </span>
