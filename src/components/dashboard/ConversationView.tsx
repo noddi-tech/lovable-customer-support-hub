@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,6 +30,44 @@ interface ConversationViewProps {
 export const ConversationView: React.FC<ConversationViewProps> = ({ conversationId }) => {
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Mutation to send reply/note
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ content, isInternal }: { content: string; isInternal: boolean }) => {
+      if (!conversationId) throw new Error('No conversation selected');
+      
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          content: content.trim(),
+          is_internal: isInternal,
+          sender_type: 'agent',
+          content_type: 'text'
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setReplyText('');
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(isInternalNote ? 'Internal note added' : 'Reply sent');
+    },
+    onError: (error) => {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+    }
+  });
+
+  const handleSendMessage = () => {
+    if (!replyText.trim()) return;
+    sendMessageMutation.mutate({ 
+      content: replyText, 
+      isInternal: isInternalNote 
+    });
+  };
 
   // Fetch conversation details
   const { data: conversation, isLoading: conversationLoading } = useQuery({
@@ -321,10 +360,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 </div>
                 <Button 
                   className="bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
-                  disabled={!replyText.trim()}
+                  disabled={!replyText.trim() || sendMessageMutation.isPending}
+                  onClick={handleSendMessage}
                 >
                   <Send className="h-4 w-4 mr-2" />
-                  {isInternalNote ? 'Add Note' : 'Send Reply'}
+                  {sendMessageMutation.isPending 
+                    ? (isInternalNote ? 'Adding...' : 'Sending...') 
+                    : (isInternalNote ? 'Add Note' : 'Send Reply')
+                  }
                 </Button>
               </div>
             </div>
