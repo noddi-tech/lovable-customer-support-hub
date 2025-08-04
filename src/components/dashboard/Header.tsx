@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -128,6 +128,10 @@ export const Header: React.FC<HeaderProps> = ({
             <DropdownMenuItem onClick={() => navigate('/settings')}>
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/design-library')}>
+              <Palette className="mr-2 h-4 w-4" />
+              <span>Design Library</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive">
