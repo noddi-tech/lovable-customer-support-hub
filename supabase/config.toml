@@ -60,3 +60,6 @@ verify_jwt = true
 
 [functions.gmail-sync]
 verify_jwt = true
+
+[functions.email-webhook]
+verify_jwt = false
