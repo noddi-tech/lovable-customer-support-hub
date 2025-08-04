@@ -32,9 +32,11 @@ serve(async (req: Request) => {
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
 
-    // If there's a code parameter, this is a callback from Google
-    if (code && state) {
-      console.log('Processing OAuth callback with code:', code);
+    console.log('Gmail OAuth request:', { hasCode: !!code, hasState: !!state, url: url.pathname });
+
+    // If there's a code parameter, this is a callback from Google - handle without auth
+    if (code) {
+      console.log('Processing OAuth callback with code:', code.substring(0, 20) + '...');
       
       // Exchange code for tokens
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -82,6 +84,24 @@ serve(async (req: Request) => {
       );
 
       // Get user's organization using the state parameter (user ID)
+      if (!state) {
+        console.error('Missing state parameter in OAuth callback');
+        return new Response(`
+          <html>
+            <body>
+              <h1>Error</h1>
+              <p>Missing state parameter. Please try connecting again.</p>
+              <script>
+                setTimeout(() => window.close(), 3000);
+              </script>
+            </body>
+          </html>
+        `, {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        });
+      }
+
       const { data: profile } = await supabaseClient
         .from('profiles')
         .select('organization_id')
