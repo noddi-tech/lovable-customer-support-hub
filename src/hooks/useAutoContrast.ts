@@ -53,8 +53,9 @@ export const useAutoContrast = () => {
     
     switch (messageType) {
       case 'agent':
-        // Force white text for agent messages (blue background)
-        color = 'hsl(0 0% 98%)';
+        // If agent messages actually appear with white background, use dark text
+        // Otherwise if they have blue background (bg-primary), use white text
+        color = 'hsl(224 71% 4%)'; // Dark text for white background
         break;
       case 'customer':
         // Use dark text for customer messages (white background)
