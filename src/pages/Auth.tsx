@@ -73,16 +73,26 @@ export const Auth: React.FC = () => {
     try {
       cleanupAuthState();
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Google OAuth error:', error);
+        throw error;
+      }
+      
+      console.log('Google OAuth initiated:', data);
     } catch (error: any) {
-      setError(error.message || 'An error occurred during Google sign in');
+      console.error('Google sign in error:', error);
+      setError(error.message || 'An error occurred during Google sign in. Please ensure Google OAuth is configured in Supabase.');
     } finally {
       setLoading(false);
     }
