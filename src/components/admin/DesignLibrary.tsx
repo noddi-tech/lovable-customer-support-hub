@@ -773,15 +773,6 @@ export const DesignLibrary = () => {
                       />
                     </div>
                    </div>
-                   <Button
-                     variant="outline"
-                     onClick={() => toast({
-                       title: "Test Toast",
-                       description: "This is a test toast with your current settings!",
-                     })}
-                   >
-                     Test Toast
-                   </Button>
                  </CardContent>
               </Card>
 
@@ -1095,7 +1086,7 @@ export const DesignLibrary = () => {
                    <div className="space-y-3">
                      {/* Success Toast */}
                      <div 
-                       className={`flex items-start gap-3 max-w-sm ml-auto ${
+                       className={`flex items-start gap-3 max-w-sm ${
                          designSystem.components.toast.style === 'minimal' 
                            ? 'bg-green-500 text-white shadow-lg' 
                            : 'bg-green-50 border border-green-200 text-green-800'
@@ -1127,7 +1118,7 @@ export const DesignLibrary = () => {
 
                      {/* Error Toast */}
                      <div 
-                       className={`flex items-start gap-3 max-w-sm ml-auto ${
+                       className={`flex items-start gap-3 max-w-sm ${
                          designSystem.components.toast.style === 'minimal' 
                            ? 'bg-red-500 text-white shadow-lg' 
                            : 'bg-red-50 border border-red-200 text-red-800'
@@ -1159,7 +1150,7 @@ export const DesignLibrary = () => {
 
                      {/* Warning Toast */}
                      <div 
-                       className={`flex items-start gap-3 max-w-sm ml-auto ${
+                       className={`flex items-start gap-3 max-w-sm ${
                          designSystem.components.toast.style === 'minimal' 
                            ? 'bg-yellow-500 text-white shadow-lg' 
                            : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
@@ -1191,7 +1182,7 @@ export const DesignLibrary = () => {
 
                      {/* Info Toast */}
                      <div 
-                       className={`flex items-start gap-3 max-w-sm ml-auto ${
+                       className={`flex items-start gap-3 max-w-sm ${
                          designSystem.components.toast.style === 'minimal' 
                            ? 'bg-blue-500 text-white shadow-lg' 
                            : 'bg-blue-50 border border-blue-200 text-blue-800'
