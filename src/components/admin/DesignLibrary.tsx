@@ -6,7 +6,6 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Save, Palette, Eye, Download, Upload, Settings, Layout, Layers } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast as showToast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -773,14 +772,17 @@ export const DesignLibrary = () => {
                         placeholder="16px"
                       />
                     </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => showToast('This is a test toast with your current settings!')}
-                  >
-                    Test Toast
-                  </Button>
-                </CardContent>
+                   </div>
+                   <Button
+                     variant="outline"
+                     onClick={() => toast({
+                       title: "Test Toast",
+                       description: "This is a test toast with your current settings!",
+                     })}
+                   >
+                     Test Toast
+                   </Button>
+                 </CardContent>
               </Card>
 
               {/* Card Configuration */}
@@ -1088,17 +1090,40 @@ export const DesignLibrary = () => {
 
                 <Separator />
 
-                <div className="space-y-4">
-                  <h4 className="font-medium">Toast Settings</h4>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Position: {designSystem.components.toast.position.replace('-', ' ')}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Style: {designSystem.components.toast.style}
-                    </p>
-                  </div>
-                </div>
+                 <div className="space-y-4">
+                   <h4 className="font-medium">Toast Preview</h4>
+                   <div className="relative">
+                     {/* Mock toast component */}
+                     <div 
+                       className={`p-4 bg-background border rounded-lg shadow-md max-w-sm ${
+                         designSystem.components.toast.position.includes('right') ? 'ml-auto' : 
+                         designSystem.components.toast.position.includes('center') ? 'mx-auto' : ''
+                       }`}
+                       style={{
+                         borderRadius: designSystem.components.toast.borderRadius,
+                         padding: designSystem.components.toast.padding,
+                       }}
+                     >
+                       <div className="flex items-start gap-3">
+                         <div className="flex-1">
+                           <div className="font-medium text-sm">Test Toast</div>
+                           <div className="text-sm text-muted-foreground">
+                             This shows how your toast settings will look
+                           </div>
+                         </div>
+                         <button className="text-muted-foreground hover:text-foreground">
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                           </svg>
+                         </button>
+                       </div>
+                     </div>
+                     <div className="mt-2 text-xs text-muted-foreground">
+                       Position: {designSystem.components.toast.position.replace('-', ' ')} • 
+                       Style: {designSystem.components.toast.style}
+                     </div>
+                   </div>
+                 </div>
               </CardContent>
             </Card>
           </div>
