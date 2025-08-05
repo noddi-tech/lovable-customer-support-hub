@@ -35,18 +35,19 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-surface">
       {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="container mx-auto py-4 px-4">
+      <div className="border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+        <div className="container mx-auto py-6 px-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Settings</h1>
-              <p className="text-muted-foreground">Manage your account and preferences</p>
+              <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Settings</h1>
+              <p className="text-muted-foreground mt-1">Manage your account and preferences</p>
             </div>
             <Button 
               variant="outline" 
               onClick={() => navigate('/')}
+              className="hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               Back to Dashboard
             </Button>
@@ -54,10 +55,10 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="container mx-auto py-6 px-4">
+      <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
-          <Tabs defaultValue="inboxes" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-1">
+          <Tabs defaultValue="inboxes" className="space-y-8">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-1 bg-card/50 backdrop-blur-sm border border-border/50 shadow-surface">
               <TabsTrigger value="inboxes" className="flex items-center gap-2">
                 <Inbox className="w-4 h-4" />
                 Inboxes
@@ -105,9 +106,9 @@ export default function Settings() {
 
             {/* General Settings */}
             <TabsContent value="general" className="space-y-6">
-              <Card>
+              <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
-                  <CardTitle>General Settings</CardTitle>
+                  <CardTitle className="text-primary">General Settings</CardTitle>
                   <CardDescription>
                     Basic account and preference settings
                   </CardDescription>
@@ -122,9 +123,9 @@ export default function Settings() {
 
             {/* Profile Settings */}
             <TabsContent value="profile" className="space-y-6">
-              <Card>
+              <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
-                  <CardTitle>Profile Settings</CardTitle>
+                  <CardTitle className="text-primary">Profile Settings</CardTitle>
                   <CardDescription>
                     Manage your profile information
                   </CardDescription>
@@ -139,9 +140,9 @@ export default function Settings() {
 
             {/* Notification Settings */}
             <TabsContent value="notifications" className="space-y-6">
-              <Card>
+              <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
-                  <CardTitle>Notification Settings</CardTitle>
+                  <CardTitle className="text-primary">Notification Settings</CardTitle>
                   <CardDescription>
                     Configure your notification preferences
                   </CardDescription>
