@@ -21,40 +21,68 @@ import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { DesignLibraryComponents } from './DesignLibraryComponents';
 import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
 
-// Helper function to calculate optimal text color based on background
+// Proper WCAG contrast calculation
 const getOptimalTextColor = (hslBackground: string, opacity: number = 1): string => {
-  // Parse HSL values
-  const [h, s, l] = hslBackground.split(' ').map(val => parseFloat(val.replace('%', '')));
+  // Parse HSL values - handle both "h s l" and "h s% l%" formats
+  const parts = hslBackground.trim().split(/\s+/);
+  const h = parseFloat(parts[0]) || 0;
+  const s = parseFloat(parts[1].replace('%', '')) || 0;
+  const l = parseFloat(parts[2].replace('%', '')) || 0;
   
-  // Convert HSL to RGB for better luminance calculation
-  const hslToRgb = (h: number, s: number, l: number) => {
-    h /= 360;
-    s /= 100;
-    l /= 100;
-    
-    const a = s * Math.min(l, 1 - l);
-    const f = (n: number) => {
-      const k = (n + h * 12) % 12;
-      return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    };
-    return [f(0), f(8), f(4)];
-  };
+  // Convert HSL to RGB
+  const hue = h / 360;
+  const sat = s / 100;
+  const light = l / 100;
   
-  const [r, g, b] = hslToRgb(h, s, l);
+  const c = (1 - Math.abs(2 * light - 1)) * sat;
+  const x = c * (1 - Math.abs(((hue * 6) % 2) - 1));
+  const m = light - c / 2;
+  
+  let r = 0, g = 0, b = 0;
+  
+  if (0 <= hue && hue < 1/6) {
+    r = c; g = x; b = 0;
+  } else if (1/6 <= hue && hue < 2/6) {
+    r = x; g = c; b = 0;
+  } else if (2/6 <= hue && hue < 3/6) {
+    r = 0; g = c; b = x;
+  } else if (3/6 <= hue && hue < 4/6) {
+    r = 0; g = x; b = c;
+  } else if (4/6 <= hue && hue < 5/6) {
+    r = x; g = 0; b = c;
+  } else if (5/6 <= hue && hue < 1) {
+    r = c; g = 0; b = x;
+  }
+  
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
   
   // Calculate relative luminance using WCAG formula
-  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  const linearize = (c: number) => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
   
-  // If luminance > 0.5, use dark text; if <= 0.5, use light text
-  const useDarkText = luminance > 0.5;
+  const luminance = 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+  
+  // Calculate contrast ratios for white and black text
+  const whiteLuminance = 1;
+  const blackLuminance = 0;
+  
+  const contrastWithWhite = (whiteLuminance + 0.05) / (luminance + 0.05);
+  const contrastWithBlack = (luminance + 0.05) / (blackLuminance + 0.05);
+  
+  // Choose the color with better contrast (minimum 4.5:1 for WCAG AA)
+  const useWhiteText = contrastWithWhite > contrastWithBlack;
   
   const alphaValue = opacity < 1 ? ` / ${opacity}` : '';
   
-  if (useDarkText) {
-    return `hsl(224 71% 4%${alphaValue})`; // Dark text
-  } else {
-    return `hsl(0 0% 98%${alphaValue})`; // Light text
-  }
+  console.log(`Background: hsl(${h} ${s}% ${l}%), RGB: (${r}, ${g}, ${b}), Luminance: ${luminance}, Using ${useWhiteText ? 'white' : 'black'} text`);
+  
+  return useWhiteText 
+    ? `hsl(0 0% 100%${alphaValue})` // Pure white
+    : `hsl(0 0% 0%${alphaValue})`; // Pure black
 };
 import { 
   Save, 
