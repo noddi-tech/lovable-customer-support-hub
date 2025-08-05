@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -18,10 +19,14 @@ import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettin
 import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
-  const { isAdmin, loading } = useAuth();
+  const { loading } = useAuth();
+  const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const navigate = useNavigate();
+  
+  const canManageUsers = hasPermission('manage_users');
+  const canManageSettings = hasPermission('manage_settings');
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">Loading...</div>
@@ -77,11 +82,11 @@ export default function Settings() {
                 <Palette className="w-4 h-4" />
                 Email Design
               </TabsTrigger>
-              <TabsTrigger value="users" disabled={!isAdmin} className="flex items-center gap-2">
+              <TabsTrigger value="users" disabled={!canManageUsers} className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Users
               </TabsTrigger>
-              <TabsTrigger value="admin" disabled={!isAdmin} className="flex items-center gap-2">
+              <TabsTrigger value="admin" disabled={!canManageSettings} className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 Admin
               </TabsTrigger>
@@ -156,13 +161,13 @@ export default function Settings() {
 
             {/* Users Management */}
             <TabsContent value="users" className="space-y-6">
-              {isAdmin ? (
+              {canManageUsers ? (
                 <UserManagement />
               ) : (
                 <Alert>
                   <Shield className="h-4 w-4" />
                   <AlertDescription>
-                    You don't have permission to manage users. Only administrators can manage organization users.
+                    You don't have permission to manage users. Only users with user management permissions can manage organization users.
                   </AlertDescription>
                 </Alert>
               )}
@@ -170,13 +175,13 @@ export default function Settings() {
 
             {/* Admin Portal */}
             <TabsContent value="admin" className="space-y-6">
-              {isAdmin ? (
+              {canManageSettings ? (
                 <AdminPortal />
               ) : (
                 <Alert>
                   <Shield className="h-4 w-4" />
                   <AlertDescription>
-                    You don't have permission to access the Admin Portal. Only administrators can manage organization settings.
+                    You don't have permission to access the Admin Portal. Only users with management settings permissions can access admin features.
                   </AlertDescription>
                 </Alert>
               )}
