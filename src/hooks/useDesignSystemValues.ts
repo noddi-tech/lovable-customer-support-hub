@@ -51,20 +51,19 @@ export const getButtonStyles = (variant: 'primary' | 'secondary' = 'primary') =>
   
   const baseStyles = {
     borderRadius: components.buttons.borderRadius,
-    padding: components.buttons.padding,
   };
   
   if (variant === 'primary') {
     return {
       ...baseStyles,
-      backgroundColor: `hsl(${colors.primary})`,
+      backgroundColor: `hsl(${colors[components.buttons.primaryColor]})`,
       color: `hsl(${colors.primaryForeground})`,
     };
   }
   
   return {
     ...baseStyles,
-    backgroundColor: `hsl(${colors.secondary})`,
+    backgroundColor: `hsl(${colors[components.buttons.secondaryColor]})`,
     color: `hsl(${colors.secondaryForeground})`,
     border: `1px solid hsl(${colors.border})`,
   };
@@ -76,10 +75,9 @@ export const getCardStyles = () => {
   const components = designSystem.components;
   
   return {
-    backgroundColor: `hsl(${colors.card})`,
+    backgroundColor: `hsl(${colors[components.cards.backgroundColor]})`,
     color: `hsl(${colors.cardForeground})`,
     borderRadius: components.cards.borderRadius,
-    padding: components.cards.padding,
-    boxShadow: components.cards.shadow,
+    boxShadow: designSystem.shadows[components.cards.shadow as keyof typeof designSystem.shadows],
   };
 };

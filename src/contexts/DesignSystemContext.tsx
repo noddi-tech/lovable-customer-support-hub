@@ -76,20 +76,40 @@ interface DesignSystem {
   };
   components: {
     buttons: {
-      primaryStyle: string;
-      secondaryStyle: string;
+      defaultVariant: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+      defaultSize: 'default' | 'sm' | 'lg' | 'icon';
       borderRadius: string;
-      padding: string;
+      primaryColor: keyof DesignSystem['colors'];
+      secondaryColor: keyof DesignSystem['colors'];
     };
     cards: {
-      background: string;
+      defaultVariant: 'default' | 'outline' | 'elevated';
       borderRadius: string;
-      shadow: string;
-      padding: string;
+      shadow: 'none' | 'sm' | 'md' | 'lg';
+      backgroundColor: keyof DesignSystem['colors'];
+      borderColor: keyof DesignSystem['colors'];
+    };
+    badges: {
+      defaultVariant: 'default' | 'secondary' | 'destructive' | 'outline';
+      primaryColor: keyof DesignSystem['colors'];
+      secondaryColor: keyof DesignSystem['colors'];
+      borderRadius: string;
+    };
+    alerts: {
+      borderRadius: string;
+      defaultVariant: 'default' | 'destructive';
+      showIcon: boolean;
+    };
+    avatars: {
+      defaultSize: 'sm' | 'md' | 'lg';
+      borderRadius: string;
+      borderWidth: string;
+      borderColor: keyof DesignSystem['colors'];
     };
     icons: {
-      size: 'sm' | 'md' | 'lg';
-      color: string;
+      defaultSize: 'sm' | 'md' | 'lg';
+      strokeWidth: number;
+      primaryColor: keyof DesignSystem['colors'];
     };
   };
 }
@@ -167,20 +187,40 @@ const defaultDesignSystem: DesignSystem = {
   },
   components: {
     buttons: {
-      primaryStyle: 'solid',
-      secondaryStyle: 'outline',
+      defaultVariant: 'default',
+      defaultSize: 'default',
       borderRadius: '0.5rem',
-      padding: '0.5rem 1rem',
+      primaryColor: 'primary',
+      secondaryColor: 'secondary',
     },
     cards: {
-      background: 'hsl(0 0% 100%)',
+      defaultVariant: 'default',
       borderRadius: '0.75rem',
-      shadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-      padding: '1.5rem',
+      shadow: 'md',
+      backgroundColor: 'card',
+      borderColor: 'border',
+    },
+    badges: {
+      defaultVariant: 'default',
+      primaryColor: 'primary',
+      secondaryColor: 'secondary',
+      borderRadius: '0.375rem',
+    },
+    alerts: {
+      borderRadius: '0.5rem',
+      defaultVariant: 'default',
+      showIcon: true,
+    },
+    avatars: {
+      defaultSize: 'md',
+      borderRadius: '50%',
+      borderWidth: '2px',
+      borderColor: 'border',
     },
     icons: {
-      size: 'md',
-      color: 'hsl(220 9% 46%)',
+      defaultSize: 'md',
+      strokeWidth: 2,
+      primaryColor: 'foreground',
     },
   },
 };

@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { DesignLibraryComponents } from './DesignLibraryComponents';
+import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
 import { 
   Save, 
   Palette, 
@@ -682,150 +683,7 @@ export const DesignLibrary = () => {
         </TabsContent>
 
         <TabsContent value="components">
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Button Components</CardTitle>
-                <CardDescription>
-                  Configure button styles and behaviors.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label>Border Radius</Label>
-                    <Input
-                      value={designSystem.components.buttons.borderRadius}
-                      onChange={(e) => updateComponents('buttons', 'borderRadius', e.target.value)}
-                      placeholder="0.5rem"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Padding</Label>
-                    <Input
-                      value={designSystem.components.buttons.padding}
-                      onChange={(e) => updateComponents('buttons', 'padding', e.target.value)}
-                      placeholder="0.5rem 1rem"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Primary Style</Label>
-                    <Select
-                      value={designSystem.components.buttons.primaryStyle}
-                      onValueChange={(value) => updateComponents('buttons', 'primaryStyle', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="solid">Solid</SelectItem>
-                        <SelectItem value="outline">Outline</SelectItem>
-                        <SelectItem value="ghost">Ghost</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Secondary Style</Label>
-                    <Select
-                      value={designSystem.components.buttons.secondaryStyle}
-                      onValueChange={(value) => updateComponents('buttons', 'secondaryStyle', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="solid">Solid</SelectItem>
-                        <SelectItem value="outline">Outline</SelectItem>
-                        <SelectItem value="ghost">Ghost</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Card Components</CardTitle>
-                <CardDescription>
-                  Configure card styles and layout.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label>Background</Label>
-                    <Input
-                      value={designSystem.components.cards.background}
-                      onChange={(e) => updateComponents('cards', 'background', e.target.value)}
-                      placeholder="hsl(0 0% 100%)"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Border Radius</Label>
-                    <Input
-                      value={designSystem.components.cards.borderRadius}
-                      onChange={(e) => updateComponents('cards', 'borderRadius', e.target.value)}
-                      placeholder="0.75rem"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Shadow</Label>
-                    <Input
-                      value={designSystem.components.cards.shadow}
-                      onChange={(e) => updateComponents('cards', 'shadow', e.target.value)}
-                      placeholder="0 4px 6px -1px rgb(0 0 0 / 0.1)"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Padding</Label>
-                    <Input
-                      value={designSystem.components.cards.padding}
-                      onChange={(e) => updateComponents('cards', 'padding', e.target.value)}
-                      placeholder="1.5rem"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Icon Components</CardTitle>
-                <CardDescription>
-                  Configure icon size and color.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Size</Label>
-                    <Select
-                      value={designSystem.components.icons.size}
-                      onValueChange={(value) => updateComponents('icons', 'size', value as 'sm' | 'md' | 'lg')}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sm">Small</SelectItem>
-                        <SelectItem value="md">Medium</SelectItem>
-                        <SelectItem value="lg">Large</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Color</Label>
-                    <Input
-                      value={designSystem.components.icons.color}
-                      onChange={(e) => updateComponents('icons', 'color', e.target.value)}
-                      placeholder="hsl(220 9% 46%)"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <ComponentConfigurationPanel />
         </TabsContent>
       </Tabs>
 
