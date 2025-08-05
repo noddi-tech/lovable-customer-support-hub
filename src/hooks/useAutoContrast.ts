@@ -47,17 +47,20 @@ export const useAutoContrast = () => {
     return `hsl(${color})`;
   };
 
-  // Get text color for message types specifically
+  // Get text color for message types specifically with guaranteed contrast
   const getMessageTextColor = (messageType: 'agent' | 'customer' | 'internal'): string => {
     switch (messageType) {
       case 'agent':
-        return getContrastTextColorCSS('primary');
+        // For blue backgrounds, always use white text
+        return 'hsl(0 0% 98%)';
       case 'customer':
-        return getContrastTextColorCSS('card');
+        // For white/light backgrounds, always use dark text
+        return 'hsl(224 71% 4%)';
       case 'internal':
-        return getContrastTextColorCSS('warning');
+        // For warning/yellow backgrounds, always use dark text
+        return 'hsl(224 71% 4%)';
       default:
-        return getContrastTextColorCSS('background');
+        return 'hsl(224 71% 4%)';
     }
   };
 
