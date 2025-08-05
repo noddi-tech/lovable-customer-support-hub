@@ -326,7 +326,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   if (!conversationId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-gradient-surface">
         <div className="text-center space-y-6 max-w-md mx-auto px-4">
           {/* Email Icon */}
           <div className="flex justify-center">
@@ -349,7 +349,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   if (conversationLoading || messagesLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-gradient-surface">
         <div className="text-center space-y-4">
           <Clock className="h-8 w-8 mx-auto text-muted-foreground animate-spin" />
           <p className="text-muted-foreground">Loading conversation...</p>
@@ -360,7 +360,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   if (!conversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-gradient-surface">
         <div className="text-center space-y-4">
           <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground" />
           <p className="text-muted-foreground">Conversation not found</p>
@@ -372,19 +372,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   // Helper function to get status icon
   const getStatusIcon = (message: any) => {
     if (message.is_internal) {
-      return <CheckCircle className="h-3 w-3 text-green-500" />;
+      return <CheckCircle className="h-3 w-3 text-success" />;
     }
     
     switch (message.email_status) {
       case 'sent':
-        return <CheckCircle className="h-3 w-3 text-green-500" />;
+        return <CheckCircle className="h-3 w-3 text-success" />;
       case 'sending':
-        return <Clock className="h-3 w-3 text-orange-500 animate-spin" />;
+        return <Clock className="h-3 w-3 text-warning animate-spin" />;
       case 'failed':
-        return <XCircle className="h-3 w-3 text-red-500" />;
+        return <XCircle className="h-3 w-3 text-destructive" />;
       case 'pending':
       default:
-        return <Clock className="h-3 w-3 text-orange-500" />;
+        return <Clock className="h-3 w-3 text-warning" />;
     }
   };
 
@@ -406,9 +406,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
+    <div className="flex-1 flex flex-col bg-gradient-surface">
       {/* Conversation Header */}
-      <div className="p-3 md:p-4 border-b border-border bg-card">
+      <div className="p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar className="h-10 w-10">

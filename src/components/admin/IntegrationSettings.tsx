@@ -8,9 +8,9 @@ import { Label } from '@/components/ui/label';
 export const IntegrationSettings = () => {
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
             <Mail className="w-5 h-5" />
             Email Integration
           </CardTitle>
@@ -23,9 +23,9 @@ export const IntegrationSettings = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle>Channel Settings</CardTitle>
+          <CardTitle className="text-primary">Channel Settings</CardTitle>
           <CardDescription>
             Enable or disable communication channels for your organization
           </CardDescription>
@@ -33,7 +33,7 @@ export const IntegrationSettings = () => {
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-blue-500" />
+              <Mail className="w-5 h-5 text-channel-email" />
               <div>
                 <Label htmlFor="email-channel" className="text-sm font-medium">Email Support</Label>
                 <p className="text-xs text-muted-foreground">Receive and respond to emails</p>
@@ -46,7 +46,7 @@ export const IntegrationSettings = () => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <MessageSquare className="w-5 h-5 text-green-500" />
+              <MessageSquare className="w-5 h-5 text-channel-facebook" />
               <div>
                 <Label htmlFor="messenger-channel" className="text-sm font-medium">Facebook Messenger</Label>
                 <p className="text-xs text-muted-foreground">Connect with customers via Messenger</p>
@@ -59,7 +59,7 @@ export const IntegrationSettings = () => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Instagram className="w-5 h-5 text-pink-500" />
+              <Instagram className="w-5 h-5 text-channel-instagram" />
               <div>
                 <Label htmlFor="instagram-channel" className="text-sm font-medium">Instagram DMs</Label>
                 <p className="text-xs text-muted-foreground">Manage Instagram direct messages</p>

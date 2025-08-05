@@ -404,14 +404,14 @@ export const DesignLibrary = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold">Design Library</h3>
+        <h3 className="text-lg font-semibold text-primary">Design Library</h3>
         <p className="text-muted-foreground">
           Manage your organization's design system and component library
         </p>
       </div>
 
       <Tabs defaultValue="colors" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-6 bg-card/50 backdrop-blur-sm shadow-surface">
           <TabsTrigger value="colors">Colors</TabsTrigger>
           <TabsTrigger value="typography">Typography</TabsTrigger>
           <TabsTrigger value="spacing">Spacing</TabsTrigger>
@@ -422,9 +422,9 @@ export const DesignLibrary = () => {
 
         <TabsContent value="colors">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="bg-gradient-surface border-border/50 shadow-surface">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-primary">
                   <Palette className="w-5 h-5" />
                   Color Palette
                 </CardTitle>

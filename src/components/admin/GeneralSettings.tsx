@@ -94,9 +94,9 @@ export const GeneralSettings = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
             <Palette className="w-5 h-5" />
             Organization Branding
           </CardTitle>
@@ -126,7 +126,7 @@ export const GeneralSettings = () => {
           </div>
 
           <Button 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow" 
             onClick={handleSaveBranding}
             disabled={updateBrandingMutation.isPending || isLoading}
           >
@@ -136,9 +136,9 @@ export const GeneralSettings = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
             <Bell className="w-5 h-5" />
             Notification Settings
           </CardTitle>

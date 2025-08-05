@@ -10,14 +10,14 @@ export const AdminPortal = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Admin Portal</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Admin Portal</h2>
+        <p className="text-muted-foreground mt-1">
           Manage organization settings, users, and integrations
         </p>
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm shadow-surface">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             User Management

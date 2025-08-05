@@ -374,7 +374,7 @@ export function EmailForwarding() {
   if (!user) {
     return (
       <div className="space-y-6">
-        <Alert>
+        <Alert className="bg-primary-muted border-primary/20">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <strong>Authentication Required:</strong> Please log in to set up email forwarding and manage your inbox settings.
@@ -387,7 +387,7 @@ export function EmailForwarding() {
   return (
     <div className="space-y-6">
       {/* Setup Instructions */}
-      <Alert>
+      <Alert className="bg-primary-muted border-primary/20">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           <strong>Gmail Integration:</strong> Connect your Gmail account to automatically sync emails as conversations. 
@@ -406,6 +406,7 @@ export function EmailForwarding() {
               onClick={handleGmailConnect}
               variant="outline"
               size="sm"
+              className="hover:bg-accent"
             >
               <Plus className="h-4 w-4 mr-2" />
               Connect Gmail
@@ -415,9 +416,9 @@ export function EmailForwarding() {
       </Alert>
 
       {/* Add New Email */}
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
             <Mail className="h-5 w-5" />
             Add Email Account
           </CardTitle>
@@ -436,9 +437,9 @@ export function EmailForwarding() {
                  <SelectContent>
                    <SelectItem value="unassigned">
                      <div className="flex items-center gap-2">
-                       <div className="w-3 h-3 rounded-full bg-gray-300" />
-                       <span>Unassigned</span>
-                     </div>
+                        <div className="w-3 h-3 rounded-full bg-muted" />
+                        <span>Unassigned</span>
+                      </div>
                    </SelectItem>
                    {inboxes.map((inbox) => (
                      <SelectItem key={inbox.id} value={inbox.id}>
@@ -469,7 +470,7 @@ export function EmailForwarding() {
             <Button 
               type="submit" 
               disabled={addEmailMutation.isPending}
-              className="w-full"
+              className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
             >
               {addEmailMutation.isPending ? "Setting up..." : "Generate Forwarding Address"}
             </Button>
@@ -478,9 +479,9 @@ export function EmailForwarding() {
       </Card>
 
       {/* Connected Accounts */}
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle>Connected Email Accounts</CardTitle>
+          <CardTitle className="text-primary">Connected Email Accounts</CardTitle>
           <CardDescription>
             Forward emails to these addresses to receive them in your inbox.
           </CardDescription>
@@ -506,9 +507,9 @@ export function EmailForwarding() {
                        <SelectContent>
                          <SelectItem value="unassigned">
                            <div className="flex items-center gap-2">
-                             <div className="w-3 h-3 rounded-full bg-gray-300" />
-                             <span>Unassigned</span>
-                           </div>
+                              <div className="w-3 h-3 rounded-full bg-muted" />
+                              <span>Unassigned</span>
+                            </div>
                          </SelectItem>
                          {inboxes.map((inbox) => (
                            <SelectItem key={inbox.id} value={inbox.id}>
@@ -535,7 +536,7 @@ export function EmailForwarding() {
                   <Button 
                     type="submit" 
                     disabled={addEmailMutation.isPending}
-                    className="w-full"
+                    className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
                   >
                     {addEmailMutation.isPending ? "Generating..." : "Generate Forwarding Address"}
                   </Button>
@@ -545,7 +546,7 @@ export function EmailForwarding() {
           ) : (
             <div className="space-y-4">
               {accounts.map((account) => (
-                <div key={account.id} className="border rounded-lg p-4">
+                <div key={account.id} className="border rounded-lg p-4 bg-card/50 hover:bg-card transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-2">
@@ -553,8 +554,8 @@ export function EmailForwarding() {
                         <span className="font-medium">{account.email_address}</span>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           account.is_active 
-                            ? "bg-green-100 text-green-700" 
-                            : "bg-red-100 text-red-700"
+                            ? "bg-success-muted text-success" 
+                            : "bg-destructive-muted text-destructive"
                         }`}>
                           {account.is_active ? "Active" : "Inactive"}
                         </span>
@@ -570,10 +571,10 @@ export function EmailForwarding() {
                               </SelectTrigger>
                                <SelectContent>
                                  <SelectItem value="unassigned">
-                                   <div className="flex items-center gap-2">
-                                     <div className="w-3 h-3 rounded-full bg-gray-300" />
-                                     <span>Unassigned</span>
-                                   </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-3 h-3 rounded-full bg-muted" />
+                                      <span>Unassigned</span>
+                                    </div>
                                  </SelectItem>
                                  {inboxes.map((inbox) => (
                                    <SelectItem key={inbox.id} value={inbox.id}>
@@ -619,7 +620,7 @@ export function EmailForwarding() {
                                   </span>
                                 </div>
                               ) : (
-                                <span className="text-orange-600">Not assigned</span>
+                                <span className="text-warning">Not assigned</span>
                               )}
                             </div>
                             <Button

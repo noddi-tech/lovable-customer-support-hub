@@ -6,9 +6,9 @@ import { Mail, Forward, Send } from "lucide-react";
 export function EmailAccountConnection() {
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
             <Mail className="h-5 w-5" />
             Email Integration
           </CardTitle>
@@ -18,7 +18,7 @@ export function EmailAccountConnection() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="forwarding" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
               <TabsTrigger value="forwarding" className="flex items-center gap-2">
                 <Forward className="h-4 w-4" />
                 Email Forwarding
@@ -34,9 +34,9 @@ export function EmailAccountConnection() {
             </TabsContent>
             
             <TabsContent value="sending" className="mt-6">
-              <Card>
+              <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-primary">
                     <Send className="h-5 w-5" />
                     Gmail OAuth for Sending
                   </CardTitle>
