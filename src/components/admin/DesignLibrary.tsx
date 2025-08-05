@@ -154,6 +154,50 @@ export const DesignLibrary = () => {
     }
   };
 
+  // Toast style presets
+  const toastStylePresets = {
+    default: {
+      borderRadius: '8px',
+      padding: '16px',
+    },
+    rounded: {
+      borderRadius: '12px',
+      padding: '16px 20px',
+    },
+    sharp: {
+      borderRadius: '4px',
+      padding: '14px 16px',
+    },
+    pill: {
+      borderRadius: '24px',
+      padding: '12px 20px',
+    }
+  };
+
+  // Card style presets
+  const cardStylePresets = {
+    default: {
+      borderRadius: '12px',
+      padding: '24px',
+      shadow: 'sm' as const,
+    },
+    rounded: {
+      borderRadius: '16px',
+      padding: '28px',
+      shadow: 'md' as const,
+    },
+    sharp: {
+      borderRadius: '4px',
+      padding: '20px',
+      shadow: 'sm' as const,
+    },
+    elevated: {
+      borderRadius: '12px',
+      padding: '32px',
+      shadow: 'lg' as const,
+    }
+  };
+
   // Fetch current organization data
   const { data: organization, isLoading } = useQuery<OrganizationWithDesignSystem | null>({
     queryKey: ['organization'],
@@ -661,13 +705,21 @@ export const DesignLibrary = () => {
                       <Label>Toast Style</Label>
                       <Select 
                         value={designSystem.components.toast.style}
-                        onValueChange={(value: any) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            toast: { ...prev.components.toast, style: value }
-                          }
-                        }))}
+                        onValueChange={(value: any) => {
+                          const preset = toastStylePresets[value as keyof typeof toastStylePresets];
+                          setDesignSystem(prev => ({
+                            ...prev,
+                            components: {
+                              ...prev.components,
+                              toast: { 
+                                ...prev.components.toast, 
+                                style: value,
+                                borderRadius: preset.borderRadius,
+                                padding: preset.padding
+                              }
+                            }
+                          }));
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -758,24 +810,49 @@ export const DesignLibrary = () => {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Card Border</Label>
+                      <Label>Card Style</Label>
                       <Select 
                         value={designSystem.components.card.border}
-                        onValueChange={(value: any) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            card: { ...prev.components.card, border: value }
+                        onValueChange={(value: any) => {
+                          // Check if this is a style preset
+                          const preset = cardStylePresets[value as keyof typeof cardStylePresets];
+                          if (preset) {
+                            setDesignSystem(prev => ({
+                              ...prev,
+                              components: {
+                                ...prev.components,
+                                card: { 
+                                  ...prev.components.card, 
+                                  border: value,
+                                  borderRadius: preset.borderRadius,
+                                  padding: preset.padding,
+                                  shadow: preset.shadow
+                                }
+                              }
+                            }));
+                          } else {
+                            // Legacy border options
+                            setDesignSystem(prev => ({
+                              ...prev,
+                              components: {
+                                ...prev.components,
+                                card: { ...prev.components.card, border: value }
+                              }
+                            }));
                           }
-                        }))}
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="subtle">Subtle</SelectItem>
-                          <SelectItem value="strong">Strong</SelectItem>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="rounded">Rounded</SelectItem>
+                          <SelectItem value="sharp">Sharp</SelectItem>
+                          <SelectItem value="elevated">Elevated</SelectItem>
+                          <SelectItem value="none">No Border</SelectItem>
+                          <SelectItem value="subtle">Subtle Border</SelectItem>
+                          <SelectItem value="strong">Strong Border</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
