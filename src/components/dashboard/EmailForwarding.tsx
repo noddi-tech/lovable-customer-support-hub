@@ -146,7 +146,7 @@ export function EmailForwarding() {
 
   // Update email account inbox assignment
   const updateAccountMutation = useMutation({
-    mutationFn: async ({ accountId, inboxId }: { accountId: string; inboxId: string }) => {
+    mutationFn: async ({ accountId, inboxId }: { accountId: string; inboxId: string | null }) => {
       const { error } = await supabase
         .from("email_accounts")
         .update({ inbox_id: inboxId })
@@ -228,12 +228,13 @@ export function EmailForwarding() {
   });
 
   const handleUpdateAccount = (accountId: string, inboxId: string) => {
-    updateAccountMutation.mutate({ accountId, inboxId });
+    const finalInboxId = inboxId === "unassigned" ? null : inboxId;
+    updateAccountMutation.mutate({ accountId, inboxId: finalInboxId });
   };
 
   const startEditingAccount = (accountId: string, currentInboxId: string | null) => {
     setEditingAccount(accountId);
-    setEditingInbox(currentInboxId || "");
+    setEditingInbox(currentInboxId || "unassigned");
   };
 
   const cancelEditing = () => {
@@ -555,20 +556,26 @@ export function EmailForwarding() {
                               <SelectTrigger className="w-48">
                                 <SelectValue placeholder="Select inbox" />
                               </SelectTrigger>
-                              <SelectContent>
-                                {inboxes.map((inbox) => (
-                                  <SelectItem key={inbox.id} value={inbox.id}>
-                                    <div className="flex items-center gap-2">
-                                      <div 
-                                        className="w-3 h-3 rounded-full" 
-                                        style={{ backgroundColor: inbox.color }}
-                                      />
-                                      <span>{inbox.name}</span>
-                                      {inbox.is_default && <span className="text-xs text-muted-foreground">(Default)</span>}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
+                               <SelectContent>
+                                 <SelectItem value="unassigned">
+                                   <div className="flex items-center gap-2">
+                                     <div className="w-3 h-3 rounded-full bg-gray-300" />
+                                     <span>Unassigned</span>
+                                   </div>
+                                 </SelectItem>
+                                 {inboxes.map((inbox) => (
+                                   <SelectItem key={inbox.id} value={inbox.id}>
+                                     <div className="flex items-center gap-2">
+                                       <div 
+                                         className="w-3 h-3 rounded-full" 
+                                         style={{ backgroundColor: inbox.color }}
+                                       />
+                                       <span>{inbox.name}</span>
+                                       {inbox.is_default && <span className="text-xs text-muted-foreground">(Default)</span>}
+                                     </div>
+                                   </SelectItem>
+                                 ))}
+                               </SelectContent>
                             </Select>
                             <Button
                               size="sm"
