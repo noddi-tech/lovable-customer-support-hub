@@ -20,6 +20,30 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { DesignLibraryComponents } from './DesignLibraryComponents';
 import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
+
+// Helper function to calculate optimal text color based on background
+const getOptimalTextColor = (hslBackground: string, opacity: number = 1): string => {
+  // Parse HSL values
+  const [h, s, l] = hslBackground.split(' ').map(val => parseFloat(val.replace('%', '')));
+  
+  // Calculate relative luminance from lightness
+  const lightness = l / 100;
+  
+  // Use WCAG formula for better contrast calculation
+  // If background is light (>50% lightness), use dark text
+  // If background is dark (<=50% lightness), use light text
+  const isDarkBackground = lightness <= 0.5;
+  
+  if (isDarkBackground) {
+    // Dark background: use light text
+    const alphaValue = opacity < 1 ? ` / ${opacity}` : '';
+    return `hsl(0 0% 98%${alphaValue})`;
+  } else {
+    // Light background: use dark text
+    const alphaValue = opacity < 1 ? ` / ${opacity}` : '';
+    return `hsl(224 71% 4%${alphaValue})`;
+  }
+};
 import { 
   Save, 
   Palette, 
@@ -429,21 +453,27 @@ export const DesignLibrary = () => {
                   </Card>
 
                   <Card 
-                    className="border-primary" 
+                    className="border-primary"
                     style={{ 
-                      backgroundColor: 'hsl(217 91% 60%)', 
-                      color: 'hsl(0 0% 98%)',
-                      border: '1px solid hsl(217 91% 60%)'
+                      backgroundColor: `hsl(${designSystem.colors.primary})`,
+                      color: getOptimalTextColor(designSystem.colors.primary),
+                      border: `1px solid hsl(${designSystem.colors.primary})`
                     }}
                   >
                     <CardHeader>
-                      <CardTitle style={{ color: 'hsl(0 0% 98%)' }}>Primary Card</CardTitle>
-                      <CardDescription style={{ color: 'hsl(0 0% 85%)' }}>
+                      <CardTitle style={{ color: getOptimalTextColor(designSystem.colors.primary) }}>
+                        Primary Card
+                      </CardTitle>
+                      <CardDescription style={{ 
+                        color: getOptimalTextColor(designSystem.colors.primary, 0.8) 
+                      }}>
                         A card with primary background
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm" style={{ color: 'hsl(0 0% 90%)' }}>
+                      <p className="text-sm" style={{ 
+                        color: getOptimalTextColor(designSystem.colors.primary, 0.9) 
+                      }}>
                         This card uses the primary color scheme.
                       </p>
                     </CardContent>
