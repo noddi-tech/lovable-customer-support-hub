@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 // Define the design system interface based on the current structure
 interface DesignSystem {
@@ -187,8 +188,10 @@ const defaultDesignSystem: DesignSystem = {
 interface DesignSystemContextType {
   designSystem: DesignSystem;
   updateDesignSystem: (updates: Partial<DesignSystem>) => void;
+  saveDesignSystem: () => Promise<void>;
   isLoading: boolean;
   applyToDocument: () => void;
+  organizationId: string | null;
 }
 
 const DesignSystemContext = createContext<DesignSystemContextType | undefined>(undefined);
@@ -208,18 +211,25 @@ interface DesignSystemProviderProps {
 export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ children }) => {
   const [designSystem, setDesignSystem] = useState<DesignSystem>(defaultDesignSystem);
 
-  // Fetch design system from database
+  // Get user's organization ID from auth context
+  const { profile } = useAuth();
+
+  // Fetch organization-specific design system from database
   const { data: organizationData, isLoading } = useQuery({
-    queryKey: ['organization-design-system'],
+    queryKey: ['organization-design-system', profile?.organization_id],
     queryFn: async () => {
+      if (!profile?.organization_id) return null;
+      
       const { data, error } = await supabase
         .from('organizations')
         .select('metadata')
+        .eq('id', profile.organization_id)
         .single();
       
       if (error) throw error;
       return data;
     },
+    enabled: !!profile?.organization_id,
   });
 
   // Update design system when database data changes
@@ -286,11 +296,30 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
     }));
   };
 
+  const saveDesignSystem = async () => {
+    if (!profile?.organization_id) {
+      throw new Error('No organization ID available');
+    }
+
+    const { error } = await supabase
+      .from('organizations')
+      .update({ 
+        metadata: { designSystem } as any
+      })
+      .eq('id', profile.organization_id);
+
+    if (error) {
+      throw error;
+    }
+  };
+
   const value: DesignSystemContextType = {
     designSystem,
     updateDesignSystem,
+    saveDesignSystem,
     isLoading,
     applyToDocument,
+    organizationId: profile?.organization_id || null,
   };
 
   return (
