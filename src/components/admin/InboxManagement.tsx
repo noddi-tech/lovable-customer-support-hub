@@ -42,7 +42,7 @@ export function InboxManagement() {
   const [newInboxData, setNewInboxData] = useState({
     name: '',
     description: '',
-    department_id: '',
+    department_id: 'no-department',
     color: '#3B82F6',
     is_default: false,
     auto_assignment_rules: {}
@@ -90,7 +90,7 @@ export function InboxManagement() {
         .from('inboxes')
         .insert({
           ...inboxData,
-          department_id: inboxData.department_id || null,
+          department_id: inboxData.department_id === 'no-department' ? null : inboxData.department_id,
           organization_id: profile.organization_id
         });
       if (error) throw error;
@@ -101,7 +101,7 @@ export function InboxManagement() {
       setNewInboxData({
         name: '',
         description: '',
-        department_id: '',
+        department_id: 'no-department',
         color: '#3B82F6',
         is_default: false,
         auto_assignment_rules: {}
@@ -222,7 +222,7 @@ export function InboxManagement() {
                     <SelectValue placeholder="Select department (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Department</SelectItem>
+                    <SelectItem value="no-department">No Department</SelectItem>
                     {departments?.map(dept => (
                       <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                     ))}
