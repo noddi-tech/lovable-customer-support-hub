@@ -73,10 +73,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           console.log('Email sending timeout reached for message:', newMessage.id);
           
           // Update message status to failed
-          await supabase
+          const { error: timeoutUpdateError } = await supabase
             .from('messages')
             .update({ email_status: 'failed' })
             .eq('id', newMessage.id);
+          
+          if (timeoutUpdateError) {
+            console.error('Error updating message status on timeout:', timeoutUpdateError);
+          } else {
+            console.log('Message status updated to failed due to timeout');
+          }
           
           // Remove timeout from tracking
           setSendingTimeouts(prev => {
@@ -100,9 +106,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           console.log('Email function response:', { data: emailData, error: emailError });
 
           // Clear timeout on any response
-          const timeoutId = sendingTimeouts.get(newMessage.id);
-          if (timeoutId) {
-            clearTimeout(timeoutId);
+          const timeoutToCancel = sendingTimeouts.get(newMessage.id);
+          if (timeoutToCancel) {
+            console.log('Clearing timeout for successful email send:', newMessage.id);
+            clearTimeout(timeoutToCancel);
             setSendingTimeouts(prev => {
               const newMap = new Map(prev);
               newMap.delete(newMessage.id);
