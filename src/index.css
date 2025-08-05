@@ -216,6 +216,62 @@ All colors MUST be HSL.
     color: hsl(var(--card-foreground)) !important;
   }
   
+  /* Global automatic contrast system */
+  
+  /* Force proper contrast for primary backgrounds */
+  .bg-primary,
+  .bg-primary *,
+  [style*="background-color: hsl(217"] * {
+    color: white !important;
+  }
+  
+  /* Force proper contrast for destructive backgrounds */
+  .bg-destructive,
+  .bg-destructive *,
+  .destructive,
+  .destructive * {
+    color: white !important;
+  }
+  
+  /* Force proper contrast for success backgrounds */
+  .bg-success,
+  .bg-success * {
+    color: white !important;
+  }
+  
+  /* Force proper contrast for warning backgrounds */
+  .bg-warning,
+  .bg-warning * {
+    color: hsl(0 0% 0%) !important; /* Black text on yellow/orange warning */
+  }
+  
+  /* Toast specific contrast fixes */
+  .group.destructive,
+  .group.destructive *,
+  .group.destructive .toast-title,
+  .group.destructive .toast-description {
+    color: white !important;
+  }
+  
+  /* Alert specific contrast fixes */
+  .border-destructive,
+  .border-destructive *,
+  .text-destructive {
+    color: hsl(var(--destructive)) !important;
+    background-color: hsl(var(--destructive-muted)) !important;
+  }
+  
+  /* Ensure close buttons have proper contrast */
+  .group.destructive .absolute,
+  .group.destructive button {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+  
+  .group.destructive .absolute:hover,
+  .group.destructive button:hover {
+    color: white !important;
+  }
+  
   /* Force white text on primary backgrounds */
   .force-white-text,
   .force-white-text *,
