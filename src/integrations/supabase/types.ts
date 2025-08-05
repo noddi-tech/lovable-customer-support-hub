@@ -447,6 +447,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           organization_id: string
+          primary_role: Database["public"]["Enums"]["app_role"] | null
           role: string
           updated_at: string
           user_id: string
@@ -460,6 +461,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id: string
+          primary_role?: Database["public"]["Enums"]["app_role"] | null
           role?: string
           updated_at?: string
           user_id: string
@@ -473,6 +475,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id?: string
+          primary_role?: Database["public"]["Enums"]["app_role"] | null
           role?: string
           updated_at?: string
           user_id?: string
@@ -555,6 +558,51 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission: Database["public"]["Enums"]["app_permission"]
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission: Database["public"]["Enums"]["app_permission"]
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission?: Database["public"]["Enums"]["app_permission"]
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by_id: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_id?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_id?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -610,12 +658,39 @@ export type Database = {
         Args: { email_domain: string }
         Returns: string
       }
+      get_user_organization_from_profile: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       get_user_organization_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      has_permission: {
+        Args: {
+          _user_id: string
+          _permission: Database["public"]["Enums"]["app_permission"]
+        }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_permission:
+        | "manage_users"
+        | "manage_departments"
+        | "manage_inboxes"
+        | "manage_settings"
+        | "view_all_conversations"
+        | "send_emails"
+        | "receive_emails"
+      app_role: "admin" | "user"
       communication_channel:
         | "email"
         | "facebook"
@@ -749,6 +824,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_permission: [
+        "manage_users",
+        "manage_departments",
+        "manage_inboxes",
+        "manage_settings",
+        "view_all_conversations",
+        "send_emails",
+        "receive_emails",
+      ],
+      app_role: ["admin", "user"],
       communication_channel: [
         "email",
         "facebook",
