@@ -223,51 +223,154 @@ export const DesignLibrary = () => {
     }
   };
 
+  // Core color system - no foreground colors (handled by auto contrast)
   const colorInputs = [
     { key: 'primary' as const, label: 'Primary', description: 'Main brand color' },
-    { key: 'primaryForeground' as const, label: 'Primary Foreground', description: 'Text on primary color' },
     { key: 'secondary' as const, label: 'Secondary', description: 'Secondary actions' },
-    { key: 'secondaryForeground' as const, label: 'Secondary Foreground', description: 'Text on secondary color' },
     { key: 'accent' as const, label: 'Accent', description: 'Accent highlights' },
-    { key: 'accentForeground' as const, label: 'Accent Foreground', description: 'Text on accent color' },
     { key: 'background' as const, label: 'Background', description: 'Page background' },
-    { key: 'foreground' as const, label: 'Foreground', description: 'Main text color' },
     { key: 'muted' as const, label: 'Muted', description: 'Subtle backgrounds' },
-    { key: 'mutedForeground' as const, label: 'Muted Foreground', description: 'Subtle text' },
     { key: 'card' as const, label: 'Card', description: 'Card backgrounds' },
-    { key: 'cardForeground' as const, label: 'Card Foreground', description: 'Text on cards' },
     { key: 'border' as const, label: 'Border', description: 'Border color' },
     { key: 'success' as const, label: 'Success', description: 'Success states' },
-    { key: 'successForeground' as const, label: 'Success Foreground', description: 'Text on success color' },
     { key: 'warning' as const, label: 'Warning', description: 'Warning states' },
-    { key: 'warningForeground' as const, label: 'Warning Foreground', description: 'Text on warning color' },
     { key: 'destructive' as const, label: 'Destructive', description: 'Error states' },
-    { key: 'destructiveForeground' as const, label: 'Destructive Foreground', description: 'Text on error color' },
   ];
 
-  const HSLColorPicker = ({ label, value, onChange, description }: {
+  // Convert hex to HSL
+  const hexToHsl = (hex: string): string => {
+    // Remove # if present
+    hex = hex.replace('#', '');
+    
+    // Convert hex to RGB
+    const r = parseInt(hex.substr(0, 2), 16) / 255;
+    const g = parseInt(hex.substr(2, 2), 16) / 255;
+    const b = parseInt(hex.substr(4, 2), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    
+    if (max === min) {
+      h = s = 0; // achromatic
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  };
+
+  // Convert HSL to hex
+  const hslToHex = (hsl: string): string => {
+    const parts = hsl.trim().split(/\s+/);
+    const h = parseFloat(parts[0]) / 360;
+    const s = parseFloat(parts[1].replace('%', '')) / 100;
+    const l = parseFloat(parts[2].replace('%', '')) / 100;
+    
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    
+    let r, g, b;
+    
+    if (s === 0) {
+      r = g = b = l; // achromatic
+    } else {
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    
+    const toHex = (c: number) => {
+      const hex = Math.round(c * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+
+  const EnhancedColorPicker = ({ label, value, onChange, description }: {
     label: string;
     value: string;
     onChange: (value: string) => void;
     description: string;
-  }) => (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="flex gap-2 items-center">
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="217 91% 60%"
-          className="flex-1"
-        />
-        <div 
-          className="w-10 h-10 rounded border-2 border-border"
-          style={{ backgroundColor: `hsl(${value})` }}
-        />
+  }) => {
+    const [hexValue, setHexValue] = useState(hslToHex(value));
+    
+    const handleHslChange = (newHslValue: string) => {
+      onChange(newHslValue);
+      setHexValue(hslToHex(newHslValue));
+    };
+    
+    const handleHexChange = (newHexValue: string) => {
+      setHexValue(newHexValue);
+      if (newHexValue.length === 7 && newHexValue.startsWith('#')) {
+        const hslValue = hexToHsl(newHexValue);
+        onChange(hslValue);
+      }
+    };
+    
+    const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newHexValue = e.target.value;
+      setHexValue(newHexValue);
+      const hslValue = hexToHsl(newHexValue);
+      onChange(hslValue);
+    };
+    
+    return (
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">{label}</Label>
+        
+        {/* Color Preview and Picker */}
+        <div className="flex gap-2 items-center">
+          <input
+            type="color"
+            value={hexValue}
+            onChange={handleColorPickerChange}
+            className="w-12 h-12 rounded border-2 border-border cursor-pointer"
+            title="Click to open color picker"
+          />
+          <div 
+            className="w-12 h-12 rounded border-2 border-border"
+            style={{ backgroundColor: `hsl(${value})` }}
+            title="Color preview"
+          />
+          <div className="flex-1 space-y-2">
+            <Input
+              value={hexValue}
+              onChange={(e) => handleHexChange(e.target.value)}
+              placeholder="#3b82f6"
+              className="uppercase"
+              title="Hex color code"
+            />
+            <Input
+              value={value}
+              onChange={(e) => handleHslChange(e.target.value)}
+              placeholder="217 91% 60%"
+              title="HSL values (H S% L%)"
+            />
+          </div>
+        </div>
+        
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </div>
-  );
+    );
+  };
 
   const GradientEditor = ({ label, value, onChange, description }: {
     label: string;
@@ -571,15 +674,15 @@ export const DesignLibrary = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {colorInputs.map((input) => (
-                  <HSLColorPicker
-                    key={input.key}
-                    label={input.label}
-                    value={designSystem.colors[input.key]}
-                    onChange={(value) => updateColor(input.key, value)}
-                    description={input.description}
-                  />
-                ))}
+                 {colorInputs.map((input) => (
+                   <EnhancedColorPicker
+                     key={input.key}
+                     label={input.label}
+                     value={designSystem.colors[input.key]}
+                     onChange={(value) => updateColor(input.key, value)}
+                     description={input.description}
+                   />
+                 ))}
               </div>
 
               <Separator />
@@ -619,15 +722,15 @@ export const DesignLibrary = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {colorInputs.map((input) => (
-                    <HSLColorPicker
-                      key={input.key}
-                      label={input.label}
-                      value={designSystem.colors[input.key]}
-                      onChange={(value) => updateColor(input.key, value)}
-                      description={input.description}
-                    />
-                  ))}
+                   {colorInputs.map((input) => (
+                     <EnhancedColorPicker
+                       key={input.key}
+                       label={input.label}
+                       value={designSystem.colors[input.key]}
+                       onChange={(value) => updateColor(input.key, value)}
+                       description={input.description}
+                     />
+                   ))}
                 </div>
 
                 <Separator />
