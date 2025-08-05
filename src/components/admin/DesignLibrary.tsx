@@ -1095,9 +1095,10 @@ export const DesignLibrary = () => {
                    <div className="space-y-3">
                      {/* Success Toast */}
                      <div 
-                       className={`p-4 bg-green-50 border border-green-200 text-green-800 flex items-start gap-3 max-w-sm ${
-                         designSystem.components.toast.position.includes('right') ? 'ml-auto' : 
-                         designSystem.components.toast.position.includes('center') ? 'mx-auto' : ''
+                       className={`flex items-start gap-3 max-w-sm ml-auto ${
+                         designSystem.components.toast.style === 'minimal' 
+                           ? 'bg-green-500 text-white shadow-lg' 
+                           : 'bg-green-50 border border-green-200 text-green-800'
                        } ${
                          designSystem.components.toast.style === 'pill' ? 'rounded-full' :
                          designSystem.components.toast.style === 'sharp' ? 'rounded-none' :
@@ -1108,21 +1109,28 @@ export const DesignLibrary = () => {
                          padding: designSystem.components.toast.padding,
                        }}
                      >
-                       <div className="w-4 h-4 rounded-full bg-green-500 flex-shrink-0 mt-0.5"></div>
+                       <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 ${
+                         designSystem.components.toast.style === 'minimal' ? 'bg-white' : 'bg-green-500'
+                       }`}></div>
                        <div className="flex-1">
                          <div className="font-medium text-sm">Success!</div>
-                         <div className="text-sm text-green-700">
+                         <div className={`text-sm ${
+                           designSystem.components.toast.style === 'minimal' ? 'text-green-100' : 'text-green-700'
+                         }`}>
                            Operation completed successfully
                          </div>
                        </div>
-                       <button className="text-green-600 hover:text-green-800">×</button>
+                       <button className={`${
+                         designSystem.components.toast.style === 'minimal' ? 'text-white hover:text-green-100' : 'text-green-600 hover:text-green-800'
+                       }`}>×</button>
                      </div>
 
                      {/* Error Toast */}
                      <div 
-                       className={`p-4 bg-red-50 border border-red-200 text-red-800 flex items-start gap-3 max-w-sm ${
-                         designSystem.components.toast.position.includes('right') ? 'ml-auto' : 
-                         designSystem.components.toast.position.includes('center') ? 'mx-auto' : ''
+                       className={`flex items-start gap-3 max-w-sm ml-auto ${
+                         designSystem.components.toast.style === 'minimal' 
+                           ? 'bg-red-500 text-white shadow-lg' 
+                           : 'bg-red-50 border border-red-200 text-red-800'
                        } ${
                          designSystem.components.toast.style === 'pill' ? 'rounded-full' :
                          designSystem.components.toast.style === 'sharp' ? 'rounded-none' :
@@ -1133,21 +1141,28 @@ export const DesignLibrary = () => {
                          padding: designSystem.components.toast.padding,
                        }}
                      >
-                       <div className="w-4 h-4 rounded-full bg-red-500 flex-shrink-0 mt-0.5"></div>
+                       <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 ${
+                         designSystem.components.toast.style === 'minimal' ? 'bg-white' : 'bg-red-500'
+                       }`}></div>
                        <div className="flex-1">
                          <div className="font-medium text-sm">Error!</div>
-                         <div className="text-sm text-red-700">
+                         <div className={`text-sm ${
+                           designSystem.components.toast.style === 'minimal' ? 'text-red-100' : 'text-red-700'
+                         }`}>
                            Something went wrong
                          </div>
                        </div>
-                       <button className="text-red-600 hover:text-red-800">×</button>
+                       <button className={`${
+                         designSystem.components.toast.style === 'minimal' ? 'text-white hover:text-red-100' : 'text-red-600 hover:text-red-800'
+                       }`}>×</button>
                      </div>
 
                      {/* Warning Toast */}
                      <div 
-                       className={`p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 flex items-start gap-3 max-w-sm ${
-                         designSystem.components.toast.position.includes('right') ? 'ml-auto' : 
-                         designSystem.components.toast.position.includes('center') ? 'mx-auto' : ''
+                       className={`flex items-start gap-3 max-w-sm ml-auto ${
+                         designSystem.components.toast.style === 'minimal' 
+                           ? 'bg-yellow-500 text-white shadow-lg' 
+                           : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
                        } ${
                          designSystem.components.toast.style === 'pill' ? 'rounded-full' :
                          designSystem.components.toast.style === 'sharp' ? 'rounded-none' :
@@ -1158,21 +1173,28 @@ export const DesignLibrary = () => {
                          padding: designSystem.components.toast.padding,
                        }}
                      >
-                       <div className="w-4 h-4 rounded-full bg-yellow-500 flex-shrink-0 mt-0.5"></div>
+                       <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 ${
+                         designSystem.components.toast.style === 'minimal' ? 'bg-white' : 'bg-yellow-500'
+                       }`}></div>
                        <div className="flex-1">
                          <div className="font-medium text-sm">Warning!</div>
-                         <div className="text-sm text-yellow-700">
+                         <div className={`text-sm ${
+                           designSystem.components.toast.style === 'minimal' ? 'text-yellow-100' : 'text-yellow-700'
+                         }`}>
                            Please review before continuing
                          </div>
                        </div>
-                       <button className="text-yellow-600 hover:text-yellow-800">×</button>
+                       <button className={`${
+                         designSystem.components.toast.style === 'minimal' ? 'text-white hover:text-yellow-100' : 'text-yellow-600 hover:text-yellow-800'
+                       }`}>×</button>
                      </div>
 
                      {/* Info Toast */}
                      <div 
-                       className={`p-4 bg-blue-50 border border-blue-200 text-blue-800 flex items-start gap-3 max-w-sm ${
-                         designSystem.components.toast.position.includes('right') ? 'ml-auto' : 
-                         designSystem.components.toast.position.includes('center') ? 'mx-auto' : ''
+                       className={`flex items-start gap-3 max-w-sm ml-auto ${
+                         designSystem.components.toast.style === 'minimal' 
+                           ? 'bg-blue-500 text-white shadow-lg' 
+                           : 'bg-blue-50 border border-blue-200 text-blue-800'
                        } ${
                          designSystem.components.toast.style === 'pill' ? 'rounded-full' :
                          designSystem.components.toast.style === 'sharp' ? 'rounded-none' :
@@ -1183,14 +1205,20 @@ export const DesignLibrary = () => {
                          padding: designSystem.components.toast.padding,
                        }}
                      >
-                       <div className="w-4 h-4 rounded-full bg-blue-500 flex-shrink-0 mt-0.5"></div>
+                       <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 ${
+                         designSystem.components.toast.style === 'minimal' ? 'bg-white' : 'bg-blue-500'
+                       }`}></div>
                        <div className="flex-1">
                          <div className="font-medium text-sm">Info</div>
-                         <div className="text-sm text-blue-700">
+                         <div className={`text-sm ${
+                           designSystem.components.toast.style === 'minimal' ? 'text-blue-100' : 'text-blue-700'
+                         }`}>
                            Here's some helpful information
                          </div>
                        </div>
-                       <button className="text-blue-600 hover:text-blue-800">×</button>
+                       <button className={`${
+                         designSystem.components.toast.style === 'minimal' ? 'text-white hover:text-blue-100' : 'text-blue-600 hover:text-blue-800'
+                       }`}>×</button>
                      </div>
 
                      <div className="mt-2 text-xs text-muted-foreground">
