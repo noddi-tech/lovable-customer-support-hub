@@ -72,7 +72,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           is_internal: isInternalNote,
           sender_type: 'agent',
           content_type: 'text',
-          assigned_to_id: isInternalNote && assignedToId ? assignedToId : null,
+          assigned_to_id: isInternalNote && assignedToId && assignedToId !== 'unassigned' ? assignedToId : null,
           email_status: isInternalNote ? 'sent' : 'sending'  // Internal notes don't need email sending
         })
         .select()
@@ -333,7 +333,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         .from('messages')
         .update({
           content: editingContent.trim(),
-          assigned_to_id: editingAssignedTo || null,
+          assigned_to_id: editingAssignedTo && editingAssignedTo !== 'unassigned' ? editingAssignedTo : null,
         })
         .eq('id', editingMessageId);
 
@@ -616,7 +616,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                            <SelectValue placeholder="Select team member" />
                                          </SelectTrigger>
                                          <SelectContent>
-                                           <SelectItem value="">Unassigned</SelectItem>
+                                           <SelectItem value="unassigned">Unassigned</SelectItem>
                                            {teamMembers.map((member) => (
                                              <SelectItem key={member.user_id} value={member.user_id}>
                                                {member.full_name}
@@ -830,7 +830,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                        <SelectValue placeholder="Select team member" />
                      </SelectTrigger>
                      <SelectContent>
-                       <SelectItem value="">Unassigned</SelectItem>
+                       <SelectItem value="unassigned">Unassigned</SelectItem>
                        {teamMembers.map((member) => (
                          <SelectItem key={member.user_id} value={member.user_id}>
                            {member.full_name}
