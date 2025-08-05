@@ -4,6 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Save, Palette, Eye, Download, Upload, Settings, Layout, Layers } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect } from 'react';
@@ -277,13 +280,14 @@ export const DesignLibrary = () => {
       return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
     };
 
-    // Calculate contrasting text color
+    // Calculate contrasting text color with better contrast
     const getContrastColor = (hexColor: string) => {
       const r = parseInt(hexColor.slice(1, 3), 16);
       const g = parseInt(hexColor.slice(3, 5), 16);
       const b = parseInt(hexColor.slice(5, 7), 16);
       const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      return luminance > 0.5 ? '#000000' : '#FFFFFF';
+      // Use stricter threshold for better contrast
+      return luminance > 0.4 ? '#000000' : '#FFFFFF';
     };
 
     // Apply all color variables with proper contrast
@@ -407,11 +411,12 @@ export const DesignLibrary = () => {
       </div>
 
       <Tabs defaultValue="colors" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="colors">Colors</TabsTrigger>
           <TabsTrigger value="typography">Typography</TabsTrigger>
           <TabsTrigger value="spacing">Spacing</TabsTrigger>
           <TabsTrigger value="components">Components</TabsTrigger>
+          <TabsTrigger value="tables">Tables</TabsTrigger>
           <TabsTrigger value="interactions">Interactions</TabsTrigger>
         </TabsList>
 
@@ -1416,6 +1421,107 @@ export const DesignLibrary = () => {
                      </div>
                    </div>
                  </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tables">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Tables</CardTitle>
+                <CardDescription>
+                  Examples of data tables with proper styling and contrast
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Email</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">John Doe</TableCell>
+                      <TableCell>
+                        <Badge variant="default">Active</Badge>
+                      </TableCell>
+                      <TableCell>Admin</TableCell>
+                      <TableCell>john@example.com</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Jane Smith</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">Pending</Badge>
+                      </TableCell>
+                      <TableCell>User</TableCell>
+                      <TableCell>jane@example.com</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Bob Johnson</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Inactive</Badge>
+                      </TableCell>
+                      <TableCell>User</TableCell>
+                      <TableCell>bob@example.com</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Grid Layout</CardTitle>
+                <CardDescription>
+                  Responsive grid examples using the color system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-primary text-primary-foreground rounded-lg text-center">
+                    Primary
+                  </div>
+                  <div className="p-4 bg-secondary text-secondary-foreground rounded-lg text-center">
+                    Secondary
+                  </div>
+                  <div className="p-4 bg-accent text-accent-foreground rounded-lg text-center">
+                    Accent
+                  </div>
+                  <div className="p-4 bg-destructive text-destructive-foreground rounded-lg text-center">
+                    Destructive
+                  </div>
+                  <div className="p-4 bg-muted text-muted-foreground rounded-lg text-center">
+                    Muted
+                  </div>
+                  <div className="p-4 bg-card text-card-foreground border rounded-lg text-center">
+                    Card
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <h4 className="font-semibold">Alert Examples</h4>
+                  <Alert>
+                    <AlertDescription>
+                      This is a default alert with proper contrast.
+                    </AlertDescription>
+                  </Alert>
+                  <Alert className="border-primary bg-primary/10">
+                    <AlertDescription className="text-primary-foreground">
+                      This is a primary-themed alert.
+                    </AlertDescription>
+                  </Alert>
+                  <Alert className="border-destructive bg-destructive/10">
+                    <AlertDescription className="text-destructive-foreground">
+                      This is a destructive-themed alert.
+                    </AlertDescription>
+                  </Alert>
+                </div>
               </CardContent>
             </Card>
           </div>
