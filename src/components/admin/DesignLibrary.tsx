@@ -33,32 +33,32 @@ interface DesignSystemConfig {
   };
   spacing: {
     baseUnit: string;
-    cardPadding: string;
-    buttonSpacing: string;
     sectionSpacing: string;
     elementSpacing: string;
     containerPadding: string;
   };
   borderRadius: {
     base: string;
-    card: string;
-    button: string;
-    input: string;
-    dialog: string;
-    popover: string;
   };
   components: {
     toast: {
       position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
       style: 'default' | 'minimal' | 'rounded' | 'sharp';
+      borderRadius: string;
+      padding: string;
     };
     card: {
       shadow: 'none' | 'sm' | 'md' | 'lg' | 'xl';
       border: 'none' | 'subtle' | 'strong';
+      borderRadius: string;
+      padding: string;
     };
     buttons: {
       style: 'default' | 'rounded' | 'sharp' | 'pill';
       size: 'sm' | 'md' | 'lg';
+      spacing: string;
+      borderRadius: string;
+      padding: string;
     };
     icons: {
       style: 'outline' | 'filled' | 'duotone';
@@ -101,32 +101,32 @@ export const DesignLibrary = () => {
     },
     spacing: {
       baseUnit: '4px',
-      cardPadding: '24px',
-      buttonSpacing: '8px',
       sectionSpacing: '32px',
       elementSpacing: '16px',
       containerPadding: '40px',
     },
     borderRadius: {
       base: '8px',
-      card: '12px',
-      button: '6px',
-      input: '6px',
-      dialog: '16px',
-      popover: '8px',
     },
     components: {
       toast: {
         position: 'bottom-right',
         style: 'default',
+        borderRadius: '8px',
+        padding: '16px',
       },
       card: {
         shadow: 'sm',
         border: 'subtle',
+        borderRadius: '12px',
+        padding: '24px',
       },
       buttons: {
         style: 'default',
         size: 'md',
+        spacing: '8px',
+        borderRadius: '6px',
+        padding: '12px 16px',
       },
       icons: {
         style: 'outline',
@@ -502,54 +502,6 @@ export const DesignLibrary = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="card-padding">Card Padding</Label>
-                    <Input 
-                      id="card-padding"
-                      value={designSystem.spacing.cardPadding}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        spacing: { ...prev.spacing, cardPadding: e.target.value }
-                      }))}
-                      placeholder="24px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="border-radius">Base Border Radius</Label>
-                    <Input 
-                      id="border-radius"
-                      value={designSystem.borderRadius.base}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        borderRadius: { ...prev.borderRadius, base: e.target.value }
-                      }))}
-                      placeholder="8px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="card-radius">Card Border Radius</Label>
-                    <Input 
-                      id="card-radius"
-                      value={designSystem.borderRadius.card}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        borderRadius: { ...prev.borderRadius, card: e.target.value }
-                      }))}
-                      placeholder="12px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="button-spacing">Button Spacing</Label>
-                    <Input 
-                      id="button-spacing"
-                      value={designSystem.spacing.buttonSpacing}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        spacing: { ...prev.spacing, buttonSpacing: e.target.value }
-                      }))}
-                      placeholder="8px"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="section-spacing">Section Spacing</Label>
                     <Input 
                       id="section-spacing"
@@ -586,37 +538,13 @@ export const DesignLibrary = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="input-radius">Input Border Radius</Label>
+                    <Label htmlFor="border-radius">Base Border Radius</Label>
                     <Input 
-                      id="input-radius"
-                      value={designSystem.borderRadius.input}
+                      id="border-radius"
+                      value={designSystem.borderRadius.base}
                       onChange={(e) => setDesignSystem(prev => ({
                         ...prev,
-                        borderRadius: { ...prev.borderRadius, input: e.target.value }
-                      }))}
-                      placeholder="6px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dialog-radius">Dialog Border Radius</Label>
-                    <Input 
-                      id="dialog-radius"
-                      value={designSystem.borderRadius.dialog}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        borderRadius: { ...prev.borderRadius, dialog: e.target.value }
-                      }))}
-                      placeholder="16px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="popover-radius">Popover Border Radius</Label>
-                    <Input 
-                      id="popover-radius"
-                      value={designSystem.borderRadius.popover}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        borderRadius: { ...prev.borderRadius, popover: e.target.value }
+                        borderRadius: { ...prev.borderRadius, base: e.target.value }
                       }))}
                       placeholder="8px"
                     />
@@ -637,8 +565,8 @@ export const DesignLibrary = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  <h4 className="font-medium">Button Spacing</h4>
-                  <div className="flex" style={{ gap: designSystem.spacing.buttonSpacing }}>
+                  <h4 className="font-medium">Element Spacing</h4>
+                  <div className="flex" style={{ gap: designSystem.spacing.elementSpacing }}>
                     <Button size="sm">Button 1</Button>
                     <Button size="sm">Button 2</Button>
                     <Button size="sm">Button 3</Button>
@@ -646,28 +574,23 @@ export const DesignLibrary = () => {
                 </div>
                 <Separator />
                 <div className="space-y-3">
-                  <h4 className="font-medium">Card with Custom Padding</h4>
-                  <Card style={{ 
-                    padding: designSystem.spacing.cardPadding,
-                    borderRadius: designSystem.borderRadius.card 
+                  <h4 className="font-medium">Container with Padding</h4>
+                  <div style={{ 
+                    padding: designSystem.spacing.containerPadding,
+                    borderRadius: designSystem.borderRadius.base,
+                    backgroundColor: 'var(--muted)',
                   }}>
-                    <p className="text-sm">This card uses your custom padding and border radius settings.</p>
-                  </Card>
+                    <p className="text-sm">This container uses your custom padding and border radius settings.</p>
+                  </div>
                 </div>
                 <Separator />
                 <div className="space-y-2">
                   <h4 className="font-medium">Current Values</h4>
                   <p className="text-sm">Base unit: {designSystem.spacing.baseUnit}</p>
-                  <p className="text-sm">Card padding: {designSystem.spacing.cardPadding}</p>
-                  <p className="text-sm">Button spacing: {designSystem.spacing.buttonSpacing}</p>
                   <p className="text-sm">Section spacing: {designSystem.spacing.sectionSpacing}</p>
                   <p className="text-sm">Element spacing: {designSystem.spacing.elementSpacing}</p>
                   <p className="text-sm">Container padding: {designSystem.spacing.containerPadding}</p>
                   <p className="text-sm">Base radius: {designSystem.borderRadius.base}</p>
-                  <p className="text-sm">Card radius: {designSystem.borderRadius.card}</p>
-                  <p className="text-sm">Input radius: {designSystem.borderRadius.input}</p>
-                  <p className="text-sm">Dialog radius: {designSystem.borderRadius.dialog}</p>
-                  <p className="text-sm">Popover radius: {designSystem.borderRadius.popover}</p>
                 </div>
               </CardContent>
             </Card>
@@ -688,63 +611,93 @@ export const DesignLibrary = () => {
                     Configure toast notification appearance and behavior
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Toast Position</Label>
-                    <Select 
-                      value={designSystem.components.toast.position}
-                      onValueChange={(value: any) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          toast: { ...prev.components.toast, position: value }
-                        }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="top-left">Top Left</SelectItem>
-                        <SelectItem value="top-center">Top Center</SelectItem>
-                        <SelectItem value="top-right">Top Right</SelectItem>
-                        <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                        <SelectItem value="bottom-center">Bottom Center</SelectItem>
-                        <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Toast Position</Label>
+                      <Select 
+                        value={designSystem.components.toast.position}
+                        onValueChange={(value: any) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            toast: { ...prev.components.toast, position: value }
+                          }
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="top-left">Top Left</SelectItem>
+                          <SelectItem value="top-center">Top Center</SelectItem>
+                          <SelectItem value="top-right">Top Right</SelectItem>
+                          <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                          <SelectItem value="bottom-center">Bottom Center</SelectItem>
+                          <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Toast Style</Label>
+                      <Select 
+                        value={designSystem.components.toast.style}
+                        onValueChange={(value: any) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            toast: { ...prev.components.toast, style: value }
+                          }
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="minimal">Minimal</SelectItem>
+                          <SelectItem value="rounded">Rounded</SelectItem>
+                          <SelectItem value="sharp">Sharp</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="toast-radius">Toast Border Radius</Label>
+                      <Input 
+                        id="toast-radius"
+                        value={designSystem.components.toast.borderRadius}
+                        onChange={(e) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            toast: { ...prev.components.toast, borderRadius: e.target.value }
+                          }
+                        }))}
+                        placeholder="8px"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="toast-padding">Toast Padding</Label>
+                      <Input 
+                        id="toast-padding"
+                        value={designSystem.components.toast.padding}
+                        onChange={(e) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            toast: { ...prev.components.toast, padding: e.target.value }
+                          }
+                        }))}
+                        placeholder="16px"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Toast Style</Label>
-                    <Select 
-                      value={designSystem.components.toast.style}
-                      onValueChange={(value: any) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          toast: { ...prev.components.toast, style: value }
-                        }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Default</SelectItem>
-                        <SelectItem value="minimal">Minimal</SelectItem>
-                        <SelectItem value="rounded">Rounded</SelectItem>
-                        <SelectItem value="sharp">Sharp</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => showToast('This is a test toast with your current settings!')}
-                    >
-                      Test Toast
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => showToast('This is a test toast with your current settings!')}
+                  >
+                    Test Toast
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -759,52 +712,84 @@ export const DesignLibrary = () => {
                     Configure card appearance and styling
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Card Shadow</Label>
-                    <Select 
-                      value={designSystem.components.card.shadow}
-                      onValueChange={(value: any) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          card: { ...prev.components.card, shadow: value }
-                        }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="sm">Small</SelectItem>
-                        <SelectItem value="md">Medium</SelectItem>
-                        <SelectItem value="lg">Large</SelectItem>
-                        <SelectItem value="xl">Extra Large</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Card Border</Label>
-                    <Select 
-                      value={designSystem.components.card.border}
-                      onValueChange={(value: any) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          card: { ...prev.components.card, border: value }
-                        }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="subtle">Subtle</SelectItem>
-                        <SelectItem value="strong">Strong</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Card Shadow</Label>
+                      <Select 
+                        value={designSystem.components.card.shadow}
+                        onValueChange={(value: any) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            card: { ...prev.components.card, shadow: value }
+                          }
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="sm">Small</SelectItem>
+                          <SelectItem value="md">Medium</SelectItem>
+                          <SelectItem value="lg">Large</SelectItem>
+                          <SelectItem value="xl">Extra Large</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Card Border</Label>
+                      <Select 
+                        value={designSystem.components.card.border}
+                        onValueChange={(value: any) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            card: { ...prev.components.card, border: value }
+                          }
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="subtle">Subtle</SelectItem>
+                          <SelectItem value="strong">Strong</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="card-radius">Card Border Radius</Label>
+                      <Input 
+                        id="card-radius"
+                        value={designSystem.components.card.borderRadius}
+                        onChange={(e) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            card: { ...prev.components.card, borderRadius: e.target.value }
+                          }
+                        }))}
+                        placeholder="12px"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="card-padding">Card Padding</Label>
+                      <Input 
+                        id="card-padding"
+                        value={designSystem.components.card.padding}
+                        onChange={(e) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            card: { ...prev.components.card, padding: e.target.value }
+                          }
+                        }))}
+                        placeholder="24px"
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -820,51 +805,98 @@ export const DesignLibrary = () => {
                     Configure button appearance and behavior
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Button Style</Label>
-                    <Select 
-                      value={designSystem.components.buttons.style}
-                      onValueChange={(value: any) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          buttons: { ...prev.components.buttons, style: value }
-                        }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Default</SelectItem>
-                        <SelectItem value="rounded">Rounded</SelectItem>
-                        <SelectItem value="sharp">Sharp</SelectItem>
-                        <SelectItem value="pill">Pill</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Default Button Size</Label>
-                    <Select 
-                      value={designSystem.components.buttons.size}
-                      onValueChange={(value: any) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          buttons: { ...prev.components.buttons, size: value }
-                        }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sm">Small</SelectItem>
-                        <SelectItem value="md">Medium</SelectItem>
-                        <SelectItem value="lg">Large</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Button Style</Label>
+                      <Select 
+                        value={designSystem.components.buttons.style}
+                        onValueChange={(value: any) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            buttons: { ...prev.components.buttons, style: value }
+                          }
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="rounded">Rounded</SelectItem>
+                          <SelectItem value="sharp">Sharp</SelectItem>
+                          <SelectItem value="pill">Pill</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Default Button Size</Label>
+                      <Select 
+                        value={designSystem.components.buttons.size}
+                        onValueChange={(value: any) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            buttons: { ...prev.components.buttons, size: value }
+                          }
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sm">Small</SelectItem>
+                          <SelectItem value="md">Medium</SelectItem>
+                          <SelectItem value="lg">Large</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="button-spacing">Button Spacing</Label>
+                      <Input 
+                        id="button-spacing"
+                        value={designSystem.components.buttons.spacing}
+                        onChange={(e) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            buttons: { ...prev.components.buttons, spacing: e.target.value }
+                          }
+                        }))}
+                        placeholder="8px"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="button-radius">Button Border Radius</Label>
+                      <Input 
+                        id="button-radius"
+                        value={designSystem.components.buttons.borderRadius}
+                        onChange={(e) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            buttons: { ...prev.components.buttons, borderRadius: e.target.value }
+                          }
+                        }))}
+                        placeholder="6px"
+                      />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="button-padding">Button Padding</Label>
+                      <Input 
+                        id="button-padding"
+                        value={designSystem.components.buttons.padding}
+                        onChange={(e) => setDesignSystem(prev => ({
+                          ...prev,
+                          components: {
+                            ...prev.components,
+                            buttons: { ...prev.components.buttons, padding: e.target.value }
+                          }
+                        }))}
+                        placeholder="12px 16px"
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -884,7 +916,7 @@ export const DesignLibrary = () => {
                 <div className="space-y-4">
                   <h4 className="font-medium">Buttons</h4>
                   <div className="space-y-3">
-                    <div className="flex" style={{ gap: designSystem.spacing.buttonSpacing }}>
+                    <div className="flex" style={{ gap: designSystem.components.buttons.spacing }}>
                       <Button 
                         size={designSystem.components.buttons.size as any}
                       >
@@ -903,7 +935,7 @@ export const DesignLibrary = () => {
                         Outline
                       </Button>
                     </div>
-                    <div className="flex" style={{ gap: designSystem.spacing.buttonSpacing }}>
+                    <div className="flex" style={{ gap: designSystem.components.buttons.spacing }}>
                       <Button 
                         variant="destructive" 
                         size={designSystem.components.buttons.size as any}
