@@ -523,40 +523,66 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                </div>
                              </div>
                              
-                              {/* Failed message actions */}
-                              {message.sender_type === 'agent' && message.email_status === 'failed' && (
-                                <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
-                                  {/* Error toaster */}
-                                  <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
-                                    <div className="flex items-center space-x-2">
-                                      <AlertTriangle className="h-4 w-4 text-destructive" />
-                                      <span className="text-sm text-destructive font-medium">
-                                        Failed to send email
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Action buttons */}
-                                  <div className="flex items-center space-x-2">
-                                    <Button
-                                      variant="secondary"
-                                      size="sm"
-                                      onClick={() => retryMessage(message.id)}
-                                      className="h-7 px-3 text-xs"
-                                    >
-                                      Try Again
-                                    </Button>
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      onClick={() => deleteMessage(message.id)}
-                                      className="h-7 px-3 text-xs"
-                                    >
-                                      Delete
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
+                               {/* Failed/pending message actions */}
+                               {message.sender_type === 'agent' && (message.email_status === 'failed' || message.email_status === 'pending' || message.email_status === 'sending') && (
+                                 <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
+                                   {/* Error toaster */}
+                                   <div className={`border rounded-md p-3 ${
+                                     message.email_status === 'failed' 
+                                       ? 'bg-destructive/10 border-destructive/20' 
+                                       : message.email_status === 'sending'
+                                       ? 'bg-warning/10 border-warning/20'
+                                       : 'bg-muted border-border'
+                                   }`}>
+                                     <div className="flex items-center space-x-2">
+                                       {message.email_status === 'failed' ? (
+                                         <>
+                                           <AlertTriangle className="h-4 w-4 text-destructive" />
+                                           <span className="text-sm text-destructive font-medium">
+                                             Failed to send email
+                                           </span>
+                                         </>
+                                       ) : message.email_status === 'sending' ? (
+                                         <>
+                                           <Clock className="h-4 w-4 text-warning animate-spin" />
+                                           <span className="text-sm text-warning font-medium">
+                                             Sending email...
+                                           </span>
+                                         </>
+                                       ) : (
+                                         <>
+                                           <Clock className="h-4 w-4 text-muted-foreground" />
+                                           <span className="text-sm text-muted-foreground font-medium">
+                                             Email pending
+                                           </span>
+                                         </>
+                                       )}
+                                     </div>
+                                   </div>
+                                   
+                                   {/* Action buttons */}
+                                   <div className="flex items-center space-x-2">
+                                     {message.email_status === 'failed' && (
+                                       <Button
+                                         variant="secondary"
+                                         size="sm"
+                                         onClick={() => retryMessage(message.id)}
+                                         className="h-7 px-3 text-xs"
+                                       >
+                                         Try Again
+                                       </Button>
+                                     )}
+                                     <Button
+                                       variant="destructive"
+                                       size="sm"
+                                       onClick={() => deleteMessage(message.id)}
+                                       className="h-7 px-3 text-xs"
+                                     >
+                                       Delete
+                                     </Button>
+                                   </div>
+                                 </div>
+                               )}
                            </CardContent>
                          </Card>
                       </div>
