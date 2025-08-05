@@ -52,6 +52,7 @@ interface DesignSystemConfig {
     buttons: {
       style: 'default' | 'rounded' | 'sharp' | 'pill';
       size: 'sm' | 'md' | 'lg';
+      spacing: string;
     };
     icons: {
       style: 'outline' | 'filled' | 'duotone';
@@ -113,6 +114,7 @@ export const DesignLibrary = () => {
       buttons: {
         style: 'default',
         size: 'md',
+        spacing: '8px',
       },
       icons: {
         style: 'outline',
@@ -761,6 +763,21 @@ export const DesignLibrary = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="button-spacing">Button Spacing</Label>
+                    <Input 
+                      id="button-spacing"
+                      value={designSystem.components.buttons.spacing}
+                      onChange={(e) => setDesignSystem(prev => ({
+                        ...prev,
+                        components: {
+                          ...prev.components,
+                          buttons: { ...prev.components.buttons, spacing: e.target.value }
+                        }
+                      }))}
+                      placeholder="8px"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -779,40 +796,35 @@ export const DesignLibrary = () => {
                 <div className="space-y-4">
                   <h4 className="font-medium">Buttons</h4>
                   <div className="space-y-3">
-                    <div className="flex" style={{ gap: designSystem.spacing.baseUnit }}>
+                    <div className="flex" style={{ gap: designSystem.components.buttons.spacing }}>
                       <Button 
                         size={designSystem.components.buttons.size as any}
-                        style={{ margin: designSystem.spacing.baseUnit }}
                       >
                         Primary
                       </Button>
                       <Button 
                         variant="secondary" 
                         size={designSystem.components.buttons.size as any}
-                        style={{ margin: designSystem.spacing.baseUnit }}
                       >
                         Secondary
                       </Button>
                       <Button 
                         variant="outline" 
                         size={designSystem.components.buttons.size as any}
-                        style={{ margin: designSystem.spacing.baseUnit }}
                       >
                         Outline
                       </Button>
                     </div>
-                    <div className="flex" style={{ gap: designSystem.spacing.baseUnit }}>
+                    <div className="flex" style={{ gap: designSystem.components.buttons.spacing }}>
                       <Button 
                         variant="destructive" 
                         size={designSystem.components.buttons.size as any}
-                        style={{ margin: designSystem.spacing.baseUnit }}
                       >
                         Destructive
                       </Button>
                       <Button 
                         variant="ghost" 
                         size={designSystem.components.buttons.size as any}
-                        style={{ margin: designSystem.spacing.baseUnit }}
                       >
                         Ghost
                       </Button>
