@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -34,7 +34,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [sendingTimeouts, setSendingTimeouts] = useState<Map<string, NodeJS.Timeout>>(new Map());
+  const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const queryClient = useQueryClient();
 
   const handleSendMessage = async () => {
@@ -69,34 +69,41 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         console.log('Calling email sending function for message:', newMessage.id);
         
         // Set up 15-second timeout
+        console.log('Setting up 15-second timeout for message:', newMessage.id);
         const timeoutId = setTimeout(async () => {
-          console.log('Email sending timeout reached for message:', newMessage.id);
+          console.log('⏰ 15-second timeout triggered for message:', newMessage.id);
           
-          // Update message status to failed
-          const { error: timeoutUpdateError } = await supabase
-            .from('messages')
-            .update({ email_status: 'failed' })
-            .eq('id', newMessage.id);
+          // Check if timeout is still tracked (not cleared)
+          const isStillTracked = sendingTimeouts.current.has(newMessage.id);
+          console.log('Timeout still tracked:', isStillTracked);
           
-          if (timeoutUpdateError) {
-            console.error('Error updating message status on timeout:', timeoutUpdateError);
+          if (isStillTracked) {
+            // Update message status to failed
+            const { error: timeoutUpdateError } = await supabase
+              .from('messages')
+              .update({ email_status: 'failed' })
+              .eq('id', newMessage.id);
+            
+            if (timeoutUpdateError) {
+              console.error('Error updating message status on timeout:', timeoutUpdateError);
+            } else {
+              console.log('✅ Message status updated to failed due to timeout');
+            }
+            
+            // Remove timeout from tracking
+            sendingTimeouts.current.delete(newMessage.id);
+            console.log('Removed timeout from tracking. Remaining timeouts:', sendingTimeouts.current.size);
+            
+            queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+            toast.error('Email sending timed out after 15 seconds');
           } else {
-            console.log('Message status updated to failed due to timeout');
+            console.log('Timeout was already cleared, skipping update');
           }
-          
-          // Remove timeout from tracking
-          setSendingTimeouts(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(newMessage.id);
-            return newMap;
-          });
-          
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-          toast.error('Email sending timed out after 15 seconds');
         }, 15000);
         
         // Track the timeout
-        setSendingTimeouts(prev => new Map(prev).set(newMessage.id, timeoutId));
+        sendingTimeouts.current.set(newMessage.id, timeoutId);
+        console.log('Added timeout to tracking. Total timeouts:', sendingTimeouts.current.size);
         
         try {
           const { data: emailData, error: emailError } = await supabase.functions.invoke('send-reply-email', {
@@ -106,15 +113,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           console.log('Email function response:', { data: emailData, error: emailError });
 
           // Clear timeout on any response
-          const timeoutToCancel = sendingTimeouts.get(newMessage.id);
+          const timeoutToCancel = sendingTimeouts.current.get(newMessage.id);
           if (timeoutToCancel) {
             console.log('Clearing timeout for successful email send:', newMessage.id);
             clearTimeout(timeoutToCancel);
-            setSendingTimeouts(prev => {
-              const newMap = new Map(prev);
-              newMap.delete(newMessage.id);
-              return newMap;
-            });
+            sendingTimeouts.current.delete(newMessage.id);
           }
 
           if (emailError) {
@@ -185,17 +188,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           .update({ email_status: 'failed' })
           .eq('id', messageId);
         
-        setSendingTimeouts(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(messageId);
-          return newMap;
-        });
+        sendingTimeouts.current.delete(messageId);
         
         queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         toast.error('Email sending timed out after 15 seconds');
       }, 15000);
 
-      setSendingTimeouts(prev => new Map(prev).set(messageId, timeoutId));
+      sendingTimeouts.current.set(messageId, timeoutId);
 
       // Attempt to send email
       const { data: emailData, error: emailError } = await supabase.functions.invoke('send-reply-email', {
@@ -203,14 +202,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       });
 
       // Clear timeout
-      const timeoutIdToCancel = sendingTimeouts.get(messageId);
+      const timeoutIdToCancel = sendingTimeouts.current.get(messageId);
       if (timeoutIdToCancel) {
         clearTimeout(timeoutIdToCancel);
-        setSendingTimeouts(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(messageId);
-          return newMap;
-        });
+        sendingTimeouts.current.delete(messageId);
       }
 
       if (emailError || emailData?.error) {
