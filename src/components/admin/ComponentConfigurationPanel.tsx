@@ -362,7 +362,7 @@ export const ComponentConfigurationPanel: React.FC = () => {
 
           <ComponentPreview title="Card">
             <div className="space-y-4">
-              <Card>
+              <Card style={{ borderRadius: designSystem.components.cards.borderRadius }}>
                 <CardHeader>
                   <CardTitle>Basic Card</CardTitle>
                   <CardDescription>A simple card with header and content</CardDescription>
@@ -374,17 +374,23 @@ export const ComponentConfigurationPanel: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-primary force-white-text">
+              <Card 
+                className={`bg-${designSystem.components.cards.backgroundColor} force-white-text`}
+                style={{ borderRadius: designSystem.components.cards.borderRadius }}
+              >
                 <CardHeader>
-                  <CardTitle>Primary Card</CardTitle>
-                  <CardDescription className="card-description">A card with primary background</CardDescription>
+                  <CardTitle>Themed Card</CardTitle>
+                  <CardDescription className="card-description">A card with configured background</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p>This card uses the primary color scheme.</p>
+                  <p>This card uses the configured color scheme.</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-surface border-primary/20">
+              <Card 
+                className="bg-gradient-surface border-primary/20"
+                style={{ borderRadius: designSystem.components.cards.borderRadius }}
+              >
                 <CardHeader>
                   <CardTitle>Gradient Card</CardTitle>
                   <CardDescription>A card with gradient background</CardDescription>
@@ -491,10 +497,30 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Badge Variants</h4>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="default">Default</Badge>
-                  <Badge variant="secondary">Secondary</Badge>
-                  <Badge variant="destructive">Destructive</Badge>
-                  <Badge variant="outline">Outline</Badge>
+                  <Badge 
+                    variant={designSystem.components.badges.defaultVariant as any}
+                    style={{ borderRadius: designSystem.components.badges.borderRadius }}
+                  >
+                    {designSystem.components.badges.defaultVariant}
+                  </Badge>
+                  <Badge 
+                    variant="secondary"
+                    style={{ borderRadius: designSystem.components.badges.borderRadius }}
+                  >
+                    Secondary
+                  </Badge>
+                  <Badge 
+                    variant="destructive"
+                    style={{ borderRadius: designSystem.components.badges.borderRadius }}
+                  >
+                    Destructive
+                  </Badge>
+                  <Badge 
+                    variant="outline"
+                    style={{ borderRadius: designSystem.components.badges.borderRadius }}
+                  >
+                    Outline
+                  </Badge>
                 </div>
               </div>
 
@@ -503,19 +529,31 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Status Badges</h4>
                 <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-success text-success-foreground">
+                  <Badge 
+                    className="bg-success text-success-foreground"
+                    style={{ borderRadius: designSystem.components.badges.borderRadius }}
+                  >
                     <Check className="h-3 w-3 mr-1" />
                     Success
                   </Badge>
-                  <Badge className="bg-warning text-warning-foreground">
+                  <Badge 
+                    className="bg-warning text-warning-foreground"
+                    style={{ borderRadius: designSystem.components.badges.borderRadius }}
+                  >
                     <AlertTriangle className="h-3 w-3 mr-1" />
                     Warning
                   </Badge>
-                  <Badge variant="destructive">
+                  <Badge 
+                    variant="destructive"
+                    style={{ borderRadius: designSystem.components.badges.borderRadius }}
+                  >
                     <X className="h-3 w-3 mr-1" />
                     Error
                   </Badge>
-                  <Badge variant="outline">
+                  <Badge 
+                    variant="outline"
+                    style={{ borderRadius: designSystem.components.badges.borderRadius }}
+                  >
                     <Info className="h-3 w-3 mr-1" />
                     Info
                   </Badge>
@@ -576,8 +614,11 @@ export const ComponentConfigurationPanel: React.FC = () => {
 
           <ComponentPreview title="Alert">
             <div className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
+              <Alert 
+                variant={designSystem.components.alerts.defaultVariant as any}
+                style={{ borderRadius: designSystem.components.alerts.borderRadius }}
+              >
+                {designSystem.components.alerts.showIcon && <Info className="h-4 w-4" />}
                 <AlertTitle>Information</AlertTitle>
                 <AlertDescription>
                   This is an informational alert with important details.
@@ -589,18 +630,22 @@ export const ComponentConfigurationPanel: React.FC = () => {
                 style={{ 
                   backgroundColor: 'hsl(var(--warning) / 0.1)',
                   borderColor: 'hsl(var(--warning))',
-                  color: 'hsl(0 0% 0%)'
+                  color: 'hsl(0 0% 0%)',
+                  borderRadius: designSystem.components.alerts.borderRadius
                 }}
               >
-                <AlertTriangle className="h-4 w-4" style={{ color: 'hsl(var(--warning))' }} />
+                {designSystem.components.alerts.showIcon && <AlertTriangle className="h-4 w-4" style={{ color: 'hsl(var(--warning))' }} />}
                 <AlertTitle style={{ color: 'hsl(0 0% 0%)' }}>Warning</AlertTitle>
                 <AlertDescription style={{ color: 'hsl(0 0% 0%)' }}>
                   This is a warning alert. Please pay attention to this message.
                 </AlertDescription>
               </Alert>
 
-              <Alert variant="destructive">
-                <X className="h-4 w-4" />
+              <Alert 
+                variant="destructive"
+                style={{ borderRadius: designSystem.components.alerts.borderRadius }}
+              >
+                {designSystem.components.alerts.showIcon && <X className="h-4 w-4" />}
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
                   This is an error alert indicating something went wrong.
@@ -612,10 +657,11 @@ export const ComponentConfigurationPanel: React.FC = () => {
                 style={{ 
                   backgroundColor: 'hsl(var(--success))',
                   borderColor: 'hsl(var(--success))',
-                  color: 'white'
+                  color: 'white',
+                  borderRadius: designSystem.components.alerts.borderRadius
                 }}
               >
-                <Check className="h-4 w-4" style={{ color: 'white' }} />
+                {designSystem.components.alerts.showIcon && <Check className="h-4 w-4" style={{ color: 'white' }} />}
                 <AlertTitle style={{ color: 'white' }}>Success</AlertTitle>
                 <AlertDescription style={{ color: 'white' }}>
                   This is a success alert. The operation completed successfully.
@@ -700,13 +746,31 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Avatar Sizes</h4>
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-8 w-8">
+                  <Avatar 
+                    className="h-8 w-8"
+                    style={{ 
+                      borderRadius: designSystem.components.avatars.borderRadius,
+                      borderWidth: designSystem.components.avatars.borderWidth
+                    }}
+                  >
                     <AvatarFallback>SM</AvatarFallback>
                   </Avatar>
-                  <Avatar className="h-10 w-10">
+                  <Avatar 
+                    className="h-10 w-10"
+                    style={{ 
+                      borderRadius: designSystem.components.avatars.borderRadius,
+                      borderWidth: designSystem.components.avatars.borderWidth
+                    }}
+                  >
                     <AvatarFallback>MD</AvatarFallback>
                   </Avatar>
-                  <Avatar className="h-12 w-12">
+                  <Avatar 
+                    className="h-12 w-12"
+                    style={{ 
+                      borderRadius: designSystem.components.avatars.borderRadius,
+                      borderWidth: designSystem.components.avatars.borderWidth
+                    }}
+                  >
                     <AvatarFallback>LG</AvatarFallback>
                   </Avatar>
                 </div>
@@ -717,7 +781,12 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Avatar with User Info</h4>
                 <div className="flex items-center space-x-3">
-                  <Avatar>
+                  <Avatar 
+                    style={{ 
+                      borderRadius: designSystem.components.avatars.borderRadius,
+                      borderWidth: designSystem.components.avatars.borderWidth
+                    }}
+                  >
                     <AvatarFallback>JD</AvatarFallback>
                   </Avatar>
                   <div>
@@ -804,10 +873,22 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Icon Sizes</h4>
                 <div className="flex items-center gap-4">
-                  <Heart className="h-4 w-4" />
-                  <Star className="h-5 w-5" />
-                  <Settings className="h-6 w-6" />
-                  <User className="h-8 w-8" />
+                  <Heart 
+                    className="h-4 w-4" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
+                  <Star 
+                    className="h-5 w-5" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
+                  <Settings 
+                    className="h-6 w-6" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
+                  <User 
+                    className="h-8 w-8" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
                 </div>
               </div>
 
@@ -816,11 +897,26 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Icon Variations</h4>
                 <div className="flex items-center gap-4">
-                  <Heart className="h-5 w-5 text-destructive" />
-                  <Star className="h-5 w-5 text-warning" />
-                  <Check className="h-5 w-5 text-success" />
-                  <Info className="h-5 w-5 text-primary" />
-                  <Settings className="h-5 w-5 text-muted-foreground" />
+                  <Heart 
+                    className="h-5 w-5 text-destructive" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
+                  <Star 
+                    className="h-5 w-5 text-warning" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
+                  <Check 
+                    className="h-5 w-5 text-success" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
+                  <Info 
+                    className="h-5 w-5 text-primary" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
+                  <Settings 
+                    className="h-5 w-5 text-muted-foreground" 
+                    strokeWidth={designSystem.components.icons.strokeWidth}
+                  />
                 </div>
               </div>
             </div>
