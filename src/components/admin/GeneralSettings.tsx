@@ -6,30 +6,127 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Save, Palette, Bell, Archive } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export const GeneralSettings = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [orgName, setOrgName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#3B82F6');
   const [orgDescription, setOrgDescription] = useState('');
   const [retentionDays, setRetentionDays] = useState('365');
   const [archiveDays, setArchiveDays] = useState('30');
 
+  // Fetch current organization data
+  const { data: organization, isLoading } = useQuery({
+    queryKey: ['organization'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Load organization data into form fields
+  useEffect(() => {
+    if (organization) {
+      setOrgName(organization.name || '');
+      setPrimaryColor(organization.primary_color || '#3B82F6');
+      // Use metadata for description and other settings if available
+      if (organization.metadata) {
+        setOrgDescription(organization.metadata.description || '');
+        setRetentionDays(organization.metadata.retention_days || '365');
+        setArchiveDays(organization.metadata.archive_days || '30');
+      }
+    }
+  }, [organization]);
+
+  // Mutation for updating organization branding
+  const updateBrandingMutation = useMutation({
+    mutationFn: async (data: { name: string; primary_color: string; description: string }) => {
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          name: data.name,
+          primary_color: data.primary_color,
+          metadata: {
+            ...(organization?.metadata || {}),
+            description: data.description,
+          }
+        })
+        .eq('id', organization?.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organization'] });
+      toast({
+        title: "Settings saved",
+        description: "Organization branding has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to save branding settings. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Error updating branding:', error);
+    },
+  });
+
+  // Mutation for updating data management settings
+  const updateDataSettingsMutation = useMutation({
+    mutationFn: async (data: { retention_days: string; archive_days: string }) => {
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          metadata: {
+            ...(organization?.metadata || {}),
+            retention_days: data.retention_days,
+            archive_days: data.archive_days,
+          }
+        })
+        .eq('id', organization?.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organization'] });
+      toast({
+        title: "Settings saved",
+        description: "Data management settings have been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to save data settings. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Error updating data settings:', error);
+    },
+  });
+
   const handleSaveBranding = () => {
-    // Save branding settings logic here
-    toast({
-      title: "Settings saved",
-      description: "Organization branding has been updated successfully.",
+    updateBrandingMutation.mutate({
+      name: orgName,
+      primary_color: primaryColor,
+      description: orgDescription,
     });
   };
 
   const handleSaveDataSettings = () => {
-    // Save data management settings logic here
-    toast({
-      title: "Settings saved",
-      description: "Data management settings have been updated successfully.",
+    updateDataSettingsMutation.mutate({
+      retention_days: retentionDays,
+      archive_days: archiveDays,
     });
   };
 
