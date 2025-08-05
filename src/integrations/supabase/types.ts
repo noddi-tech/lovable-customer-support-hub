@@ -347,6 +347,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          assigned_to_id: string | null
           attachments: Json | null
           content: string
           content_type: string | null
@@ -364,6 +365,7 @@ export type Database = {
           sender_type: string
         }
         Insert: {
+          assigned_to_id?: string | null
           attachments?: Json | null
           content: string
           content_type?: string | null
@@ -381,6 +383,7 @@ export type Database = {
           sender_type: string
         }
         Update: {
+          assigned_to_id?: string | null
           attachments?: Json | null
           content?: string
           content_type?: string | null
@@ -398,6 +401,13 @@ export type Database = {
           sender_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_assigned_to_id_fkey"
+            columns: ["assigned_to_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]

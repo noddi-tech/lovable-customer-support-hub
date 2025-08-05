@@ -22,10 +22,16 @@ import {
   MessageSquare,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Edit2,
+  UserCheck,
+  Save,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface ConversationViewProps {
   conversationId?: string | null;
@@ -35,6 +41,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [assignedToId, setAssignedToId] = useState<string>('');
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+  const [editingAssignedTo, setEditingAssignedTo] = useState<string>('');
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
@@ -62,6 +72,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           is_internal: isInternalNote,
           sender_type: 'agent',
           content_type: 'text',
+          assigned_to_id: isInternalNote && assignedToId ? assignedToId : null,
           email_status: isInternalNote ? 'sent' : 'sending'  // Internal notes don't need email sending
         })
         .select()
@@ -71,6 +82,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       // Reset form and refresh data immediately to show the message
       setReplyText('');
+      setAssignedToId('');
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
 
@@ -288,6 +300,62 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     }
   };
 
+  // Fetch team members for assignment
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['team-members'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .eq('is_active', true);
+      
+      if (error) {
+        console.error('Error fetching team members:', error);
+        return [];
+      }
+      
+      return data;
+    },
+  });
+
+  // Handle editing internal notes
+  const handleEditMessage = (message: any) => {
+    setEditingMessageId(message.id);
+    setEditingContent(message.content);
+    setEditingAssignedTo(message.assigned_to_id || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessageId || !editingContent.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({
+          content: editingContent.trim(),
+          assigned_to_id: editingAssignedTo || null,
+        })
+        .eq('id', editingMessageId);
+
+      if (error) throw error;
+
+      setEditingMessageId(null);
+      setEditingContent('');
+      setEditingAssignedTo('');
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      toast.success('Internal note updated successfully');
+    } catch (error) {
+      console.error('Error updating message:', error);
+      toast.error('Failed to update internal note');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingContent('');
+    setEditingAssignedTo('');
+  };
+
   // Fetch conversation details
   const { data: conversation, isLoading: conversationLoading } = useQuery({
     queryKey: ['conversation', conversationId],
@@ -314,7 +382,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     enabled: !!conversationId,
   });
 
-  // Fetch messages for this conversation
+  // Fetch messages for this conversation with assigned user details
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
@@ -322,7 +390,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select(`
+          *,
+          assigned_to:profiles!assigned_to_id(user_id, full_name, email)
+        `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
       
@@ -496,40 +567,103 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     
                     <div className={`flex ${message.sender_type === 'agent' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-2xl ${message.sender_type === 'agent' ? 'ml-6 md:ml-12' : 'mr-6 md:mr-12'}`}>
-                        {message.is_internal && (
-                          <div 
-                            className="text-xs mb-1 flex items-center font-medium"
-                            style={{ color: 'hsl(var(--warning))' }}
-                          >
-                            <Star className="h-3 w-3 mr-1" />
-                            Internal Note
-                          </div>
-                        )}
-                        
-                          <Card className={`${
+                         {message.is_internal && (
+                           <div className="flex items-center justify-between mb-1">
+                             <div 
+                               className="text-xs flex items-center font-medium"
+                               style={{ color: 'hsl(var(--warning))' }}
+                             >
+                               <Star className="h-3 w-3 mr-1" />
+                               Internal Note
+                               {message.assigned_to && (
+                                 <span className="ml-2 text-xs bg-warning/20 px-2 py-1 rounded">
+                                   Assigned to: {message.assigned_to.full_name}
+                                 </span>
+                               )}
+                             </div>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => handleEditMessage(message)}
+                               className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                             >
+                               <Edit2 className="h-3 w-3" />
+                             </Button>
+                           </div>
+                         )}
+                         
+                           <Card className={`group ${
                             message.is_internal 
                               ? 'bg-warning/10 border-warning/20' 
                               : message.sender_type === 'agent' 
                                 ? 'bg-primary border-primary' 
                                 : 'bg-card border-border'
-                          }`}>
-                            <CardContent className="p-4">
-                              <p 
-                                className="whitespace-pre-wrap"
-                                style={{
-                                  color: message.is_internal 
-                                    ? getMessageTextColor('internal')
-                                    : message.sender_type === 'agent' 
-                                      ? getMessageTextColor('agent')
-                                      : getMessageTextColor('customer'),
-                                  fontSize: '0.875rem',
-                                  fontWeight: message.is_internal ? '600' : '400',
-                                  lineHeight: '1.25rem'
-                                }}
-                              >
-                                {message.content}
-                              </p>
-                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
+                           }`}>
+                             <CardContent className="p-4">
+                               {/* Edit mode for internal notes */}
+                               {editingMessageId === message.id ? (
+                                 <div className="space-y-3">
+                                   <Textarea
+                                     value={editingContent}
+                                     onChange={(e) => setEditingContent(e.target.value)}
+                                     className="min-h-[80px] resize-none"
+                                   />
+                                   {message.is_internal && (
+                                     <div className="flex items-center space-x-2">
+                                       <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
+                                       <Select value={editingAssignedTo} onValueChange={setEditingAssignedTo}>
+                                         <SelectTrigger className="w-48">
+                                           <SelectValue placeholder="Select team member" />
+                                         </SelectTrigger>
+                                         <SelectContent>
+                                           <SelectItem value="">Unassigned</SelectItem>
+                                           {teamMembers.map((member) => (
+                                             <SelectItem key={member.user_id} value={member.user_id}>
+                                               {member.full_name}
+                                             </SelectItem>
+                                           ))}
+                                         </SelectContent>
+                                       </Select>
+                                     </div>
+                                   )}
+                                   <div className="flex items-center space-x-2">
+                                     <Button
+                                       size="sm"
+                                       onClick={handleSaveEdit}
+                                       disabled={!editingContent.trim()}
+                                     >
+                                       <Save className="h-3 w-3 mr-1" />
+                                       Save
+                                     </Button>
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={handleCancelEdit}
+                                     >
+                                       <X className="h-3 w-3 mr-1" />
+                                       Cancel
+                                     </Button>
+                                   </div>
+                                 </div>
+                               ) : (
+                                 <p 
+                                   className="whitespace-pre-wrap"
+                                   style={{
+                                     color: message.is_internal 
+                                       ? getMessageTextColor('internal')
+                                       : message.sender_type === 'agent' 
+                                         ? getMessageTextColor('agent')
+                                         : getMessageTextColor('customer'),
+                                     fontSize: '0.875rem',
+                                     fontWeight: message.is_internal ? '600' : '400',
+                                     lineHeight: '1.25rem'
+                                   }}
+                                 >
+                                   {message.content}
+                                 </p>
+                               )}
+                               {!editingMessageId || editingMessageId !== message.id ? (
+                                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
                                 <div className="flex items-center space-x-2">
                                   {message.sender_type === 'agent' && (
                                     <>
@@ -574,10 +708,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                    >
                                      {formatTime(messageDate)}
                                    </span>
-                                </div>
-                              </div>
-                             
-                               {/* Failed/pending message actions */}
+                                 </div>
+                               </div>
+                               ) : null}
+                              
+                                {/* Failed/pending message actions */}
                                {message.sender_type === 'agent' && (message.email_status === 'failed' || message.email_status === 'pending' || message.email_status === 'sending') && (
                                  <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
                                    {/* Error toaster */}
@@ -684,10 +819,30 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     Templates
                   </Button>
                 </div>
-              </div>
+               </div>
 
-              {/* Text Area */}
-              <div className="relative">
+               {/* Assignment dropdown for internal notes */}
+               {isInternalNote && (
+                 <div className="flex items-center space-x-2">
+                   <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
+                   <Select value={assignedToId} onValueChange={setAssignedToId}>
+                     <SelectTrigger className="w-48">
+                       <SelectValue placeholder="Select team member" />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="">Unassigned</SelectItem>
+                       {teamMembers.map((member) => (
+                         <SelectItem key={member.user_id} value={member.user_id}>
+                           {member.full_name}
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+               )}
+
+               {/* Text Area */}
+               <div className="relative">
                 <Textarea
                   placeholder={isInternalNote ? "Add an internal note..." : "Type your reply..."}
                   value={replyText}
