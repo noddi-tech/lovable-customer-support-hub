@@ -77,6 +77,8 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 0 3px hsl(var(--primary) / 0.1);
 
     /* Gradients */
+    --gradient-background: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%));
+    --use-gradient-background: 0;
     --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%));
     --gradient-surface: linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 98%));
 
@@ -167,5 +169,17 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Dynamic gradient background class */
+  body.gradient-background {
+    background: var(--gradient-background) !important;
+  }
+}
+
+@layer utilities {
+  /* Gradient background utilities */
+  .bg-gradient-custom {
+    background: var(--gradient-background);
   }
 }

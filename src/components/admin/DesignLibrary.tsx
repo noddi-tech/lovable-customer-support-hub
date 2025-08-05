@@ -20,6 +20,12 @@ interface DesignSystemConfig {
     success: string;
     warning: string;
     background: string;
+    backgroundGradient?: {
+      enabled: boolean;
+      startColor: string;
+      endColor: string;
+      direction: 'to-r' | 'to-br' | 'to-b' | 'to-bl' | 'to-l' | 'to-tl' | 'to-t' | 'to-tr';
+    };
     foreground: string;
     muted: string;
     card: string;
@@ -88,6 +94,12 @@ export const DesignLibrary = () => {
       success: '#10B981',
       warning: '#F59E0B',
       background: '#FFFFFF',
+      backgroundGradient: {
+        enabled: false,
+        startColor: '#3B82F6',
+        endColor: '#8B5CF6',
+        direction: 'to-br' as const,
+      },
       foreground: '#0F172A',
       muted: '#F1F5F9',
       card: '#FFFFFF',
@@ -232,6 +244,11 @@ export const DesignLibrary = () => {
     }
   }, [organization]);
 
+  // Apply design system when it changes
+  useEffect(() => {
+    applyDesignSystem(designSystem);
+  }, [designSystem]);
+
   // Apply design system to CSS variables
   const applyDesignSystem = (config: DesignSystemConfig) => {
     const root = document.documentElement;
@@ -260,14 +277,32 @@ export const DesignLibrary = () => {
       return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
     };
 
-    // Apply color variables
+    // Apply all color variables
     root.style.setProperty('--primary', hexToHsl(config.colors.primary));
     root.style.setProperty('--secondary', hexToHsl(config.colors.secondary));
     root.style.setProperty('--accent', hexToHsl(config.colors.accent));
     root.style.setProperty('--destructive', hexToHsl(config.colors.destructive));
+    root.style.setProperty('--success', hexToHsl(config.colors.success));
+    root.style.setProperty('--warning', hexToHsl(config.colors.warning));
+    root.style.setProperty('--background', hexToHsl(config.colors.background));
+    root.style.setProperty('--foreground', hexToHsl(config.colors.foreground));
+    root.style.setProperty('--muted', hexToHsl(config.colors.muted));
+    root.style.setProperty('--card', hexToHsl(config.colors.card));
     
-    // Apply other design tokens
+    // Handle gradient background
+    if (config.colors.backgroundGradient?.enabled) {
+      const gradient = `linear-gradient(${config.colors.backgroundGradient.direction.replace('to-', '')}, ${config.colors.backgroundGradient.startColor}, ${config.colors.backgroundGradient.endColor})`;
+      root.style.setProperty('--gradient-background', gradient);
+      document.body.classList.add('gradient-background');
+    } else {
+      document.body.classList.remove('gradient-background');
+    }
+    
+    // Apply spacing and border radius
     root.style.setProperty('--radius', config.borderRadius.base);
+    root.style.setProperty('--spacing-base', config.spacing.baseUnit);
+    root.style.setProperty('--spacing-section', config.spacing.sectionSpacing);
+    root.style.setProperty('--spacing-element', config.spacing.elementSpacing);
   };
 
   // Mutation for updating design system
@@ -416,6 +451,111 @@ export const DesignLibrary = () => {
                     colorKey="background" 
                     value={designSystem.colors.background} 
                   />
+                  
+                  {/* Gradient Background Controls */}
+                  <div className="col-span-2 space-y-4 p-4 border rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <Label>Gradient Background</Label>
+                      <input 
+                        type="checkbox"
+                        checked={designSystem.colors.backgroundGradient?.enabled || false}
+                        onChange={(e) => setDesignSystem(prev => ({
+                          ...prev,
+                          colors: {
+                            ...prev.colors,
+                            backgroundGradient: {
+                              ...prev.colors.backgroundGradient!,
+                              enabled: e.target.checked
+                            }
+                          }
+                        }))}
+                        className="h-4 w-4"
+                      />
+                    </div>
+                    
+                    {designSystem.colors.backgroundGradient?.enabled && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Start Color</Label>
+                            <Input 
+                              type="color"
+                              value={designSystem.colors.backgroundGradient.startColor}
+                              onChange={(e) => setDesignSystem(prev => ({
+                                ...prev,
+                                colors: {
+                                  ...prev.colors,
+                                  backgroundGradient: {
+                                    ...prev.colors.backgroundGradient!,
+                                    startColor: e.target.value
+                                  }
+                                }
+                              }))}
+                              className="h-8"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">End Color</Label>
+                            <Input 
+                              type="color"
+                              value={designSystem.colors.backgroundGradient.endColor}
+                              onChange={(e) => setDesignSystem(prev => ({
+                                ...prev,
+                                colors: {
+                                  ...prev.colors,
+                                  backgroundGradient: {
+                                    ...prev.colors.backgroundGradient!,
+                                    endColor: e.target.value
+                                  }
+                                }
+                              }))}
+                              className="h-8"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs">Direction</Label>
+                          <Select 
+                            value={designSystem.colors.backgroundGradient.direction}
+                            onValueChange={(value: any) => setDesignSystem(prev => ({
+                              ...prev,
+                              colors: {
+                                ...prev.colors,
+                                backgroundGradient: {
+                                  ...prev.colors.backgroundGradient!,
+                                  direction: value
+                                }
+                              }
+                            }))}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="to-r">Left to Right</SelectItem>
+                              <SelectItem value="to-br">Top-Left to Bottom-Right</SelectItem>
+                              <SelectItem value="to-b">Top to Bottom</SelectItem>
+                              <SelectItem value="to-bl">Top-Right to Bottom-Left</SelectItem>
+                              <SelectItem value="to-l">Right to Left</SelectItem>
+                              <SelectItem value="to-tl">Bottom-Right to Top-Left</SelectItem>
+                              <SelectItem value="to-t">Bottom to Top</SelectItem>
+                              <SelectItem value="to-tr">Bottom-Left to Top-Right</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Gradient Preview */}
+                        <div 
+                          className="h-8 rounded border"
+                          style={{
+                            background: `linear-gradient(${designSystem.colors.backgroundGradient.direction.replace('to-', '')}, ${designSystem.colors.backgroundGradient.startColor}, ${designSystem.colors.backgroundGradient.endColor})`
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
                   <ColorPicker 
                     label="Foreground" 
                     colorKey="foreground" 
@@ -446,16 +586,61 @@ export const DesignLibrary = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-5 gap-2">
-                  {Object.entries(designSystem.colors).map(([key, value]) => (
-                    <div key={key} className="text-center">
+                {/* Background Preview */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Background Preview</h4>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      designSystem.colors.backgroundGradient?.enabled 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {designSystem.colors.backgroundGradient?.enabled ? 'Gradient Active' : 'Solid Color'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="text-center">
                       <div 
-                        className="w-8 h-8 rounded-md border mx-auto mb-1"
-                        style={{ backgroundColor: value }}
+                        className="w-full h-16 rounded-md border mb-2"
+                        style={{ backgroundColor: designSystem.colors.background }}
                       />
-                      <span className="text-xs capitalize">{key}</span>
+                      <span className="text-xs">Solid Background</span>
                     </div>
-                  ))}
+                    {designSystem.colors.backgroundGradient?.enabled && (
+                      <div className="text-center">
+                        <div 
+                          className="w-full h-16 rounded-md border mb-2"
+                          style={{
+                            background: `linear-gradient(${designSystem.colors.backgroundGradient.direction.replace('to-', '')}, ${designSystem.colors.backgroundGradient.startColor}, ${designSystem.colors.backgroundGradient.endColor})`
+                          }}
+                        />
+                        <span className="text-xs">Gradient Background (Active)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                {/* Color Palette */}
+                <div className="space-y-3">
+                  <h4 className="font-medium">Color Palette</h4>
+                  <div className="grid grid-cols-5 gap-2">
+                    {Object.entries(designSystem.colors).map(([key, value]) => {
+                      // Skip gradient object for simple preview
+                      if (key === 'backgroundGradient') return null;
+                      
+                      return (
+                        <div key={key} className="text-center">
+                          <div 
+                            className="w-8 h-8 rounded-md border mx-auto mb-1"
+                            style={{ backgroundColor: value as string }}
+                          />
+                          <span className="text-xs capitalize">{key}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 <Separator />
                 <div className="space-y-3">
