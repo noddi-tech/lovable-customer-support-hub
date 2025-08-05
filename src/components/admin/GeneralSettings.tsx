@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Save, Palette, Bell, Archive } from 'lucide-react';
+import { Save, Palette, Bell } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,8 +17,6 @@ interface OrganizationWithMetadata {
   primary_color: string;
   metadata?: {
     description?: string;
-    retention_days?: string;
-    archive_days?: string;
   };
 }
 
@@ -28,8 +26,6 @@ export const GeneralSettings = () => {
   const [orgName, setOrgName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#3B82F6');
   const [orgDescription, setOrgDescription] = useState('');
-  const [retentionDays, setRetentionDays] = useState('365');
-  const [archiveDays, setArchiveDays] = useState('30');
 
   // Fetch current organization data
   const { data: organization, isLoading } = useQuery<OrganizationWithMetadata | null>({
@@ -50,11 +46,9 @@ export const GeneralSettings = () => {
     if (organization) {
       setOrgName(organization.name || '');
       setPrimaryColor(organization.primary_color || '#3B82F6');
-      // Use metadata for description and other settings if available
+      // Use metadata for description if available
       const metadata = organization.metadata || {};
       setOrgDescription(metadata.description || '');
-      setRetentionDays(metadata.retention_days || '365');
-      setArchiveDays(metadata.archive_days || '30');
     }
   }, [organization]);
 
@@ -93,39 +87,6 @@ export const GeneralSettings = () => {
     },
   });
 
-  // Mutation for updating data management settings
-  const updateDataSettingsMutation = useMutation({
-    mutationFn: async (data: { retention_days: string; archive_days: string }) => {
-      const currentMetadata = organization?.metadata || {};
-      const { error } = await supabase
-        .from('organizations')
-        .update({
-          metadata: {
-            ...currentMetadata,
-            retention_days: data.retention_days,
-            archive_days: data.archive_days,
-          }
-        } as any)
-        .eq('id', organization?.id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['organization'] });
-      toast({
-        title: "Settings saved",
-        description: "Data management settings have been updated successfully.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to save data settings. Please try again.",
-        variant: "destructive",
-      });
-      console.error('Error updating data settings:', error);
-    },
-  });
 
   const handleSaveBranding = () => {
     updateBrandingMutation.mutate({
@@ -135,12 +96,6 @@ export const GeneralSettings = () => {
     });
   };
 
-  const handleSaveDataSettings = () => {
-    updateDataSettingsMutation.mutate({
-      retention_days: retentionDays,
-      archive_days: archiveDays,
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -240,50 +195,6 @@ export const GeneralSettings = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Archive className="w-5 h-5" />
-            Data Management
-          </CardTitle>
-          <CardDescription>
-            Configure data retention and archival policies
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="retention-days">Conversation Retention (days)</Label>
-              <Input 
-                id="retention-days" 
-                type="number" 
-                placeholder="365"
-                value={retentionDays}
-                onChange={(e) => setRetentionDays(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="archive-days">Auto-archive After (days)</Label>
-              <Input 
-                id="archive-days" 
-                type="number" 
-                placeholder="30"
-                value={archiveDays}
-                onChange={(e) => setArchiveDays(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <Button 
-            className="flex items-center gap-2" 
-            onClick={handleSaveDataSettings}
-            disabled={updateDataSettingsMutation.isPending || isLoading}
-          >
-            <Save className="w-4 h-4" />
-            {updateDataSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 };
