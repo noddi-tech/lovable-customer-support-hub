@@ -27,7 +27,7 @@ export const GeneralSettings = () => {
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
@@ -40,24 +40,24 @@ export const GeneralSettings = () => {
       setOrgName(organization.name || '');
       setPrimaryColor(organization.primary_color || '#3B82F6');
       // Use metadata for description and other settings if available
-      if (organization.metadata) {
-        setOrgDescription(organization.metadata.description || '');
-        setRetentionDays(organization.metadata.retention_days || '365');
-        setArchiveDays(organization.metadata.archive_days || '30');
-      }
+      const metadata = (organization as any).metadata || {};
+      setOrgDescription(metadata.description || '');
+      setRetentionDays(metadata.retention_days || '365');
+      setArchiveDays(metadata.archive_days || '30');
     }
   }, [organization]);
 
   // Mutation for updating organization branding
   const updateBrandingMutation = useMutation({
     mutationFn: async (data: { name: string; primary_color: string; description: string }) => {
+      const currentMetadata = (organization as any)?.metadata || {};
       const { error } = await supabase
         .from('organizations')
         .update({
           name: data.name,
           primary_color: data.primary_color,
           metadata: {
-            ...(organization?.metadata || {}),
+            ...currentMetadata,
             description: data.description,
           }
         })
@@ -85,11 +85,12 @@ export const GeneralSettings = () => {
   // Mutation for updating data management settings
   const updateDataSettingsMutation = useMutation({
     mutationFn: async (data: { retention_days: string; archive_days: string }) => {
+      const currentMetadata = (organization as any)?.metadata || {};
       const { error } = await supabase
         .from('organizations')
         .update({
           metadata: {
-            ...(organization?.metadata || {}),
+            ...currentMetadata,
             retention_days: data.retention_days,
             archive_days: data.archive_days,
           }
@@ -176,9 +177,13 @@ export const GeneralSettings = () => {
             />
           </div>
 
-          <Button className="flex items-center gap-2" onClick={handleSaveBranding}>
+          <Button 
+            className="flex items-center gap-2" 
+            onClick={handleSaveBranding}
+            disabled={updateBrandingMutation.isPending || isLoading}
+          >
             <Save className="w-4 h-4" />
-            Save Branding
+            {updateBrandingMutation.isPending ? 'Saving...' : 'Save Branding'}
           </Button>
         </CardContent>
       </Card>
@@ -258,9 +263,13 @@ export const GeneralSettings = () => {
             </div>
           </div>
 
-          <Button className="flex items-center gap-2" onClick={handleSaveDataSettings}>
+          <Button 
+            className="flex items-center gap-2" 
+            onClick={handleSaveDataSettings}
+            disabled={updateDataSettingsMutation.isPending || isLoading}
+          >
             <Save className="w-4 h-4" />
-            Save Settings
+            {updateDataSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
           </Button>
         </CardContent>
       </Card>

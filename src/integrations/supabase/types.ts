@@ -412,6 +412,7 @@ export type Database = {
           created_at: string
           id: string
           logo_url: string | null
+          metadata: Json | null
           name: string
           primary_color: string | null
           slug: string
@@ -421,6 +422,7 @@ export type Database = {
           created_at?: string
           id?: string
           logo_url?: string | null
+          metadata?: Json | null
           name: string
           primary_color?: string | null
           slug: string
@@ -430,6 +432,7 @@ export type Database = {
           created_at?: string
           id?: string
           logo_url?: string | null
+          metadata?: Json | null
           name?: string
           primary_color?: string | null
           slug?: string
