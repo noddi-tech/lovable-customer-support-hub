@@ -9,412 +9,152 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Save, Palette, Eye, Download, Upload, Settings, Layout, Layers } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
-
-interface DesignSystemConfig {
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    destructive: string;
-    success: string;
-    warning: string;
-    background: string;
-    backgroundGradient?: {
-      enabled: boolean;
-      startColor: string;
-      endColor: string;
-      direction: 'to-r' | 'to-br' | 'to-b' | 'to-bl' | 'to-l' | 'to-tl' | 'to-t' | 'to-tr';
-    };
-    foreground: string;
-    muted: string;
-    card: string;
-  };
-  typography: {
-    primaryFont: string;
-    secondaryFont: string;
-    headingWeight: string;
-    bodyWeight: string;
-  };
-  spacing: {
-    baseUnit: string;
-    sectionSpacing: string;
-    elementSpacing: string;
-    containerPadding: string;
-  };
-  borderRadius: {
-    base: string;
-  };
-  components: {
-    toast: {
-      position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
-      style: 'default' | 'filled' | 'rounded' | 'sharp' | 'pill';
-      borderRadius: string;
-      padding: string;
-    };
-    card: {
-      shadow: 'none' | 'sm' | 'md' | 'lg' | 'xl';
-      border: 'none' | 'subtle' | 'strong' | 'default' | 'rounded' | 'sharp' | 'elevated';
-      borderRadius: string;
-      padding: string;
-    };
-    buttons: {
-      style: 'default' | 'rounded' | 'sharp' | 'pill';
-      size: 'sm' | 'default' | 'lg';
-      spacing: string;
-      borderRadius: string;
-      padding: string;
-    };
-    icons: {
-      style: 'outline' | 'filled' | 'duotone';
-      size: 'sm' | 'md' | 'lg';
-    };
-  };
-}
-
-interface OrganizationWithDesignSystem {
-  id: string;
-  name: string;
-  primary_color: string;
-  metadata?: {
-    design_system?: DesignSystemConfig;
-  };
-}
 
 export const DesignLibrary = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const [designSystem, setDesignSystem] = useState<DesignSystemConfig>({
-    colors: {
-      primary: '#3B82F6',
-      secondary: '#64748B',
-      accent: '#8B5CF6',
-      destructive: '#EF4444',
-      success: '#10B981',
-      warning: '#F59E0B',
-      background: '#FFFFFF',
-      backgroundGradient: {
-        enabled: false,
-        startColor: '#3B82F6',
-        endColor: '#8B5CF6',
-        direction: 'to-br' as const,
-      },
-      foreground: '#0F172A',
-      muted: '#F1F5F9',
-      card: '#FFFFFF',
-    },
-    typography: {
-      primaryFont: 'Inter',
-      secondaryFont: 'Inter',
-      headingWeight: '600',
-      bodyWeight: '400',
-    },
-    spacing: {
-      baseUnit: '4px',
-      sectionSpacing: '32px',
-      elementSpacing: '16px',
-      containerPadding: '40px',
-    },
-    borderRadius: {
-      base: '8px',
-    },
-    components: {
-      toast: {
-        position: 'bottom-right',
-        style: 'default',
-        borderRadius: '8px',
-        padding: '16px',
-      },
-      card: {
-        shadow: 'sm',
-        border: 'default', // Changed from 'subtle' to 'default' to match presets
-        borderRadius: '12px',
-        padding: '24px',
-      },
-      buttons: {
-        style: 'default',
-        size: 'default',
-        spacing: '8px',
-        borderRadius: '6px',
-        padding: '12px 16px',
-      },
-      icons: {
-        style: 'outline',
-        size: 'md',
-      },
-    },
-  });
+  const { designSystem, updateDesignSystem, saveDesignSystem, isLoading } = useDesignSystem();
 
-  // Button size presets
-  const buttonSizePresets = {
-    sm: {
-      spacing: '6px',
-      borderRadius: '4px',
-      padding: '8px 12px',
-    },
-    default: {
-      spacing: '8px',
-      borderRadius: '6px',
-      padding: '12px 16px',
-    },
-    lg: {
-      spacing: '10px',
-      borderRadius: '8px',
-      padding: '16px 24px',
-    }
-  };
-
-  // Toast style presets
-  const toastStylePresets = {
-    default: {
-      borderRadius: '8px',
-      padding: '16px',
-    },
-    rounded: {
-      borderRadius: '12px',
-      padding: '16px 20px',
-    },
-    sharp: {
-      borderRadius: '4px',
-      padding: '14px 16px',
-    },
-    pill: {
-      borderRadius: '24px',
-      padding: '12px 20px',
-    }
-  };
-
-  // Card style presets
-  const cardStylePresets = {
-    default: {
-      borderRadius: '12px',
-      padding: '24px',
-      shadow: 'sm' as const,
-    },
-    rounded: {
-      borderRadius: '16px',
-      padding: '28px',
-      shadow: 'md' as const,
-    },
-    sharp: {
-      borderRadius: '4px',
-      padding: '20px',
-      shadow: 'sm' as const,
-    },
-    elevated: {
-      borderRadius: '12px',
-      padding: '32px',
-      shadow: 'lg' as const,
-    }
-  };
-
-  // Fetch current organization data
-  const { data: organization, isLoading } = useQuery<OrganizationWithDesignSystem | null>({
-    queryKey: ['organization'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data as OrganizationWithDesignSystem | null;
-    },
-  });
-
-  // Load design system data into form fields
-  useEffect(() => {
-    if (organization) {
-      const metadata = organization.metadata || {};
-      const savedDesignSystem = metadata.design_system;
-      
-      if (savedDesignSystem) {
-        setDesignSystem(savedDesignSystem);
-      } else {
-        // If no design system saved, use primary_color as fallback
-        setDesignSystem(prev => ({
-          ...prev,
-          colors: {
-            ...prev.colors,
-            primary: organization.primary_color || '#3B82F6'
-          }
-        }));
-      }
-    }
-  }, [organization]);
-
-  // Load design system from localStorage on mount
-  useEffect(() => {
-    const savedDesignSystem = localStorage.getItem('designSystem');
-    if (savedDesignSystem) {
-      try {
-        const parsedDesignSystem = JSON.parse(savedDesignSystem);
-        setDesignSystem(parsedDesignSystem);
-        console.log('Loaded design system from localStorage:', parsedDesignSystem);
-      } catch (error) {
-        console.error('Error parsing saved design system:', error);
-      }
-    }
-  }, []);
-
-  // Apply design system when it changes and save to localStorage
-  useEffect(() => {
-    applyDesignSystem(designSystem);
-    localStorage.setItem('designSystem', JSON.stringify(designSystem));
-    console.log('Applied and saved design system:', designSystem);
-  }, [designSystem]);
-
-  // Apply design system to CSS variables
-  const applyDesignSystem = (config: DesignSystemConfig) => {
-    const root = document.documentElement;
-    
-    // Convert hex to HSL for CSS variables
-    const hexToHsl = (hex: string) => {
-      const r = parseInt(hex.slice(1, 3), 16) / 255;
-      const g = parseInt(hex.slice(3, 5), 16) / 255;
-      const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      let h = 0, s = 0, l = (max + min) / 2;
-
-      if (max !== min) {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-          case g: h = (b - r) / d + 2; break;
-          case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-      }
-
-      return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-    };
-
-    // Calculate contrasting text color with better contrast
-    const getContrastColor = (hexColor: string) => {
-      const r = parseInt(hexColor.slice(1, 3), 16);
-      const g = parseInt(hexColor.slice(3, 5), 16);
-      const b = parseInt(hexColor.slice(5, 7), 16);
-      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      // Use stricter threshold for better contrast
-      return luminance > 0.4 ? '#000000' : '#FFFFFF';
-    };
-
-    // Apply all color variables with proper contrast
-    root.style.setProperty('--primary', hexToHsl(config.colors.primary));
-    root.style.setProperty('--primary-foreground', hexToHsl(getContrastColor(config.colors.primary)));
-    root.style.setProperty('--secondary', hexToHsl(config.colors.secondary));
-    root.style.setProperty('--secondary-foreground', hexToHsl(getContrastColor(config.colors.secondary)));
-    root.style.setProperty('--accent', hexToHsl(config.colors.accent));
-    root.style.setProperty('--accent-foreground', hexToHsl(getContrastColor(config.colors.accent)));
-    root.style.setProperty('--destructive', hexToHsl(config.colors.destructive));
-    root.style.setProperty('--destructive-foreground', hexToHsl(getContrastColor(config.colors.destructive)));
-    root.style.setProperty('--success', hexToHsl(config.colors.success));
-    root.style.setProperty('--warning', hexToHsl(config.colors.warning));
-    root.style.setProperty('--background', hexToHsl(config.colors.background));
-    root.style.setProperty('--foreground', hexToHsl(config.colors.foreground));
-    root.style.setProperty('--muted', hexToHsl(config.colors.muted));
-    root.style.setProperty('--card', hexToHsl(config.colors.card));
-    
-    // Handle gradient background
-    if (config.colors.backgroundGradient?.enabled) {
-      const gradient = `linear-gradient(${config.colors.backgroundGradient.direction.replace('to-', '')}, ${config.colors.backgroundGradient.startColor}, ${config.colors.backgroundGradient.endColor})`;
-      root.style.setProperty('--gradient-background', gradient);
-      document.body.classList.add('gradient-background');
-    } else {
-      document.body.classList.remove('gradient-background');
-    }
-    
-    // Apply spacing and border radius
-    root.style.setProperty('--radius', config.borderRadius.base);
-    root.style.setProperty('--spacing-base', config.spacing.baseUnit);
-    root.style.setProperty('--spacing-section', config.spacing.sectionSpacing);
-    root.style.setProperty('--spacing-element', config.spacing.elementSpacing);
-  };
-
-  // Mutation for updating design system
-  const updateDesignSystemMutation = useMutation({
-    mutationFn: async (config: DesignSystemConfig) => {
-      const currentMetadata = organization?.metadata || {};
-      const { error } = await supabase
-        .from('organizations')
-        .update({
-          primary_color: config.colors.primary, // Keep for backward compatibility
-          metadata: {
-            ...currentMetadata,
-            design_system: config,
-          }
-        } as any)
-        .eq('id', organization?.id);
-      
-      if (error) throw error;
-      return config;
-    },
-    onSuccess: (config) => {
-      queryClient.invalidateQueries({ queryKey: ['organization'] });
-      applyDesignSystem(config);
+  // Save to database
+  const saveMutation = useMutation({
+    mutationFn: saveDesignSystem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organization-design-system'] });
       toast({
-        title: "Design system updated",
-        description: "Your design system has been applied successfully.",
+        title: "Design system saved",
+        description: "Your design system has been saved successfully.",
       });
     },
     onError: (error) => {
+      console.error('Save error:', error);
       toast({
-        title: "Error",
-        description: "Failed to save design system. Please try again.",
+        title: "Error saving design system",
+        description: "There was an error saving your design system. Please try again.",
         variant: "destructive",
       });
-      console.error('Error updating design system:', error);
     },
   });
 
-  const handleSaveDesignSystem = () => {
-    updateDesignSystemMutation.mutate(designSystem);
-  };
-
-  const handleColorChange = (colorKey: keyof DesignSystemConfig['colors'], value: string) => {
-    setDesignSystem(prev => ({
-      ...prev,
+  const updateColor = (colorKey: keyof typeof designSystem.colors, hslValue: string) => {
+    updateDesignSystem({
       colors: {
-        ...prev.colors,
-        [colorKey]: value
+        ...designSystem.colors,
+        [colorKey]: hslValue
       }
-    }));
+    });
   };
 
-  const ColorPicker = ({ label, colorKey, value }: { 
-    label: string; 
-    colorKey: keyof DesignSystemConfig['colors']; 
-    value: string; 
+  const updateGradient = (gradientKey: keyof typeof designSystem.gradients, value: string) => {
+    updateDesignSystem({
+      gradients: {
+        ...designSystem.gradients,
+        [gradientKey]: value
+      }
+    });
+  };
+
+  const updateTypography = (typographyKey: keyof typeof designSystem.typography, value: any) => {
+    updateDesignSystem({
+      typography: {
+        ...designSystem.typography,
+        [typographyKey]: value
+      }
+    });
+  };
+
+  const updateSpacing = (spacingKey: keyof typeof designSystem.spacing, value: string | number) => {
+    updateDesignSystem({
+      spacing: {
+        ...designSystem.spacing,
+        [spacingKey]: value
+      }
+    });
+  };
+
+  const updateComponents = (componentType: keyof typeof designSystem.components, componentKey: string, value: any) => {
+    updateDesignSystem({
+      components: {
+        ...designSystem.components,
+        [componentType]: {
+          ...designSystem.components[componentType],
+          [componentKey]: value
+        }
+      }
+    });
+  };
+
+  const saveToDatabase = () => {
+    saveMutation.mutate();
+  };
+
+  const colorInputs = [
+    { key: 'primary' as const, label: 'Primary', description: 'Main brand color' },
+    { key: 'primaryForeground' as const, label: 'Primary Foreground', description: 'Text on primary color' },
+    { key: 'secondary' as const, label: 'Secondary', description: 'Secondary actions' },
+    { key: 'secondaryForeground' as const, label: 'Secondary Foreground', description: 'Text on secondary color' },
+    { key: 'accent' as const, label: 'Accent', description: 'Accent highlights' },
+    { key: 'accentForeground' as const, label: 'Accent Foreground', description: 'Text on accent color' },
+    { key: 'background' as const, label: 'Background', description: 'Page background' },
+    { key: 'foreground' as const, label: 'Foreground', description: 'Main text color' },
+    { key: 'muted' as const, label: 'Muted', description: 'Subtle backgrounds' },
+    { key: 'mutedForeground' as const, label: 'Muted Foreground', description: 'Subtle text' },
+    { key: 'card' as const, label: 'Card', description: 'Card backgrounds' },
+    { key: 'cardForeground' as const, label: 'Card Foreground', description: 'Text on cards' },
+    { key: 'border' as const, label: 'Border', description: 'Border color' },
+    { key: 'success' as const, label: 'Success', description: 'Success states' },
+    { key: 'successForeground' as const, label: 'Success Foreground', description: 'Text on success color' },
+    { key: 'warning' as const, label: 'Warning', description: 'Warning states' },
+    { key: 'warningForeground' as const, label: 'Warning Foreground', description: 'Text on warning color' },
+    { key: 'destructive' as const, label: 'Destructive', description: 'Error states' },
+    { key: 'destructiveForeground' as const, label: 'Destructive Foreground', description: 'Text on error color' },
+  ];
+
+  const HSLColorPicker = ({ label, value, onChange, description }: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    description: string;
   }) => (
     <div className="space-y-2">
-      <Label htmlFor={colorKey}>{label}</Label>
-      <div className="flex gap-2">
-        <Input 
-          id={colorKey}
+      <Label>{label}</Label>
+      <div className="flex gap-2 items-center">
+        <Input
           value={value}
-          onChange={(e) => handleColorChange(colorKey, e.target.value)}
-          placeholder="#000000"
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="217 91% 60%"
+          className="flex-1"
         />
         <div 
-          className="w-10 h-10 rounded border cursor-pointer" 
-          style={{ backgroundColor: value }}
-          onClick={() => {
-            const input = document.createElement('input');
-            input.type = 'color';
-            input.value = value;
-            input.onchange = (e) => handleColorChange(colorKey, (e.target as HTMLInputElement).value);
-            input.click();
-          }}
+          className="w-10 h-10 rounded border-2 border-border"
+          style={{ backgroundColor: `hsl(${value})` }}
         />
       </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+
+  const GradientEditor = ({ label, value, onChange, description }: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    description: string;
+  }) => (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%))"
+      />
+      <div 
+        className="h-10 rounded border-2 border-border"
+        style={{ background: value }}
+      />
+      <p className="text-xs text-muted-foreground">{description}</p>
     </div>
   );
 
@@ -428,262 +168,55 @@ export const DesignLibrary = () => {
       </div>
 
       <Tabs defaultValue="colors" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 bg-card/50 backdrop-blur-sm shadow-surface">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="colors">Colors</TabsTrigger>
           <TabsTrigger value="typography">Typography</TabsTrigger>
           <TabsTrigger value="spacing">Spacing</TabsTrigger>
           <TabsTrigger value="components">Components</TabsTrigger>
-          <TabsTrigger value="tables">Tables</TabsTrigger>
-          <TabsTrigger value="interactions">Interactions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="colors">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gradient-surface border-border/50 shadow-surface">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                  <Palette className="w-5 h-5" />
-                  Color Palette
-                </CardTitle>
-                <CardDescription>
-                  Define your organization's color system
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <ColorPicker 
-                    label="Primary" 
-                    colorKey="primary" 
-                    value={designSystem.colors.primary} 
-                  />
-                  <ColorPicker 
-                    label="Secondary" 
-                    colorKey="secondary" 
-                    value={designSystem.colors.secondary} 
-                  />
-                  <ColorPicker 
-                    label="Accent" 
-                    colorKey="accent" 
-                    value={designSystem.colors.accent} 
-                  />
-                  <ColorPicker 
-                    label="Destructive" 
-                    colorKey="destructive" 
-                    value={designSystem.colors.destructive} 
-                  />
-                  <ColorPicker 
-                    label="Success" 
-                    colorKey="success" 
-                    value={designSystem.colors.success} 
-                  />
-                  <ColorPicker 
-                    label="Warning" 
-                    colorKey="warning" 
-                    value={designSystem.colors.warning} 
-                  />
-                  <ColorPicker 
-                    label="Background" 
-                    colorKey="background" 
-                    value={designSystem.colors.background} 
-                  />
-                  
-                  {/* Gradient Background Controls */}
-                  <div className="col-span-2 space-y-4 p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <Label>Gradient Background</Label>
-                      <input 
-                        type="checkbox"
-                        checked={designSystem.colors.backgroundGradient?.enabled || false}
-                        onChange={(e) => setDesignSystem(prev => ({
-                          ...prev,
-                          colors: {
-                            ...prev.colors,
-                            backgroundGradient: {
-                              ...prev.colors.backgroundGradient!,
-                              enabled: e.target.checked
-                            }
-                          }
-                        }))}
-                        className="h-4 w-4"
-                      />
-                    </div>
-                    
-                    {designSystem.colors.backgroundGradient?.enabled && (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs">Start Color</Label>
-                            <Input 
-                              type="color"
-                              value={designSystem.colors.backgroundGradient.startColor}
-                              onChange={(e) => setDesignSystem(prev => ({
-                                ...prev,
-                                colors: {
-                                  ...prev.colors,
-                                  backgroundGradient: {
-                                    ...prev.colors.backgroundGradient!,
-                                    startColor: e.target.value
-                                  }
-                                }
-                              }))}
-                              className="h-8"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">End Color</Label>
-                            <Input 
-                              type="color"
-                              value={designSystem.colors.backgroundGradient.endColor}
-                              onChange={(e) => setDesignSystem(prev => ({
-                                ...prev,
-                                colors: {
-                                  ...prev.colors,
-                                  backgroundGradient: {
-                                    ...prev.colors.backgroundGradient!,
-                                    endColor: e.target.value
-                                  }
-                                }
-                              }))}
-                              className="h-8"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <Label className="text-xs">Direction</Label>
-                          <Select 
-                            value={designSystem.colors.backgroundGradient.direction}
-                            onValueChange={(value: any) => setDesignSystem(prev => ({
-                              ...prev,
-                              colors: {
-                                ...prev.colors,
-                                backgroundGradient: {
-                                  ...prev.colors.backgroundGradient!,
-                                  direction: value
-                                }
-                              }
-                            }))}
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="to-r">Left to Right</SelectItem>
-                              <SelectItem value="to-br">Top-Left to Bottom-Right</SelectItem>
-                              <SelectItem value="to-b">Top to Bottom</SelectItem>
-                              <SelectItem value="to-bl">Top-Right to Bottom-Left</SelectItem>
-                              <SelectItem value="to-l">Right to Left</SelectItem>
-                              <SelectItem value="to-tl">Bottom-Right to Top-Left</SelectItem>
-                              <SelectItem value="to-t">Bottom to Top</SelectItem>
-                              <SelectItem value="to-tr">Bottom-Left to Top-Right</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        {/* Gradient Preview */}
-                        <div 
-                          className="h-8 rounded border"
-                          style={{
-                            background: `linear-gradient(${designSystem.colors.backgroundGradient.direction.replace('to-', '')}, ${designSystem.colors.backgroundGradient.startColor}, ${designSystem.colors.backgroundGradient.endColor})`
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  
-                  <ColorPicker 
-                    label="Foreground" 
-                    colorKey="foreground" 
-                    value={designSystem.colors.foreground} 
-                  />
-                  <ColorPicker 
-                    label="Muted" 
-                    colorKey="muted" 
-                    value={designSystem.colors.muted} 
-                  />
-                  <ColorPicker 
-                    label="Card" 
-                    colorKey="card" 
-                    value={designSystem.colors.card} 
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            
+          <div className="grid gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Color Preview
+                  <Palette className="w-5 h-5" />
+                  Color System
                 </CardTitle>
                 <CardDescription>
-                  See how your colors look in components
+                  Define your organization's color palette using HSL values for consistent theming.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Background Preview */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Background Preview</h4>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      designSystem.colors.backgroundGradient?.enabled 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {designSystem.colors.backgroundGradient?.enabled ? 'Gradient Active' : 'Solid Color'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="text-center">
-                      <div 
-                        className="w-full h-16 rounded-md border mb-2"
-                        style={{ backgroundColor: designSystem.colors.background }}
-                      />
-                      <span className="text-xs">Solid Background</span>
-                    </div>
-                    {designSystem.colors.backgroundGradient?.enabled && (
-                      <div className="text-center">
-                        <div 
-                          className="w-full h-16 rounded-md border mb-2"
-                          style={{
-                            background: `linear-gradient(${designSystem.colors.backgroundGradient.direction.replace('to-', '')}, ${designSystem.colors.backgroundGradient.startColor}, ${designSystem.colors.backgroundGradient.endColor})`
-                          }}
-                        />
-                        <span className="text-xs">Gradient Background (Active)</span>
-                      </div>
-                    )}
-                  </div>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {colorInputs.map((input) => (
+                    <HSLColorPicker
+                      key={input.key}
+                      label={input.label}
+                      value={designSystem.colors[input.key]}
+                      onChange={(value) => updateColor(input.key, value)}
+                      description={input.description}
+                    />
+                  ))}
                 </div>
-                
+
                 <Separator />
-                
-                {/* Color Palette */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">Color Palette</h4>
-                  <div className="grid grid-cols-5 gap-2">
-                    {Object.entries(designSystem.colors).map(([key, value]) => {
-                      // Skip gradient object for simple preview
-                      if (key === 'backgroundGradient') return null;
-                      
-                      return (
-                        <div key={key} className="text-center">
-                          <div 
-                            className="w-8 h-8 rounded-md border mx-auto mb-1"
-                            style={{ backgroundColor: value as string }}
-                          />
-                          <span className="text-xs capitalize">{key}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-3">
-                  <h4 className="font-medium">Button Preview</h4>
-                  <div className="flex" style={{ gap: designSystem.spacing.baseUnit }}>
-                    <Button size="sm">Primary</Button>
-                    <Button variant="secondary" size="sm">Secondary</Button>
-                    <Button variant="outline" size="sm">Outline</Button>
+
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium">Gradients</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <GradientEditor
+                      label="Primary Gradient"
+                      value={designSystem.gradients.primary}
+                      onChange={(value) => updateGradient('primary', value)}
+                      description="Main gradient for primary elements"
+                    />
+                    <GradientEditor
+                      label="Surface Gradient"
+                      value={designSystem.gradients.surface}
+                      onChange={(value) => updateGradient('surface', value)}
+                      description="Subtle gradient for surface elements"
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -692,971 +225,266 @@ export const DesignLibrary = () => {
         </TabsContent>
 
         <TabsContent value="typography">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Typography</CardTitle>
-                <CardDescription>
-                  Configure fonts and text styles
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="primary-font">Primary Font</Label>
-                    <Input 
-                      id="primary-font"
-                      value={designSystem.typography.primaryFont}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        typography: { ...prev.typography, primaryFont: e.target.value }
-                      }))}
-                      placeholder="Inter, sans-serif"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="secondary-font">Secondary Font</Label>
-                    <Input 
-                      id="secondary-font"
-                      value={designSystem.typography.secondaryFont}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        typography: { ...prev.typography, secondaryFont: e.target.value }
-                      }))}
-                      placeholder="Inter, sans-serif"
-                    />
-                  </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Typography Scale</CardTitle>
+              <CardDescription>
+                Configure font family, sizes, weights, and line heights.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Font Family</Label>
+                  <Input
+                    value={designSystem.typography.fontFamily}
+                    onChange={(e) => updateTypography('fontFamily', e.target.value)}
+                    placeholder="Inter, system-ui, sans-serif"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Typography Preview
-                </CardTitle>
-                <CardDescription>
-                  See how your fonts look in different elements
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <h1 className="text-2xl font-semibold" style={{ fontFamily: designSystem.typography.primaryFont, fontWeight: designSystem.typography.headingWeight }}>
-                    Heading Example
-                  </h1>
-                  <h2 className="text-xl font-medium" style={{ fontFamily: designSystem.typography.primaryFont, fontWeight: designSystem.typography.headingWeight }}>
-                    Subheading Example
-                  </h2>
-                  <p className="text-base" style={{ fontFamily: designSystem.typography.secondaryFont, fontWeight: designSystem.typography.bodyWeight }}>
-                    Body text example using your typography settings. This shows how your font choices will appear in paragraphs and content.
-                  </p>
-                  <p className="text-sm text-muted-foreground" style={{ fontFamily: designSystem.typography.secondaryFont }}>
-                    Smaller text and captions will use these font settings.
-                  </p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium">Font Sizes</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.entries(designSystem.typography.fontSize).map(([key, value]) => (
+                    <div key={key} className="space-y-2">
+                      <Label>{key}</Label>
+                      <Input
+                        value={value}
+                        onChange={(e) => updateTypography('fontSize', {
+                          ...designSystem.typography.fontSize,
+                          [key]: e.target.value
+                        })}
+                        placeholder="1rem"
+                      />
+                    </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium">Font Weights</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.entries(designSystem.typography.fontWeight).map(([key, value]) => (
+                    <div key={key} className="space-y-2">
+                      <Label>{key}</Label>
+                      <Input
+                        value={value}
+                        onChange={(e) => updateTypography('fontWeight', {
+                          ...designSystem.typography.fontWeight,
+                          [key]: e.target.value
+                        })}
+                        placeholder="400"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="spacing">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Spacing & Layout</CardTitle>
-                <CardDescription>
-                  Configure spacing and border radius
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="base-unit">Base Spacing Unit</Label>
-                    <Input 
-                      id="base-unit"
-                      value={designSystem.spacing.baseUnit}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        spacing: { ...prev.spacing, baseUnit: e.target.value }
-                      }))}
-                      placeholder="4px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="section-spacing">Section Spacing</Label>
-                    <Input 
-                      id="section-spacing"
-                      value={designSystem.spacing.sectionSpacing}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        spacing: { ...prev.spacing, sectionSpacing: e.target.value }
-                      }))}
-                      placeholder="32px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="element-spacing">Element Spacing</Label>
-                    <Input 
-                      id="element-spacing"
-                      value={designSystem.spacing.elementSpacing}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        spacing: { ...prev.spacing, elementSpacing: e.target.value }
-                      }))}
-                      placeholder="16px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="container-padding">Container Padding</Label>
-                    <Input 
-                      id="container-padding"
-                      value={designSystem.spacing.containerPadding}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        spacing: { ...prev.spacing, containerPadding: e.target.value }
-                      }))}
-                      placeholder="40px"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="border-radius">Base Border Radius</Label>
-                    <Input 
-                      id="border-radius"
-                      value={designSystem.borderRadius.base}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        borderRadius: { ...prev.borderRadius, base: e.target.value }
-                      }))}
-                      placeholder="8px"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Spacing Preview
-                </CardTitle>
-                <CardDescription>
-                  See how your spacing affects components
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <h4 className="font-medium">Element Spacing</h4>
-                  <div className="flex" style={{ gap: designSystem.spacing.elementSpacing }}>
-                    <Button size="sm">Button 1</Button>
-                    <Button size="sm">Button 2</Button>
-                    <Button size="sm">Button 3</Button>
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-3">
-                  <h4 className="font-medium">Container with Padding</h4>
-                  <div style={{ 
-                    padding: designSystem.spacing.containerPadding,
-                    borderRadius: designSystem.borderRadius.base,
-                    backgroundColor: 'var(--muted)',
-                  }}>
-                    <p className="text-sm">This container uses your custom padding and border radius settings.</p>
-                  </div>
-                </div>
-                <Separator />
+          <Card>
+            <CardHeader>
+              <CardTitle>Spacing System</CardTitle>
+              <CardDescription>
+                Define consistent spacing values throughout your application.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {Object.entries(designSystem.spacing).map(([key, value]) => (
+                  key !== 'baseUnit' && (
+                    <div key={key} className="space-y-2">
+                      <Label>{key}</Label>
+                      <Input
+                        value={value}
+                        onChange={(e) => updateSpacing(key as keyof typeof designSystem.spacing, e.target.value)}
+                        placeholder="1rem"
+                      />
+                    </div>
+                  )
+                ))}
                 <div className="space-y-2">
-                  <h4 className="font-medium">Current Values</h4>
-                  <p className="text-sm">Base unit: {designSystem.spacing.baseUnit}</p>
-                  <p className="text-sm">Section spacing: {designSystem.spacing.sectionSpacing}</p>
-                  <p className="text-sm">Element spacing: {designSystem.spacing.elementSpacing}</p>
-                  <p className="text-sm">Container padding: {designSystem.spacing.containerPadding}</p>
-                  <p className="text-sm">Base radius: {designSystem.borderRadius.base}</p>
+                  <Label>Base Unit</Label>
+                  <Input
+                    type="number"
+                    value={designSystem.spacing.baseUnit.toString()}
+                    onChange={(e) => updateSpacing('baseUnit', parseInt(e.target.value) || 4)}
+                    placeholder="4"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="components">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              {/* Toast Configuration */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="w-5 h-5" />
-                    Toast Notifications
-                  </CardTitle>
-                  <CardDescription>
-                    Configure toast notification appearance and behavior
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Toast Position</Label>
-                      <Select 
-                        value={designSystem.components.toast.position}
-                        onValueChange={(value: any) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            toast: { ...prev.components.toast, position: value }
-                          }
-                        }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="top-left">Top Left</SelectItem>
-                          <SelectItem value="top-center">Top Center</SelectItem>
-                          <SelectItem value="top-right">Top Right</SelectItem>
-                          <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                          <SelectItem value="bottom-center">Bottom Center</SelectItem>
-                          <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Toast Style</Label>
-                      <Select 
-                        value={designSystem.components.toast.style}
-                        onValueChange={(value: any) => {
-                          const preset = toastStylePresets[value as keyof typeof toastStylePresets];
-                          if (preset) {
-                            setDesignSystem(prev => ({
-                              ...prev,
-                              components: {
-                                ...prev.components,
-                                toast: { 
-                                  ...prev.components.toast, 
-                                  style: value,
-                                  borderRadius: preset.borderRadius,
-                                  padding: preset.padding
-                                }
-                              }
-                            }));
-                          } else {
-                            // Fallback for unknown values
-                            setDesignSystem(prev => ({
-                              ...prev,
-                              components: {
-                                ...prev.components,
-                                toast: { ...prev.components.toast, style: value }
-                              }
-                            }));
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Default</SelectItem>
-                          <SelectItem value="filled">Filled</SelectItem>
-                          <SelectItem value="rounded">Rounded</SelectItem>
-                          <SelectItem value="sharp">Sharp</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="toast-radius">Toast Border Radius</Label>
-                      <Input 
-                        id="toast-radius"
-                        value={designSystem.components.toast.borderRadius}
-                        onChange={(e) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            toast: { ...prev.components.toast, borderRadius: e.target.value }
-                          }
-                        }))}
-                        placeholder="8px"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="toast-padding">Toast Padding</Label>
-                      <Input 
-                        id="toast-padding"
-                        value={designSystem.components.toast.padding}
-                        onChange={(e) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            toast: { ...prev.components.toast, padding: e.target.value }
-                          }
-                        }))}
-                        placeholder="16px"
-                      />
-                    </div>
-                   </div>
-                 </CardContent>
-              </Card>
-
-              {/* Card Configuration */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Layout className="w-5 h-5" />
-                    Card Components
-                  </CardTitle>
-                  <CardDescription>
-                    Configure card appearance and styling
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Card Shadow</Label>
-                      <Select 
-                        value={designSystem.components.card.shadow}
-                        onValueChange={(value: any) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            card: { ...prev.components.card, shadow: value }
-                          }
-                        }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="sm">Small</SelectItem>
-                          <SelectItem value="md">Medium</SelectItem>
-                          <SelectItem value="lg">Large</SelectItem>
-                          <SelectItem value="xl">Extra Large</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Card Style</Label>
-                      <Select 
-                        value={designSystem.components.card.border}
-                        onValueChange={(value: any) => {
-                          // Check if this is a style preset
-                          const preset = cardStylePresets[value as keyof typeof cardStylePresets];
-                          if (preset) {
-                            setDesignSystem(prev => ({
-                              ...prev,
-                              components: {
-                                ...prev.components,
-                                card: { 
-                                  ...prev.components.card, 
-                                  border: value,
-                                  borderRadius: preset.borderRadius,
-                                  padding: preset.padding,
-                                  shadow: preset.shadow
-                                }
-                              }
-                            }));
-                          } else {
-                            // Legacy border options
-                            setDesignSystem(prev => ({
-                              ...prev,
-                              components: {
-                                ...prev.components,
-                                card: { ...prev.components.card, border: value }
-                              }
-                            }));
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Default</SelectItem>
-                          <SelectItem value="rounded">Rounded</SelectItem>
-                          <SelectItem value="sharp">Sharp</SelectItem>
-                          <SelectItem value="elevated">Elevated</SelectItem>
-                          <SelectItem value="none">No Border</SelectItem>
-                          <SelectItem value="subtle">Subtle Border</SelectItem>
-                          <SelectItem value="strong">Strong Border</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="card-radius">Card Border Radius</Label>
-                      <Input 
-                        id="card-radius"
-                        value={designSystem.components.card.borderRadius}
-                        onChange={(e) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            card: { ...prev.components.card, borderRadius: e.target.value }
-                          }
-                        }))}
-                        placeholder="12px"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="card-padding">Card Padding</Label>
-                      <Input 
-                        id="card-padding"
-                        value={designSystem.components.card.padding}
-                        onChange={(e) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            card: { ...prev.components.card, padding: e.target.value }
-                          }
-                        }))}
-                        placeholder="24px"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Button Configuration */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Layers className="w-5 h-5" />
-                    Button Components
-                  </CardTitle>
-                  <CardDescription>
-                    Configure button appearance and behavior
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Button Style</Label>
-                      <Select 
-                        value={designSystem.components.buttons.style}
-                        onValueChange={(value: any) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            buttons: { ...prev.components.buttons, style: value }
-                          }
-                        }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Default</SelectItem>
-                          <SelectItem value="rounded">Rounded</SelectItem>
-                          <SelectItem value="sharp">Sharp</SelectItem>
-                          <SelectItem value="pill">Pill</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Default Button Size</Label>
-                      <Select 
-                        value={designSystem.components.buttons.size}
-                        onValueChange={(value: any) => {
-                          const preset = buttonSizePresets[value as keyof typeof buttonSizePresets];
-                          setDesignSystem(prev => ({
-                            ...prev,
-                            components: {
-                              ...prev.components,
-                              buttons: { 
-                                ...prev.components.buttons, 
-                                size: value,
-                                spacing: preset.spacing,
-                                borderRadius: preset.borderRadius,
-                                padding: preset.padding
-                              }
-                            }
-                          }));
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sm">Small</SelectItem>
-                          <SelectItem value="default">Default</SelectItem>
-                          <SelectItem value="lg">Large</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="button-spacing">Button Spacing</Label>
-                      <Input 
-                        id="button-spacing"
-                        value={designSystem.components.buttons.spacing}
-                        onChange={(e) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            buttons: { ...prev.components.buttons, spacing: e.target.value }
-                          }
-                        }))}
-                        placeholder="8px"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="button-radius">Button Border Radius</Label>
-                      <Input 
-                        id="button-radius"
-                        value={designSystem.components.buttons.borderRadius}
-                        onChange={(e) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            buttons: { ...prev.components.buttons, borderRadius: e.target.value }
-                          }
-                        }))}
-                        placeholder="6px"
-                      />
-                    </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="button-padding">Button Padding</Label>
-                      <Input 
-                        id="button-padding"
-                        value={designSystem.components.buttons.padding}
-                        onChange={(e) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            buttons: { ...prev.components.buttons, padding: e.target.value }
-                          }
-                        }))}
-                        placeholder="12px 16px"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
+          <div className="grid gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Component Preview
-                </CardTitle>
+                <CardTitle>Button Components</CardTitle>
                 <CardDescription>
-                  See how your settings affect components
+                  Configure button styles and behaviors.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Buttons</h4>
-                  <div className="space-y-3">
-                    <div className="flex" style={{ gap: designSystem.components.buttons.spacing }}>
-                      <Button 
-                        size={designSystem.components.buttons.size as any}
-                      >
-                        Primary
-                      </Button>
-                      <Button 
-                        variant="secondary" 
-                        size={designSystem.components.buttons.size as any}
-                      >
-                        Secondary
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size={designSystem.components.buttons.size as any}
-                      >
-                        Outline
-                      </Button>
-                    </div>
-                    <div className="flex" style={{ gap: designSystem.components.buttons.spacing }}>
-                      <Button 
-                        variant="destructive" 
-                        size={designSystem.components.buttons.size as any}
-                      >
-                        Destructive
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size={designSystem.components.buttons.size as any}
-                      >
-                        Ghost
-                      </Button>
-                    </div>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label>Border Radius</Label>
+                    <Input
+                      value={designSystem.components.buttons.borderRadius}
+                      onChange={(e) => updateComponents('buttons', 'borderRadius', e.target.value)}
+                      placeholder="0.5rem"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Padding</Label>
+                    <Input
+                      value={designSystem.components.buttons.padding}
+                      onChange={(e) => updateComponents('buttons', 'padding', e.target.value)}
+                      placeholder="0.5rem 1rem"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Primary Style</Label>
+                    <Select
+                      value={designSystem.components.buttons.primaryStyle}
+                      onValueChange={(value) => updateComponents('buttons', 'primaryStyle', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="solid">Solid</SelectItem>
+                        <SelectItem value="outline">Outline</SelectItem>
+                        <SelectItem value="ghost">Ghost</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Secondary Style</Label>
+                    <Select
+                      value={designSystem.components.buttons.secondaryStyle}
+                      onValueChange={(value) => updateComponents('buttons', 'secondaryStyle', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="solid">Solid</SelectItem>
+                        <SelectItem value="outline">Outline</SelectItem>
+                        <SelectItem value="ghost">Ghost</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <h4 className="font-medium">Cards</h4>
-                  <Card 
-                    className={`p-4 shadow-${designSystem.components.card.shadow} ${
-                      designSystem.components.card.border === 'none' ? 'border-0' :
-                      designSystem.components.card.border === 'strong' ? 'border-2' : ''
-                    }`}
-                  >
-                    <CardHeader className="p-0 pb-3">
-                      <CardTitle className="text-base">Sample Card</CardTitle>
-                      <CardDescription>This card reflects your design system settings</CardDescription>
-                    </CardHeader>
-                    <p className="text-sm">Card content with custom styling applied.</p>
-                  </Card>
-                </div>
-
-                <Separator />
-
-                 <div className="space-y-4">
-                   <h4 className="font-medium">Toast Preview</h4>
-                   <div className="space-y-3">
-                     {/* Success Toast */}
-                     <div 
-                       className={`flex items-start gap-3 max-w-sm ${
-                         designSystem.components.toast.style === 'filled' 
-                           ? 'bg-green-500 text-white shadow-lg' 
-                           : 'bg-green-50 border border-green-200 text-green-800'
-                       } ${
-                         designSystem.components.toast.style === 'pill' ? 'rounded-full' :
-                         designSystem.components.toast.style === 'sharp' ? 'rounded-none' :
-                         designSystem.components.toast.style === 'rounded' ? 'rounded-xl' : 'rounded-lg'
-                       }`}
-                       style={{
-                         borderRadius: designSystem.components.toast.style === 'default' ? designSystem.components.toast.borderRadius : undefined,
-                         padding: designSystem.components.toast.padding,
-                       }}
-                     >
-                       <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 ${
-                         designSystem.components.toast.style === 'filled' ? 'bg-white' : 'bg-green-500'
-                       }`}></div>
-                       <div className="flex-1">
-                         <div className="font-medium text-sm">Success!</div>
-                         <div className={`text-sm ${
-                           designSystem.components.toast.style === 'filled' ? 'text-green-100' : 'text-green-700'
-                         }`}>
-                           Operation completed successfully
-                         </div>
-                       </div>
-                       <button className={`${
-                         designSystem.components.toast.style === 'filled' ? 'text-white hover:text-green-100' : 'text-green-600 hover:text-green-800'
-                       }`}>×</button>
-                     </div>
-
-                     {/* Error Toast */}
-                     <div 
-                       className={`flex items-start gap-3 max-w-sm ${
-                         designSystem.components.toast.style === 'filled' 
-                           ? 'bg-red-500 text-white shadow-lg' 
-                           : 'bg-red-50 border border-red-200 text-red-800'
-                       } ${
-                         designSystem.components.toast.style === 'pill' ? 'rounded-full' :
-                         designSystem.components.toast.style === 'sharp' ? 'rounded-none' :
-                         designSystem.components.toast.style === 'rounded' ? 'rounded-xl' : 'rounded-lg'
-                       }`}
-                       style={{
-                         borderRadius: designSystem.components.toast.style === 'default' ? designSystem.components.toast.borderRadius : undefined,
-                         padding: designSystem.components.toast.padding,
-                       }}
-                     >
-                       <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 ${
-                         designSystem.components.toast.style === 'filled' ? 'bg-white' : 'bg-red-500'
-                       }`}></div>
-                       <div className="flex-1">
-                         <div className="font-medium text-sm">Error!</div>
-                         <div className={`text-sm ${
-                           designSystem.components.toast.style === 'filled' ? 'text-red-100' : 'text-red-700'
-                         }`}>
-                           Something went wrong
-                         </div>
-                       </div>
-                       <button className={`${
-                         designSystem.components.toast.style === 'filled' ? 'text-white hover:text-red-100' : 'text-red-600 hover:text-red-800'
-                       }`}>×</button>
-                     </div>
-
-                     {/* Warning Toast */}
-                     <div 
-                       className={`flex items-start gap-3 max-w-sm ${
-                         designSystem.components.toast.style === 'filled' 
-                           ? 'bg-yellow-500 text-white shadow-lg' 
-                           : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
-                       } ${
-                         designSystem.components.toast.style === 'pill' ? 'rounded-full' :
-                         designSystem.components.toast.style === 'sharp' ? 'rounded-none' :
-                         designSystem.components.toast.style === 'rounded' ? 'rounded-xl' : 'rounded-lg'
-                       }`}
-                       style={{
-                         borderRadius: designSystem.components.toast.style === 'default' ? designSystem.components.toast.borderRadius : undefined,
-                         padding: designSystem.components.toast.padding,
-                       }}
-                     >
-                       <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 ${
-                         designSystem.components.toast.style === 'filled' ? 'bg-white' : 'bg-yellow-500'
-                       }`}></div>
-                       <div className="flex-1">
-                         <div className="font-medium text-sm">Warning!</div>
-                         <div className={`text-sm ${
-                           designSystem.components.toast.style === 'filled' ? 'text-yellow-100' : 'text-yellow-700'
-                         }`}>
-                           Please review before continuing
-                         </div>
-                       </div>
-                       <button className={`${
-                         designSystem.components.toast.style === 'filled' ? 'text-white hover:text-yellow-100' : 'text-yellow-600 hover:text-yellow-800'
-                       }`}>×</button>
-                     </div>
-
-                     {/* Info Toast */}
-                     <div 
-                       className={`flex items-start gap-3 max-w-sm ${
-                         designSystem.components.toast.style === 'filled' 
-                           ? 'bg-blue-500 text-white shadow-lg' 
-                           : 'bg-blue-50 border border-blue-200 text-blue-800'
-                       } ${
-                         designSystem.components.toast.style === 'pill' ? 'rounded-full' :
-                         designSystem.components.toast.style === 'sharp' ? 'rounded-none' :
-                         designSystem.components.toast.style === 'rounded' ? 'rounded-xl' : 'rounded-lg'
-                       }`}
-                       style={{
-                         borderRadius: designSystem.components.toast.style === 'default' ? designSystem.components.toast.borderRadius : undefined,
-                         padding: designSystem.components.toast.padding,
-                       }}
-                     >
-                       <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 ${
-                         designSystem.components.toast.style === 'filled' ? 'bg-white' : 'bg-blue-500'
-                       }`}></div>
-                       <div className="flex-1">
-                         <div className="font-medium text-sm">Info</div>
-                         <div className={`text-sm ${
-                           designSystem.components.toast.style === 'filled' ? 'text-blue-100' : 'text-blue-700'
-                         }`}>
-                           Here's some helpful information
-                         </div>
-                       </div>
-                       <button className={`${
-                         designSystem.components.toast.style === 'filled' ? 'text-white hover:text-blue-100' : 'text-blue-600 hover:text-blue-800'
-                       }`}>×</button>
-                     </div>
-
-                     <div className="mt-2 text-xs text-muted-foreground">
-                       Position: {designSystem.components.toast.position.replace('-', ' ')} • 
-                       Style: {designSystem.components.toast.style}
-                     </div>
-                   </div>
-                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="tables">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Tables</CardTitle>
-                <CardDescription>
-                  Examples of data tables with proper styling and contrast
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Email</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">John Doe</TableCell>
-                      <TableCell>
-                        <Badge variant="default">Active</Badge>
-                      </TableCell>
-                      <TableCell>Admin</TableCell>
-                      <TableCell>john@example.com</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Jane Smith</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">Pending</Badge>
-                      </TableCell>
-                      <TableCell>User</TableCell>
-                      <TableCell>jane@example.com</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Bob Johnson</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Inactive</Badge>
-                      </TableCell>
-                      <TableCell>User</TableCell>
-                      <TableCell>bob@example.com</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Grid Layout</CardTitle>
+                <CardTitle>Card Components</CardTitle>
                 <CardDescription>
-                  Responsive grid examples using the color system
+                  Configure card styles and layout.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-primary text-primary-foreground rounded-lg text-center">
-                    Primary
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label>Background</Label>
+                    <Input
+                      value={designSystem.components.cards.background}
+                      onChange={(e) => updateComponents('cards', 'background', e.target.value)}
+                      placeholder="hsl(0 0% 100%)"
+                    />
                   </div>
-                  <div className="p-4 bg-secondary text-secondary-foreground rounded-lg text-center">
-                    Secondary
+                  <div className="space-y-2">
+                    <Label>Border Radius</Label>
+                    <Input
+                      value={designSystem.components.cards.borderRadius}
+                      onChange={(e) => updateComponents('cards', 'borderRadius', e.target.value)}
+                      placeholder="0.75rem"
+                    />
                   </div>
-                  <div className="p-4 bg-accent text-accent-foreground rounded-lg text-center">
-                    Accent
+                  <div className="space-y-2">
+                    <Label>Shadow</Label>
+                    <Input
+                      value={designSystem.components.cards.shadow}
+                      onChange={(e) => updateComponents('cards', 'shadow', e.target.value)}
+                      placeholder="0 4px 6px -1px rgb(0 0 0 / 0.1)"
+                    />
                   </div>
-                  <div className="p-4 bg-destructive text-destructive-foreground rounded-lg text-center">
-                    Destructive
+                  <div className="space-y-2">
+                    <Label>Padding</Label>
+                    <Input
+                      value={designSystem.components.cards.padding}
+                      onChange={(e) => updateComponents('cards', 'padding', e.target.value)}
+                      placeholder="1.5rem"
+                    />
                   </div>
-                  <div className="p-4 bg-muted text-muted-foreground rounded-lg text-center">
-                    Muted
-                  </div>
-                  <div className="p-4 bg-card text-card-foreground border rounded-lg text-center">
-                    Card
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-4">
-                  <h4 className="font-semibold">Alert Examples</h4>
-                  <Alert>
-                    <AlertDescription>
-                      This is a default alert with proper contrast.
-                    </AlertDescription>
-                  </Alert>
-                  <Alert className="border-primary bg-primary/10">
-                    <AlertDescription className="text-primary-foreground">
-                      This is a primary-themed alert.
-                    </AlertDescription>
-                  </Alert>
-                  <Alert className="border-destructive bg-destructive/10">
-                    <AlertDescription className="text-destructive-foreground">
-                      This is a destructive-themed alert.
-                    </AlertDescription>
-                  </Alert>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
 
-        <TabsContent value="interactions">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Interactions & Animations</CardTitle>
+                <CardTitle>Icon Components</CardTitle>
                 <CardDescription>
-                  Configure hover effects, transitions, and animations
+                  Configure icon size and color.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Icon Style</Label>
-                    <Select 
-                      value={designSystem.components.icons.style}
-                      onValueChange={(value: any) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          icons: { ...prev.components.icons, style: value }
-                        }
-                      }))}
+                    <Label>Size</Label>
+                    <Select
+                      value={designSystem.components.icons.size}
+                      onValueChange={(value) => updateComponents('icons', 'size', value as 'sm' | 'md' | 'lg')}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="outline">Outline</SelectItem>
-                        <SelectItem value="filled">Filled</SelectItem>
-                        <SelectItem value="duotone">Duotone</SelectItem>
+                        <SelectItem value="sm">Small</SelectItem>
+                        <SelectItem value="md">Medium</SelectItem>
+                        <SelectItem value="lg">Large</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Default Icon Size</Label>
-                    <Select 
-                      value={designSystem.components.icons.size}
-                      onValueChange={(value: any) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          icons: { ...prev.components.icons, size: value }
-                        }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sm">Small (16px)</SelectItem>
-                        <SelectItem value="md">Medium (20px)</SelectItem>
-                        <SelectItem value="lg">Large (24px)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Color</Label>
+                    <Input
+                      value={designSystem.components.icons.color}
+                      onChange={(e) => updateComponents('icons', 'color', e.target.value)}
+                      placeholder="hsl(220 9% 46%)"
+                    />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Icons Preview
-                </CardTitle>
-                <CardDescription>
-                  See how your icon settings affect the interface
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <h4 className="font-medium">Icon Sizes</h4>
-                  <div className="flex items-center" style={{ gap: designSystem.spacing.baseUnit }}>
-                    <Settings className={`${designSystem.components.icons.size === 'sm' ? 'w-4 h-4' : designSystem.components.icons.size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'}`} />
-                    <Palette className={`${designSystem.components.icons.size === 'sm' ? 'w-4 h-4' : designSystem.components.icons.size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'}`} />
-                    <Layout className={`${designSystem.components.icons.size === 'sm' ? 'w-4 h-4' : designSystem.components.icons.size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'}`} />
-                    <Layers className={`${designSystem.components.icons.size === 'sm' ? 'w-4 h-4' : designSystem.components.icons.size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'}`} />
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <h4 className="font-medium">Current Settings</h4>
-                  <p className="text-sm">Style: {designSystem.components.icons.style}</p>
-                  <p className="text-sm">Size: {designSystem.components.icons.size === 'sm' ? '16px' : designSystem.components.icons.size === 'lg' ? '24px' : '20px'}</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
-
       </Tabs>
 
-      <div className="flex justify-between">
-        <div className="flex gap-2">
-          <Button variant="outline" className="flex items-center gap-2">
-            <Upload className="w-4 h-4" />
-            Import
-          </Button>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            Export
-          </Button>
-        </div>
-        
-        <Button 
-          className="flex items-center gap-2" 
-          onClick={handleSaveDesignSystem}
-          disabled={updateDesignSystemMutation.isPending || isLoading}
+      <div className="flex justify-end">
+        <Button
+          onClick={saveToDatabase}
+          disabled={saveMutation.isPending || isLoading}
+          className="w-full md:w-auto"
         >
-          <Save className="w-4 h-4" />
-          {updateDesignSystemMutation.isPending ? 'Saving...' : 'Save Design System'}
+          <Save className="w-4 h-4 mr-2" />
+          {saveMutation.isPending ? 'Saving...' : 'Save to Database'}
         </Button>
       </div>
     </div>
   );
 };
+
+export default DesignLibrary;

@@ -249,7 +249,7 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
   const applyToDocument = () => {
     const root = document.documentElement;
     
-    // Apply colors
+    // Apply colors with proper CSS variable mapping
     Object.entries(designSystem.colors).forEach(([key, value]) => {
       const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
       root.style.setProperty(cssVar, value);
@@ -282,12 +282,56 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
     Object.entries(designSystem.gradients).forEach(([key, value]) => {
       root.style.setProperty(`--gradient-${key}`, value);
     });
+
+    // Apply component-specific styles
+    Object.entries(designSystem.components.buttons).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        root.style.setProperty(`--button-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value);
+      }
+    });
+
+    Object.entries(designSystem.components.cards).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        root.style.setProperty(`--card-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value);
+      }
+    });
   };
 
   // Apply design system whenever it changes
   useEffect(() => {
     applyToDocument();
   }, [designSystem]);
+
+  // Set up real-time updates for design system changes
+  useEffect(() => {
+    if (!profile?.organization_id) return;
+
+    const channel = supabase
+      .channel('design-system-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'organizations',
+          filter: `id=eq.${profile.organization_id}`,
+        },
+        (payload) => {
+          const newData = payload.new as any;
+          if (newData.metadata && newData.metadata.designSystem) {
+            setDesignSystem(prev => ({
+              ...prev,
+              ...newData.metadata.designSystem,
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.organization_id]);
 
   const updateDesignSystem = (updates: Partial<DesignSystem>) => {
     setDesignSystem(prev => ({
