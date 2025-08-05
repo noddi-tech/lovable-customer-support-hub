@@ -67,7 +67,7 @@ export const ComponentConfigurationPanel: React.FC = () => {
     <div className="space-y-8">{/* Components Configuration Tabs */}
       <div className="border-b border-border">
         <nav className="flex space-x-8">
-          {['buttons', 'cards', 'badges', 'alerts', 'avatars', 'icons'].map((tab) => (
+          {['buttons', 'cards', 'badges', 'alerts', 'avatars', 'icons', 'headings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -917,6 +917,177 @@ export const ComponentConfigurationPanel: React.FC = () => {
                     className="h-5 w-5 text-muted-foreground" 
                     strokeWidth={designSystem.components.icons.strokeWidth}
                   />
+                </div>
+              </div>
+            </div>
+          </ComponentPreview>
+        </div>
+      )}
+
+      {/* Headings Configuration */}
+      {activeTab === 'headings' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Heading Components</CardTitle>
+              <CardDescription>
+                Configure heading styles, colors, and typography hierarchy.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Color Token</Label>
+                  <Select
+                    value={designSystem.components.headings.colorToken}
+                    onValueChange={(value) => updateComponent('headings', 'colorToken', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorKeys.map((colorKey) => (
+                        <SelectItem key={colorKey} value={colorKey}>
+                          {colorKey}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Style</Label>
+                  <Select
+                    value={designSystem.components.headings.style}
+                    onValueChange={(value) => updateComponent('headings', 'style', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="solid">Solid Color</SelectItem>
+                      <SelectItem value="gradient">Gradient</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Font Weight</Label>
+                  <Select
+                    value={designSystem.components.headings.fontWeight}
+                    onValueChange={(value) => updateComponent('headings', 'fontWeight', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="semibold">Semibold</SelectItem>
+                      <SelectItem value="bold">Bold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>H1 Size</Label>
+                  <Input
+                    value={designSystem.components.headings.h1Size}
+                    onChange={(e) => updateComponent('headings', 'h1Size', e.target.value)}
+                    placeholder="2.25rem"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>H2 Size</Label>
+                  <Input
+                    value={designSystem.components.headings.h2Size}
+                    onChange={(e) => updateComponent('headings', 'h2Size', e.target.value)}
+                    placeholder="1.875rem"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>H3 Size</Label>
+                  <Input
+                    value={designSystem.components.headings.h3Size}
+                    onChange={(e) => updateComponent('headings', 'h3Size', e.target.value)}
+                    placeholder="1.5rem"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <ComponentPreview title="Headings">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h1 
+                  className={`font-${designSystem.components.headings.fontWeight} ${
+                    designSystem.components.headings.style === 'gradient' 
+                      ? 'bg-gradient-primary bg-clip-text text-transparent' 
+                      : `text-${designSystem.components.headings.colorToken}`
+                  }`}
+                  style={{ fontSize: designSystem.components.headings.h1Size }}
+                >
+                  H1 Heading Example
+                </h1>
+                
+                <h2 
+                  className={`font-${designSystem.components.headings.fontWeight} ${
+                    designSystem.components.headings.style === 'gradient' 
+                      ? 'bg-gradient-primary bg-clip-text text-transparent' 
+                      : `text-${designSystem.components.headings.colorToken}`
+                  }`}
+                  style={{ fontSize: designSystem.components.headings.h2Size }}
+                >
+                  H2 Heading Example
+                </h2>
+                
+                <h3 
+                  className={`font-${designSystem.components.headings.fontWeight} ${
+                    designSystem.components.headings.style === 'gradient' 
+                      ? 'bg-gradient-primary bg-clip-text text-transparent' 
+                      : `text-${designSystem.components.headings.colorToken}`
+                  }`}
+                  style={{ fontSize: designSystem.components.headings.h3Size }}
+                >
+                  H3 Heading Example
+                </h3>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">Different Contexts</h4>
+                <div className="space-y-3">
+                  <div className="p-4 bg-card rounded-lg border">
+                    <h2 
+                      className={`font-${designSystem.components.headings.fontWeight} ${
+                        designSystem.components.headings.style === 'gradient' 
+                          ? 'bg-gradient-primary bg-clip-text text-transparent' 
+                          : `text-${designSystem.components.headings.colorToken}`
+                      }`}
+                      style={{ fontSize: designSystem.components.headings.h2Size }}
+                    >
+                      Card Header
+                    </h2>
+                    <p className="text-muted-foreground mt-1">This is how headings look in cards</p>
+                  </div>
+                  
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h3 
+                      className={`font-${designSystem.components.headings.fontWeight} ${
+                        designSystem.components.headings.style === 'gradient' 
+                          ? 'bg-gradient-primary bg-clip-text text-transparent' 
+                          : `text-${designSystem.components.headings.colorToken}`
+                      }`}
+                      style={{ fontSize: designSystem.components.headings.h3Size }}
+                    >
+                      Section Title
+                    </h3>
+                    <p className="text-muted-foreground mt-1">This is how headings look in different backgrounds</p>
+                  </div>
                 </div>
               </div>
             </div>

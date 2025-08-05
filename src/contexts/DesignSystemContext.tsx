@@ -111,6 +111,14 @@ interface DesignSystem {
       strokeWidth: number;
       primaryColor: keyof DesignSystem['colors'];
     };
+    headings: {
+      colorToken: keyof DesignSystem['colors'];
+      style: 'solid' | 'gradient';
+      h1Size: string;
+      h2Size: string;
+      h3Size: string;
+      fontWeight: 'normal' | 'medium' | 'semibold' | 'bold';
+    };
   };
 }
 
@@ -221,6 +229,14 @@ const defaultDesignSystem: DesignSystem = {
       defaultSize: 'md',
       strokeWidth: 2,
       primaryColor: 'foreground',
+    },
+    headings: {
+      colorToken: 'primary',
+      style: 'gradient',
+      h1Size: '2.25rem',
+      h2Size: '1.875rem',
+      h3Size: '1.5rem',
+      fontWeight: 'bold',
     },
   },
 };
