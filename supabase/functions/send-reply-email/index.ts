@@ -28,7 +28,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Message ID is required');
     }
 
-    // Get message details with conversation, customer, and sender info
+    // Get message details with conversation, customer, and sender info  
     const { data: message, error: messageError } = await supabaseClient
       .from('messages')
       .select(`
@@ -38,8 +38,7 @@ const handler = async (req: Request): Promise<Response> => {
           organization_id,
           customer:customers(email, full_name),
           email_account:email_accounts(*)
-        ),
-        sender:profiles(full_name, email)
+        )
       `)
       .eq('id', messageId)
       .single();
@@ -48,6 +47,19 @@ const handler = async (req: Request): Promise<Response> => {
       console.error('Error fetching message:', messageError);
       throw new Error('Message not found');
     }
+
+    // Get sender info separately since there's no foreign key relationship
+    let senderInfo = null;
+    if (message.sender_id) {
+      const { data: sender } = await supabaseClient
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', message.sender_id)
+        .single();
+      
+      senderInfo = sender;
+    }
+
 
     console.log('Message data:', { 
       id: message.id, 
@@ -162,8 +174,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Replace placeholders in signature
     let signature = templateSettings.signature_content;
-    if (templateSettings.include_agent_name && message.sender?.full_name) {
-      signature = signature.replace('{{agent_name}}', message.sender.full_name);
+    if (templateSettings.include_agent_name && senderInfo?.full_name) {
+      signature = signature.replace('{{agent_name}}', senderInfo.full_name);
     } else {
       signature = signature.replace('{{agent_name}}', 'Support Team');
     }
