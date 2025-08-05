@@ -14,12 +14,22 @@ export const GeneralSettings = () => {
   const [orgName, setOrgName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#3B82F6');
   const [orgDescription, setOrgDescription] = useState('');
+  const [retentionDays, setRetentionDays] = useState('365');
+  const [archiveDays, setArchiveDays] = useState('30');
 
   const handleSaveBranding = () => {
     // Save branding settings logic here
     toast({
       title: "Settings saved",
       description: "Organization branding has been updated successfully.",
+    });
+  };
+
+  const handleSaveDataSettings = () => {
+    // Save data management settings logic here
+    toast({
+      title: "Settings saved",
+      description: "Data management settings have been updated successfully.",
     });
   };
 
@@ -131,15 +141,27 @@ export const GeneralSettings = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="retention-days">Conversation Retention (days)</Label>
-              <Input id="retention-days" type="number" placeholder="365" />
+              <Input 
+                id="retention-days" 
+                type="number" 
+                placeholder="365"
+                value={retentionDays}
+                onChange={(e) => setRetentionDays(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="archive-days">Auto-archive After (days)</Label>
-              <Input id="archive-days" type="number" placeholder="30" />
+              <Input 
+                id="archive-days" 
+                type="number" 
+                placeholder="30"
+                value={archiveDays}
+                onChange={(e) => setArchiveDays(e.target.value)}
+              />
             </div>
           </div>
 
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={handleSaveDataSettings}>
             <Save className="w-4 h-4" />
             Save Settings
           </Button>
