@@ -293,10 +293,23 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
     if (organizationData?.metadata && typeof organizationData.metadata === 'object') {
       const metadata = organizationData.metadata as any;
       if (metadata.designSystem) {
-        setDesignSystem(prev => ({
-          ...prev,
-          ...metadata.designSystem,
-        }));
+        setDesignSystem(prev => {
+          // Deep merge to ensure all new properties have defaults
+          const merged = {
+            ...prev,
+            ...metadata.designSystem,
+            components: {
+              ...prev.components,
+              ...metadata.designSystem.components,
+              // Ensure headings always exists with defaults
+              headings: {
+                ...prev.components.headings,
+                ...metadata.designSystem.components?.headings,
+              },
+            },
+          };
+          return merged;
+        });
       }
     }
   }, [organizationData]);
@@ -416,6 +429,15 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
             setDesignSystem(prev => ({
               ...prev,
               ...newData.metadata.designSystem,
+              components: {
+                ...prev.components,
+                ...newData.metadata.designSystem.components,
+                // Ensure headings always exists with defaults
+                headings: {
+                  ...prev.components.headings,
+                  ...newData.metadata.designSystem.components?.headings,
+                },
+              },
             }));
           }
         }
