@@ -518,14 +518,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                 className="whitespace-pre-wrap"
                                 style={{
                                   color: message.is_internal 
-                                    ? 'rgb(31, 41, 55) !important' // Dark text for internal notes (warning background)
+                                    ? getMessageTextColor('internal')
                                     : message.sender_type === 'agent' 
-                                      ? 'rgb(255, 255, 255) !important' // Pure white text for agent messages (blue background)
-                                      : 'rgb(31, 41, 55) !important', // Dark text for customer messages (white background)
+                                      ? getMessageTextColor('agent')
+                                      : getMessageTextColor('customer'),
                                   fontSize: '0.875rem',
                                   fontWeight: message.is_internal ? '600' : '400',
-                                  lineHeight: '1.25rem',
-                                  opacity: '1 !important'
+                                  lineHeight: '1.25rem'
                                 }}
                               >
                                 {message.content}
@@ -548,10 +547,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                        <span 
                                          style={{
                                            color: message.is_internal 
-                                             ? 'rgb(31, 41, 55)' // Dark text for internal notes
+                                             ? getMessageTextColor('internal')
                                              : message.sender_type === 'agent' 
-                                               ? 'rgb(248, 250, 252)' // White text for agent messages
-                                               : 'rgb(31, 41, 55)', // Dark text for customer messages
+                                               ? getMessageTextColor('agent')
+                                               : getMessageTextColor('customer'),
                                            fontSize: '0.75rem',
                                            fontWeight: '500'
                                          }}
@@ -566,10 +565,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                    <span 
                                      style={{
                                        color: message.is_internal 
-                                         ? 'rgb(31, 41, 55)' // Dark text for internal notes
+                                         ? getMessageTextColor('internal')
                                          : message.sender_type === 'agent' 
-                                           ? 'rgb(248, 250, 252)' // White text for agent messages
-                                           : 'rgb(31, 41, 55)', // Dark text for customer messages
+                                           ? getMessageTextColor('agent')
+                                           : getMessageTextColor('customer'),
                                        fontSize: '0.75rem'
                                      }}
                                    >

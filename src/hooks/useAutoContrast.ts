@@ -49,19 +49,31 @@ export const useAutoContrast = () => {
 
   // Get text color for message types using design system
   const getMessageTextColor = (messageType: 'agent' | 'customer' | 'internal'): string => {
+    let color: string;
+    
     switch (messageType) {
       case 'agent':
         // Use primary background text color from design system
-        return getContrastTextColorCSS('primary');
+        color = getContrastTextColorCSS('primary');
+        break;
       case 'customer':
         // Use card background text color from design system
-        return getContrastTextColorCSS('card');
+        color = getContrastTextColorCSS('card');
+        break;
       case 'internal':
         // Use warning background text color from design system
-        return getContrastTextColorCSS('warning');
+        color = getContrastTextColorCSS('warning');
+        break;
       default:
-        return getContrastTextColorCSS('background');
+        color = getContrastTextColorCSS('background');
     }
+    
+    // Debug logging
+    console.log(`Message type: ${messageType}, Color: ${color}`);
+    console.log(`Design system colors:`, designSystem.colors);
+    console.log(`Typography settings:`, designSystem.components.typography);
+    
+    return color;
   };
 
   return {
