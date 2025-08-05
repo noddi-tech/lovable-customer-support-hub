@@ -187,7 +187,12 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Button Variants</h4>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="default">Default</Button>
+                  <Button 
+                    variant={designSystem.components.buttons.defaultVariant as any}
+                    style={{ borderRadius: designSystem.components.buttons.borderRadius }}
+                  >
+                    {designSystem.components.buttons.defaultVariant}
+                  </Button>
                   <Button variant="secondary">Secondary</Button>
                   <Button variant="destructive">Destructive</Button>
                   <Button variant="outline">Outline</Button>
@@ -201,10 +206,28 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Button Sizes</h4>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm">Small</Button>
-                  <Button size="default">Default</Button>
-                  <Button size="lg">Large</Button>
-                  <Button size="icon">
+                  <Button 
+                    size="sm"
+                    style={{ borderRadius: designSystem.components.buttons.borderRadius }}
+                  >
+                    Small
+                  </Button>
+                  <Button 
+                    size={designSystem.components.buttons.defaultSize as any}
+                    style={{ borderRadius: designSystem.components.buttons.borderRadius }}
+                  >
+                    {designSystem.components.buttons.defaultSize}
+                  </Button>
+                  <Button 
+                    size="lg"
+                    style={{ borderRadius: designSystem.components.buttons.borderRadius }}
+                  >
+                    Large
+                  </Button>
+                  <Button 
+                    size="icon"
+                    style={{ borderRadius: designSystem.components.buttons.borderRadius }}
+                  >
                     <Heart className="h-4 w-4" />
                   </Button>
                 </div>
@@ -215,15 +238,21 @@ export const ComponentConfigurationPanel: React.FC = () => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Buttons with Icons</h4>
                 <div className="flex flex-wrap gap-2">
-                  <Button>
+                  <Button style={{ borderRadius: designSystem.components.buttons.borderRadius }}>
                     <Send className="h-4 w-4 mr-2" />
                     Send
                   </Button>
-                  <Button variant="outline">
+                  <Button 
+                    variant="outline"
+                    style={{ borderRadius: designSystem.components.buttons.borderRadius }}
+                  >
                     <Settings className="h-4 w-4 mr-2" />
                     Settings
                   </Button>
-                  <Button variant="destructive">
+                  <Button 
+                    variant="destructive"
+                    style={{ borderRadius: designSystem.components.buttons.borderRadius }}
+                  >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
                   </Button>
