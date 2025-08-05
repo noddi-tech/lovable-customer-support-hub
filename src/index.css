@@ -193,6 +193,24 @@ All colors MUST be HSL.
     color: hsl(var(--foreground)) !important;
   }
   
+  /* Ensure primary background cards have high contrast */
+  .bg-primary {
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
+  .bg-primary * {
+    color: inherit !important;
+  }
+  
+  .bg-primary .text-primary-foreground {
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
+  /* Ensure all primary foreground elements are visible */
+  .text-primary-foreground {
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
   /* Ensure card text is always visible */
   .card {
     color: hsl(var(--card-foreground)) !important;

@@ -428,15 +428,15 @@ export const DesignLibrary = () => {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-primary text-primary-foreground">
+                  <Card className="bg-primary text-primary-foreground border-primary">
                     <CardHeader>
-                      <CardTitle>Primary Card</CardTitle>
-                      <CardDescription className="text-primary-foreground/70">
+                      <CardTitle className="text-primary-foreground">Primary Card</CardTitle>
+                      <CardDescription className="text-primary-foreground/80">
                         A card with primary background
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm opacity-90">
+                      <p className="text-sm text-primary-foreground/90">
                         This card uses the primary color scheme.
                       </p>
                     </CardContent>
