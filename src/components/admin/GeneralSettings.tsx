@@ -6,8 +6,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Save, Palette, Bell, Archive } from 'lucide-react';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export const GeneralSettings = () => {
+  const { toast } = useToast();
+  const [orgName, setOrgName] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#3B82F6');
+  const [orgDescription, setOrgDescription] = useState('');
+
+  const handleSaveBranding = () => {
+    // Save branding settings logic here
+    toast({
+      title: "Settings saved",
+      description: "Organization branding has been updated successfully.",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -24,23 +39,37 @@ export const GeneralSettings = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="org-name">Organization Name</Label>
-              <Input id="org-name" placeholder="Enter organization name" />
+              <Input 
+                id="org-name" 
+                placeholder="Enter organization name" 
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="primary-color">Primary Color</Label>
               <div className="flex gap-2">
-                <Input id="primary-color" value="#3B82F6" />
-                <div className="w-10 h-10 rounded border" style={{ backgroundColor: '#3B82F6' }} />
+                <Input 
+                  id="primary-color" 
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                />
+                <div className="w-10 h-10 rounded border" style={{ backgroundColor: primaryColor }} />
               </div>
             </div>
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="org-description">Description</Label>
-            <Textarea id="org-description" placeholder="Organization description..." />
+            <Textarea 
+              id="org-description" 
+              placeholder="Organization description..."
+              value={orgDescription}
+              onChange={(e) => setOrgDescription(e.target.value)}
+            />
           </div>
 
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={handleSaveBranding}>
             <Save className="w-4 h-4" />
             Save Branding
           </Button>
