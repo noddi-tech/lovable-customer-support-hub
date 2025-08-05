@@ -507,15 +507,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           }`}>
                             <CardContent className="p-4">
                               <p 
-                                className="text-sm whitespace-pre-wrap"
+                                className="whitespace-pre-wrap"
                                 style={{
                                   color: message.is_internal 
-                                    ? 'hsl(224 71% 4%) !important'
+                                    ? getMessageTextColor('internal')
                                     : message.sender_type === 'agent' 
-                                      ? 'hsl(0 0% 98%) !important'
-                                      : 'hsl(224 71% 4%) !important',
+                                      ? getMessageTextColor('agent')
+                                      : getMessageTextColor('customer'),
+                                  fontSize: '0.875rem',
                                   fontWeight: message.is_internal ? '600' : '400',
-                                  opacity: '1 !important'
+                                  lineHeight: '1.25rem'
                                 }}
                               >
                                 {message.content}
@@ -536,13 +537,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                         </AvatarFallback>
                                       </Avatar>
                                        <span 
-                                         className="text-xs font-medium"
                                          style={{
                                            color: message.is_internal 
                                              ? getMessageTextColor('internal')
                                              : message.sender_type === 'agent' 
                                                ? getMessageTextColor('agent')
-                                               : getMessageTextColor('customer')
+                                               : getMessageTextColor('customer'),
+                                           fontSize: '0.75rem',
+                                           fontWeight: '500'
                                          }}
                                        >
                                          Agent
@@ -553,13 +555,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                  <div className="flex items-center space-x-2">
                                    {message.sender_type === 'agent' && getStatusIcon(message)}
                                    <span 
-                                     className="text-xs"
                                      style={{
                                        color: message.is_internal 
                                          ? getMessageTextColor('internal')
                                          : message.sender_type === 'agent' 
                                            ? getMessageTextColor('agent')
-                                           : getMessageTextColor('customer')
+                                           : getMessageTextColor('customer'),
+                                       fontSize: '0.75rem'
                                      }}
                                    >
                                      {formatTime(messageDate)}
