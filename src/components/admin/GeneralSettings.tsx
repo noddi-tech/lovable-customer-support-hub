@@ -11,6 +11,17 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+interface OrganizationWithMetadata {
+  id: string;
+  name: string;
+  primary_color: string;
+  metadata?: {
+    description?: string;
+    retention_days?: string;
+    archive_days?: string;
+  };
+}
+
 export const GeneralSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -21,7 +32,7 @@ export const GeneralSettings = () => {
   const [archiveDays, setArchiveDays] = useState('30');
 
   // Fetch current organization data
-  const { data: organization, isLoading } = useQuery({
+  const { data: organization, isLoading } = useQuery<OrganizationWithMetadata | null>({
     queryKey: ['organization'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -30,7 +41,7 @@ export const GeneralSettings = () => {
         .maybeSingle();
       
       if (error) throw error;
-      return data;
+      return data as OrganizationWithMetadata | null;
     },
   });
 
@@ -40,7 +51,7 @@ export const GeneralSettings = () => {
       setOrgName(organization.name || '');
       setPrimaryColor(organization.primary_color || '#3B82F6');
       // Use metadata for description and other settings if available
-      const metadata = (organization as any).metadata || {};
+      const metadata = organization.metadata || {};
       setOrgDescription(metadata.description || '');
       setRetentionDays(metadata.retention_days || '365');
       setArchiveDays(metadata.archive_days || '30');
@@ -50,7 +61,7 @@ export const GeneralSettings = () => {
   // Mutation for updating organization branding
   const updateBrandingMutation = useMutation({
     mutationFn: async (data: { name: string; primary_color: string; description: string }) => {
-      const currentMetadata = (organization as any)?.metadata || {};
+      const currentMetadata = organization?.metadata || {};
       const { error } = await supabase
         .from('organizations')
         .update({
@@ -60,7 +71,7 @@ export const GeneralSettings = () => {
             ...currentMetadata,
             description: data.description,
           }
-        })
+        } as any)
         .eq('id', organization?.id);
       
       if (error) throw error;
@@ -85,7 +96,7 @@ export const GeneralSettings = () => {
   // Mutation for updating data management settings
   const updateDataSettingsMutation = useMutation({
     mutationFn: async (data: { retention_days: string; archive_days: string }) => {
-      const currentMetadata = (organization as any)?.metadata || {};
+      const currentMetadata = organization?.metadata || {};
       const { error } = await supabase
         .from('organizations')
         .update({
@@ -94,7 +105,7 @@ export const GeneralSettings = () => {
             retention_days: data.retention_days,
             archive_days: data.archive_days,
           }
-        })
+        } as any)
         .eq('id', organization?.id);
       
       if (error) throw error;
