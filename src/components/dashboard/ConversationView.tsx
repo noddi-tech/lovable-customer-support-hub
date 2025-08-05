@@ -573,33 +573,34 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               {/* Toolbar */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
                     <Bold className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
                     <Italic className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
                     <Link2 className="h-4 w-4" />
                   </Button>
                   <Separator orientation="vertical" className="h-4" />
-                  <Button variant="ghost" size="sm">
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
                     <Paperclip className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
                     <Smile className="h-4 w-4" />
                   </Button>
                 </div>
                 
                 <div className="flex items-center space-x-2">
                   <Button 
-                    variant={isInternalNote ? "default" : "ghost"} 
+                    variant={isInternalNote ? "default" : "secondary"} 
                     size="sm"
                     onClick={() => setIsInternalNote(!isInternalNote)}
+                    className="hover:bg-accent"
                   >
                     Internal Note
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
                     Templates
                   </Button>
                 </div>
