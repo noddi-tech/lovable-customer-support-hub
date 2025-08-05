@@ -507,14 +507,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           }`}>
                             <CardContent className="p-4">
                               <p 
-                                className="text-sm whitespace-pre-wrap font-medium"
+                                className="text-sm whitespace-pre-wrap"
                                 style={{
                                   color: message.is_internal 
-                                    ? getMessageTextColor('internal')
+                                    ? 'hsl(224 71% 4%) !important'
                                     : message.sender_type === 'agent' 
-                                      ? getMessageTextColor('agent')
-                                      : getMessageTextColor('customer'),
-                                  fontWeight: message.is_internal ? '600' : '400'
+                                      ? 'hsl(0 0% 98%) !important'
+                                      : 'hsl(224 71% 4%) !important',
+                                  fontWeight: message.is_internal ? '600' : '400',
+                                  opacity: '1 !important'
                                 }}
                               >
                                 {message.content}
