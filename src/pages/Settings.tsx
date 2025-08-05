@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Heading } from '@/components/ui/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +42,7 @@ export default function Settings() {
         <div className="container mx-auto py-6 px-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Settings</h1>
+              <h1 className="design-system-heading h1 gradient">Settings</h1>
               <p className="text-muted-foreground mt-1">Manage your account and preferences</p>
             </div>
             <Button 

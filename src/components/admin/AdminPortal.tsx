@@ -5,12 +5,13 @@ import { IntegrationSettings } from './IntegrationSettings';
 import { GeneralSettings } from './GeneralSettings';
 import { DesignLibrary } from './DesignLibrary';
 import { Users, Settings, Plug, Palette } from 'lucide-react';
+import { Heading } from '@/components/ui/heading';
 
 export const AdminPortal = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Admin Portal</h2>
+        <Heading level={2}>Admin Portal</Heading>
         <p className="text-muted-foreground mt-1">
           Manage organization settings, users, and integrations
         </p>

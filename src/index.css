@@ -311,7 +311,42 @@ All colors MUST be HSL.
     color: hsl(var(--muted-foreground)) !important;
     opacity: 0.9;
   }
-}
+  }
+  
+  /* Design System Headings */
+  .design-system-heading {
+    font-weight: var(--heading-font-weight, 700);
+  }
+  
+  .design-system-heading.h1 {
+    font-size: var(--heading-h1-size, 2.25rem);
+  }
+  
+  .design-system-heading.h2 {
+    font-size: var(--heading-h2-size, 1.875rem);
+  }
+  
+  .design-system-heading.h3 {
+    font-size: var(--heading-h3-size, 1.5rem);
+  }
+  
+  /* Dynamic heading style based on design system */
+  .design-system-heading.gradient {
+    background: var(--gradient-primary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  
+  .design-system-heading.solid {
+    color: hsl(var(--heading-color));
+  }
+  
+  /* Apply design system heading styles dynamically */
+  .design-system-heading {
+    transition: all 0.2s ease;
+  }
 
 @layer utilities {
   /* Gradient background utilities */

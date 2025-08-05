@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, Building } from "lucide-react";
+import { Heading } from '@/components/ui/heading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -209,7 +210,7 @@ export function DepartmentManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Department Management</h2>
+          <Heading level={2}>Department Management</Heading>
           <p className="text-muted-foreground mt-1">
             Organize your team into departments for better workflow management.
           </p>

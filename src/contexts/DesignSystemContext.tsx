@@ -402,6 +402,15 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
         root.style.setProperty(`--card-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value);
       }
     });
+
+    // Apply heading styles
+    const headingColorValue = designSystem.colors[designSystem.components.headings.colorToken];
+    root.style.setProperty('--heading-color', headingColorValue);
+    root.style.setProperty('--heading-h1-size', designSystem.components.headings.h1Size);
+    root.style.setProperty('--heading-h2-size', designSystem.components.headings.h2Size);
+    root.style.setProperty('--heading-h3-size', designSystem.components.headings.h3Size);
+    root.style.setProperty('--heading-font-weight', designSystem.typography.fontWeight[designSystem.components.headings.fontWeight]);
+    root.style.setProperty('--heading-style', designSystem.components.headings.style);
   };
 
   // Apply design system whenever it changes

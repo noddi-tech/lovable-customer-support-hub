@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Heading } from '@/components/ui/heading';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -176,7 +177,7 @@ export function InboxManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Inbox Management</h2>
+          <h2 className="design-system-heading h2 gradient">Inbox Management</h2>
           <p className="text-muted-foreground mt-1">
             Manage inboxes and email connections for your organization
           </p>

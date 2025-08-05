@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Heading } from '@/components/ui/heading';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, UserPlus, Edit, Trash2, Shield, Mail, Building, Crown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -279,7 +280,7 @@ export function UserManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">User Management</h2>
+          <h2 className="design-system-heading h2 gradient">User Management</h2>
           <p className="text-muted-foreground mt-1">
             Manage users, roles, and permissions for your organization.
           </p>

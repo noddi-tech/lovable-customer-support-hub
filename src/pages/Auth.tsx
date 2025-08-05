@@ -160,7 +160,7 @@ export const Auth: React.FC = () => {
           <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Building2 className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Customer Support Hub</h1>
+          <h1 className="design-system-heading h1 solid text-foreground mb-2">Customer Support Hub</h1>
           <p className="text-muted-foreground">
             Sign in to access your organization's support dashboard
           </p>

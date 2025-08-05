@@ -5,7 +5,7 @@ const Privacy = () => {
     <div className="min-h-screen bg-gradient-surface p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">Privacy Policy</h1>
+          <h1 className="design-system-heading h1 gradient mb-2">Privacy Policy</h1>
           <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
         </div>
 
