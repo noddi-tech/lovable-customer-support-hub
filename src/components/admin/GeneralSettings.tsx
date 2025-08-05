@@ -14,7 +14,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 interface OrganizationWithMetadata {
   id: string;
   name: string;
-  primary_color: string;
   metadata?: {
     description?: string;
   };
@@ -24,7 +23,6 @@ export const GeneralSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [orgName, setOrgName] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#3B82F6');
   const [orgDescription, setOrgDescription] = useState('');
 
   // Fetch current organization data
@@ -45,7 +43,6 @@ export const GeneralSettings = () => {
   useEffect(() => {
     if (organization) {
       setOrgName(organization.name || '');
-      setPrimaryColor(organization.primary_color || '#3B82F6');
       // Use metadata for description if available
       const metadata = organization.metadata || {};
       setOrgDescription(metadata.description || '');
@@ -54,13 +51,12 @@ export const GeneralSettings = () => {
 
   // Mutation for updating organization branding
   const updateBrandingMutation = useMutation({
-    mutationFn: async (data: { name: string; primary_color: string; description: string }) => {
+    mutationFn: async (data: { name: string; description: string }) => {
       const currentMetadata = organization?.metadata || {};
       const { error } = await supabase
         .from('organizations')
         .update({
           name: data.name,
-          primary_color: data.primary_color,
           metadata: {
             ...currentMetadata,
             description: data.description,
@@ -91,7 +87,6 @@ export const GeneralSettings = () => {
   const handleSaveBranding = () => {
     updateBrandingMutation.mutate({
       name: orgName,
-      primary_color: primaryColor,
       description: orgDescription,
     });
   };
@@ -110,27 +105,14 @@ export const GeneralSettings = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="org-name">Organization Name</Label>
-              <Input 
-                id="org-name" 
-                placeholder="Enter organization name" 
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="primary-color">Primary Color</Label>
-              <div className="flex gap-2">
-                <Input 
-                  id="primary-color" 
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                />
-                <div className="w-10 h-10 rounded border" style={{ backgroundColor: primaryColor }} />
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="org-name">Organization Name</Label>
+            <Input 
+              id="org-name" 
+              placeholder="Enter organization name" 
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+            />
           </div>
           
           <div className="space-y-2">

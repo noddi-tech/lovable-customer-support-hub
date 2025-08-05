@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { UserManagement } from './UserManagement';
 import { IntegrationSettings } from './IntegrationSettings';
 import { GeneralSettings } from './GeneralSettings';
-import { Users, Settings, Plug } from 'lucide-react';
+import { DesignLibrary } from './DesignLibrary';
+import { Users, Settings, Plug, Palette } from 'lucide-react';
 
 export const AdminPortal = () => {
   return (
@@ -16,7 +17,7 @@ export const AdminPortal = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             User Management
@@ -24,6 +25,10 @@ export const AdminPortal = () => {
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Plug className="w-4 h-4" />
             Integrations
+          </TabsTrigger>
+          <TabsTrigger value="design" className="flex items-center gap-2">
+            <Palette className="w-4 h-4" />
+            Design Library
           </TabsTrigger>
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
@@ -37,6 +42,10 @@ export const AdminPortal = () => {
 
         <TabsContent value="integrations">
           <IntegrationSettings />
+        </TabsContent>
+
+        <TabsContent value="design">
+          <DesignLibrary />
         </TabsContent>
 
         <TabsContent value="general">
