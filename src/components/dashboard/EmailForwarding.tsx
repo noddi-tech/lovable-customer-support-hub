@@ -31,9 +31,9 @@ interface Inbox {
 
 export function EmailForwarding() {
   const [email, setEmail] = useState("");
-  const [selectedInbox, setSelectedInbox] = useState<string>("");
+  const [selectedInbox, setSelectedInbox] = useState<string>("unassigned");
   const [editingAccount, setEditingAccount] = useState<string | null>(null);
-  const [editingInbox, setEditingInbox] = useState<string>("");
+  const [editingInbox, setEditingInbox] = useState<string>("unassigned");
   const [copiedForwarding, setCopiedForwarding] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -133,7 +133,7 @@ export function EmailForwarding() {
         description: "Your email forwarding has been configured successfully.",
       });
       setEmail("");
-      setSelectedInbox("");
+      setSelectedInbox("unassigned");
     },
     onError: (error) => {
       toast({
@@ -156,7 +156,7 @@ export function EmailForwarding() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
       setEditingAccount(null);
-      setEditingInbox("");
+      setEditingInbox("unassigned");
       toast({
         title: "Inbox updated",
         description: "Email account has been reassigned to the selected inbox.",
@@ -239,7 +239,7 @@ export function EmailForwarding() {
 
   const cancelEditing = () => {
     setEditingAccount(null);
-    setEditingInbox("");
+    setEditingInbox("unassigned");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -252,10 +252,10 @@ export function EmailForwarding() {
       });
       return;
     }
-    if (!selectedInbox) {
+    if (!selectedInbox || selectedInbox === "unassigned") {
       toast({
         title: "Inbox required",
-        description: "Please select an inbox for this email account.",
+        description: "Please select a valid inbox for this email account.",
         variant: "destructive",
       });
       return;
@@ -433,20 +433,26 @@ export function EmailForwarding() {
                 <SelectTrigger>
                   <SelectValue placeholder="Choose which inbox to connect this email to" />
                 </SelectTrigger>
-                <SelectContent>
-                  {inboxes.map((inbox) => (
-                    <SelectItem key={inbox.id} value={inbox.id}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: inbox.color }}
-                        />
-                        <span>{inbox.name}</span>
-                        {inbox.is_default && <span className="text-xs text-muted-foreground">(Default)</span>}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                 <SelectContent>
+                   <SelectItem value="unassigned">
+                     <div className="flex items-center gap-2">
+                       <div className="w-3 h-3 rounded-full bg-gray-300" />
+                       <span>Unassigned</span>
+                     </div>
+                   </SelectItem>
+                   {inboxes.map((inbox) => (
+                     <SelectItem key={inbox.id} value={inbox.id}>
+                       <div className="flex items-center gap-2">
+                         <div 
+                           className="w-3 h-3 rounded-full" 
+                           style={{ backgroundColor: inbox.color }}
+                         />
+                         <span>{inbox.name}</span>
+                         {inbox.is_default && <span className="text-xs text-muted-foreground">(Default)</span>}
+                       </div>
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
               </Select>
             </div>
             <div>
@@ -497,19 +503,25 @@ export function EmailForwarding() {
                       <SelectTrigger>
                         <SelectValue placeholder="Choose inbox" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {inboxes.map((inbox) => (
-                          <SelectItem key={inbox.id} value={inbox.id}>
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: inbox.color }}
-                              />
-                              <span>{inbox.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                       <SelectContent>
+                         <SelectItem value="unassigned">
+                           <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 rounded-full bg-gray-300" />
+                             <span>Unassigned</span>
+                           </div>
+                         </SelectItem>
+                         {inboxes.map((inbox) => (
+                           <SelectItem key={inbox.id} value={inbox.id}>
+                             <div className="flex items-center gap-2">
+                               <div 
+                                 className="w-3 h-3 rounded-full" 
+                                 style={{ backgroundColor: inbox.color }}
+                               />
+                               <span>{inbox.name}</span>
+                             </div>
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
                     </Select>
                   </div>
                   <Input
