@@ -119,6 +119,15 @@ interface DesignSystem {
       h3Size: string;
       fontWeight: 'normal' | 'medium' | 'semibold' | 'bold';
     };
+    typography: {
+      autoContrast: boolean;
+      lightBackgroundTextColor: keyof DesignSystem['colors'];
+      darkBackgroundTextColor: keyof DesignSystem['colors'];
+      primaryBackgroundTextColor: keyof DesignSystem['colors'];
+      secondaryBackgroundTextColor: keyof DesignSystem['colors'];
+      warningBackgroundTextColor: keyof DesignSystem['colors'];
+      contrastThreshold: number;
+    };
   };
 }
 
@@ -237,6 +246,15 @@ const defaultDesignSystem: DesignSystem = {
       h2Size: '1.875rem',
       h3Size: '1.5rem',
       fontWeight: 'bold',
+    },
+    typography: {
+      autoContrast: true,
+      lightBackgroundTextColor: 'foreground',
+      darkBackgroundTextColor: 'primaryForeground',
+      primaryBackgroundTextColor: 'primaryForeground',
+      secondaryBackgroundTextColor: 'secondaryForeground',
+      warningBackgroundTextColor: 'foreground',
+      contrastThreshold: 4.5,
     },
   },
 };

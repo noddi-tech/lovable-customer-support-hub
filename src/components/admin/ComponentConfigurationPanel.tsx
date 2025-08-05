@@ -67,7 +67,7 @@ export const ComponentConfigurationPanel: React.FC = () => {
     <div className="space-y-8">{/* Components Configuration Tabs */}
       <div className="border-b border-border">
         <nav className="flex space-x-8">
-          {['buttons', 'cards', 'badges', 'alerts', 'avatars', 'icons', 'headings'].map((tab) => (
+          {['buttons', 'cards', 'badges', 'alerts', 'avatars', 'icons', 'headings', 'typography'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1089,6 +1089,164 @@ export const ComponentConfigurationPanel: React.FC = () => {
                     <p className="text-muted-foreground mt-1">This is how headings look in different backgrounds</p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </ComponentPreview>
+        </div>
+      )}
+
+      {/* Typography Configuration */}
+      {activeTab === 'typography' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Auto-Contrast Typography</CardTitle>
+              <CardDescription>
+                Configure automatic contrast system that ensures text is always readable on any background.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2 flex items-center justify-between">
+                  <Label>Enable Auto-Contrast</Label>
+                  <Switch
+                    checked={designSystem.components.typography.autoContrast}
+                    onCheckedChange={(checked) => updateComponent('typography', 'autoContrast', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Light Background Text Color</Label>
+                  <Select
+                    value={designSystem.components.typography.lightBackgroundTextColor}
+                    onValueChange={(value) => updateComponent('typography', 'lightBackgroundTextColor', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorKeys.map((colorKey) => (
+                        <SelectItem key={colorKey} value={colorKey}>
+                          {colorKey}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Dark Background Text Color</Label>
+                  <Select
+                    value={designSystem.components.typography.darkBackgroundTextColor}
+                    onValueChange={(value) => updateComponent('typography', 'darkBackgroundTextColor', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorKeys.map((colorKey) => (
+                        <SelectItem key={colorKey} value={colorKey}>
+                          {colorKey}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Primary Background Text Color</Label>
+                  <Select
+                    value={designSystem.components.typography.primaryBackgroundTextColor}
+                    onValueChange={(value) => updateComponent('typography', 'primaryBackgroundTextColor', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorKeys.map((colorKey) => (
+                        <SelectItem key={colorKey} value={colorKey}>
+                          {colorKey}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Warning Background Text Color</Label>
+                  <Select
+                    value={designSystem.components.typography.warningBackgroundTextColor}
+                    onValueChange={(value) => updateComponent('typography', 'warningBackgroundTextColor', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorKeys.map((colorKey) => (
+                        <SelectItem key={colorKey} value={colorKey}>
+                          {colorKey}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Contrast Threshold</Label>
+                  <div className="space-y-2">
+                    <Slider
+                      value={[designSystem.components.typography.contrastThreshold]}
+                      onValueChange={(value) => updateComponent('typography', 'contrastThreshold', value[0])}
+                      max={10}
+                      min={1}
+                      step={0.5}
+                      className="w-full"
+                    />
+                    <div className="text-xs text-muted-foreground text-center">
+                      {designSystem.components.typography.contrastThreshold} (WCAG AA: 4.5+)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <ComponentPreview title="Auto-Contrast Typography">
+            <div className="space-y-4">
+              <div className="p-4 bg-primary rounded-lg">
+                <h3 className="text-lg font-semibold mb-2" style={{ color: `hsl(${designSystem.colors[designSystem.components.typography.primaryBackgroundTextColor]})` }}>
+                  Primary Background
+                </h3>
+                <p className="text-sm" style={{ color: `hsl(${designSystem.colors[designSystem.components.typography.primaryBackgroundTextColor]})` }}>
+                  Text automatically uses {designSystem.components.typography.primaryBackgroundTextColor} color for contrast
+                </p>
+              </div>
+
+              <div className="p-4 bg-card border rounded-lg">
+                <h3 className="text-lg font-semibold mb-2" style={{ color: `hsl(${designSystem.colors[designSystem.components.typography.lightBackgroundTextColor]})` }}>
+                  Light Background
+                </h3>
+                <p className="text-sm" style={{ color: `hsl(${designSystem.colors[designSystem.components.typography.lightBackgroundTextColor]})` }}>
+                  Text automatically uses {designSystem.components.typography.lightBackgroundTextColor} color for contrast
+                </p>
+              </div>
+
+              <div className="p-4 bg-warning rounded-lg">
+                <h3 className="text-lg font-semibold mb-2" style={{ color: `hsl(${designSystem.colors[designSystem.components.typography.warningBackgroundTextColor]})` }}>
+                  Warning Background
+                </h3>
+                <p className="text-sm" style={{ color: `hsl(${designSystem.colors[designSystem.components.typography.warningBackgroundTextColor]})` }}>
+                  Text automatically uses {designSystem.components.typography.warningBackgroundTextColor} color for contrast
+                </p>
+              </div>
+
+              <div className="p-4 bg-muted rounded-lg">
+                <h3 className="text-lg font-semibold mb-2" style={{ color: `hsl(${designSystem.colors[designSystem.components.typography.lightBackgroundTextColor]})` }}>
+                  Auto-Detection
+                </h3>
+                <p className="text-sm" style={{ color: `hsl(${designSystem.colors[designSystem.components.typography.lightBackgroundTextColor]})` }}>
+                  System automatically detects light backgrounds and applies appropriate text color
+                </p>
               </div>
             </div>
           </ComponentPreview>

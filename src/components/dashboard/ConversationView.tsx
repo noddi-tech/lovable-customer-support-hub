@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useAutoContrast } from '@/hooks/useAutoContrast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -36,6 +37,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [isSending, setIsSending] = useState(false);
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const queryClient = useQueryClient();
+  const { getMessageTextColor } = useAutoContrast();
 
   const handleSendMessage = async () => {
     if (!replyText.trim()) return;
@@ -511,12 +513,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                 }`}
                                 style={{
                                   color: message.is_internal 
-                                    ? 'black' 
+                                    ? getMessageTextColor('internal')
                                     : message.sender_type === 'agent' 
-                                      ? 'white' 
-                                      : 'hsl(224 71% 4%)',
-                                  opacity: 1,
-                                  textShadow: 'none'
+                                      ? getMessageTextColor('agent')
+                                      : getMessageTextColor('customer')
                                 }}
                               >
                                 {message.content}
@@ -535,8 +535,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                            message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
                                          }`}
                                          style={{
-                                           color: message.sender_type === 'agent' ? 'white' : 'hsl(220 9% 46%)',
-                                           opacity: 1
+                                           color: message.sender_type === 'agent' 
+                                             ? getMessageTextColor('agent')
+                                             : getMessageTextColor('customer')
                                          }}
                                        >
                                          Agent
@@ -547,12 +548,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                  <div className="flex items-center space-x-2">
                                    {message.sender_type === 'agent' && getStatusIcon(message)}
                                    <span 
-                                     className={`text-xs ${
-                                       message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
-                                     }`}
+                                     className="text-xs"
                                      style={{
-                                       color: message.sender_type === 'agent' ? 'white' : 'hsl(220 9% 46%)',
-                                       opacity: 1
+                                       color: message.sender_type === 'agent' 
+                                         ? getMessageTextColor('agent')
+                                         : getMessageTextColor('customer')
                                      }}
                                    >
                                      {formatTime(messageDate)}
