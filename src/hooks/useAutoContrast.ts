@@ -53,16 +53,16 @@ export const useAutoContrast = () => {
     
     switch (messageType) {
       case 'agent':
-        // Use primary background text color from design system
-        color = getContrastTextColorCSS('primary');
+        // Force white text for agent messages (blue background)
+        color = 'hsl(0 0% 98%)';
         break;
       case 'customer':
-        // Use card background text color from design system
-        color = getContrastTextColorCSS('card');
+        // Use dark text for customer messages (white background)
+        color = 'hsl(224 71% 4%)';
         break;
       case 'internal':
-        // Use warning background text color from design system
-        color = getContrastTextColorCSS('warning');
+        // Use dark text for internal notes (yellow background)
+        color = 'hsl(224 71% 4%)';
         break;
       default:
         color = getContrastTextColorCSS('background');
@@ -70,8 +70,6 @@ export const useAutoContrast = () => {
     
     // Debug logging
     console.log(`Message type: ${messageType}, Color: ${color}`);
-    console.log(`Design system colors:`, designSystem.colors);
-    console.log(`Typography settings:`, designSystem.components.typography);
     
     return color;
   };
