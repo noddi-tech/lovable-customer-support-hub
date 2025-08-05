@@ -167,7 +167,7 @@ export function UserManagement() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: Partial<UserProfile> }) => {
-      // Update profile
+      // Update profile only - the primary_role field is sufficient for role management
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -179,28 +179,6 @@ export function UserManagement() {
         .eq("user_id", userId);
 
       if (profileError) throw profileError;
-
-      // Update user role if changed
-      if (updates.primary_role) {
-        // First, delete existing roles
-        const { error: deleteError } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", userId);
-
-        if (deleteError) throw deleteError;
-
-        // Insert new role
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: userId,
-            role: updates.primary_role,
-            created_by_id: user?.id
-          });
-
-        if (roleError) throw roleError;
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
