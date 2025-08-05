@@ -413,6 +413,58 @@ All colors MUST be HSL.
     background-color: hsl(var(--background)) !important;
   }
   
+  /* Specific fixes for conversation messages */
+  
+  /* Agent messages with primary background need white text */
+  .bg-primary.text-primary-foreground,
+  .bg-primary.text-primary-foreground *,
+  .bg-primary.text-primary-foreground p,
+  .bg-primary.text-primary-foreground span,
+  .bg-primary.text-primary-foreground .text-xs,
+  .bg-primary.text-primary-foreground .opacity-70 {
+    color: white !important;
+  }
+  
+  /* Card content in primary backgrounds */
+  .bg-primary .card-content,
+  .bg-primary .card-content *,
+  .bg-primary [class*="CardContent"],
+  .bg-primary [class*="CardContent"] * {
+    color: white !important;
+  }
+  
+  /* Customer messages with card background */
+  .bg-card,
+  .bg-card *,
+  .bg-card p,
+  .bg-card span,
+  .bg-card .text-xs,
+  .bg-card .opacity-70 {
+    color: hsl(var(--card-foreground)) !important;
+  }
+  
+  /* Internal notes with warning background */
+  .bg-warning-muted,
+  .bg-warning-muted *,
+  .bg-warning-muted p,
+  .bg-warning-muted span,
+  .bg-warning-muted .text-xs {
+    color: hsl(0 0% 0%) !important; /* Black text on warning background */
+  }
+  
+  /* Fix for opacity classes that make text too light */
+  .opacity-70,
+  .text-xs.opacity-70 {
+    opacity: 1 !important;
+  }
+  
+  /* Avatar fallback text in messages */
+  .bg-primary .avatar-fallback,
+  .bg-primary [class*="AvatarFallback"] {
+    color: hsl(var(--primary)) !important;
+    background-color: white !important;
+  }
+  
   /* Design System Headings */
   .design-system-heading {
     font-weight: var(--heading-font-weight, 700);
