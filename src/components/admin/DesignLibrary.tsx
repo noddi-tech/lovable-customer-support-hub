@@ -247,9 +247,25 @@ export const DesignLibrary = () => {
     }
   }, [organization]);
 
-  // Apply design system when it changes
+  // Load design system from localStorage on mount
+  useEffect(() => {
+    const savedDesignSystem = localStorage.getItem('designSystem');
+    if (savedDesignSystem) {
+      try {
+        const parsedDesignSystem = JSON.parse(savedDesignSystem);
+        setDesignSystem(parsedDesignSystem);
+        console.log('Loaded design system from localStorage:', parsedDesignSystem);
+      } catch (error) {
+        console.error('Error parsing saved design system:', error);
+      }
+    }
+  }, []);
+
+  // Apply design system when it changes and save to localStorage
   useEffect(() => {
     applyDesignSystem(designSystem);
+    localStorage.setItem('designSystem', JSON.stringify(designSystem));
+    console.log('Applied and saved design system:', designSystem);
   }, [designSystem]);
 
   // Apply design system to CSS variables
