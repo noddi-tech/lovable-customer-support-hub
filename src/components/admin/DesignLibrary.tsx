@@ -1,20 +1,67 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
-import { Save, Palette } from 'lucide-react';
+import { DesignLibraryComponents } from './DesignLibraryComponents';
+import { 
+  Save, 
+  Palette, 
+  Heart,
+  Star,
+  Send,
+  Settings,
+  User,
+  Mail,
+  Bell,
+  Home,
+  Search,
+  Plus,
+  Trash2,
+  Edit,
+  Eye,
+  Download,
+  Upload,
+  RefreshCw,
+  Check,
+  X,
+  AlertTriangle,
+  Info,
+  HelpCircle,
+  ChevronRight,
+  Calendar,
+  Clock
+} from 'lucide-react';
 
 export const DesignLibrary = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { designSystem, updateDesignSystem, saveDesignSystem, isLoading } = useDesignSystem();
+  
+  // Demo state for interactive examples
+  const [demoInputValue, setDemoInputValue] = useState('Sample text');
+  const [demoTextareaValue, setDemoTextareaValue] = useState('This is a sample textarea content...');
+  const [demoSwitchValue, setDemoSwitchValue] = useState(false);
+  const [demoSelectValue, setDemoSelectValue] = useState('option1');
+  const [demoSliderValue, setDemoSliderValue] = useState([50]);
+  const [demoCheckboxValue, setDemoCheckboxValue] = useState(false);
+  const [demoRadioValue, setDemoRadioValue] = useState('option1');
+  const [demoProgress, setDemoProgress] = useState(65);
 
   // Save to database
   const saveMutation = useMutation({
@@ -86,6 +133,29 @@ export const DesignLibrary = () => {
 
   const saveToDatabase = () => {
     saveMutation.mutate();
+  };
+
+  const showDemoToast = (type: 'default' | 'success' | 'destructive') => {
+    switch (type) {
+      case 'success':
+        toast({
+          title: "Success!",
+          description: "This is a success message.",
+        });
+        break;
+      case 'destructive':
+        toast({
+          title: "Error!",
+          description: "Something went wrong.",
+          variant: "destructive",
+        });
+        break;
+      default:
+        toast({
+          title: "Notification",
+          description: "This is a default message.",
+        });
+    }
   };
 
   const colorInputs = [
@@ -165,14 +235,254 @@ export const DesignLibrary = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="config" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="config">Config</TabsTrigger>
+      <Tabs defaultValue="preview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="colors">Colors</TabsTrigger>
           <TabsTrigger value="typography">Typography</TabsTrigger>
           <TabsTrigger value="spacing">Spacing</TabsTrigger>
           <TabsTrigger value="components">Components</TabsTrigger>
+          <TabsTrigger value="config">Config</TabsTrigger>
         </TabsList>
+
+        {/* Component Preview Section */}
+        <TabsContent value="preview" className="space-y-8">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Live Component Preview</h3>
+              <p className="text-muted-foreground">
+                See how your design system changes affect all components in real-time
+              </p>
+            </div>
+
+            {/* Buttons Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="w-5 h-5" />
+                  Buttons
+                </CardTitle>
+                <CardDescription>
+                  All button variants and states with your current design system
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Button Variants</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="default">Default</Button>
+                    <Button variant="secondary">Secondary</Button>
+                    <Button variant="destructive">Destructive</Button>
+                    <Button variant="outline">Outline</Button>
+                    <Button variant="ghost">Ghost</Button>
+                    <Button variant="link">Link</Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Button Sizes</h4>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button size="sm">Small</Button>
+                    <Button size="default">Default</Button>
+                    <Button size="lg">Large</Button>
+                    <Button size="icon">
+                      <Heart className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Buttons with Icons</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <Button>
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Message
+                    </Button>
+                    <Button variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Button>
+                    <Button variant="secondary">
+                      <Star className="h-4 w-4 mr-2" />
+                      Favorite
+                    </Button>
+                    <Button variant="destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Button States</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <Button disabled>Disabled</Button>
+                    <Button variant="outline" disabled>Disabled Outline</Button>
+                    <Button className="animate-pulse">
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Loading
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Badges Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="w-5 h-5" />
+                  Badges
+                </CardTitle>
+                <CardDescription>
+                  Status indicators and labels with different variants
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Badge Variants</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <Badge variant="default">Default</Badge>
+                    <Badge variant="secondary">Secondary</Badge>
+                    <Badge variant="destructive">Destructive</Badge>
+                    <Badge variant="outline">Outline</Badge>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Status Badges</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <Badge className="bg-success text-success-foreground">
+                      <Check className="h-3 w-3 mr-1" />
+                      Success
+                    </Badge>
+                    <Badge className="bg-warning text-warning-foreground">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Warning
+                    </Badge>
+                    <Badge variant="destructive">
+                      <X className="h-3 w-3 mr-1" />
+                      Error
+                    </Badge>
+                    <Badge variant="secondary">
+                      <Clock className="h-3 w-3 mr-1" />
+                      Pending
+                    </Badge>
+                    <Badge variant="outline">
+                      <Info className="h-3 w-3 mr-1" />
+                      Info
+                    </Badge>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Interactive Badges</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <Badge className="hover:bg-primary/80 cursor-pointer transition-colors">
+                      Clickable
+                    </Badge>
+                    <Badge variant="outline" className="hover:bg-accent cursor-pointer transition-colors">
+                      Hover me
+                    </Badge>
+                    <Badge className="bg-gradient-primary">
+                      Gradient
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cards Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Cards
+                </CardTitle>
+                <CardDescription>
+                  Card layouts and content containers
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Basic Card</CardTitle>
+                      <CardDescription>A simple card with header and content</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        This is the card content area where you can place any information.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-primary text-primary-foreground">
+                    <CardHeader>
+                      <CardTitle>Primary Card</CardTitle>
+                      <CardDescription className="text-primary-foreground/70">
+                        A card with primary background
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm opacity-90">
+                        This card uses the primary color scheme.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-surface border-primary/20">
+                    <CardHeader>
+                      <CardTitle>Gradient Card</CardTitle>
+                      <CardDescription>A card with gradient background</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center space-x-2">
+                        <Avatar>
+                          <AvatarFallback>JD</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-medium">John Doe</p>
+                          <p className="text-xs text-muted-foreground">john@example.com</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Additional Form Components */}
+            <DesignLibraryComponents 
+              demoInputValue={demoInputValue}
+              setDemoInputValue={setDemoInputValue}
+              demoTextareaValue={demoTextareaValue}
+              setDemoTextareaValue={setDemoTextareaValue}
+              demoSwitchValue={demoSwitchValue}
+              setDemoSwitchValue={setDemoSwitchValue}
+              demoSelectValue={demoSelectValue}
+              setDemoSelectValue={setDemoSelectValue}
+              demoSliderValue={demoSliderValue}
+              setDemoSliderValue={setDemoSliderValue}
+              demoCheckboxValue={demoCheckboxValue}
+              setDemoCheckboxValue={setDemoCheckboxValue}
+              demoRadioValue={demoRadioValue}
+              setDemoRadioValue={setDemoRadioValue}
+              demoProgress={demoProgress}
+              showDemoToast={showDemoToast}
+            />
+          </div>
+        </TabsContent>
 
         <TabsContent value="config">
           <Card>
