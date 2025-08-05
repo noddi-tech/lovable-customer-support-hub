@@ -37,7 +37,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [isSending, setIsSending] = useState(false);
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const queryClient = useQueryClient();
-  const { getMessageTextColor } = useAutoContrast();
+  const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Auto contrast enabled:', autoContrastEnabled);
+    console.log('Agent text color:', getMessageTextColor('agent'));
+    console.log('Customer text color:', getMessageTextColor('customer'));
+    console.log('Internal text color:', getMessageTextColor('internal'));
+  }, [autoContrastEnabled, getMessageTextColor]);
 
   const handleSendMessage = async () => {
     if (!replyText.trim()) return;
@@ -510,13 +518,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                 className="whitespace-pre-wrap"
                                 style={{
                                   color: message.is_internal 
-                                    ? getMessageTextColor('internal')
+                                    ? 'rgb(31, 41, 55)' // Dark text for internal notes (warning background)
                                     : message.sender_type === 'agent' 
-                                      ? getMessageTextColor('agent')
-                                      : getMessageTextColor('customer'),
+                                      ? 'rgb(248, 250, 252)' // White text for agent messages (blue background)
+                                      : 'rgb(31, 41, 55)', // Dark text for customer messages (white background)
                                   fontSize: '0.875rem',
                                   fontWeight: message.is_internal ? '600' : '400',
-                                  lineHeight: '1.25rem'
+                                  lineHeight: '1.25rem',
+                                  opacity: 1
                                 }}
                               >
                                 {message.content}
@@ -539,10 +548,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                        <span 
                                          style={{
                                            color: message.is_internal 
-                                             ? getMessageTextColor('internal')
+                                             ? 'rgb(31, 41, 55)' // Dark text for internal notes
                                              : message.sender_type === 'agent' 
-                                               ? getMessageTextColor('agent')
-                                               : getMessageTextColor('customer'),
+                                               ? 'rgb(248, 250, 252)' // White text for agent messages
+                                               : 'rgb(31, 41, 55)', // Dark text for customer messages
                                            fontSize: '0.75rem',
                                            fontWeight: '500'
                                          }}
@@ -557,10 +566,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                    <span 
                                      style={{
                                        color: message.is_internal 
-                                         ? getMessageTextColor('internal')
+                                         ? 'rgb(31, 41, 55)' // Dark text for internal notes
                                          : message.sender_type === 'agent' 
-                                           ? getMessageTextColor('agent')
-                                           : getMessageTextColor('customer'),
+                                           ? 'rgb(248, 250, 252)' // White text for agent messages
+                                           : 'rgb(31, 41, 55)', // Dark text for customer messages
                                        fontSize: '0.75rem'
                                      }}
                                    >
