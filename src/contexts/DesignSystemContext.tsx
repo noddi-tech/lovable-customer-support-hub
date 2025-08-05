@@ -289,10 +289,48 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
   const applyToDocument = () => {
     const root = document.documentElement;
     
-    // Apply colors with proper CSS variable mapping
+    // Helper function to calculate luminance from HSL
+    const getLuminanceFromHSL = (hslValue: string) => {
+      const [h, s, l] = hslValue.split(' ').map(val => parseFloat(val.replace('%', '')));
+      const lightness = l / 100;
+      return lightness;
+    };
+    
+    // Helper function to ensure proper contrast
+    const ensureContrast = (backgroundHSL: string, foregroundHSL: string) => {
+      const bgLuminance = getLuminanceFromHSL(backgroundHSL);
+      const fgLuminance = getLuminanceFromHSL(foregroundHSL);
+      
+      // If contrast is poor, adjust foreground
+      const ratio = Math.max(bgLuminance, fgLuminance) / Math.min(bgLuminance, fgLuminance);
+      if (ratio < 4.5) { // WCAG AA standard
+        // If background is light, use dark foreground; if dark, use light foreground
+        return bgLuminance > 0.5 ? '224 71% 4%' : '0 0% 98%';
+      }
+      return foregroundHSL;
+    };
+    
+    // Apply colors with proper CSS variable mapping and contrast checking
     Object.entries(designSystem.colors).forEach(([key, value]) => {
       const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
       root.style.setProperty(cssVar, value);
+      
+      // Auto-generate proper foreground colors for backgrounds
+      if (!key.includes('Foreground') && !key.includes('foreground')) {
+        const foregroundKey = `${key}Foreground`;
+        const foregroundCssVar = `--${foregroundKey.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+        
+        // Check if we have a corresponding foreground color defined
+        if (designSystem.colors[foregroundKey as keyof typeof designSystem.colors]) {
+          const foregroundValue = designSystem.colors[foregroundKey as keyof typeof designSystem.colors];
+          const adjustedForeground = ensureContrast(value, foregroundValue);
+          root.style.setProperty(foregroundCssVar, adjustedForeground);
+        } else {
+          // Auto-generate foreground color for good contrast
+          const autoForeground = ensureContrast(value, '224 71% 4%'); // Default dark text
+          root.style.setProperty(foregroundCssVar, autoForeground);
+        }
+      }
     });
 
     // Apply typography

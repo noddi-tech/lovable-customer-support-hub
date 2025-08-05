@@ -169,11 +169,39 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    /* Ensure text is always visible */
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Ensure proper contrast for all text elements */
+  h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, label {
+    color: inherit;
+  }
+  
+  /* Override any potential white-on-white scenarios */
+  .text-white {
+    color: hsl(0 0% 98%) !important;
+  }
+  
+  .text-black {
+    color: hsl(224 71% 4%) !important;
   }
   
   /* Dynamic gradient background class */
   body.gradient-background {
     background: var(--gradient-background) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Ensure card text is always visible */
+  .card {
+    color: hsl(var(--card-foreground)) !important;
+  }
+  
+  /* Ensure muted text has enough contrast */
+  .text-muted-foreground {
+    color: hsl(var(--muted-foreground)) !important;
+    opacity: 0.9;
   }
 }
 
