@@ -313,6 +313,106 @@ All colors MUST be HSL.
   }
   }
   
+  /* Conversation View Auto-Contrast */
+  
+  /* Ensure all text in conversation messages has proper contrast */
+  .message-card,
+  .message-card *,
+  .message-content,
+  .message-content *,
+  .bg-card .message-content,
+  .bg-card .message-content * {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Light background cards need dark text */
+  .bg-card,
+  .bg-card *,
+  .bg-card p,
+  .bg-card span,
+  .bg-card div {
+    color: hsl(var(--card-foreground)) !important;
+  }
+  
+  /* Muted backgrounds need proper contrast */
+  .bg-muted,
+  .bg-muted *,
+  .bg-muted p,
+  .bg-muted span,
+  .bg-muted div {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+  
+  /* Agent messages (right side) with light backgrounds */
+  .agent-message,
+  .agent-message *,
+  .agent-message p,
+  .agent-message span {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Customer messages (left side) */
+  .customer-message,
+  .customer-message *,
+  .customer-message p,
+  .customer-message span {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Internal notes with orange/yellow backgrounds */
+  .internal-note,
+  .internal-note *,
+  .border-orange-300,
+  .border-orange-300 *,
+  .bg-orange-50,
+  .bg-orange-50 *,
+  [style*="border-color: orange"] *,
+  [style*="background: orange"] * {
+    color: hsl(0 0% 0%) !important; /* Black text on orange/yellow */
+  }
+  
+  /* Accent backgrounds */
+  .bg-accent,
+  .bg-accent *,
+  .bg-accent p,
+  .bg-accent span,
+  .bg-accent div {
+    color: hsl(var(--accent-foreground)) !important;
+  }
+  
+  /* Generic light background detection */
+  [style*="background-color: white"] *,
+  [style*="background-color: #fff"] *,
+  [style*="background-color: #ffffff"] *,
+  [style*="background: white"] *,
+  [style*="background: #fff"] *,
+  [style*="background: #ffffff"] * {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Generic dark background detection */
+  [style*="background-color: black"] *,
+  [style*="background-color: #000"] *,
+  [style*="background-color: #000000"] *,
+  [style*="background: black"] *,
+  [style*="background: #000"] *,
+  [style*="background: #000000"] * {
+    color: white !important;
+  }
+  
+  /* Fix for any transparent text issues */
+  .text-transparent {
+    -webkit-text-fill-color: unset !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Emergency contrast override for unreadable text */
+  .contrast-fix,
+  .contrast-fix * {
+    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--background)) !important;
+  }
+  
   /* Design System Headings */
   .design-system-heading {
     font-weight: var(--heading-font-weight, 700);
