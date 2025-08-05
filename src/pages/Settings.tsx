@@ -11,8 +11,9 @@ import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
 import { AdminPortal } from '@/components/admin/AdminPortal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { InboxManagement } from '@/components/admin/InboxManagement';
+import { DepartmentManagement } from '@/components/admin/DepartmentManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette, Inbox } from 'lucide-react';
+import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette, Inbox, Building } from 'lucide-react';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { useNavigate } from 'react-router-dom';
 
@@ -51,10 +52,14 @@ export default function Settings() {
       <div className="container mx-auto py-6 px-4">
         <div className="max-w-6xl mx-auto">
           <Tabs defaultValue="inboxes" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-1">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-1">
               <TabsTrigger value="inboxes" className="flex items-center gap-2">
                 <Inbox className="w-4 h-4" />
                 Inboxes
+              </TabsTrigger>
+              <TabsTrigger value="departments" className="flex items-center gap-2">
+                <Building className="w-4 h-4" />
+                Departments
               </TabsTrigger>
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <SettingsIcon className="w-4 h-4" />
@@ -86,6 +91,11 @@ export default function Settings() {
             {/* Inboxes Management */}
             <TabsContent value="inboxes" className="space-y-6">
               <InboxManagement />
+            </TabsContent>
+
+            {/* Departments Management */}
+            <TabsContent value="departments" className="space-y-6">
+              <DepartmentManagement />
             </TabsContent>
 
             {/* General Settings */}
