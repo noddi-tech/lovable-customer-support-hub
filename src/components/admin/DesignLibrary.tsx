@@ -49,7 +49,7 @@ interface DesignSystemConfig {
     };
     card: {
       shadow: 'none' | 'sm' | 'md' | 'lg' | 'xl';
-      border: 'none' | 'subtle' | 'strong';
+      border: 'none' | 'subtle' | 'strong' | 'default' | 'rounded' | 'sharp' | 'elevated';
       borderRadius: string;
       padding: string;
     };
@@ -117,7 +117,7 @@ export const DesignLibrary = () => {
       },
       card: {
         shadow: 'sm',
-        border: 'subtle',
+        border: 'default', // Changed from 'subtle' to 'default' to match presets
         borderRadius: '12px',
         padding: '24px',
       },
@@ -707,18 +707,29 @@ export const DesignLibrary = () => {
                         value={designSystem.components.toast.style}
                         onValueChange={(value: any) => {
                           const preset = toastStylePresets[value as keyof typeof toastStylePresets];
-                          setDesignSystem(prev => ({
-                            ...prev,
-                            components: {
-                              ...prev.components,
-                              toast: { 
-                                ...prev.components.toast, 
-                                style: value,
-                                borderRadius: preset.borderRadius,
-                                padding: preset.padding
+                          if (preset) {
+                            setDesignSystem(prev => ({
+                              ...prev,
+                              components: {
+                                ...prev.components,
+                                toast: { 
+                                  ...prev.components.toast, 
+                                  style: value,
+                                  borderRadius: preset.borderRadius,
+                                  padding: preset.padding
+                                }
                               }
-                            }
-                          }));
+                            }));
+                          } else {
+                            // Fallback for unknown values
+                            setDesignSystem(prev => ({
+                              ...prev,
+                              components: {
+                                ...prev.components,
+                                toast: { ...prev.components.toast, style: value }
+                              }
+                            }));
+                          }
                         }}
                       >
                         <SelectTrigger>
