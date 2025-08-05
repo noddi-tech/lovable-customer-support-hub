@@ -496,25 +496,29 @@ export const DesignLibrary = () => {
                     className="border-primary"
                     style={{ 
                       backgroundColor: `hsl(${designSystem.colors.primary})`,
-                      color: getOptimalTextColor(designSystem.colors.primary),
                       border: `1px solid hsl(${designSystem.colors.primary})`
                     }}
                   >
                     <CardHeader>
                       <CardTitle style={{ 
-                        color: `${getOptimalTextColor(designSystem.colors.primary)} !important` 
+                        color: 'white !important',
+                        fontSize: '1.25rem',
+                        fontWeight: '600'
                       }}>
                         Primary Card
                       </CardTitle>
                       <CardDescription style={{ 
-                        color: `${getOptimalTextColor(designSystem.colors.primary, 0.8)} !important` 
+                        color: 'rgba(255, 255, 255, 0.8) !important',
+                        fontSize: '0.875rem'
                       }}>
                         A card with primary background
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <p style={{ 
-                        color: `${getOptimalTextColor(designSystem.colors.primary, 0.9)} !important` 
+                        color: 'rgba(255, 255, 255, 0.9) !important',
+                        fontSize: '0.875rem',
+                        margin: 0
                       }}>
                         This card uses the primary color scheme.
                       </p>
