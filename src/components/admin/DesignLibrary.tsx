@@ -35,11 +35,17 @@ interface DesignSystemConfig {
     baseUnit: string;
     cardPadding: string;
     buttonSpacing: string;
+    sectionSpacing: string;
+    elementSpacing: string;
+    containerPadding: string;
   };
   borderRadius: {
     base: string;
     card: string;
     button: string;
+    input: string;
+    dialog: string;
+    popover: string;
   };
   components: {
     toast: {
@@ -97,11 +103,17 @@ export const DesignLibrary = () => {
       baseUnit: '4px',
       cardPadding: '24px',
       buttonSpacing: '8px',
+      sectionSpacing: '32px',
+      elementSpacing: '16px',
+      containerPadding: '40px',
     },
     borderRadius: {
       base: '8px',
       card: '12px',
       button: '6px',
+      input: '6px',
+      dialog: '16px',
+      popover: '8px',
     },
     components: {
       toast: {
@@ -537,6 +549,78 @@ export const DesignLibrary = () => {
                       placeholder="8px"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="section-spacing">Section Spacing</Label>
+                    <Input 
+                      id="section-spacing"
+                      value={designSystem.spacing.sectionSpacing}
+                      onChange={(e) => setDesignSystem(prev => ({
+                        ...prev,
+                        spacing: { ...prev.spacing, sectionSpacing: e.target.value }
+                      }))}
+                      placeholder="32px"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="element-spacing">Element Spacing</Label>
+                    <Input 
+                      id="element-spacing"
+                      value={designSystem.spacing.elementSpacing}
+                      onChange={(e) => setDesignSystem(prev => ({
+                        ...prev,
+                        spacing: { ...prev.spacing, elementSpacing: e.target.value }
+                      }))}
+                      placeholder="16px"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="container-padding">Container Padding</Label>
+                    <Input 
+                      id="container-padding"
+                      value={designSystem.spacing.containerPadding}
+                      onChange={(e) => setDesignSystem(prev => ({
+                        ...prev,
+                        spacing: { ...prev.spacing, containerPadding: e.target.value }
+                      }))}
+                      placeholder="40px"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="input-radius">Input Border Radius</Label>
+                    <Input 
+                      id="input-radius"
+                      value={designSystem.borderRadius.input}
+                      onChange={(e) => setDesignSystem(prev => ({
+                        ...prev,
+                        borderRadius: { ...prev.borderRadius, input: e.target.value }
+                      }))}
+                      placeholder="6px"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dialog-radius">Dialog Border Radius</Label>
+                    <Input 
+                      id="dialog-radius"
+                      value={designSystem.borderRadius.dialog}
+                      onChange={(e) => setDesignSystem(prev => ({
+                        ...prev,
+                        borderRadius: { ...prev.borderRadius, dialog: e.target.value }
+                      }))}
+                      placeholder="16px"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="popover-radius">Popover Border Radius</Label>
+                    <Input 
+                      id="popover-radius"
+                      value={designSystem.borderRadius.popover}
+                      onChange={(e) => setDesignSystem(prev => ({
+                        ...prev,
+                        borderRadius: { ...prev.borderRadius, popover: e.target.value }
+                      }))}
+                      placeholder="8px"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -576,8 +660,14 @@ export const DesignLibrary = () => {
                   <p className="text-sm">Base unit: {designSystem.spacing.baseUnit}</p>
                   <p className="text-sm">Card padding: {designSystem.spacing.cardPadding}</p>
                   <p className="text-sm">Button spacing: {designSystem.spacing.buttonSpacing}</p>
+                  <p className="text-sm">Section spacing: {designSystem.spacing.sectionSpacing}</p>
+                  <p className="text-sm">Element spacing: {designSystem.spacing.elementSpacing}</p>
+                  <p className="text-sm">Container padding: {designSystem.spacing.containerPadding}</p>
                   <p className="text-sm">Base radius: {designSystem.borderRadius.base}</p>
                   <p className="text-sm">Card radius: {designSystem.borderRadius.card}</p>
+                  <p className="text-sm">Input radius: {designSystem.borderRadius.input}</p>
+                  <p className="text-sm">Dialog radius: {designSystem.borderRadius.dialog}</p>
+                  <p className="text-sm">Popover radius: {designSystem.borderRadius.popover}</p>
                 </div>
               </CardContent>
             </Card>
