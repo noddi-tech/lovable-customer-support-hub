@@ -135,6 +135,25 @@ export const DesignLibrary = () => {
     },
   });
 
+  // Button size presets
+  const buttonSizePresets = {
+    sm: {
+      spacing: '6px',
+      borderRadius: '4px',
+      padding: '8px 12px',
+    },
+    default: {
+      spacing: '8px',
+      borderRadius: '6px',
+      padding: '12px 16px',
+    },
+    lg: {
+      spacing: '10px',
+      borderRadius: '8px',
+      padding: '16px 24px',
+    }
+  };
+
   // Fetch current organization data
   const { data: organization, isLoading } = useQuery<OrganizationWithDesignSystem | null>({
     queryKey: ['organization'],
@@ -834,13 +853,22 @@ export const DesignLibrary = () => {
                       <Label>Default Button Size</Label>
                       <Select 
                         value={designSystem.components.buttons.size}
-                        onValueChange={(value: any) => setDesignSystem(prev => ({
-                          ...prev,
-                          components: {
-                            ...prev.components,
-                            buttons: { ...prev.components.buttons, size: value }
-                          }
-                        }))}
+                        onValueChange={(value: any) => {
+                          const preset = buttonSizePresets[value as keyof typeof buttonSizePresets];
+                          setDesignSystem(prev => ({
+                            ...prev,
+                            components: {
+                              ...prev.components,
+                              buttons: { 
+                                ...prev.components.buttons, 
+                                size: value,
+                                spacing: preset.spacing,
+                                borderRadius: preset.borderRadius,
+                                padding: preset.padding
+                              }
+                            }
+                          }));
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue />
