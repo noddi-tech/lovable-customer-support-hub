@@ -19,19 +19,25 @@ export function usePermissions() {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
+      // Get user roles first
+      const { data: userRoles, error: userRolesError } = await supabase
         .from("user_roles")
-        .select(`
-          role,
-          role_permissions!inner(permission)
-        `)
+        .select("role")
         .eq("user_id", user.id);
       
-      if (error) throw error;
+      if (userRolesError) throw userRolesError;
+      if (!userRoles || userRoles.length === 0) return [];
       
-      return data.flatMap(role => 
-        role.role_permissions.map(rp => rp.permission)
-      ) as Permission[];
+      // Get permissions for those roles
+      const roleValues = userRoles.map(ur => ur.role);
+      const { data: rolePermissions, error: permissionsError } = await supabase
+        .from("role_permissions")
+        .select("permission")
+        .in("role", roleValues);
+      
+      if (permissionsError) throw permissionsError;
+      
+      return rolePermissions?.map(rp => rp.permission) || [];
     },
     enabled: !!user,
   });
