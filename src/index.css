@@ -255,6 +255,7 @@ All colors MUST be HSL.
   .design-system-heading {
     transition: all 0.2s ease;
   }
+}
 
 @layer utilities {
   /* Gradient background utilities */
