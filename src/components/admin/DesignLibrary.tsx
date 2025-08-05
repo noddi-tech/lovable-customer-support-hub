@@ -730,20 +730,49 @@ export const DesignLibrary = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Buttons</h4>
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Button size={designSystem.components.buttons.size as any}>Primary</Button>
-                      <Button variant="secondary" size={designSystem.components.buttons.size as any}>Secondary</Button>
-                      <Button variant="outline" size={designSystem.components.buttons.size as any}>Outline</Button>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="destructive" size={designSystem.components.buttons.size as any}>Destructive</Button>
-                      <Button variant="ghost" size={designSystem.components.buttons.size as any}>Ghost</Button>
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Buttons</h4>
+                    <div className="space-y-3">
+                      <div className="flex" style={{ gap: designSystem.spacing.baseUnit }}>
+                        <Button 
+                          size={designSystem.components.buttons.size as any}
+                          style={{ margin: designSystem.spacing.baseUnit }}
+                        >
+                          Primary
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          size={designSystem.components.buttons.size as any}
+                          style={{ margin: designSystem.spacing.baseUnit }}
+                        >
+                          Secondary
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size={designSystem.components.buttons.size as any}
+                          style={{ margin: designSystem.spacing.baseUnit }}
+                        >
+                          Outline
+                        </Button>
+                      </div>
+                      <div className="flex" style={{ gap: designSystem.spacing.baseUnit }}>
+                        <Button 
+                          variant="destructive" 
+                          size={designSystem.components.buttons.size as any}
+                          style={{ margin: designSystem.spacing.baseUnit }}
+                        >
+                          Destructive
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size={designSystem.components.buttons.size as any}
+                          style={{ margin: designSystem.spacing.baseUnit }}
+                        >
+                          Ghost
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
                 
                 <div className="space-y-4">
                   <h4 className="font-medium">Cards</h4>
