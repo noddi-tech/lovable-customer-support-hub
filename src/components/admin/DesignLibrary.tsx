@@ -26,22 +26,34 @@ const getOptimalTextColor = (hslBackground: string, opacity: number = 1): string
   // Parse HSL values
   const [h, s, l] = hslBackground.split(' ').map(val => parseFloat(val.replace('%', '')));
   
-  // Calculate relative luminance from lightness
-  const lightness = l / 100;
+  // Convert HSL to RGB for better luminance calculation
+  const hslToRgb = (h: number, s: number, l: number) => {
+    h /= 360;
+    s /= 100;
+    l /= 100;
+    
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => {
+      const k = (n + h * 12) % 12;
+      return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    };
+    return [f(0), f(8), f(4)];
+  };
   
-  // Use WCAG formula for better contrast calculation
-  // If background is light (>50% lightness), use dark text
-  // If background is dark (<=50% lightness), use light text
-  const isDarkBackground = lightness <= 0.5;
+  const [r, g, b] = hslToRgb(h, s, l);
   
-  if (isDarkBackground) {
-    // Dark background: use light text
-    const alphaValue = opacity < 1 ? ` / ${opacity}` : '';
-    return `hsl(0 0% 98%${alphaValue})`;
+  // Calculate relative luminance using WCAG formula
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  
+  // If luminance > 0.5, use dark text; if <= 0.5, use light text
+  const useDarkText = luminance > 0.5;
+  
+  const alphaValue = opacity < 1 ? ` / ${opacity}` : '';
+  
+  if (useDarkText) {
+    return `hsl(224 71% 4%${alphaValue})`; // Dark text
   } else {
-    // Light background: use dark text
-    const alphaValue = opacity < 1 ? ` / ${opacity}` : '';
-    return `hsl(224 71% 4%${alphaValue})`;
+    return `hsl(0 0% 98%${alphaValue})`; // Light text
   }
 };
 import { 
@@ -461,18 +473,20 @@ export const DesignLibrary = () => {
                     }}
                   >
                     <CardHeader>
-                      <CardTitle style={{ color: getOptimalTextColor(designSystem.colors.primary) }}>
+                      <CardTitle style={{ 
+                        color: `${getOptimalTextColor(designSystem.colors.primary)} !important` 
+                      }}>
                         Primary Card
                       </CardTitle>
                       <CardDescription style={{ 
-                        color: getOptimalTextColor(designSystem.colors.primary, 0.8) 
+                        color: `${getOptimalTextColor(designSystem.colors.primary, 0.8)} !important` 
                       }}>
                         A card with primary background
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm" style={{ 
-                        color: getOptimalTextColor(designSystem.colors.primary, 0.9) 
+                      <p style={{ 
+                        color: `${getOptimalTextColor(designSystem.colors.primary, 0.9)} !important` 
                       }}>
                         This card uses the primary color scheme.
                       </p>
