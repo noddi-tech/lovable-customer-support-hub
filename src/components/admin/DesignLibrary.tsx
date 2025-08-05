@@ -277,11 +277,24 @@ export const DesignLibrary = () => {
       return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
     };
 
-    // Apply all color variables
+    // Calculate contrasting text color
+    const getContrastColor = (hexColor: string) => {
+      const r = parseInt(hexColor.slice(1, 3), 16);
+      const g = parseInt(hexColor.slice(3, 5), 16);
+      const b = parseInt(hexColor.slice(5, 7), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.5 ? '#000000' : '#FFFFFF';
+    };
+
+    // Apply all color variables with proper contrast
     root.style.setProperty('--primary', hexToHsl(config.colors.primary));
+    root.style.setProperty('--primary-foreground', hexToHsl(getContrastColor(config.colors.primary)));
     root.style.setProperty('--secondary', hexToHsl(config.colors.secondary));
+    root.style.setProperty('--secondary-foreground', hexToHsl(getContrastColor(config.colors.secondary)));
     root.style.setProperty('--accent', hexToHsl(config.colors.accent));
+    root.style.setProperty('--accent-foreground', hexToHsl(getContrastColor(config.colors.accent)));
     root.style.setProperty('--destructive', hexToHsl(config.colors.destructive));
+    root.style.setProperty('--destructive-foreground', hexToHsl(getContrastColor(config.colors.destructive)));
     root.style.setProperty('--success', hexToHsl(config.colors.success));
     root.style.setProperty('--warning', hexToHsl(config.colors.warning));
     root.style.setProperty('--background', hexToHsl(config.colors.background));
