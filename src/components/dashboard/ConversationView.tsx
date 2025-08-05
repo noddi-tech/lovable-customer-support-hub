@@ -493,37 +493,49 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           </div>
                         )}
                         
-                         <Card className={`${
-                           message.is_internal 
-                             ? 'bg-warning-muted border-warning' 
-                             : message.sender_type === 'agent' 
-                               ? 'bg-primary text-primary-foreground' 
-                               : 'bg-card'
-                         }`}>
-                           <CardContent className="p-4">
-                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                             <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                               <div className="flex items-center space-x-2">
-                                 {message.sender_type === 'agent' && (
-                                   <>
-                                     <Avatar className="h-4 w-4">
-                                       <AvatarFallback className="text-xs">
-                                         A
-                                       </AvatarFallback>
-                                     </Avatar>
-                                     <span className="text-xs opacity-70">
-                                       Agent
-                                     </span>
-                                   </>
-                                 )}
-                               </div>
-                               <div className="flex items-center space-x-2">
-                                 {message.sender_type === 'agent' && getStatusIcon(message)}
-                                 <span className="text-xs opacity-70">
-                                   {formatTime(messageDate)}
-                                 </span>
-                               </div>
-                             </div>
+                          <Card className={`${
+                            message.is_internal 
+                              ? 'bg-warning-muted border-warning' 
+                              : message.sender_type === 'agent' 
+                                ? 'bg-primary force-white-text' 
+                                : 'bg-card'
+                          }`}>
+                            <CardContent className="p-4">
+                              <p className={`text-sm whitespace-pre-wrap ${
+                                message.is_internal 
+                                  ? 'text-black font-medium' 
+                                  : message.sender_type === 'agent' 
+                                    ? 'text-white' 
+                                    : 'text-foreground'
+                              }`}>
+                                {message.content}
+                              </p>
+                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                                <div className="flex items-center space-x-2">
+                                  {message.sender_type === 'agent' && (
+                                    <>
+                                      <Avatar className="h-4 w-4">
+                                        <AvatarFallback className="text-xs bg-white text-primary">
+                                          A
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className={`text-xs ${
+                                        message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
+                                      }`}>
+                                        Agent
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  {message.sender_type === 'agent' && getStatusIcon(message)}
+                                  <span className={`text-xs ${
+                                    message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
+                                  }`}>
+                                    {formatTime(messageDate)}
+                                  </span>
+                                </div>
+                              </div>
                              
                                {/* Failed/pending message actions */}
                                {message.sender_type === 'agent' && (message.email_status === 'failed' || message.email_status === 'pending' || message.email_status === 'sending') && (
