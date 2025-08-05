@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Heading } from '@/components/ui/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -160,7 +161,7 @@ export const Auth: React.FC = () => {
           <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Building2 className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="design-system-heading h1 solid text-foreground mb-2">Customer Support Hub</h1>
+          <Heading level={1} className="text-foreground mb-2">Customer Support Hub</Heading>
           <p className="text-muted-foreground">
             Sign in to access your organization's support dashboard
           </p>

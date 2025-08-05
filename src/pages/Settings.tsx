@@ -42,7 +42,7 @@ export default function Settings() {
         <div className="container mx-auto py-6 px-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="design-system-heading h1 gradient">Settings</h1>
+              <Heading level={1}>Settings</Heading>
               <p className="text-muted-foreground mt-1">Manage your account and preferences</p>
             </div>
             <Button 

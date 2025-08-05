@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Heading } from '@/components/ui/heading';
 
 const Terms = () => {
   return (
     <div className="min-h-screen bg-gradient-surface p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="design-system-heading h1 gradient mb-2">Terms of Service</h1>
+          <Heading level={1} className="mb-2">Terms of Service</Heading>
           <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
         </div>
 

@@ -177,7 +177,7 @@ export function InboxManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="design-system-heading h2 gradient">Inbox Management</h2>
+          <Heading level={2}>Inbox Management</Heading>
           <p className="text-muted-foreground mt-1">
             Manage inboxes and email connections for your organization
           </p>

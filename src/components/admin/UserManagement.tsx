@@ -280,7 +280,7 @@ export function UserManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="design-system-heading h2 gradient">User Management</h2>
+          <Heading level={2}>User Management</Heading>
           <p className="text-muted-foreground mt-1">
             Manage users, roles, and permissions for your organization.
           </p>
