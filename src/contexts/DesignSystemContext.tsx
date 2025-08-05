@@ -1,0 +1,301 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+
+// Define the design system interface based on the current structure
+interface DesignSystem {
+  colors: {
+    primary: string;
+    primaryForeground: string;
+    secondary: string;
+    secondaryForeground: string;
+    accent: string;
+    accentForeground: string;
+    background: string;
+    foreground: string;
+    muted: string;
+    mutedForeground: string;
+    card: string;
+    cardForeground: string;
+    border: string;
+    success: string;
+    successForeground: string;
+    warning: string;
+    warningForeground: string;
+    destructive: string;
+    destructiveForeground: string;
+  };
+  typography: {
+    fontFamily: string;
+    fontSize: {
+      xs: string;
+      sm: string;
+      base: string;
+      lg: string;
+      xl: string;
+      '2xl': string;
+      '3xl': string;
+    };
+    fontWeight: {
+      normal: string;
+      medium: string;
+      semibold: string;
+      bold: string;
+    };
+    lineHeight: {
+      tight: string;
+      normal: string;
+      relaxed: string;
+    };
+  };
+  spacing: {
+    baseUnit: number;
+    xs: string;
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+    '2xl': string;
+  };
+  borderRadius: {
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+  };
+  shadows: {
+    sm: string;
+    md: string;
+    lg: string;
+    glow: string;
+  };
+  gradients: {
+    primary: string;
+    surface: string;
+  };
+  components: {
+    buttons: {
+      primaryStyle: string;
+      secondaryStyle: string;
+      borderRadius: string;
+      padding: string;
+    };
+    cards: {
+      background: string;
+      borderRadius: string;
+      shadow: string;
+      padding: string;
+    };
+    icons: {
+      size: 'sm' | 'md' | 'lg';
+      color: string;
+    };
+  };
+}
+
+// Default design system values
+const defaultDesignSystem: DesignSystem = {
+  colors: {
+    primary: '217 91% 60%',
+    primaryForeground: '0 0% 98%',
+    secondary: '220 14% 96%',
+    secondaryForeground: '220 9% 46%',
+    accent: '217 91% 95%',
+    accentForeground: '217 91% 40%',
+    background: '250 50% 98%',
+    foreground: '224 71% 4%',
+    muted: '220 14% 96%',
+    mutedForeground: '220 9% 46%',
+    card: '0 0% 100%',
+    cardForeground: '224 71% 4%',
+    border: '220 13% 91%',
+    success: '142 76% 36%',
+    successForeground: '0 0% 98%',
+    warning: '38 92% 50%',
+    warningForeground: '0 0% 98%',
+    destructive: '0 84% 60%',
+    destructiveForeground: '0 0% 98%',
+  },
+  typography: {
+    fontFamily: 'Inter, system-ui, sans-serif',
+    fontSize: {
+      xs: '0.75rem',
+      sm: '0.875rem',
+      base: '1rem',
+      lg: '1.125rem',
+      xl: '1.25rem',
+      '2xl': '1.5rem',
+      '3xl': '1.875rem',
+    },
+    fontWeight: {
+      normal: '400',
+      medium: '500',
+      semibold: '600',
+      bold: '700',
+    },
+    lineHeight: {
+      tight: '1.25',
+      normal: '1.5',
+      relaxed: '1.75',
+    },
+  },
+  spacing: {
+    baseUnit: 4,
+    xs: '0.25rem',
+    sm: '0.5rem',
+    md: '1rem',
+    lg: '1.5rem',
+    xl: '2rem',
+    '2xl': '3rem',
+  },
+  borderRadius: {
+    sm: '0.375rem',
+    md: '0.5rem',
+    lg: '0.75rem',
+    xl: '1rem',
+  },
+  shadows: {
+    sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+    glow: '0 0 0 3px hsl(217 91% 60% / 0.1)',
+  },
+  gradients: {
+    primary: 'linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%))',
+    surface: 'linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 98%))',
+  },
+  components: {
+    buttons: {
+      primaryStyle: 'solid',
+      secondaryStyle: 'outline',
+      borderRadius: '0.5rem',
+      padding: '0.5rem 1rem',
+    },
+    cards: {
+      background: 'hsl(0 0% 100%)',
+      borderRadius: '0.75rem',
+      shadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+      padding: '1.5rem',
+    },
+    icons: {
+      size: 'md',
+      color: 'hsl(220 9% 46%)',
+    },
+  },
+};
+
+interface DesignSystemContextType {
+  designSystem: DesignSystem;
+  updateDesignSystem: (updates: Partial<DesignSystem>) => void;
+  isLoading: boolean;
+  applyToDocument: () => void;
+}
+
+const DesignSystemContext = createContext<DesignSystemContextType | undefined>(undefined);
+
+export const useDesignSystem = () => {
+  const context = useContext(DesignSystemContext);
+  if (context === undefined) {
+    throw new Error('useDesignSystem must be used within a DesignSystemProvider');
+  }
+  return context;
+};
+
+interface DesignSystemProviderProps {
+  children: ReactNode;
+}
+
+export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ children }) => {
+  const [designSystem, setDesignSystem] = useState<DesignSystem>(defaultDesignSystem);
+
+  // Fetch design system from database
+  const { data: organizationData, isLoading } = useQuery({
+    queryKey: ['organization-design-system'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('metadata')
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Update design system when database data changes
+  useEffect(() => {
+    if (organizationData?.metadata && typeof organizationData.metadata === 'object') {
+      const metadata = organizationData.metadata as any;
+      if (metadata.designSystem) {
+        setDesignSystem(prev => ({
+          ...prev,
+          ...metadata.designSystem,
+        }));
+      }
+    }
+  }, [organizationData]);
+
+  // Apply design system to document
+  const applyToDocument = () => {
+    const root = document.documentElement;
+    
+    // Apply colors
+    Object.entries(designSystem.colors).forEach(([key, value]) => {
+      const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+      root.style.setProperty(cssVar, value);
+    });
+
+    // Apply typography
+    root.style.setProperty('--font-family', designSystem.typography.fontFamily);
+    Object.entries(designSystem.typography.fontSize).forEach(([key, value]) => {
+      root.style.setProperty(`--font-size-${key}`, value);
+    });
+
+    // Apply spacing
+    Object.entries(designSystem.spacing).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        root.style.setProperty(`--space-${key}`, value);
+      }
+    });
+
+    // Apply border radius
+    Object.entries(designSystem.borderRadius).forEach(([key, value]) => {
+      root.style.setProperty(`--radius-${key}`, value);
+    });
+
+    // Apply shadows
+    Object.entries(designSystem.shadows).forEach(([key, value]) => {
+      root.style.setProperty(`--shadow-${key}`, value);
+    });
+
+    // Apply gradients
+    Object.entries(designSystem.gradients).forEach(([key, value]) => {
+      root.style.setProperty(`--gradient-${key}`, value);
+    });
+  };
+
+  // Apply design system whenever it changes
+  useEffect(() => {
+    applyToDocument();
+  }, [designSystem]);
+
+  const updateDesignSystem = (updates: Partial<DesignSystem>) => {
+    setDesignSystem(prev => ({
+      ...prev,
+      ...updates,
+    }));
+  };
+
+  const value: DesignSystemContextType = {
+    designSystem,
+    updateDesignSystem,
+    isLoading,
+    applyToDocument,
+  };
+
+  return (
+    <DesignSystemContext.Provider value={value}>
+      {children}
+    </DesignSystemContext.Provider>
+  );
+};
