@@ -501,13 +501,24 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                 : 'bg-card'
                           }`}>
                             <CardContent className="p-4">
-                              <p className={`text-sm whitespace-pre-wrap ${
-                                message.is_internal 
-                                  ? 'text-black font-medium' 
-                                  : message.sender_type === 'agent' 
-                                    ? 'text-white' 
-                                    : 'text-foreground'
-                              }`}>
+                              <p 
+                                className={`text-sm whitespace-pre-wrap ${
+                                  message.is_internal 
+                                    ? 'text-black font-medium' 
+                                    : message.sender_type === 'agent' 
+                                      ? 'text-white' 
+                                      : 'text-foreground'
+                                }`}
+                                style={{
+                                  color: message.is_internal 
+                                    ? 'black' 
+                                    : message.sender_type === 'agent' 
+                                      ? 'white' 
+                                      : 'hsl(224 71% 4%)',
+                                  opacity: 1,
+                                  textShadow: 'none'
+                                }}
+                              >
                                 {message.content}
                               </p>
                               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
@@ -519,21 +530,33 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                           A
                                         </AvatarFallback>
                                       </Avatar>
-                                      <span className={`text-xs ${
-                                        message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
-                                      }`}>
-                                        Agent
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  {message.sender_type === 'agent' && getStatusIcon(message)}
-                                  <span className={`text-xs ${
-                                    message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
-                                  }`}>
-                                    {formatTime(messageDate)}
-                                  </span>
+                                       <span 
+                                         className={`text-xs ${
+                                           message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
+                                         }`}
+                                         style={{
+                                           color: message.sender_type === 'agent' ? 'white' : 'hsl(220 9% 46%)',
+                                           opacity: 1
+                                         }}
+                                       >
+                                         Agent
+                                       </span>
+                                     </>
+                                   )}
+                                 </div>
+                                 <div className="flex items-center space-x-2">
+                                   {message.sender_type === 'agent' && getStatusIcon(message)}
+                                   <span 
+                                     className={`text-xs ${
+                                       message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
+                                     }`}
+                                     style={{
+                                       color: message.sender_type === 'agent' ? 'white' : 'hsl(220 9% 46%)',
+                                       opacity: 1
+                                     }}
+                                   >
+                                     {formatTime(messageDate)}
+                                   </span>
                                 </div>
                               </div>
                              

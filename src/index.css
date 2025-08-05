@@ -406,11 +406,62 @@ All colors MUST be HSL.
     color: hsl(var(--foreground)) !important;
   }
   
-  /* Emergency contrast override for unreadable text */
-  .contrast-fix,
-  .contrast-fix * {
-    color: hsl(var(--foreground)) !important;
-    background-color: hsl(var(--background)) !important;
+  
+  /* CONTRAST FIX - Maximum Specificity Override */
+  
+  /* Step 1: Force white text on all primary backgrounds with maximum specificity */
+  .bg-primary,
+  .bg-primary *,
+  .bg-primary p,
+  .bg-primary span,
+  .bg-primary div,
+  .bg-primary .text-sm,
+  .bg-primary .text-xs,
+  [class*="bg-primary"] *,
+  [class*="bg-primary"] p,
+  [class*="bg-primary"] span {
+    color: white !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+  }
+  
+  /* Step 2: Force black text on warning backgrounds */
+  .bg-warning-muted,
+  .bg-warning-muted *,
+  .bg-warning-muted p,
+  .bg-warning-muted span,
+  .bg-warning-muted div,
+  .border-warning *,
+  [class*="warning"] * {
+    color: black !important;
+    opacity: 1 !important;
+  }
+  
+  /* Step 3: Force dark text on card backgrounds */
+  .bg-card,
+  .bg-card *,
+  .bg-card p,
+  .bg-card span,
+  .bg-card div,
+  .bg-card .text-sm,
+  .bg-card .text-xs {
+    color: hsl(224 71% 4%) !important;
+    opacity: 1 !important;
+  }
+  
+  /* Step 4: Force contrast class to override everything */
+  .force-contrast,
+  .force-contrast * {
+    color: white !important;
+    background-color: hsl(217 91% 60%) !important;
+  }
+  
+  /* Step 5: Remove all opacity that makes text faint */
+  .opacity-70,
+  .opacity-80,
+  .opacity-90,
+  [class*="opacity-"] {
+    opacity: 1 !important;
   }
   
   /* Specific fixes for conversation messages */
