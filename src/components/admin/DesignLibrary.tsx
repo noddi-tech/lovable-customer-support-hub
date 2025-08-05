@@ -34,6 +34,7 @@ interface DesignSystemConfig {
   spacing: {
     baseUnit: string;
     cardPadding: string;
+    buttonSpacing: string;
   };
   borderRadius: {
     base: string;
@@ -52,7 +53,6 @@ interface DesignSystemConfig {
     buttons: {
       style: 'default' | 'rounded' | 'sharp' | 'pill';
       size: 'sm' | 'md' | 'lg';
-      spacing: string;
     };
     icons: {
       style: 'outline' | 'filled' | 'duotone';
@@ -96,6 +96,7 @@ export const DesignLibrary = () => {
     spacing: {
       baseUnit: '4px',
       cardPadding: '24px',
+      buttonSpacing: '8px',
     },
     borderRadius: {
       base: '8px',
@@ -114,7 +115,6 @@ export const DesignLibrary = () => {
       buttons: {
         style: 'default',
         size: 'md',
-        spacing: '8px',
       },
       icons: {
         style: 'outline',
@@ -525,6 +525,18 @@ export const DesignLibrary = () => {
                       placeholder="12px"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="button-spacing">Button Spacing</Label>
+                    <Input 
+                      id="button-spacing"
+                      value={designSystem.spacing.buttonSpacing}
+                      onChange={(e) => setDesignSystem(prev => ({
+                        ...prev,
+                        spacing: { ...prev.spacing, buttonSpacing: e.target.value }
+                      }))}
+                      placeholder="8px"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -542,7 +554,7 @@ export const DesignLibrary = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <h4 className="font-medium">Button Spacing</h4>
-                  <div className="flex" style={{ gap: designSystem.spacing.baseUnit }}>
+                  <div className="flex" style={{ gap: designSystem.spacing.buttonSpacing }}>
                     <Button size="sm">Button 1</Button>
                     <Button size="sm">Button 2</Button>
                     <Button size="sm">Button 3</Button>
@@ -563,6 +575,7 @@ export const DesignLibrary = () => {
                   <h4 className="font-medium">Current Values</h4>
                   <p className="text-sm">Base unit: {designSystem.spacing.baseUnit}</p>
                   <p className="text-sm">Card padding: {designSystem.spacing.cardPadding}</p>
+                  <p className="text-sm">Button spacing: {designSystem.spacing.buttonSpacing}</p>
                   <p className="text-sm">Base radius: {designSystem.borderRadius.base}</p>
                   <p className="text-sm">Card radius: {designSystem.borderRadius.card}</p>
                 </div>
@@ -763,21 +776,6 @@ export const DesignLibrary = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="button-spacing">Button Spacing</Label>
-                    <Input 
-                      id="button-spacing"
-                      value={designSystem.components.buttons.spacing}
-                      onChange={(e) => setDesignSystem(prev => ({
-                        ...prev,
-                        components: {
-                          ...prev.components,
-                          buttons: { ...prev.components.buttons, spacing: e.target.value }
-                        }
-                      }))}
-                      placeholder="8px"
-                    />
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -796,7 +794,7 @@ export const DesignLibrary = () => {
                 <div className="space-y-4">
                   <h4 className="font-medium">Buttons</h4>
                   <div className="space-y-3">
-                    <div className="flex" style={{ gap: designSystem.components.buttons.spacing }}>
+                    <div className="flex" style={{ gap: designSystem.spacing.buttonSpacing }}>
                       <Button 
                         size={designSystem.components.buttons.size as any}
                       >
@@ -815,7 +813,7 @@ export const DesignLibrary = () => {
                         Outline
                       </Button>
                     </div>
-                    <div className="flex" style={{ gap: designSystem.components.buttons.spacing }}>
+                    <div className="flex" style={{ gap: designSystem.spacing.buttonSpacing }}>
                       <Button 
                         variant="destructive" 
                         size={designSystem.components.buttons.size as any}
