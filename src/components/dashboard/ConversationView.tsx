@@ -489,7 +489,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     <div className={`flex ${message.sender_type === 'agent' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-2xl ${message.sender_type === 'agent' ? 'ml-6 md:ml-12' : 'mr-6 md:mr-12'}`}>
                         {message.is_internal && (
-                          <div className="text-xs text-warning mb-1 flex items-center">
+                          <div 
+                            className="text-xs mb-1 flex items-center font-medium"
+                            style={{ color: 'hsl(var(--warning))' }}
+                          >
                             <Star className="h-3 w-3 mr-1" />
                             Internal Note
                           </div>
@@ -497,39 +500,48 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         
                           <Card className={`${
                             message.is_internal 
-                              ? 'bg-warning-muted border-warning' 
+                              ? 'bg-warning/10 border-warning/20' 
                               : message.sender_type === 'agent' 
-                                ? 'bg-primary force-white-text' 
-                                : 'bg-card'
+                                ? 'bg-primary border-primary' 
+                                : 'bg-card border-border'
                           }`}>
                             <CardContent className="p-4">
                               <p 
-                                className="text-sm whitespace-pre-wrap"
+                                className="text-sm whitespace-pre-wrap font-medium"
                                 style={{
                                   color: message.is_internal 
                                     ? getMessageTextColor('internal')
                                     : message.sender_type === 'agent' 
                                       ? getMessageTextColor('agent')
-                                      : getMessageTextColor('customer')
+                                      : getMessageTextColor('customer'),
+                                  fontWeight: message.is_internal ? '600' : '400'
                                 }}
                               >
                                 {message.content}
                               </p>
-                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
                                 <div className="flex items-center space-x-2">
                                   {message.sender_type === 'agent' && (
                                     <>
                                       <Avatar className="h-4 w-4">
-                                        <AvatarFallback className="text-xs bg-primary-foreground text-primary">
+                                        <AvatarFallback 
+                                          className="text-xs"
+                                          style={{
+                                            backgroundColor: 'hsl(var(--primary-foreground))',
+                                            color: 'hsl(var(--primary))'
+                                          }}
+                                        >
                                           A
                                         </AvatarFallback>
                                       </Avatar>
                                        <span 
-                                         className="text-xs"
+                                         className="text-xs font-medium"
                                          style={{
-                                           color: message.sender_type === 'agent' 
-                                             ? getMessageTextColor('agent')
-                                             : getMessageTextColor('customer')
+                                           color: message.is_internal 
+                                             ? getMessageTextColor('internal')
+                                             : message.sender_type === 'agent' 
+                                               ? getMessageTextColor('agent')
+                                               : getMessageTextColor('customer')
                                          }}
                                        >
                                          Agent
@@ -542,9 +554,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                    <span 
                                      className="text-xs"
                                      style={{
-                                       color: message.sender_type === 'agent' 
-                                         ? getMessageTextColor('agent')
-                                         : getMessageTextColor('customer')
+                                       color: message.is_internal 
+                                         ? getMessageTextColor('internal')
+                                         : message.sender_type === 'agent' 
+                                           ? getMessageTextColor('agent')
+                                           : getMessageTextColor('customer')
                                      }}
                                    >
                                      {formatTime(messageDate)}
