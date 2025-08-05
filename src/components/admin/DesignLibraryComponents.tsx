@@ -251,10 +251,17 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
                 </AlertDescription>
               </Alert>
 
-              <Alert className="border-warning bg-warning/10">
-                <AlertTriangle className="h-4 w-4 text-warning" />
-                <AlertTitle className="text-warning-foreground">Warning</AlertTitle>
-                <AlertDescription className="text-warning-foreground">
+              <Alert 
+                className="border-warning bg-warning text-black"
+                style={{ 
+                  backgroundColor: 'hsl(var(--warning) / 0.1)',
+                  borderColor: 'hsl(var(--warning))',
+                  color: 'hsl(0 0% 0%)'
+                }}
+              >
+                <AlertTriangle className="h-4 w-4" style={{ color: 'hsl(var(--warning))' }} />
+                <AlertTitle style={{ color: 'hsl(0 0% 0%)' }}>Warning</AlertTitle>
+                <AlertDescription style={{ color: 'hsl(0 0% 0%)' }}>
                   This is a warning alert. Please pay attention to this message.
                 </AlertDescription>
               </Alert>
@@ -267,10 +274,17 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
                 </AlertDescription>
               </Alert>
 
-              <Alert className="border-success bg-success/10">
-                <Check className="h-4 w-4 text-success" />
-                <AlertTitle className="text-success-foreground">Success</AlertTitle>
-                <AlertDescription className="text-success-foreground">
+              <Alert 
+                className="border-success bg-success text-white"
+                style={{ 
+                  backgroundColor: 'hsl(var(--success))',
+                  borderColor: 'hsl(var(--success))',
+                  color: 'white'
+                }}
+              >
+                <Check className="h-4 w-4" style={{ color: 'white' }} />
+                <AlertTitle style={{ color: 'white' }}>Success</AlertTitle>
+                <AlertDescription style={{ color: 'white' }}>
                   This is a success alert. The operation completed successfully.
                 </AlertDescription>
               </Alert>

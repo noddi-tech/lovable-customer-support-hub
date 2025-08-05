@@ -253,12 +253,27 @@ All colors MUST be HSL.
     color: white !important;
   }
   
-  /* Alert specific contrast fixes */
-  .border-destructive,
+  /* Alert specific contrast fixes - more aggressive */
   .border-destructive *,
-  .text-destructive {
-    color: hsl(var(--destructive)) !important;
-    background-color: hsl(var(--destructive-muted)) !important;
+  [data-variant="destructive"] *,
+  .variant-destructive * {
+    color: white !important;
+  }
+  
+  /* Warning alerts with yellow/orange background need black text */
+  .border-warning,
+  .border-warning *,
+  .bg-warning,
+  .bg-warning * {
+    color: black !important;
+  }
+  
+  /* Success alerts with green background need white text */
+  .border-success,
+  .border-success *,
+  .bg-success,
+  .bg-success * {
+    color: white !important;
   }
   
   /* Ensure close buttons have proper contrast */
