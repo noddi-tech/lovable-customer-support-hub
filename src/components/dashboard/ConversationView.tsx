@@ -518,14 +518,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                 className="whitespace-pre-wrap"
                                 style={{
                                   color: message.is_internal 
-                                    ? 'rgb(31, 41, 55)' // Dark text for internal notes (warning background)
+                                    ? 'rgb(31, 41, 55) !important' // Dark text for internal notes (warning background)
                                     : message.sender_type === 'agent' 
-                                      ? 'rgb(248, 250, 252)' // White text for agent messages (blue background)
-                                      : 'rgb(31, 41, 55)', // Dark text for customer messages (white background)
+                                      ? 'rgb(255, 255, 255) !important' // Pure white text for agent messages (blue background)
+                                      : 'rgb(31, 41, 55) !important', // Dark text for customer messages (white background)
                                   fontSize: '0.875rem',
                                   fontWeight: message.is_internal ? '600' : '400',
                                   lineHeight: '1.25rem',
-                                  opacity: 1
+                                  opacity: '1 !important'
                                 }}
                               >
                                 {message.content}
