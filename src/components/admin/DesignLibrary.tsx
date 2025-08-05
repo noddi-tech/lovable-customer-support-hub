@@ -55,7 +55,7 @@ interface DesignSystemConfig {
     };
     buttons: {
       style: 'default' | 'rounded' | 'sharp' | 'pill';
-      size: 'sm' | 'md' | 'lg';
+      size: 'sm' | 'default' | 'lg';
       spacing: string;
       borderRadius: string;
       padding: string;
@@ -123,7 +123,7 @@ export const DesignLibrary = () => {
       },
       buttons: {
         style: 'default',
-        size: 'md',
+        size: 'default',
         spacing: '8px',
         borderRadius: '6px',
         padding: '12px 16px',
@@ -847,7 +847,7 @@ export const DesignLibrary = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="sm">Small</SelectItem>
-                          <SelectItem value="md">Medium</SelectItem>
+                          <SelectItem value="default">Default</SelectItem>
                           <SelectItem value="lg">Large</SelectItem>
                         </SelectContent>
                       </Select>
