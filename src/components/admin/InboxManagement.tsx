@@ -412,6 +412,26 @@ export function InboxManagement() {
                 />
               </div>
               <div>
+                <Label htmlFor="edit-department">Department</Label>
+                <Select 
+                  value={editingInbox.department_id || 'no-department'} 
+                  onValueChange={(value) => setEditingInbox(prev => prev ? { 
+                    ...prev, 
+                    department_id: value === 'no-department' ? null : value 
+                  } : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-department">No Department</SelectItem>
+                    {departments?.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label htmlFor="edit-color">Color</Label>
                 <Input
                   id="edit-color"
