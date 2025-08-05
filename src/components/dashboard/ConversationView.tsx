@@ -624,7 +624,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   {isInternalNote ? 'This note will only be visible to your team' : 'This reply will be sent to the customer'}
                 </div>
                 <Button 
-                  className="bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
+                  variant="default"
                   disabled={!replyText.trim() || isSending}
                   onClick={async () => {
                     setIsSending(true);
