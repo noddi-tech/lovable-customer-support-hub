@@ -428,15 +428,22 @@ export const DesignLibrary = () => {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-primary text-primary-foreground border-primary">
+                  <Card 
+                    className="border-primary" 
+                    style={{ 
+                      backgroundColor: 'hsl(217 91% 60%)', 
+                      color: 'hsl(0 0% 98%)',
+                      border: '1px solid hsl(217 91% 60%)'
+                    }}
+                  >
                     <CardHeader>
-                      <CardTitle className="text-primary-foreground">Primary Card</CardTitle>
-                      <CardDescription className="text-primary-foreground/80">
+                      <CardTitle style={{ color: 'hsl(0 0% 98%)' }}>Primary Card</CardTitle>
+                      <CardDescription style={{ color: 'hsl(0 0% 85%)' }}>
                         A card with primary background
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-primary-foreground/90">
+                      <p className="text-sm" style={{ color: 'hsl(0 0% 90%)' }}>
                         This card uses the primary color scheme.
                       </p>
                     </CardContent>
