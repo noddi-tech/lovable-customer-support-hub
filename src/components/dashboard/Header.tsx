@@ -48,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   });
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 shadow-sm">
+    <header className="h-16 bg-card/90 backdrop-blur-sm border-b border-border flex items-center justify-between px-4 md:px-6 shadow-surface">
       <div className="flex items-center space-x-2 md:space-x-4">
         {/* Mobile Menu/Back Button */}
         {showMenuButton && (
@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
         )}
         
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-glow">
             <span className="text-primary-foreground font-bold text-sm">CS</span>
           </div>
           <div className="hidden sm:block">
@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
         </Button>
 
         {/* Notifications */}
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground relative">
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-accent relative">
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
             <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center">

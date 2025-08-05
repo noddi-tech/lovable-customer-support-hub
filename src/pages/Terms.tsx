@@ -2,16 +2,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Terms = () => {
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-gradient-surface p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">Terms of Service</h1>
           <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
         </div>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Acceptance of Terms</CardTitle>
+            <CardTitle className="text-primary">Acceptance of Terms</CardTitle>
           </CardHeader>
           <CardContent>
             <p>
@@ -20,9 +20,9 @@ const Terms = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Service Description</CardTitle>
+            <CardTitle className="text-primary">Service Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
@@ -38,9 +38,9 @@ const Terms = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>User Responsibilities</CardTitle>
+            <CardTitle className="text-primary">User Responsibilities</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>As a user of our service, you agree to:</p>
@@ -54,9 +54,9 @@ const Terms = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Email Integration</CardTitle>
+            <CardTitle className="text-primary">Email Integration</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
@@ -74,9 +74,9 @@ const Terms = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Data Ownership and Privacy</CardTitle>
+            <CardTitle className="text-primary">Data Ownership and Privacy</CardTitle>
           </CardHeader>
           <CardContent>
             <p>
@@ -85,9 +85,9 @@ const Terms = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Service Availability</CardTitle>
+            <CardTitle className="text-primary">Service Availability</CardTitle>
           </CardHeader>
           <CardContent>
             <p>
@@ -96,9 +96,9 @@ const Terms = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Limitation of Liability</CardTitle>
+            <CardTitle className="text-primary">Limitation of Liability</CardTitle>
           </CardHeader>
           <CardContent>
             <p>
@@ -107,9 +107,9 @@ const Terms = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Changes to Terms</CardTitle>
+            <CardTitle className="text-primary">Changes to Terms</CardTitle>
           </CardHeader>
           <CardContent>
             <p>
@@ -118,9 +118,9 @@ const Terms = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
+            <CardTitle className="text-primary">Contact Information</CardTitle>
           </CardHeader>
           <CardContent>
             <p>

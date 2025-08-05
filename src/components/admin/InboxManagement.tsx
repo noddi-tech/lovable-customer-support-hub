@@ -176,8 +176,8 @@ export function InboxManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Inbox Management</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Inbox Management</h2>
+          <p className="text-muted-foreground mt-1">
             Manage inboxes and email connections for your organization
           </p>
         </div>
@@ -262,9 +262,9 @@ export function InboxManagement() {
       </div>
 
       {/* Email Account Management */}
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
             <Mail className="h-5 w-5" />
             Email Account Management
           </CardTitle>
@@ -280,7 +280,7 @@ export function InboxManagement() {
       <Separator />
 
       <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-primary">
           <Inbox className="h-5 w-5" />
           All Inboxes
         </h3>
@@ -302,7 +302,7 @@ export function InboxManagement() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {inboxes?.map((inbox) => (
-            <Card key={inbox.id} className="relative">
+            <Card key={inbox.id} className="relative bg-gradient-surface border-border/50 shadow-surface hover:shadow-glow transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">

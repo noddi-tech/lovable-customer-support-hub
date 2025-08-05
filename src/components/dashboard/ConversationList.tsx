@@ -44,17 +44,17 @@ interface ConversationListProps {
 }
 
 const priorityColors = {
-  low: "bg-gray-100 text-gray-700",
-  normal: "bg-blue-100 text-blue-700",
-  high: "bg-orange-100 text-orange-700",
-  urgent: "bg-red-100 text-red-700",
+  low: "bg-muted text-muted-foreground",
+  normal: "bg-primary-muted text-primary",
+  high: "bg-warning-muted text-warning",
+  urgent: "bg-destructive-muted text-destructive",
 };
 
 const statusColors = {
-  open: "bg-green-100 text-green-700",
-  pending: "bg-yellow-100 text-yellow-700",
-  resolved: "bg-blue-100 text-blue-700",
-  closed: "bg-gray-100 text-gray-700",
+  open: "bg-success-muted text-success",
+  pending: "bg-warning-muted text-warning",
+  resolved: "bg-primary-muted text-primary",
+  closed: "bg-muted text-muted-foreground",
 };
 
 const formatTimeAgo = (dateString: string) => {
@@ -145,9 +145,9 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
+    <div className="flex-1 flex flex-col bg-gradient-surface">
       {/* Header */}
-      <div className="p-4 border-b border-border bg-background">
+      <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Inbox className="h-5 w-5" />
@@ -222,15 +222,15 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
               key={conversation.id}
               onClick={() => onSelectConversation(conversation)}
               className={cn(
-                "p-4 border-b border-border hover:bg-muted/50 cursor-pointer transition-colors",
-                selectedConversation?.id === conversation.id && "bg-muted",
-                !conversation.is_read && "border-l-4 border-l-blue-500 bg-blue-50/30"
+                "p-4 border-b border-border hover:bg-accent/50 cursor-pointer transition-colors",
+                selectedConversation?.id === conversation.id && "bg-accent",
+                !conversation.is_read && "border-l-4 border-l-primary bg-primary-muted/30"
               )}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   {conversation.priority === "urgent" && (
-                    <Star className="h-4 w-4 text-red-500" fill="currentColor" />
+                    <Star className="h-4 w-4 text-destructive" fill="currentColor" />
                   )}
                   <h3 className={cn(
                     "text-sm font-medium truncate max-w-64",

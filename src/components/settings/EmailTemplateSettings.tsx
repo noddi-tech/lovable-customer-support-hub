@@ -135,9 +135,9 @@ export function EmailTemplateSettings() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle>Email Template Settings</CardTitle>
+          <CardTitle className="text-primary">Email Template Settings</CardTitle>
           <CardDescription>
             Customize how your outgoing emails look. The email body will be exactly what you type in your replies.
           </CardDescription>
@@ -312,7 +312,7 @@ export function EmailTemplateSettings() {
           <Button 
             onClick={handleSave} 
             disabled={saveTemplateMutation.isPending}
-            className="w-full"
+            className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
           >
             {saveTemplateMutation.isPending ? 'Saving...' : 'Save Template'}
           </Button>

@@ -209,8 +209,8 @@ export function DepartmentManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Department Management</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">Department Management</h2>
+          <p className="text-muted-foreground mt-1">
             Organize your team into departments for better workflow management.
           </p>
         </div>
@@ -270,14 +270,14 @@ export function DepartmentManagement() {
       </div>
 
       {departments.length === 0 ? (
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardContent className="text-center py-8">
-            <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="font-medium mb-2">No departments yet</h3>
+            <Building className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+            <h3 className="font-medium mb-2 text-primary">No departments yet</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Create your first department to start organizing your team.
             </p>
-            <Button onClick={() => setShowCreateDialog(true)}>
+            <Button onClick={() => setShowCreateDialog(true)} className="bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
               <Plus className="h-4 w-4 mr-2" />
               Create First Department
             </Button>
@@ -286,11 +286,11 @@ export function DepartmentManagement() {
       ) : (
         <div className="grid gap-4">
           {departments.map((department) => (
-            <Card key={department.id}>
+            <Card key={department.id} className="bg-gradient-surface border-border/50 shadow-surface hover:shadow-glow transition-shadow">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-primary">
                       <Building className="h-5 w-5" />
                       {department.name}
                     </CardTitle>

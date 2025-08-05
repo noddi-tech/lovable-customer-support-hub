@@ -2,16 +2,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Privacy = () => {
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-gradient-surface p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">Privacy Policy</h1>
           <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
         </div>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Information We Collect</CardTitle>
+            <CardTitle className="text-primary">Information We Collect</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
@@ -26,9 +26,9 @@ const Privacy = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>How We Use Your Information</CardTitle>
+            <CardTitle className="text-primary">How We Use Your Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>We use the information we collect to:</p>
@@ -42,9 +42,9 @@ const Privacy = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Information Sharing</CardTitle>
+            <CardTitle className="text-primary">Information Sharing</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
@@ -58,9 +58,9 @@ const Privacy = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Data Security</CardTitle>
+            <CardTitle className="text-primary">Data Security</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
@@ -75,9 +75,9 @@ const Privacy = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Your Rights</CardTitle>
+            <CardTitle className="text-primary">Your Rights</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>You have the right to:</p>
@@ -91,9 +91,9 @@ const Privacy = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
-            <CardTitle>Contact Us</CardTitle>
+            <CardTitle className="text-primary">Contact Us</CardTitle>
           </CardHeader>
           <CardContent>
             <p>

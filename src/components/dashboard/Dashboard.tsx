@@ -51,7 +51,7 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-gradient-surface">
       {/* Header */}
       <Header 
         organizationName="Noddi Support"
@@ -60,12 +60,12 @@ export const Dashboard: React.FC = () => {
       />
       
       {/* Main Content */}
-      <div className="flex-1 flex bg-background">
+      <div className="flex-1 flex bg-gradient-surface">
         {/* Sidebar */}
       <div className={`
         ${isMobile ? 'fixed left-0 top-0 bottom-0 z-50 transform transition-transform' : ''}
         ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}
-        w-64 border-r border-border bg-card
+        w-64 border-r border-border bg-card/80 backdrop-blur-sm shadow-surface
       `}>
         <InboxSidebar 
           selectedTab={selectedTab} 
@@ -86,7 +86,7 @@ export const Dashboard: React.FC = () => {
         {/* Conversation List */}
         <div className={`
           ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
-          w-96 border-r border-border bg-background flex-col
+          w-96 border-r border-border bg-gradient-surface flex-col
         `}>
           <ConversationList 
             selectedTab={selectedTab}
@@ -98,11 +98,11 @@ export const Dashboard: React.FC = () => {
         {/* Conversation View */}
         <div className={`
           ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'flex'}
-          flex-1 flex-col bg-background
+          flex-1 flex-col bg-gradient-surface
         `}>
           {/* Mobile Header */}
           {isMobile && (
-            <div className="p-4 border-b border-border bg-card flex items-center">
+            <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
               <Button 
                 variant="ghost" 
                 size="sm" 

@@ -279,8 +279,8 @@ export function UserManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">User Management</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">User Management</h2>
+          <p className="text-muted-foreground mt-1">
             Manage users, roles, and permissions for your organization.
           </p>
         </div>
@@ -390,14 +390,14 @@ export function UserManagement() {
       </div>
 
       {users.length === 0 ? (
-        <Card>
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardContent className="text-center py-8">
-            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="font-medium mb-2">No users yet</h3>
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+            <h3 className="font-medium mb-2 text-primary">No users yet</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Create your first user to start building your team.
             </p>
-            <Button onClick={() => setShowCreateDialog(true)}>
+            <Button onClick={() => setShowCreateDialog(true)} className="bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
               <UserPlus className="h-4 w-4 mr-2" />
               Create First User
             </Button>
@@ -406,18 +406,18 @@ export function UserManagement() {
       ) : (
         <div className="grid gap-4">
           {users.map((userProfile) => (
-            <Card key={userProfile.id}>
+            <Card key={userProfile.id} className="bg-gradient-surface border-border/50 shadow-surface hover:shadow-glow transition-shadow">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shadow-glow">
                       <Users className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         {userProfile.full_name}
                         {userProfile.primary_role === 'admin' && (
-                          <Crown className="h-4 w-4 text-amber-500" />
+                          <Crown className="h-4 w-4 text-warning" />
                         )}
                       </CardTitle>
                       <div className="flex items-center gap-2 mt-1">
