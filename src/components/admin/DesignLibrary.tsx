@@ -4,7 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, Palette, Eye, Download, Upload } from 'lucide-react';
+import { Save, Palette, Eye, Download, Upload, Settings, Layout, Layers } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast as showToast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,16 +20,43 @@ interface DesignSystemConfig {
     destructive: string;
     success: string;
     warning: string;
+    background: string;
+    foreground: string;
+    muted: string;
+    card: string;
   };
   typography: {
     primaryFont: string;
     secondaryFont: string;
+    headingWeight: string;
+    bodyWeight: string;
   };
   spacing: {
     baseUnit: string;
+    cardPadding: string;
   };
   borderRadius: {
     base: string;
+    card: string;
+    button: string;
+  };
+  components: {
+    toast: {
+      position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
+      style: 'default' | 'minimal' | 'rounded' | 'sharp';
+    };
+    card: {
+      shadow: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+      border: 'none' | 'subtle' | 'strong';
+    };
+    buttons: {
+      style: 'default' | 'rounded' | 'sharp' | 'pill';
+      size: 'sm' | 'md' | 'lg';
+    };
+    icons: {
+      style: 'outline' | 'filled' | 'duotone';
+      size: 'sm' | 'md' | 'lg';
+    };
   };
 }
 
@@ -52,16 +81,43 @@ export const DesignLibrary = () => {
       destructive: '#EF4444',
       success: '#10B981',
       warning: '#F59E0B',
+      background: '#FFFFFF',
+      foreground: '#0F172A',
+      muted: '#F1F5F9',
+      card: '#FFFFFF',
     },
     typography: {
       primaryFont: 'Inter',
       secondaryFont: 'Inter',
+      headingWeight: '600',
+      bodyWeight: '400',
     },
     spacing: {
       baseUnit: '4px',
+      cardPadding: '24px',
     },
     borderRadius: {
       base: '8px',
+      card: '12px',
+      button: '6px',
+    },
+    components: {
+      toast: {
+        position: 'bottom-right',
+        style: 'default',
+      },
+      card: {
+        shadow: 'sm',
+        border: 'subtle',
+      },
+      buttons: {
+        style: 'default',
+        size: 'md',
+      },
+      icons: {
+        style: 'outline',
+        size: 'md',
+      },
     },
   });
 
@@ -227,10 +283,12 @@ export const DesignLibrary = () => {
       </div>
 
       <Tabs defaultValue="colors" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="colors">Colors</TabsTrigger>
           <TabsTrigger value="typography">Typography</TabsTrigger>
           <TabsTrigger value="spacing">Spacing</TabsTrigger>
+          <TabsTrigger value="components">Components</TabsTrigger>
+          <TabsTrigger value="interactions">Interactions</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
         </TabsList>
 
@@ -276,6 +334,26 @@ export const DesignLibrary = () => {
                   label="Warning" 
                   colorKey="warning" 
                   value={designSystem.colors.warning} 
+                />
+                <ColorPicker 
+                  label="Background" 
+                  colorKey="background" 
+                  value={designSystem.colors.background} 
+                />
+                <ColorPicker 
+                  label="Foreground" 
+                  colorKey="foreground" 
+                  value={designSystem.colors.foreground} 
+                />
+                <ColorPicker 
+                  label="Muted" 
+                  colorKey="muted" 
+                  value={designSystem.colors.muted} 
+                />
+                <ColorPicker 
+                  label="Card" 
+                  colorKey="card" 
+                  value={designSystem.colors.card} 
                 />
               </div>
             </CardContent>
@@ -344,7 +422,19 @@ export const DesignLibrary = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="border-radius">Border Radius</Label>
+                  <Label htmlFor="card-padding">Card Padding</Label>
+                  <Input 
+                    id="card-padding"
+                    value={designSystem.spacing.cardPadding}
+                    onChange={(e) => setDesignSystem(prev => ({
+                      ...prev,
+                      spacing: { ...prev.spacing, cardPadding: e.target.value }
+                    }))}
+                    placeholder="24px"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="border-radius">Base Border Radius</Label>
                   <Input 
                     id="border-radius"
                     value={designSystem.borderRadius.base}
@@ -354,6 +444,273 @@ export const DesignLibrary = () => {
                     }))}
                     placeholder="8px"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="card-radius">Card Border Radius</Label>
+                  <Input 
+                    id="card-radius"
+                    value={designSystem.borderRadius.card}
+                    onChange={(e) => setDesignSystem(prev => ({
+                      ...prev,
+                      borderRadius: { ...prev.borderRadius, card: e.target.value }
+                    }))}
+                    placeholder="12px"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="components">
+          <div className="space-y-6">
+            {/* Toast Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Toast Notifications
+                </CardTitle>
+                <CardDescription>
+                  Configure toast notification appearance and behavior
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Toast Position</Label>
+                  <Select 
+                    value={designSystem.components.toast.position}
+                    onValueChange={(value: any) => setDesignSystem(prev => ({
+                      ...prev,
+                      components: {
+                        ...prev.components,
+                        toast: { ...prev.components.toast, position: value }
+                      }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top-left">Top Left</SelectItem>
+                      <SelectItem value="top-center">Top Center</SelectItem>
+                      <SelectItem value="top-right">Top Right</SelectItem>
+                      <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                      <SelectItem value="bottom-center">Bottom Center</SelectItem>
+                      <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Toast Style</Label>
+                  <Select 
+                    value={designSystem.components.toast.style}
+                    onValueChange={(value: any) => setDesignSystem(prev => ({
+                      ...prev,
+                      components: {
+                        ...prev.components,
+                        toast: { ...prev.components.toast, style: value }
+                      }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Default</SelectItem>
+                      <SelectItem value="minimal">Minimal</SelectItem>
+                      <SelectItem value="rounded">Rounded</SelectItem>
+                      <SelectItem value="sharp">Sharp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => showToast('This is a test toast with your current settings!')}
+                  >
+                    Test Toast
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layout className="w-5 h-5" />
+                  Card Components
+                </CardTitle>
+                <CardDescription>
+                  Configure card appearance and styling
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Card Shadow</Label>
+                  <Select 
+                    value={designSystem.components.card.shadow}
+                    onValueChange={(value: any) => setDesignSystem(prev => ({
+                      ...prev,
+                      components: {
+                        ...prev.components,
+                        card: { ...prev.components.card, shadow: value }
+                      }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="sm">Small</SelectItem>
+                      <SelectItem value="md">Medium</SelectItem>
+                      <SelectItem value="lg">Large</SelectItem>
+                      <SelectItem value="xl">Extra Large</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Card Border</Label>
+                  <Select 
+                    value={designSystem.components.card.border}
+                    onValueChange={(value: any) => setDesignSystem(prev => ({
+                      ...prev,
+                      components: {
+                        ...prev.components,
+                        card: { ...prev.components.card, border: value }
+                      }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="subtle">Subtle</SelectItem>
+                      <SelectItem value="strong">Strong</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Button Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="w-5 h-5" />
+                  Button Components
+                </CardTitle>
+                <CardDescription>
+                  Configure button appearance and behavior
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Button Style</Label>
+                  <Select 
+                    value={designSystem.components.buttons.style}
+                    onValueChange={(value: any) => setDesignSystem(prev => ({
+                      ...prev,
+                      components: {
+                        ...prev.components,
+                        buttons: { ...prev.components.buttons, style: value }
+                      }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Default</SelectItem>
+                      <SelectItem value="rounded">Rounded</SelectItem>
+                      <SelectItem value="sharp">Sharp</SelectItem>
+                      <SelectItem value="pill">Pill</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Default Button Size</Label>
+                  <Select 
+                    value={designSystem.components.buttons.size}
+                    onValueChange={(value: any) => setDesignSystem(prev => ({
+                      ...prev,
+                      components: {
+                        ...prev.components,
+                        buttons: { ...prev.components.buttons, size: value }
+                      }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sm">Small</SelectItem>
+                      <SelectItem value="md">Medium</SelectItem>
+                      <SelectItem value="lg">Large</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="interactions">
+          <Card>
+            <CardHeader>
+              <CardTitle>Interactions & Animations</CardTitle>
+              <CardDescription>
+                Configure hover effects, transitions, and animations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Icon Style</Label>
+                  <Select 
+                    value={designSystem.components.icons.style}
+                    onValueChange={(value: any) => setDesignSystem(prev => ({
+                      ...prev,
+                      components: {
+                        ...prev.components,
+                        icons: { ...prev.components.icons, style: value }
+                      }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="outline">Outline</SelectItem>
+                      <SelectItem value="filled">Filled</SelectItem>
+                      <SelectItem value="duotone">Duotone</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Default Icon Size</Label>
+                  <Select 
+                    value={designSystem.components.icons.size}
+                    onValueChange={(value: any) => setDesignSystem(prev => ({
+                      ...prev,
+                      components: {
+                        ...prev.components,
+                        icons: { ...prev.components.icons, size: value }
+                      }
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sm">Small (16px)</SelectItem>
+                      <SelectItem value="md">Medium (20px)</SelectItem>
+                      <SelectItem value="lg">Large (24px)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
@@ -371,21 +728,94 @@ export const DesignLibrary = () => {
                 See how your design system affects components
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
                   <h4 className="font-medium">Buttons</h4>
-                  <div className="flex gap-2">
-                    <Button>Primary</Button>
-                    <Button variant="secondary">Secondary</Button>
-                    <Button variant="outline">Outline</Button>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Button size={designSystem.components.buttons.size as any}>Primary</Button>
+                      <Button variant="secondary" size={designSystem.components.buttons.size as any}>Secondary</Button>
+                      <Button variant="outline" size={designSystem.components.buttons.size as any}>Outline</Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="destructive" size={designSystem.components.buttons.size as any}>Destructive</Button>
+                      <Button variant="ghost" size={designSystem.components.buttons.size as any}>Ghost</Button>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
+                
+                <div className="space-y-4">
                   <h4 className="font-medium">Cards</h4>
-                  <Card className="p-4">
-                    <p className="text-sm">Sample card content with your design system applied.</p>
+                  <Card 
+                    className={`p-4 shadow-${designSystem.components.card.shadow} ${
+                      designSystem.components.card.border === 'none' ? 'border-0' :
+                      designSystem.components.card.border === 'strong' ? 'border-2' : ''
+                    }`}
+                  >
+                    <CardHeader className="p-0 pb-3">
+                      <CardTitle className="text-base">Sample Card</CardTitle>
+                      <CardDescription>This card reflects your design system settings</CardDescription>
+                    </CardHeader>
+                    <p className="text-sm">Card content with custom styling applied.</p>
                   </Card>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Typography</h4>
+                  <div className="space-y-2">
+                    <h1 className="text-2xl font-semibold" style={{ fontFamily: designSystem.typography.primaryFont, fontWeight: designSystem.typography.headingWeight }}>
+                      Heading Example
+                    </h1>
+                    <p className="text-sm" style={{ fontFamily: designSystem.typography.secondaryFont, fontWeight: designSystem.typography.bodyWeight }}>
+                      Body text example using your typography settings.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Toast Preview</h4>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Position: {designSystem.components.toast.position.replace('-', ' ')}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Style: {designSystem.components.toast.style}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => showToast('Preview toast with your settings!', {
+                        description: 'This toast uses your configured position and style.',
+                      })}
+                    >
+                      Test Toast
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Color Swatches</h4>
+                  <div className="grid grid-cols-5 gap-2">
+                    {Object.entries(designSystem.colors).map(([key, value]) => (
+                      <div key={key} className="text-center">
+                        <div 
+                          className="w-8 h-8 rounded-md border mx-auto mb-1"
+                          style={{ backgroundColor: value }}
+                        />
+                        <span className="text-xs capitalize">{key}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Component Spacing</h4>
+                  <div className="space-y-2">
+                    <p className="text-sm">Base unit: {designSystem.spacing.baseUnit}</p>
+                    <p className="text-sm">Card padding: {designSystem.spacing.cardPadding}</p>
+                    <p className="text-sm">Border radius: {designSystem.borderRadius.base}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
