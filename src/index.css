@@ -216,6 +216,25 @@ All colors MUST be HSL.
     color: hsl(var(--card-foreground)) !important;
   }
   
+  /* Force white text on primary backgrounds */
+  .force-white-text,
+  .force-white-text *,
+  .force-white-text h1,
+  .force-white-text h2, 
+  .force-white-text h3,
+  .force-white-text h4,
+  .force-white-text h5,
+  .force-white-text h6,
+  .force-white-text p,
+  .force-white-text span,
+  .force-white-text div {
+    color: white !important;
+  }
+  
+  .force-white-text .card-description {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+  
   /* Ensure muted text has enough contrast */
   .text-muted-foreground {
     color: hsl(var(--muted-foreground)) !important;

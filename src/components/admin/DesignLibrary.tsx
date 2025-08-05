@@ -493,33 +493,23 @@ export const DesignLibrary = () => {
                   </Card>
 
                   <Card 
-                    className="border-primary"
+                    className="force-white-text"
                     style={{ 
                       backgroundColor: `hsl(${designSystem.colors.primary})`,
-                      border: `1px solid hsl(${designSystem.colors.primary})`
+                      border: `1px solid hsl(${designSystem.colors.primary})`,
+                      color: 'white'
                     }}
                   >
                     <CardHeader>
-                      <CardTitle style={{ 
-                        color: 'white !important',
-                        fontSize: '1.25rem',
-                        fontWeight: '600'
-                      }}>
+                      <CardTitle className="force-white-text">
                         Primary Card
                       </CardTitle>
-                      <CardDescription style={{ 
-                        color: 'rgba(255, 255, 255, 0.8) !important',
-                        fontSize: '0.875rem'
-                      }}>
+                      <CardDescription className="card-description force-white-text">
                         A card with primary background
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <p style={{ 
-                        color: 'rgba(255, 255, 255, 0.9) !important',
-                        fontSize: '0.875rem',
-                        margin: 0
-                      }}>
+                    <CardContent className="force-white-text">
+                      <p className="force-white-text">
                         This card uses the primary color scheme.
                       </p>
                     </CardContent>
