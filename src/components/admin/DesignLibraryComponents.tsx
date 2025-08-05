@@ -252,11 +252,11 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
               </Alert>
 
               <Alert 
-                className="border-warning bg-warning text-black"
+                className="border-warning bg-warning"
                 style={{ 
                   backgroundColor: 'hsl(var(--warning) / 0.1)',
                   borderColor: 'hsl(var(--warning))',
-                  color: 'hsl(0 0% 0%)'
+                  color: 'hsl(var(--foreground))'
                 }}
               >
                 <AlertTriangle className="h-4 w-4" style={{ color: 'hsl(var(--warning))' }} />
@@ -275,11 +275,11 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
               </Alert>
 
               <Alert 
-                className="border-success bg-success text-white"
+                className="border-success bg-success"
                 style={{ 
                   backgroundColor: 'hsl(var(--success))',
                   borderColor: 'hsl(var(--success))',
-                  color: 'white'
+                  color: 'hsl(var(--success-foreground))'
                 }}
               >
                 <Check className="h-4 w-4" style={{ color: 'white' }} />

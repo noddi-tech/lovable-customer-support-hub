@@ -504,13 +504,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           }`}>
                             <CardContent className="p-4">
                               <p 
-                                className={`text-sm whitespace-pre-wrap ${
-                                  message.is_internal 
-                                    ? 'text-black font-medium' 
-                                    : message.sender_type === 'agent' 
-                                      ? 'text-white' 
-                                      : 'text-foreground'
-                                }`}
+                                className="text-sm whitespace-pre-wrap"
                                 style={{
                                   color: message.is_internal 
                                     ? getMessageTextColor('internal')
@@ -526,14 +520,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                   {message.sender_type === 'agent' && (
                                     <>
                                       <Avatar className="h-4 w-4">
-                                        <AvatarFallback className="text-xs bg-white text-primary">
+                                        <AvatarFallback className="text-xs bg-primary-foreground text-primary">
                                           A
                                         </AvatarFallback>
                                       </Avatar>
                                        <span 
-                                         className={`text-xs ${
-                                           message.sender_type === 'agent' ? 'text-white' : 'text-muted-foreground'
-                                         }`}
+                                         className="text-xs"
                                          style={{
                                            color: message.sender_type === 'agent' 
                                              ? getMessageTextColor('agent')

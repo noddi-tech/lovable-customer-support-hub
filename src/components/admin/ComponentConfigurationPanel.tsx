@@ -626,11 +626,11 @@ export const ComponentConfigurationPanel: React.FC = () => {
               </Alert>
 
               <Alert 
-                className="border-warning bg-warning text-black"
+                className="border-warning bg-warning"
                 style={{ 
                   backgroundColor: 'hsl(var(--warning) / 0.1)',
                   borderColor: 'hsl(var(--warning))',
-                  color: 'hsl(0 0% 0%)',
+                  color: 'hsl(var(--foreground))',
                   borderRadius: designSystem.components.alerts.borderRadius
                 }}
               >
@@ -653,11 +653,11 @@ export const ComponentConfigurationPanel: React.FC = () => {
               </Alert>
 
               <Alert 
-                className="border-success bg-success text-white"
+                className="border-success bg-success"
                 style={{ 
                   backgroundColor: 'hsl(var(--success))',
                   borderColor: 'hsl(var(--success))',
-                  color: 'white',
+                  color: 'hsl(var(--success-foreground))',
                   borderRadius: designSystem.components.alerts.borderRadius
                 }}
               >

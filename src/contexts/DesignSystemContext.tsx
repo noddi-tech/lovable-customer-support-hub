@@ -316,9 +316,22 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
           const merged = {
             ...prev,
             ...metadata.designSystem,
+            colors: {
+              ...prev.colors,
+              ...metadata.designSystem.colors,
+            },
+            typography: {
+              ...prev.typography,
+              ...metadata.designSystem.typography,
+            },
             components: {
               ...prev.components,
               ...metadata.designSystem.components,
+              // Ensure typography component settings always exist with defaults
+              typography: {
+                ...prev.components.typography,
+                ...metadata.designSystem.components?.typography,
+              },
               // Ensure headings always exists with defaults
               headings: {
                 ...prev.components.headings,
@@ -456,9 +469,22 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
             setDesignSystem(prev => ({
               ...prev,
               ...newData.metadata.designSystem,
+              colors: {
+                ...prev.colors,
+                ...newData.metadata.designSystem.colors,
+              },
+              typography: {
+                ...prev.typography,
+                ...newData.metadata.designSystem.typography,
+              },
               components: {
                 ...prev.components,
                 ...newData.metadata.designSystem.components,
+                // Ensure typography component settings always exist with defaults
+                typography: {
+                  ...prev.components.typography,
+                  ...newData.metadata.designSystem.components?.typography,
+                },
                 // Ensure headings always exists with defaults
                 headings: {
                   ...prev.components.headings,
