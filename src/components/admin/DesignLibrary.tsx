@@ -1,18 +1,37 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, Palette, Eye, Download, Upload, Settings, Layout, Layers } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
+import { 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle, 
+  Clock, 
+  Star, 
+  Send,
+  Settings,
+  Home,
+  MessageSquare,
+  Users,
+  BarChart,
+  Heart,
+  ThumbsUp,
+  Zap,
+  Save,
+  Palette
+} from 'lucide-react';
 
 export const DesignLibrary = () => {
   const { toast } = useToast();
@@ -158,22 +177,71 @@ export const DesignLibrary = () => {
     </div>
   );
 
+
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-primary">Design Library</h3>
         <p className="text-muted-foreground">
-          Manage your organization's design system and component library
+          Manage your organization's design system and component library with live preview
         </p>
       </div>
 
-      <Tabs defaultValue="colors" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="config" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="config">Config</TabsTrigger>
           <TabsTrigger value="colors">Colors</TabsTrigger>
           <TabsTrigger value="typography">Typography</TabsTrigger>
           <TabsTrigger value="spacing">Spacing</TabsTrigger>
           <TabsTrigger value="components">Components</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="config">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="w-5 h-5" />
+                Design System Configuration
+              </CardTitle>
+              <CardDescription>
+                Configure your organization's design system settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {colorInputs.map((input) => (
+                  <HSLColorPicker
+                    key={input.key}
+                    label={input.label}
+                    value={designSystem.colors[input.key]}
+                    onChange={(value) => updateColor(input.key, value)}
+                    description={input.description}
+                  />
+                ))}
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium">Gradients</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <GradientEditor
+                    label="Primary Gradient"
+                    value={designSystem.gradients.primary}
+                    onChange={(value) => updateGradient('primary', value)}
+                    description="Main gradient for primary elements"
+                  />
+                  <GradientEditor
+                    label="Surface Gradient"
+                    value={designSystem.gradients.surface}
+                    onChange={(value) => updateGradient('surface', value)}
+                    description="Subtle gradient for surface elements"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="colors">
           <div className="grid gap-6">
