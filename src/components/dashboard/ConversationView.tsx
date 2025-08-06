@@ -689,7 +689,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     )}
                      
                      <div className={`flex ${isAgent ? 'justify-end' : 'justify-start'} px-4`}>
-                       <div className={`max-w-md ${isAgent ? 'ml-auto' : 'mr-auto'}`}>
+                       <div className={`max-w-2xl ${isAgent ? 'ml-auto' : 'mr-auto'}`}>
                           {message.is_internal && (
                             <div className="flex items-center justify-between mb-1">
                               <div 
