@@ -708,11 +708,82 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                    >
                                      {formatTime(messageDate)}
                                    </span>
-                                 </div>
-                               </div>
-                               ) : null}
-                              
-                                {/* Failed/pending message actions */}
+                                  </div>
+                                </div>
+                                ) : null}
+                               
+                                {/* Edit button for internal notes */}
+                                {message.is_internal && editingMessageId !== message.id && (
+                                  <div className="mt-2 pt-2 border-t border-border/50">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEditMessage(message)}
+                                      className="h-7 px-3 text-xs text-muted-foreground hover:text-foreground"
+                                    >
+                                      <Edit2 className="h-3 w-3 mr-1" />
+                                      Edit Note
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Edit form for internal notes */}
+                                {message.is_internal && editingMessageId === message.id && (
+                                  <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
+                                    <div className="space-y-2">
+                                      <label className="text-sm font-medium text-muted-foreground">Edit Note:</label>
+                                      <Textarea
+                                        value={editingContent}
+                                        onChange={(e) => setEditingContent(e.target.value)}
+                                        className="min-h-[80px] resize-none border-warning bg-warning-muted"
+                                        placeholder="Edit your internal note..."
+                                      />
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                      <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
+                                      <Select value={editingAssignedTo || 'unassigned'} onValueChange={setEditingAssignedTo}>
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue placeholder="Select team member" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                                          {teamMembers.map((member) => (
+                                            <SelectItem key={member.user_id} value={member.user_id}>
+                                              {member.full_name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={handleSaveEdit}
+                                        disabled={!editingContent.trim()}
+                                        className="h-7 px-3 text-xs"
+                                      >
+                                        Save Changes
+                                      </Button>
+                                      <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => {
+                                          setEditingMessageId(null);
+                                          setEditingContent('');
+                                          setEditingAssignedTo('');
+                                        }}
+                                        className="h-7 px-3 text-xs"
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                               
+                                 {/* Failed/pending message actions */}
                                {message.sender_type === 'agent' && (message.email_status === 'failed' || message.email_status === 'pending' || message.email_status === 'sending') && (
                                  <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
                                    {/* Error toaster */}
