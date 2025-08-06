@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -239,6 +240,35 @@ export function EmailForwarding() {
     },
   });
 
+  // Update sync settings mutation
+  const updateSyncSettingsMutation = useMutation({
+    mutationFn: async ({ autoSyncEnabled, syncIntervalMinutes }: { autoSyncEnabled: boolean; syncIntervalMinutes: number }) => {
+      const { error } = await supabase
+        .from("email_sync_settings")
+        .update({ 
+          auto_sync_enabled: autoSyncEnabled,
+          sync_interval_minutes: syncIntervalMinutes,
+          updated_at: new Date().toISOString()
+        })
+        .eq("organization_id", (await supabase.from("profiles").select("organization_id").eq("user_id", user?.id).single()).data?.organization_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["email-sync-settings"] });
+      toast({
+        title: "Auto-sync settings updated",
+        description: "Your email sync preferences have been saved.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update sync settings.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUpdateAccount = (accountId: string, inboxId: string) => {
     const finalInboxId = inboxId === "unassigned" ? null : inboxId;
     updateAccountMutation.mutate({ accountId, inboxId: finalInboxId });
@@ -435,6 +465,72 @@ export function EmailForwarding() {
           </div>
         </AlertDescription>
       </Alert>
+
+      {/* Auto-sync Settings */}
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Clock className="h-5 w-5" />
+            Auto-sync Settings
+          </CardTitle>
+          <CardDescription>
+            Configure automatic email synchronization for your connected accounts.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="auto-sync">Enable Auto-sync</Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically sync emails from connected accounts
+              </p>
+            </div>
+            <Switch
+              id="auto-sync"
+              checked={syncSettings?.auto_sync_enabled || false}
+              onCheckedChange={(checked) => 
+                updateSyncSettingsMutation.mutate({
+                  autoSyncEnabled: checked,
+                  syncIntervalMinutes: syncSettings?.sync_interval_minutes || 2
+                })
+              }
+              disabled={updateSyncSettingsMutation.isPending}
+            />
+          </div>
+          
+          {syncSettings?.auto_sync_enabled && (
+            <div className="space-y-2">
+              <Label htmlFor="sync-interval">Sync Interval</Label>
+              <Select 
+                value={syncSettings.sync_interval_minutes?.toString() || "2"}
+                onValueChange={(value) =>
+                  updateSyncSettingsMutation.mutate({
+                    autoSyncEnabled: true,
+                    syncIntervalMinutes: parseInt(value)
+                  })
+                }
+                disabled={updateSyncSettingsMutation.isPending}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select sync interval" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Every minute</SelectItem>
+                  <SelectItem value="2">Every 2 minutes</SelectItem>
+                  <SelectItem value="5">Every 5 minutes</SelectItem>
+                  <SelectItem value="10">Every 10 minutes</SelectItem>
+                  <SelectItem value="15">Every 15 minutes</SelectItem>
+                  <SelectItem value="30">Every 30 minutes</SelectItem>
+                  <SelectItem value="60">Every hour</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Note: Changing the interval will take effect on the next sync cycle.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Add New Email */}
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
