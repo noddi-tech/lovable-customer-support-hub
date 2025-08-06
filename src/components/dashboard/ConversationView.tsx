@@ -958,99 +958,99 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 );
               })
             )}
-          </div>
 
-          {/* Reply Area */}
-          <div className="border-t border-border bg-card p-3 md:p-4">
-            <div className="space-y-3">
-              {/* Toolbar */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Button variant="secondary" size="sm" className="hover:bg-accent">
-                    <Bold className="h-4 w-4" />
-                  </Button>
-                  <Button variant="secondary" size="sm" className="hover:bg-accent">
-                    <Italic className="h-4 w-4" />
-                  </Button>
-                  <Button variant="secondary" size="sm" className="hover:bg-accent">
-                    <Link2 className="h-4 w-4" />
-                  </Button>
-                  <Separator orientation="vertical" className="h-4" />
-                  <Button variant="secondary" size="sm" className="hover:bg-accent">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button variant="secondary" size="sm" className="hover:bg-accent">
-                    <Smile className="h-4 w-4" />
-                  </Button>
+            {/* Reply Area */}
+            <div className="border-t border-border bg-card p-3 md:p-4">
+              <div className="space-y-3">
+                {/* Toolbar */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Button variant="secondary" size="sm" className="hover:bg-accent">
+                      <Bold className="h-4 w-4" />
+                    </Button>
+                    <Button variant="secondary" size="sm" className="hover:bg-accent">
+                      <Italic className="h-4 w-4" />
+                    </Button>
+                    <Button variant="secondary" size="sm" className="hover:bg-accent">
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+                    <Separator orientation="vertical" className="h-4" />
+                    <Button variant="secondary" size="sm" className="hover:bg-accent">
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                    <Button variant="secondary" size="sm" className="hover:bg-accent">
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant={isInternalNote ? "default" : "secondary"} 
+                      size="sm"
+                      onClick={() => setIsInternalNote(!isInternalNote)}
+                      className="hover:bg-accent"
+                    >
+                      Internal Note
+                    </Button>
+                    <Button variant="secondary" size="sm" className="hover:bg-accent">
+                      Templates
+                    </Button>
+                  </div>
                 </div>
-                
-                <div className="flex items-center space-x-2">
+
+                {/* Assignment dropdown for internal notes */}
+                {isInternalNote && (
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
+                    <Select value={assignedToId} onValueChange={setAssignedToId}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Select team member" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {teamMembers.map((member) => (
+                          <SelectItem key={member.user_id} value={member.user_id}>
+                            {member.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Text Area */}
+                <div className="relative">
+                  <Textarea
+                    placeholder={isInternalNote ? "Add an internal note..." : "Type your reply..."}
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    className={`min-h-[100px] resize-none ${
+                      isInternalNote ? 'border-warning bg-warning-muted' : ''
+                    }`}
+                  />
+                </div>
+
+                {/* Send Button */}
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    {isInternalNote ? 'This note will only be visible to your team' : 'This reply will be sent to the customer'}
+                  </div>
                   <Button 
-                    variant={isInternalNote ? "default" : "secondary"} 
-                    size="sm"
-                    onClick={() => setIsInternalNote(!isInternalNote)}
-                    className="hover:bg-accent"
+                    variant="default"
+                    disabled={!replyText.trim() || isSending}
+                    onClick={async () => {
+                      setIsSending(true);
+                      await handleSendMessage();
+                      setIsSending(false);
+                    }}
                   >
-                    Internal Note
-                  </Button>
-                  <Button variant="secondary" size="sm" className="hover:bg-accent">
-                    Templates
+                    <Send className="h-4 w-4 mr-2" />
+                    {isSending 
+                      ? (isInternalNote ? 'Adding...' : 'Sending...') 
+                      : (isInternalNote ? 'Add Note' : 'Send Reply')
+                    }
                   </Button>
                 </div>
-               </div>
-
-               {/* Assignment dropdown for internal notes */}
-               {isInternalNote && (
-                 <div className="flex items-center space-x-2">
-                   <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
-                   <Select value={assignedToId} onValueChange={setAssignedToId}>
-                     <SelectTrigger className="w-48">
-                       <SelectValue placeholder="Select team member" />
-                     </SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="unassigned">Unassigned</SelectItem>
-                       {teamMembers.map((member) => (
-                         <SelectItem key={member.user_id} value={member.user_id}>
-                           {member.full_name}
-                         </SelectItem>
-                       ))}
-                     </SelectContent>
-                   </Select>
-                 </div>
-               )}
-
-               {/* Text Area */}
-               <div className="relative">
-                <Textarea
-                  placeholder={isInternalNote ? "Add an internal note..." : "Type your reply..."}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  className={`min-h-[100px] resize-none ${
-                    isInternalNote ? 'border-warning bg-warning-muted' : ''
-                  }`}
-                />
-              </div>
-
-              {/* Send Button */}
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                  {isInternalNote ? 'This note will only be visible to your team' : 'This reply will be sent to the customer'}
-                </div>
-                <Button 
-                  variant="default"
-                  disabled={!replyText.trim() || isSending}
-                  onClick={async () => {
-                    setIsSending(true);
-                    await handleSendMessage();
-                    setIsSending(false);
-                  }}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {isSending 
-                    ? (isInternalNote ? 'Adding...' : 'Sending...') 
-                    : (isInternalNote ? 'Add Note' : 'Send Reply')
-                  }
-                </Button>
               </div>
             </div>
           </div>
