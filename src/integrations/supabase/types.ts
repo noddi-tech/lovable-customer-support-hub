@@ -690,6 +690,7 @@ export type Database = {
           last_sync_at: string
           created_at: string
           forwarding_address: string
+          inbox_id: string
         }[]
       }
       get_inboxes: {
