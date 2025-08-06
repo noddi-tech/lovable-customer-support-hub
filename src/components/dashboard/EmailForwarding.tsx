@@ -21,6 +21,8 @@ interface EmailAccount {
   last_sync_at?: string;
   created_at: string;
   inbox_id: string | null;
+  auto_sync_enabled: boolean;
+  sync_interval_minutes: number;
 }
 
 interface Inbox {
@@ -59,18 +61,6 @@ export function EmailForwarding() {
       const { data, error } = await supabase.rpc("get_email_accounts");
       if (error) throw error;
       return data as EmailAccount[];
-    },
-  });
-
-  // Fetch sync settings
-  const { data: syncSettings } = useQuery({
-    queryKey: ["email-sync-settings"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("email_sync_settings")
-        .select("*")
-        .single();
-      return data;
     },
   });
 
@@ -120,6 +110,8 @@ export function EmailForwarding() {
         organization_id: profile.organization_id,
         user_id: user.id,
         inbox_id: inboxId,
+        auto_sync_enabled: true, // Default to enabled
+        sync_interval_minutes: 2, // Default to 2 minutes
       };
 
       console.log("Inserting data:", insertData);
@@ -184,6 +176,38 @@ export function EmailForwarding() {
     },
   });
 
+  // Update email account auto-sync settings
+  const updateAccountSyncMutation = useMutation({
+    mutationFn: async ({ accountId, autoSyncEnabled, syncIntervalMinutes }: { 
+      accountId: string; 
+      autoSyncEnabled: boolean; 
+      syncIntervalMinutes: number 
+    }) => {
+      const { error } = await supabase
+        .from("email_accounts")
+        .update({ 
+          auto_sync_enabled: autoSyncEnabled,
+          sync_interval_minutes: syncIntervalMinutes
+        })
+        .eq("id", accountId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+      toast({
+        title: "Auto-sync settings updated",
+        description: "Email account sync preferences have been saved.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update auto-sync settings.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Remove email account mutation
   const removeAccountMutation = useMutation({
     mutationFn: async (accountId: string) => {
@@ -212,7 +236,7 @@ export function EmailForwarding() {
   const syncEmailsMutation = useMutation({
     mutationFn: async (accountId?: string) => {
       const { data, error } = await supabase.functions.invoke('gmail-sync', {
-        body: { emailAccountId: accountId, syncSent: true }, // Now sync both inbox and sent
+        body: { emailAccountId: accountId, syncSent: true },
       });
       
       if (error) {
@@ -235,35 +259,6 @@ export function EmailForwarding() {
       toast({
         title: "Sync Error",
         description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update sync settings mutation
-  const updateSyncSettingsMutation = useMutation({
-    mutationFn: async ({ autoSyncEnabled, syncIntervalMinutes }: { autoSyncEnabled: boolean; syncIntervalMinutes: number }) => {
-      const { error } = await supabase
-        .from("email_sync_settings")
-        .update({ 
-          auto_sync_enabled: autoSyncEnabled,
-          sync_interval_minutes: syncIntervalMinutes,
-          updated_at: new Date().toISOString()
-        })
-        .eq("organization_id", (await supabase.from("profiles").select("organization_id").eq("user_id", user?.id).single()).data?.organization_id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-sync-settings"] });
-      toast({
-        title: "Auto-sync settings updated",
-        description: "Your email sync preferences have been saved.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update sync settings.",
         variant: "destructive",
       });
     },
@@ -426,6 +421,9 @@ export function EmailForwarding() {
     );
   }
 
+  // Count how many accounts have auto-sync enabled
+  const autoSyncEnabledCount = accounts.filter(acc => acc.auto_sync_enabled).length;
+
   return (
     <div className="space-y-6">
       {/* Setup Instructions */}
@@ -433,14 +431,14 @@ export function EmailForwarding() {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           <strong>Gmail Integration:</strong> Connect your Gmail account to automatically sync emails as conversations. 
-          {syncSettings?.auto_sync_enabled ? (
+          {autoSyncEnabledCount > 0 ? (
             <div className="flex items-center gap-2 mt-2 text-success">
               <Clock className="h-4 w-4" />
-              <span>Auto-sync enabled - emails sync every {syncSettings.sync_interval_minutes} minutes</span>
+              <span>Auto-sync enabled for {autoSyncEnabledCount} account{autoSyncEnabledCount > 1 ? 's' : ''}</span>
             </div>
           ) : (
             <div className="text-muted-foreground mt-2">
-              Auto-sync is disabled. Use manual sync buttons below.
+              Auto-sync is disabled for all accounts. Configure per-account settings below.
             </div>
           )}
           <div className="mt-3 flex gap-2">
@@ -465,72 +463,6 @@ export function EmailForwarding() {
           </div>
         </AlertDescription>
       </Alert>
-
-      {/* Auto-sync Settings */}
-      <Card className="bg-gradient-surface border-border/50 shadow-surface">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Clock className="h-5 w-5" />
-            Auto-sync Settings
-          </CardTitle>
-          <CardDescription>
-            Configure automatic email synchronization for your connected accounts.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="auto-sync">Enable Auto-sync</Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically sync emails from connected accounts
-              </p>
-            </div>
-            <Switch
-              id="auto-sync"
-              checked={syncSettings?.auto_sync_enabled || false}
-              onCheckedChange={(checked) => 
-                updateSyncSettingsMutation.mutate({
-                  autoSyncEnabled: checked,
-                  syncIntervalMinutes: syncSettings?.sync_interval_minutes || 2
-                })
-              }
-              disabled={updateSyncSettingsMutation.isPending}
-            />
-          </div>
-          
-          {syncSettings?.auto_sync_enabled && (
-            <div className="space-y-2">
-              <Label htmlFor="sync-interval">Sync Interval</Label>
-              <Select 
-                value={syncSettings.sync_interval_minutes?.toString() || "2"}
-                onValueChange={(value) =>
-                  updateSyncSettingsMutation.mutate({
-                    autoSyncEnabled: true,
-                    syncIntervalMinutes: parseInt(value)
-                  })
-                }
-                disabled={updateSyncSettingsMutation.isPending}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select sync interval" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Every minute</SelectItem>
-                  <SelectItem value="2">Every 2 minutes</SelectItem>
-                  <SelectItem value="5">Every 5 minutes</SelectItem>
-                  <SelectItem value="10">Every 10 minutes</SelectItem>
-                  <SelectItem value="15">Every 15 minutes</SelectItem>
-                  <SelectItem value="30">Every 30 minutes</SelectItem>
-                  <SelectItem value="60">Every hour</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Note: Changing the interval will take effect on the next sync cycle.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Add New Email */}
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
@@ -600,7 +532,7 @@ export function EmailForwarding() {
         <CardHeader>
           <CardTitle className="text-primary">Connected Email Accounts</CardTitle>
           <CardDescription>
-            Forward emails to these addresses to receive them in your inbox.
+            Manage your connected email accounts and their auto-sync settings.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -611,61 +543,13 @@ export function EmailForwarding() {
               <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="font-medium mb-2">No email accounts connected yet.</p>
               <p className="text-sm mb-6">Add your first email account to get started with forwarding.</p>
-              
-              {/* Quick Add Form in Empty State */}
-              <div className="max-w-md mx-auto">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="empty-inbox">Select Inbox</Label>
-                    <Select value={selectedInbox} onValueChange={setSelectedInbox}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose inbox" />
-                      </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="unassigned">
-                           <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full bg-muted" />
-                              <span>Unassigned</span>
-                            </div>
-                         </SelectItem>
-                         {inboxes.map((inbox) => (
-                           <SelectItem key={inbox.id} value={inbox.id}>
-                             <div className="flex items-center gap-2">
-                               <div 
-                                 className="w-3 h-3 rounded-full" 
-                                 style={{ backgroundColor: inbox.color }}
-                               />
-                               <span>{inbox.name}</span>
-                             </div>
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
-                    </Select>
-                  </div>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="text-left"
-                  />
-                  <Button 
-                    type="submit" 
-                    disabled={addEmailMutation.isPending}
-                    className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
-                  >
-                    {addEmailMutation.isPending ? "Generating..." : "Generate Forwarding Address"}
-                  </Button>
-                </form>
-              </div>
             </div>
           ) : (
             <div className="space-y-4">
               {accounts.map((account) => (
                 <div key={account.id} className="border rounded-lg p-4 bg-card/50 hover:bg-card transition-colors">
                   <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
+                    <div className="space-y-3 flex-1">
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4" />
                         <span className="font-medium">{account.email_address}</span>
@@ -678,8 +562,61 @@ export function EmailForwarding() {
                         </span>
                       </div>
                       
+                      {/* Auto-sync Settings per Account */}
+                      <div className="space-y-2 border-t pt-3">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <Label className="text-sm font-medium">Auto-sync</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Automatically sync this account every {account.sync_interval_minutes} minute{account.sync_interval_minutes > 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={account.auto_sync_enabled}
+                            onCheckedChange={(checked) => 
+                              updateAccountSyncMutation.mutate({
+                                accountId: account.id,
+                                autoSyncEnabled: checked,
+                                syncIntervalMinutes: account.sync_interval_minutes
+                              })
+                            }
+                            disabled={updateAccountSyncMutation.isPending}
+                          />
+                        </div>
+                        
+                        {account.auto_sync_enabled && (
+                          <div className="ml-4">
+                            <Label className="text-xs text-muted-foreground">Sync Interval</Label>
+                            <Select 
+                              value={account.sync_interval_minutes?.toString() || "2"}
+                              onValueChange={(value) =>
+                                updateAccountSyncMutation.mutate({
+                                  accountId: account.id,
+                                  autoSyncEnabled: true,
+                                  syncIntervalMinutes: parseInt(value)
+                                })
+                              }
+                              disabled={updateAccountSyncMutation.isPending}
+                            >
+                              <SelectTrigger className="w-32 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1 min</SelectItem>
+                                <SelectItem value="2">2 min</SelectItem>
+                                <SelectItem value="5">5 min</SelectItem>
+                                <SelectItem value="10">10 min</SelectItem>
+                                <SelectItem value="15">15 min</SelectItem>
+                                <SelectItem value="30">30 min</SelectItem>
+                                <SelectItem value="60">1 hour</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+                      
                       {/* Inbox Assignment Section */}
-                      <div className="mt-2">
+                      <div>
                         {editingAccount === account.id ? (
                           <div className="flex items-center gap-2">
                             <Select value={editingInbox} onValueChange={setEditingInbox}>
@@ -752,7 +689,7 @@ export function EmailForwarding() {
                       </div>
                       
                       {account.forwarding_address && (
-                        <div className="space-y-1 mt-3">
+                        <div className="space-y-1">
                           <Label className="text-sm text-muted-foreground">Forwarding Address:</Label>
                           <div className="flex items-center gap-2">
                             <code className="flex-1 p-2 bg-muted rounded text-sm">
@@ -776,7 +713,7 @@ export function EmailForwarding() {
                         </div>
                       )}
 
-                      <div className="text-sm text-muted-foreground mt-2">
+                      <div className="text-sm text-muted-foreground">
                         Last sync: {formatLastSync(account.last_sync_at)}
                       </div>
                     </div>

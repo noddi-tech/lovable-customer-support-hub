@@ -697,6 +697,8 @@ export type Database = {
           created_at: string
           forwarding_address: string
           inbox_id: string
+          auto_sync_enabled: boolean
+          sync_interval_minutes: number
         }[]
       }
       get_inboxes: {
