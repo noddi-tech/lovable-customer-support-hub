@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Inbox, Star, Clock } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Search, Filter, Inbox, Star, Clock, MoreHorizontal, Archive, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -74,6 +77,9 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Fetch real conversations from database
   const { data: conversations = [], isLoading } = useQuery({
@@ -100,6 +106,77 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       })) as Conversation[] || [];
     },
   });
+
+  // Archive conversation mutation
+  const archiveConversationMutation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ 
+          status: 'closed',
+          is_archived: true 
+        })
+        .eq('id', conversationId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success('Conversation archived successfully');
+    },
+    onError: (error) => {
+      console.error('Error archiving conversation:', error);
+      toast.error('Failed to archive conversation');
+    }
+  });
+
+  // Delete conversation mutation
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      // First delete all messages in the conversation
+      const { error: messagesError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversationId);
+      
+      if (messagesError) throw messagesError;
+
+      // Then delete the conversation
+      const { error: conversationError } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+      
+      if (conversationError) throw conversationError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success('Conversation deleted successfully');
+      setDeleteDialogOpen(false);
+      setConversationToDelete(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting conversation:', error);
+      toast.error('Failed to delete conversation');
+    }
+  });
+
+  const handleArchiveConversation = (conversationId: string) => {
+    archiveConversationMutation.mutate(conversationId);
+  };
+
+  const handleDeleteClick = (conversationId: string) => {
+    setConversationToDelete(conversationId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (conversationToDelete) {
+      deleteConversationMutation.mutate(conversationToDelete);
+    }
+  };
 
   const filteredConversations = conversations.filter((conversation) => {
     const matchesSearch = conversation.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -226,26 +303,65 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                 onSelectConversation(conversation);
               }}
               className={cn(
-                "p-4 border-b border-border hover:bg-accent/50 cursor-pointer transition-colors",
+                "p-4 border-b border-border hover:bg-accent/50 cursor-pointer transition-colors group",
                 selectedConversation?.id === conversation.id && "bg-accent",
                 !conversation.is_read && "border-l-4 border-l-primary bg-primary-muted/30"
               )}
             >
               <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   {conversation.priority === "urgent" && (
-                    <Star className="h-4 w-4 text-destructive" fill="currentColor" />
+                    <Star className="h-4 w-4 text-destructive flex-shrink-0" fill="currentColor" />
                   )}
                   <h3 className={cn(
-                    "text-sm font-medium truncate max-w-64",
+                    "text-sm truncate",
                     !conversation.is_read ? "font-semibold" : "font-normal"
                   )}>
                     {conversation.subject}
                   </h3>
                 </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                  {formatTimeAgo(conversation.updated_at)}
-                </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {formatTimeAgo(conversation.updated_at)}
+                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchiveConversation(conversation.id);
+                        }}
+                        disabled={archiveConversationMutation.isPending}
+                      >
+                        <Archive className="mr-2 h-4 w-4" />
+                        Archive
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(conversation.id);
+                        }}
+                        disabled={deleteConversationMutation.isPending}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
               
               <div className="flex items-center gap-2 mb-2">
@@ -273,6 +389,30 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete conversation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this conversation? This action cannot be undone and will permanently delete all messages in this conversation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteConversationMutation.isPending}
+            >
+              {deleteConversationMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
