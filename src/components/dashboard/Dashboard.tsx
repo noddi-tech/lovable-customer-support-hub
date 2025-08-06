@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Header } from './Header';
 import { InboxSidebar } from './InboxSidebar';
 import { ConversationList } from './ConversationList';
@@ -36,6 +36,7 @@ interface Conversation {
 
 export const Dashboard: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -124,6 +125,13 @@ export const Dashboard: React.FC = () => {
   const handleTabChange = (tab: string) => {
     console.log('Dashboard handleTabChange called with:', tab);
     console.log('Current selectedTab before change:', selectedTab);
+    
+    // If manually switching to notifications, clear URL parameters to avoid conflicts
+    if (tab === 'notifications') {
+      console.log('Manually switching to notifications, clearing URL parameters');
+      navigate('/', { replace: true });
+    }
+    
     setSelectedTab(tab);
     console.log('setSelectedTab called, new tab should be:', tab);
   };
