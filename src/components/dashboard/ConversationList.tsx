@@ -192,7 +192,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         case "all":
           return true;
         case "unread":
-          return !conversation.is_read;
+          return !conversation.is_read && !conversation.is_archived;
         case "assigned":
           return !!conversation.assigned_to;
         case "archived":
