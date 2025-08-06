@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { NewConversationDialog } from './NewConversationDialog';
 
 interface InboxSidebarProps {
   selectedTab: string;
@@ -114,10 +115,12 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
     <div className="w-64 bg-card/90 backdrop-blur-sm border-r border-border h-full flex flex-col shadow-surface">
       {/* Create Button */}
       <div className="p-4">
-        <Button className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
-          <Plus className="mr-2 h-4 w-4" />
-          New Conversation
-        </Button>
+        <NewConversationDialog>
+          <Button className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
+            <Plus className="mr-2 h-4 w-4" />
+            New Conversation
+          </Button>
+        </NewConversationDialog>
       </div>
 
       {/* Inbox Categories */}
