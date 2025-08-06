@@ -69,6 +69,23 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
 
+  // Function to extract clean text from HTML content
+  const extractTextFromHTML = (htmlContent: string): string => {
+    // Remove HTML tags and decode entities
+    const textContent = htmlContent
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+      .replace(/&amp;/g, '&') // Replace HTML entities
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\r?\n\s*\r?\n/g, '\n') // Remove extra blank lines
+      .trim();
+    
+    return textContent;
+  };
+
   // Get message ID from URL
   const selectedMessageId = searchParams.get('message');
 
@@ -750,7 +767,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                      overflowWrap: 'break-word'
                                    }}
                                  >
-                                   {message.content}
+                                    {message.content.includes('<') && message.content.includes('>') 
+                                      ? extractTextFromHTML(message.content)
+                                      : message.content}
                                  </p>
                                {!editingMessageId || editingMessageId !== message.id ? (
                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
