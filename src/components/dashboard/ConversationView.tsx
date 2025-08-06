@@ -27,7 +27,8 @@ import {
   Edit2,
   UserCheck,
   Save,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -767,9 +768,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                 </div>
                                 ) : null}
                                
-                                {/* Edit button for internal notes */}
+                                {/* Edit and Delete buttons for internal notes */}
                                 {message.is_internal && editingMessageId !== message.id && (
-                                  <div className="mt-2 pt-2 border-t border-border/50">
+                                  <div className="mt-2 pt-2 border-t border-border/50 flex items-center space-x-2">
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -778,6 +779,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                     >
                                       <Edit2 className="h-3 w-3 mr-1" />
                                       Edit Note
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => deleteMessage(message.id)}
+                                      className="h-7 px-3 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+                                    >
+                                      <Trash2 className="h-3 w-3 mr-1" />
+                                      Delete
                                     </Button>
                                   </div>
                                 )}
