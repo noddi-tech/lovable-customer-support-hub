@@ -91,6 +91,25 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
         customerId = newCustomer.id;
       }
 
+      // Get the email account associated with the selected inbox
+      let emailAccountId: string | null = null;
+      
+      try {
+        const { data: emailAccounts, error: emailError } = await supabase
+          .from('email_accounts')
+          .select('id')
+          .eq('inbox_id', conversationData.inboxId)
+          .limit(1);
+
+        if (!emailError && emailAccounts && emailAccounts.length > 0) {
+          emailAccountId = emailAccounts[0].id;
+        } else {
+          console.warn('No email account found for inbox:', conversationData.inboxId);
+        }
+      } catch (error) {
+        console.warn('Error fetching email account for inbox:', error);
+      }
+
       // Create conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
@@ -101,7 +120,8 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
           priority: conversationData.priority,
           status: 'open',
           channel: 'email',
-          organization_id: profile?.organization_id
+          organization_id: profile?.organization_id,
+          email_account_id: emailAccountId
         })
         .select('id')
         .single();
@@ -110,7 +130,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
 
       // Create initial message if provided
       if (conversationData.initialMessage.trim()) {
-        const { error: messageError } = await supabase
+        const { data: newMessage, error: messageError } = await supabase
           .from('messages')
           .insert({
             conversation_id: conversation.id,
@@ -120,9 +140,42 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
             is_internal: false,
             email_status: 'pending',
             email_subject: conversationData.subject
-          });
+          })
+          .select('id')
+          .single();
 
         if (messageError) throw messageError;
+
+        // Send the email if we have an email account connected
+        if (emailAccountId && newMessage) {
+          try {
+            console.log('Attempting to send email for new conversation message:', newMessage.id);
+            
+            const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-reply-email', {
+              body: { messageId: newMessage.id }
+            });
+
+            if (emailError) {
+              console.error('Error sending email:', emailError);
+              // Update message status to failed
+              await supabase
+                .from('messages')
+                .update({ email_status: 'failed' })
+                .eq('id', newMessage.id);
+            } else {
+              console.log('Email sent successfully:', emailResult);
+            }
+          } catch (error) {
+            console.error('Failed to send email for new conversation:', error);
+            // Update message status to failed
+            await supabase
+              .from('messages')
+              .update({ email_status: 'failed' })
+              .eq('id', newMessage.id);
+          }
+        } else {
+          console.warn('No email account connected to inbox, email not sent');
+        }
       }
 
       return conversation;
