@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +23,7 @@ export function NotificationDropdown() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch notifications
+  // Fetch notifications with real-time updates
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
@@ -37,6 +37,41 @@ export function NotificationDropdown() {
       return data as Notification[];
     },
   });
+
+  // Set up real-time subscription for notifications
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('New notification received:', payload);
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('Notification updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Mark notification as read
   const markAsReadMutation = useMutation({
