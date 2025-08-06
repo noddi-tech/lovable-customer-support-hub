@@ -44,6 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { CustomerNotes } from './CustomerNotes';
 
 interface ConversationViewProps {
   conversationId?: string | null;
@@ -1083,6 +1084,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Customer Notes */}
+            <CustomerNotes customerId={conversation.customer?.id} />
 
             {/* Previous Conversations */}
             <Card>

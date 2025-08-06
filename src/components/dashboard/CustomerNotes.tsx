@@ -1,0 +1,247 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, Edit2, Trash2, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface CustomerNote {
+  id: string;
+  content: string;
+  created_at: string;
+  created_by: string;
+  updated_at?: string;
+}
+
+interface CustomerNotesProps {
+  customerId?: string;
+}
+
+// Dummy data for now - will be replaced with API calls
+const dummyNotes: CustomerNote[] = [
+  {
+    id: '1',
+    content: 'Customer prefers email communication over phone calls. Very responsive to technical solutions.',
+    created_at: '2025-01-15T10:30:00Z',
+    created_by: 'John Doe',
+    updated_at: '2025-01-15T14:20:00Z'
+  },
+  {
+    id: '2', 
+    content: 'Uses premium plan. Has requested priority support for integration issues.',
+    created_at: '2025-01-10T09:15:00Z',
+    created_by: 'Sarah Johnson'
+  }
+];
+
+export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
+  const [notes, setNotes] = useState<CustomerNote[]>(dummyNotes);
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteContent, setNoteContent] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+
+  const handleAddNote = () => {
+    if (!noteContent.trim()) return;
+
+    const newNote: CustomerNote = {
+      id: Date.now().toString(),
+      content: noteContent.trim(),
+      created_at: new Date().toISOString(),
+      created_by: 'Current User', // Will be replaced with actual user
+    };
+
+    setNotes([newNote, ...notes]);
+    setNoteContent('');
+    setIsAdding(false);
+    toast.success('Note added successfully');
+  };
+
+  const handleEditNote = (noteId: string) => {
+    const note = notes.find(n => n.id === noteId);
+    if (note) {
+      setNoteContent(note.content);
+      setEditingNoteId(noteId);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (!noteContent.trim()) return;
+
+    setNotes(notes.map(note => 
+      note.id === editingNoteId 
+        ? { ...note, content: noteContent.trim(), updated_at: new Date().toISOString() }
+        : note
+    ));
+    
+    setNoteContent('');
+    setEditingNoteId(null);
+    toast.success('Note updated successfully');
+  };
+
+  const handleDeleteClick = (noteId: string) => {
+    setNoteToDelete(noteId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (noteToDelete) {
+      setNotes(notes.filter(note => note.id !== noteToDelete));
+      toast.success('Note deleted successfully');
+    }
+    setDeleteDialogOpen(false);
+    setNoteToDelete(null);
+  };
+
+  const handleCancel = () => {
+    setNoteContent('');
+    setIsAdding(false);
+    setEditingNoteId(null);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">Customer Notes</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAdding(true)}
+              disabled={isAdding || editingNoteId !== null}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Note
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Add new note form */}
+          {isAdding && (
+            <div className="space-y-3 p-3 border border-border rounded-md bg-muted/50">
+              <Textarea
+                placeholder="Enter customer note..."
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                className="min-h-[80px] resize-none"
+              />
+              <div className="flex items-center justify-end space-x-2">
+                <Button variant="outline" size="sm" onClick={handleCancel}>
+                  Cancel
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={handleAddNote}
+                  disabled={!noteContent.trim()}
+                >
+                  Add Note
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Notes list */}
+          {notes.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-4">
+              No notes yet. Add one to get started.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notes.map((note) => (
+                <div key={note.id} className="group p-3 border border-border rounded-md hover:bg-muted/50 transition-colors">
+                  {editingNoteId === note.id ? (
+                    <div className="space-y-3">
+                      <Textarea
+                        value={noteContent}
+                        onChange={(e) => setNoteContent(e.target.value)}
+                        className="min-h-[80px] resize-none"
+                      />
+                      <div className="flex items-center justify-end space-x-2">
+                        <Button variant="outline" size="sm" onClick={handleCancel}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={handleSaveEdit}
+                          disabled={!noteContent.trim()}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between">
+                        <p className="text-sm text-foreground flex-1">{note.content}</p>
+                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditNote(note.id)}
+                            className="h-7 w-7 p-0"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(note.id)}
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                        <span>by {note.created_by}</span>
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>{formatDate(note.updated_at || note.created_at)}</span>
+                          {note.updated_at && <span>(edited)</span>}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete note</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this customer note? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
