@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Header } from './Header';
 import { InboxSidebar } from './InboxSidebar';
 import { ConversationList } from './ConversationList';
+import { NotificationsList } from '@/components/notifications/NotificationsList';
 import { ConversationView } from './ConversationView';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -83,42 +84,65 @@ export const Dashboard: React.FC = () => {
 
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
-        {/* Conversation List */}
-        <div className={`
-          ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
-          w-96 border-r border-border bg-gradient-surface flex-col
-        `}>
-          <ConversationList 
-            selectedTab={selectedTab}
-            selectedConversation={selectedConversation}
-            onSelectConversation={handleSelectConversation}
-          />
-        </div>
-        
-        {/* Conversation View */}
-        <div className={`
-          ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'flex'}
-          flex-1 flex-col bg-gradient-surface
-        `}>
-          {/* Mobile Header */}
-          {isMobile && (
-            <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleBackToList}
-                className="mr-2"
-              >
-                ← Back
-              </Button>
-              <h1 className="font-semibold">Noddi Support</h1>
+        {/* Show Notifications List if notifications tab is selected */}
+        {selectedTab === 'notifications' ? (
+          <div className="flex-1 flex flex-col bg-gradient-surface">
+            {/* Mobile Header */}
+            {isMobile && (
+              <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSelectedTab('all')}
+                  className="mr-2"
+                >
+                  ← Back
+                </Button>
+                <h1 className="font-semibold">Notifications</h1>
+              </div>
+            )}
+            <NotificationsList />
+          </div>
+        ) : (
+          <>
+            {/* Conversation List */}
+            <div className={`
+              ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
+              w-96 border-r border-border bg-gradient-surface flex-col
+            `}>
+              <ConversationList 
+                selectedTab={selectedTab}
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+              />
             </div>
-          )}
+            
+            {/* Conversation View */}
+            <div className={`
+              ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'flex'}
+              flex-1 flex-col bg-gradient-surface
+            `}>
+              {/* Mobile Header */}
+              {isMobile && (
+                <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleBackToList}
+                    className="mr-2"
+                  >
+                    ← Back
+                  </Button>
+                  <h1 className="font-semibold">Noddi Support</h1>
+                </div>
+              )}
 
-          <ConversationView 
-            conversationId={selectedConversation?.id || null}
-          />
-        </div>
+              <ConversationView 
+                conversationId={selectedConversation?.id || null}
+              />
+            </div>
+          </>
+        )}
         </div>
       </div>
     </div>

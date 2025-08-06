@@ -12,7 +12,8 @@ import {
   Camera,
   Phone,
   Filter,
-  Plus
+  Plus,
+  Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -71,6 +72,25 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
         instagram: conversations.filter((conv: any) => conv.channel === 'instagram').length,
         whatsapp: conversations.filter((conv: any) => conv.channel === 'whatsapp').length,
       };
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Fetch unread notifications count
+  const { data: unreadNotifications = 0 } = useQuery({
+    queryKey: ['unread-notifications'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('is_read', false);
+      
+      if (error) {
+        console.error('Error fetching notification count:', error);
+        return 0;
+      }
+      
+      return data?.length || 0;
     },
     refetchInterval: 30000, // Refetch every 30 seconds
   });
@@ -138,6 +158,37 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
                 </Button>
               );
             })}
+          </div>
+        </div>
+
+        <Separator className="my-4" />
+
+        {/* Notifications */}
+        <div className="px-2">
+          <div className="flex items-center justify-between px-2 py-2">
+            <h3 className="text-sm font-medium text-muted-foreground">NOTIFICATIONS</h3>
+          </div>
+          
+          <div className="space-y-1">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start px-2 py-2 h-auto font-normal",
+                selectedTab === 'notifications' ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
+              )}
+              onClick={() => onTabChange('notifications')}
+            >
+              <Bell className="mr-3 h-4 w-4" />
+              <span className="flex-1 text-left">Notifications</span>
+              {unreadNotifications > 0 && (
+                <Badge 
+                  variant={selectedTab === 'notifications' ? "default" : "secondary"} 
+                  className="ml-auto h-5 text-xs"
+                >
+                  {unreadNotifications}
+                </Badge>
+              )}
+            </Button>
           </div>
         </div>
 
