@@ -840,6 +840,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                       >
                                         Cancel
                                       </Button>
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => {
+                                          handleCancelEdit();
+                                          deleteMessage(message.id);
+                                        }}
+                                        className="h-7 px-3 text-xs"
+                                      >
+                                        <Trash2 className="h-3 w-3 mr-1" />
+                                        Delete
+                                      </Button>
                                     </div>
                                   </div>
                                 )}
