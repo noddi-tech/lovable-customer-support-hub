@@ -657,6 +657,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_test_notification: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       delete_email_account: {
         Args: { account_id: string }
         Returns: undefined
