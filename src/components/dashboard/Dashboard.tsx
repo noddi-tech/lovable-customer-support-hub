@@ -113,7 +113,12 @@ export const Dashboard: React.FC = () => {
   }, [conversationIdFromUrl, urlConversation?.id, selectedConversation?.id, selectedTab, isMobile, hasTimestamp]);
 
   const handleSelectConversation = (conversation: Conversation) => {
+    console.log('handleSelectConversation called with:', conversation.id);
     setSelectedConversation(conversation);
+    
+    // Update URL to reflect the selected conversation
+    navigate(`/?conversation=${conversation.id}`, { replace: true });
+    
     if (isMobile) {
       setShowConversationList(false);
     }
