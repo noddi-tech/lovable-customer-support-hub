@@ -71,7 +71,15 @@ export function NotificationDropdown() {
     
     // Navigate to conversation if it's an assignment notification
     if (notification.data?.conversation_id) {
-      window.location.href = `/?conversation=${notification.data.conversation_id}`;
+      const conversationId = notification.data.conversation_id;
+      const messageId = notification.data.message_id;
+      
+      // Navigate to the specific conversation with message ID if available
+      const url = messageId 
+        ? `/?conversation=${conversationId}&message=${messageId}`
+        : `/?conversation=${conversationId}`;
+      
+      window.location.href = url;
     }
   };
 
