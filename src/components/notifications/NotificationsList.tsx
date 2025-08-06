@@ -39,8 +39,10 @@ export function NotificationsList() {
 
   // Set up real-time subscription for notifications
   useEffect(() => {
+    console.log('Setting up notification real-time subscription...');
+    
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('notifications-changes')
       .on(
         'postgres_changes',
         {
@@ -49,7 +51,7 @@ export function NotificationsList() {
           table: 'notifications'
         },
         (payload) => {
-          console.log('New notification received:', payload);
+          console.log('🔔 New notification received via real-time:', payload);
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
         }
       )
@@ -61,13 +63,16 @@ export function NotificationsList() {
           table: 'notifications'
         },
         (payload) => {
-          console.log('Notification updated:', payload);
+          console.log('🔔 Notification updated via real-time:', payload);
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Notification subscription status:', status);
+      });
 
     return () => {
+      console.log('🔌 Cleaning up notification subscription');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
