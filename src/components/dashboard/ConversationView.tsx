@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAutoContrast } from '@/hooks/useAutoContrast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,6 +39,8 @@ interface ConversationViewProps {
 }
 
 export const ConversationView: React.FC<ConversationViewProps> = ({ conversationId }) => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -46,8 +49,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [editingContent, setEditingContent] = useState('');
   const [editingAssignedTo, setEditingAssignedTo] = useState<string>('');
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
+
+  // Get message ID from URL
+  const selectedMessageId = searchParams.get('message');
+
+  // Handle message clicking
+  const handleMessageClick = (messageId: string) => {
+    const currentParams = new URLSearchParams(searchParams);
+    currentParams.set('message', messageId);
+    navigate(`/?${currentParams.toString()}`, { replace: true });
+  };
+
 
   // Debug logging
   React.useEffect(() => {
@@ -402,6 +417,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     enabled: !!conversationId,
   });
 
+  // Scroll to selected message when it changes
+  useEffect(() => {
+    if (selectedMessageId && messageRefs.current.has(selectedMessageId)) {
+      const messageElement = messageRefs.current.get(selectedMessageId);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [selectedMessageId, messages]);
+
   if (!conversationId) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gradient-surface">
@@ -550,8 +575,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 const showDate = index === 0 || 
                   formatDate(messageDate) !== formatDate(new Date(messages[index - 1].created_at));
                 
-                return (
-                  <div key={message.id}>
+                 return (
+                   <div 
+                     key={message.id}
+                     ref={(el) => {
+                       if (el) {
+                         messageRefs.current.set(message.id, el);
+                       } else {
+                         messageRefs.current.delete(message.id);
+                       }
+                     }}
+                   >
                     {showDate && (
                       <div className="flex items-center justify-center my-6">
                         <div className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
@@ -559,41 +593,48 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         </div>
                       </div>
                     )}
-                    
-                    <div className={`flex ${message.sender_type === 'agent' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-2xl ${message.sender_type === 'agent' ? 'ml-6 md:ml-12' : 'mr-6 md:mr-12'}`}>
-                         {message.is_internal && (
-                           <div className="flex items-center justify-between mb-1">
-                             <div 
-                               className="text-xs flex items-center font-medium"
-                               style={{ color: 'hsl(var(--warning))' }}
-                             >
-                               <Star className="h-3 w-3 mr-1" />
-                               Internal Note
-                               {message.assigned_to && (
-                                 <span className="ml-2 text-xs bg-warning/20 px-2 py-1 rounded">
-                                   Assigned to: {message.assigned_to.full_name}
-                                 </span>
-                               )}
-                             </div>
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               onClick={() => handleEditMessage(message)}
-                               className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                             >
-                               <Edit2 className="h-3 w-3" />
-                             </Button>
-                           </div>
-                         )}
-                         
-                           <Card className={`group ${
-                            message.is_internal 
-                              ? 'bg-warning/10 border-warning/20' 
-                              : message.sender_type === 'agent' 
-                                ? 'bg-primary border-primary' 
-                                : 'bg-card border-border'
-                           }`}>
+                     
+                     <div className={`flex ${message.sender_type === 'agent' ? 'justify-end' : 'justify-start'}`}>
+                       <div className={`max-w-2xl ${message.sender_type === 'agent' ? 'ml-6 md:ml-12' : 'mr-6 md:mr-12'}`}>
+                          {message.is_internal && (
+                            <div className="flex items-center justify-between mb-1">
+                              <div 
+                                className="text-xs flex items-center font-medium"
+                                style={{ color: 'hsl(var(--warning))' }}
+                              >
+                                <Star className="h-3 w-3 mr-1" />
+                                Internal Note
+                                {message.assigned_to && (
+                                  <span className="ml-2 text-xs bg-warning/20 px-2 py-1 rounded">
+                                    Assigned to: {message.assigned_to.full_name}
+                                  </span>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditMessage(message)}
+                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          
+                            <Card 
+                              className={`group cursor-pointer transition-all duration-200 ${
+                               message.is_internal 
+                                 ? 'bg-warning/10 border-warning/20' 
+                                 : message.sender_type === 'agent' 
+                                   ? 'bg-primary border-primary' 
+                                   : 'bg-card border-border'
+                              } ${
+                                selectedMessageId === message.id 
+                                  ? 'ring-2 ring-primary ring-opacity-50' 
+                                  : 'hover:shadow-md'
+                              }`}
+                              onClick={() => handleMessageClick(message.id)}
+                            >
                               <CardContent className="p-4">
                                 <p 
                                   className="whitespace-pre-wrap"
