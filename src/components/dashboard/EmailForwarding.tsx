@@ -199,7 +199,7 @@ export function EmailForwarding() {
   const syncEmailsMutation = useMutation({
     mutationFn: async (accountId?: string) => {
       const { data, error } = await supabase.functions.invoke('gmail-sync', {
-        body: { emailAccountId: accountId },
+        body: { emailAccountId: accountId, syncSent: true }, // Now sync both inbox and sent
       });
       
       if (error) {
