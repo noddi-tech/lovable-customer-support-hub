@@ -48,6 +48,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const [editingAssignedTo, setEditingAssignedTo] = useState<string>('');
+  const [originalEditingContent, setOriginalEditingContent] = useState('');
+  const [originalEditingAssignedTo, setOriginalEditingAssignedTo] = useState<string>('');
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const queryClient = useQueryClient();
@@ -338,10 +340,28 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     setEditingMessageId(message.id);
     setEditingContent(message.content);
     setEditingAssignedTo(message.assigned_to_id || '');
+    // Store original values to detect changes later
+    setOriginalEditingContent(message.content);
+    setOriginalEditingAssignedTo(message.assigned_to_id || '');
   };
 
   const handleSaveEdit = async () => {
     if (!editingMessageId || !editingContent.trim()) return;
+
+    // Check if there are actual changes
+    const contentChanged = editingContent.trim() !== originalEditingContent;
+    const assignmentChanged = (editingAssignedTo || '') !== originalEditingAssignedTo;
+    
+    if (!contentChanged && !assignmentChanged) {
+      // No changes, just cancel editing
+      setEditingMessageId(null);
+      setEditingContent('');
+      setEditingAssignedTo('');
+      setOriginalEditingContent('');
+      setOriginalEditingAssignedTo('');
+      toast.info('No changes to save');
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -354,15 +374,27 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       if (error) throw error;
 
+      // Reset all editing states
       setEditingMessageId(null);
       setEditingContent('');
       setEditingAssignedTo('');
+      setOriginalEditingContent('');
+      setOriginalEditingAssignedTo('');
+      
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       toast.success('Internal note updated successfully');
     } catch (error) {
       console.error('Error updating message:', error);
       toast.error('Failed to update internal note');
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingContent('');
+    setEditingAssignedTo('');
+    setOriginalEditingContent('');
+    setOriginalEditingAssignedTo('');
   };
 
 
@@ -762,11 +794,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                       <Button
                                         variant="secondary"
                                         size="sm"
-                                        onClick={() => {
-                                          setEditingMessageId(null);
-                                          setEditingContent('');
-                                          setEditingAssignedTo('');
-                                        }}
+                                        onClick={handleCancelEdit}
                                         className="h-7 px-3 text-xs"
                                       >
                                         Cancel
