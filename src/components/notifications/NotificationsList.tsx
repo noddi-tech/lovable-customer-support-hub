@@ -293,8 +293,8 @@ export function NotificationsList() {
             notifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
-                  !notification.is_read ? 'bg-primary/5 border-primary/20' : ''
+                className={`cursor-pointer transition-all duration-200 hover:bg-accent border-border ${
+                  !notification.is_read ? 'bg-primary-muted border-primary/20' : 'bg-card'
                 }`}
                 onClick={(event) => handleNotificationClick(notification, event)}
                 title="Click to view conversation"
@@ -395,18 +395,22 @@ export function NotificationsList() {
                              </Button>
                            )}
 
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                            <button
+                              type="button"
                               onClick={(event) => {
                                 console.log('Delete button onclick triggered');
+                                console.log('Event target:', event.target);
+                                console.log('Event currentTarget:', event.currentTarget);
+                                event.stopPropagation();
+                                event.preventDefault();
                                 handleDeleteClick(notification.id, event);
                               }}
-                              className="h-7 px-2 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+                              className="h-7 px-2 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10 rounded border-0 bg-transparent transition-colors"
                               title="Delete notification"
+                              style={{ minWidth: 'auto' }}
                             >
                               <Trash2 className="h-3 w-3" />
-                            </Button>
+                            </button>
                          </div>
                        </div>
                     </div>
