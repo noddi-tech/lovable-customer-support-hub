@@ -593,7 +593,7 @@ export function EmailForwarding() {
                                 updateAccountSyncMutation.mutate({
                                   accountId: account.id,
                                   autoSyncEnabled: true,
-                                  syncIntervalMinutes: parseInt(value)
+                                  syncIntervalMinutes: parseFloat(value)
                                 })
                               }
                               disabled={updateAccountSyncMutation.isPending}
