@@ -46,6 +46,7 @@ export const Dashboard: React.FC = () => {
   // Get conversation ID from URL parameters
   const conversationIdFromUrl = searchParams.get('conversation');
   const messageIdFromUrl = searchParams.get('message');
+  const hasTimestamp = searchParams.get('t');
 
   // Fetch specific conversation if conversation ID is in URL
   const { data: urlConversation } = useQuery({
@@ -86,10 +87,6 @@ export const Dashboard: React.FC = () => {
 
   // Effect to auto-select conversation from URL and switch away from notifications
   useEffect(() => {
-    // Only auto-switch away from notifications if we just navigated from a notification
-    // (indicated by having a timestamp parameter)
-    const hasTimestamp = searchParams.get('t');
-    
     if (conversationIdFromUrl && hasTimestamp) {
       // This indicates we just clicked "View" from notifications, so switch to conversation view
       if (selectedTab === 'notifications') {
@@ -113,7 +110,7 @@ export const Dashboard: React.FC = () => {
         }
       }
     }
-  }, [conversationIdFromUrl, urlConversation, selectedConversation, selectedTab, isMobile, searchParams]);
+  }, [conversationIdFromUrl, urlConversation?.id, selectedConversation?.id, selectedTab, isMobile, hasTimestamp]);
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
@@ -143,7 +140,7 @@ export const Dashboard: React.FC = () => {
   };
 
   // Debug logging
-  console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!searchParams.get('t'));
+  console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!hasTimestamp);
   return (
     <div className="h-screen flex flex-col bg-gradient-surface">
       {/* Header */}
