@@ -134,6 +134,8 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  // Debug logging
+  console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!searchParams.get('t'));
   return (
     <div className="h-screen flex flex-col bg-gradient-surface">
       {/* Header */}
