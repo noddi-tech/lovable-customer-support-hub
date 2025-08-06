@@ -1,13 +1,24 @@
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCheck, Eye, MessageSquare, EyeOff, ExternalLink } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { CheckCheck, Eye, MessageSquare, EyeOff, ExternalLink, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Notification {
   id: string;
@@ -22,6 +33,9 @@ interface Notification {
 export function NotificationsList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
 
   // Fetch notifications with real-time updates
   const { data: notifications = [], isLoading } = useQuery({
@@ -64,6 +78,18 @@ export function NotificationsList() {
         },
         (payload) => {
           console.log('🔔 Notification updated via real-time:', payload);
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('🔔 Notification deleted via real-time:', payload);
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
         }
       )
@@ -118,6 +144,32 @@ export function NotificationsList() {
     },
   });
 
+  // Delete notification
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
+      toast({
+        title: "Success",
+        description: "Notification deleted",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete notification",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleNotificationClick = (notification: Notification, event: React.MouseEvent) => {
     // Don't navigate if clicking on action buttons
     if ((event.target as HTMLElement).closest('button')) {
@@ -146,6 +198,20 @@ export function NotificationsList() {
   const handleMarkAsUnread = (notificationId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     markAsUnreadMutation.mutate(notificationId);
+  };
+
+  const handleDeleteClick = (notificationId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setNotificationToDelete(notificationId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (notificationToDelete) {
+      deleteNotificationMutation.mutate(notificationToDelete);
+      setNotificationToDelete(null);
+      setDeleteDialogOpen(false);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -273,7 +339,7 @@ export function NotificationsList() {
                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                          </p>
                          
-                         <div className="flex items-center space-x-2">
+                         <div className="flex items-center space-x-1">
                            {/* Action buttons */}
                            {notification.data?.conversation_id && (
                              <Button
@@ -326,6 +392,16 @@ export function NotificationsList() {
                                Read
                              </Button>
                            )}
+
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={(event) => handleDeleteClick(notification.id, event)}
+                             className="h-7 px-2 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+                             title="Delete notification"
+                           >
+                             <Trash2 className="h-3 w-3" />
+                           </Button>
                          </div>
                        </div>
                     </div>
@@ -336,6 +412,29 @@ export function NotificationsList() {
           )}
         </div>
       </ScrollArea>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete notification</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this notification? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
