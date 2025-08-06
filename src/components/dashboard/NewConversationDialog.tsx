@@ -101,8 +101,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
           priority: conversationData.priority,
           status: 'open',
           channel: 'email',
-          organization_id: profile?.organization_id,
-          assigned_to_id: profile?.user_id
+          organization_id: profile?.organization_id
         })
         .select('id')
         .single();
