@@ -158,10 +158,11 @@ export function NotificationsList() {
             notifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
+                className={`cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
                   !notification.is_read ? 'bg-primary/5 border-primary/20' : ''
                 }`}
                 onClick={() => handleNotificationClick(notification)}
+                title="Click to view conversation"
               >
                 <CardContent className="p-4">
                   <div className="flex items-start space-x-3">
