@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { profile } = useAuth();
+  const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Fetch inboxes
   const { data: inboxes = [] } = useQuery({
@@ -151,9 +152,29 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
           try {
             console.log('Attempting to send email for new conversation message:', newMessage.id);
             
+            // Set up timeout for 15 seconds
+            const timeoutId = setTimeout(async () => {
+              await supabase
+                .from('messages')
+                .update({ email_status: 'failed' })
+                .eq('id', newMessage.id);
+              
+              sendingTimeouts.current.delete(newMessage.id);
+              toast.error('Email sending timed out after 15 seconds');
+            }, 15000);
+
+            sendingTimeouts.current.set(newMessage.id, timeoutId);
+            
             const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-reply-email', {
               body: { messageId: newMessage.id }
             });
+
+            // Clear timeout on completion
+            const timeout = sendingTimeouts.current.get(newMessage.id);
+            if (timeout) {
+              clearTimeout(timeout);
+              sendingTimeouts.current.delete(newMessage.id);
+            }
 
             if (emailError) {
               console.error('Error sending email:', emailError);
@@ -162,16 +183,27 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
                 .from('messages')
                 .update({ email_status: 'failed' })
                 .eq('id', newMessage.id);
+              toast.error('Email failed to send');
             } else {
               console.log('Email sent successfully:', emailResult);
+              toast.success('Email sent successfully');
             }
           } catch (error) {
             console.error('Failed to send email for new conversation:', error);
+            
+            // Clear timeout on error
+            const timeout = sendingTimeouts.current.get(newMessage.id);
+            if (timeout) {
+              clearTimeout(timeout);
+              sendingTimeouts.current.delete(newMessage.id);
+            }
+            
             // Update message status to failed
             await supabase
               .from('messages')
               .update({ email_status: 'failed' })
               .eq('id', newMessage.id);
+            toast.error('Failed to send email');
           }
         } else {
           console.warn('No email account connected to inbox, email not sent');
@@ -184,12 +216,22 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       toast.success('Conversation created successfully');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      
+      // Clean up any timeouts before closing
+      sendingTimeouts.current.forEach((timeout) => clearTimeout(timeout));
+      sendingTimeouts.current.clear();
+      
       setOpen(false);
       resetForm();
       navigate(`/?conversation=${conversation.id}`);
     },
     onError: (error) => {
       console.error('Error creating conversation:', error);
+      
+      // Clean up any timeouts on error
+      sendingTimeouts.current.forEach((timeout) => clearTimeout(timeout));
+      sendingTimeouts.current.clear();
+      
       toast.error('Failed to create conversation');
     }
   });
@@ -200,6 +242,11 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
     setSubject('');
     setInitialMessage('');
     setPriority('normal');
+    
+    // Clean up any timeouts
+    sendingTimeouts.current.forEach((timeout) => clearTimeout(timeout));
+    sendingTimeouts.current.clear();
+    
     if (inboxes.length > 0) {
       const defaultInbox = inboxes.find(inbox => inbox.is_default) || inboxes[0];
       setSelectedInboxId(defaultInbox.id);
