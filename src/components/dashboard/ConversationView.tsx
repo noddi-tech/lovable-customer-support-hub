@@ -34,6 +34,16 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ConversationViewProps {
   conversationId?: string | null;
@@ -51,6 +61,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [editingAssignedTo, setEditingAssignedTo] = useState<string>('');
   const [originalEditingContent, setOriginalEditingContent] = useState('');
   const [originalEditingAssignedTo, setOriginalEditingAssignedTo] = useState<string>('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const queryClient = useQueryClient();
@@ -413,6 +425,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     setEditingAssignedTo('');
     setOriginalEditingContent('');
     setOriginalEditingAssignedTo('');
+  };
+
+  // Handle delete confirmation modal
+  const handleDeleteClick = (messageId: string) => {
+    setMessageToDelete(messageId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (messageToDelete) {
+      deleteMessage(messageToDelete);
+      setMessageToDelete(null);
+      setDeleteDialogOpen(false);
+    }
   };
 
 
@@ -780,15 +806,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                       <Edit2 className="h-3 w-3 mr-1" />
                                       Edit Note
                                     </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => deleteMessage(message.id)}
-                                      className="h-7 px-3 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
-                                    >
-                                      <Trash2 className="h-3 w-3 mr-1" />
-                                      Delete
-                                    </Button>
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => handleDeleteClick(message.id)}
+                                       className="h-7 px-3 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+                                     >
+                                       <Trash2 className="h-3 w-3 mr-1" />
+                                       Delete
+                                     </Button>
                                   </div>
                                 )}
 
@@ -840,18 +866,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                       >
                                         Cancel
                                       </Button>
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => {
-                                          handleCancelEdit();
-                                          deleteMessage(message.id);
-                                        }}
-                                        className="h-7 px-3 text-xs"
-                                      >
-                                        <Trash2 className="h-3 w-3 mr-1" />
-                                        Delete
-                                      </Button>
+                                       <Button
+                                         variant="destructive"
+                                         size="sm"
+                                         onClick={() => {
+                                           handleCancelEdit();
+                                           handleDeleteClick(message.id);
+                                         }}
+                                         className="h-7 px-3 text-xs"
+                                       >
+                                         <Trash2 className="h-3 w-3 mr-1" />
+                                         Delete
+                                       </Button>
                                     </div>
                                   </div>
                                 )}
@@ -905,14 +931,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                          Try Again
                                        </Button>
                                      )}
-                                     <Button
-                                       variant="destructive"
-                                       size="sm"
-                                       onClick={() => deleteMessage(message.id)}
-                                       className="h-7 px-3 text-xs"
-                                     >
-                                       Delete
-                                     </Button>
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => handleDeleteClick(message.id)}
+                                        className="h-7 px-3 text-xs"
+                                      >
+                                        Delete
+                                      </Button>
                                    </div>
                                  </div>
                                )}
@@ -1093,6 +1119,29 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete message</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this message? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
