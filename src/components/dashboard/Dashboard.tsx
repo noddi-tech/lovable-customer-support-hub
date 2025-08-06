@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Header } from './Header';
 import { InboxSidebar } from './InboxSidebar';
 import { ConversationList } from './ConversationList';
@@ -6,6 +7,8 @@ import { NotificationsList } from '@/components/notifications/NotificationsList'
 import { ConversationView } from './ConversationView';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -32,11 +35,64 @@ interface Conversation {
 }
 
 export const Dashboard: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [selectedTab, setSelectedTab] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
   const isMobile = useIsMobile();
+
+  // Get conversation ID from URL parameters
+  const conversationIdFromUrl = searchParams.get('conversation');
+  const messageIdFromUrl = searchParams.get('message');
+
+  // Fetch specific conversation if conversation ID is in URL
+  const { data: urlConversation } = useQuery({
+    queryKey: ['conversation', conversationIdFromUrl],
+    queryFn: async () => {
+      if (!conversationIdFromUrl) return null;
+      
+      const { data, error } = await supabase.rpc('get_conversations');
+      if (error) throw error;
+      
+      const foundConversation = data?.find((conv: any) => conv.id === conversationIdFromUrl);
+      
+      if (!foundConversation) return null;
+      
+      // Transform the API response to match our Conversation interface
+      return {
+        id: foundConversation.id,
+        subject: foundConversation.subject || 'Untitled Conversation',
+        status: foundConversation.status as ConversationStatus,
+        priority: foundConversation.priority as ConversationPriority,
+        is_read: foundConversation.is_read,
+        channel: foundConversation.channel as ConversationChannel,
+        updated_at: foundConversation.updated_at,
+        customer: foundConversation.customer ? {
+          id: (foundConversation.customer as any).id,
+          full_name: (foundConversation.customer as any).full_name,
+          email: (foundConversation.customer as any).email,
+        } : undefined,
+        assigned_to: foundConversation.assigned_to ? {
+          id: (foundConversation.assigned_to as any).id,
+          full_name: (foundConversation.assigned_to as any).full_name,
+          avatar_url: (foundConversation.assigned_to as any).avatar_url,
+        } : undefined,
+      } as Conversation;
+    },
+    enabled: !!conversationIdFromUrl,
+  });
+
+  // Effect to auto-select conversation from URL
+  useEffect(() => {
+    if (urlConversation && (!selectedConversation || selectedConversation.id !== urlConversation.id)) {
+      setSelectedConversation(urlConversation);
+      setSelectedTab('all'); // Switch to conversation view
+      if (isMobile) {
+        setShowConversationList(false);
+      }
+    }
+  }, [urlConversation, selectedConversation, isMobile]);
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);

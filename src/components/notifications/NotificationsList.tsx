@@ -250,8 +250,7 @@ export function NotificationsList() {
                                   console.log('Conversation ID:', conversationId);
                                   console.log('Message ID:', messageId);
                                   
-                                  // Use window.location.href for full page reload to ensure proper navigation
-                                  window.location.href = url;
+                                  navigate(url);
                                 }}
                                className="h-7 px-2 text-xs"
                                title="View conversation"
