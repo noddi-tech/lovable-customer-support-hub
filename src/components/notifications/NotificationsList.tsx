@@ -242,15 +242,17 @@ export function NotificationsList() {
                                   event.stopPropagation();
                                   const conversationId = notification.data.conversation_id;
                                   const messageId = notification.data.message_id;
-                                  const url = messageId 
-                                    ? `/?conversation=${conversationId}&message=${messageId}`
-                                    : `/?conversation=${conversationId}`;
                                   
-                                  console.log('Navigating to:', url);
-                                  console.log('Conversation ID:', conversationId);
+                                  console.log('Navigating to conversation:', conversationId);
                                   console.log('Message ID:', messageId);
                                   
-                                  navigate(url);
+                                  // Always navigate to ensure we switch away from notifications view
+                                  // Add a timestamp to force navigation even if same URL
+                                  const url = messageId 
+                                    ? `/?conversation=${conversationId}&message=${messageId}&t=${Date.now()}`
+                                    : `/?conversation=${conversationId}&t=${Date.now()}`;
+                                  
+                                  navigate(url, { replace: true });
                                 }}
                                className="h-7 px-2 text-xs"
                                title="View conversation"
