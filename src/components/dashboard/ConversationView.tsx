@@ -689,7 +689,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     )}
                      
                      <div className={`flex ${isAgent ? 'justify-end' : 'justify-start'} px-4`}>
-                       <div className={`max-w-2xl ${isAgent ? 'ml-auto' : 'mr-auto'}`}>
+                       <div className={`w-96 ${isAgent ? 'ml-auto' : 'mr-auto'}`}>
                           {message.is_internal && (
                             <div className="flex items-center justify-between mb-1">
                               <div 
@@ -736,7 +736,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                              >
                                <CardContent className="p-3">
                                  <p 
-                                   className="whitespace-pre-wrap"
+                                   className="whitespace-pre-wrap break-words overflow-hidden"
                                    style={{
                                      color: message.is_internal 
                                        ? getMessageTextColor('internal')
@@ -745,7 +745,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                          : getMessageTextColor('customer'),
                                      fontSize: '0.875rem',
                                      fontWeight: message.is_internal ? '600' : '400',
-                                     lineHeight: '1.25rem'
+                                     lineHeight: '1.25rem',
+                                     wordBreak: 'break-word',
+                                     overflowWrap: 'break-word'
                                    }}
                                  >
                                    {message.content}
