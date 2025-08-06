@@ -83,16 +83,24 @@ export const Dashboard: React.FC = () => {
     enabled: !!conversationIdFromUrl,
   });
 
-  // Effect to auto-select conversation from URL
+  // Effect to auto-select conversation from URL and switch away from notifications
   useEffect(() => {
-    if (urlConversation && (!selectedConversation || selectedConversation.id !== urlConversation.id)) {
-      setSelectedConversation(urlConversation);
-      setSelectedTab('all'); // Switch to conversation view
-      if (isMobile) {
-        setShowConversationList(false);
+    // If there's a conversation ID in the URL, we should be in conversation view, not notifications
+    if (conversationIdFromUrl) {
+      // Always switch away from notifications if we have a conversation ID
+      if (selectedTab === 'notifications') {
+        setSelectedTab('all');
+      }
+      
+      // Set the conversation if we have it loaded
+      if (urlConversation && (!selectedConversation || selectedConversation.id !== urlConversation.id)) {
+        setSelectedConversation(urlConversation);
+        if (isMobile) {
+          setShowConversationList(false);
+        }
       }
     }
-  }, [urlConversation, selectedConversation, isMobile]);
+  }, [conversationIdFromUrl, urlConversation, selectedConversation, selectedTab, isMobile]);
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
