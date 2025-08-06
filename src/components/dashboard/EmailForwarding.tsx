@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Copy, Check, Mail, AlertCircle, RefreshCw, Plus, Edit, Save, X } from "lucide-react";
+import { Copy, Check, Mail, AlertCircle, RefreshCw, Plus, Edit, Save, X, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,18 @@ export function EmailForwarding() {
       const { data, error } = await supabase.rpc("get_email_accounts");
       if (error) throw error;
       return data as EmailAccount[];
+    },
+  });
+
+  // Fetch sync settings
+  const { data: syncSettings } = useQuery({
+    queryKey: ["email-sync-settings"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("email_sync_settings")
+        .select("*")
+        .single();
+      return data;
     },
   });
 
@@ -391,7 +403,16 @@ export function EmailForwarding() {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           <strong>Gmail Integration:</strong> Connect your Gmail account to automatically sync emails as conversations. 
-          The system polls your Gmail for new messages. You can also manually sync anytime.
+          {syncSettings?.auto_sync_enabled ? (
+            <div className="flex items-center gap-2 mt-2 text-success">
+              <Clock className="h-4 w-4" />
+              <span>Auto-sync enabled - emails sync every {syncSettings.sync_interval_minutes} minutes</span>
+            </div>
+          ) : (
+            <div className="text-muted-foreground mt-2">
+              Auto-sync is disabled. Use manual sync buttons below.
+            </div>
+          )}
           <div className="mt-3 flex gap-2">
             <Button 
               onClick={() => handleSyncEmails()}

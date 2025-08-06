@@ -240,6 +240,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_sync_settings: {
+        Row: {
+          auto_sync_enabled: boolean
+          created_at: string
+          id: string
+          last_sync_at: string | null
+          organization_id: string
+          sync_interval_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          auto_sync_enabled?: boolean
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          organization_id: string
+          sync_interval_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_sync_enabled?: boolean
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          organization_id?: string
+          sync_interval_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           body_background_color: string | null
