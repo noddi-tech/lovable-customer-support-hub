@@ -542,10 +542,24 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+      hour: '2-digit', 
       minute: '2-digit',
-      hour12: true 
+      hour12: false 
     });
+  };
+
+  const formatTimestamps = (message: any) => {
+    const createdDate = new Date(message.created_at);
+    const createdTime = formatTime(createdDate);
+    
+    // Check if message has been updated (for internal notes)
+    if (message.is_internal && message.updated_at && message.updated_at !== message.created_at) {
+      const updatedDate = new Date(message.updated_at);
+      const updatedTime = formatTime(updatedDate);
+      return `created: ${createdTime} • edited: ${updatedTime}`;
+    }
+    
+    return createdTime;
   };
 
   const formatDate = (date: Date) => {
@@ -737,18 +751,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                  </div>
                                  <div className="flex items-center space-x-2">
                                    {message.sender_type === 'agent' && getStatusIcon(message)}
-                                   <span 
-                                     style={{
-                                       color: message.is_internal 
-                                         ? getMessageTextColor('internal')
-                                         : message.sender_type === 'agent' 
-                                           ? getMessageTextColor('agent')
-                                           : getMessageTextColor('customer'),
-                                       fontSize: '0.75rem'
-                                     }}
-                                   >
-                                     {formatTime(messageDate)}
-                                   </span>
+                                    <span 
+                                      style={{
+                                        color: message.is_internal 
+                                          ? getMessageTextColor('internal')
+                                          : message.sender_type === 'agent' 
+                                            ? getMessageTextColor('agent')
+                                            : getMessageTextColor('customer'),
+                                        fontSize: '0.75rem'
+                                      }}
+                                    >
+                                      {formatTimestamps(message)}
+                                    </span>
                                   </div>
                                 </div>
                                 ) : null}
