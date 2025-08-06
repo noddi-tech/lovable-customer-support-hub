@@ -133,14 +133,30 @@ export function NotificationDropdown() {
   // Delete notification
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
+      console.log('Dropdown: Starting delete mutation for:', notificationId);
       const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('id', notificationId);
-      if (error) throw error;
+      if (error) {
+        console.error('Dropdown: Delete error:', error);
+        throw error;
+      }
+      console.log('Dropdown: Delete successful');
     },
-    onSuccess: () => {
+    onSuccess: (_, notificationId) => {
+      console.log('Dropdown: Delete mutation onSuccess triggered');
+      // Optimistic update - immediately remove from cache
+      queryClient.setQueryData(['notifications'], (old: Notification[] | undefined) => {
+        if (!old) return old;
+        const filtered = old.filter(n => n.id !== notificationId);
+        console.log('Dropdown: Optimistic update - removed notification', notificationId);
+        return filtered;
+      });
+      
+      // Also invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      
       toast({
         title: "Success",
         description: "Notification deleted",

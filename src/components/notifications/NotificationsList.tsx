@@ -147,15 +147,31 @@ export function NotificationsList() {
   // Delete notification
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
+      console.log('Starting delete mutation for:', notificationId);
       const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('id', notificationId);
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+      console.log('Delete successful');
     },
-    onSuccess: () => {
+    onSuccess: (_, notificationId) => {
+      console.log('Delete mutation onSuccess triggered');
+      // Optimistic update - immediately remove from cache
+      queryClient.setQueryData(['notifications'], (old: Notification[] | undefined) => {
+        if (!old) return old;
+        const filtered = old.filter(n => n.id !== notificationId);
+        console.log('Optimistic update: removed notification', notificationId, 'new length:', filtered.length);
+        return filtered;
+      });
+      
+      // Also invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
+      
       toast({
         title: "Success",
         description: "Notification deleted",
@@ -293,7 +309,7 @@ export function NotificationsList() {
             notifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`cursor-pointer transition-all duration-200 hover:bg-accent border-border ${
+                className={`cursor-pointer transition-all duration-200 hover:bg-muted border-border ${
                   !notification.is_read ? 'bg-primary-muted border-primary/20' : 'bg-card'
                 }`}
                 onClick={(event) => handleNotificationClick(notification, event)}
