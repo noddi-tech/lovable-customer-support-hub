@@ -569,7 +569,7 @@ export function EmailForwarding() {
                             <Label className="text-sm font-medium">Auto-sync</Label>
                             <p className="text-xs text-muted-foreground">
                               {account.sync_interval_minutes < 1 
-                                ? `Automatically sync this account every ${Math.round(account.sync_interval_minutes * 60)} second${Math.round(account.sync_interval_minutes * 60) !== 1 ? 's' : ''}`
+                                ? `Automatically sync this account every ${Math.ceil(account.sync_interval_minutes * 60)} second${Math.ceil(account.sync_interval_minutes * 60) !== 1 ? 's' : ''} (${account.sync_interval_minutes})`
                                 : `Automatically sync this account every ${account.sync_interval_minutes} minute${account.sync_interval_minutes > 1 ? 's' : ''}`
                               }
                             </p>
