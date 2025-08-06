@@ -602,13 +602,13 @@ export function EmailForwarding() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="0.017">1 sec</SelectItem>
+                                <SelectItem value="0.083">5 sec</SelectItem>
+                                <SelectItem value="0.167">10 sec</SelectItem>
+                                <SelectItem value="0.5">30 sec</SelectItem>
                                 <SelectItem value="1">1 min</SelectItem>
                                 <SelectItem value="2">2 min</SelectItem>
                                 <SelectItem value="5">5 min</SelectItem>
-                                <SelectItem value="10">10 min</SelectItem>
-                                <SelectItem value="15">15 min</SelectItem>
-                                <SelectItem value="30">30 min</SelectItem>
-                                <SelectItem value="60">1 hour</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
