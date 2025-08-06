@@ -238,15 +238,21 @@ export function NotificationsList() {
                              <Button
                                variant="ghost"
                                size="sm"
-                               onClick={(event) => {
-                                 event.stopPropagation();
-                                 const conversationId = notification.data.conversation_id;
-                                 const messageId = notification.data.message_id;
-                                 const url = messageId 
-                                   ? `/?conversation=${conversationId}&message=${messageId}`
-                                   : `/?conversation=${conversationId}`;
-                                 navigate(url);
-                               }}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  const conversationId = notification.data.conversation_id;
+                                  const messageId = notification.data.message_id;
+                                  const url = messageId 
+                                    ? `/?conversation=${conversationId}&message=${messageId}`
+                                    : `/?conversation=${conversationId}`;
+                                  
+                                  console.log('Navigating to:', url);
+                                  console.log('Conversation ID:', conversationId);
+                                  console.log('Message ID:', messageId);
+                                  
+                                  // Use window.location.href for full page reload to ensure proper navigation
+                                  window.location.href = url;
+                                }}
                                className="h-7 px-2 text-xs"
                                title="View conversation"
                              >
