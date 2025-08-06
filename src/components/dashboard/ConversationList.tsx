@@ -33,6 +33,7 @@ interface Conversation {
   status: ConversationStatus;
   priority: ConversationPriority;
   is_read: boolean;
+  is_archived?: boolean;
   channel: ConversationChannel;
   updated_at: string;
   inbox_id?: string;
@@ -195,7 +196,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         case "assigned":
           return !!conversation.assigned_to;
         case "archived":
-          return conversation.status === "closed";
+          return conversation.is_archived === true;
         case "snoozed":
           return false; // Placeholder for snoozed conversations
         case "email":
