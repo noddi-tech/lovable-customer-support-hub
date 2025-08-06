@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCheck, Eye, MessageSquare } from 'lucide-react';
+import { CheckCheck, Eye, MessageSquare, EyeOff, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Notification {
@@ -62,9 +62,25 @@ export function NotificationsList() {
     },
   });
 
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.is_read) {
-      markAsReadMutation.mutate(notification.id);
+  // Mark notification as unread
+  const markAsUnreadMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: false, updated_at: new Date().toISOString() })
+        .eq('id', notificationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
+    },
+  });
+
+  const handleNotificationClick = (notification: Notification, event: React.MouseEvent) => {
+    // Don't navigate if clicking on action buttons
+    if ((event.target as HTMLElement).closest('button')) {
+      return;
     }
     
     // Navigate to conversation if it's an assignment notification
@@ -79,6 +95,16 @@ export function NotificationsList() {
       
       navigate(url);
     }
+  };
+
+  const handleMarkAsRead = (notificationId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    markAsReadMutation.mutate(notificationId);
+  };
+
+  const handleMarkAsUnread = (notificationId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    markAsUnreadMutation.mutate(notificationId);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -161,7 +187,7 @@ export function NotificationsList() {
                 className={`cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
                   !notification.is_read ? 'bg-primary/5 border-primary/20' : ''
                 }`}
-                onClick={() => handleNotificationClick(notification)}
+                onClick={(event) => handleNotificationClick(notification, event)}
                 title="Click to view conversation"
               >
                 <CardContent className="p-4">
@@ -201,18 +227,59 @@ export function NotificationsList() {
                         </div>
                       )}
                       
-                      <div className="flex items-center justify-between mt-3">
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                        </p>
-                        
-                        {notification.is_read && (
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <Eye className="h-3 w-3 mr-1" />
-                            Read
-                          </div>
-                        )}
-                      </div>
+                       <div className="flex items-center justify-between mt-3">
+                         <p className="text-xs text-muted-foreground">
+                           {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                         </p>
+                         
+                         <div className="flex items-center space-x-2">
+                           {/* Action buttons */}
+                           {notification.data?.conversation_id && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={(event) => {
+                                 event.stopPropagation();
+                                 const conversationId = notification.data.conversation_id;
+                                 const messageId = notification.data.message_id;
+                                 const url = messageId 
+                                   ? `/?conversation=${conversationId}&message=${messageId}`
+                                   : `/?conversation=${conversationId}`;
+                                 navigate(url);
+                               }}
+                               className="h-7 px-2 text-xs"
+                               title="View conversation"
+                             >
+                               <ExternalLink className="h-3 w-3 mr-1" />
+                               View
+                             </Button>
+                           )}
+                           
+                           {notification.is_read ? (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={(event) => handleMarkAsUnread(notification.id, event)}
+                               className="h-7 px-2 text-xs"
+                               title="Mark as unread"
+                             >
+                               <EyeOff className="h-3 w-3 mr-1" />
+                               Unread
+                             </Button>
+                           ) : (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={(event) => handleMarkAsRead(notification.id, event)}
+                               className="h-7 px-2 text-xs"
+                               title="Mark as read"
+                             >
+                               <Eye className="h-3 w-3 mr-1" />
+                               Read
+                             </Button>
+                           )}
+                         </div>
+                       </div>
                     </div>
                   </div>
                 </CardContent>
