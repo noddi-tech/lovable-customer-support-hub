@@ -201,7 +201,9 @@ export function NotificationsList() {
   };
 
   const handleDeleteClick = (notificationId: string, event: React.MouseEvent) => {
+    console.log('Delete button clicked for notification:', notificationId);
     event.stopPropagation();
+    event.preventDefault();
     setNotificationToDelete(notificationId);
     setDeleteDialogOpen(true);
   };
@@ -393,15 +395,18 @@ export function NotificationsList() {
                              </Button>
                            )}
 
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             onClick={(event) => handleDeleteClick(notification.id, event)}
-                             className="h-7 px-2 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
-                             title="Delete notification"
-                           >
-                             <Trash2 className="h-3 w-3" />
-                           </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(event) => {
+                                console.log('Delete button onclick triggered');
+                                handleDeleteClick(notification.id, event);
+                              }}
+                              className="h-7 px-2 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+                              title="Delete notification"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                          </div>
                        </div>
                     </div>
