@@ -673,6 +673,7 @@ export type Database = {
           status: string
           priority: string
           is_read: boolean
+          is_archived: boolean
           channel: string
           updated_at: string
           customer: Json
