@@ -592,13 +592,15 @@ export function EmailForwarding() {
                             <Label className="text-xs text-muted-foreground">Sync Interval</Label>
                             <Select 
                               value={account.sync_interval_minutes?.toString() || "2"}
-                              onValueChange={(value) =>
+                              onValueChange={(value) => {
+                                const numericValue = Number(value);
+                                console.log('Selected value:', value, 'Converted to:', numericValue);
                                 updateAccountSyncMutation.mutate({
                                   accountId: account.id,
                                   autoSyncEnabled: true,
-                                  syncIntervalMinutes: parseFloat(value)
-                                })
-                              }
+                                  syncIntervalMinutes: numericValue
+                                });
+                              }}
                               disabled={updateAccountSyncMutation.isPending}
                             >
                               <SelectTrigger className="w-32 h-8">
