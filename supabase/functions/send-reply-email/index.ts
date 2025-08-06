@@ -261,11 +261,25 @@ const handler = async (req: Request): Promise<Response> => {
     // Update message status to 'sent' in the database
     const { error: updateError } = await supabaseClient
       .from('messages')
-      .update({ email_status: 'sent' })
+      .update({ 
+        email_status: 'sent',
+        email_message_id: gmailResult.id // Store Gmail message ID
+      })
       .eq('id', messageId);
 
     if (updateError) {
       console.error('Error updating message status:', updateError);
+    }
+
+    // Trigger email sync to capture the sent message
+    console.log('Triggering email sync for account:', emailAccount.id);
+    try {
+      const syncResponse = await supabaseClient.functions.invoke('gmail-sync', {
+        body: { emailAccountId: emailAccount.id, syncSent: true }
+      });
+      console.log('Sync triggered successfully:', syncResponse);
+    } catch (syncError) {
+      console.warn('Failed to trigger sync, but email was sent:', syncError);
     }
 
     return new Response(JSON.stringify({ 

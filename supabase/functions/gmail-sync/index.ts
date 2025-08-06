@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface SyncRequest {
   emailAccountId?: string;
+  syncSent?: boolean;
 }
 
 serve(async (req: Request) => {
@@ -34,7 +35,7 @@ serve(async (req: Request) => {
       });
     }
 
-    const { emailAccountId } = await req.json() as SyncRequest;
+    const { emailAccountId, syncSent = false } = await req.json() as SyncRequest;
 
     // Get email accounts to sync
     let query = supabaseClient
@@ -78,13 +79,19 @@ serve(async (req: Request) => {
           account.access_token = refreshResult.accessToken;
         }
 
-        // Sync emails from Gmail
-        const syncResult = await syncGmailMessages(account, supabaseClient);
+        // Sync emails from Gmail (inbox and optionally sent)
+        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox');
+        let sentResult = { success: true, messageCount: 0 };
+        
+        if (syncSent) {
+          sentResult = await syncGmailMessages(account, supabaseClient, 'sent');
+        }
+        
         syncResults.push({
           accountId: account.id,
-          success: syncResult.success,
-          messageCount: syncResult.messageCount,
-          error: syncResult.error
+          success: inboxResult.success && sentResult.success,
+          messageCount: inboxResult.messageCount + sentResult.messageCount,
+          error: inboxResult.error || sentResult.error
         });
 
         // Update last sync time
@@ -152,9 +159,9 @@ async function refreshAccessToken(account: any, supabaseClient: any) {
   }
 }
 
-async function syncGmailMessages(account: any, supabaseClient: any) {
+async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox') {
   try {
-    console.log(`Starting Gmail sync for account: ${account.email_address}`);
+    console.log(`Starting Gmail sync for account: ${account.email_address}, folder: ${folder}`);
     console.log(`Account details:`, {
       id: account.id,
       email: account.email_address,
@@ -163,7 +170,8 @@ async function syncGmailMessages(account: any, supabaseClient: any) {
     });
 
     // Get messages from Gmail API
-    const gmailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:inbox&maxResults=50`;
+    const query = folder === 'sent' ? 'in:sent' : 'in:inbox';
+    const gmailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`;
     console.log(`Fetching messages from: ${gmailUrl}`);
     
     const response = await fetch(gmailUrl, {
@@ -241,6 +249,7 @@ async function syncGmailMessages(account: any, supabaseClient: any) {
         const from = headers.find((h: any) => h.name === 'From')?.value || '';
         const to = headers.find((h: any) => h.name === 'To')?.value || '';
         const messageId = headers.find((h: any) => h.name === 'Message-ID')?.value || '';
+        const inReplyTo = headers.find((h: any) => h.name === 'In-Reply-To')?.value || '';
         const threadId = fullMessage.threadId;
 
         // Extract email content
@@ -256,8 +265,13 @@ async function syncGmailMessages(account: any, supabaseClient: any) {
           }
         }
 
-        // Extract customer email from 'From' header
-        const customerEmail = from.match(/<([^>]+)>/)?.[1] || from;
+        // Determine sender type and extract relevant email
+        const isFromAgent = folder === 'sent' || from.includes(account.email_address);
+        const customerEmail = isFromAgent 
+          ? (to.match(/<([^>]+)>/)?.[1] || to)
+          : (from.match(/<([^>]+)>/)?.[1] || from);
+        
+        const senderType = isFromAgent ? 'agent' : 'customer';
 
         // Find or create customer
         let { data: customer } = await supabaseClient
@@ -268,25 +282,42 @@ async function syncGmailMessages(account: any, supabaseClient: any) {
           .single();
 
         if (!customer) {
+          const displayName = isFromAgent 
+            ? to.replace(/<[^>]+>/, '').trim() || customerEmail
+            : from.replace(/<[^>]+>/, '').trim() || customerEmail;
+            
           const { data: newCustomer } = await supabaseClient
             .from('customers')
             .insert({
               organization_id: account.organization_id,
               email: customerEmail,
-              full_name: from.replace(/<[^>]+>/, '').trim() || customerEmail,
+              full_name: displayName,
             })
             .select('id')
             .single();
           customer = newCustomer;
         }
 
-        // Find or create conversation
+        // Find existing conversation by threadId or inReplyTo
         let { data: conversation } = await supabaseClient
           .from('conversations')
-          .select('id')
+          .select('id, subject')
           .eq('external_id', threadId)
           .eq('organization_id', account.organization_id)
           .single();
+
+        // If no conversation found by threadId, try to find by Message-ID reference
+        if (!conversation && inReplyTo) {
+          const { data: referencedMessage } = await supabaseClient
+            .from('messages')
+            .select('conversation_id, conversation:conversations(id, subject)')
+            .eq('email_message_id', inReplyTo)
+            .single();
+            
+          if (referencedMessage?.conversation) {
+            conversation = referencedMessage.conversation;
+          }
+        }
 
         if (!conversation) {
           const { data: newConversation } = await supabaseClient
@@ -295,7 +326,7 @@ async function syncGmailMessages(account: any, supabaseClient: any) {
               organization_id: account.organization_id,
               email_account_id: account.id,
               customer_id: customer?.id,
-              subject,
+              subject: subject.replace(/^Re:\s*/, ''), // Remove Re: prefix for clean subject
               external_id: threadId,
               channel: 'email',
               status: 'open',
@@ -311,12 +342,13 @@ async function syncGmailMessages(account: any, supabaseClient: any) {
           .insert({
             conversation_id: conversation.id,
             content: content.substring(0, 10000), // Limit content length
-            sender_type: 'customer',
+            sender_type: senderType,
             external_id: message.id,
             email_message_id: messageId,
             email_thread_id: threadId,
             email_subject: subject,
             email_headers: headers,
+            email_status: folder === 'sent' ? 'sent' : 'received'
           });
 
         processedCount++;
