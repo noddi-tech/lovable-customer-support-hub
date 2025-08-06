@@ -176,7 +176,11 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
                 "w-full justify-start px-2 py-2 h-auto font-normal",
                 selectedTab === 'notifications' ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
               )}
-              onClick={() => onTabChange('notifications')}
+              onClick={() => {
+                console.log('Notifications tab clicked, current selectedTab:', selectedTab);
+                onTabChange('notifications');
+                console.log('onTabChange called with notifications');
+              }}
             >
               <Bell className="mr-3 h-4 w-4" />
               <span className="flex-1 text-left">Notifications</span>

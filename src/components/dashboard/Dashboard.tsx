@@ -109,6 +109,13 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleTabChange = (tab: string) => {
+    console.log('Dashboard handleTabChange called with:', tab);
+    console.log('Current selectedTab before change:', selectedTab);
+    setSelectedTab(tab);
+    console.log('setSelectedTab called, new tab should be:', tab);
+  };
+
   const handleBackToList = () => {
     if (isMobile) {
       setShowConversationList(true);
@@ -134,7 +141,7 @@ export const Dashboard: React.FC = () => {
       `}>
         <InboxSidebar 
           selectedTab={selectedTab} 
-          onTabChange={setSelectedTab}
+          onTabChange={handleTabChange}
         />
       </div>
 
