@@ -651,10 +651,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Messages Area */}
-        <div className="flex-1 flex flex-col">
+        {/* Messages Area - Made wider with max-width container */}
+        <div className="flex-1 flex flex-col max-w-5xl mx-auto">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -665,6 +665,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 const messageDate = new Date(message.created_at);
                 const showDate = index === 0 || 
                   formatDate(messageDate) !== formatDate(new Date(messages[index - 1].created_at));
+                
+                const isAgent = message.sender_type === 'agent';
+                const isCustomer = message.sender_type === 'customer';
                 
                  return (
                    <div 
@@ -685,8 +688,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       </div>
                     )}
                      
-                     <div className={`flex ${message.sender_type === 'agent' ? 'justify-end' : 'justify-start'}`}>
-                       <div className={`max-w-2xl ${message.sender_type === 'agent' ? 'ml-6 md:ml-12' : 'mr-6 md:mr-12'}`}>
+                     <div className={`flex ${isAgent ? 'justify-end' : 'justify-start'} px-4`}>
+                       <div className={`max-w-md ${isAgent ? 'ml-auto' : 'mr-auto'}`}>
                           {message.is_internal && (
                             <div className="flex items-center justify-between mb-1">
                               <div 
@@ -712,39 +715,41 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                             </div>
                           )}
                           
-                            <Card 
-                              className={`group cursor-pointer transition-all duration-200 ${
-                               message.is_internal 
-                                 ? 'bg-warning/10 border-warning/20' 
-                                 : message.sender_type === 'agent' 
-                                   ? 'bg-primary border-primary' 
-                                   : 'bg-card border-border'
-                              } ${
-                                selectedMessageId === message.id 
-                                  ? 'ring-2 ring-primary ring-opacity-50' 
-                                  : 'hover:shadow-md'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleMessageClick(message.id);
-                              }}
-                            >
-                              <CardContent className="p-4">
-                                <p 
-                                  className="whitespace-pre-wrap"
-                                  style={{
-                                    color: message.is_internal 
-                                      ? getMessageTextColor('internal')
-                                      : message.sender_type === 'agent' 
-                                        ? getMessageTextColor('agent')
-                                        : getMessageTextColor('customer'),
-                                    fontSize: '0.875rem',
-                                    fontWeight: message.is_internal ? '600' : '400',
-                                    lineHeight: '1.25rem'
-                                  }}
-                                >
-                                  {message.content}
-                                </p>
+                             <Card 
+                               className={`group cursor-pointer transition-all duration-200 ${
+                                message.is_internal 
+                                  ? 'bg-warning/10 border-warning/20' 
+                                  : isAgent 
+                                    ? 'bg-primary border-primary' 
+                                    : 'bg-card border-border'
+                               } ${
+                                 selectedMessageId === message.id 
+                                   ? 'ring-2 ring-primary ring-opacity-50' 
+                                   : 'hover:shadow-md'
+                               } ${
+                                 isAgent ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'
+                               }`}
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleMessageClick(message.id);
+                               }}
+                             >
+                               <CardContent className="p-3">
+                                 <p 
+                                   className="whitespace-pre-wrap"
+                                   style={{
+                                     color: message.is_internal 
+                                       ? getMessageTextColor('internal')
+                                       : isAgent 
+                                         ? getMessageTextColor('agent')
+                                         : getMessageTextColor('customer'),
+                                     fontSize: '0.875rem',
+                                     fontWeight: message.is_internal ? '600' : '400',
+                                     lineHeight: '1.25rem'
+                                   }}
+                                 >
+                                   {message.content}
+                                 </p>
                                {!editingMessageId || editingMessageId !== message.id ? (
                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
                                 <div className="flex items-center space-x-2">
