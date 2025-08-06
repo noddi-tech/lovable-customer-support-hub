@@ -85,10 +85,14 @@ export const Dashboard: React.FC = () => {
 
   // Effect to auto-select conversation from URL and switch away from notifications
   useEffect(() => {
-    // If there's a conversation ID in the URL, we should be in conversation view, not notifications
-    if (conversationIdFromUrl) {
-      // Always switch away from notifications if we have a conversation ID
+    // Only auto-switch away from notifications if we just navigated from a notification
+    // (indicated by having a timestamp parameter)
+    const hasTimestamp = searchParams.get('t');
+    
+    if (conversationIdFromUrl && hasTimestamp) {
+      // This indicates we just clicked "View" from notifications, so switch to conversation view
       if (selectedTab === 'notifications') {
+        console.log('Auto-switching from notifications to conversation view due to View button click');
         setSelectedTab('all');
       }
       
@@ -99,8 +103,16 @@ export const Dashboard: React.FC = () => {
           setShowConversationList(false);
         }
       }
+    } else if (conversationIdFromUrl && urlConversation) {
+      // Just set the conversation without forcing tab change (manual navigation)
+      if (!selectedConversation || selectedConversation.id !== urlConversation.id) {
+        setSelectedConversation(urlConversation);
+        if (isMobile) {
+          setShowConversationList(false);
+        }
+      }
     }
-  }, [conversationIdFromUrl, urlConversation, selectedConversation, selectedTab, isMobile]);
+  }, [conversationIdFromUrl, urlConversation, selectedConversation, selectedTab, isMobile, searchParams]);
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
