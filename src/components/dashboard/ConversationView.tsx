@@ -69,10 +69,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
 
-  // Function to extract clean text from HTML content
+  // Function to extract clean text from HTML content and remove quoted emails
   const extractTextFromHTML = (htmlContent: string): string => {
     // Remove HTML tags and decode entities
-    const textContent = htmlContent
+    let textContent = htmlContent
       .replace(/<[^>]*>/g, '') // Remove HTML tags
       .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
       .replace(/&amp;/g, '&') // Replace HTML entities
@@ -82,8 +82,37 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       .replace(/&#39;/g, "'")
       .replace(/\r?\n\s*\r?\n/g, '\n') // Remove extra blank lines
       .trim();
+
+    // Remove quoted email content (common email reply patterns)
+    const lines = textContent.split('\n');
+    const cleanLines = [];
+    let inQuotedSection = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check for common quote patterns
+      if (
+        line.startsWith('>') || // Standard email quote
+        line.match(/^On .+ wrote:$/i) || // "On [date] [person] wrote:"
+        line.match(/^From:.+To:.+Subject:/i) || // Email headers
+        line.includes('-----Original Message-----') ||
+        line.includes('--- Forwarded message ---') ||
+        line.match(/^\d{1,2}\/\d{1,2}\/\d{4}.+wrote:$/i) // Date patterns
+      ) {
+        inQuotedSection = true;
+        continue;
+      }
+      
+      // Reset quote detection if we hit a normal line after some content
+      if (!line.startsWith('>') && line.length > 0 && !inQuotedSection) {
+        cleanLines.push(lines[i]);
+      } else if (!inQuotedSection && line.length > 0) {
+        cleanLines.push(lines[i]);
+      }
+    }
     
-    return textContent;
+    return cleanLines.join('\n').trim();
   };
 
   // Get message ID from URL
