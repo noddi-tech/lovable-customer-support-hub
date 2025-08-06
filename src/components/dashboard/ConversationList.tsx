@@ -220,7 +220,11 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
           filteredConversations.map((conversation) => (
             <div
               key={conversation.id}
-              onClick={() => onSelectConversation(conversation)}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onSelectConversation(conversation);
+              }}
               className={cn(
                 "p-4 border-b border-border hover:bg-accent/50 cursor-pointer transition-colors",
                 selectedConversation?.id === conversation.id && "bg-accent",
