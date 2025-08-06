@@ -633,7 +633,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                   ? 'ring-2 ring-primary ring-opacity-50' 
                                   : 'hover:shadow-md'
                               }`}
-                              onClick={() => handleMessageClick(message.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMessageClick(message.id);
+                              }}
                             >
                               <CardContent className="p-4">
                                 <p 
