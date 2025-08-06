@@ -352,8 +352,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     const contentChanged = editingContent.trim() !== originalEditingContent;
     const assignmentChanged = (editingAssignedTo || '') !== originalEditingAssignedTo;
     
+    console.log('Save edit debug:', {
+      editingContent: editingContent.trim(),
+      originalEditingContent,
+      editingAssignedTo: editingAssignedTo || '',
+      originalEditingAssignedTo,
+      contentChanged,
+      assignmentChanged
+    });
+    
     if (!contentChanged && !assignmentChanged) {
       // No changes, just cancel editing
+      console.log('No changes detected, canceling edit');
       setEditingMessageId(null);
       setEditingContent('');
       setEditingAssignedTo('');
@@ -362,6 +372,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       toast.info('No changes to save');
       return;
     }
+
+    console.log('Changes detected, updating message:', editingMessageId);
 
     try {
       const { error } = await supabase
@@ -372,7 +384,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         })
         .eq('id', editingMessageId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database update error:', error);
+        throw error;
+      }
+
+      console.log('Database update successful');
 
       // Reset all editing states
       setEditingMessageId(null);
