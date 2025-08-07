@@ -232,12 +232,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     setIsSending(true);
     
     try {
+      // Convert emoji shortcodes to actual emojis before sending
+      const processedContent = convertShortcodesToEmojis(replyText.trim());
+      
       // First, save the message to the database with 'sending' status
       const { data: newMessage, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          content: replyText.trim(),
+          content: processedContent,
           is_internal: isInternalNote,
           sender_type: 'agent',
           content_type: 'text',
