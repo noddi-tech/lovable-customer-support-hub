@@ -1,4 +1,5 @@
 // Email formatting utilities
+import DOMPurify from 'dompurify';
 
 export interface EmailAttachment {
   filename: string;
@@ -11,18 +12,30 @@ export interface EmailAttachment {
 }
 
 /**
- * Sanitizes HTML email content for safe display
- * Removes dangerous scripts and handles inline images
+ * Sanitizes HTML email content for safe display using DOMPurify
+ * Handles inline images and applies consistent styling
  */
 export const sanitizeEmailHTML = (htmlContent: string, attachments: EmailAttachment[] = []) => {
-  // Remove dangerous tags and attributes
-  let sanitized = htmlContent
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/vbscript:/gi, '')
-    .replace(/data:/gi, ''); // Remove data URLs for security
+  // Configure DOMPurify for safe HTML rendering
+  const config = {
+    ALLOWED_TAGS: [
+      'p', 'br', 'div', 'span', 'a', 'img', 'strong', 'em', 'b', 'i', 'u',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote',
+      'table', 'thead', 'tbody', 'tr', 'td', 'th', 'pre', 'code', 'hr'
+    ],
+    ALLOWED_ATTR: [
+      'href', 'src', 'alt', 'title', 'width', 'height', 'style',
+      'class', 'target', 'rel', 'colspan', 'rowspan'
+    ],
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'button', 'iframe'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur'],
+    KEEP_CONTENT: true,
+    ADD_ATTR: ['target']
+  };
+
+  // Pre-process content to handle inline images
+  let processedContent = htmlContent;
 
   // Handle inline images by replacing cid: references
   if (attachments && attachments.length > 0) {
@@ -30,17 +43,20 @@ export const sanitizeEmailHTML = (htmlContent: string, attachments: EmailAttachm
       if (attachment.isInline && attachment.contentId) {
         const cidPattern = new RegExp(`cid:${attachment.contentId}`, 'gi');
         // Replace with a placeholder for now - in production you'd fetch from Gmail API
-        sanitized = sanitized.replace(cidPattern, '/placeholder.svg');
+        processedContent = processedContent.replace(cidPattern, '/placeholder.svg');
         
         // Also handle src="cid:..." format
         const srcCidPattern = new RegExp(`src=["']cid:${attachment.contentId}["']`, 'gi');
-        sanitized = sanitized.replace(srcCidPattern, 'src="/placeholder.svg"');
+        processedContent = processedContent.replace(srcCidPattern, 'src="/placeholder.svg"');
       }
     });
   }
 
+  // Sanitize with DOMPurify
+  const sanitized = DOMPurify.sanitize(processedContent, config);
+
   // Apply consistent styling for email content
-  sanitized = `
+  const styledContent = `
     <div style="
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
@@ -116,7 +132,7 @@ export const sanitizeEmailHTML = (htmlContent: string, attachments: EmailAttachm
     </div>
   `;
 
-  return sanitized;
+  return styledContent;
 };
 
 /**
