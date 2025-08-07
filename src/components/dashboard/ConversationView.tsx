@@ -702,8 +702,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       <div className="flex-1 flex overflow-hidden">
         {/* Messages Area - Made wider with max-width container */}
-        <div className="flex-1 flex flex-col max-w-5xl mx-auto">
-          {/* Messages */}
+        <div className="flex-1 flex flex-col max-w-5xl mx-auto min-h-0">
+          {/* Messages - Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
@@ -1070,96 +1070,97 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               })
             )}
 
-            {/* Reply Area */}
-            <div className="border-t border-border bg-card p-3 md:p-4">
-              <div className="space-y-3">
-                {/* Toolbar */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Button variant="secondary" size="sm" className="hover:bg-accent">
-                      <Bold className="h-4 w-4" />
-                    </Button>
-                    <Button variant="secondary" size="sm" className="hover:bg-accent">
-                      <Italic className="h-4 w-4" />
-                    </Button>
-                    <Button variant="secondary" size="sm" className="hover:bg-accent">
-                      <Link2 className="h-4 w-4" />
-                    </Button>
-                    <Separator orientation="vertical" className="h-4" />
-                    <Button variant="secondary" size="sm" className="hover:bg-accent">
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                    <EmojiPicker onEmojiSelect={(emoji) => setReplyText(prev => prev + emoji)} />
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant={isInternalNote ? "default" : "secondary"} 
-                      size="sm"
-                      onClick={() => setIsInternalNote(!isInternalNote)}
-                      className="hover:bg-accent"
-                    >
-                      Internal Note
-                    </Button>
-                    <Button variant="secondary" size="sm" className="hover:bg-accent">
-                      Templates
-                    </Button>
-                  </div>
+          </div>
+
+          {/* Fixed Reply Area at Bottom */}
+          <div className="border-t border-border bg-card p-3 md:p-4 flex-shrink-0">
+            <div className="space-y-3">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
+                    <Bold className="h-4 w-4" />
+                  </Button>
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
+                    <Italic className="h-4 w-4" />
+                  </Button>
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
+                    <Link2 className="h-4 w-4" />
+                  </Button>
+                  <Separator orientation="vertical" className="h-4" />
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  <EmojiPicker onEmojiSelect={(emoji) => setReplyText(prev => prev + emoji)} />
                 </div>
-
-                {/* Assignment dropdown for internal notes */}
-                {isInternalNote && (
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
-                    <Select value={assignedToId} onValueChange={setAssignedToId}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Select team member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.user_id} value={member.user_id}>
-                            {member.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* Text Area with Emoji Autocomplete */}
-                <div className="relative">
-                  <EmojiAutocomplete
-                    value={replyText}
-                    onChange={setReplyText}
-                    placeholder={isInternalNote ? "Add an internal note... (try :smile:)" : "Type your reply... (try :blush:)"}
-                    className={`min-h-[100px] resize-none w-full p-3 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                      isInternalNote ? 'border-warning bg-warning/5' : ''
-                    }`}
-                  />
-                </div>
-
-                {/* Send Button */}
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-muted-foreground">
-                    {isInternalNote ? 'This note will only be visible to your team' : 'This reply will be sent to the customer'}
-                  </div>
+                
+                <div className="flex items-center space-x-2">
                   <Button 
-                    variant="default"
-                    disabled={!replyText.trim() || isSending}
-                    onClick={async () => {
-                      setIsSending(true);
-                      await handleSendMessage();
-                      setIsSending(false);
-                    }}
+                    variant={isInternalNote ? "default" : "secondary"} 
+                    size="sm"
+                    onClick={() => setIsInternalNote(!isInternalNote)}
+                    className="hover:bg-accent"
                   >
-                    <Send className="h-4 w-4 mr-2" />
-                    {isSending 
-                      ? (isInternalNote ? 'Adding...' : 'Sending...') 
-                      : (isInternalNote ? 'Add Note' : 'Send Reply')
-                    }
+                    Internal Note
+                  </Button>
+                  <Button variant="secondary" size="sm" className="hover:bg-accent">
+                    Templates
                   </Button>
                 </div>
+              </div>
+
+              {/* Assignment dropdown for internal notes */}
+              {isInternalNote && (
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
+                  <Select value={assignedToId} onValueChange={setAssignedToId}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Select team member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {teamMembers.map((member) => (
+                        <SelectItem key={member.user_id} value={member.user_id}>
+                          {member.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Text Area with Emoji Autocomplete */}
+              <div className="relative">
+                <EmojiAutocomplete
+                  value={replyText}
+                  onChange={setReplyText}
+                  placeholder={isInternalNote ? "Add an internal note... (try :smile:)" : "Type your reply... (try :blush:)"}
+                  className={`min-h-[100px] resize-none w-full p-3 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                    isInternalNote ? 'border-warning bg-warning/5' : ''
+                  }`}
+                />
+              </div>
+
+              {/* Send Button */}
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">
+                  {isInternalNote ? 'This note will only be visible to your team' : 'This reply will be sent to the customer'}
+                </div>
+                <Button 
+                  variant="default"
+                  disabled={!replyText.trim() || isSending}
+                  onClick={async () => {
+                    setIsSending(true);
+                    await handleSendMessage();
+                    setIsSending(false);
+                  }}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isSending 
+                    ? (isInternalNote ? 'Adding...' : 'Sending...') 
+                    : (isInternalNote ? 'Add Note' : 'Send Reply')
+                  }
+                </Button>
               </div>
             </div>
           </div>
