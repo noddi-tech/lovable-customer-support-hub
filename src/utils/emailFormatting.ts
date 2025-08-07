@@ -1,5 +1,5 @@
 // Email formatting utilities for rendering emails with correct formatting
-// Updated with enhanced formatting capabilities based on analysis
+// Enhanced email processing for Apple Mail-like appearance
 import DOMPurify from 'dompurify';
 import { convertShortcodesToEmojis } from './emojiUtils';
 
@@ -14,331 +14,312 @@ export interface EmailAttachment {
 }
 
 /**
- * Sanitizes HTML email content for safe display using DOMPurify
- * Handles inline images and applies consistent or original styling
- * @param htmlContent - Raw HTML content of the email
- * @param attachments - Array of email attachments
- * @param preserveOriginalStyles - Flag to preserve original email styles (default: false)
- * @param messageId - Gmail message ID for potential future attachment fetching
- * @returns Sanitized and styled HTML string
+ * Enhanced email HTML sanitization for Apple Mail-like appearance
  */
 export const sanitizeEmailHTML = (
   htmlContent: string, 
   attachments: EmailAttachment[] = [], 
-  preserveOriginalStyles: boolean = false,
+  preserveOriginalStyles: boolean = true,
   messageId?: string
 ): string => {
-  // Enhanced DOMPurify configuration for better email support
+  // Comprehensive email HTML configuration
   const config = {
     ALLOWED_TAGS: [
-      'p', 'br', 'div', 'span', 'a', 'img', 'strong', 'em', 'b', 'i', 'u',
+      'div', 'span', 'p', 'br', 'a', 'img', 'strong', 'b', 'em', 'i', 'u', 
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote',
-      'table', 'thead', 'tbody', 'tr', 'td', 'th', 'pre', 'code', 'hr',
-      'center', 'font', 'small', 'big', 'sub', 'sup', 'address', 'cite',
-      'del', 'ins', 'mark', 'time'
+      'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'caption',
+      'pre', 'code', 'hr', 'center', 'font', 'small', 'big', 'sub', 'sup',
+      'address', 'cite', 'del', 'ins', 'mark', 'time', 'style'
     ],
     ALLOWED_ATTR: [
-      'href', 'src', 'alt', 'title', 'width', 'height', 'style',
-      'class', 'target', 'rel', 'colspan', 'rowspan', 'id', 'name',
-      'background', 'border', 'padding', 'margin', 'font-family', 
-      'font-size', 'font-weight', 'color', 'text-align', 'bgcolor',
-      'cellpadding', 'cellspacing', 'valign', 'align', 'dir'
+      'href', 'src', 'alt', 'title', 'width', 'height', 'style', 'class', 
+      'id', 'target', 'rel', 'colspan', 'rowspan', 'border', 'cellpadding', 
+      'cellspacing', 'align', 'valign', 'bgcolor', 'color', 'face', 'size',
+      'data-*', 'role', 'aria-*', 'dir', 'background', 'font-family', 
+      'font-size', 'font-weight', 'text-align', 'margin', 'padding'
     ],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'button', 'iframe', 'meta', 'link'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onsubmit'],
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link'],
+    FORBID_ATTR: ['javascript:', 'vbscript:', 'onload', 'onerror', 'onclick'],
     KEEP_CONTENT: true,
     ADD_ATTR: ['target'],
-    RETURN_DOM: false,
-    RETURN_DOM_FRAGMENT: false
+    ALLOW_DATA_ATTR: true
   };
 
-  // Pre-process content to handle character encoding and inline images
-  let processedContent = fixEncodingIssues(htmlContent);
-  
-  // Convert emoji shortcodes to actual emojis early in the process
-  processedContent = convertShortcodesToEmojis(processedContent);
+  let processedContent = htmlContent;
 
-  // Handle inline images by replacing cid: references
+  // Handle inline images with CID references
   if (attachments && attachments.length > 0) {
-    attachments.forEach((attachment) => {
+    attachments.forEach(attachment => {
       if (attachment.isInline && attachment.contentId) {
-        // Remove angle brackets from contentId if present
-        const cleanContentId = attachment.contentId.replace(/[<>]/g, '');
-        const cidPattern = new RegExp(`cid:${cleanContentId}`, 'gi');
-        const srcCidPattern = new RegExp(`src=["']cid:${cleanContentId}["']`, 'gi');
+        const cidPattern = new RegExp(`cid:${attachment.contentId.replace(/[<>]/g, '')}`, 'gi');
+        const srcCidPattern = new RegExp(`src=["']cid:${attachment.contentId.replace(/[<>]/g, '')}["']`, 'gi');
         
-        // Create a placeholder for inline images - in production this would fetch actual data
-        const placeholderUrl = `data:${attachment.mimeType || 'image/png'};base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`;
+        // Placeholder for inline images - in production fetch actual attachment
+        const placeholderUrl = `https://via.placeholder.com/400x200/e5e7eb/6b7280?text=Image`;
         
         processedContent = processedContent.replace(cidPattern, placeholderUrl);
         processedContent = processedContent.replace(srcCidPattern, `src="${placeholderUrl}"`);
       }
     });
   }
-  
-  // Handle standard image sources and preserve them
-  processedContent = processedContent.replace(
-    /<img([^>]*?)src=["']([^"']*?)["']([^>]*?)>/gi,
-    (match, prefix, src, suffix) => {
-      // Don't modify data URLs or already processed cid references
-      if (src.startsWith('data:') || src.startsWith('cid:')) {
-        return match;
-      }
-      // Preserve external image URLs
-      return `<img${prefix}src="${src}"${suffix}>`;
-    }
-  );
 
-  // Sanitize with DOMPurify
+  // Fix common email HTML issues
+  processedContent = processedContent
+    // Fix unquoted attributes common in email HTML
+    .replace(/border=(\d+)/g, 'border="$1"')
+    .replace(/cellpadding=(\d+)/g, 'cellpadding="$1"')
+    .replace(/cellspacing=(\d+)/g, 'cellspacing="$1"')
+    .replace(/width=(\d+)/g, 'width="$1"')
+    .replace(/height=(\d+)/g, 'height="$1"')
+    .replace(/align=(\w+)/g, 'align="$1"')
+    .replace(/valign=(\w+)/g, 'valign="$1"')
+    .replace(/bgcolor=([#\w]+)/g, 'bgcolor="$1"')
+    // Ensure all images are responsive
+    .replace(/<img([^>]*?)>/gi, (match, attrs) => {
+      if (!attrs.includes('style=')) {
+        return `<img${attrs} style="max-width: 100%; height: auto; display: block;">`;
+      } else if (!attrs.includes('max-width')) {
+        const styleMatch = attrs.match(/style=["']([^"']*?)["']/);
+        if (styleMatch) {
+          const existingStyle = styleMatch[1];
+          const newStyle = `${existingStyle}; max-width: 100%; height: auto;`;
+          return match.replace(styleMatch[0], `style="${newStyle}"`);
+        }
+      }
+      return match;
+    });
+
+  // Sanitize the HTML
   const sanitized = DOMPurify.sanitize(processedContent, config);
 
-  // Apply consistent or original styling based on preference
-  const styledContent = `
-    <div style="
-      font-family: inherit;
-      line-height: 1.5;
-      color: inherit;
+  // Apply comprehensive email styling for consistent cross-client appearance
+  return `
+    <div class="email-html-content" style="
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #000000;
       max-width: 100%;
       overflow-wrap: break-word;
       word-wrap: break-word;
-      ${!preserveOriginalStyles ? '' : 'all: initial; font-family: inherit;'}
     ">
       <style>
-        .email-content {
-          /* Enhanced email content styling with original style preservation option */
-          ${preserveOriginalStyles ? 'all: initial; font-family: inherit; line-height: 1.5;' : ''}
-          word-wrap: break-word;
-          overflow-wrap: break-word;
+        .email-html-content {
+          --email-primary: #007aff;
+          --email-text: #000000;
+          --email-text-secondary: #3c3c43;
+          --email-border: #d1d1d6;
+          --email-bg-light: #f2f2f7;
+          --email-link: #007aff;
         }
-        .email-content img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 4px;
-          display: inline-block;
-          margin: 4px 0;
-          ${preserveOriginalStyles ? '' : 'max-height: 400px; object-fit: contain;'}
+        
+        /* Reset and base styles */
+        .email-html-content * {
+          box-sizing: border-box;
         }
-        .email-content table {
-          border-collapse: collapse;
-          width: 100%;
-          max-width: 100%;
-          margin: 8px 0;
-          ${preserveOriginalStyles ? '' : 'font-size: inherit;'}
-        }
-        .email-content td, .email-content th {
-          padding: 8px;
-          ${preserveOriginalStyles ? '' : 'border: 1px solid hsl(var(--border));'}
-          text-align: left;
-          vertical-align: top;
-          word-wrap: break-word;
-        }
-        .email-content a {
-          color: hsl(var(--primary));
-          text-decoration: underline;
-          word-wrap: break-word;
-        }
-        .email-content a:hover {
-          color: hsl(var(--primary)) !important;
-          opacity: 0.8;
-        }
-        .email-content blockquote {
-          border-left: 4px solid hsl(var(--border));
-          padding-left: 16px;
-          margin: 16px 0;
-          color: hsl(var(--muted-foreground));
-          font-style: italic;
-        }
-        .email-content p {
-          margin: 8px 0;
+        
+        /* Typography */
+        .email-html-content p {
+          margin: 12px 0;
           line-height: 1.5;
-          word-wrap: break-word;
         }
-        .email-content h1, .email-content h2, .email-content h3, 
-        .email-content h4, .email-content h5, .email-content h6 {
-          margin: 16px 0 8px 0;
+        
+        .email-html-content h1, .email-html-content h2, .email-html-content h3,
+        .email-html-content h4, .email-html-content h5, .email-html-content h6 {
+          margin: 24px 0 12px 0;
           font-weight: 600;
           line-height: 1.3;
-          word-wrap: break-word;
+          color: #1d1d1f;
         }
-        .email-content ul, .email-content ol {
-          margin: 8px 0;
-          padding-left: 24px;
+        
+        .email-html-content h1 { font-size: 28px; }
+        .email-html-content h2 { font-size: 22px; }
+        .email-html-content h3 { font-size: 18px; }
+        .email-html-content h4 { font-size: 16px; }
+        
+        /* Links */
+        .email-html-content a {
+          color: var(--email-link) !important;
+          text-decoration: underline;
+          word-break: break-word;
         }
-        .email-content li {
-          margin: 4px 0;
-          word-wrap: break-word;
+        
+        .email-html-content a:hover {
+          text-decoration: none;
         }
-        .email-content pre {
-          background-color: hsl(var(--muted));
-          padding: 12px;
-          border-radius: 4px;
-          overflow-x: auto;
-          font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-          font-size: 0.85em;
+        
+        /* Images */
+        .email-html-content img {
+          max-width: 100% !important;
+          height: auto !important;
+          border-radius: 8px;
           margin: 12px 0;
-          white-space: pre-wrap;
-          word-wrap: break-word;
+          display: block;
         }
-        .email-content code {
-          background-color: hsl(var(--muted));
-          padding: 2px 4px;
-          border-radius: 2px;
-          font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-          font-size: 0.85em;
-          word-wrap: break-word;
+        
+        /* Tables - Critical for email layout */
+        .email-html-content table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 16px 0;
+          font-size: inherit;
         }
-        /* Enhanced support for email-specific elements */
-        .email-content center {
+        
+        .email-html-content td, .email-html-content th {
+          padding: 12px;
+          border: 1px solid var(--email-border);
+          text-align: left;
+          vertical-align: top;
+          line-height: 1.4;
+        }
+        
+        .email-html-content th {
+          background-color: var(--email-bg-light);
+          font-weight: 600;
+          color: var(--email-text);
+        }
+        
+        /* Handle nested tables (common in email layouts) */
+        .email-html-content table table {
+          margin: 0;
+          width: 100%;
+        }
+        
+        .email-html-content table table td {
+          border: none;
+          padding: 8px;
+        }
+        
+        /* Lists */
+        .email-html-content ul, .email-html-content ol {
+          margin: 12px 0;
+          padding-left: 28px;
+        }
+        
+        .email-html-content li {
+          margin: 8px 0;
+          line-height: 1.5;
+        }
+        
+        /* Email-specific elements */
+        .email-html-content center {
           text-align: center;
+          margin: 16px 0;
         }
-        .email-content font[color] {
-          /* Preserve original font colors when specified */
+        
+        .email-html-content blockquote {
+          margin: 16px 0;
+          padding: 16px 20px;
+          border-left: 4px solid var(--email-primary);
+          background-color: var(--email-bg-light);
+          font-style: italic;
         }
-        .email-content [bgcolor] {
-          /* Preserve background colors */
+        
+        .email-html-content hr {
+          margin: 24px 0;
+          border: none;
+          border-top: 1px solid var(--email-border);
         }
-        /* Preserve email signatures and formatting */
-        .email-content div[style*="color"], 
-        .email-content span[style*="color"], 
-        .email-content p[style*="color"],
-        .email-content td[style*="color"] {
-          /* Let inline styles take precedence for formatted text */
+        
+        .email-html-content pre {
+          background-color: var(--email-bg-light);
+          border-radius: 8px;
+          padding: 16px;
+          overflow-x: auto;
+          font-size: 13px;
+          margin: 16px 0;
+          line-height: 1.4;
         }
-        /* Handle email threading and quoted content */
-        .email-content > div:first-child {
-          margin-top: 0;
+        
+        .email-html-content code {
+          background-color: var(--email-bg-light);
+          padding: 3px 6px;
+          border-radius: 4px;
+          font-size: 13px;
+          font-family: 'SF Mono', Monaco, 'Consolas', 'Liberation Mono', 'Courier New', monospace;
         }
-        .email-content > div:last-child {
-          margin-bottom: 0;
+        
+        /* Preserve email font attributes */
+        .email-html-content font[face] {
+          font-family: inherit;
         }
-        /* Responsive design for mobile */
-        @media (max-width: 768px) {
-          .email-content table {
-            font-size: 0.9em;
+        
+        .email-html-content font[color] {
+          /* Font color preserved via sanitization */
+        }
+        
+        /* Responsive design */
+        @media (max-width: 600px) {
+          .email-html-content {
+            font-size: 16px;
           }
-          .email-content td, .email-content th {
-            padding: 6px;
+          
+          .email-html-content table {
+            font-size: 14px;
           }
+          
+          .email-html-content td, .email-html-content th {
+            padding: 8px 6px;
+          }
+          
+          .email-html-content h1 { font-size: 24px; }
+          .email-html-content h2 { font-size: 20px; }
+          .email-html-content h3 { font-size: 18px; }
         }
       </style>
-      <div class="email-content">
-        ${sanitized}
-      </div>
+      ${sanitized}
     </div>
   `;
-
-  return styledContent;
 };
 
 /**
- * Enhanced text extraction from HTML content with improved quote detection and encoding fixes
+ * Improved text extraction from HTML with better formatting preservation
  */
 export const extractTextFromHTML = (htmlContent: string): string => {
-  // First fix encoding issues and convert emojis
-  let content = convertShortcodesToEmojis(fixEncodingIssues(htmlContent));
+  // Create a temporary DOM element to parse HTML
+  const temp = document.createElement('div');
+  temp.innerHTML = htmlContent;
   
-  // Remove HTML tags and decode entities more comprehensively
-  let textContent = content
-    .replace(/<style[^>]*>.*?<\/style>/gis, '') // Remove style blocks
-    .replace(/<script[^>]*>.*?<\/script>/gis, '') // Remove script blocks
-    .replace(/<[^>]*>/g, '') // Remove HTML tags
-    .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
-    .replace(/&amp;/g, '&') // Replace HTML entities
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&hellip;/g, '...')
-    .replace(/&mdash;/g, '—')
-    .replace(/&ndash;/g, '–')
-    // Norwegian characters
-    .replace(/&aring;/g, 'å')
-    .replace(/&aelig;/g, 'æ')
-    .replace(/&oslash;/g, 'ø')
-    .replace(/&Aring;/g, 'Å')
-    .replace(/&AElig;/g, 'Æ')
-    .replace(/&Oslash;/g, 'Ø')
-    .replace(/\r?\n\s*\r?\n/g, '\n') // Remove extra blank lines
+  // Remove script and style elements
+  const scripts = temp.querySelectorAll('script, style');
+  scripts.forEach(el => el.remove());
+  
+  // Get text content with some formatting preservation
+  let text = temp.textContent || temp.innerText || '';
+  
+  // Clean up the text
+  text = text
+    // Remove excessive whitespace
+    .replace(/\s+/g, ' ')
+    // Remove common email artifacts
+    .replace(/\[.*?\]/g, '')
+    // Normalize line breaks
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    // Remove quoted sections (lines starting with >)
+    .replace(/^>.*$/gm, '')
+    // Remove email signatures (text after "Best regards", "Sincerely", etc.)
+    .replace(/(\n|^)(Best regards|Sincerely|Thank you|Thanks|Cheers|BR|--)[^]*$/i, '')
     .trim();
-
-  // Enhanced quoted content removal with better detection
-  const lines = textContent.split('\n');
-  const cleanLines = [];
-  let inQuotedSection = false;
-  let quoteDepth = 0;
-
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i].trim();
-    
-    // Enhanced quote pattern detection
-    if (line.startsWith('>')) {
-      // Count quote depth for nested quotes
-      quoteDepth = (line.match(/^>/g) || []).length;
-      if (quoteDepth === 1) inQuotedSection = true;
-      continue;
-    } else if (inQuotedSection && quoteDepth > 0 && !line) {
-      // Empty line might end quoted section
-      inQuotedSection = false;
-      quoteDepth = 0;
-      continue;
-    } else if (
-      line.match(/^On .+ wrote:$/i) || // "On [date] [person] wrote:"
-      line.match(/^From:.+To:.+Subject:/i) || // Email headers
-      line.includes('-----Original Message-----') ||
-      line.includes('--- Forwarded message ---') ||
-      line.includes('_____') || // Common signature separators
-      line.match(/^\d{1,2}\/\d{1,2}\/\d{4}.+wrote:$/i) || // Date patterns
-      line.match(/^.+<.+@.+>.+wrote:$/i) || // Email with angle brackets
-      line.match(/^Sent from my .+$/i) || // Mobile signatures
-      line.match(/^Get Outlook for .+$/i) // Outlook signatures
-    ) {
-      inQuotedSection = true;
-      continue;
-    }
-    
-    // Include line if not in quoted section or if it's meaningful content
-    if (!inQuotedSection || (inQuotedSection && line.length > 0 && quoteDepth === 0)) {
-      cleanLines.push(lines[i]);
-      // Reset quoted section for meaningful content
-      if (line.length > 0 && !inQuotedSection) {
-        inQuotedSection = false;
-        quoteDepth = 0;
-      }
-    }
-  }
   
-  return cleanLines.join('\n').trim();
+  return text;
 };
 
 /**
- * Enhanced content type detection for better HTML/text rendering decisions
+ * Enhanced content type detection with better heuristics
  */
 export const shouldRenderAsHTML = (content: string, contentType: string): boolean => {
   // If content looks like plain text with asterisks/decorative chars, don't render as HTML
-  // even if content type says HTML (this handles legacy data issues)
   const plainTextIndicators = [
-    /^\*{3,}[\s\S]*?\*{3,}/m, // Lines starting/ending with multiple asterisks
+    /^\*{3,}[\s\S]*?\*{3,}/m, // Lines with multiple asterisks
     /^-{3,}/m, // Lines with multiple dashes
     /\[\s*[^\]]*\s*\(\s*https?:\/\/[^\)]+\s*\)\s*\]/m // [Link text ( url )] patterns
   ];
   
   const hasPlainTextIndicators = plainTextIndicators.some(pattern => pattern.test(content));
-  const hasMinimalHtml = /<[a-zA-Z][^>]*>/.test(content);
   
-  // If it looks like plain text format, treat it as plain text regardless of content type
-  if (hasPlainTextIndicators && !hasMinimalHtml) {
-    return false;
-  }
-  
-  // Check explicit content type
-  if (contentType.toLowerCase().includes('html') && hasMinimalHtml) {
-    return true;
-  }
-  
-  // Enhanced HTML detection patterns - detect common email HTML elements
+  // Check for actual HTML elements
   const htmlIndicators = [
     /<html[^>]*>/i,
     /<!DOCTYPE html/i,
@@ -353,54 +334,80 @@ export const shouldRenderAsHTML = (content: string, contentType: string): boolea
     /<a[^>]*href/i,
     /<td[^>]*>/i,
     /<tr[^>]*>/i,
-    /<tbody[^>]*>/i,
     /<span[^>]*>/i,
-    /<h1[^>]*>/i,
-    /<h2[^>]*>/i,
-    /<h3[^>]*>/i
+    /<h[1-6][^>]*>/i
   ];
   
-  // Check for multiple HTML indicators for more confidence
   const htmlMatches = htmlIndicators.filter(pattern => pattern.test(content)).length;
+  const hasRealHtml = htmlMatches >= 1;
   
-  // More relaxed detection - if it has common HTML tags, render as HTML
-  return htmlMatches >= 1 || 
-         content.includes('<html') || 
-         content.includes('<!DOCTYPE html') ||
-         (content.includes('<table') && content.includes('</table>')) ||
-         (content.includes('<div') && content.includes('</div>')) ||
-         (content.includes('Content-Type:') && content.includes('text/html')) ||
-         // Detect if content has HTML entities
-         /&[a-zA-Z]+;/.test(content) ||
-         // Detect common email HTML patterns
-         content.includes('mso-table') ||
-         content.includes('border=') ||
-         content.includes('cellpadding=') ||
-         content.includes('cellspacing=');
+  // If it looks like plain text format, treat it as plain text regardless of content type
+  if (hasPlainTextIndicators && !hasRealHtml) {
+    return false;
+  }
+  
+  // Check explicit content type with HTML presence
+  if (contentType.toLowerCase().includes('html') && hasRealHtml) {
+    return true;
+  }
+  
+  // Advanced HTML detection
+  return hasRealHtml && (
+    content.includes('<html') || 
+    content.includes('<!DOCTYPE html') ||
+    (content.includes('<table') && content.includes('</table>')) ||
+    (content.includes('<div') && content.includes('</div>')) ||
+    // Detect if content has HTML entities
+    /&[a-zA-Z]+;/.test(content) ||
+    // Detect common email HTML patterns
+    content.includes('mso-table') ||
+    content.includes('border=') ||
+    content.includes('cellpadding=') ||
+    content.includes('cellspacing=')
+  );
 };
 
 /**
- * Fix common character encoding issues that occur in email content
- * Note: This function is now deprecated. Use proper charset decoding in emailDecoder.ts instead.
- * Keeping minimal fixes for backwards compatibility.
+ * Enhanced text formatting for newsletter-style content
+ */
+export const formatEmailText = (content: string): string => {
+  return content
+    // Convert asterisk headers to proper headings
+    .replace(/^\*{3,}(.+?)\*{3,}$/gm, '<h2 style="margin: 24px 0 16px 0; font-weight: 600; font-size: 1.25em; color: #1d1d1f; line-height: 1.3;">$1</h2>')
+    // Convert dash separators to horizontal rules
+    .replace(/^-{3,}.*$/gm, '<hr style="margin: 24px 0; border: none; border-top: 1px solid #d1d1d6;">')
+    // Convert [Link text ( url )] to proper links
+    .replace(/\[([^\]]+)\s+\(\s*(https?:\/\/[^\)]+)\s*\)\s*\]/g, '<a href="$2" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>')
+    // Convert bullet points with asterisks
+    .replace(/^\*\s+(.+)$/gm, '• $1')
+    // Handle line breaks
+    .replace(/\n\n/g, '</p><p style="margin: 12px 0; line-height: 1.5;">')
+    .replace(/\n/g, '<br>')
+    // Wrap in paragraph tags
+    .replace(/^(.*)$/, '<p style="margin: 12px 0; line-height: 1.5;">$1</p>')
+    // Fix double paragraph wrapping from line break handling
+    .replace(/<p[^>]*><\/p><p[^>]*>/g, '<p style="margin: 12px 0; line-height: 1.5;">')
+    // Add spacing around headers
+    .replace(/(<\/h2>)/g, '$1<div style="margin-bottom: 12px;"></div>');
+};
+
+/**
+ * Basic encoding fixes for legacy content
  */
 export const fixEncodingIssues = (content: string): string => {
   return content
-    // Only fix basic HTML entities and normalize whitespace
     .replace(/&amp;([a-zA-Z]+);/g, '&$1;')
     .replace(/\s+/g, ' ')
     .trim();
 };
 
 /**
- * Utility function to clean up malformed HTML content with enhanced encoding support
+ * Comprehensive HTML content preprocessing
  */
 export const preprocessHTMLContent = (content: string): string => {
-  // First fix encoding issues
   let processedContent = fixEncodingIssues(content);
   
   return processedContent
-    // Fix remaining HTML entity issues
     .replace(/&([a-zA-Z]+);/g, (match, entity) => {
       const entities: Record<string, string> = {
         'nbsp': ' ',
@@ -425,10 +432,8 @@ export const preprocessHTMLContent = (content: string): string => {
       };
       return entities[entity] || match;
     })
-    // Handle numeric entities for Norwegian characters
     .replace(/&#(\d+);/g, (match, code) => {
       const num = parseInt(code);
-      // Common Norwegian character codes
       switch (num) {
         case 229: return 'å';
         case 230: return 'æ';
@@ -439,28 +444,7 @@ export const preprocessHTMLContent = (content: string): string => {
         default: return String.fromCharCode(num);
       }
     })
-    // Ensure proper line breaks
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
-    // Clean up excessive whitespace but preserve intentional formatting
     .replace(/\n\s*\n\s*\n/g, '\n\n');
-};
-
-/**
- * Enhanced text formatting for email newsletter content with asterisk headers
- */
-export const formatEmailText = (content: string): string => {
-  return content
-    // Convert asterisk headers to proper formatting
-    .replace(/^\*{3,}(.+?)\*{3,}$/gm, '<h2 style="margin: 1.5rem 0 1rem 0; font-weight: bold; font-size: 1.1rem;">$1</h2>')
-    // Convert dash separators to horizontal rules
-    .replace(/^-{3,}.*$/gm, '<hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e5e7eb;">')
-    // Convert [Link text ( url )] to proper links
-    .replace(/\[([^\]]+)\s+\(\s*(https?:\/\/[^\)]+)\s*\)\s*\]/g, '<a href="$2" target="_blank" style="color: #2563eb; text-decoration: underline;">$1</a>')
-    // Convert bullet points with asterisks
-    .replace(/^\*\s+(.+)$/gm, '• $1')
-    // Preserve line breaks
-    .replace(/\n/g, '<br>')
-    // Add spacing around sections
-    .replace(/(<\/h2>)/g, '$1<div style="margin-bottom: 0.75rem;"></div>');
 };

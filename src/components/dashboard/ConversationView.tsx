@@ -787,7 +787,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                <CardContent className="p-3">
                                   {(() => {
                                     const renderAsHTML = shouldRenderAsHTML(message.content, message.content_type || '');
-                                    console.log(`Message ${message.id}: contentType="${message.content_type}", renderAsHTML=${renderAsHTML}, contentPreview="${message.content.substring(0, 100)}..."`);
+                                    const hasNewsletterFormatting = /^\*{3,}/.test(message.content) || 
+                                                                   /^-{3,}/.test(message.content) ||
+                                                                   /\[.*?\s+\(\s*https?:\/\//.test(message.content);
+                                    
+                                    console.log(`Message ${message.id}: contentType="${message.content_type}", renderAsHTML=${renderAsHTML}, hasNewsletterFormatting=${hasNewsletterFormatting}, contentPreview="${message.content.substring(0, 100)}..."`);
                                     
                                     if (renderAsHTML) {
                                       return (
