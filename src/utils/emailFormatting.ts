@@ -103,10 +103,16 @@ export const sanitizeEmailHTML = (
       max-width: 100%;
       overflow-wrap: break-word;
       word-wrap: break-word;
-      margin: 0 auto;
-      padding: 20px 32px;
-      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f7;
     ">
+      <div style="
+        background-color: #ffffff;
+        margin: 0;
+        padding: 20px 32px;
+        border-radius: 0;
+      ">
       <style>
         .email-html-content {
           --email-primary: #0071e3;
@@ -354,6 +360,7 @@ export const sanitizeEmailHTML = (
         }
       </style>
       ${sanitized}
+      </div>
     </div>
   `;
 };
