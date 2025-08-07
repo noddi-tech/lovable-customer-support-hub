@@ -89,8 +89,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   };
 
   const formatEmailContent = (content: string) => {
-    // First convert URLs to clickable links, then handle line breaks
-    const linkified = content.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>');
+    // Convert URLs to clickable links while preserving line breaks
+    const linkified = content.replace(/(https?:\/\/[^\s<>\[\]]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #007aff; text-decoration: underline;">$1</a>');
     return linkified.replace(/\n/g, '<br>');
   };
 
@@ -866,7 +866,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           className="prose prose-sm max-w-none dark:prose-invert break-words overflow-wrap-anywhere"
                           style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                           dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(formatEmailContent(message.content))
+                            __html: DOMPurify.sanitize(formatEmailContent(message.content), {
+                              ALLOWED_TAGS: ['br', 'p', 'a', 'strong', 'em', 'span', 'div', 'img'],
+                              ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'style']
+                            })
                           }}
                         />
                       )}
