@@ -36,6 +36,7 @@ interface Conversation {
   is_archived?: boolean;
   channel: ConversationChannel;
   updated_at: string;
+  received_at?: string;
   inbox_id?: string;
   customer?: Customer;
   assigned_to?: AssignedTo;
@@ -373,7 +374,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatTimeAgo(conversation.updated_at)}
+                    {formatTimeAgo(conversation.received_at || conversation.updated_at)}
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
