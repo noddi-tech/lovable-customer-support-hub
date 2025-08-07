@@ -365,6 +365,11 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           receivedAt = new Date(); // Fallback to current time
         }
 
+        // Validate the date
+        if (isNaN(receivedAt.getTime())) {
+          receivedAt = new Date(parseInt(fullMessage.internalDate) || Date.now());
+        }
+
         // Extract email content with support for HTML and images
         let content = '';
         let contentType = 'text';

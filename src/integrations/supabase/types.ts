@@ -695,6 +695,10 @@ export type Database = {
         Args: { account_id: string }
         Returns: undefined
       }
+      extract_email_date: {
+        Args: { email_headers: Json }
+        Returns: string
+      }
       get_conversations: {
         Args: Record<PropertyKey, never>
         Returns: {
