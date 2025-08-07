@@ -109,6 +109,11 @@ export const sanitizeEmailHTML = (
           --email-max-width: 100%;
         }
         
+        /* Force readable colors inside chat bubbles while preserving structure */
+        .email-html-content, .email-html-content * {
+          color: inherit !important;
+        }
+        
         /* Minimal reset to preserve original email styling */
         .email-html-content * {
           box-sizing: border-box;
@@ -128,9 +133,19 @@ export const sanitizeEmailHTML = (
           border: 0;
         }
         
-        /* Preserve original link styling but ensure they're visible */
+        /* Preserve link styling but keep contrast */
         .email-html-content a {
           word-break: break-word;
+          color: inherit !important;
+          text-decoration: underline;
+        }
+        
+        /* Subtle hr to match current text color */
+        .email-html-content hr {
+          border: none;
+          border-top: 1px solid currentColor;
+          opacity: 0.2;
+          margin: 20px 0;
         }
         
         /* Mobile responsive adjustments only */

@@ -344,12 +344,29 @@ const handler = async (req: Request): Promise<Response> => {
       .from('messages')
       .update({ 
         email_status: 'sent',
-        email_message_id: gmailResult.id // Store Gmail message ID
+        email_message_id: gmailResult.id, // Store Gmail message ID
+        external_id: gmailResult.id,      // Used by sync to avoid duplicates
+        email_thread_id: gmailResult.threadId || threadIdToUse || null,
+        content_type: 'html',
+        content: emailHTML
       })
       .eq('id', messageId);
 
     if (updateError) {
       console.error('Error updating message status:', updateError);
+    }
+
+    // Ensure conversation has the Gmail thread id for consistent threading
+    if (gmailResult.threadId) {
+      try {
+        await supabaseClient
+          .from('conversations')
+          .update({ external_id: gmailResult.threadId })
+          .eq('id', message.conversation_id)
+          .is('external_id', null);
+      } catch (convUpdateErr) {
+        console.warn('Could not set conversation external_id:', convUpdateErr);
+      }
     }
 
     // Trigger email sync to capture the sent message
