@@ -151,6 +151,27 @@ export type Database = {
           },
         ]
       }
+      debug_logs: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          event: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          event: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          event?: string
+          id?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string
