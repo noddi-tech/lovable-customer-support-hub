@@ -702,9 +702,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       <div className="flex-1 flex overflow-hidden">
         {/* Messages Area - Made wider with max-width container */}
-        <div className="flex-1 flex flex-col max-w-5xl mx-auto min-h-0">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Messages - Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -1074,7 +1074,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
           {/* Fixed Reply Area at Bottom */}
           <div className="border-t border-border bg-card p-3 md:p-4 flex-shrink-0">
-            <div className="space-y-3">
+            <div className="space-y-3 max-w-5xl mx-auto">
               {/* Toolbar */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
