@@ -296,7 +296,7 @@ export const formatEmailText = (content: string): string => {
     
     // Wrap regular text in paragraph tags
     if (!line.startsWith('<h') && !line.startsWith('<hr') && !line.startsWith('<br>')) {
-      line = `<p style="margin: 8px 0; line-height: 1.6; color: #000;">${line}</p>`;
+      line = `<p style="margin: 8px 0; line-height: 1.6; color: inherit;">${line}</p>`;
     }
     
     formattedLines.push(line);
