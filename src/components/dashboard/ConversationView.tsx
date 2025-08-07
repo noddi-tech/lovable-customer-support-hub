@@ -89,7 +89,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   };
 
   const formatEmailContent = (content: string) => {
-    return content.replace(/\n/g, '<br>');
+    let formatted = content.replace(/\n/g, '<br>');
+    
+    // Fix broken email links: "https://url" id="link-id">Link Text
+    formatted = formatted.replace(/"(https?:\/\/[^"]+)"\s+(id="[^"]+")?>([^<]*)/g, '<a href="$1" $2 target="_blank" rel="noopener noreferrer" class="text-primary underline hover:no-underline">$3</a>');
+    
+    // Fix broken image links: "https://url">
+    formatted = formatted.replace(/"(https?:\/\/[^"]+)">/g, '<a href="$1" target="_blank" rel="noopener noreferrer">');
+    
+    return formatted;
   };
 
   const startEdit = (message: any) => {
