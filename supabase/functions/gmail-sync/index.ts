@@ -367,17 +367,13 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           console.error(`❌ Error checking for existing message:`, checkError);
         }
 
-        // For reset, treat all messages as new regardless of existing check
-        if (forceRedecodeOrReset) {
-          console.log(`🔄 Processing message ${message.id} (reset/redecode mode)`);
-        } else {
-          // Normal mode - check if message exists
-          if (existingMessage) {
-            console.log(`⏭️  Message ${message.id} already exists, skipping`);
-            continue;
-          }
-          console.log(`✅ Message ${message.id} is new, processing...`);
+        // Check if message already exists (skip this check if we're in reset mode)
+        if (!resetInbox && existingMessage) {
+          console.log(`⏭️  Message ${message.id} already exists, skipping`);
+          continue;
         }
+        
+        console.log(`✅ Processing message ${message.id}...`);
 
         // Parse message data
         const headers = fullMessage.payload.headers;
@@ -510,35 +506,15 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           conversation = newConversation;
         }
 
-        // For reset mode, always create new messages (since we deleted them)
-        // For redecode mode, update existing messages
-        if (forceRedecodeOrReset && existingMessage && !resetInbox) {
-          // Update existing message with newly decoded content (redecode mode)
-          console.log(`Updating message ${message.id} with new decoding...`);
-          const { error: updateError } = await supabaseClient
-            .from('messages')
-            .update({
-              content: content.substring(0, 50000),
-              content_type: contentType,
-              email_headers: headers,
-              attachments: attachments,
-            })
-            .eq('external_id', message.id);
-
-          if (updateError) {
-            console.error(`Failed to update message ${message.id}:`, updateError);
-            throw updateError;
-          } else {
-            console.log(`Successfully updated message ${message.id} with new decoding`);
-          }
-        } else {
+        // Create message (always create in reset mode, update in redecode mode)
+        if (resetInbox || !existingMessage) {
           // Create new message
           console.log(`Inserting message for conversation ${conversation.id}: ${messageId}`);
           const { data: insertedMessage, error: insertError } = await supabaseClient
             .from('messages')
             .insert({
               conversation_id: conversation.id,
-              content: content.substring(0, 50000), // Increased limit for HTML content
+              content: content.substring(0, 50000),
               content_type: contentType,
               sender_type: senderType,
               external_id: message.id,
@@ -557,6 +533,25 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
             throw insertError;
           } else {
             console.log(`Successfully inserted message ${insertedMessage.id} for conversation ${conversation.id}`);
+          }
+        } else if (existingMessage && forceRedecodeOrReset) {
+          // Update existing message with newly decoded content
+          console.log(`Updating message ${message.id} with new decoding...`);
+          const { error: updateError } = await supabaseClient
+            .from('messages')
+            .update({
+              content: content.substring(0, 50000),
+              content_type: contentType,
+              email_headers: headers,
+              attachments: attachments,
+            })
+            .eq('external_id', message.id);
+
+          if (updateError) {
+            console.error(`Failed to update message ${message.id}:`, updateError);
+            throw updateError;
+          } else {
+            console.log(`Successfully updated message ${message.id} with new decoding`);
           }
         }
 
