@@ -203,11 +203,11 @@ serve(async (req: Request) => {
         }
 
         // Sync emails from Gmail (inbox and optionally sent)
-        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox', forceRedecode || resetInbox);
+        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox', forceRedecode || resetInbox, resetInbox);
         let sentResult = { success: true, messageCount: 0 };
         
         if (syncSent) {
-          sentResult = await syncGmailMessages(account, supabaseClient, 'sent', forceRedecode || resetInbox);
+          sentResult = await syncGmailMessages(account, supabaseClient, 'sent', forceRedecode || resetInbox, resetInbox);
         }
         
         syncResults.push({
@@ -282,7 +282,7 @@ async function refreshAccessToken(account: any, supabaseClient: any) {
   }
 }
 
-async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox', forceRedecodeOrReset: boolean = false) {
+async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox', forceRedecodeOrReset: boolean = false, resetInbox: boolean = false) {
   try {
     console.log(`Starting Gmail sync for account: ${account.email_address}, folder: ${folder}`);
     console.log(`Account details:`, {
@@ -367,14 +367,15 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           console.error(`❌ Error checking for existing message:`, checkError);
         }
 
-        if (existingMessage && !forceRedecodeOrReset) {
-          console.log(`⏭️  Message ${message.id} already exists, skipping`);
-          continue; // Skip if already processed and not forcing redecode
-        }
-        
-        if (existingMessage && forceRedecodeOrReset) {
-          console.log(`🔄 Message ${message.id} exists but forcing redecode...`);
-        } else if (!existingMessage) {
+        // For reset, treat all messages as new regardless of existing check
+        if (forceRedecodeOrReset) {
+          console.log(`🔄 Processing message ${message.id} (reset/redecode mode)`);
+        } else {
+          // Normal mode - check if message exists
+          if (existingMessage) {
+            console.log(`⏭️  Message ${message.id} already exists, skipping`);
+            continue;
+          }
           console.log(`✅ Message ${message.id} is new, processing...`);
         }
 
@@ -509,9 +510,10 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           conversation = newConversation;
         }
 
-        // Create or update message
-        if (existingMessage && forceRedecodeOrReset) {
-          // Update existing message with newly decoded content
+        // For reset mode, always create new messages (since we deleted them)
+        // For redecode mode, update existing messages
+        if (forceRedecodeOrReset && existingMessage && !resetInbox) {
+          // Update existing message with newly decoded content (redecode mode)
           console.log(`Updating message ${message.id} with new decoding...`);
           const { error: updateError } = await supabaseClient
             .from('messages')
