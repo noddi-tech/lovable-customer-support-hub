@@ -178,9 +178,9 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute z-[9999] bg-card border border-border rounded-md shadow-xl max-w-80 min-w-64 mt-1"
+          className="absolute z-[9999] bg-card border border-border rounded-md shadow-xl max-w-80 min-w-64 mb-1"
           style={{
-            top: '100%',
+            bottom: '100%',
             left: '0',
           }}
         >
