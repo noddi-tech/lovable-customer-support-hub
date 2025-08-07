@@ -346,7 +346,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         
         if (existingMessage && forceRedecode) {
           console.log(`🔄 Message ${message.id} exists but forcing redecode...`);
-        } else {
+        } else if (!existingMessage) {
           console.log(`✅ Message ${message.id} is new, processing...`);
         }
 
