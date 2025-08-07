@@ -30,6 +30,7 @@ export type Database = {
           metadata: Json | null
           organization_id: string
           priority: string
+          received_at: string | null
           status: string
           subject: string | null
           updated_at: string
@@ -49,6 +50,7 @@ export type Database = {
           metadata?: Json | null
           organization_id: string
           priority?: string
+          received_at?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
@@ -68,6 +70,7 @@ export type Database = {
           metadata?: Json | null
           organization_id?: string
           priority?: string
+          received_at?: string | null
           status?: string
           subject?: string | null
           updated_at?: string

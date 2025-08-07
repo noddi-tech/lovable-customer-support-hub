@@ -352,7 +352,18 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         const to = headers.find((h: any) => h.name === 'To')?.value || '';
         const messageId = headers.find((h: any) => h.name === 'Message-ID')?.value || '';
         const inReplyTo = headers.find((h: any) => h.name === 'In-Reply-To')?.value || '';
+        const dateHeader = headers.find((h: any) => h.name === 'Date')?.value || '';
         const threadId = fullMessage.threadId;
+
+        // Parse the email date or use internal date as fallback
+        let receivedAt: Date;
+        if (dateHeader) {
+          receivedAt = new Date(dateHeader);
+        } else if (fullMessage.internalDate) {
+          receivedAt = new Date(parseInt(fullMessage.internalDate));
+        } else {
+          receivedAt = new Date(); // Fallback to current time
+        }
 
         // Extract email content with support for HTML and images
         let content = '';
@@ -470,10 +481,25 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
               external_id: threadId,
               channel: 'email',
               status: 'open',
+              received_at: receivedAt.toISOString(),
             })
             .select('id')
             .single();
           conversation = newConversation;
+        } else {
+          // Update conversation's received_at to latest message timestamp if newer
+          const { data: existingConversation } = await supabaseClient
+            .from('conversations')
+            .select('received_at')
+            .eq('id', conversation.id)
+            .single();
+
+          if (!existingConversation?.received_at || new Date(existingConversation.received_at) < receivedAt) {
+            await supabaseClient
+              .from('conversations')
+              .update({ received_at: receivedAt.toISOString() })
+              .eq('id', conversation.id);
+          }
         }
 
         // Create message
