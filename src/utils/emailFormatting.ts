@@ -371,24 +371,52 @@ export const shouldRenderAsHTML = (content: string, contentType: string): boolea
  * Enhanced text formatting for newsletter-style content
  */
 export const formatEmailText = (content: string): string => {
-  return content
+  // Split content into lines for better processing
+  const lines = content.split('\n');
+  const formattedLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    
+    // Skip empty lines but preserve them for spacing
+    if (line.trim() === '') {
+      formattedLines.push('<br>');
+      continue;
+    }
+    
     // Convert asterisk headers to proper headings
-    .replace(/^\*{3,}(.+?)\*{3,}$/gm, '<h2 style="margin: 24px 0 16px 0; font-weight: 600; font-size: 1.25em; color: #1d1d1f; line-height: 1.3;">$1</h2>')
+    if (/^\*{3,}(.+?)\*{3,}$/.test(line)) {
+      const headerText = line.replace(/^\*{3,}(.+?)\*{3,}$/, '$1').trim();
+      formattedLines.push(`<h2 style="margin: 24px 0 12px 0; font-weight: 600; font-size: 1.25em; color: #1d1d1f; line-height: 1.3;">${headerText}</h2>`);
+      continue;
+    }
+    
     // Convert dash separators to horizontal rules
-    .replace(/^-{3,}.*$/gm, '<hr style="margin: 24px 0; border: none; border-top: 1px solid #d1d1d6;">')
+    if (/^-{3,}/.test(line)) {
+      formattedLines.push('<hr style="margin: 20px 0; border: none; border-top: 1px solid #d1d1d6;">');
+      continue;
+    }
+    
     // Convert [Link text ( url )] to proper links
-    .replace(/\[([^\]]+)\s+\(\s*(https?:\/\/[^\)]+)\s*\)\s*\]/g, '<a href="$2" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>')
+    line = line.replace(/\[([^\]]+)\s+\(\s*(https?:\/\/[^\)]+)\s*\)\s*\]/g, '<a href="$2" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>');
+    
+    // Convert simple links like https://example.com to clickable links
+    line = line.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>');
+    
     // Convert bullet points with asterisks
-    .replace(/^\*\s+(.+)$/gm, '• $1')
-    // Handle line breaks
-    .replace(/\n\n/g, '</p><p style="margin: 12px 0; line-height: 1.5;">')
-    .replace(/\n/g, '<br>')
-    // Wrap in paragraph tags
-    .replace(/^(.*)$/, '<p style="margin: 12px 0; line-height: 1.5;">$1</p>')
-    // Fix double paragraph wrapping from line break handling
-    .replace(/<p[^>]*><\/p><p[^>]*>/g, '<p style="margin: 12px 0; line-height: 1.5;">')
-    // Add spacing around headers
-    .replace(/(<\/h2>)/g, '$1<div style="margin-bottom: 12px;"></div>');
+    if (/^\*\s+/.test(line)) {
+      line = line.replace(/^\*\s+(.+)$/, '• $1');
+    }
+    
+    // Wrap regular text in paragraph tags
+    if (!line.startsWith('<h') && !line.startsWith('<hr') && !line.startsWith('<br>')) {
+      line = `<p style="margin: 8px 0; line-height: 1.6; color: #000;">${line}</p>`;
+    }
+    
+    formattedLines.push(line);
+  }
+  
+  return formattedLines.join('\n');
 };
 
 /**
