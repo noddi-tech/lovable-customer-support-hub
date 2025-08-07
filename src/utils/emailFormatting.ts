@@ -361,6 +361,13 @@ export const fixEncodingIssues = (content: string): string => {
     .replace(/Ã…/g, 'Å')
     .replace(/Ã†/g, 'Æ')
     .replace(/Ã˜/g, 'Ø')
+    // Additional Norwegian character fixes
+    .replace(/Ã\s*¥/g, 'å')
+    .replace(/Ã\s*¦/g, 'æ')
+    .replace(/Ã\s*¸/g, 'ø')
+    .replace(/\s*Ã\s*$/g, 'å') // Fix trailing "Ã" at end of words
+    .replace(/\.Ã\s*$/g, '.å') // Fix "word.Ã" patterns
+    .replace(/\.Ã\s/g, '.å ') // Fix "word.Ã " patterns
     // Fix other common UTF-8 issues
     .replace(/Ã¡/g, 'á')
     .replace(/Ã©/g, 'é')
@@ -372,16 +379,25 @@ export const fixEncodingIssues = (content: string): string => {
     .replace(/Ã¤/g, 'ä')
     .replace(/Ã¶/g, 'ö')
     .replace(/ÃŸ/g, 'ß')
-    // Fix quotation marks and other punctuation
+    // Fix quotation marks and apostrophes
     .replace(/â€™/g, '\'')
     .replace(/â€œ/g, '"')
     .replace(/â€/g, '"')
     .replace(/â€"/g, '–')
     .replace(/â€"/g, '—')
     .replace(/â€¦/g, '...')
+    // Fix specific patterns seen in the email
+    .replace(/CPOâ€™s/g, 'CPO\'s')
+    .replace(/â€œ([^â€]*)â€/g, '"$1"') // Fix quoted text
+    .replace(/â€œ/g, '"')
+    .replace(/â€/g, '"')
+    // Fix mysterious character combinations
+    .replace(/Ã¡\s*Ï/g, '😊') // This might be a mangled emoji
+    .replace(/Ã¡\s*[^\w\s]/g, '😊') // Generic fix for mangled emoji after Ã¡
+    .replace(/\s*Ã¡\s*/g, ' 😊 ') // Replace isolated Ã¡ with emoji
     // Fix spacing issues
     .replace(/Ã\s+/g, '')
-    .replace(/\s+Ã/g, '')
+    .replace(/\s+Ã(?=\s|$)/g, 'å') // Fix trailing Ã with space or end of string
     // Fix double-encoded entities
     .replace(/&amp;([a-zA-Z]+);/g, '&$1;')
     // Fix common emoji encoding issues that might come from email
@@ -392,7 +408,11 @@ export const fixEncodingIssues = (content: string): string => {
     .replace(/â\s*¤\s*/g, '❤') // Fix heart emoji
     .replace(/ðŸ\s*"§/g, '📧') // Fix email emoji
     .replace(/ðŸ\s*"±/g, '📱') // Fix phone emoji
-    .replace(/ðŸ\s*"ž/g, '📞'); // Fix telephone emoji
+    .replace(/ðŸ\s*"ž/g, '📞') // Fix telephone emoji
+    // Clean up any remaining weird character combinations
+    .replace(/[^\w\s\p{P}\p{S}\p{Emoji}]/gu, '') // Remove any remaining non-printable characters but keep emojis
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
 };
 
 /**
