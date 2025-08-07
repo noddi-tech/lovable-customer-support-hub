@@ -32,12 +32,20 @@ import {
   UserCheck,
   Save,
   X,
-  Trash2
+  Trash2,
+  Lock,
+  MoreVertical,
+  Edit3,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import DOMPurify from 'dompurify';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +80,64 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
+  const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
+
+  // Helper functions
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const formatEmailContent = (content: string) => {
+    return content.replace(/\n/g, '<br>');
+  };
+
+  const startEdit = (message: any) => {
+    setEditingMessageId(message.id);
+    setEditingContent(message.content);
+    setEditingAssignedTo(message.assigned_to_id || '');
+    setOriginalEditingContent(message.content);
+    setOriginalEditingAssignedTo(message.assigned_to_id || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingContent('');
+    setEditingAssignedTo('');
+    setOriginalEditingContent('');
+    setOriginalEditingAssignedTo('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingMessageId || !editingContent.trim()) return;
+
+    setIsUpdatingMessage(true);
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({
+          content: editingContent.trim(),
+          assigned_to_id: editingAssignedTo && editingAssignedTo !== 'unassigned' ? editingAssignedTo : null,
+        })
+        .eq('id', editingMessageId);
+
+      if (error) throw error;
+
+      setEditingMessageId(null);
+      setEditingContent('');
+      setEditingAssignedTo('');
+      setOriginalEditingContent('');
+      setOriginalEditingAssignedTo('');
+      
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      toast.success('Message updated successfully');
+    } catch (error) {
+      console.error('Error updating message:', error);
+      toast.error('Failed to update message');
+    } finally {
+      setIsUpdatingMessage(false);
+    }
+  };
 
   // Function to extract clean text from HTML content and remove quoted emails
   const extractTextFromHTML_local = (htmlContent: string): string => {
@@ -519,6 +585,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     enabled: !!conversationId,
   });
 
+  // Helper variables that depend on conversation data
+  const customer = conversation?.customer;
+  const assignedAgent = conversation?.assigned_to;
+
   // Fetch messages for this conversation with assigned user details
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ['messages', conversationId],
@@ -700,381 +770,178 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Messages Area - Made wider with max-width container */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Messages - Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
-            {messages.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No messages in this conversation yet</p>
-              </div>
-            ) : (
-              messages.map((message, index) => {
-                const messageDate = new Date(message.created_at);
-                const showDate = index === 0 || 
-                  formatDate(messageDate) !== formatDate(new Date(messages[index - 1].created_at));
-                
-                const isAgent = message.sender_type === 'agent';
-                const isCustomer = message.sender_type === 'customer';
-                
-                 return (
-                   <div 
-                     key={message.id}
-                     ref={(el) => {
-                       if (el) {
-                         messageRefs.current.set(message.id, el);
-                       } else {
-                         messageRefs.current.delete(message.id);
-                       }
-                     }}
-                   >
-                    {showDate && (
-                      <div className="flex items-center justify-center my-6">
-                        <div className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                          {formatDate(messageDate)}
-                        </div>
-                      </div>
-                    )}
-                     
-                     <div className={`flex ${isAgent ? 'justify-end' : 'justify-start'} px-4`}>
-                       <div className={`w-4/5 ${isAgent ? 'ml-auto' : 'mr-auto'}`}>
-                          {message.is_internal && (
-                            <div className="flex items-center justify-between mb-1">
-                              <div 
-                                className="text-xs flex items-center font-medium"
-                                style={{ color: 'hsl(var(--warning))' }}
-                              >
-                                <Star className="h-3 w-3 mr-1" />
-                                Internal Note
-                                {message.assigned_to && (
-                                  <span className="ml-2 text-xs bg-warning/20 px-2 py-1 rounded">
-                                    Assigned to: {message.assigned_to.full_name}
-                                  </span>
-                                )}
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditMessage(message)}
-                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                          
-                             <Card 
-                               className={`group cursor-pointer transition-all duration-200 ${
-                                message.is_internal 
-                                  ? 'bg-warning/10 border-warning/20' 
-                                  : isAgent 
-                                    ? 'bg-primary border-primary' 
-                                    : 'bg-card border-border'
-                               } ${
-                                 selectedMessageId === message.id 
-                                   ? 'ring-2 ring-primary ring-opacity-50' 
-                                   : 'hover:shadow-md'
-                               } ${
-                                 isAgent ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'
-                               }`}
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 handleMessageClick(message.id);
-                               }}
-                             >
-                               <CardContent className="p-3">
-                                  {(() => {
-                                    const renderAsHTML = shouldRenderAsHTML(message.content, message.content_type || '');
-                                    const hasNewsletterFormatting = /^\*{3,}/.test(message.content) || 
-                                                                   /^-{3,}/.test(message.content) ||
-                                                                   /\[.*?\s+\(\s*https?:\/\//.test(message.content);
-                                    
-                                    console.log(`Message ${message.id}: contentType="${message.content_type}", renderAsHTML=${renderAsHTML}, hasNewsletterFormatting=${hasNewsletterFormatting}, contentPreview="${message.content.substring(0, 100)}..."`);
-                                    
-                                    if (renderAsHTML) {
-                                      return (
-                                        <div 
-                                          className="prose prose-sm max-w-none overflow-hidden"
-                                          style={{
-                                            color: message.is_internal 
-                                              ? getMessageTextColor('internal')
-                                              : isAgent 
-                                                ? getMessageTextColor('agent')
-                                                : getMessageTextColor('customer'),
-                                            fontSize: '0.875rem',
-                                            fontWeight: message.is_internal ? '600' : '400',
-                                            lineHeight: '1.25rem'
-                                          }}
-                                          dangerouslySetInnerHTML={{ 
-                                            __html: convertShortcodesToEmojis(sanitizeEmailHTML(
-                                              message.content, 
-                                              Array.isArray(message.attachments) ? (message.attachments as unknown as EmailAttachment[]) : []
-                                            ))
-                                          }}
-                                        />
-                                      );
-                                    } else {
-                                      // Check if content has newsletter-style formatting (asterisks, etc.)
-                                      const hasNewsletterFormatting = /^\*{3,}/.test(message.content) || 
-                                                                     /^-{3,}/.test(message.content) ||
-                                                                     /\[.*?\s+\(\s*https?:\/\//.test(message.content);
-                                      
-                                      if (hasNewsletterFormatting) {
-                                        return (
-                                          <div 
-                                            className="overflow-hidden"
-                                            style={{
-                                              color: message.is_internal 
-                                                ? getMessageTextColor('internal')
-                                                : isAgent 
-                                                  ? getMessageTextColor('agent')
-                                                  : getMessageTextColor('customer'),
-                                              fontSize: '0.875rem',
-                                              fontWeight: message.is_internal ? '600' : '400',
-                                              lineHeight: '1.6rem'
-                                            }}
-                                            dangerouslySetInnerHTML={{ 
-                                              __html: formatEmailText(fixEncodingIssues(message.content))
-                                            }}
-                                          />
-                                        );
-                                      } else {
-                                        return (
-                                          <div 
-                                            className="whitespace-pre-wrap break-words overflow-hidden"
-                                            style={{
-                                              color: message.is_internal 
-                                                ? getMessageTextColor('internal')
-                                                : isAgent 
-                                                  ? getMessageTextColor('agent')
-                                                  : getMessageTextColor('customer'),
-                                              fontSize: '0.875rem',
-                                              fontWeight: message.is_internal ? '600' : '400',
-                                              lineHeight: '1.5rem',
-                                              wordBreak: 'break-word',
-                                              overflowWrap: 'break-word'
-                                            }}
-                                          >
-                                            {convertShortcodesToEmojis(fixEncodingIssues(message.content))}
-                                          </div>
-                                        );
-                                      }
-                                    }
-                                  })()}
-                               {!editingMessageId || editingMessageId !== message.id ? (
-                                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
-                                <div className="flex items-center space-x-2">
-                                  {message.sender_type === 'agent' && (
-                                    <>
-                                      <Avatar className="h-4 w-4">
-                                        <AvatarFallback 
-                                          className="text-xs"
-                                          style={{
-                                            backgroundColor: 'hsl(var(--primary-foreground))',
-                                            color: 'hsl(var(--primary))'
-                                          }}
-                                        >
-                                          A
-                                        </AvatarFallback>
-                                      </Avatar>
-                                       <span 
-                                         style={{
-                                           color: message.is_internal 
-                                             ? getMessageTextColor('internal')
-                                             : message.sender_type === 'agent' 
-                                               ? getMessageTextColor('agent')
-                                               : getMessageTextColor('customer'),
-                                           fontSize: '0.75rem',
-                                           fontWeight: '500'
-                                         }}
-                                       >
-                                         Agent
-                                       </span>
-                                     </>
-                                   )}
-                                 </div>
-                                 <div className="flex items-center space-x-2">
-                                   {message.sender_type === 'agent' && getStatusIcon(message)}
-                                    <span 
-                                      style={{
-                                        color: message.is_internal 
-                                          ? getMessageTextColor('internal')
-                                          : message.sender_type === 'agent' 
-                                            ? getMessageTextColor('agent')
-                                            : getMessageTextColor('customer'),
-                                        fontSize: '0.75rem'
-                                      }}
-                                    >
-                                      {formatTimestamps(message)}
-                                    </span>
-                                  </div>
-                                </div>
-                                ) : null}
-                               
-                                {/* Edit and Delete buttons for internal notes */}
-                                {message.is_internal && editingMessageId !== message.id && (
-                                  <div className="mt-2 pt-2 border-t border-border/50 flex items-center space-x-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleEditMessage(message)}
-                                      className="h-7 px-3 text-xs text-muted-foreground hover:text-foreground"
-                                    >
-                                      <Edit2 className="h-3 w-3 mr-1" />
-                                      Edit Note
-                                    </Button>
-                                     <Button
-                                       variant="ghost"
-                                       size="sm"
-                                       onClick={() => handleDeleteClick(message.id)}
-                                       className="h-7 px-3 text-xs text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
-                                     >
-                                       <Trash2 className="h-3 w-3 mr-1" />
-                                       Delete
-                                     </Button>
-                                  </div>
-                                )}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Messages Area - Full height with bottom padding for fixed reply */}
+        <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full pb-32">
+          {messages.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No messages yet</p>
+            </div>
+          ) : (
+            messages.map((message, index) => {
+              const isFromCustomer = message.sender_type === 'customer';
+              const isInternal = message.is_internal;
+              const showAvatar = index === 0 || messages[index - 1]?.sender_type !== message.sender_type;
+              const isEditing = editingMessageId === message.id;
 
-                                {/* Edit form for internal notes */}
-                                {message.is_internal && editingMessageId === message.id && (
-                                  <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
-                                    <div className="space-y-2">
-                                      <label className="text-sm font-medium text-muted-foreground">Edit Note:</label>
-                                      <Textarea
-                                        value={editingContent}
-                                        onChange={(e) => setEditingContent(e.target.value)}
-                                        className="min-h-[80px] resize-none border-warning bg-warning-muted"
-                                        placeholder="Edit your internal note..."
-                                      />
-                                    </div>
-                                    
-                                    <div className="space-y-2">
-                                      <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
-                                      <Select value={editingAssignedTo || 'unassigned'} onValueChange={setEditingAssignedTo}>
-                                        <SelectTrigger className="w-full">
-                                          <SelectValue placeholder="Select team member" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="unassigned">Unassigned</SelectItem>
-                                          {teamMembers.map((member) => (
-                                            <SelectItem key={member.user_id} value={member.user_id}>
-                                              {member.full_name}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    
-                                    <div className="flex items-center space-x-2">
-                                      <Button
-                                        variant="default"
-                                        size="sm"
-                                        onClick={handleSaveEdit}
-                                        disabled={!editingContent.trim()}
-                                        className="h-7 px-3 text-xs"
-                                      >
-                                        Save Changes
-                                      </Button>
-                                      <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        onClick={handleCancelEdit}
-                                        className="h-7 px-3 text-xs"
-                                      >
-                                        Cancel
-                                      </Button>
-                                       <Button
-                                         variant="destructive"
-                                         size="sm"
-                                         onClick={() => {
-                                           handleCancelEdit();
-                                           handleDeleteClick(message.id);
-                                         }}
-                                         className="h-7 px-3 text-xs"
-                                       >
-                                         <Trash2 className="h-3 w-3 mr-1" />
-                                         Delete
-                                       </Button>
-                                    </div>
-                                  </div>
-                                )}
-                               
-                                 {/* Failed/pending message actions */}
-                               {message.sender_type === 'agent' && (message.email_status === 'failed' || message.email_status === 'pending' || message.email_status === 'sending') && (
-                                 <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
-                                   {/* Error toaster */}
-                                   <div className={`border rounded-md p-3 ${
-                                     message.email_status === 'failed' 
-                                       ? 'bg-destructive/10 border-destructive/20' 
-                                       : message.email_status === 'sending'
-                                       ? 'bg-warning/10 border-warning/20'
-                                       : 'bg-muted border-border'
-                                   }`}>
-                                     <div className="flex items-center space-x-2">
-                                       {message.email_status === 'failed' ? (
-                                         <>
-                                           <AlertTriangle className="h-4 w-4 text-destructive" />
-                                           <span className="text-sm text-destructive font-medium">
-                                             Failed to send email
-                                           </span>
-                                         </>
-                                       ) : message.email_status === 'sending' ? (
-                                         <>
-                                           <Clock className="h-4 w-4 text-warning animate-spin" />
-                                           <span className="text-sm text-warning font-medium">
-                                             Sending email...
-                                           </span>
-                                         </>
-                                       ) : (
-                                         <>
-                                           <Clock className="h-4 w-4 text-muted-foreground" />
-                                           <span className="text-sm text-muted-foreground font-medium">
-                                             Email pending
-                                           </span>
-                                         </>
-                                       )}
-                                     </div>
-                                   </div>
-                                   
-                                   {/* Action buttons */}
-                                   <div className="flex items-center space-x-2">
-                                     {message.email_status === 'failed' && (
-                                       <Button
-                                         variant="secondary"
-                                         size="sm"
-                                         onClick={() => retryMessage(message.id)}
-                                         className="h-7 px-3 text-xs"
-                                       >
-                                         Try Again
-                                       </Button>
-                                     )}
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleDeleteClick(message.id)}
-                                        className="h-7 px-3 text-xs"
-                                      >
-                                        Delete
-                                      </Button>
-                                   </div>
-                                 </div>
-                               )}
-                           </CardContent>
-                         </Card>
-                      </div>
+              return (
+                <div
+                  key={message.id}
+                  className={cn(
+                    "flex gap-3 group relative",
+                    isFromCustomer ? "justify-start" : "justify-end",
+                    isInternal && "opacity-75"
+                  )}
+                >
+                  {isFromCustomer && showAvatar && (
+                    <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        {getInitials(customer?.full_name || customer?.email || 'C')}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  
+                  {isFromCustomer && !showAvatar && (
+                    <div className="w-8 flex-shrink-0" />
+                  )}
+
+                  <div className={cn(
+                    "max-w-[85%] md:max-w-[70%]",
+                    !isFromCustomer && "ml-auto"
+                  )}>
+                    <div
+                      className={cn(
+                        "rounded-lg p-3 relative",
+                        isFromCustomer
+                          ? "bg-muted"
+                          : isInternal
+                          ? "bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800"
+                          : "bg-primary text-primary-foreground"
+                      )}
+                    >
+                      {isInternal && (
+                        <div className="flex items-center gap-1 mb-2 text-xs text-orange-600 dark:text-orange-400">
+                          <Lock className="h-3 w-3" />
+                          Internal Note
+                        </div>
+                      )}
+
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="min-h-[100px] resize-none"
+                            autoFocus
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={cancelEdit}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={saveEdit}
+                              disabled={isUpdatingMessage}
+                            >
+                              {isUpdatingMessage ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                'Save'
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className="prose prose-sm max-w-none dark:prose-invert break-words"
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(formatEmailContent(message.content))
+                          }}
+                        />
+                      )}
+
+                      {/* Message actions */}
+                      {!isEditing && !isFromCustomer && (
+                        <div className="absolute -right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => startEdit(message)}>
+                                <Edit3 className="h-3 w-3 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => deleteMessage(message.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <span>
+                        {format(new Date(message.created_at), 'MMM d, yyyy h:mm a')}
+                      </span>
+                      {message.sender_type === 'agent' && assignedAgent && (
+                        <>
+                          <span>•</span>
+                          <span>{assignedAgent.full_name}</span>
+                        </>
+                      )}
+                      {message.email_status && message.sender_type === 'agent' && (
+                        <>
+                          <span>•</span>
+                          <span className={cn(
+                            "capitalize",
+                            message.email_status === 'sent' && "text-green-600 dark:text-green-400",
+                            message.email_status === 'failed' && "text-red-600 dark:text-red-400",
+                            message.email_status === 'pending' && "text-yellow-600 dark:text-yellow-400"
+                          )}>
+                            {message.email_status}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
-                );
-              })
-            )}
 
-          </div>
+                  {!isFromCustomer && showAvatar && (
+                    <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
+                      <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
+                        {getInitials(assignedAgent?.full_name || 'A')}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  
+                  {!isFromCustomer && !showAvatar && (
+                    <div className="w-8 flex-shrink-0" />
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
 
-          {/* Fixed Reply Area at Bottom */}
-          <div className="border-t border-border bg-card p-3 md:p-4 flex-shrink-0">
-            <div className="space-y-3 max-w-5xl mx-auto">
+        {/* Fixed Reply Area - Sticky to viewport bottom */}
+        <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur-sm z-50">
+          <div className="p-3 md:p-4 max-w-5xl mx-auto">
+            <div className="space-y-3">
               {/* Toolbar */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
