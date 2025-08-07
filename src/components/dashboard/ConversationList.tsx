@@ -370,8 +370,8 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
               }}
               className={cn(
                 "p-4 border-b border-border hover:bg-accent/50 cursor-pointer transition-colors group",
-                selectedConversation?.id === conversation.id && "bg-accent",
-                !conversation.is_read && "border-l-4 border-l-primary bg-primary-muted/30"
+                selectedConversation?.id === conversation.id && "bg-primary/10 border-l-4 border-l-primary ring-1 ring-primary/20",
+                !conversation.is_read && selectedConversation?.id !== conversation.id && "border-l-4 border-l-primary bg-primary-muted/30"
               )}
             >
               <div className="flex items-start justify-between mb-2">
