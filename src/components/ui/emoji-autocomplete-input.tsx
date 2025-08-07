@@ -87,15 +87,23 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
     const newValue = e.target.value;
     onChange(newValue);
     
+    console.log('Text changed:', newValue);
+    
     requestAnimationFrame(() => {
       if (textareaRef.current) {
         const cursorPosition = textareaRef.current.selectionStart || 0;
+        console.log('Cursor position:', cursorPosition);
+        
         const detection = detectShortcode(newValue, cursorPosition);
+        console.log('Detection result:', detection);
         
         if (detection) {
           const { shortcode, start } = detection;
           const searchTerm = shortcode.substring(1);
+          console.log('Search term:', searchTerm);
+          
           const suggestions = getEmojiSuggestions(searchTerm);
+          console.log('Suggestions found:', suggestions);
           
           if (suggestions.length > 0) {
             setSuggestions(suggestions);
@@ -103,11 +111,14 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
             setShortcodeStart(start);
             setShowSuggestions(true);
             setSelectedIndex(0);
+            console.log('Showing suggestions dropdown');
           } else {
             setShowSuggestions(false);
+            console.log('No suggestions, hiding dropdown');
           }
         } else {
           setShowSuggestions(false);
+          console.log('No shortcode detected, hiding dropdown');
         }
       }
     });
@@ -193,14 +204,14 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg max-w-80 min-w-64"
+          className="fixed z-[99999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-xl max-w-80 min-w-64"
           style={{
             top: suggestionPosition.top,
             left: suggestionPosition.left,
           }}
         >
-          <div className="p-2 border-b border-border">
-            <div className="text-xs text-muted-foreground">
+          <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+            <div className="text-xs text-gray-600 dark:text-gray-300">
               Emoji suggestions for "{currentShortcode}"
             </div>
           </div>
