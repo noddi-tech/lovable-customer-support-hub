@@ -357,18 +357,46 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
 
         // Extract email date from headers using the database function
         let receivedAt: Date;
-        if (dateHeader) {
-          receivedAt = new Date(dateHeader);
-        } else if (fullMessage.internalDate) {
-          receivedAt = new Date(parseInt(fullMessage.internalDate));
-        } else {
-          receivedAt = new Date(); // Fallback to current time
+        
+        // Try to use the database function to extract date properly
+        try {
+          const { data: extractedDate } = await supabaseClient
+            .rpc('extract_email_date', { email_headers: headers });
+          
+          if (extractedDate) {
+            receivedAt = new Date(extractedDate);
+            console.log(`✅ Extracted date from headers: ${extractedDate} -> ${receivedAt.toISOString()}`);
+          } else {
+            throw new Error('Database function returned null');
+          }
+        } catch (dateExtractError) {
+          console.warn(`⚠️  Database date extraction failed, using fallback:`, dateExtractError);
+          
+          // Fallback to JavaScript parsing
+          if (dateHeader) {
+            try {
+              receivedAt = new Date(dateHeader);
+              console.log(`📅 Fallback: Using Date header: ${dateHeader} -> ${receivedAt.toISOString()}`);
+            } catch (e) {
+              console.warn(`Failed to parse Date header: ${dateHeader}`, e);
+              receivedAt = new Date(parseInt(fullMessage.internalDate) || Date.now());
+            }
+          } else if (fullMessage.internalDate) {
+            receivedAt = new Date(parseInt(fullMessage.internalDate));
+            console.log(`📅 Fallback: Using internalDate: ${fullMessage.internalDate} -> ${receivedAt.toISOString()}`);
+          } else {
+            receivedAt = new Date(); // Fallback to current time
+            console.log(`📅 Fallback: Using current time: ${receivedAt.toISOString()}`);
+          }
         }
 
-        // Validate the date and fallback if invalid
+        // Final validation
         if (isNaN(receivedAt.getTime())) {
           receivedAt = new Date(parseInt(fullMessage.internalDate) || Date.now());
+          console.warn(`⚠️  Invalid date, using final fallback: ${receivedAt.toISOString()}`);
         }
+        
+        console.log(`📧 Final received_at for message ${message.id}: ${receivedAt.toISOString()}`);
 
         // Extract email content with support for HTML and images
         let content = '';
