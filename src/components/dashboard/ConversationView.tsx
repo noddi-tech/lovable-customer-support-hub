@@ -89,7 +89,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   };
 
   const formatEmailContent = (content: string) => {
-    return formatEmailText(content);
+    // First convert URLs to clickable links, then handle line breaks
+    const linkified = content.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>');
+    return linkified.replace(/\n/g, '<br>');
   };
 
   const startEdit = (message: any) => {
