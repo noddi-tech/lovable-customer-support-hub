@@ -223,8 +223,11 @@ const handler = async (req: Request): Promise<Response> => {
       emailHTML
     ].join('\r\n');
 
-    // Encode email content in base64url format
-    const encodedEmail = btoa(emailContent)
+    // Encode email content in base64url format (handle emojis and special characters)
+    const encoder = new TextEncoder();
+    const encodedBytes = encoder.encode(emailContent);
+    const base64String = btoa(String.fromCharCode(...encodedBytes));
+    const encodedEmail = base64String
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
