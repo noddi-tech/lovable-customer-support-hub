@@ -349,7 +349,8 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         }
 
         // Create message
-        await supabaseClient
+        console.log(`Inserting message for conversation ${conversation.id}: ${messageId}`);
+        const { data: insertedMessage, error: insertError } = await supabaseClient
           .from('messages')
           .insert({
             conversation_id: conversation.id,
@@ -361,7 +362,16 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
             email_subject: subject,
             email_headers: headers,
             email_status: folder === 'sent' ? 'sent' : 'received'
-          });
+          })
+          .select('id')
+          .single();
+
+        if (insertError) {
+          console.error(`Failed to insert message ${messageId}:`, insertError);
+          throw insertError;
+        } else {
+          console.log(`Successfully inserted message ${insertedMessage.id} for conversation ${conversation.id}`);
+        }
 
         processedCount++;
       } catch (error) {
