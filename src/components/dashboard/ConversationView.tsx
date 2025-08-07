@@ -798,12 +798,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                         fontWeight: message.is_internal ? '600' : '400',
                                         lineHeight: '1.25rem'
                                       }}
-                                      dangerouslySetInnerHTML={{ 
-                                        __html: sanitizeEmailHTML(
-                                          message.content, 
-                                          Array.isArray(message.attachments) ? (message.attachments as unknown as EmailAttachment[]) : []
-                                        )
-                                      }}
+                                       dangerouslySetInnerHTML={{ 
+                                         __html: convertShortcodesToEmojis(sanitizeEmailHTML(
+                                           message.content, 
+                                           Array.isArray(message.attachments) ? (message.attachments as unknown as EmailAttachment[]) : []
+                                         ))
+                                       }}
                                     />
                                   ) : (
                                     <p 

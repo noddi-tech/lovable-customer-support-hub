@@ -55,7 +55,8 @@ export const sanitizeEmailHTML = (
 
   // Pre-process content to handle character encoding and inline images
   let processedContent = fixEncodingIssues(htmlContent);
-  // Apply emoji conversion and encoding fixes to HTML content too
+  
+  // Convert emoji shortcodes to actual emojis early in the process
   processedContent = convertShortcodesToEmojis(processedContent);
 
   // Handle inline images by replacing cid: references
@@ -234,8 +235,8 @@ export const sanitizeEmailHTML = (
  * Enhanced text extraction from HTML content with improved quote detection and encoding fixes
  */
 export const extractTextFromHTML = (htmlContent: string): string => {
-  // First fix encoding issues
-  let content = fixEncodingIssues(htmlContent);
+  // First fix encoding issues and convert emojis
+  let content = convertShortcodesToEmojis(fixEncodingIssues(htmlContent));
   
   // Remove HTML tags and decode entities more comprehensively
   let textContent = content
@@ -383,15 +384,15 @@ export const fixEncodingIssues = (content: string): string => {
     .replace(/\s+Ã/g, '')
     // Fix double-encoded entities
     .replace(/&amp;([a-zA-Z]+);/g, '&$1;')
-    // Preserve emojis and fix common emoji encoding issues
-    .replace(/ðŸ\s*/g, '🙂') // Fix smiley face encoding
-    .replace(/ðŸ˜\s*/g, '😀') // Fix other emoji encodings
-    .replace(/ðŸŽ\s*/g, '🎉') // Fix celebration emojis
-    .replace(/ðŸ'\s*/g, '👍') // Fix thumbs up
+    // Fix common emoji encoding issues that might come from email
+    .replace(/ðŸ\s*˜\s*Š/g, '😊') // Fix smiley face encoding variations
+    .replace(/ðŸ\s*˜\s*€/g, '😀') // Fix other emoji encodings
+    .replace(/ðŸ\s*Ž\s*‰/g, '🎉') // Fix celebration emojis
+    .replace(/ðŸ\s*'\s*/g, '👍') // Fix thumbs up
     .replace(/â\s*¤\s*/g, '❤') // Fix heart emoji
-    .replace(/ðŸ"§/g, '📧') // Fix email emoji
-    .replace(/ðŸ"±/g, '📱') // Fix phone emoji
-    .replace(/ðŸ"ž/g, '📞'); // Fix telephone emoji
+    .replace(/ðŸ\s*"§/g, '📧') // Fix email emoji
+    .replace(/ðŸ\s*"±/g, '📱') // Fix phone emoji
+    .replace(/ðŸ\s*"ž/g, '📞'); // Fix telephone emoji
 };
 
 /**
