@@ -163,21 +163,6 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
     onKeyDown?.(e);
   }, [showSuggestions, suggestions, selectedIndex, selectEmoji, onKeyDown]);
 
-  // Calculate suggestion popup position
-  const getSuggestionPosition = useCallback(() => {
-    if (!textareaRef.current || shortcodeStart === -1) return { top: 0, left: 0 };
-
-    const textarea = textareaRef.current;
-    const rect = textarea.getBoundingClientRect();
-    
-    return {
-      top: rect.bottom + window.scrollY + 5,
-      left: rect.left + window.scrollX
-    };
-  }, [shortcodeStart]);
-
-  const suggestionPosition = getSuggestionPosition();
-
   return (
     <div className="relative">
       <textarea
@@ -193,10 +178,10 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg max-w-80 min-w-64"
+          className="absolute z-[9999] bg-card border border-border rounded-md shadow-xl max-w-80 min-w-64 mt-1"
           style={{
-            top: suggestionPosition.top,
-            left: suggestionPosition.left,
+            top: '100%',
+            left: '0',
           }}
         >
           <div className="p-2 border-b border-border">
