@@ -1,6 +1,75 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/**
+ * Recursively finds the preferred text part (HTML or plain) from the payload.
+ */
+function findTextPart(part: any, preferredMime: string = 'text/html'): any {
+  if (part.parts) {
+    for (const subPart of part.parts) {
+      const found = findTextPart(subPart, preferredMime);
+      if (found) return found;
+    }
+  }
+  if (part.mimeType === preferredMime || part.mimeType === 'text/plain') {
+    return part;
+  }
+  return null;
+}
+
+/**
+ * Decodes the email body from a Gmail API message object, handling base64url, charsets, and multipart.
+ */
+function getDecodedEmailContent(message: any): { content: string; contentType: string } {
+  const payload = message.payload;
+  if (!payload) return { content: '', contentType: 'text' };
+
+  // Prefer HTML, fallback to plain text
+  let part = findTextPart(payload, 'text/html');
+  const isHtml = !!part;
+  if (!part) part = findTextPart(payload, 'text/plain');
+  if (!part || !part.body || !part.body.data) return { content: '', contentType: 'text' };
+
+  // Extract charset from Content-Type header
+  let charset = 'utf-8';
+  const contentTypeHeader = part.headers?.find((h: any) => h.name.toLowerCase() === 'content-type');
+  if (contentTypeHeader) {
+    const match = contentTypeHeader.value.match(/charset=["']?([^"';]+)["']?/i);
+    if (match) charset = match[1].toLowerCase();
+  }
+
+  // Decode base64url (Gmail-specific: replace -/+ , _// , add padding)
+  let base64 = part.body.data.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4 !== 0) {
+    base64 += '=';
+  }
+
+  // Base64 to binary bytes
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  // Decode bytes using the charset (handles æøå, emojis, Chinese, etc.)
+  try {
+    const decoder = new TextDecoder(charset);
+    const decodedContent = decoder.decode(bytes);
+    return { 
+      content: decodedContent, 
+      contentType: isHtml ? 'html' : 'text' 
+    };
+  } catch (e) {
+    console.warn(`Decoding failed with charset '${charset}', falling back to utf-8:`, e);
+    const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
+    const decodedContent = decoder.decode(bytes);
+    return { 
+      content: decodedContent, 
+      contentType: isHtml ? 'html' : 'text' 
+    };
+  }
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -326,29 +395,14 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           return attachmentList;
         };
 
-        if (fullMessage.payload.body?.data) {
-          // Simple message with body data
-          content = atob(fullMessage.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-          contentType = fullMessage.payload.mimeType === 'text/html' ? 'html' : 'text';
-        } else if (fullMessage.payload.parts) {
-          // Multipart message
+        // Use proper charset-aware decoding
+        const decodedEmail = getDecodedEmailContent(fullMessage);
+        content = decodedEmail.content;
+        contentType = decodedEmail.contentType;
+        
+        // Extract attachments if there are parts
+        if (fullMessage.payload.parts) {
           attachments = extractAttachments(fullMessage.payload.parts);
-          
-          // Look for HTML content first, then plain text
-          const htmlPart = fullMessage.payload.parts.find((part: any) => 
-            part.mimeType === 'text/html'
-          );
-          const textPart = fullMessage.payload.parts.find((part: any) => 
-            part.mimeType === 'text/plain'
-          );
-          
-          if (htmlPart?.body?.data) {
-            content = atob(htmlPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-            contentType = 'html';
-          } else if (textPart?.body?.data) {
-            content = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-            contentType = 'text';
-          }
         }
 
         // Determine sender type and extract relevant email
