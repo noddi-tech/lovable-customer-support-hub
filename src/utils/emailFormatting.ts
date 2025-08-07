@@ -53,7 +53,7 @@ export const sanitizeEmailHTML = (
   };
 
   // Pre-process content to handle character encoding and inline images
-  let processedContent = htmlContent;
+  let processedContent = fixEncodingIssues(htmlContent);
 
   // Handle inline images by replacing cid: references
   if (attachments && attachments.length > 0) {
@@ -228,11 +228,14 @@ export const sanitizeEmailHTML = (
 };
 
 /**
- * Enhanced text extraction from HTML content with improved quote detection
+ * Enhanced text extraction from HTML content with improved quote detection and encoding fixes
  */
 export const extractTextFromHTML = (htmlContent: string): string => {
+  // First fix encoding issues
+  let content = fixEncodingIssues(htmlContent);
+  
   // Remove HTML tags and decode entities more comprehensively
-  let textContent = htmlContent
+  let textContent = content
     .replace(/<style[^>]*>.*?<\/style>/gis, '') // Remove style blocks
     .replace(/<script[^>]*>.*?<\/script>/gis, '') // Remove script blocks
     .replace(/<[^>]*>/g, '') // Remove HTML tags
@@ -247,6 +250,13 @@ export const extractTextFromHTML = (htmlContent: string): string => {
     .replace(/&hellip;/g, '...')
     .replace(/&mdash;/g, '—')
     .replace(/&ndash;/g, '–')
+    // Norwegian characters
+    .replace(/&aring;/g, 'å')
+    .replace(/&aelig;/g, 'æ')
+    .replace(/&oslash;/g, 'ø')
+    .replace(/&Aring;/g, 'Å')
+    .replace(/&AElig;/g, 'Æ')
+    .replace(/&Oslash;/g, 'Ø')
     .replace(/\r?\n\s*\r?\n/g, '\n') // Remove extra blank lines
     .trim();
 
@@ -335,11 +345,52 @@ export const shouldRenderAsHTML = (content: string, contentType: string): boolea
 };
 
 /**
- * Utility function to clean up malformed HTML content
+ * Fixes common character encoding issues in email content
+ * Particularly handles Norwegian and other international characters
+ */
+export const fixEncodingIssues = (content: string): string => {
+  return content
+    // Fix common UTF-8 encoding issues with Norwegian characters
+    .replace(/Ã¥/g, 'å')
+    .replace(/Ã¦/g, 'æ')
+    .replace(/Ã¸/g, 'ø')
+    .replace(/Ã…/g, 'Å')
+    .replace(/Ã†/g, 'Æ')
+    .replace(/Ã˜/g, 'Ø')
+    // Fix other common UTF-8 issues
+    .replace(/Ã¡/g, 'á')
+    .replace(/Ã©/g, 'é')
+    .replace(/Ã­/g, 'í')
+    .replace(/Ã³/g, 'ó')
+    .replace(/Ãº/g, 'ú')
+    .replace(/Ã±/g, 'ñ')
+    .replace(/Ã¼/g, 'ü')
+    .replace(/Ã¤/g, 'ä')
+    .replace(/Ã¶/g, 'ö')
+    .replace(/ÃŸ/g, 'ß')
+    // Fix quotation marks and other punctuation
+    .replace(/â€™/g, '\'')
+    .replace(/â€œ/g, '"')
+    .replace(/â€/g, '"')
+    .replace(/â€"/g, '–')
+    .replace(/â€"/g, '—')
+    .replace(/â€¦/g, '...')
+    // Fix spacing issues
+    .replace(/Ã\s+/g, '')
+    .replace(/\s+Ã/g, '')
+    // Fix double-encoded entities
+    .replace(/&amp;([a-zA-Z]+);/g, '&$1;');
+};
+
+/**
+ * Utility function to clean up malformed HTML content with enhanced encoding support
  */
 export const preprocessHTMLContent = (content: string): string => {
-  return content
-    // Fix common HTML entity issues
+  // First fix encoding issues
+  let processedContent = fixEncodingIssues(content);
+  
+  return processedContent
+    // Fix remaining HTML entity issues
     .replace(/&([a-zA-Z]+);/g, (match, entity) => {
       const entities: Record<string, string> = {
         'nbsp': ' ',
@@ -350,9 +401,33 @@ export const preprocessHTMLContent = (content: string): string => {
         'apos': "'",
         'hellip': '...',
         'mdash': '—',
-        'ndash': '–'
+        'ndash': '–',
+        'lsquo': '\'',
+        'rsquo': '\'',
+        'ldquo': '"',
+        'rdquo': '"',
+        'aring': 'å',
+        'aelig': 'æ',
+        'oslash': 'ø',
+        'Aring': 'Å',
+        'AElig': 'Æ',
+        'Oslash': 'Ø'
       };
       return entities[entity] || match;
+    })
+    // Handle numeric entities for Norwegian characters
+    .replace(/&#(\d+);/g, (match, code) => {
+      const num = parseInt(code);
+      // Common Norwegian character codes
+      switch (num) {
+        case 229: return 'å';
+        case 230: return 'æ';
+        case 248: return 'ø';
+        case 197: return 'Å';
+        case 198: return 'Æ';
+        case 216: return 'Ø';
+        default: return String.fromCharCode(num);
+      }
     })
     // Ensure proper line breaks
     .replace(/\r\n/g, '\n')

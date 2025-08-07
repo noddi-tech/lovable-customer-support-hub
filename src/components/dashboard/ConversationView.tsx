@@ -4,7 +4,7 @@ import { useAutoContrast } from '@/hooks/useAutoContrast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { sanitizeEmailHTML, extractTextFromHTML, type EmailAttachment } from '@/utils/emailFormatting';
+import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncodingIssues, type EmailAttachment } from '@/utils/emailFormatting';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -782,7 +782,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                }}
                              >
                                <CardContent className="p-3">
-                                  {message.content_type === 'html' ? (
+                                  {shouldRenderAsHTML(message.content, message.content_type || '') ? (
                                     <div 
                                       className="prose prose-sm max-w-none overflow-hidden"
                                       style={{
@@ -817,11 +817,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                         wordBreak: 'break-word',
                                         overflowWrap: 'break-word'
                                       }}
-                                    >
-                                      {message.content.includes('<') && message.content.includes('>') 
-                                        ? extractTextFromHTML(message.content)
-                                        : message.content}
-                                    </p>
+                                     >
+                                       {fixEncodingIssues(
+                                         shouldRenderAsHTML(message.content, message.content_type || '') 
+                                           ? extractTextFromHTML(message.content)
+                                           : message.content
+                                       )}
+                                     </p>
                                   )}
                                {!editingMessageId || editingMessageId !== message.id ? (
                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
