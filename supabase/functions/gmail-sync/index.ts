@@ -382,7 +382,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
             email_thread_id: threadId,
             email_subject: subject,
             email_headers: headers,
-            email_status: folder === 'sent' ? 'sent' : 'received'
+            email_status: folder === 'sent' ? 'sent' : 'pending'
           })
           .select('id')
           .single();
