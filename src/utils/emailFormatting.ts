@@ -379,7 +379,16 @@ export const fixEncodingIssues = (content: string): string => {
     .replace(/Ã\s+/g, '')
     .replace(/\s+Ã/g, '')
     // Fix double-encoded entities
-    .replace(/&amp;([a-zA-Z]+);/g, '&$1;');
+    .replace(/&amp;([a-zA-Z]+);/g, '&$1;')
+    // Preserve emojis and fix common emoji encoding issues
+    .replace(/ðŸ\s*/g, '🙂') // Fix smiley face encoding
+    .replace(/ðŸ˜\s*/g, '😀') // Fix other emoji encodings
+    .replace(/ðŸŽ\s*/g, '🎉') // Fix celebration emojis
+    .replace(/ðŸ'\s*/g, '👍') // Fix thumbs up
+    .replace(/â\s*¤\s*/g, '❤') // Fix heart emoji
+    .replace(/ðŸ"§/g, '📧') // Fix email emoji
+    .replace(/ðŸ"±/g, '📱') // Fix phone emoji
+    .replace(/ðŸ"ž/g, '📞'); // Fix telephone emoji
 };
 
 /**

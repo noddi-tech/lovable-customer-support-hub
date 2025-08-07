@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncodingIssues, type EmailAttachment } from '@/utils/emailFormatting';
+import { convertShortcodesToEmojis } from '@/utils/emojiUtils';
+import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -818,11 +820,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                         overflowWrap: 'break-word'
                                       }}
                                      >
-                                       {fixEncodingIssues(
+                                       {convertShortcodesToEmojis(fixEncodingIssues(
                                          shouldRenderAsHTML(message.content, message.content_type || '') 
                                            ? extractTextFromHTML(message.content)
                                            : message.content
-                                       )}
+                                       ))}
                                      </p>
                                   )}
                                {!editingMessageId || editingMessageId !== message.id ? (
@@ -1051,9 +1053,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     <Button variant="secondary" size="sm" className="hover:bg-accent">
                       <Paperclip className="h-4 w-4" />
                     </Button>
-                    <Button variant="secondary" size="sm" className="hover:bg-accent">
-                      <Smile className="h-4 w-4" />
-                    </Button>
+                    <EmojiPicker onEmojiSelect={(emoji) => setReplyText(prev => prev + emoji)} />
                   </div>
                   
                   <div className="flex items-center space-x-2">
