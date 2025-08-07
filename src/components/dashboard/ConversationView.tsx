@@ -89,7 +89,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   };
 
   const formatEmailContent = (content: string) => {
-    return content.replace(/\n/g, '<br>');
+    return formatEmailText(content);
   };
 
   const startEdit = (message: any) => {
