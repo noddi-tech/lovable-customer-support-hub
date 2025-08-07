@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { SyncButton } from '@/components/dashboard/SyncButton';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -75,6 +76,9 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center space-x-2 md:space-x-4">
+        {/* Sync Button */}
+        <SyncButton />
+
         {/* Search - Hidden on mobile */}
         <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hidden sm:flex">
           <Search className="h-4 w-4" />
