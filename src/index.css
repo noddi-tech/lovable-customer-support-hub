@@ -174,8 +174,12 @@ All colors MUST be HSL.
   }
   
   /* Ensure proper contrast for all text elements */
-  h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, label {
+  h1, h2, h3, h4, h5, h6, p, span, div, a, button, label {
     color: inherit;
+  }
+  /* Form controls should use explicit tokens for readability */
+  input, textarea {
+    color: hsl(var(--foreground));
   }
   
   /* Override any potential white-on-white scenarios */
