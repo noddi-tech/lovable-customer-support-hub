@@ -10,11 +10,12 @@ serve(async (req: Request) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get all active email accounts
+    // Get all active email accounts with auto-sync enabled
     const { data: emailAccounts, error } = await supabase
       .from('email_accounts')
       .select('*')
       .eq('is_active', true)
+      .eq('auto_sync_enabled', true)
       .not('access_token', 'is', null);
 
     if (error) {
@@ -28,7 +29,19 @@ serve(async (req: Request) => {
 
     for (const account of emailAccounts) {
       try {
-        console.log(`Triggering sync for ${account.email_address}`);
+        // Check if account needs syncing based on its interval
+        const now = new Date();
+        const lastSync = account.last_sync_at ? new Date(account.last_sync_at) : new Date(0);
+        const intervalMinutes = account.sync_interval_minutes || 2;
+        const intervalMs = intervalMinutes * 60 * 1000;
+        const timeSinceLastSync = now.getTime() - lastSync.getTime();
+        
+        if (timeSinceLastSync < intervalMs) {
+          console.log(`Skipping sync for ${account.email_address} - last synced ${Math.round(timeSinceLastSync / 60000)} minutes ago, interval is ${intervalMinutes} minutes`);
+          continue;
+        }
+        
+        console.log(`Triggering sync for ${account.email_address} - last synced ${Math.round(timeSinceLastSync / 60000)} minutes ago`);
         
         // Call the gmail-sync function for each account
         const syncResponse = await supabase.functions.invoke('gmail-sync', {
