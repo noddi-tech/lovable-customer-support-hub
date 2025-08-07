@@ -42,66 +42,89 @@ export const sanitizeEmailHTML = (htmlContent: string, attachments: EmailAttachm
     attachments.forEach((attachment) => {
       if (attachment.isInline && attachment.contentId) {
         const cidPattern = new RegExp(`cid:${attachment.contentId}`, 'gi');
-        // Replace with a placeholder for now - in production you'd fetch from Gmail API
-        processedContent = processedContent.replace(cidPattern, '/placeholder.svg');
+        // For Gmail API, we need to construct proper URLs for attachments
+        // Format: https://gmail.googleapis.com/gmail/v1/users/me/messages/{messageId}/attachments/{attachmentId}
+        processedContent = processedContent.replace(cidPattern, 'data:image/png;base64,placeholder');
         
         // Also handle src="cid:..." format
         const srcCidPattern = new RegExp(`src=["']cid:${attachment.contentId}["']`, 'gi');
-        processedContent = processedContent.replace(srcCidPattern, 'src="/placeholder.svg"');
+        processedContent = processedContent.replace(srcCidPattern, 'src="data:image/png;base64,placeholder"');
       }
     });
   }
+  
+  // Handle standard image sources and preserve them
+  processedContent = processedContent.replace(
+    /<img([^>]*?)src=["']([^"']*?)["']([^>]*?)>/gi,
+    (match, prefix, src, suffix) => {
+      // Don't modify data URLs or already processed cid references
+      if (src.startsWith('data:') || src.startsWith('cid:')) {
+        return match;
+      }
+      // Preserve external image URLs
+      return `<img${prefix}src="${src}"${suffix}>`;
+    }
+  );
 
   // Sanitize with DOMPurify
   const sanitized = DOMPurify.sanitize(processedContent, config);
 
-  // Apply consistent styling for email content
+  // Apply consistent styling for email content while preserving original formatting
   const styledContent = `
     <div style="
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
+      font-family: inherit;
+      line-height: 1.5;
       color: inherit;
       max-width: 100%;
       overflow-wrap: break-word;
       word-wrap: break-word;
     ">
       <style>
+        .email-content {
+          /* Preserve original email styling while ensuring readability */
+        }
         .email-content img {
           max-width: 100%;
           height: auto;
           border-radius: 4px;
-          display: block;
-          margin: 8px 0;
+          display: inline-block;
+          margin: 4px 0;
         }
         .email-content table {
           border-collapse: collapse;
           width: 100%;
           max-width: 100%;
+          margin: 8px 0;
         }
         .email-content td, .email-content th {
           padding: 8px;
-          border: 1px solid #e5e7eb;
+          border: 1px solid hsl(var(--border));
+          text-align: left;
         }
         .email-content a {
           color: hsl(var(--primary));
           text-decoration: underline;
         }
         .email-content a:hover {
-          color: hsl(var(--primary-hover));
+          color: hsl(var(--primary)) !important;
+          opacity: 0.8;
         }
         .email-content blockquote {
           border-left: 4px solid hsl(var(--border));
           padding-left: 16px;
           margin: 16px 0;
           color: hsl(var(--muted-foreground));
+          font-style: italic;
         }
         .email-content p {
           margin: 8px 0;
+          line-height: 1.5;
         }
         .email-content h1, .email-content h2, .email-content h3, 
         .email-content h4, .email-content h5, .email-content h6 {
           margin: 16px 0 8px 0;
           font-weight: 600;
+          line-height: 1.3;
         }
         .email-content ul, .email-content ol {
           margin: 8px 0;
@@ -117,6 +140,7 @@ export const sanitizeEmailHTML = (htmlContent: string, attachments: EmailAttachm
           overflow-x: auto;
           font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
           font-size: 0.85em;
+          margin: 12px 0;
         }
         .email-content code {
           background-color: hsl(var(--muted));
@@ -124,6 +148,20 @@ export const sanitizeEmailHTML = (htmlContent: string, attachments: EmailAttachm
           border-radius: 2px;
           font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
           font-size: 0.85em;
+        }
+        /* Preserve email signatures and formatting */
+        .email-content div[style*="color"] {
+          /* Let inline styles take precedence for email signatures */
+        }
+        .email-content span[style*="color"] {
+          /* Let inline styles take precedence for formatted text */
+        }
+        /* Handle email threading lines */
+        .email-content > div:first-child {
+          margin-top: 0;
+        }
+        .email-content > div:last-child {
+          margin-bottom: 0;
         }
       </style>
       <div class="email-content">
