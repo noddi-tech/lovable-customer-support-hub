@@ -217,6 +217,16 @@ const handler = async (req: Request): Promise<Response> => {
     // Plain-text fallback
     const plainText = message.content || '';
 
+    // Prepare HTML part as base64 to ensure full fidelity in all clients
+    const utf8Encoder = new TextEncoder();
+    const htmlBase64 = btoa(
+      Array.from(utf8Encoder.encode(emailHTML))
+        .map(byte => String.fromCharCode(byte))
+        .join('')
+    )
+    // Wrap at 76 chars per RFC 2045 for base64 bodies
+    .replace(/.{76}/g, '$&\r\n');
+
     // Multipart boundary
     const boundary = `lovable-boundary-${(crypto as any).randomUUID?.() || Math.random().toString(36).slice(2)}`;
 
@@ -231,15 +241,15 @@ const handler = async (req: Request): Promise<Response> => {
       '',
       `--${boundary}`,
       'Content-Type: text/plain; charset="UTF-8"',
-      'Content-Transfer-Encoding: 8bit',
+      'Content-Transfer-Encoding: 7bit',
       '',
       plainText,
       '',
       `--${boundary}`,
       'Content-Type: text/html; charset="UTF-8"',
-      'Content-Transfer-Encoding: 8bit',
+      'Content-Transfer-Encoding: base64',
       '',
-      emailHTML,
+      htmlBase64,
       '',
       `--${boundary}--`,
       ''
