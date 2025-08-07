@@ -109,8 +109,8 @@ export const sanitizeEmailHTML = (
           --email-max-width: 100%;
         }
         
-        /* Force readable colors inside chat bubbles while preserving structure */
-        .email-html-content, .email-html-content * {
+        /* Force readable colors for elements without explicit color */
+        .email-html-content :not([style*="color"]):not([color]) {
           color: inherit !important;
         }
         

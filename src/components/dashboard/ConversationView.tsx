@@ -816,6 +816,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               const isInternal = message.is_internal;
               const showAvatar = index === 0 || messages[index - 1]?.sender_type !== message.sender_type;
               const isEditing = editingMessageId === message.id;
+              const isAgentHTML = !isFromCustomer && !isInternal && shouldRenderAsHTML(message.content, message.content_type || 'text/html');
 
               return (
                 <div
@@ -846,9 +847,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       className={cn(
                         "rounded-lg p-3 relative overflow-hidden",
                         isFromCustomer
-                          ? "bg-muted"
+                          ? "bg-muted text-foreground"
                           : isInternal
                           ? "bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800"
+                          : isAgentHTML
+                          ? "bg-card border border-border text-foreground"
                           : "bg-primary text-primary-foreground"
                       )}
                     >
