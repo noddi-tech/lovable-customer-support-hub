@@ -122,12 +122,16 @@ export const EmojiAutocomplete: React.FC<EmojiAutocompleteProps> = ({
     onKeyDown?.(e);
   }, [showSuggestions, suggestions, selectedIndex, selectEmoji, onKeyDown]);
 
-  // Handle text change with real-time emoji conversion
+  // Handle text change - keep shortcodes visible until selection
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
-    // Convert shortcodes to emojis in real-time for preview
-    const convertedValue = convertShortcodesToEmojis(newValue);
-    onChange(convertedValue);
+    // Only convert shortcodes when explicitly completed (space, newline, or selection)
+    if (newValue.endsWith(' ') || newValue.endsWith('\n')) {
+      const convertedValue = convertShortcodesToEmojis(newValue);
+      onChange(convertedValue);
+    } else {
+      onChange(newValue);
+    }
   }, [onChange]);
 
   // Calculate suggestion popup position
