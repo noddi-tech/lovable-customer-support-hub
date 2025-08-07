@@ -12,6 +12,8 @@ interface SyncRequest {
 }
 
 serve(async (req: Request) => {
+  console.log('🚀 Gmail-sync function called at:', new Date().toISOString());
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
