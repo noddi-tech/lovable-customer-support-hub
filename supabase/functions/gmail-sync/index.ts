@@ -78,8 +78,6 @@ const corsHeaders = {
 interface SyncRequest {
   emailAccountId?: string;
   syncSent?: boolean;
-  forceRedecode?: boolean;
-  resetInbox?: boolean;
 }
 
 serve(async (req: Request) => {
@@ -127,7 +125,7 @@ serve(async (req: Request) => {
       console.log('🤖 Service role call detected');
     }
 
-    const { emailAccountId, syncSent = false, forceRedecode = false, resetInbox = false } = await req.json() as SyncRequest;
+    const { emailAccountId, syncSent = false } = await req.json() as SyncRequest;
 
     // Get email accounts to sync
     let query = supabaseClient
@@ -175,39 +173,12 @@ serve(async (req: Request) => {
           account.access_token = refreshResult.accessToken;
         }
 
-        // Reset inbox if requested
-        if (resetInbox) {
-          console.log(`🗑️ Resetting inbox for account: ${account.email_address}`);
-          
-          // First get all conversation IDs for this email account
-          const { data: conversations } = await supabaseClient
-            .from('conversations')
-            .select('id')
-            .eq('email_account_id', account.id);
-          
-          if (conversations && conversations.length > 0) {
-            const conversationIds = conversations.map(c => c.id);
-            
-            // Delete messages from these conversations
-            const { error: deleteError } = await supabaseClient
-              .from('messages')
-              .delete()
-              .in('conversation_id', conversationIds);
-            
-            if (deleteError) {
-              console.error('Error deleting existing messages:', deleteError);
-            } else {
-              console.log(`✅ Successfully deleted existing messages from ${conversationIds.length} conversations`);
-            }
-          }
-        }
-
         // Sync emails from Gmail (inbox and optionally sent)
-        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox', forceRedecode || resetInbox, resetInbox);
+        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox');
         let sentResult = { success: true, messageCount: 0 };
         
         if (syncSent) {
-          sentResult = await syncGmailMessages(account, supabaseClient, 'sent', forceRedecode || resetInbox, resetInbox);
+          sentResult = await syncGmailMessages(account, supabaseClient, 'sent');
         }
         
         syncResults.push({
@@ -282,7 +253,7 @@ async function refreshAccessToken(account: any, supabaseClient: any) {
   }
 }
 
-async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox', forceRedecodeOrReset: boolean = false, resetInbox: boolean = false) {
+async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox') {
   try {
     console.log(`Starting Gmail sync for account: ${account.email_address}, folder: ${folder}`);
     console.log(`Account details:`, {
@@ -367,8 +338,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           console.error(`❌ Error checking for existing message:`, checkError);
         }
 
-        // Check if message already exists (skip this check if we're in reset mode)
-        if (!resetInbox && existingMessage) {
+        if (existingMessage) {
           console.log(`⏭️  Message ${message.id} already exists, skipping`);
           continue;
         }
@@ -506,53 +476,31 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           conversation = newConversation;
         }
 
-        // Create message (always create in reset mode, update in redecode mode)
-        if (resetInbox || !existingMessage) {
-          // Create new message
-          console.log(`Inserting message for conversation ${conversation.id}: ${messageId}`);
-          const { data: insertedMessage, error: insertError } = await supabaseClient
-            .from('messages')
-            .insert({
-              conversation_id: conversation.id,
-              content: content.substring(0, 50000),
-              content_type: contentType,
-              sender_type: senderType,
-              external_id: message.id,
-              email_message_id: messageId,
-              email_thread_id: threadId,
-              email_subject: subject,
-              email_headers: headers,
-              attachments: attachments,
-              email_status: folder === 'sent' ? 'sent' : 'pending'
-            })
-            .select('id')
-            .single();
+        // Create message
+        console.log(`Inserting message for conversation ${conversation.id}: ${messageId}`);
+        const { data: insertedMessage, error: insertError } = await supabaseClient
+          .from('messages')
+          .insert({
+            conversation_id: conversation.id,
+            content: content.substring(0, 50000),
+            content_type: contentType,
+            sender_type: senderType,
+            external_id: message.id,
+            email_message_id: messageId,
+            email_thread_id: threadId,
+            email_subject: subject,
+            email_headers: headers,
+            attachments: attachments,
+            email_status: folder === 'sent' ? 'sent' : 'pending'
+          })
+          .select('id')
+          .single();
 
-          if (insertError) {
-            console.error(`Failed to insert message ${messageId}:`, insertError);
-            throw insertError;
-          } else {
-            console.log(`Successfully inserted message ${insertedMessage.id} for conversation ${conversation.id}`);
-          }
-        } else if (existingMessage && forceRedecodeOrReset) {
-          // Update existing message with newly decoded content
-          console.log(`Updating message ${message.id} with new decoding...`);
-          const { error: updateError } = await supabaseClient
-            .from('messages')
-            .update({
-              content: content.substring(0, 50000),
-              content_type: contentType,
-              email_headers: headers,
-              attachments: attachments,
-            })
-            .eq('external_id', message.id);
-
-          if (updateError) {
-            console.error(`Failed to update message ${message.id}:`, updateError);
-            throw updateError;
-          } else {
-            console.log(`Successfully updated message ${message.id} with new decoding`);
-          }
+        if (insertError) {
+          console.error(`Failed to insert message ${messageId}:`, insertError);
+          throw insertError;
+        } else {
+          console.log(`Successfully inserted message ${insertedMessage.id} for conversation ${conversation.id}`);
         }
 
         processedCount++;
