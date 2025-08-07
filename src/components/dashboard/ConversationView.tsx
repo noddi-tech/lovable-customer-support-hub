@@ -647,7 +647,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     );
   }
 
-  if (conversationLoading || messagesLoading) {
+  if (conversationLoading || messagesLoading || !conversation) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gradient-surface">
         <div className="text-center space-y-4">
