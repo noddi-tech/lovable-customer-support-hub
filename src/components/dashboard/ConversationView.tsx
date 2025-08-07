@@ -4,7 +4,7 @@ import { useAutoContrast } from '@/hooks/useAutoContrast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncodingIssues, type EmailAttachment } from '@/utils/emailFormatting';
+import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncodingIssues, formatEmailText, type EmailAttachment } from '@/utils/emailFormatting';
 import { convertShortcodesToEmojis } from '@/utils/emojiUtils';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { EmojiAutocomplete } from '@/components/ui/emoji-autocomplete';
@@ -785,49 +785,80 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                }}
                              >
                                <CardContent className="p-3">
-                                  {shouldRenderAsHTML(message.content, message.content_type || '') ? (
-                                    <div 
-                                      className="prose prose-sm max-w-none overflow-hidden"
-                                      style={{
-                                        color: message.is_internal 
-                                          ? getMessageTextColor('internal')
-                                          : isAgent 
-                                            ? getMessageTextColor('agent')
-                                            : getMessageTextColor('customer'),
-                                        fontSize: '0.875rem',
-                                        fontWeight: message.is_internal ? '600' : '400',
-                                        lineHeight: '1.25rem'
-                                      }}
-                                       dangerouslySetInnerHTML={{ 
-                                         __html: convertShortcodesToEmojis(sanitizeEmailHTML(
-                                           message.content, 
-                                           Array.isArray(message.attachments) ? (message.attachments as unknown as EmailAttachment[]) : []
-                                         ))
-                                       }}
-                                    />
-                                  ) : (
-                                    <p 
-                                      className="whitespace-pre-wrap break-words overflow-hidden"
-                                      style={{
-                                        color: message.is_internal 
-                                          ? getMessageTextColor('internal')
-                                          : isAgent 
-                                            ? getMessageTextColor('agent')
-                                            : getMessageTextColor('customer'),
-                                        fontSize: '0.875rem',
-                                        fontWeight: message.is_internal ? '600' : '400',
-                                        lineHeight: '1.25rem',
-                                        wordBreak: 'break-word',
-                                        overflowWrap: 'break-word'
-                                      }}
-                                     >
-                                       {convertShortcodesToEmojis(fixEncodingIssues(
-                                         shouldRenderAsHTML(message.content, message.content_type || '') 
-                                           ? extractTextFromHTML(message.content)
-                                           : message.content
-                                       ))}
-                                     </p>
-                                  )}
+                                  {(() => {
+                                    const renderAsHTML = shouldRenderAsHTML(message.content, message.content_type || '');
+                                    console.log(`Message ${message.id}: contentType="${message.content_type}", renderAsHTML=${renderAsHTML}, contentPreview="${message.content.substring(0, 100)}..."`);
+                                    
+                                    if (renderAsHTML) {
+                                      return (
+                                        <div 
+                                          className="prose prose-sm max-w-none overflow-hidden"
+                                          style={{
+                                            color: message.is_internal 
+                                              ? getMessageTextColor('internal')
+                                              : isAgent 
+                                                ? getMessageTextColor('agent')
+                                                : getMessageTextColor('customer'),
+                                            fontSize: '0.875rem',
+                                            fontWeight: message.is_internal ? '600' : '400',
+                                            lineHeight: '1.25rem'
+                                          }}
+                                          dangerouslySetInnerHTML={{ 
+                                            __html: convertShortcodesToEmojis(sanitizeEmailHTML(
+                                              message.content, 
+                                              Array.isArray(message.attachments) ? (message.attachments as unknown as EmailAttachment[]) : []
+                                            ))
+                                          }}
+                                        />
+                                      );
+                                    } else {
+                                      // Check if content has newsletter-style formatting (asterisks, etc.)
+                                      const hasNewsletterFormatting = /^\*{3,}/.test(message.content) || 
+                                                                     /^-{3,}/.test(message.content) ||
+                                                                     /\[.*?\s+\(\s*https?:\/\//.test(message.content);
+                                      
+                                      if (hasNewsletterFormatting) {
+                                        return (
+                                          <div 
+                                            className="overflow-hidden"
+                                            style={{
+                                              color: message.is_internal 
+                                                ? getMessageTextColor('internal')
+                                                : isAgent 
+                                                  ? getMessageTextColor('agent')
+                                                  : getMessageTextColor('customer'),
+                                              fontSize: '0.875rem',
+                                              fontWeight: message.is_internal ? '600' : '400',
+                                              lineHeight: '1.6rem'
+                                            }}
+                                            dangerouslySetInnerHTML={{ 
+                                              __html: formatEmailText(fixEncodingIssues(message.content))
+                                            }}
+                                          />
+                                        );
+                                      } else {
+                                        return (
+                                          <div 
+                                            className="whitespace-pre-wrap break-words overflow-hidden"
+                                            style={{
+                                              color: message.is_internal 
+                                                ? getMessageTextColor('internal')
+                                                : isAgent 
+                                                  ? getMessageTextColor('agent')
+                                                  : getMessageTextColor('customer'),
+                                              fontSize: '0.875rem',
+                                              fontWeight: message.is_internal ? '600' : '400',
+                                              lineHeight: '1.5rem',
+                                              wordBreak: 'break-word',
+                                              overflowWrap: 'break-word'
+                                            }}
+                                          >
+                                            {convertShortcodesToEmojis(fixEncodingIssues(message.content))}
+                                          </div>
+                                        );
+                                      }
+                                    }
+                                  })()}
                                {!editingMessageId || editingMessageId !== message.id ? (
                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
                                 <div className="flex items-center space-x-2">

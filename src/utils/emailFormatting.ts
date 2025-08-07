@@ -445,3 +445,22 @@ export const preprocessHTMLContent = (content: string): string => {
     // Clean up excessive whitespace but preserve intentional formatting
     .replace(/\n\s*\n\s*\n/g, '\n\n');
 };
+
+/**
+ * Enhanced text formatting for email newsletter content with asterisk headers
+ */
+export const formatEmailText = (content: string): string => {
+  return content
+    // Convert asterisk headers to proper formatting
+    .replace(/^\*{3,}(.+?)\*{3,}$/gm, '<h2 style="margin: 1.5rem 0 1rem 0; font-weight: bold; font-size: 1.1rem;">$1</h2>')
+    // Convert dash separators to horizontal rules
+    .replace(/^-{3,}.*$/gm, '<hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e5e7eb;">')
+    // Convert [Link text ( url )] to proper links
+    .replace(/\[([^\]]+)\s+\(\s*(https?:\/\/[^\)]+)\s*\)\s*\]/g, '<a href="$2" target="_blank" style="color: #2563eb; text-decoration: underline;">$1</a>')
+    // Convert bullet points with asterisks
+    .replace(/^\*\s+(.+)$/gm, '• $1')
+    // Preserve line breaks
+    .replace(/\n/g, '<br>')
+    // Add spacing around sections
+    .replace(/(<\/h2>)/g, '$1<div style="margin-bottom: 0.75rem;"></div>');
+};
