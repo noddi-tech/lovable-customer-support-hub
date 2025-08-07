@@ -297,11 +297,11 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
     }
 
     let processedCount = 0;
-    console.log(`📧 Processing ${Math.min(data.messages.length, 10)} messages from ${folder} for ${account.email_address}...`);
+    console.log(`📧 Processing ${data.messages.length} messages from ${folder} for ${account.email_address}...`);
 
-    for (const message of data.messages.slice(0, 10)) { // Limit to 10 for now
+    for (const message of data.messages) { // Process all messages
       try {
-        console.log(`🔄 Processing message ID: ${message.id} (${processedCount + 1}/${Math.min(data.messages.length, 10)})`);
+        console.log(`🔄 Processing message ID: ${message.id} (${processedCount + 1}/${data.messages.length})`);
         
         // Get full message details
         const messageResponse = await fetch(
