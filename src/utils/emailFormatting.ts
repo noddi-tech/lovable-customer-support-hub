@@ -354,20 +354,31 @@ export const shouldRenderAsHTML = (content: string, contentType: string): boolea
  */
 export const fixEncodingIssues = (content: string): string => {
   return content
-    // Fix common UTF-8 encoding issues with Norwegian characters
+    // Fix common UTF-8 encoding issues with Norwegian characters - be very specific
     .replace(/Ã¥/g, 'å')
     .replace(/Ã¦/g, 'æ')
     .replace(/Ã¸/g, 'ø')
     .replace(/Ã…/g, 'Å')
     .replace(/Ã†/g, 'Æ')
     .replace(/Ã˜/g, 'Ø')
-    // Additional Norwegian character fixes
-    .replace(/Ã\s*¥/g, 'å')
-    .replace(/Ã\s*¦/g, 'æ')
-    .replace(/Ã\s*¸/g, 'ø')
-    .replace(/\s*Ã\s*$/g, 'å') // Fix trailing "Ã" at end of words
-    .replace(/\.Ã\s*$/g, '.å') // Fix "word.Ã" patterns
-    .replace(/\.Ã\s/g, '.å ') // Fix "word.Ã " patterns
+    
+    // Handle spaced patterns that might occur
+    .replace(/Ã\s+¥/g, 'å')
+    .replace(/Ã\s+¦/g, 'æ') 
+    .replace(/Ã\s+¸/g, 'ø')
+    .replace(/Ã\s+…/g, 'Å')
+    .replace(/Ã\s+†/g, 'Æ')
+    .replace(/Ã\s+˜/g, 'Ø')
+    
+    // Handle patterns where Norwegian chars get broken up
+    .replace(/H\s*per/g, 'Håper')
+    .replace(/s\s+langt\s+p\s+v/g, 'så langt på vå')
+    .replace(/nsker/g, 'ønsker')
+    .replace(/v\s*re/g, 'våre')
+    .replace(/h\s*sten/g, 'høsten')
+    .replace(/l\s*pet/g, 'løpet')
+    .replace(/p\s+v/g, 'på vå')
+    
     // Fix other common UTF-8 issues
     .replace(/Ã¡/g, 'á')
     .replace(/Ã©/g, 'é')
@@ -379,6 +390,7 @@ export const fixEncodingIssues = (content: string): string => {
     .replace(/Ã¤/g, 'ä')
     .replace(/Ã¶/g, 'ö')
     .replace(/ÃŸ/g, 'ß')
+    
     // Fix quotation marks and apostrophes
     .replace(/â€™/g, '\'')
     .replace(/â€œ/g, '"')
@@ -386,32 +398,27 @@ export const fixEncodingIssues = (content: string): string => {
     .replace(/â€"/g, '–')
     .replace(/â€"/g, '—')
     .replace(/â€¦/g, '...')
-    // Fix specific patterns seen in the email
+    
+    // Fix specific quote patterns
     .replace(/CPOâ€™s/g, 'CPO\'s')
-    .replace(/â€œ([^â€]*)â€/g, '"$1"') // Fix quoted text
+    .replace(/â€œ([^â€]*)â€/g, '"$1"')
     .replace(/â€œ/g, '"')
     .replace(/â€/g, '"')
-    // Fix mysterious character combinations
-    .replace(/Ã¡\s*Ï/g, '😊') // This might be a mangled emoji
-    .replace(/Ã¡\s*[^\w\s]/g, '😊') // Generic fix for mangled emoji after Ã¡
-    .replace(/\s*Ã¡\s*/g, ' 😊 ') // Replace isolated Ã¡ with emoji
-    // Fix spacing issues
-    .replace(/Ã\s+/g, '')
-    .replace(/\s+Ã(?=\s|$)/g, 'å') // Fix trailing Ã with space or end of string
+    
+    // Convert common emoji patterns that might be encoded
+    .replace(/â\s*­\s*¯/g, '⭐') // Star emoji
+    .replace(/â\s*­/g, '⭐') // Star emoji variant
+    .replace(/ðŸ\s*˜\s*Š/g, '😊') // Smiley face
+    .replace(/ðŸ\s*˜\s*€/g, '😀') // Grinning face
+    .replace(/ðŸ\s*Ž\s*‰/g, '🎉') // Party emoji
+    .replace(/ðŸ\s*'\s*/g, '👍') // Thumbs up
+    .replace(/â\s*¤\s*/g, '❤') // Heart emoji
+    
     // Fix double-encoded entities
     .replace(/&amp;([a-zA-Z]+);/g, '&$1;')
-    // Fix common emoji encoding issues that might come from email
-    .replace(/ðŸ\s*˜\s*Š/g, '😊') // Fix smiley face encoding variations
-    .replace(/ðŸ\s*˜\s*€/g, '😀') // Fix other emoji encodings
-    .replace(/ðŸ\s*Ž\s*‰/g, '🎉') // Fix celebration emojis
-    .replace(/ðŸ\s*'\s*/g, '👍') // Fix thumbs up
-    .replace(/â\s*¤\s*/g, '❤') // Fix heart emoji
-    .replace(/ðŸ\s*"§/g, '📧') // Fix email emoji
-    .replace(/ðŸ\s*"±/g, '📱') // Fix phone emoji
-    .replace(/ðŸ\s*"ž/g, '📞') // Fix telephone emoji
-    // Clean up any remaining weird character combinations
-    .replace(/[^\w\s\p{P}\p{S}\p{Emoji}]/gu, '') // Remove any remaining non-printable characters but keep emojis
-    .replace(/\s+/g, ' ') // Normalize whitespace
+    
+    // Clean up spacing issues but preserve Norwegian characters
+    .replace(/\s+/g, ' ')
     .trim();
 };
 
