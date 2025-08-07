@@ -4,6 +4,7 @@ import { useAutoContrast } from '@/hooks/useAutoContrast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { sanitizeEmailHTML, extractTextFromHTML, type EmailAttachment } from '@/utils/emailFormatting';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -70,7 +71,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
 
   // Function to extract clean text from HTML content and remove quoted emails
-  const extractTextFromHTML = (htmlContent: string): string => {
+  const extractTextFromHTML_local = (htmlContent: string): string => {
     // Remove HTML tags and decode entities
     let textContent = htmlContent
       .replace(/<[^>]*>/g, '') // Remove HTML tags
@@ -781,25 +782,47 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                }}
                              >
                                <CardContent className="p-3">
-                                 <p 
-                                   className="whitespace-pre-wrap break-words overflow-hidden"
-                                   style={{
-                                     color: message.is_internal 
-                                       ? getMessageTextColor('internal')
-                                       : isAgent 
-                                         ? getMessageTextColor('agent')
-                                         : getMessageTextColor('customer'),
-                                     fontSize: '0.875rem',
-                                     fontWeight: message.is_internal ? '600' : '400',
-                                     lineHeight: '1.25rem',
-                                     wordBreak: 'break-word',
-                                     overflowWrap: 'break-word'
-                                   }}
-                                 >
-                                    {message.content.includes('<') && message.content.includes('>') 
-                                      ? extractTextFromHTML(message.content)
-                                      : message.content}
-                                 </p>
+                                  {message.content_type === 'html' ? (
+                                    <div 
+                                      className="prose prose-sm max-w-none overflow-hidden"
+                                      style={{
+                                        color: message.is_internal 
+                                          ? getMessageTextColor('internal')
+                                          : isAgent 
+                                            ? getMessageTextColor('agent')
+                                            : getMessageTextColor('customer'),
+                                        fontSize: '0.875rem',
+                                        fontWeight: message.is_internal ? '600' : '400',
+                                        lineHeight: '1.25rem'
+                                      }}
+                                      dangerouslySetInnerHTML={{ 
+                                        __html: sanitizeEmailHTML(
+                                          message.content, 
+                                          Array.isArray(message.attachments) ? (message.attachments as unknown as EmailAttachment[]) : []
+                                        )
+                                      }}
+                                    />
+                                  ) : (
+                                    <p 
+                                      className="whitespace-pre-wrap break-words overflow-hidden"
+                                      style={{
+                                        color: message.is_internal 
+                                          ? getMessageTextColor('internal')
+                                          : isAgent 
+                                            ? getMessageTextColor('agent')
+                                            : getMessageTextColor('customer'),
+                                        fontSize: '0.875rem',
+                                        fontWeight: message.is_internal ? '600' : '400',
+                                        lineHeight: '1.25rem',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'break-word'
+                                      }}
+                                    >
+                                      {message.content.includes('<') && message.content.includes('>') 
+                                        ? extractTextFromHTML(message.content)
+                                        : message.content}
+                                    </p>
+                                  )}
                                {!editingMessageId || editingMessageId !== message.id ? (
                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
                                 <div className="flex items-center space-x-2">

@@ -285,16 +285,69 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         const inReplyTo = headers.find((h: any) => h.name === 'In-Reply-To')?.value || '';
         const threadId = fullMessage.threadId;
 
-        // Extract email content
+        // Extract email content with support for HTML and images
         let content = '';
+        let contentType = 'text';
+        let attachments: any[] = [];
+
+        // Function to extract attachments and inline images
+        const extractAttachments = (parts: any[]) => {
+          const attachmentList: any[] = [];
+          
+          for (const part of parts) {
+            if (part.filename && part.body?.attachmentId) {
+              // Regular attachment
+              attachmentList.push({
+                filename: part.filename,
+                mimeType: part.mimeType,
+                attachmentId: part.body.attachmentId,
+                size: part.body.size || 0,
+                contentDisposition: part.headers?.find((h: any) => h.name === 'Content-Disposition')?.value
+              });
+            } else if (part.headers?.find((h: any) => h.name === 'Content-ID') && part.body?.attachmentId) {
+              // Inline image
+              const contentId = part.headers.find((h: any) => h.name === 'Content-ID')?.value?.replace(/[<>]/g, '');
+              attachmentList.push({
+                filename: part.filename || `image_${contentId}`,
+                mimeType: part.mimeType,
+                attachmentId: part.body.attachmentId,
+                size: part.body.size || 0,
+                contentId: contentId,
+                isInline: true
+              });
+            }
+            
+            // Recursively process nested parts
+            if (part.parts) {
+              attachmentList.push(...extractAttachments(part.parts));
+            }
+          }
+          
+          return attachmentList;
+        };
+
         if (fullMessage.payload.body?.data) {
+          // Simple message with body data
           content = atob(fullMessage.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          contentType = fullMessage.payload.mimeType === 'text/html' ? 'html' : 'text';
         } else if (fullMessage.payload.parts) {
-          const textPart = fullMessage.payload.parts.find((part: any) => 
-            part.mimeType === 'text/plain' || part.mimeType === 'text/html'
+          // Multipart message
+          attachments = extractAttachments(fullMessage.payload.parts);
+          
+          // Look for HTML content first, then plain text
+          const htmlPart = fullMessage.payload.parts.find((part: any) => 
+            part.mimeType === 'text/html'
           );
-          if (textPart?.body?.data) {
+          const textPart = fullMessage.payload.parts.find((part: any) => 
+            part.mimeType === 'text/plain'
+          );
+          
+          if (htmlPart?.body?.data) {
+            content = atob(htmlPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+            contentType = 'html';
+          } else if (textPart?.body?.data) {
             content = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+            contentType = 'text';
           }
         }
 
@@ -375,13 +428,15 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           .from('messages')
           .insert({
             conversation_id: conversation.id,
-            content: content.substring(0, 10000), // Limit content length
+            content: content.substring(0, 50000), // Increased limit for HTML content
+            content_type: contentType,
             sender_type: senderType,
             external_id: message.id,
             email_message_id: messageId,
             email_thread_id: threadId,
             email_subject: subject,
             email_headers: headers,
+            attachments: attachments,
             email_status: folder === 'sent' ? 'sent' : 'pending'
           })
           .select('id')
