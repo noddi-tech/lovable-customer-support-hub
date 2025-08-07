@@ -88,16 +88,30 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const formatEmailContent = (content: string) => {
-    let formatted = content.replace(/\n/g, '<br>');
-    
-    // Fix broken email links: "https://url" id="link-id">Link Text
-    formatted = formatted.replace(/"(https?:\/\/[^"]+)"\s+(id="[^"]+")?>([^<]*)/g, '<a href="$1" $2 target="_blank" rel="noopener noreferrer" class="text-primary underline hover:no-underline">$3</a>');
-    
-    // Fix broken image links: "https://url">
-    formatted = formatted.replace(/"(https?:\/\/[^"]+)">/g, '<a href="$1" target="_blank" rel="noopener noreferrer">');
-    
-    return formatted;
+  const processEmailContent = (content: string, contentType: string = 'text/html') => {
+    // Use existing utilities to determine content type and process accordingly
+    if (shouldRenderAsHTML(content, contentType)) {
+      // Fix broken HTML patterns while preserving original design
+      let processedContent = content;
+      
+      // Fix broken link pattern: "https://url" id="link-id">Link Text
+      processedContent = processedContent.replace(
+        /"(https?:\/\/[^"]+)"\s*(id="[^"]*")?\s*>([^<]*)/g, 
+        '<a href="$1" $2>$3</a>'
+      );
+      
+      // Fix broken image/link closures: "https://url">
+      processedContent = processedContent.replace(
+        /"(https?:\/\/[^"]+)">/g, 
+        '<a href="$1">'
+      );
+      
+      // Use the comprehensive email HTML sanitizer with original styles preserved
+      return sanitizeEmailHTML(processedContent, [], true);
+    } else {
+      // Process as plain text using existing formatter
+      return formatEmailText(content);
+    }
   };
 
   const startEdit = (message: any) => {
@@ -869,10 +883,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         </div>
                       ) : (
                         <div
-                          className="prose prose-sm max-w-none dark:prose-invert break-words overflow-wrap-anywhere"
-                          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                          className="email-container"
+                          style={{ maxWidth: '100%' }}
                           dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(formatEmailContent(message.content))
+                            __html: processEmailContent(message.content, message.content_type || 'text/html')
                           }}
                         />
                       )}
