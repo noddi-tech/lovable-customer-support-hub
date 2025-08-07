@@ -245,15 +245,23 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         });
         
         // Check if message already exists
-        const { data: existingMessage } = await supabaseClient
+        console.log(`🔍 Checking if message ${message.id} already exists...`);
+        const { data: existingMessage, error: checkError } = await supabaseClient
           .from('messages')
           .select('id')
           .eq('external_id', message.id)
           .single();
 
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error(`❌ Error checking for existing message:`, checkError);
+        }
+
         if (existingMessage) {
+          console.log(`⏭️  Message ${message.id} already exists, skipping`);
           continue; // Skip if already processed
         }
+        
+        console.log(`✅ Message ${message.id} is new, processing...`);
 
         // Parse message data
         const headers = fullMessage.payload.headers;
