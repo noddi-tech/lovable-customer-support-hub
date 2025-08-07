@@ -131,12 +131,16 @@ export const EmojiAutocomplete: React.FC<EmojiAutocompleteProps> = ({
     requestAnimationFrame(() => {
       if (textareaRef.current) {
         const cursorPosition = textareaRef.current.selectionStart || 0;
+        console.log('Cursor position:', cursorPosition, 'Text:', newValue);
         const detection = detectShortcode(newValue, cursorPosition);
+        console.log('Detection result:', detection);
         
         if (detection) {
           const { shortcode, start } = detection;
           const searchTerm = shortcode.substring(1); // Remove the ':'
+          console.log('Search term:', searchTerm);
           const suggestions = getEmojiSuggestions(searchTerm);
+          console.log('Suggestions found:', suggestions);
           
           if (suggestions.length > 0) {
             setSuggestions(suggestions);
