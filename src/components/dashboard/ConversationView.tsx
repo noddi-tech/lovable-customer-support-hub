@@ -812,7 +812,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   )}>
                     <div
                       className={cn(
-                        "rounded-lg p-3 relative",
+                        "rounded-lg p-3 relative overflow-hidden",
                         isFromCustomer
                           ? "bg-muted"
                           : isInternal
@@ -861,7 +861,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         </div>
                       ) : (
                         <div
-                          className="prose prose-sm max-w-none dark:prose-invert break-words"
+                          className="prose prose-sm max-w-none dark:prose-invert break-words overflow-wrap-anywhere"
+                          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                           dangerouslySetInnerHTML={{
                             __html: DOMPurify.sanitize(formatEmailContent(message.content))
                           }}
