@@ -36,6 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
         conversation:conversations(
           subject,
           organization_id,
+          external_id,
           customer:customers(email, full_name),
           email_account:email_accounts(*)
         )
@@ -172,6 +173,32 @@ const handler = async (req: Request): Promise<Response> => {
       include_agent_name: true
     };
 
+    // Determine threading info
+    let threadIdToUse: string | null = message.conversation?.external_id || null;
+    let inReplyToId: string | null = null;
+
+    // Find last known thread/message ids in this conversation
+    const { data: lastKnown } = await supabaseClient
+      .from('messages')
+      .select('email_thread_id, email_message_id, sender_type')
+      .eq('conversation_id', message.conversation_id)
+      .not('email_message_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const lastMsg = lastKnown?.[0] || null;
+    if (!threadIdToUse && lastMsg?.email_thread_id) threadIdToUse = lastMsg.email_thread_id;
+
+    // Prefer replying to the customer's last message
+    const { data: lastCustomer } = await supabaseClient
+      .from('messages')
+      .select('email_message_id')
+      .eq('conversation_id', message.conversation_id)
+      .eq('sender_type', 'customer')
+      .not('email_message_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    inReplyToId = lastCustomer?.[0]?.email_message_id || lastMsg?.email_message_id || null;
+
     // Replace placeholders in signature
     let signature = templateSettings.signature_content;
     if (templateSettings.include_agent_name && senderInfo?.full_name) {
@@ -230,15 +257,23 @@ const handler = async (req: Request): Promise<Response> => {
     // Multipart boundary
     const boundary = `lovable-boundary-${(crypto as any).randomUUID?.() || Math.random().toString(36).slice(2)}`;
 
-    const emailContent = [
+    const headerLines = [
       `From: ${fromEmail}`,
       `To: ${toEmail}`,
       `Subject: ${subject}`,
       `Reply-To: ${fromEmail}`,
       `Date: ${new Date().toUTCString()}`,
+      ...(inReplyToId ? [
+        `In-Reply-To: ${inReplyToId.startsWith('<') ? inReplyToId : '<' + inReplyToId + '>'}`,
+        `References: ${inReplyToId.startsWith('<') ? inReplyToId : '<' + inReplyToId + '>'}`,
+      ] : []),
       'MIME-Version: 1.0',
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
       '',
+    ];
+
+    const emailContent = [
+      ...headerLines,
       `--${boundary}`,
       'Content-Type: text/plain; charset="UTF-8"',
       'Content-Transfer-Encoding: 7bit',
@@ -274,15 +309,19 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email via Gmail API
     console.log('Sending email via Gmail API to:', toEmail, 'from:', fromEmail);
     
+    const requestBody: any = { raw: encodedEmail };
+    if (threadIdToUse) {
+      console.log('Using existing threadId for reply:', threadIdToUse);
+      requestBody.threadId = threadIdToUse;
+    }
+
     const gmailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        raw: encodedEmail
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!gmailResponse.ok) {
