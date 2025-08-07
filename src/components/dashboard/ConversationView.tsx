@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAutoContrast } from '@/hooks/useAutoContrast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
