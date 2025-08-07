@@ -93,85 +93,99 @@ export const sanitizeEmailHTML = (
   // Sanitize the HTML
   const sanitized = DOMPurify.sanitize(processedContent, config);
 
-  // Apply comprehensive email styling for consistent cross-client appearance
+  // Apply Apple Mail-inspired styling for exact visual match
   return `
     <div class="email-html-content" style="
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      font-size: 14px;
-      line-height: 1.6;
-      color: #000000;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.47;
+      color: #1d1d1f;
       max-width: 100%;
       overflow-wrap: break-word;
       word-wrap: break-word;
+      margin: 0 auto;
+      padding: 20px 32px;
+      background-color: #ffffff;
     ">
       <style>
         .email-html-content {
-          --email-primary: #007aff;
-          --email-text: #000000;
-          --email-text-secondary: #3c3c43;
-          --email-border: #d1d1d6;
-          --email-bg-light: #f2f2f7;
-          --email-link: #007aff;
+          --email-primary: #0071e3;
+          --email-text: #1d1d1f;
+          --email-text-secondary: #6e6e73;
+          --email-border: #d2d2d7;
+          --email-bg-light: #f5f5f7;
+          --email-link: #0071e3;
         }
         
-        /* Reset and base styles */
+        /* Reset and base styles for Apple Mail consistency */
         .email-html-content * {
           box-sizing: border-box;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
         
-        /* Typography */
+        /* Typography matching Apple Mail */
         .email-html-content p {
-          margin: 12px 0;
-          line-height: 1.5;
+          margin: 0 0 16px 0;
+          line-height: 1.47;
+          color: var(--email-text);
+          font-size: 16px;
         }
         
         .email-html-content h1, .email-html-content h2, .email-html-content h3,
         .email-html-content h4, .email-html-content h5, .email-html-content h6 {
-          margin: 24px 0 12px 0;
+          margin: 32px 0 16px 0;
           font-weight: 600;
-          line-height: 1.3;
-          color: #1d1d1f;
+          line-height: 1.25;
+          color: var(--email-text);
+          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
         }
         
-        .email-html-content h1 { font-size: 28px; }
-        .email-html-content h2 { font-size: 22px; }
-        .email-html-content h3 { font-size: 18px; }
-        .email-html-content h4 { font-size: 16px; }
+        .email-html-content h1 { font-size: 32px; }
+        .email-html-content h2 { font-size: 28px; }
+        .email-html-content h3 { font-size: 24px; }
+        .email-html-content h4 { font-size: 20px; }
         
-        /* Links */
+        /* Links matching Apple Mail style */
         .email-html-content a {
           color: var(--email-link) !important;
           text-decoration: underline;
+          text-decoration-color: var(--email-link);
           word-break: break-word;
+          -webkit-text-decoration-color: var(--email-link);
         }
         
         .email-html-content a:hover {
-          text-decoration: none;
+          color: #004085 !important;
+          text-decoration: underline;
         }
         
-        /* Images */
+        /* Images with Apple Mail spacing */
         .email-html-content img {
           max-width: 100% !important;
           height: auto !important;
-          border-radius: 8px;
-          margin: 12px 0;
+          border-radius: 0;
+          margin: 16px 0;
           display: block;
+          border: 0;
         }
         
-        /* Tables - Critical for email layout */
+        /* Tables - Critical for email layout matching Apple Mail */
         .email-html-content table {
           border-collapse: collapse;
           width: 100%;
-          margin: 16px 0;
+          margin: 20px 0;
           font-size: inherit;
+          line-height: inherit;
         }
         
         .email-html-content td, .email-html-content th {
-          padding: 12px;
+          padding: 12px 16px;
           border: 1px solid var(--email-border);
           text-align: left;
           vertical-align: top;
-          line-height: 1.4;
+          line-height: 1.47;
+          font-size: 16px;
         }
         
         .email-html-content th {
@@ -188,36 +202,44 @@ export const sanitizeEmailHTML = (
         
         .email-html-content table table td {
           border: none;
-          padding: 8px;
+          padding: 8px 12px;
         }
         
-        /* Lists */
+        /* Lists matching Apple Mail */
         .email-html-content ul, .email-html-content ol {
-          margin: 12px 0;
-          padding-left: 28px;
+          margin: 16px 0;
+          padding-left: 24px;
+          line-height: 1.47;
         }
         
         .email-html-content li {
           margin: 8px 0;
-          line-height: 1.5;
+          line-height: 1.47;
+          color: var(--email-text);
         }
         
         /* Email-specific elements */
         .email-html-content center {
           text-align: center;
-          margin: 16px 0;
+          margin: 20px 0;
+        }
+        
+        .email-html-content [align="center"] {
+          text-align: center;
+          margin: 20px 0;
         }
         
         .email-html-content blockquote {
-          margin: 16px 0;
+          margin: 20px 0;
           padding: 16px 20px;
           border-left: 4px solid var(--email-primary);
           background-color: var(--email-bg-light);
           font-style: italic;
+          line-height: 1.47;
         }
         
         .email-html-content hr {
-          margin: 24px 0;
+          margin: 32px 0;
           border: none;
           border-top: 1px solid var(--email-border);
         }
@@ -227,45 +249,108 @@ export const sanitizeEmailHTML = (
           border-radius: 8px;
           padding: 16px;
           overflow-x: auto;
-          font-size: 13px;
-          margin: 16px 0;
+          font-size: 14px;
+          margin: 20px 0;
           line-height: 1.4;
+          font-family: 'SF Mono', Monaco, 'Consolas', monospace;
         }
         
         .email-html-content code {
           background-color: var(--email-bg-light);
           padding: 3px 6px;
           border-radius: 4px;
-          font-size: 13px;
-          font-family: 'SF Mono', Monaco, 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+          font-size: 14px;
+          font-family: 'SF Mono', Monaco, 'Consolas', monospace;
         }
         
-        /* Preserve email font attributes */
+        /* Strong/bold text */
+        .email-html-content strong, .email-html-content b {
+          font-weight: 600;
+          color: var(--email-text);
+        }
+        
+        /* Button styling for Apple Mail-like appearance */
+        .email-html-content [style*="background-color: #4285f4"],
+        .email-html-content [style*="background-color:#4285f4"],
+        .email-html-content [style*="background-color: #0071e3"],
+        .email-html-content [style*="background-color:#0071e3"],
+        .email-html-content [style*="background-color: rgb(66, 133, 244)"],
+        .email-html-content [style*="background-color: rgb(0, 113, 227)"] {
+          display: inline-block !important;
+          padding: 12px 24px !important;
+          border-radius: 8px !important;
+          text-decoration: none !important;
+          font-weight: 500 !important;
+          text-align: center !important;
+          line-height: 1.2 !important;
+          color: #ffffff !important;
+          font-size: 16px !important;
+          margin: 8px 0 !important;
+          border: none !important;
+        }
+        
+        /* Preserve email font attributes while ensuring consistency */
         .email-html-content font[face] {
-          font-family: inherit;
+          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif !important;
         }
         
-        .email-html-content font[color] {
-          /* Font color preserved via sanitization */
+        .email-html-content font[size="1"] { font-size: 12px !important; }
+        .email-html-content font[size="2"] { font-size: 14px !important; }
+        .email-html-content font[size="3"] { font-size: 16px !important; }
+        .email-html-content font[size="4"] { font-size: 18px !important; }
+        .email-html-content font[size="5"] { font-size: 20px !important; }
+        .email-html-content font[size="6"] { font-size: 24px !important; }
+        .email-html-content font[size="7"] { font-size: 28px !important; }
+        
+        /* Small text */
+        .email-html-content small {
+          font-size: 14px;
+          color: var(--email-text-secondary);
+          line-height: 1.47;
         }
         
-        /* Responsive design */
+        /* Responsive design maintaining Apple Mail proportions */
         @media (max-width: 600px) {
           .email-html-content {
             font-size: 16px;
+            padding: 16px 20px;
           }
           
           .email-html-content table {
-            font-size: 14px;
+            font-size: 16px;
           }
           
           .email-html-content td, .email-html-content th {
-            padding: 8px 6px;
+            padding: 8px 12px;
+            font-size: 16px;
           }
           
-          .email-html-content h1 { font-size: 24px; }
-          .email-html-content h2 { font-size: 20px; }
-          .email-html-content h3 { font-size: 18px; }
+          .email-html-content h1 { font-size: 28px; }
+          .email-html-content h2 { font-size: 24px; }
+          .email-html-content h3 { font-size: 20px; }
+          .email-html-content h4 { font-size: 18px; }
+        }
+        
+        /* Ensure proper spacing for email footer/header content */
+        .email-html-content > table:first-child {
+          margin-top: 0;
+        }
+        
+        .email-html-content > table:last-child {
+          margin-bottom: 0;
+        }
+        
+        /* Handle email-specific alignment */
+        .email-html-content td[align="center"] {
+          text-align: center;
+        }
+        
+        .email-html-content td[align="left"] {
+          text-align: left;
+        }
+        
+        .email-html-content td[align="right"] {
+          text-align: right;
         }
       </style>
       ${sanitized}
