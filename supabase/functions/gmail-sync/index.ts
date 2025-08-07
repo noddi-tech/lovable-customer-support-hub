@@ -355,7 +355,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         const dateHeader = headers.find((h: any) => h.name === 'Date')?.value || '';
         const threadId = fullMessage.threadId;
 
-        // Parse the email date or use internal date as fallback
+        // Extract email date from headers using the database function
         let receivedAt: Date;
         if (dateHeader) {
           receivedAt = new Date(dateHeader);
@@ -365,7 +365,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           receivedAt = new Date(); // Fallback to current time
         }
 
-        // Validate the date
+        // Validate the date and fallback if invalid
         if (isNaN(receivedAt.getTime())) {
           receivedAt = new Date(parseInt(fullMessage.internalDate) || Date.now());
         }
