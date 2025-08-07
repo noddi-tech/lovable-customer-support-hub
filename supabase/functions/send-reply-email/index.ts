@@ -180,7 +180,7 @@ const handler = async (req: Request): Promise<Response> => {
       signature = signature.replace('{{agent_name}}', 'Support Team');
     }
 
-    // Create email content in RFC 2822 format
+    // Create email content in RFC 2822 format (multipart/alternative)
     const subject = `Re: ${message.conversation.subject}`;
     const fromEmail = emailAccount.email_address;
     const toEmail = customer.email;
@@ -213,14 +213,36 @@ const handler = async (req: Request): Promise<Response> => {
         ` : ''}
       </div>
     `;
-    
+
+    // Plain-text fallback
+    const plainText = message.content || '';
+
+    // Multipart boundary
+    const boundary = `lovable-boundary-${(crypto as any).randomUUID?.() || Math.random().toString(36).slice(2)}`;
+
     const emailContent = [
       `From: ${fromEmail}`,
       `To: ${toEmail}`,
       `Subject: ${subject}`,
-      'Content-Type: text/html; charset=utf-8',
+      `Reply-To: ${fromEmail}`,
+      `Date: ${new Date().toUTCString()}`,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
       '',
-      emailHTML
+      `--${boundary}`,
+      'Content-Type: text/plain; charset="UTF-8"',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      plainText,
+      '',
+      `--${boundary}`,
+      'Content-Type: text/html; charset="UTF-8"',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      emailHTML,
+      '',
+      `--${boundary}--`,
+      ''
     ].join('\r\n');
 
     // Encode email content in base64url format (handle emojis and special characters)
