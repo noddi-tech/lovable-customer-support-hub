@@ -29,20 +29,31 @@ serve(async (req: Request) => {
       }
     );
 
-    // Check if this is a service role call (from cron job) or user call
+    // Check if this is a service role call (from cron job) by checking the request source
     const authHeader = req.headers.get('Authorization') || '';
-    const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '');
+    const userAgent = req.headers.get('User-Agent') || '';
+    const isServiceRoleCall = userAgent.includes('pg_net') || authHeader.includes('Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    
+    console.log('🔐 Authentication check:', {
+      isServiceRoleCall,
+      userAgent,
+      hasAuthHeader: !!authHeader
+    });
     
     let user = null;
     if (!isServiceRoleCall) {
       const { data: { user: authUser } } = await supabaseClient.auth.getUser();
       if (!authUser) {
+        console.log('❌ No authenticated user found for non-service call');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       user = authUser;
+      console.log('✅ Authenticated user:', user.id);
+    } else {
+      console.log('🤖 Service role call detected');
     }
 
     const { emailAccountId, syncSent = false } = await req.json() as SyncRequest;
