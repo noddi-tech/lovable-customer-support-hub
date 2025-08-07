@@ -1,6 +1,7 @@
 // Email formatting utilities for rendering emails with correct formatting
 // Updated with enhanced formatting capabilities based on analysis
 import DOMPurify from 'dompurify';
+import { convertShortcodesToEmojis } from './emojiUtils';
 
 export interface EmailAttachment {
   filename: string;
@@ -54,6 +55,8 @@ export const sanitizeEmailHTML = (
 
   // Pre-process content to handle character encoding and inline images
   let processedContent = fixEncodingIssues(htmlContent);
+  // Apply emoji conversion and encoding fixes to HTML content too
+  processedContent = convertShortcodesToEmojis(processedContent);
 
   // Handle inline images by replacing cid: references
   if (attachments && attachments.length > 0) {

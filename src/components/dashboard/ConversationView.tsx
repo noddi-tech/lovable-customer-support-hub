@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncodingIssues, type EmailAttachment } from '@/utils/emailFormatting';
 import { convertShortcodesToEmojis } from '@/utils/emojiUtils';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
+import { EmojiAutocomplete } from '@/components/ui/emoji-autocomplete';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -1091,14 +1092,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   </div>
                 )}
 
-                {/* Text Area */}
+                {/* Text Area with Emoji Autocomplete */}
                 <div className="relative">
-                  <Textarea
-                    placeholder={isInternalNote ? "Add an internal note..." : "Type your reply..."}
+                  <EmojiAutocomplete
                     value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    className={`min-h-[100px] resize-none ${
-                      isInternalNote ? 'border-warning bg-warning-muted' : ''
+                    onChange={setReplyText}
+                    placeholder={isInternalNote ? "Add an internal note... (try :smile:)" : "Type your reply... (try :blush:)"}
+                    className={`min-h-[100px] resize-none w-full p-3 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                      isInternalNote ? 'border-warning bg-warning/5' : ''
                     }`}
                   />
                 </div>
