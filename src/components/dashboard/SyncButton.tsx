@@ -11,7 +11,7 @@ export const SyncButton = () => {
     setIsSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('trigger-gmail-sync', {
-        body: { forceRedecode: true }
+        body: { resetInbox: true }
       });
 
       if (error) {

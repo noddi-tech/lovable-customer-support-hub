@@ -79,6 +79,7 @@ interface SyncRequest {
   emailAccountId?: string;
   syncSent?: boolean;
   forceRedecode?: boolean;
+  resetInbox?: boolean;
 }
 
 serve(async (req: Request) => {
@@ -126,7 +127,7 @@ serve(async (req: Request) => {
       console.log('🤖 Service role call detected');
     }
 
-    const { emailAccountId, syncSent = false, forceRedecode = false } = await req.json() as SyncRequest;
+    const { emailAccountId, syncSent = false, forceRedecode = false, resetInbox = false } = await req.json() as SyncRequest;
 
     // Get email accounts to sync
     let query = supabaseClient
@@ -174,12 +175,39 @@ serve(async (req: Request) => {
           account.access_token = refreshResult.accessToken;
         }
 
+        // Reset inbox if requested
+        if (resetInbox) {
+          console.log(`🗑️ Resetting inbox for account: ${account.email_address}`);
+          
+          // First get all conversation IDs for this email account
+          const { data: conversations } = await supabaseClient
+            .from('conversations')
+            .select('id')
+            .eq('email_account_id', account.id);
+          
+          if (conversations && conversations.length > 0) {
+            const conversationIds = conversations.map(c => c.id);
+            
+            // Delete messages from these conversations
+            const { error: deleteError } = await supabaseClient
+              .from('messages')
+              .delete()
+              .in('conversation_id', conversationIds);
+            
+            if (deleteError) {
+              console.error('Error deleting existing messages:', deleteError);
+            } else {
+              console.log(`✅ Successfully deleted existing messages from ${conversationIds.length} conversations`);
+            }
+          }
+        }
+
         // Sync emails from Gmail (inbox and optionally sent)
-        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox', forceRedecode);
+        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox', forceRedecode || resetInbox);
         let sentResult = { success: true, messageCount: 0 };
         
         if (syncSent) {
-          sentResult = await syncGmailMessages(account, supabaseClient, 'sent', forceRedecode);
+          sentResult = await syncGmailMessages(account, supabaseClient, 'sent', forceRedecode || resetInbox);
         }
         
         syncResults.push({
@@ -254,7 +282,7 @@ async function refreshAccessToken(account: any, supabaseClient: any) {
   }
 }
 
-async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox', forceRedecode: boolean = false) {
+async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox', forceRedecodeOrReset: boolean = false) {
   try {
     console.log(`Starting Gmail sync for account: ${account.email_address}, folder: ${folder}`);
     console.log(`Account details:`, {
@@ -339,12 +367,12 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           console.error(`❌ Error checking for existing message:`, checkError);
         }
 
-        if (existingMessage && !forceRedecode) {
+        if (existingMessage && !forceRedecodeOrReset) {
           console.log(`⏭️  Message ${message.id} already exists, skipping`);
           continue; // Skip if already processed and not forcing redecode
         }
         
-        if (existingMessage && forceRedecode) {
+        if (existingMessage && forceRedecodeOrReset) {
           console.log(`🔄 Message ${message.id} exists but forcing redecode...`);
         } else if (!existingMessage) {
           console.log(`✅ Message ${message.id} is new, processing...`);
@@ -482,7 +510,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         }
 
         // Create or update message
-        if (existingMessage && forceRedecode) {
+        if (existingMessage && forceRedecodeOrReset) {
           // Update existing message with newly decoded content
           console.log(`Updating message ${message.id} with new decoding...`);
           const { error: updateError } = await supabaseClient

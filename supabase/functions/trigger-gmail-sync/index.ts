@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     console.log('🚀 Triggering Gmail sync...');
     
-    // Parse the request body to get the forceRedecode parameter
+    // Parse the request body to get the resetInbox parameter
     const requestBody = await req.json().catch(() => ({}));
     console.log('Request body:', requestBody);
     
