@@ -14,7 +14,11 @@ serve(async (req) => {
   try {
     console.log('🚀 Triggering Gmail sync...');
     
-    // Call the gmail-sync function
+    // Parse the request body to get the forceRedecode parameter
+    const requestBody = await req.json().catch(() => ({}));
+    console.log('Request body:', requestBody);
+    
+    // Call the gmail-sync function with the same parameters
     const syncResponse = await fetch(
       `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/gmail-sync`,
       {
@@ -23,7 +27,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify(requestBody),
       }
     );
 
