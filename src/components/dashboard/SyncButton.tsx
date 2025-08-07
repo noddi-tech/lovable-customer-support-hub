@@ -11,7 +11,7 @@ export const SyncButton = () => {
     setIsSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('trigger-gmail-sync', {
-        body: {}
+        body: { forceRedecode: true }
       });
 
       if (error) {
@@ -42,7 +42,7 @@ export const SyncButton = () => {
       size="sm"
     >
       <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-      {isSyncing ? 'Syncing...' : 'Sync Gmail'}
+      {isSyncing ? 'Syncing...' : 'Sync'}
     </Button>
   );
 };

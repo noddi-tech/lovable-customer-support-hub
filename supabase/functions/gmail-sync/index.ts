@@ -78,6 +78,7 @@ const corsHeaders = {
 interface SyncRequest {
   emailAccountId?: string;
   syncSent?: boolean;
+  forceRedecode?: boolean;
 }
 
 serve(async (req: Request) => {
@@ -125,7 +126,7 @@ serve(async (req: Request) => {
       console.log('🤖 Service role call detected');
     }
 
-    const { emailAccountId, syncSent = false } = await req.json() as SyncRequest;
+    const { emailAccountId, syncSent = false, forceRedecode = false } = await req.json() as SyncRequest;
 
     // Get email accounts to sync
     let query = supabaseClient
@@ -174,11 +175,11 @@ serve(async (req: Request) => {
         }
 
         // Sync emails from Gmail (inbox and optionally sent)
-        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox');
+        const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox', forceRedecode);
         let sentResult = { success: true, messageCount: 0 };
         
         if (syncSent) {
-          sentResult = await syncGmailMessages(account, supabaseClient, 'sent');
+          sentResult = await syncGmailMessages(account, supabaseClient, 'sent', forceRedecode);
         }
         
         syncResults.push({
@@ -253,7 +254,7 @@ async function refreshAccessToken(account: any, supabaseClient: any) {
   }
 }
 
-async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox') {
+async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inbox' | 'sent' = 'inbox', forceRedecode: boolean = false) {
   try {
     console.log(`Starting Gmail sync for account: ${account.email_address}, folder: ${folder}`);
     console.log(`Account details:`, {
@@ -338,12 +339,16 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           console.error(`❌ Error checking for existing message:`, checkError);
         }
 
-        if (existingMessage) {
+        if (existingMessage && !forceRedecode) {
           console.log(`⏭️  Message ${message.id} already exists, skipping`);
-          continue; // Skip if already processed
+          continue; // Skip if already processed and not forcing redecode
         }
         
-        console.log(`✅ Message ${message.id} is new, processing...`);
+        if (existingMessage && forceRedecode) {
+          console.log(`🔄 Message ${message.id} exists but forcing redecode...`);
+        } else {
+          console.log(`✅ Message ${message.id} is new, processing...`);
+        }
 
         // Parse message data
         const headers = fullMessage.payload.headers;
@@ -476,31 +481,53 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           conversation = newConversation;
         }
 
-        // Create message
-        console.log(`Inserting message for conversation ${conversation.id}: ${messageId}`);
-        const { data: insertedMessage, error: insertError } = await supabaseClient
-          .from('messages')
-          .insert({
-            conversation_id: conversation.id,
-            content: content.substring(0, 50000), // Increased limit for HTML content
-            content_type: contentType,
-            sender_type: senderType,
-            external_id: message.id,
-            email_message_id: messageId,
-            email_thread_id: threadId,
-            email_subject: subject,
-            email_headers: headers,
-            attachments: attachments,
-            email_status: folder === 'sent' ? 'sent' : 'pending'
-          })
-          .select('id')
-          .single();
+        // Create or update message
+        if (existingMessage && forceRedecode) {
+          // Update existing message with newly decoded content
+          console.log(`Updating message ${message.id} with new decoding...`);
+          const { error: updateError } = await supabaseClient
+            .from('messages')
+            .update({
+              content: content.substring(0, 50000),
+              content_type: contentType,
+              email_headers: headers,
+              attachments: attachments,
+            })
+            .eq('external_id', message.id);
 
-        if (insertError) {
-          console.error(`Failed to insert message ${messageId}:`, insertError);
-          throw insertError;
+          if (updateError) {
+            console.error(`Failed to update message ${message.id}:`, updateError);
+            throw updateError;
+          } else {
+            console.log(`Successfully updated message ${message.id} with new decoding`);
+          }
         } else {
-          console.log(`Successfully inserted message ${insertedMessage.id} for conversation ${conversation.id}`);
+          // Create new message
+          console.log(`Inserting message for conversation ${conversation.id}: ${messageId}`);
+          const { data: insertedMessage, error: insertError } = await supabaseClient
+            .from('messages')
+            .insert({
+              conversation_id: conversation.id,
+              content: content.substring(0, 50000), // Increased limit for HTML content
+              content_type: contentType,
+              sender_type: senderType,
+              external_id: message.id,
+              email_message_id: messageId,
+              email_thread_id: threadId,
+              email_subject: subject,
+              email_headers: headers,
+              attachments: attachments,
+              email_status: folder === 'sent' ? 'sent' : 'pending'
+            })
+            .select('id')
+            .single();
+
+          if (insertError) {
+            console.error(`Failed to insert message ${messageId}:`, insertError);
+            throw insertError;
+          } else {
+            console.log(`Successfully inserted message ${insertedMessage.id} for conversation ${conversation.id}`);
+          }
         }
 
         processedCount++;
