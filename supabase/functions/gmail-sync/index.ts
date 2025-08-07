@@ -27,12 +27,20 @@ serve(async (req: Request) => {
       }
     );
 
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Check if this is a service role call (from cron job) or user call
+    const authHeader = req.headers.get('Authorization') || '';
+    const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '');
+    
+    let user = null;
+    if (!isServiceRoleCall) {
+      const { data: { user: authUser } } = await supabaseClient.auth.getUser();
+      if (!authUser) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      user = authUser;
     }
 
     const { emailAccountId, syncSent = false } = await req.json() as SyncRequest;
@@ -41,8 +49,12 @@ serve(async (req: Request) => {
     let query = supabaseClient
       .from('email_accounts')
       .select('*')
-      .eq('user_id', user.id)
       .eq('is_active', true);
+    
+    // For user calls, filter by user_id. For service role calls, allow access to all accounts
+    if (!isServiceRoleCall && user) {
+      query = query.eq('user_id', user.id);
+    }
 
     if (emailAccountId) {
       query = query.eq('id', emailAccountId);
