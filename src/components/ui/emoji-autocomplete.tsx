@@ -122,11 +122,36 @@ export const EmojiAutocomplete: React.FC<EmojiAutocompleteProps> = ({
     onKeyDown?.(e);
   }, [showSuggestions, suggestions, selectedIndex, selectEmoji, onKeyDown]);
 
-  // Handle text change - don't auto-convert, just update state
+  // Handle text change - keep shortcodes visible until selection
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     onChange(newValue);
-  }, [onChange]);
+    
+    // Force re-evaluation of emoji detection with the new value
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const cursorPosition = textareaRef.current.selectionStart || 0;
+        const detection = detectShortcode(newValue, cursorPosition);
+        
+        if (detection) {
+          const { shortcode, start } = detection;
+          const suggestions = getEmojiSuggestions(shortcode.substring(1));
+          
+          if (suggestions.length > 0) {
+            setSuggestions(suggestions);
+            setCurrentShortcode(shortcode);
+            setShortcodeStart(start);
+            setShowSuggestions(true);
+            setSelectedIndex(0);
+          } else {
+            setShowSuggestions(false);
+          }
+        } else {
+          setShowSuggestions(false);
+        }
+      }
+    }, 0);
+  }, [onChange, detectShortcode]);
 
   // Calculate suggestion popup position
   const getSuggestionPosition = useCallback(() => {
