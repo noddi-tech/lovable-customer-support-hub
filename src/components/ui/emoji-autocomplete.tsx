@@ -122,20 +122,21 @@ export const EmojiAutocomplete: React.FC<EmojiAutocompleteProps> = ({
     onKeyDown?.(e);
   }, [showSuggestions, suggestions, selectedIndex, selectEmoji, onKeyDown]);
 
-  // Handle text change - keep shortcodes visible until selection
+  // Handle text change - trigger emoji detection on every change
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     onChange(newValue);
     
-    // Force re-evaluation of emoji detection with the new value
-    setTimeout(() => {
+    // Use requestAnimationFrame to ensure cursor position is updated
+    requestAnimationFrame(() => {
       if (textareaRef.current) {
         const cursorPosition = textareaRef.current.selectionStart || 0;
         const detection = detectShortcode(newValue, cursorPosition);
         
         if (detection) {
           const { shortcode, start } = detection;
-          const suggestions = getEmojiSuggestions(shortcode.substring(1));
+          const searchTerm = shortcode.substring(1); // Remove the ':'
+          const suggestions = getEmojiSuggestions(searchTerm);
           
           if (suggestions.length > 0) {
             setSuggestions(suggestions);
@@ -150,7 +151,7 @@ export const EmojiAutocomplete: React.FC<EmojiAutocompleteProps> = ({
           setShowSuggestions(false);
         }
       }
-    }, 0);
+    });
   }, [onChange, detectShortcode]);
 
   // Calculate suggestion popup position
@@ -205,7 +206,7 @@ export const EmojiAutocomplete: React.FC<EmojiAutocompleteProps> = ({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="fixed z-50 bg-popover border border-border rounded-md shadow-lg max-w-80"
+          className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg max-w-80 min-w-64"
           style={{
             top: suggestionPosition.top,
             left: suggestionPosition.left,
