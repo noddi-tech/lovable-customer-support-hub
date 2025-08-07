@@ -75,6 +75,51 @@ const formatTimeAgo = (dateString: string) => {
   return date.toLocaleDateString();
 };
 
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+  
+  // If today, show time only
+  if (diffInHours < 24 && date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    });
+  }
+  
+  // If yesterday, show "Yesterday HH:MM"
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `Yesterday ${date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    })}`;
+  }
+  
+  // If this week, show day and time
+  if (diffInHours < 168) {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    });
+  }
+  
+  // Otherwise show full date and time
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    hour12: false 
+  });
+};
+
 export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation }: ConversationListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -374,7 +419,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatTimeAgo(conversation.received_at || conversation.updated_at)}
+                    {formatDateTime(conversation.received_at || conversation.updated_at)}
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
