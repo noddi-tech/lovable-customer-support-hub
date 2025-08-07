@@ -336,6 +336,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             toast.error(`Email failed to send: ${emailData.error}`);
           } else {
             console.log('Email sent successfully:', emailData);
+            
+            // Update message status to sent
+            await supabase
+              .from('messages')
+              .update({ email_status: 'sent' })
+              .eq('id', newMessage.id);
+            
             toast.success('Reply sent successfully');
           }
         } catch (emailError) {
