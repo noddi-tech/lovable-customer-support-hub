@@ -706,6 +706,7 @@ export type Database = {
           is_archived: boolean
           channel: string
           updated_at: string
+          received_at: string
           customer: Json
           assigned_to: Json
         }[]
