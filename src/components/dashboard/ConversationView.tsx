@@ -89,18 +89,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   };
 
   const formatEmailContent = (content: string) => {
-    // Convert line breaks to HTML
-    let formatted = content.replace(/\n/g, '<br>');
-    
-    // Convert URLs to clickable links
-    const urlRegex = /(https?:\/\/[^\s<>"]+)/gi;
-    formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-primary underline hover:text-primary/80">$1</a>');
-    
-    // Convert email addresses to mailto links
-    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
-    formatted = formatted.replace(emailRegex, '<a href="mailto:$1" class="text-primary underline hover:text-primary/80">$1</a>');
-    
-    return formatted;
+    return content.replace(/\n/g, '<br>');
   };
 
   const startEdit = (message: any) => {
@@ -875,12 +864,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           className="prose prose-sm max-w-none dark:prose-invert break-words overflow-wrap-anywhere"
                           style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                           dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(formatEmailContent(message.content), {
-                              ADD_TAGS: ['a'],
-                              ADD_ATTR: ['target', 'rel', 'class', 'href'],
-                              ALLOWED_TAGS: ['br', 'a', 'strong', 'em', 'p', 'div', 'span'],
-                              ALLOWED_ATTR: ['href', 'target', 'rel', 'class']
-                            })
+                            __html: DOMPurify.sanitize(formatEmailContent(message.content))
                           }}
                         />
                       )}
