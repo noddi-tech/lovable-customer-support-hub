@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncodingIssues, formatEmailText, type EmailAttachment } from '@/utils/emailFormatting';
 import { convertShortcodesToEmojis } from '@/utils/emojiUtils';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
-import { EmojiAutocomplete } from '@/components/ui/emoji-autocomplete';
+import { EmojiAutocompleteInput } from '@/components/ui/emoji-autocomplete-input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -1024,7 +1024,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
               {/* Text Area with Emoji Autocomplete */}
               <div className="relative">
-                <EmojiAutocomplete
+                <EmojiAutocompleteInput
                   value={replyText}
                   onChange={setReplyText}
                   placeholder={isInternalNote ? "Add an internal note... (try :smile:)" : "Type your reply... (try :blush:)"}
