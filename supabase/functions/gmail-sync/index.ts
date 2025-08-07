@@ -11,7 +11,7 @@ function findTextPart(part: any, preferredMime: string = 'text/html'): any {
       if (found) return found;
     }
   }
-  if (part.mimeType === preferredMime || part.mimeType === 'text/plain') {
+  if (part.mimeType === preferredMime) {
     return part;
   }
   return null;

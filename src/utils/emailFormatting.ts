@@ -317,12 +317,28 @@ export const extractTextFromHTML = (htmlContent: string): string => {
  * Enhanced content type detection for better HTML/text rendering decisions
  */
 export const shouldRenderAsHTML = (content: string, contentType: string): boolean => {
-  // Check explicit content type first
-  if (contentType.toLowerCase().includes('html')) {
+  // If content looks like plain text with asterisks/decorative chars, don't render as HTML
+  // even if content type says HTML (this handles legacy data issues)
+  const plainTextIndicators = [
+    /^\*{3,}[\s\S]*?\*{3,}/m, // Lines starting/ending with multiple asterisks
+    /^-{3,}/m, // Lines with multiple dashes
+    /\[\s*[^\]]*\s*\(\s*https?:\/\/[^\)]+\s*\)\s*\]/m // [Link text ( url )] patterns
+  ];
+  
+  const hasPlainTextIndicators = plainTextIndicators.some(pattern => pattern.test(content));
+  const hasMinimalHtml = /<[a-zA-Z][^>]*>/.test(content);
+  
+  // If it looks like plain text format, treat it as plain text regardless of content type
+  if (hasPlainTextIndicators && !hasMinimalHtml) {
+    return false;
+  }
+  
+  // Check explicit content type
+  if (contentType.toLowerCase().includes('html') && hasMinimalHtml) {
     return true;
   }
   
-  // Enhanced HTML detection patterns
+  // Enhanced HTML detection patterns - detect common email HTML elements
   const htmlIndicators = [
     /<html[^>]*>/i,
     /<!DOCTYPE html/i,
@@ -334,18 +350,33 @@ export const shouldRenderAsHTML = (content: string, contentType: string): boolea
     /<br\s*\/?>/i,
     /<strong[^>]*>/i,
     /<em[^>]*>/i,
-    /<a[^>]*href/i
+    /<a[^>]*href/i,
+    /<td[^>]*>/i,
+    /<tr[^>]*>/i,
+    /<tbody[^>]*>/i,
+    /<span[^>]*>/i,
+    /<h1[^>]*>/i,
+    /<h2[^>]*>/i,
+    /<h3[^>]*>/i
   ];
   
   // Check for multiple HTML indicators for more confidence
   const htmlMatches = htmlIndicators.filter(pattern => pattern.test(content)).length;
   
-  // Require at least 2 HTML indicators or specific structural elements
-  return htmlMatches >= 2 || 
+  // More relaxed detection - if it has common HTML tags, render as HTML
+  return htmlMatches >= 1 || 
          content.includes('<html') || 
          content.includes('<!DOCTYPE html') ||
          (content.includes('<table') && content.includes('</table>')) ||
-         (content.includes('<div') && content.includes('</div>'));
+         (content.includes('<div') && content.includes('</div>')) ||
+         (content.includes('Content-Type:') && content.includes('text/html')) ||
+         // Detect if content has HTML entities
+         /&[a-zA-Z]+;/.test(content) ||
+         // Detect common email HTML patterns
+         content.includes('mso-table') ||
+         content.includes('border=') ||
+         content.includes('cellpadding=') ||
+         content.includes('cellspacing=');
 };
 
 /**
