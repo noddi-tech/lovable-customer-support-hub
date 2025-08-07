@@ -35,13 +35,17 @@ serve(async (req: Request) => {
         const intervalMinutes = account.sync_interval_minutes || 2;
         const intervalMs = intervalMinutes * 60 * 1000;
         const timeSinceLastSync = now.getTime() - lastSync.getTime();
+        const timeSinceLastSyncSeconds = Math.round(timeSinceLastSync / 1000);
+        const intervalSeconds = Math.round(intervalMs / 1000);
+        
+        console.log(`Checking ${account.email_address}: ${timeSinceLastSyncSeconds}s since last sync, interval is ${intervalSeconds}s (${intervalMinutes} minutes)`);
         
         if (timeSinceLastSync < intervalMs) {
-          console.log(`Skipping sync for ${account.email_address} - last synced ${Math.round(timeSinceLastSync / 60000)} minutes ago, interval is ${intervalMinutes} minutes`);
+          console.log(`Skipping sync for ${account.email_address} - need to wait ${intervalSeconds - timeSinceLastSyncSeconds} more seconds`);
           continue;
         }
         
-        console.log(`Triggering sync for ${account.email_address} - last synced ${Math.round(timeSinceLastSync / 60000)} minutes ago`);
+        console.log(`🚀 Triggering sync for ${account.email_address} - ${timeSinceLastSyncSeconds}s >= ${intervalSeconds}s threshold`);
         
         // Call the gmail-sync function for each account
         const syncResponse = await supabase.functions.invoke('gmail-sync', {
