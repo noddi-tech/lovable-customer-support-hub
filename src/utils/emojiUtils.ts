@@ -1,6 +1,6 @@
 import data from '@emoji-mart/data';
-// @ts-ignore - JSON export
-import gemojiData from 'gemoji';
+// Import as namespace to support both CJS and ESM shapes
+import * as gemojiModule from 'gemoji';
 // Emoji utilities for converting shortcodes and handling emoji data
 export interface EmojiData {
   emoji: string;
@@ -467,7 +467,10 @@ const buildFullShortcodeMap = (): Record<string, string> => {
 
   // Merge in gemoji aliases (GitHub-style)
   try {
-    const list: any[] = Array.isArray(gemojiData) ? (gemojiData as any[]) : (gemojiData as any).gemoji || [];
+    const listCandidates: any = (gemojiModule as any);
+    const list: any[] = Array.isArray(listCandidates)
+      ? listCandidates
+      : (listCandidates.default as any[]) || (listCandidates.gemoji as any[]) || (listCandidates.emoji as any[]) || (listCandidates.data as any[]) || [];
     for (const item of list) {
       const native = item.emoji || item.character;
       if (!native) continue;
