@@ -44,6 +44,20 @@ export const Dashboard: React.FC = () => {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
+  const markConversationRead = async (id: string) => {
+    try {
+      await supabase.from('conversations').update({ is_read: true }).eq('id', id);
+    } catch (e) {
+      console.error('Failed to mark conversation read:', e);
+    } finally {
+      queryClient.setQueryData(['conversations'], (old: any) =>
+        Array.isArray(old) ? old.map((c: any) => (c.id === id ? { ...c, is_read: true } : c)) : old
+      );
+      queryClient.setQueryData(['conversation', id], (old: any) => (old ? { ...old, is_read: true } : old));
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+    }
+  };
+
   // Get conversation ID from URL parameters
   const conversationIdFromUrl = searchParams.get('conversation');
   const messageIdFromUrl = searchParams.get('message');
@@ -115,20 +129,19 @@ export const Dashboard: React.FC = () => {
 
   const handleSelectConversation = (conversation: Conversation) => {
     console.log('handleSelectConversation called with:', conversation.id);
+
+    // If a different conversation was open and unread, mark it as read on exit
+    if (
+      selectedConversation &&
+      !selectedConversation.is_read &&
+      selectedConversation.id !== conversation.id
+    ) {
+      void markConversationRead(selectedConversation.id);
+    }
+
+    // Now select the new conversation without marking it read yet
     setSelectedConversation(conversation);
 
-    // Optimistically mark as read in cache
-    queryClient.setQueryData(['conversations'], (old: any) =>
-      Array.isArray(old) ? old.map((c: any) => c.id === conversation.id ? { ...c, is_read: true } : c) : old
-    );
-    queryClient.setQueryData(['conversation', conversation.id], (old: any) =>
-      old ? { ...old, is_read: true } : old
-    );
-
-    // Persist read state
-    void supabase.from('conversations').update({ is_read: true }).eq('id', conversation.id);
-    queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-    
     // Update URL to reflect the selected conversation
     navigate(`/?conversation=${conversation.id}`, { replace: true });
     
@@ -152,6 +165,10 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleBackToList = () => {
+    if (selectedConversation && !selectedConversation.is_read) {
+      void markConversationRead(selectedConversation.id);
+      setSelectedConversation({ ...selectedConversation, is_read: true });
+    }
     if (isMobile) {
       setShowConversationList(true);
     }
