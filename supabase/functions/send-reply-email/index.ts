@@ -369,15 +369,21 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Trigger email sync to capture the sent message
+    // Trigger email sync to capture the sent message in the background (non-blocking)
     console.log('Triggering email sync for account:', emailAccount.id);
     try {
-      const syncResponse = await supabaseClient.functions.invoke('gmail-sync', {
-        body: { emailAccountId: emailAccount.id, syncSent: true }
-      });
-      console.log('Sync triggered successfully:', syncResponse);
-    } catch (syncError) {
-      console.warn('Failed to trigger sync, but email was sent:', syncError);
+      EdgeRuntime.waitUntil((async () => {
+        try {
+          const syncResponse = await supabaseClient.functions.invoke('gmail-sync', {
+            body: { emailAccountId: emailAccount.id, syncSent: true }
+          });
+          console.log('Background sync completed:', syncResponse);
+        } catch (syncError) {
+          console.warn('Background sync failed (email already sent):', syncError);
+        }
+      })());
+    } catch (bgErr) {
+      console.warn('Failed to schedule background sync:', bgErr);
     }
 
     return new Response(JSON.stringify({ 
