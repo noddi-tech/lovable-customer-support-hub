@@ -453,8 +453,12 @@ const buildFullShortcodeMap = (): Record<string, string> => {
       if (Array.isArray(e.aliases)) aliases.push(...e.aliases);
       for (const name of aliases) {
         if (!name) continue;
-        const key = `:${name}:`;
-        if (!map[key]) map[key] = native;
+        const base = String(name).trim();
+        const variants = new Set<string>([base, base.replace(/-/g, '_')]);
+        for (const v of variants) {
+          const key = `:${v}:`;
+          if (!map[key]) map[key] = native;
+        }
       }
     }
   } catch {}
@@ -479,11 +483,13 @@ export const convertShortcodesToEmojis = (text: string): string => {
 export const convertEmojisToShortcodes = (text: string): string => {
   let convertedText = text;
   
-  // Create reverse mapping
+  // Create reverse mapping prioritizing shorter names
   const emojiToShortcode: Record<string, string> = {};
-  Object.entries(emojiShortcodes).forEach(([shortcode, emoji]) => {
-    emojiToShortcode[emoji] = shortcode;
-  });
+  for (const [shortcode, emoji] of Object.entries(FULL_SHORTCODE_MAP)) {
+    if (!emojiToShortcode[emoji] || shortcode.length < emojiToShortcode[emoji].length) {
+      emojiToShortcode[emoji] = shortcode;
+    }
+  }
   
   // Replace all emojis with corresponding shortcodes
   Object.entries(emojiToShortcode).forEach(([emoji, shortcode]) => {
