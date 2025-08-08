@@ -31,6 +31,8 @@ export type Database = {
           organization_id: string
           priority: string
           received_at: string | null
+          snooze_until: string | null
+          snoozed_by_id: string | null
           status: string
           subject: string | null
           updated_at: string
@@ -51,6 +53,8 @@ export type Database = {
           organization_id: string
           priority?: string
           received_at?: string | null
+          snooze_until?: string | null
+          snoozed_by_id?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
@@ -71,6 +75,8 @@ export type Database = {
           organization_id?: string
           priority?: string
           received_at?: string | null
+          snooze_until?: string | null
+          snoozed_by_id?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
