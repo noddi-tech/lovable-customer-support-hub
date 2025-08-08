@@ -511,13 +511,16 @@ function escapeRegExp(string: string): string {
  * Get emoji suggestions based on partial shortcode input (GitHub-style)
  */
 export const getEmojiSuggestions = (partialShortcode: string): EmojiData[] => {
-  const search = partialShortcode.replace(/^:/, '').toLowerCase();
+  const raw = partialShortcode.toLowerCase();
+  // strip leading/trailing colons and normalize separators
+  const search = raw.replace(/^:/, '').replace(/:$/, '').replace(/-/g, '_');
   if (!search) return [];
   const suggestions: EmojiData[] = [];
   const seen = new Set<string>();
 
   for (const [shortcode, emoji] of Object.entries(FULL_SHORTCODE_MAP)) {
-    if (shortcode.toLowerCase().includes(`:${search}`)) {
+    const key = shortcode.toLowerCase().replace(/-/g, '_');
+    if (key.includes(`:${search}`)) {
       const name = shortcode.slice(1, -1);
       if (seen.has(name)) continue;
       seen.add(name);
