@@ -751,6 +751,32 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     });
   };
 
+  // Derive the actual email timestamp from headers when available
+  const getMessageDate = (message: any): Date => {
+    try {
+      const headers = message?.email_headers;
+      // Gmail sync stores full headers as an array of { name, value }
+      if (Array.isArray(headers)) {
+        const dateHeader = headers.find((h: any) => h?.name?.toLowerCase?.() === 'date')?.value;
+        if (dateHeader) {
+          const parsed = new Date(dateHeader);
+          if (!isNaN(parsed.getTime())) return parsed;
+        }
+      } else if (headers && typeof headers === 'object') {
+        const dateHeader = (headers as any).Date || (headers as any).date;
+        if (dateHeader) {
+          const parsed = new Date(dateHeader as any);
+          if (!isNaN(parsed.getTime())) return parsed;
+        }
+      }
+      if (message?.received_at) {
+        const parsed = new Date(message.received_at);
+        if (!isNaN(parsed.getTime())) return parsed;
+      }
+    } catch {}
+    // Fallback to created_at (DB insert time)
+    return new Date(message.created_at);
+  };
   return (
     <div className="flex-1 flex flex-col bg-gradient-surface">
       {/* Conversation Header */}
@@ -932,8 +958,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     </div>
 
                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                      <span title={new Date(message.created_at).toLocaleString()}>
-                        {format(new Date(message.created_at), 'MMM d, yyyy h:mm:ss a')}
+                      <span title={getMessageDate(message).toLocaleString(undefined, { hour12: false })}>
+                        {format(getMessageDate(message), 'MMM d, yyyy HH:mm:ss')}
                       </span>
                       {message.sender_type === 'agent' && assignedAgent && (
                         <>
