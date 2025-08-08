@@ -14,6 +14,8 @@ import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EmojiPicker } from '@/components/ui/emoji-picker';
+import { EmojiAutocompleteInput } from '@/components/ui/emoji-autocomplete-input';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Bell,
@@ -70,6 +72,7 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
   demoProgress,
   showDemoToast
 }) => {
+  const [emojiDemo, setEmojiDemo] = useState<string>(":smile: Try typing shortcodes here or use the picker below");
   return (
     <div className="space-y-8">
       {/* Form Components Section */}
@@ -147,6 +150,20 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
                       <SelectItem value="option3">Option 3</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Emoji Components</Label>
+                  <div className="flex items-center gap-3">
+                    <EmojiPicker onEmojiSelect={(emoji) => setDemoTextareaValue((demoTextareaValue || '') + emoji)} />
+                    <span className="text-xs text-muted-foreground">Use the picker or type :shortcodes in the textarea above.</span>
+                  </div>
+                  <EmojiAutocompleteInput
+                    value={emojiDemo}
+                    onChange={setEmojiDemo}
+                    placeholder="Standalone demo: try :wo, :shipit:, :woman_technologist:"
+                    className="min-h-[80px] w-full p-3 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground"
+                  />
                 </div>
               </div>
             </div>
