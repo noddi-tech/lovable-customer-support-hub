@@ -67,7 +67,7 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
         all: conversations.length,
         inbox: conversations.filter((conv: any) => conv.status !== 'closed').length,
         closed: conversations.filter((conv: any) => conv.status === 'closed').length,
-        unread: conversations.filter((conv: any) => !conv.is_read && !conv.is_archived).length,
+        unread: conversations.filter((conv: any) => !conv.is_read).length,
         assigned: conversations.filter((conv: any) => conv.assigned_to?.id).length,
         archived: conversations.filter((conv: any) => conv.is_archived).length,
         snoozed: 0, // Not implemented yet

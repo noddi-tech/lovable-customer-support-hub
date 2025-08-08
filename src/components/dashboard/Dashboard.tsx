@@ -7,7 +7,7 @@ import { NotificationsList } from '@/components/notifications/NotificationsList'
 import { ConversationView } from './ConversationView';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -42,6 +42,7 @@ export const Dashboard: React.FC = () => {
   const [showSidebar, setShowSidebar] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
 
   // Get conversation ID from URL parameters
   const conversationIdFromUrl = searchParams.get('conversation');
@@ -115,6 +116,18 @@ export const Dashboard: React.FC = () => {
   const handleSelectConversation = (conversation: Conversation) => {
     console.log('handleSelectConversation called with:', conversation.id);
     setSelectedConversation(conversation);
+
+    // Optimistically mark as read in cache
+    queryClient.setQueryData(['conversations'], (old: any) =>
+      Array.isArray(old) ? old.map((c: any) => c.id === conversation.id ? { ...c, is_read: true } : c) : old
+    );
+    queryClient.setQueryData(['conversation', conversation.id], (old: any) =>
+      old ? { ...old, is_read: true } : old
+    );
+
+    // Persist read state
+    void supabase.from('conversations').update({ is_read: true }).eq('id', conversation.id);
+    queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
     
     // Update URL to reflect the selected conversation
     navigate(`/?conversation=${conversation.id}`, { replace: true });

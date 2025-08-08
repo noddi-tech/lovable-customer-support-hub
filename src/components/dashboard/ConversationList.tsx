@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Search, Filter, Inbox, Star, Clock, MoreHorizontal, Archive, Trash2 } from "lucide-react";
+import { Search, Filter, Inbox, Star, Clock, MoreHorizontal, Archive, Trash2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -257,7 +257,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         case "all":
           return conversation.status !== 'closed';
         case "unread":
-          return !conversation.is_read && !conversation.is_archived;
+          return !conversation.is_read;
         case "assigned":
           return !!conversation.assigned_to;
         case "closed":
@@ -389,6 +389,9 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  {conversation.is_read && (
+                    <CheckCircle className="h-4 w-4 text-success" aria-label="Read" />
+                  )}
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {formatDateTime(conversation.received_at || conversation.updated_at)}
                   </span>
