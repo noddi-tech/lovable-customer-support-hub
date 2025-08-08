@@ -352,6 +352,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 .eq('id', conversationId as string);
               queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
               queryClient.invalidateQueries({ queryKey: ['conversations'] });
+              queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
             } catch (e) {
               console.error('Failed to update conversation status:', e);
             }
@@ -658,7 +659,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           assigned_to:profiles!assigned_to_id(user_id, full_name, email)
         `)
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching messages:', error);

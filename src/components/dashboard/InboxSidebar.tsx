@@ -13,7 +13,8 @@ import {
   Phone,
   Filter,
   Plus,
-  Bell
+  Bell,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -64,6 +65,8 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
       
       return {
         all: conversations.length,
+        inbox: conversations.filter((conv: any) => conv.status !== 'closed').length,
+        closed: conversations.filter((conv: any) => conv.status === 'closed').length,
         unread: conversations.filter((conv: any) => !conv.is_read && !conv.is_archived).length,
         assigned: conversations.filter((conv: any) => conv.assigned_to?.id).length,
         archived: conversations.filter((conv: any) => conv.is_archived).length,
@@ -97,9 +100,10 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
   });
 
   const sidebarItems = [
-    { id: 'all', label: 'All Conversations', icon: Inbox, count: conversationCounts.all || 0 },
+    { id: 'all', label: 'Inbox', icon: Inbox, count: conversationCounts.inbox || 0 },
     { id: 'unread', label: 'Unread', icon: Inbox, count: conversationCounts.unread || 0 },
     { id: 'assigned', label: 'Assigned to me', icon: Users, count: conversationCounts.assigned || 0 },
+    { id: 'closed', label: 'Closed', icon: CheckCircle, count: conversationCounts.closed || 0 },
     { id: 'archived', label: 'Archived', icon: Archive, count: conversationCounts.archived || 0 },
     { id: 'snoozed', label: 'Snoozed', icon: Clock, count: conversationCounts.snoozed || 0 },
   ];

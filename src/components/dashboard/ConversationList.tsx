@@ -255,11 +255,13 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
     const matchesTab = (() => {
       switch (selectedTab) {
         case "all":
-          return true;
+          return conversation.status !== 'closed';
         case "unread":
           return !conversation.is_read && !conversation.is_archived;
         case "assigned":
           return !!conversation.assigned_to;
+        case "closed":
+          return conversation.status === 'closed';
         case "archived":
           return conversation.is_archived === true;
         case "snoozed":
