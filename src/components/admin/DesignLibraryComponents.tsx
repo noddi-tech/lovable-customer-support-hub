@@ -129,7 +129,7 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
                   <Label htmlFor="demo-textarea">Description</Label>
                   <Textarea 
                     id="demo-textarea"
-                    placeholder="Type your message here..."
+                    placeholder="Type your message here... (try :smile: :shipit: :woman_technologist:)"
                     value={demoTextareaValue}
                     onChange={(e) => setDemoTextareaValue(e.target.value)}
                   />
