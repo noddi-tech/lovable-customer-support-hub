@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   MoreHorizontal, 
   Archive, 
+  ArchiveRestore,
   Clock, 
   UserPlus, 
   Star,
@@ -55,6 +56,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { CustomerNotes } from './CustomerNotes';
 
@@ -919,6 +921,46 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       setIsAssigning(false);
     }
   };
+  const handleArchive = async () => {
+    try {
+      await supabase
+        .from('conversations')
+        .update({ is_archived: true })
+        .eq('id', conversationId as string);
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success('Conversation archived');
+      const cur = new URLSearchParams(searchParams);
+      cur.delete('conversation');
+      cur.delete('message');
+      const qs = cur.toString();
+      navigate(qs ? `/?${qs}` : '/', { replace: true });
+    } catch (e) {
+      console.error('Failed to archive conversation:', e);
+      toast.error('Failed to archive');
+    }
+  };
+  const handleUnarchive = async () => {
+    try {
+      await supabase
+        .from('conversations')
+        .update({ is_archived: false })
+        .eq('id', conversationId as string);
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success('Conversation unarchived');
+      const cur = new URLSearchParams(searchParams);
+      cur.delete('conversation');
+      cur.delete('message');
+      const qs = cur.toString();
+      navigate(qs ? `/?${qs}` : '/', { replace: true });
+    } catch (e) {
+      console.error('Failed to unarchive conversation:', e);
+      toast.error('Failed to unarchive');
+    }
+  };
   return (
     <div className="flex-1 flex flex-col bg-gradient-surface">
       {/* Conversation Header */}
@@ -997,29 +1039,33 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   </div>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" size="sm" onClick={async () => {
-                try {
-                  await supabase
-                    .from('conversations')
-                    .update({ is_archived: true })
-                    .eq('id', conversationId as string);
-                  queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-                  queryClient.invalidateQueries({ queryKey: ['conversations'] });
-                  queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-                  toast.success('Conversation archived');
-                  const cur = new URLSearchParams(searchParams);
-                  cur.delete('conversation');
-                  cur.delete('message');
-                  const qs = cur.toString();
-                  navigate(qs ? `/?${qs}` : '/', { replace: true });
-                } catch (e) {
-                  console.error('Failed to archive conversation:', e);
-                  toast.error('Failed to archive');
-                }
-              }}>
-                <Archive className="h-4 w-4 mr-2" />
-                Archive
-              </Button>
+              {conversation.is_archived ? (
+                <Button variant="outline" size="sm" onClick={handleUnarchive}>
+                  <ArchiveRestore className="h-4 w-4 mr-2" />
+                  Unarchive
+                </Button>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Archive className="h-4 w-4 mr-2" />
+                      Archive
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Archive this conversation?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You can find it later in the Archived inbox and unarchive at any time.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleArchive}>Archive</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <Button variant="outline" size="sm">
                 <Clock className="h-4 w-4 mr-2" />
                 Snooze
@@ -1373,29 +1419,33 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   <Star className="h-4 w-4 mr-2" />
                   Mark as Priority
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start" onClick={async () => {
-                  try {
-                    await supabase
-                      .from('conversations')
-                      .update({ is_archived: true })
-                      .eq('id', conversationId as string);
-                    queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-                    queryClient.invalidateQueries({ queryKey: ['conversations'] });
-                    queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-                    toast.success('Conversation archived');
-                    const cur = new URLSearchParams(searchParams);
-                    cur.delete('conversation');
-                    cur.delete('message');
-                    const qs = cur.toString();
-                    navigate(qs ? `/?${qs}` : '/', { replace: true });
-                  } catch (e) {
-                    console.error('Failed to archive conversation:', e);
-                    toast.error('Failed to archive');
-                  }
-                }}>
-                  <Archive className="h-4 w-4 mr-2" />
-                  Archive Conversation
-                </Button>
+                {conversation.is_archived ? (
+                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleUnarchive}>
+                    <ArchiveRestore className="h-4 w-4 mr-2" />
+                    Unarchive Conversation
+                  </Button>
+                ) : (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full justify-start">
+                        <Archive className="h-4 w-4 mr-2" />
+                        Archive Conversation
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Archive this conversation?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You can find it later in the Archived inbox and unarchive at any time.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleArchive}>Archive</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
                 <Button variant="outline" size="sm" className="w-full justify-start">
                   <Clock className="h-4 w-4 mr-2" />
                   Snooze for Later
