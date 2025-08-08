@@ -260,6 +260,8 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
           return !conversation.is_read;
         case "assigned":
           return !!conversation.assigned_to;
+        case "pending":
+          return conversation.status === 'pending';
         case "closed":
           return conversation.status === 'closed';
         case "archived":
