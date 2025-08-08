@@ -81,6 +81,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
+  const [postSendStatus, setPostSendStatus] = useState<'open' | 'pending' | 'closed'>('pending');
 
   // Helper functions
   const getInitials = (name: string) => {
@@ -343,6 +344,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               .update({ email_status: 'sent' })
               .eq('id', newMessage.id);
             
+            // Update conversation status after successful send
+            try {
+              await supabase
+                .from('conversations')
+                .update({ status: postSendStatus })
+                .eq('id', conversationId as string);
+              queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+              queryClient.invalidateQueries({ queryKey: ['conversations'] });
+            } catch (e) {
+              console.error('Failed to update conversation status:', e);
+            }
+            
             toast.success('Reply sent successfully');
           }
         } catch (emailError) {
@@ -360,6 +373,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         // Refresh data again to show updated status
         queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       } else {
+        // Update conversation status after adding internal note
+        try {
+          await supabase
+            .from('conversations')
+            .update({ status: postSendStatus })
+            .eq('id', conversationId as string);
+          queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        } catch (e) {
+          console.error('Failed to update conversation status:', e);
+        }
         toast.success('Internal note added');
       }
       
@@ -1075,21 +1099,34 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <div className="text-xs text-muted-foreground">
                   {isInternalNote ? 'This note will only be visible to your team' : 'This reply will be sent to the customer'}
                 </div>
-                <Button 
-                  variant="default"
-                  disabled={!replyText.trim() || isSending}
-                  onClick={async () => {
-                    setIsSending(true);
-                    await handleSendMessage();
-                    setIsSending(false);
-                  }}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {isSending 
-                    ? (isInternalNote ? 'Adding...' : 'Sending...') 
-                    : (isInternalNote ? 'Add Note' : 'Send Reply')
-                  }
-                </Button>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground hidden sm:block">Set status:</label>
+                  <Select value={postSendStatus} onValueChange={(v) => setPostSendStatus(v as 'open' | 'pending' | 'closed')}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    variant="default"
+                    disabled={!replyText.trim() || isSending}
+                    onClick={async () => {
+                      setIsSending(true);
+                      await handleSendMessage();
+                      setIsSending(false);
+                    }}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {isSending 
+                      ? (isInternalNote ? 'Adding...' : 'Sending...') 
+                      : (isInternalNote ? 'Add Note' : 'Send Reply')
+                    }
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
