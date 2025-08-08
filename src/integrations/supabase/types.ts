@@ -719,6 +719,7 @@ export type Database = {
           received_at: string
           customer: Json
           assigned_to: Json
+          snooze_until: string
         }[]
       }
       get_email_accounts: {

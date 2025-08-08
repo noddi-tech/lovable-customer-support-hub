@@ -46,6 +46,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import DOMPurify from 'dompurify';
 import {
   AlertDialog,
@@ -87,6 +90,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [assignSelectedUserId, setAssignSelectedUserId] = useState<string>('');
   const [isAssigning, setIsAssigning] = useState(false);
+  const [snoozeDialogOpen, setSnoozeDialogOpen] = useState(false);
+  const [snoozeDate, setSnoozeDate] = useState<Date | undefined>();
+  const [snoozeTime, setSnoozeTime] = useState<string>('09:00');
 
   // Helper functions
   const getInitials = (name: string) => {
@@ -961,6 +967,43 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       toast.error('Failed to unarchive');
     }
   };
+  const setPresetSnooze = (date: Date) => {
+    setSnoozeDate(date);
+    // default time if none chosen: keep hours/minutes from date
+    setSnoozeTime(date.toTimeString().slice(0,5));
+    setSnoozeDialogOpen(true);
+  };
+  const handleConfirmSnooze = async () => {
+    try {
+      if (!conversationId) return;
+      let finalDate: Date | null = null;
+      if (snoozeDate) {
+        const [hh, mm] = (snoozeTime || '09:00').split(':').map(Number);
+        const combined = new Date(snoozeDate);
+        combined.setHours(hh || 9, mm || 0, 0, 0);
+        finalDate = combined;
+      }
+      if (!finalDate) return;
+      const { data: userData } = await supabase.auth.getUser();
+      await supabase
+        .from('conversations')
+        .update({ snooze_until: finalDate.toISOString(), snoozed_by_id: userData?.user?.id || null })
+        .eq('id', conversationId as string);
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success('Conversation snoozed');
+      setSnoozeDialogOpen(false);
+      const cur = new URLSearchParams(searchParams);
+      cur.delete('conversation');
+      cur.delete('message');
+      const qs = cur.toString();
+      navigate(qs ? `/?${qs}` : '/', { replace: true });
+    } catch (e) {
+      console.error('Failed to snooze conversation:', e);
+      toast.error('Failed to snooze');
+    }
+  };
   return (
     <div className="flex-1 flex flex-col bg-gradient-surface">
       {/* Conversation Header */}
@@ -1066,7 +1109,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   </AlertDialogContent>
                 </AlertDialog>
               )}
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setSnoozeDialogOpen(true)}>
                 <Clock className="h-4 w-4 mr-2" />
                 Snooze
               </Button>
@@ -1446,7 +1489,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setSnoozeDialogOpen(true)}>
                   <Clock className="h-4 w-4 mr-2" />
                   Snooze for Later
                 </Button>
@@ -1455,6 +1498,61 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
       </div>
+
+      {/* Snooze Dialog */}
+      <Dialog open={snoozeDialogOpen} onOpenChange={setSnoozeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Snooze conversation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={() => setPresetSnooze(new Date(Date.now() + 3 * 60 * 60 * 1000))}>Later today (3h)</Button>
+              <Button variant="outline" onClick={() => {
+                const t = new Date();
+                t.setDate(t.getDate() + 1);
+                t.setHours(9, 0, 0, 0);
+                setPresetSnooze(t);
+              }}>Tomorrow 09:00</Button>
+              <Button variant="outline" onClick={() => {
+                const d = new Date();
+                const day = d.getDay();
+                const diff = (8 - day) % 7 || 7; // days until next Monday
+                const nextMon = new Date(d);
+                nextMon.setDate(d.getDate() + diff);
+                nextMon.setHours(9, 0, 0, 0);
+                setPresetSnooze(nextMon);
+              }}>Next Monday 09:00</Button>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">Pick a date & time</div>
+              <div className="flex items-center gap-3">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-[200px] justify-start">
+                      {snoozeDate ? format(snoozeDate, 'PPP') : 'Select date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={snoozeDate}
+                      onSelect={setSnoozeDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Input type="time" value={snoozeTime} onChange={(e) => setSnoozeTime(e.target.value)} className="w-[120px]" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setSnoozeDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleConfirmSnooze}>Confirm</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

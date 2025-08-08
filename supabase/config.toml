@@ -66,3 +66,6 @@ verify_jwt = false
 
 [functions.email-sync-scheduler]
 verify_jwt = false
+
+[functions.snooze-notifier]
+verify_jwt = false

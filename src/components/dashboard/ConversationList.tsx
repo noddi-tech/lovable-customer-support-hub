@@ -40,6 +40,7 @@ interface Conversation {
   inbox_id?: string;
   customer?: Customer;
   assigned_to?: AssignedTo;
+  snooze_until?: string;
 }
 
 interface ConversationListProps {
@@ -253,36 +254,36 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
     const matchesPriority = priorityFilter === "all" || conversation.priority === priorityFilter;
     
     const matchesTab = (() => {
+      const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
       switch (selectedTab) {
+        case "snoozed":
+          return isSnoozedActive;
         case "all":
-          return conversation.status !== 'closed';
+          return conversation.status !== 'closed' && !isSnoozedActive;
         case "unread":
-          return !conversation.is_read;
+          return !conversation.is_read && !isSnoozedActive;
         case "assigned":
-          return !!conversation.assigned_to;
+          return !!conversation.assigned_to && !isSnoozedActive;
         case "pending":
-          return conversation.status === 'pending';
+          return conversation.status === 'pending' && !isSnoozedActive;
         case "closed":
-          return conversation.status === 'closed';
+          return conversation.status === 'closed' && !isSnoozedActive;
         case "archived":
           return conversation.is_archived === true;
-        case "snoozed":
-          return false; // Placeholder for snoozed conversations
         case "email":
-          return conversation.channel === "email";
+          return conversation.channel === "email" && !isSnoozedActive;
         case "facebook":
-          return conversation.channel === "facebook";
+          return conversation.channel === "facebook" && !isSnoozedActive;
         case "instagram":
-          return conversation.channel === "instagram";
+          return conversation.channel === "instagram" && !isSnoozedActive;
         case "whatsapp":
-          return conversation.channel === "whatsapp";
+          return conversation.channel === "whatsapp" && !isSnoozedActive;
         default:
-          // Handle inbox-specific filtering
           if (selectedTab.startsWith('inbox-')) {
             const inboxId = selectedTab.replace('inbox-', '');
-            return conversation.inbox_id === inboxId;
+            return conversation.inbox_id === inboxId && !isSnoozedActive;
           }
-          return true;
+          return !isSnoozedActive;
       }
     })();
 
