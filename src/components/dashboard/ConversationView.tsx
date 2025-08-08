@@ -4,7 +4,7 @@ import { useAutoContrast } from '@/hooks/useAutoContrast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncodingIssues, formatEmailText, type EmailAttachment } from '@/utils/emailFormatting';
+import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncodingIssues, formatEmailText, stripQuotedEmailHTML, stripQuotedEmailText, type EmailAttachment } from '@/utils/emailFormatting';
 import { convertShortcodesToEmojis } from '@/utils/emojiUtils';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { EmojiAutocompleteInput } from '@/components/ui/emoji-autocomplete-input';
@@ -92,26 +92,27 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const processEmailContent = (content: string, contentType: string = 'text/html') => {
     // Use existing utilities to determine content type and process accordingly
     if (shouldRenderAsHTML(content, contentType)) {
-      // Fix broken HTML patterns while preserving original design
-      let processedContent = content;
+      // Strip quoted previous messages first, then fix common patterns
+      let processedContent = stripQuotedEmailHTML(content);
       
       // Fix broken link pattern: "https://url" id="link-id">Link Text
       processedContent = processedContent.replace(
-        /"(https?:\/\/[^"]+)"\s*(id="[^"]*")?\s*>([^<]*)/g, 
+        /"(https?:\/\/[^\"]+)"\s*(id="[^"]*")?\s*>([^<]*)/g, 
         '<a href="$1" $2>$3</a>'
       );
       
       // Fix broken image/link closures: "https://url">
       processedContent = processedContent.replace(
-        /"(https?:\/\/[^"]+)">/g, 
+        /"(https?:\/\/[^\"]+)">/g, 
         '<a href="$1">'
       );
       
       // Use the comprehensive email HTML sanitizer with original styles preserved
       return sanitizeEmailHTML(processedContent, [], true);
     } else {
-      // Process as plain text using existing formatter
-      return formatEmailText(content);
+      // Process as plain text: strip quoted content, then format
+      const stripped = stripQuotedEmailText(content);
+      return formatEmailText(stripped);
     }
   };
 

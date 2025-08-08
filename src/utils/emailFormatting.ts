@@ -377,3 +377,61 @@ export const preprocessHTMLContent = (content: string): string => {
     .replace(/\r/g, '\n')
     .replace(/\n\s*\n\s*\n/g, '\n\n');
 };
+
+/**
+ * Strip quoted previous messages from HTML replies for display
+ */
+export const stripQuotedEmailHTML = (htmlContent: string): string => {
+  try {
+    const container = document.createElement('div');
+    container.innerHTML = htmlContent;
+
+    // Remove common quoted sections
+    const selectors = [
+      'blockquote',
+      '.gmail_quote',
+      'blockquote[type="cite"]',
+      '.yahoo_quoted',
+      '.gmail_attr',
+      '.gmail_extra',
+      '.moz-cite-prefix',
+      '.OutlookMessageHeader',
+      '#OLKSrcBody',
+      '.reply-border'
+    ];
+    selectors.forEach(sel => container.querySelectorAll(sel).forEach(el => el.remove()));
+
+    // Remove elements that contain typical quote headers like "On ... wrote:" or "Original Message"
+    const textPatterns = /(On .+wrote:|-----Original Message-----|From: .+Subject: .+)/i;
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const toRemove: Element[] = [];
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text;
+      const text = (node.textContent || '').trim();
+      if (textPatterns.test(text)) {
+        const parent = node.parentElement;
+        if (parent) toRemove.push(parent);
+      }
+    }
+    toRemove.forEach(el => el.remove());
+
+    return container.innerHTML;
+  } catch {
+    return htmlContent;
+  }
+};
+
+/**
+ * Strip quoted previous messages from plain text replies for display
+ */
+export const stripQuotedEmailText = (text: string): string => {
+  try {
+    const cutPattern = /(On .+wrote:|-----Original Message-----|---+ Forwarded message ---+|From: .+\n.*Sent: .+\n.*To: .+\n.*Subject: .+)/i;
+    let result = text.replace(cutPattern, '').trim();
+    // Remove classic '>' quoted lines
+    result = result.replace(/^\s*>.*$/gm, '').trim();
+    return result;
+  } catch {
+    return text;
+  }
+};
