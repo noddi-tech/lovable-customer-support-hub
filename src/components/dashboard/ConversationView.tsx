@@ -932,8 +932,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     </div>
 
                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                      <span>
-                        {format(new Date(message.created_at), 'MMM d, yyyy h:mm a')}
+                      <span title={new Date(message.created_at).toLocaleString()}>
+                        {format(new Date(message.created_at), 'MMM d, yyyy h:mm:ss a')}
                       </span>
                       {message.sender_type === 'agent' && assignedAgent && (
                         <>
