@@ -1,3 +1,4 @@
+import data from '@emoji-mart/data';
 // Emoji utilities for converting shortcodes and handling emoji data
 export interface EmojiData {
   emoji: string;
@@ -427,19 +428,48 @@ export const emojiCategories = {
 };
 
 /**
+ * Build a comprehensive shortcode map using emoji-mart data + our manual map
+ */
+const buildFullShortcodeMap = (): Record<string, string> => {
+  const map: Record<string, string> = { ...emojiShortcodes };
+  try {
+    const emojis: any = (data as any).emojis || (data as any);
+    const entries: [string, any][] = Array.isArray(emojis)
+      ? (emojis as any[]).map((e: any, i: number) => [String(i), e])
+      : Object.entries(emojis);
+
+    for (const [, e] of entries) {
+      const native = e?.skins?.[0]?.native || e?.skins?.[0]?.emoji || e?.emoji || e?.native;
+      if (!native) continue;
+      const aliases: string[] = [];
+      if (e.id) aliases.push(e.id);
+      if (e.slug) aliases.push(e.slug);
+      if (typeof e.shortcodes === 'string') {
+        e.shortcodes.split('|').forEach((s: string) => aliases.push(s));
+      } else if (Array.isArray(e.shortcodes)) {
+        aliases.push(...e.shortcodes);
+      }
+      if (Array.isArray(e.names)) aliases.push(...e.names);
+      if (Array.isArray(e.aliases)) aliases.push(...e.aliases);
+      for (const name of aliases) {
+        if (!name) continue;
+        const key = `:${name}:`;
+        if (!map[key]) map[key] = native;
+      }
+    }
+  } catch {}
+  return map;
+};
+
+export const FULL_SHORTCODE_MAP: Record<string, string> = buildFullShortcodeMap();
+
+/**
  * Convert text with emoji shortcodes to actual emojis
  * Example: ":smile: Hello :heart:" becomes "😄 Hello ❤️"
  */
 export const convertShortcodesToEmojis = (text: string): string => {
-  let convertedText = text;
-  
-  // Replace all shortcode patterns with corresponding emojis
-  Object.entries(emojiShortcodes).forEach(([shortcode, emoji]) => {
-    const regex = new RegExp(escapeRegExp(shortcode), 'g');
-    convertedText = convertedText.replace(regex, emoji);
-  });
-  
-  return convertedText;
+  if (!text || text.indexOf(':') === -1) return text;
+  return text.replace(/:([a-z0-9_+\-]+):/gi, (m) => FULL_SHORTCODE_MAP[m] || m);
 };
 
 /**
@@ -472,25 +502,25 @@ function escapeRegExp(string: string): string {
 }
 
 /**
- * Get emoji suggestions based on partial shortcode input
+ * Get emoji suggestions based on partial shortcode input (GitHub-style)
  */
 export const getEmojiSuggestions = (partialShortcode: string): EmojiData[] => {
+  const search = partialShortcode.replace(/^:/, '').toLowerCase();
+  if (!search) return [];
   const suggestions: EmojiData[] = [];
-  const searchTerm = partialShortcode.toLowerCase();
-  
-  Object.entries(emojiShortcodes).forEach(([shortcode, emoji]) => {
-    if (shortcode.toLowerCase().includes(searchTerm)) {
-      const name = shortcode.replace(/:/g, '');
-      suggestions.push({
-        emoji,
-        name,
-        shortcode,
-        category: getCategoryForEmoji(emoji)
-      });
+  const seen = new Set<string>();
+
+  for (const [shortcode, emoji] of Object.entries(FULL_SHORTCODE_MAP)) {
+    if (shortcode.toLowerCase().includes(`:${search}`)) {
+      const name = shortcode.slice(1, -1);
+      if (seen.has(name)) continue;
+      seen.add(name);
+      suggestions.push({ emoji, name, shortcode, category: getCategoryForEmoji(emoji) });
+      if (suggestions.length >= 20) break;
     }
-  });
-  
-  return suggestions.slice(0, 10); // Limit to 10 suggestions
+  }
+
+  return suggestions;
 };
 
 /**
