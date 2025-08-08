@@ -441,9 +441,20 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
               <div className="flex items-center gap-2 mb-2">
                 <Badge 
                   variant="secondary" 
-                  className={cn("text-xs font-normal", statusColors[conversation.status])}
+                  className={cn("text-xs font-normal flex items-center gap-1",
+                    (conversation.snooze_until && new Date(conversation.snooze_until) > new Date())
+                      ? "bg-warning-muted text-warning"
+                      : statusColors[conversation.status]
+                  )}
                 >
-                  {conversation.status}
+                  {(conversation.snooze_until && new Date(conversation.snooze_until) > new Date()) ? (
+                    <>
+                      <Clock className="h-3 w-3" />
+                      Snoozed
+                    </>
+                  ) : (
+                    <>{conversation.status}</>
+                  )}
                 </Badge>
                 <Badge 
                   variant="secondary" 
