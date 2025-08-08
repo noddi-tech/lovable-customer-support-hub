@@ -1,4 +1,6 @@
 import data from '@emoji-mart/data';
+// @ts-ignore - JSON export
+import gemojiData from 'gemoji';
 // Emoji utilities for converting shortcodes and handling emoji data
 export interface EmojiData {
   emoji: string;
@@ -462,6 +464,28 @@ const buildFullShortcodeMap = (): Record<string, string> => {
       }
     }
   } catch {}
+
+  // Merge in gemoji aliases (GitHub-style)
+  try {
+    const list: any[] = Array.isArray(gemojiData) ? (gemojiData as any[]) : (gemojiData as any).gemoji || [];
+    for (const item of list) {
+      const native = item.emoji || item.character;
+      if (!native) continue;
+      const aliases: string[] = ([] as string[])
+        .concat(item.aliases || [])
+        .concat(item.names || [])
+        .filter(Boolean);
+      for (const a of aliases) {
+        const base = String(a).trim();
+        const variants = new Set<string>([base, base.replace(/-/g, '_')]);
+        for (const v of variants) {
+          const key = `:${v}:`;
+          if (!map[key]) map[key] = native;
+        }
+      }
+    }
+  } catch {}
+
   return map;
 };
 
