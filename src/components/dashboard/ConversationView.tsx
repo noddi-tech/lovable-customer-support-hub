@@ -81,7 +81,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
-  const [postSendStatus, setPostSendStatus] = useState<'open' | 'pending' | 'closed'>('pending');
+  const [postSendStatus, setPostSendStatus] = useState<'open' | 'pending' | 'closed'>('closed');
 
   // Helper functions
   const getInitials = (name: string) => {
