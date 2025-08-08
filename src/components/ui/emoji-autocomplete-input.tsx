@@ -1,12 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { getEmojiSuggestions as getEmojiSuggestionsUtil, type EmojiData } from '@/utils/emojiUtils';
 
-interface EmojiData {
-  id: string;
-  name: string;
-  native: string;
-  shortcodes: string;
-  keywords: string[];
-}
+
 
 interface EmojiAutocompleteInputProps {
   value: string;
@@ -17,24 +12,6 @@ interface EmojiAutocompleteInputProps {
   disabled?: boolean;
 }
 
-// Simple emoji database with search functionality
-const emojiDatabase = [
-  { id: 'blush', name: 'blush', native: '😊', shortcodes: ':blush:', keywords: ['blush', 'shy', 'happy', 'smile'] },
-  { id: 'blue_heart', name: 'blue heart', native: '💙', shortcodes: ':blue_heart:', keywords: ['blue', 'heart', 'love'] },
-  { id: 'blue_circle', name: 'blue circle', native: '🔵', shortcodes: ':blue_circle:', keywords: ['blue', 'circle', 'round'] },
-  { id: 'smile', name: 'smile', native: '😄', shortcodes: ':smile:', keywords: ['smile', 'happy', 'joy'] },
-  { id: 'heart', name: 'heart', native: '❤️', shortcodes: ':heart:', keywords: ['heart', 'love', 'red'] },
-  { id: 'fire', name: 'fire', native: '🔥', shortcodes: ':fire:', keywords: ['fire', 'hot', 'flame'] },
-  { id: 'star', name: 'star', native: '⭐', shortcodes: ':star:', keywords: ['star', 'yellow'] },
-  { id: 'thumbs_up', name: 'thumbs up', native: '👍', shortcodes: ':thumbs_up:', keywords: ['thumbs', 'up', 'good', 'yes'] },
-  { id: 'party', name: 'party', native: '🎉', shortcodes: ':party:', keywords: ['party', 'celebration', 'confetti'] },
-  { id: 'rocket', name: 'rocket', native: '🚀', shortcodes: ':rocket:', keywords: ['rocket', 'space', 'launch'] },
-  { id: 'sparkles', name: 'sparkles', native: '✨', shortcodes: ':sparkles:', keywords: ['sparkles', 'stars', 'magic'] },
-  { id: 'wink', name: 'wink', native: '😉', shortcodes: ':wink:', keywords: ['wink', 'flirt', 'playful'] },
-  { id: 'laugh', name: 'laugh', native: '😂', shortcodes: ':laugh:', keywords: ['laugh', 'funny', 'lol', 'joy'] },
-  { id: 'cool', name: 'cool', native: '😎', shortcodes: ':cool:', keywords: ['cool', 'sunglasses', 'awesome'] },
-  { id: 'thinking', name: 'thinking', native: '🤔', shortcodes: ':thinking:', keywords: ['thinking', 'hmm', 'wonder'] }
-];
 
 export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
   value,
@@ -52,19 +29,6 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Get emoji suggestions from our database
-  const getEmojiSuggestions = useCallback((searchTerm: string): EmojiData[] => {
-    if (!searchTerm || searchTerm.length < 1) return [];
-    
-    const term = searchTerm.toLowerCase();
-    const results = emojiDatabase.filter(emoji => {
-      return emoji.name.toLowerCase().includes(term) ||
-             emoji.keywords.some(keyword => keyword.toLowerCase().includes(term)) ||
-             emoji.id.toLowerCase().includes(term);
-    });
-    
-    return results.slice(0, 8);
-  }, []);
 
   // Detect emoji shortcodes in the text
   const detectShortcode = useCallback((text: string, cursorPosition: number) => {
@@ -95,7 +59,7 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
         if (detection) {
           const { shortcode, start } = detection;
           const searchTerm = shortcode.substring(1);
-          const suggestions = getEmojiSuggestions(searchTerm);
+          const suggestions = getEmojiSuggestionsUtil(searchTerm);
           
           if (suggestions.length > 0) {
             setSuggestions(suggestions);
@@ -111,7 +75,7 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
         }
       }
     });
-  }, [onChange, detectShortcode, getEmojiSuggestions]);
+  }, [onChange, detectShortcode]);
 
   // Handle emoji selection
   const selectEmoji = useCallback((emoji: EmojiData) => {
@@ -119,14 +83,14 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
 
     const beforeShortcode = value.substring(0, shortcodeStart);
     const afterShortcode = value.substring(shortcodeStart + currentShortcode.length);
-    const newValue = beforeShortcode + emoji.native + afterShortcode;
+    const newValue = beforeShortcode + emoji.emoji + afterShortcode;
 
     onChange(newValue);
     setShowSuggestions(false);
 
     setTimeout(() => {
       if (textareaRef.current) {
-        const newCursorPosition = shortcodeStart + emoji.native.length;
+        const newCursorPosition = shortcodeStart + emoji.emoji.length;
         textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
         textareaRef.current.focus();
       }
@@ -193,7 +157,7 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
             <div className="p-1">
               {suggestions.map((emoji, index) => (
                 <button
-                  key={emoji.id}
+                  key={emoji.shortcode}
                   type="button"
                   className={`w-full justify-start text-left h-auto p-2 mb-1 rounded-sm transition-colors flex items-center ${
                     index === selectedIndex 
@@ -202,10 +166,10 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
                   }`}
                   onClick={() => selectEmoji(emoji)}
                 >
-                  <span className="text-lg mr-2">{emoji.native}</span>
+                  <span className="text-lg mr-2">{emoji.emoji}</span>
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-medium">{emoji.name}</span>
-                    <span className="text-xs text-muted-foreground">{emoji.shortcodes}</span>
+                    <span className="text-xs text-muted-foreground">{emoji.shortcode}</span>
                   </div>
                 </button>
               ))}
