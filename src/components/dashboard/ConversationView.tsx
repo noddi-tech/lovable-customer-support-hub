@@ -997,7 +997,26 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   </div>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={async () => {
+                try {
+                  await supabase
+                    .from('conversations')
+                    .update({ is_archived: true })
+                    .eq('id', conversationId as string);
+                  queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+                  queryClient.invalidateQueries({ queryKey: ['conversations'] });
+                  queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+                  toast.success('Conversation archived');
+                  const cur = new URLSearchParams(searchParams);
+                  cur.delete('conversation');
+                  cur.delete('message');
+                  const qs = cur.toString();
+                  navigate(qs ? `/?${qs}` : '/', { replace: true });
+                } catch (e) {
+                  console.error('Failed to archive conversation:', e);
+                  toast.error('Failed to archive');
+                }
+              }}>
                 <Archive className="h-4 w-4 mr-2" />
                 Archive
               </Button>
@@ -1354,7 +1373,26 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   <Star className="h-4 w-4 mr-2" />
                   Mark as Priority
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button variant="outline" size="sm" className="w-full justify-start" onClick={async () => {
+                  try {
+                    await supabase
+                      .from('conversations')
+                      .update({ is_archived: true })
+                      .eq('id', conversationId as string);
+                    queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+                    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+                    queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+                    toast.success('Conversation archived');
+                    const cur = new URLSearchParams(searchParams);
+                    cur.delete('conversation');
+                    cur.delete('message');
+                    const qs = cur.toString();
+                    navigate(qs ? `/?${qs}` : '/', { replace: true });
+                  } catch (e) {
+                    console.error('Failed to archive conversation:', e);
+                    toast.error('Failed to archive');
+                  }
+                }}>
                   <Archive className="h-4 w-4 mr-2" />
                   Archive Conversation
                 </Button>
