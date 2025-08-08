@@ -290,11 +290,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             console.log('Removed timeout from tracking. Remaining timeouts:', sendingTimeouts.current.size);
             
             queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-            toast.error('Email sending timed out after 15 seconds');
+            toast.error('Email sending timed out after 60 seconds');
           } else {
             console.log('Timeout was already cleared, skipping update');
           }
-        }, 15000);
+        }, 60000);
         
         // Track the timeout
         sendingTimeouts.current.set(newMessage.id, timeoutId);
@@ -417,8 +417,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         sendingTimeouts.current.delete(messageId);
         
         queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-        toast.error('Email sending timed out after 15 seconds');
-      }, 15000);
+        toast.error('Email sending timed out after 60 seconds');
+      }, 60000);
 
       sendingTimeouts.current.set(messageId, timeoutId);
 
