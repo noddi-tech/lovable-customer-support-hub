@@ -1,6 +1,7 @@
 import data from '@emoji-mart/data';
 // Import as namespace to support both CJS and ESM shapes
 import * as gemojiModule from 'gemoji';
+import gistShortcodesRaw from '../assets/emoji-github-shortcodes.txt?raw';
 // Emoji utilities for converting shortcodes and handling emoji data
 export interface EmojiData {
   emoji: string;
@@ -484,6 +485,32 @@ const buildFullShortcodeMap = (): Record<string, string> => {
         for (const v of variants) {
           const key = `:${v}:`;
           if (!map[key]) map[key] = native;
+        }
+      }
+    }
+  } catch {}
+
+  // Merge aliases found in the rxaviers gist (treat as authoritative shortcode catalog)
+  try {
+    const raw: string = (gistShortcodesRaw as any) || '';
+    if (typeof raw === 'string' && raw) {
+      const tokens = Array.from(new Set(raw.match(/:([a-z0-9_+\-]+):/gi) || []));
+      for (const token of tokens) {
+        const base = token.slice(1, -1);
+        const variants = new Set<string>([base, base.replace(/-/g, '_')]);
+        // Try to find an existing native mapping for any variant
+        let native = map[token];
+        if (!native) {
+          for (const v of variants) {
+            native = native || map[`:${v}:`];
+          }
+        }
+        // If we found a native, ensure all variants exist in the map
+        if (native) {
+          for (const v of variants) {
+            const k = `:${v}:`;
+            if (!map[k]) map[k] = native;
+          }
         }
       }
     }
