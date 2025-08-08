@@ -285,16 +285,34 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               console.log('✅ Message status updated to failed due to timeout');
             }
             
+            // Create a persistent notification for the agent
+            try {
+              const { data: userData } = await supabase.auth.getUser();
+              await supabase.from('notifications').insert({
+                user_id: userData?.user?.id,
+                title: 'Email Failed to Send',
+                message: 'Your reply could not be sent (timeout). Click to open and retry.',
+                type: 'error',
+                data: {
+                  conversation_id: conversationId,
+                  message_id: newMessage.id,
+                  note_preview: extractTextFromHTML_local(processedContent).slice(0, 100)
+                }
+              });
+            } catch (notifyErr) {
+              console.error('Failed to create failure notification:', notifyErr);
+            }
+            
             // Remove timeout from tracking
             sendingTimeouts.current.delete(newMessage.id);
             console.log('Removed timeout from tracking. Remaining timeouts:', sendingTimeouts.current.size);
             
             queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-            toast.error('Email sending timed out after 60 seconds');
+            toast.error('Email sending timed out after 15 seconds');
           } else {
             console.log('Timeout was already cleared, skipping update');
           }
-        }, 60000);
+        }, 15000);
         
         // Track the timeout
         sendingTimeouts.current.set(newMessage.id, timeoutId);
@@ -324,6 +342,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               .update({ email_status: 'failed' })
               .eq('id', newMessage.id);
             
+            // Create a persistent notification for the agent
+            try {
+              const { data: userData } = await supabase.auth.getUser();
+              await supabase.from('notifications').insert({
+                user_id: userData?.user?.id,
+                title: 'Email Failed to Send',
+                message: `Email failed to send: ${emailError.message}`,
+                type: 'error',
+                data: { conversation_id: conversationId, message_id: newMessage.id, note_preview: extractTextFromHTML_local(processedContent).slice(0, 100) }
+              });
+            } catch (notifyErr) {
+              console.error('Failed to create failure notification:', notifyErr);
+            }
+            
             toast.error(`Email failed to send: ${emailError.message}`);
           } else if (emailData?.error) {
             console.error('Email function returned error:', emailData.error);
@@ -333,6 +365,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               .from('messages')
               .update({ email_status: 'failed' })
               .eq('id', newMessage.id);
+            
+            // Create a persistent notification for the agent
+            try {
+              const { data: userData } = await supabase.auth.getUser();
+              await supabase.from('notifications').insert({
+                user_id: userData?.user?.id,
+                title: 'Email Failed to Send',
+                message: `Email failed to send: ${emailData.error}`,
+                type: 'error',
+                data: { conversation_id: conversationId, message_id: newMessage.id, note_preview: extractTextFromHTML_local(processedContent).slice(0, 100) }
+              });
+            } catch (notifyErr) {
+              console.error('Failed to create failure notification:', notifyErr);
+            }
             
             toast.error(`Email failed to send: ${emailData.error}`);
           } else {
@@ -367,6 +413,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             .from('messages')
             .update({ email_status: 'failed' })
             .eq('id', newMessage.id);
+          
+          // Create a persistent notification for the agent
+          try {
+            const { data: userData } = await supabase.auth.getUser();
+            await supabase.from('notifications').insert({
+              user_id: userData?.user?.id,
+              title: 'Email Failed to Send',
+              message: 'Reply saved but email failed to send',
+              type: 'error',
+              data: { conversation_id: conversationId, message_id: newMessage.id, note_preview: extractTextFromHTML_local(processedContent).slice(0, 100) }
+            });
+          } catch (notifyErr) {
+            console.error('Failed to create failure notification:', notifyErr);
+          }
           
           toast.error('Reply saved but email failed to send');
         }
@@ -414,11 +474,25 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           .update({ email_status: 'failed' })
           .eq('id', messageId);
         
+        // Create a persistent notification for the agent
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          await supabase.from('notifications').insert({
+            user_id: userData?.user?.id,
+            title: 'Email Failed to Send',
+            message: 'Your retry timed out. Click to open and retry again.',
+            type: 'error',
+            data: { conversation_id: conversationId, message_id: messageId }
+          });
+        } catch (notifyErr) {
+          console.error('Failed to create failure notification (retry timeout):', notifyErr);
+        }
+        
         sendingTimeouts.current.delete(messageId);
         
         queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-        toast.error('Email sending timed out after 60 seconds');
-      }, 60000);
+        toast.error('Email sending timed out after 15 seconds');
+      }, 15000);
 
       sendingTimeouts.current.set(messageId, timeoutId);
 
@@ -439,6 +513,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           .from('messages')
           .update({ email_status: 'failed' })
           .eq('id', messageId);
+        
+        // Create a persistent notification for the agent
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          await supabase.from('notifications').insert({
+            user_id: userData?.user?.id,
+            title: 'Email Failed to Send',
+            message: 'Email failed to send again',
+            type: 'error',
+            data: { conversation_id: conversationId, message_id: messageId }
+          });
+        } catch (notifyErr) {
+          console.error('Failed to create failure notification (retry error):', notifyErr);
+        }
         
         toast.error('Email failed to send again');
       } else {
