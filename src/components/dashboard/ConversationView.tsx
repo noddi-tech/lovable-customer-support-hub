@@ -82,6 +82,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
   const [postSendStatus, setPostSendStatus] = useState<'open' | 'pending' | 'closed'>('closed');
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assignSelectedUserId, setAssignSelectedUserId] = useState<string>('');
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // Helper functions
   const getInitials = (name: string) => {
@@ -891,6 +894,31 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     // Fallback to created_at (DB insert time)
     return new Date(message.created_at);
   };
+  const handleAssignConversation = async () => {
+    try {
+      setIsAssigning(true);
+      const targetUserId = assignSelectedUserId || null;
+      if ((assignedAgent?.user_id ?? null) === targetUserId) {
+        toast.info('No changes to assignment');
+        setAssignDialogOpen(false);
+        return;
+      }
+      const { error } = await supabase
+        .from('conversations')
+        .update({ assigned_to_id: targetUserId })
+        .eq('id', conversationId as string);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(targetUserId ? 'Conversation assigned' : 'Conversation unassigned');
+      setAssignDialogOpen(false);
+    } catch (e) {
+      console.error('Failed to assign conversation:', e);
+      toast.error('Failed to update assignment');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
   return (
     <div className="flex-1 flex flex-col bg-gradient-surface">
       {/* Conversation Header */}
@@ -922,10 +950,53 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               {conversation.priority}
             </Badge>
             <div className="hidden sm:flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Assign
-              </Button>
+              <Dialog open={assignDialogOpen} onOpenChange={(open) => { setAssignDialogOpen(open); if (open) { setAssignSelectedUserId(assignedAgent?.user_id || ''); } }}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Assign
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Assign conversation</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Select
+                      value={assignSelectedUserId || 'unassigned'}
+                      onValueChange={(v) => setAssignSelectedUserId(v === 'unassigned' ? '' : v)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select team member" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {teamMembers.map((member) => (
+                          <SelectItem key={member.user_id} value={member.user_id}>
+                            {member.full_name} ({member.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleAssignConversation} disabled={isAssigning}>
+                        {isAssigning ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          'Assign'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Button variant="outline" size="sm">
                 <Archive className="h-4 w-4 mr-2" />
                 Archive
