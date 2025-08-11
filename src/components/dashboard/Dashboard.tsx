@@ -229,6 +229,7 @@ useEffect(() => {
         <InboxSidebar 
           selectedTab={selectedTab} 
           onTabChange={handleTabChange}
+          selectedInboxId={selectedInboxId}
         />
       </div>
 
