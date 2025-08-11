@@ -105,6 +105,7 @@ serve(async (req: Request) => {
           organization_id: emailAccount.organization_id,
           customer_id: customer.id,
           email_account_id: emailAccount.id,
+          inbox_id: emailAccount.inbox_id,
           channel: 'email',
           status: 'open',
           is_read: false,

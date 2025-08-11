@@ -35,6 +35,7 @@ interface Inbox {
 export function EmailForwarding() {
   const [email, setEmail] = useState("");
   const [selectedInbox, setSelectedInbox] = useState<string>("unassigned");
+  const [connectionType, setConnectionType] = useState<'forwarding' | 'google-group'>("forwarding");
   const [editingAccount, setEditingAccount] = useState<string | null>(null);
   const [editingInbox, setEditingInbox] = useState<string>("unassigned");
   const [copiedForwarding, setCopiedForwarding] = useState<string | null>(null);
@@ -66,7 +67,7 @@ export function EmailForwarding() {
 
   // Add email forwarding mutation
   const addEmailMutation = useMutation({
-    mutationFn: async ({ emailAddress, inboxId }: { emailAddress: string; inboxId: string }) => {
+    mutationFn: async ({ emailAddress, inboxId, providerType }: { emailAddress: string; inboxId: string; providerType: 'forwarding' | 'google-group' }) => {
       console.log("Starting email forwarding setup for:", emailAddress);
       
       if (!user) {
@@ -105,7 +106,7 @@ export function EmailForwarding() {
       const insertData = {
         email_address: emailAddress,
         forwarding_address: forwardingAddress,
-        provider: "forwarding",
+        provider: providerType,
         is_active: true,
         organization_id: profile.organization_id,
         user_id: user.id,
@@ -298,7 +299,7 @@ export function EmailForwarding() {
       return;
     }
     if (email) {
-      addEmailMutation.mutate({ emailAddress: email, inboxId: selectedInbox });
+      addEmailMutation.mutate({ emailAddress: email, inboxId: selectedInbox, providerType: connectionType });
     }
   };
 
@@ -478,6 +479,23 @@ export function EmailForwarding() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <Label htmlFor="connection-type">Connection Type</Label>
+              <Select value={connectionType} onValueChange={(v) => setConnectionType(v as 'forwarding' | 'google-group')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose how this address will connect" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="forwarding">Direct mailbox or alias (forwarding)</SelectItem>
+                  <SelectItem value="google-group">Google Group (add our address as a member)</SelectItem>
+                </SelectContent>
+              </Select>
+              {connectionType === 'google-group' && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  In Google Admin, open your Group → Members → Add members, paste the generated forwarding address, and ensure external posting is allowed.
+                </p>
+              )}
+            </div>
+            <div>
               <Label htmlFor="inbox">Select Inbox</Label>
               <Select value={selectedInbox} onValueChange={setSelectedInbox}>
                 <SelectTrigger>
@@ -510,7 +528,7 @@ export function EmailForwarding() {
               <Input
                 id="email"
                 type="email"
-                placeholder="support@yourcompany.com"
+                placeholder={connectionType === 'google-group' ? "group@yourcompany.com" : "support@yourcompany.com"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -553,6 +571,9 @@ export function EmailForwarding() {
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4" />
                         <span className="font-medium">{account.email_address}</span>
+                        <span className="px-2 py-1 rounded-full text-xs bg-muted text-muted-foreground capitalize">
+                          {account.provider === 'google-group' ? 'Google Group' : account.provider === 'gmail' ? 'Gmail OAuth' : 'Forwarding'}
+                        </span>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           account.is_active 
                             ? "bg-success-muted text-success" 
