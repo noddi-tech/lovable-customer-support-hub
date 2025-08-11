@@ -16,6 +16,7 @@ interface SetupFormValues {
 export const SendgridSetupWizard = () => {
   const { toast } = useToast();
   const [result, setResult] = useState<any>(null);
+  const [verifying, setVerifying] = useState(false);
   const form = useForm<SetupFormValues>({
     defaultValues: { domain: '', parse_subdomain: 'inbound' },
   });
@@ -34,6 +35,43 @@ export const SendgridSetupWizard = () => {
       toast({ title: 'Sender Authentication needed', description: 'We created the sender auth config; add the DNS records then retry.', variant: 'destructive' });
     } else {
       toast({ title: 'Parse route created', description: 'Add the MX record to your DNS and we will verify automatically.' });
+    }
+  };
+
+  const verifyDns = async () => {
+    try {
+      const values = form.getValues();
+      const dns: any = (result as any)?.dns_records?.sender_auth ?? (result as any)?.sender_auth?.record?.dns;
+      if (!dns) {
+        toast({ title: 'Run setup first', description: 'Click Create Parse Route to fetch expected DNS records.', variant: 'destructive' });
+        return;
+      }
+      setVerifying(true);
+      const normalize = (s: string) => (s || '').toLowerCase().replace(/\.$/, '');
+      const mxHost = `${values.parse_subdomain}.${values.domain}`;
+      const mxRes = await fetch(`https://dns.google/resolve?name=${mxHost}&type=MX`).then(r => r.json()).catch(() => null);
+      const mxOk = !!mxRes?.Answer?.some((a: any) => normalize(a.data.split(' ').pop()) === 'mx.sendgrid.net');
+
+      const cnameRecords = Object.values(dns) as any[];
+      const cnameChecks = await Promise.all(
+        cnameRecords.map(async (rec: any) => {
+          const r = await fetch(`https://dns.google/resolve?name=${rec.host}&type=CNAME`).then(res => res.json()).catch(() => null);
+          return !!r?.Answer?.some((a: any) => normalize(a.data) === normalize(rec.data));
+        })
+      );
+      const cnameOk = cnameChecks.every(Boolean);
+
+      if (mxOk && cnameOk) {
+        toast({ title: 'DNS verified', description: 'All records found. Retrying parse route creation...' });
+        await onSubmit(values);
+      } else {
+        const missing: string[] = [];
+        if (!mxOk) missing.push(`MX ${mxHost} -> mx.sendgrid.net`);
+        cnameRecords.forEach((rec: any, i: number) => { if (!cnameChecks[i]) missing.push(`CNAME ${rec.host} -> ${rec.data}`); });
+        toast({ title: 'DNS not ready', description: `Missing/invalid: ${missing.join(', ')}`, variant: 'destructive' });
+      }
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -79,8 +117,9 @@ export const SendgridSetupWizard = () => {
                 </FormItem>
               )}
             />
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2 flex gap-2">
               <Button type="submit" className="w-full sm:w-auto">Create Parse Route</Button>
+              <Button type="button" variant="outline" onClick={verifyDns} className="w-full sm:w-auto" disabled={verifying}>Verify DNS & Retry</Button>
             </div>
           </form>
         </Form>
