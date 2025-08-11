@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -24,13 +25,17 @@ interface HeaderProps {
   onMenuClick?: () => void;
   showMenuButton?: boolean;
   onBackClick?: () => void;
+  selectedInboxId?: string;
+  onInboxChange?: (id: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   organizationName = "Support Hub", 
   onMenuClick, 
   showMenuButton = false,
-  onBackClick 
+  onBackClick,
+  selectedInboxId,
+  onInboxChange
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -48,6 +53,16 @@ export const Header: React.FC<HeaderProps> = ({
       return data?.filter((conv: any) => !conv.is_read).length || 0;
     },
     refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Fetch inboxes for header selector
+  const { data: inboxes = [] } = useQuery({
+    queryKey: ['inboxes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_inboxes');
+      if (error) throw error;
+      return data as any[];
+    },
   });
 
   return (
@@ -69,9 +84,18 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-glow">
             <span className="text-primary-foreground font-bold text-sm">CS</span>
           </div>
-          <div className="hidden sm:block">
-            <h1 className="font-semibold text-foreground text-sm md:text-base">{organizationName}</h1>
-            <p className="text-xs text-muted-foreground hidden md:block">Customer Support Hub</p>
+          <div className="hidden sm:block min-w-[180px]">
+            <Select value={(typeof selectedInboxId === 'string' ? selectedInboxId : 'all') || 'all'} onValueChange={(v) => onInboxChange?.(v)}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="All Inboxes" />
+              </SelectTrigger>
+              <SelectContent className="z-[60]">
+                <SelectItem value="all">All Inboxes</SelectItem>
+                {inboxes.filter((i: any) => i.is_active).map((i: any) => (
+                  <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

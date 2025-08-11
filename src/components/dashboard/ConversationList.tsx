@@ -43,20 +43,12 @@ interface Conversation {
   snooze_until?: string;
 }
 
-interface InboxData {
-  id: string;
-  name: string;
-  description?: string | null;
-  color: string;
-  is_active: boolean;
-  is_default?: boolean;
-  conversation_count?: number;
-}
 
 interface ConversationListProps {
   selectedTab: string;
   onSelectConversation: (conversation: Conversation) => void;
   selectedConversation?: Conversation;
+  selectedInboxId: string;
 }
 
 const priorityColors = {
@@ -116,31 +108,18 @@ const formatDateTime = (dateString: string) => {
   return datePart;
 };
 
-export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation }: ConversationListProps) => {
+export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation, selectedInboxId }: ConversationListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [selectedInboxId, setSelectedInboxId] = useState<string>('all');
+  
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch inboxes available to the user
-  const { data: inboxes = [] } = useQuery({
-    queryKey: ['inboxes'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_inboxes');
-      if (error) throw error;
-      return data as InboxData[];
-    },
-  });
 
   // Sync dropdown with sidebar when a specific inbox tab is selected
-  useEffect(() => {
-    if (selectedTab.startsWith('inbox-')) {
-      setSelectedInboxId(selectedTab.replace('inbox-', ''));
-    }
-  }, [selectedTab]);
 
   // Fetch real conversations from database
   const { data: conversations = [], isLoading } = useQuery({
@@ -372,17 +351,6 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         </div>
         
         <div className="flex gap-2">
-          <Select value={selectedInboxId} onValueChange={setSelectedInboxId} disabled={selectedTab.startsWith('inbox-')}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="All Inboxes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Inboxes</SelectItem>
-              {inboxes.filter((i: InboxData) => i.is_active).map((i: InboxData) => (
-                <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32">

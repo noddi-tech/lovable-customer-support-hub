@@ -41,8 +41,16 @@ export const Dashboard: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
+  const [selectedInboxId, setSelectedInboxId] = useState<string>('all');
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+
+  // Sync header inbox selector with sidebar inbox selection
+  useEffect(() => {
+    if (selectedTab.startsWith('inbox-')) {
+      setSelectedInboxId(selectedTab.replace('inbox-', ''));
+    }
+  }, [selectedTab]);
 
   const markConversationRead = async (id: string) => {
     try {
@@ -183,6 +191,8 @@ export const Dashboard: React.FC = () => {
         organizationName="Noddi Support"
         showMenuButton={isMobile}
         onMenuClick={() => setShowSidebar(!showSidebar)}
+        selectedInboxId={selectedInboxId}
+        onInboxChange={(id) => setSelectedInboxId(id)}
       />
       
       {/* Main Content */}
@@ -239,6 +249,7 @@ export const Dashboard: React.FC = () => {
                 selectedTab={selectedTab}
                 selectedConversation={selectedConversation}
                 onSelectConversation={handleSelectConversation}
+                selectedInboxId={selectedInboxId}
               />
             </div>
             

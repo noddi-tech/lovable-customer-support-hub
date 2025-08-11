@@ -717,6 +717,7 @@ export type Database = {
           channel: string
           updated_at: string
           received_at: string
+          inbox_id: string
           customer: Json
           assigned_to: Json
           snooze_until: string
