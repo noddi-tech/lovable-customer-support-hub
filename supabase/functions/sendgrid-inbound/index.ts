@@ -49,11 +49,21 @@ serve(async (req: Request) => {
     const headersRaw = form.get("headers") ? String(form.get("headers")) : null;
     const envelopeStr = form.get("envelope") ? String(form.get("envelope")) : null;
 
-    const toEmail = extractEmail(toRaw);
+    const headerTo = extractEmail(toRaw);
     const fromEmail = extractEmail(fromRaw);
 
-    if (!toEmail || !fromEmail) {
-      return new Response(JSON.stringify({ error: "Missing to/from" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Use the SMTP envelope recipient when present (Google Group forwarding keeps To: as public address)
+    let rcptEmail: string | null = headerTo;
+    let envelope: any = null;
+    try {
+      envelope = envelopeStr ? JSON.parse(envelopeStr) : null;
+      const envToCandidate = typeof envelope?.to === 'string' ? envelope.to : (Array.isArray(envelope?.to) ? envelope.to[0] : null);
+      const envTo = extractEmail(envToCandidate);
+      if (envTo) rcptEmail = envTo;
+    } catch {}
+
+    if (!rcptEmail || !fromEmail) {
+      return new Response(JSON.stringify({ error: "Missing to/from", headerTo, rcptEmail }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabase = createClient(
@@ -61,15 +71,15 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Lookup inbound route
+    // Lookup inbound route using the actual SMTP recipient (rcptEmail)
     const { data: route, error: routeError } = await supabase
       .from("inbound_routes")
       .select("*, domain:email_domains(*)")
-      .eq("address", toEmail)
+      .eq("address", rcptEmail)
       .maybeSingle();
 
     if (routeError || !route) {
-      return new Response(JSON.stringify({ error: "Route not found", toEmail, details: routeError?.message }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Route not found", rcptEmail, headerTo, details: routeError?.message }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const organization_id = route.organization_id as string;
@@ -129,9 +139,6 @@ serve(async (req: Request) => {
     const contentType = html ? "html" : (text ? "text" : "html");
 
     const headersObj = headersRaw ? { raw: headersRaw } : null;
-    let envelope: any = null;
-    try { envelope = envelopeStr ? JSON.parse(envelopeStr) : null; } catch {}
-
     const { error: msgErr } = await supabase
       .from("messages")
       .insert({
