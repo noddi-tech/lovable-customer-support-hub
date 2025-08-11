@@ -292,7 +292,7 @@ useEffect(() => {
                   >
                     ← Back
                   </Button>
-                  <h1 className="font-semibold">Noddi Support</h1>
+                  <h1 className="font-semibold">{selectedInboxName}</h1>
                 </div>
               )}
 
