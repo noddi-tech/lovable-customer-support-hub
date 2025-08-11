@@ -97,12 +97,19 @@ export const SendgridSetupWizard = () => {
               </div>
             </div>
 
-            {result?.dns_records?.sender_auth && (
+            {(result?.dns_records?.sender_auth || result?.sender_auth?.record?.dns) && (
               <div>
-                <p className="text-sm text-muted-foreground">Sender Authentication records (add these too):</p>
-                <pre className="rounded-md border border-border/50 p-3 text-xs bg-background/50 overflow-auto">
-                  {JSON.stringify(result.dns_records.sender_auth, null, 2)}
-                </pre>
+                <p className="text-sm text-muted-foreground">Sender Authentication records (add these CNAMEs too):</p>
+                <div className="rounded-md border border-border/50 p-3 text-xs bg-background/50 space-y-3">
+                  {Object.values((result as any)?.dns_records?.sender_auth ?? (result as any)?.sender_auth?.record?.dns).map((rec: any) => (
+                    <div key={rec.host} className="grid gap-1 sm:grid-cols-4">
+                      <div className="flex gap-2 sm:col-span-2"><span className="font-semibold">Host:</span><span>{rec.host}</span></div>
+                      <div className="flex gap-2"><span className="font-semibold">Type:</span><span>{(rec.type || 'CNAME').toUpperCase()}</span></div>
+                      <div className="flex gap-2 sm:col-span-2"><span className="font-semibold">Value:</span><span className="break-all">{rec.data}</span></div>
+                    </div>
+                  ))}
+                  <div className="text-muted-foreground">TTL: 3600 (or your default)</div>
+                </div>
               </div>
             )}
 
