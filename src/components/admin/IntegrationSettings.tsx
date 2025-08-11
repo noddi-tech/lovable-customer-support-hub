@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator';
 import { Mail, MessageSquare, Instagram } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { InboxManagement } from '@/components/admin/InboxManagement';
 
 export const IntegrationSettings = () => {
   return (
@@ -69,6 +70,8 @@ export const IntegrationSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      <InboxManagement />
     </div>
   );
 };

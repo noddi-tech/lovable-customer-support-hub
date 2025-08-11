@@ -9,13 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
+
 import { AdminPortal } from '@/components/admin/AdminPortal';
 import { UserManagement } from '@/components/admin/UserManagement';
-import { InboxManagement } from '@/components/admin/InboxManagement';
+
 import { DepartmentManagement } from '@/components/admin/DepartmentManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette, Inbox, Building } from 'lucide-react';
+import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette, Building } from 'lucide-react';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { useNavigate } from 'react-router-dom';
 
@@ -58,12 +58,8 @@ export default function Settings() {
 
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
-          <Tabs defaultValue="inboxes" className="space-y-8">
+          <Tabs defaultValue="general" className="space-y-8">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-1 bg-card/50 backdrop-blur-sm border border-border/50 shadow-surface">
-              <TabsTrigger value="inboxes" className="flex items-center gap-2">
-                <Inbox className="w-4 h-4" />
-                Inboxes
-              </TabsTrigger>
               <TabsTrigger value="departments" className="flex items-center gap-2">
                 <Building className="w-4 h-4" />
                 Departments
@@ -95,10 +91,6 @@ export default function Settings() {
             </TabsList>
 
 
-            {/* Inboxes Management */}
-            <TabsContent value="inboxes" className="space-y-6">
-              <InboxManagement />
-            </TabsContent>
 
             {/* Departments Management */}
             <TabsContent value="departments" className="space-y-6">
