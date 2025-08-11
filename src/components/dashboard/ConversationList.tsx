@@ -79,15 +79,31 @@ const formatTimeAgo = (dateString: string) => {
 const formatDateTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
-  
-  // Always show date and time for clarity
-  return date.toLocaleDateString('en-US', { 
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit', 
-    minute: '2-digit', 
-    hour12: false 
+
+  // Relative labels for today and yesterday; otherwise show localized date (e.g., "11. august")
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  const timePart = date.toLocaleTimeString('nb-NO', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
   });
+
+  if (isSameDay(date, now)) return `Today, ${timePart}`;
+  if (isSameDay(date, yesterday)) return `Yesterday, ${timePart}`;
+
+  // e.g., "11. august" (append year if not current year)
+  let datePart = date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' });
+  if (date.getFullYear() !== now.getFullYear()) {
+    datePart += ` ${date.getFullYear()}`;
+  }
+  return datePart;
 };
 
 export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation }: ConversationListProps) => {
