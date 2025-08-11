@@ -62,8 +62,22 @@ export const SendgridSetupWizard = () => {
       const cnameOk = cnameChecks.every(Boolean);
 
       if (mxOk && cnameOk) {
-        toast({ title: 'DNS verified', description: 'All records found. Retrying parse route creation...' });
-        await onSubmit(values);
+        toast({ title: 'DNS verified', description: 'All records found. Validating with SendGrid...' });
+        // Poll SendGrid validation for up to ~2 minutes
+        const maxAttempts = 12;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          const { data, error } = await supabase.functions.invoke('sendgrid-setup', {
+            body: { ...values, action: 'validate' as const },
+          });
+          if (error) break;
+          if (data?.sender_auth_valid || data?.validation?.valid) {
+            toast({ title: 'Sender auth validated', description: 'Creating parse route now...' });
+            await onSubmit(values);
+            return;
+          }
+          await new Promise((res) => setTimeout(res, 10000));
+        }
+        toast({ title: 'Still pending', description: 'SendGrid has not marked DNS as valid yet. Please wait a few minutes and try again.', variant: 'destructive' });
       } else {
         const missing: string[] = [];
         if (!mxOk) missing.push(`MX ${mxHost} -> mx.sendgrid.net`);

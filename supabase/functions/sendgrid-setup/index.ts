@@ -9,6 +9,7 @@ const corsHeaders = {
 interface SetupRequest {
   domain: string;          // e.g., suppas.io
   parse_subdomain: string; // e.g., inbound
+  action?: 'validate' | 'validate_and_retry';
 }
 
 serve(async (req: Request) => {
@@ -103,7 +104,46 @@ serve(async (req: Request) => {
       }
       return { created: true, record: created };
     }
-
+    
+    async function findSenderAuth() {
+      const check = await fetch(`https://api.sendgrid.com/v3/whitelabel/domains?domain=${encodeURIComponent(domain)}&limit=1`, {
+        headers: { 'Authorization': `Bearer ${sgKey}` },
+      });
+      const list = await check.json().catch(() => []);
+      return Array.isArray(list) && list.length > 0 ? list[0] : null;
+    }
+    
+    async function validateSenderAuth(id: number) {
+      const resp = await fetch(`https://api.sendgrid.com/v3/whitelabel/domains/${id}/validate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${sgKey}` },
+      });
+      const data = await resp.json().catch(() => ({}));
+      return { ok: resp.ok, status: resp.status, data };
+    }
+    
+    // Handle explicit validation action
+    if (body.action === 'validate' || body.action === 'validate_and_retry') {
+      const existing = await findSenderAuth() ?? (await ensureSenderAuth()).record;
+      if (!existing) {
+        return new Response(JSON.stringify({ ok: false, error: 'sender_auth_not_found' }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const validate = await validateSenderAuth(existing.id);
+      const responsePayload: any = {
+        ok: true,
+        action: body.action,
+        sender_auth: existing,
+        validation: validate.data,
+        sender_auth_valid: !!validate.data?.valid,
+      };
+      if (body.action === 'validate_and_retry' && !!validate.data?.valid) {
+        // If valid now, immediately try to create parse
+        const res = await createParseSetting();
+        responsePayload.parse_attempt = res;
+      }
+      return new Response(JSON.stringify(responsePayload), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    
     // Try to create parse setting; if blocked by sender auth requirement, provision it then retry
     let parseResult = await createParseSetting();
     let authPayload: any = null;
