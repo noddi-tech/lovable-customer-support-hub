@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MailPlus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { GoogleGroupSetup } from './GoogleGroupSetup';
 
 interface SetupFormValues {
   domain: string;
@@ -292,9 +293,16 @@ export const SendgridSetupWizard = () => {
               </div>
             </div>
             {route && (
-              <div className="rounded-md border border-border/50 p-3 text-sm bg-background/50">
-                Send a test email to <span className="font-semibold">{route.address}</span>.
-                If your public email is hei@noddi.no, set a forward to this address in your email provider.
+              <div className="space-y-4">
+                <div className="rounded-md border border-border/50 p-3 text-sm bg-background/50">
+                  Send a test email to <span className="font-semibold">{route.address}</span>. Then set your public address to forward here.
+                </div>
+                <GoogleGroupSetup
+                  alias={alias}
+                  domain={form.getValues().domain}
+                  parseSubdomain={form.getValues().parse_subdomain}
+                  inboxName={inboxes.find((i: any) => i.id === selectedInbox)?.name}
+                />
               </div>
             )}
           </div>
