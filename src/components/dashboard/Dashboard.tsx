@@ -41,16 +41,39 @@ export const Dashboard: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
-  const [selectedInboxId, setSelectedInboxId] = useState<string>('all');
+  const [selectedInboxId, setSelectedInboxId] = useState<string>(() => localStorage.getItem('selectedInboxId') || 'all');
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
-  // Sync header inbox selector with sidebar inbox selection
-  useEffect(() => {
-    if (selectedTab.startsWith('inbox-')) {
-      setSelectedInboxId(selectedTab.replace('inbox-', ''));
-    }
-  }, [selectedTab]);
+  // Fetch inboxes to resolve selected inbox name
+  const { data: inboxes = [] } = useQuery({
+    queryKey: ['inboxes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_inboxes');
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const selectedInboxName = selectedInboxId === 'all'
+    ? 'All Inboxes'
+    : (inboxes.find((i: any) => i.id === selectedInboxId)?.name || 'Inbox');
+
+// Sync header inbox selector with sidebar inbox selection
+useEffect(() => {
+  if (selectedTab.startsWith('inbox-')) {
+    setSelectedInboxId(selectedTab.replace('inbox-', ''));
+  } else if (selectedTab === 'all') {
+    setSelectedInboxId('all');
+  }
+}, [selectedTab]);
+
+// Persist inbox selection
+useEffect(() => {
+  if (selectedInboxId) {
+    localStorage.setItem('selectedInboxId', selectedInboxId);
+  }
+}, [selectedInboxId]);
 
   const markConversationRead = async (id: string) => {
     try {
@@ -188,7 +211,7 @@ export const Dashboard: React.FC = () => {
     <div className="h-screen flex flex-col bg-gradient-surface">
       {/* Header */}
       <Header 
-        organizationName="Noddi Support"
+        organizationName={selectedInboxName}
         showMenuButton={isMobile}
         onMenuClick={() => setShowSidebar(!showSidebar)}
         selectedInboxId={selectedInboxId}

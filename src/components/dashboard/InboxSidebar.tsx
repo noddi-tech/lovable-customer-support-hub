@@ -24,6 +24,7 @@ import { NewConversationDialog } from './NewConversationDialog';
 interface InboxSidebarProps {
   selectedTab: string;
   onTabChange: (tab: string) => void;
+  selectedInboxId?: string;
 }
 
 interface InboxData {
@@ -37,9 +38,13 @@ interface InboxData {
 }
 
 
-export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabChange }) => {
+export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabChange, selectedInboxId }) => {
   const [expandedChannels, setExpandedChannels] = useState(true);
   const [expandedInboxes, setExpandedInboxes] = useState(true);
+
+  const effectiveInboxId = selectedTab.startsWith('inbox-')
+    ? selectedTab.replace('inbox-', '')
+    : (selectedInboxId && selectedInboxId !== 'all' ? selectedInboxId : null);
 
   // Fetch inboxes
   const { data: inboxes = [] } = useQuery({
@@ -52,34 +57,37 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
   });
 
   // Fetch conversation counts
-  const { data: conversationCounts = {}, isLoading } = useQuery({
-    queryKey: ['conversation-counts'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_conversations');
-      if (error) {
-        console.error('Error fetching conversation counts:', error);
-        return {};
-      }
+const { data: conversationCounts = {}, isLoading } = useQuery({
+  queryKey: ['conversation-counts', effectiveInboxId, selectedTab],
+  queryFn: async () => {
+    const { data, error } = await supabase.rpc('get_conversations');
+    if (error) {
+      console.error('Error fetching conversation counts:', error);
+      return {} as Record<string, number>;
+    }
 
-      const conversations = data || [];
-      
-      return {
-        all: conversations.length,
-        inbox: conversations.filter((conv: any) => conv.status !== 'closed').length,
-        closed: conversations.filter((conv: any) => conv.status === 'closed').length,
-        unread: conversations.filter((conv: any) => !conv.is_read).length,
-        pending: conversations.filter((conv: any) => conv.status === 'pending').length,
-        assigned: conversations.filter((conv: any) => conv.assigned_to?.id).length,
-        archived: conversations.filter((conv: any) => conv.is_archived).length,
-        snoozed: 0, // Not implemented yet
-        email: conversations.filter((conv: any) => conv.channel === 'email').length,
-        facebook: conversations.filter((conv: any) => conv.channel === 'facebook').length,
-        instagram: conversations.filter((conv: any) => conv.channel === 'instagram').length,
-        whatsapp: conversations.filter((conv: any) => conv.channel === 'whatsapp').length,
-      };
-    },
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
+    const conversations = (data || []) as any[];
+    const filtered = effectiveInboxId
+      ? conversations.filter((conv: any) => conv.inbox_id === effectiveInboxId)
+      : conversations;
+    
+    return {
+      all: filtered.length,
+      inbox: filtered.filter((conv: any) => conv.status !== 'closed').length,
+      closed: filtered.filter((conv: any) => conv.status === 'closed').length,
+      unread: filtered.filter((conv: any) => !conv.is_read).length,
+      pending: filtered.filter((conv: any) => conv.status === 'pending').length,
+      assigned: filtered.filter((conv: any) => conv.assigned_to?.id).length,
+      archived: filtered.filter((conv: any) => conv.is_archived).length,
+      snoozed: 0, // Not implemented yet
+      email: filtered.filter((conv: any) => conv.channel === 'email').length,
+      facebook: filtered.filter((conv: any) => conv.channel === 'facebook').length,
+      instagram: filtered.filter((conv: any) => conv.channel === 'instagram').length,
+      whatsapp: filtered.filter((conv: any) => conv.channel === 'whatsapp').length,
+    } as Record<string, number>;
+  },
+  refetchInterval: 30000, // Refetch every 30 seconds
+});
 
   // Fetch unread notifications count
   const { data: unreadNotifications = 0 } = useQuery({
