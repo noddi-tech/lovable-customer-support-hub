@@ -43,6 +43,23 @@ interface Conversation {
   snooze_until?: string;
 }
 
+interface InboundRoute {
+  id: string;
+  inbox_id: string | null;
+  address: string;
+  group_email: string | null;
+}
+
+  const { data: inboundRoutes = [] } = useQuery({
+    queryKey: ['inbound_routes'],
+    queryFn: async (): Promise<InboundRoute[]> => {
+      const { data, error } = await supabase
+        .from('inbound_routes')
+        .select('id,inbox_id,address,group_email');
+      if (error) throw error;
+      return data as unknown as InboundRoute[];
+    },
+  });
 
 interface ConversationListProps {
   selectedTab: string;
@@ -391,7 +408,14 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
           <div className="p-8 text-center text-muted-foreground">
             <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No conversations found</p>
-            <p className="text-sm">Send an email to {`joachim@noddi.no`} to create your first conversation</p>
+            <p className="text-sm">{(() => {
+              const routes = (inboundRoutes || []).filter(r => effectiveInboxId && r.inbox_id === effectiveInboxId);
+              if (effectiveInboxId && routes.length > 0) {
+                const list = routes.map(r => r.group_email || r.address).join(", ");
+                return `Send an email to ${list} to create your first conversation`;
+              }
+              return "Connect an inbound email in Admin → Integrations, then send an email to it to create your first conversation";
+            })()}</p>
           </div>
         ) : (
           filteredConversations.map((conversation) => (
