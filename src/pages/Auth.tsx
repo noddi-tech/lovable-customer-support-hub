@@ -99,6 +99,29 @@ export const Auth: React.FC = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      if (!email) {
+        setLoading(false);
+        setError('Please enter your email to reset your password.');
+        return;
+      }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      setSuccess('If an account exists, a reset link has been sent to your email.');
+    } catch (err: any) {
+      setError(err.message || 'Unable to send password reset email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -237,6 +260,11 @@ export const Auth: React.FC = () => {
                     </div>
                   </div>
                   
+                  <div className="flex justify-end">
+                    <Button variant="link" type="button" size="sm" className="px-0" onClick={handleForgotPassword} disabled={loading}>
+                      Forgot password?
+                    </Button>
+                  </div>
                   <Button 
                     type="submit" 
                     className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
