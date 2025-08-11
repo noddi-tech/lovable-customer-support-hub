@@ -6,10 +6,18 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { InboxManagement } from '@/components/admin/InboxManagement';
 import { SendgridSetupWizard } from '@/components/admin/SendgridSetupWizard';
+import { InboundRoutesList } from '@/components/admin/InboundRoutesList';
+
 export const IntegrationSettings = () => {
   return (
     <div className="space-y-6">
+      {/* Always-visible overview of inbound receiving addresses */}
+      <InboundRoutesList />
+
+      {/* Setup and creation flow */}
       <SendgridSetupWizard />
+
+      {/* Email accounts and inbox management */}
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
@@ -27,6 +35,7 @@ export const IntegrationSettings = () => {
         </CardContent>
       </Card>
 
+      {/* Channel toggles */}
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="text-primary">Channel Settings</CardTitle>
@@ -73,7 +82,6 @@ export const IntegrationSettings = () => {
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 };

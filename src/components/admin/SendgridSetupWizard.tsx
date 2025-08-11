@@ -177,7 +177,7 @@ export const SendgridSetupWizard = () => {
   };
 
   return (
-    <Card className="bg-gradient-surface border-border/50 shadow-surface">
+    <Card id="sendgrid-setup" className="bg-gradient-surface border-border/50 shadow-surface">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <MailPlus className="w-5 h-5" />
