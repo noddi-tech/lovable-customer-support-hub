@@ -129,12 +129,18 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ ok: false, error: 'sender_auth_not_found' }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const validate = await validateSenderAuth(existing.id);
+      const dns_records: any = {};
+      if ((existing as any)?.dns) {
+        dns_records.sender_auth = (existing as any).dns;
+      }
       const responsePayload: any = {
         ok: true,
         action: body.action,
         sender_auth: existing,
         validation: validate.data,
         sender_auth_valid: !!validate.data?.valid,
+        hostname,
+        dns_records,
       };
       if (body.action === 'validate_and_retry' && !!validate.data?.valid) {
         // If valid now, immediately try to create parse
@@ -147,6 +153,7 @@ serve(async (req: Request) => {
     // Try to create parse setting; if blocked by sender auth requirement, provision it then retry
     let parseResult = await createParseSetting();
     let authPayload: any = null;
+    let parseAlreadyExists = false;
 
     if (!parseResult.ok) {
       const msg = JSON.stringify(parseResult.data);
@@ -155,10 +162,13 @@ serve(async (req: Request) => {
         authPayload = auth;
         // Retry once after creating sender auth
         parseResult = await createParseSetting();
+      } else if (msg.includes('duplicate entry found') || parseResult.status === 409) {
+        // Parse route already exists for this hostname
+        parseAlreadyExists = true;
       }
     }
 
-    if (!parseResult.ok) {
+    if (!parseResult.ok && !parseAlreadyExists) {
       return new Response(JSON.stringify({
         ok: false,
         error: 'SendGrid API error',
@@ -174,6 +184,17 @@ serve(async (req: Request) => {
     };
     if (authPayload?.record?.dns) {
       dns_records.sender_auth = authPayload.record.dns;
+    }
+    if (!dns_records.sender_auth) {
+      const existingAuth = await findSenderAuth();
+      if (existingAuth?.dns) {
+        dns_records.sender_auth = existingAuth.dns;
+      } else {
+        const ensured = await ensureSenderAuth();
+        if (ensured?.record?.dns) {
+          dns_records.sender_auth = ensured.record.dns;
+        }
+      }
     }
 
     const { data: domainRow, error: domErr } = await admin
