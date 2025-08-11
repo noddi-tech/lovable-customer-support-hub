@@ -19,8 +19,10 @@ export const IntegrationSettings = () => {
             Connect and manage email accounts for your organization
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <EmailAccountConnection />
+          <Separator />
+          <InboxManagement />
         </CardContent>
       </Card>
 
@@ -71,7 +73,6 @@ export const IntegrationSettings = () => {
         </CardContent>
       </Card>
 
-      <InboxManagement />
     </div>
   );
 };
