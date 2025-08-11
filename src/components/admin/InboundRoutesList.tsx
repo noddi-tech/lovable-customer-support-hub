@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Inbox, MailCheck } from 'lucide-react';
-
 interface InboundRoute {
   id: string;
   address: string;
@@ -53,11 +53,22 @@ export const InboundRoutesList = () => {
   const [selectedRoute, setSelectedRoute] = useState<InboundRoute | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [publicEmail, setPublicEmail] = useState('');
+  const [selectedInboxId, setSelectedInboxId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const updatePublicEmail = useMutation({
     mutationFn: async ({ id, group_email }: { id: string; group_email: string }) => {
       const { error } = await supabase.from('inbound_routes').update({ group_email }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbound_routes'] });
+    },
+  });
+
+  const updateRouteInbox = useMutation({
+    mutationFn: async ({ id, inbox_id }: { id: string; inbox_id: string | null }) => {
+      const { error } = await supabase.from('inbound_routes').update({ inbox_id }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -71,6 +82,7 @@ export const InboundRoutesList = () => {
       const topLevel = domainPart.split('.').slice(1).join('.');
       const suggested = `${selectedRoute.alias_local_part}@${topLevel || domainPart}`;
       setPublicEmail(selectedRoute.group_email || suggested);
+      setSelectedInboxId(selectedRoute.inbox_id || null);
     }
   }, [selectedRoute]);
 
@@ -153,6 +165,35 @@ export const InboundRoutesList = () => {
                   <p className="text-xs text-muted-foreground mt-1">
                     Example: {selectedRoute.alias_local_part}@{(selectedRoute.address.split('@')[1] || '').split('.').slice(1).join('.')}
                   </p>
+                </div>
+
+                <div>
+                  <Label>Deliver to inbox</Label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <Select
+                      value={selectedInboxId || 'none'}
+                      onValueChange={(val) => setSelectedInboxId(val === 'none' ? null : val)}
+                    >
+                      <SelectTrigger className="w-56">
+                        <SelectValue placeholder="Select inbox" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {(inboxesQuery.data || []).map((i) => (
+                          <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => selectedRoute && updateRouteInbox.mutate({ id: selectedRoute.id, inbox_id: selectedInboxId })}
+                      disabled={updateRouteInbox.isPending || (selectedRoute && selectedRoute.inbox_id === selectedInboxId)}
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                    >
+                      {updateRouteInbox.isPending ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
                 </div>
 
                 <div>

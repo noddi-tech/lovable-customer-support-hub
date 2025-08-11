@@ -37,6 +37,13 @@ interface Department {
   description: string | null;
 }
 
+interface InboundRoute {
+  id: string;
+  inbox_id: string | null;
+  address: string;
+  group_email: string | null;
+}
+
 export function InboxManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingInbox, setEditingInbox] = useState<InboxData | null>(null);
@@ -71,6 +78,18 @@ export function InboxManagement() {
       if (error) throw error;
       return data as Department[];
     }
+  });
+
+  // Fetch inbound routes (to show connected emails per inbox)
+  const { data: inboundRoutes } = useQuery({
+    queryKey: ['inbound_routes'],
+    queryFn: async (): Promise<InboundRoute[]> => {
+      const { data, error } = await supabase
+        .from('inbound_routes')
+        .select('id,inbox_id,address,group_email');
+      if (error) throw error;
+      return data as unknown as InboundRoute[];
+    },
   });
 
   // Create inbox mutation
@@ -363,6 +382,30 @@ export function InboxManagement() {
                     <Badge variant={inbox.is_active ? "default" : "secondary"}>
                       {inbox.is_active ? 'Active' : 'Inactive'}
                     </Badge>
+                  </div>
+                  <div className="text-sm">
+                    <span className="flex items-center gap-2 mb-1">
+                      <Mail className="w-4 h-4" />
+                      Connected email(s)
+                    </span>
+                    <div className="text-muted-foreground">
+                      {(() => {
+                        const routes = inboundRoutes?.filter(r => r.inbox_id === inbox.id) || [];
+                        return routes.length > 0 ? (
+                          <ul className="list-disc pl-5 space-y-1">
+                            {routes.map((r) => (
+                              <li key={r.id}>
+                                <span className="font-medium">{r.group_email || 'Public email not set'}</span>
+                                <span className="ml-2">→ forwards to </span>
+                                <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted/50">{r.address}</code>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span>No inbound email connected</span>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               </CardContent>
