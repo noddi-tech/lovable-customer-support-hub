@@ -5,10 +5,11 @@ import { Mail, MessageSquare, Instagram } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { InboxManagement } from '@/components/admin/InboxManagement';
-
+import { SendgridSetupWizard } from '@/components/admin/SendgridSetupWizard';
 export const IntegrationSettings = () => {
   return (
     <div className="space-y-6">
+      <SendgridSetupWizard />
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">

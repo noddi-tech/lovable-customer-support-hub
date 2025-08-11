@@ -276,6 +276,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_domains: {
+        Row: {
+          created_at: string
+          dns_records: Json
+          domain: string
+          id: string
+          organization_id: string
+          parse_subdomain: string
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dns_records?: Json
+          domain: string
+          id?: string
+          organization_id: string
+          parse_subdomain: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dns_records?: Json
+          domain?: string
+          id?: string
+          organization_id?: string
+          parse_subdomain?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           body_background_color: string | null
@@ -335,6 +371,63 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      inbound_routes: {
+        Row: {
+          address: string
+          alias_local_part: string
+          created_at: string
+          domain_id: string
+          group_email: string | null
+          id: string
+          inbox_id: string | null
+          is_active: boolean
+          organization_id: string
+          secret_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          alias_local_part: string
+          created_at?: string
+          domain_id: string
+          group_email?: string | null
+          id?: string
+          inbox_id?: string | null
+          is_active?: boolean
+          organization_id: string
+          secret_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          alias_local_part?: string
+          created_at?: string
+          domain_id?: string
+          group_email?: string | null
+          id?: string
+          inbox_id?: string | null
+          is_active?: boolean
+          organization_id?: string
+          secret_token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_routes_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "email_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_routes_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inboxes: {
         Row: {

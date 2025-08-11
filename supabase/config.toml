@@ -69,3 +69,9 @@ verify_jwt = false
 
 [functions.snooze-notifier]
 verify_jwt = false
+
+[functions.sendgrid-inbound]
+verify_jwt = false
+
+[functions.sendgrid-setup]
+verify_jwt = true
