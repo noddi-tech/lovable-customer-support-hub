@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare } from 'lucide-react';
-import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
+
 
 interface InboxData {
   id: string;
@@ -179,7 +179,7 @@ export function InboxManagement() {
         <div>
           <Heading level={2}>Inbox Management</Heading>
           <p className="text-muted-foreground mt-1">
-            Manage inboxes and email connections for your organization
+            Create and manage inboxes. Email setup is now in Admin → Integrations.
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -262,19 +262,21 @@ export function InboxManagement() {
         </Dialog>
       </div>
 
-      {/* Email Account Management */}
+      {/* Email setup moved notice */}
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Mail className="h-5 w-5" />
-            Email Account Management
+            Email setup moved to Integrations
           </CardTitle>
           <CardDescription>
-            Connect email accounts to your inboxes for automatic conversation routing
+            Manage all email connections under Admin → Integrations → Email Integration.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EmailForwarding />
+          <p className="text-sm text-muted-foreground">
+            This page now focuses on inboxes only. Use the Admin tab to configure email forwarding, Google Groups, and Gmail OAuth.
+          </p>
         </CardContent>
       </Card>
 
