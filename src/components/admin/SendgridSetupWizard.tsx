@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MailPlus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface SetupFormValues {
   domain: string;
@@ -21,6 +23,70 @@ export const SendgridSetupWizard = () => {
     defaultValues: { domain: '', parse_subdomain: 'inbound' },
   });
 
+  // Inbound address creation state
+  const [alias, setAlias] = useState('hei');
+  const [inboxes, setInboxes] = useState<any[]>([]);
+  const [selectedInbox, setSelectedInbox] = useState<string | null>(null);
+  const [domainRow, setDomainRow] = useState<any>(null);
+  const [route, setRoute] = useState<any>(null);
+
+  const loadDomainAndInboxes = async (d?: string, sub?: string) => {
+    const values = form.getValues();
+    const domain = d ?? values.domain;
+    const parse_subdomain = sub ?? values.parse_subdomain;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const { data: dom } = await supabase
+      .from('email_domains')
+      .select('*')
+      .eq('organization_id', prof?.organization_id)
+      .eq('domain', domain)
+      .eq('parse_subdomain', parse_subdomain)
+      .maybeSingle();
+    setDomainRow(dom);
+    const { data: inboxesData } = await supabase.rpc('get_inboxes');
+    setInboxes(inboxesData || []);
+    if (inboxesData?.length && !selectedInbox) setSelectedInbox(inboxesData[0].id);
+  };
+
+  const createInboundRoute = async () => {
+    if (!domainRow?.id || !selectedInbox) {
+      toast({ title: 'Missing data', description: 'Select an inbox; ensure domain is created.', variant: 'destructive' });
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { toast({ title: 'Auth required', variant: 'destructive' }); return; }
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const values = form.getValues();
+    const address = `${alias}@${values.parse_subdomain}.${values.domain}`;
+    const { data, error } = await supabase
+      .from('inbound_routes')
+      .insert({
+        address,
+        alias_local_part: alias,
+        domain_id: domainRow.id,
+        inbox_id: selectedInbox,
+        organization_id: prof?.organization_id,
+      })
+      .select('*')
+      .single();
+    if (error) {
+      toast({ title: 'Failed to create route', description: error.message, variant: 'destructive' });
+    } else {
+      setRoute(data);
+      toast({ title: 'Inbound address created', description: `${address} is ready.` });
+    }
+  };
+
   const onSubmit = async (values: SetupFormValues) => {
     setResult(null);
     const { data, error } = await supabase.functions.invoke('sendgrid-setup', {
@@ -31,6 +97,7 @@ export const SendgridSetupWizard = () => {
       return;
     }
     setResult(data);
+    await loadDomainAndInboxes(values.domain, values.parse_subdomain);
     if (data?.ok === false) {
       toast({ title: 'Sender Authentication needed', description: 'We created the sender auth config; add the DNS records then retry.', variant: 'destructive' });
     } else {
@@ -80,6 +147,7 @@ export const SendgridSetupWizard = () => {
               if (createErr) break;
               if (createData?.ok) {
                 setResult(createData);
+                await loadDomainAndInboxes(values.domain, values.parse_subdomain);
                 toast({ title: 'Parse route created', description: 'MX is set and sender auth validated.' });
                 return;
               }
@@ -188,6 +256,45 @@ export const SendgridSetupWizard = () => {
             {result?.ok === false && (
               <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
                 We created the sender authentication config in SendGrid. Add the DNS records above, wait for propagation, then click "Create Parse Route" again.
+              </div>
+            )}
+          </div>
+        )}
+
+        {result?.ok && (
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">Next: create an inbound address and map it to an inbox.</div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <Label>Alias</Label>
+                <Input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="hei" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Deliver to inbox</Label>
+                <Select value={selectedInbox || ''} onValueChange={(v) => setSelectedInbox(v)}>
+                  <SelectTrigger><SelectValue placeholder="Choose inbox" /></SelectTrigger>
+                  <SelectContent>
+                    {inboxes.map((i: any) => (
+                      <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border/50 p-3 bg-background/50 text-sm">
+              <div>
+                <div className="font-semibold">Receiving address</div>
+                <div className="text-muted-foreground">{`${alias}@${form.getValues().parse_subdomain}.${form.getValues().domain}`}</div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" type="button" onClick={() => navigator.clipboard.writeText(`${alias}@${form.getValues().parse_subdomain}.${form.getValues().domain}`)}>Copy</Button>
+                <Button type="button" onClick={createInboundRoute}>Create Inbound Address</Button>
+              </div>
+            </div>
+            {route && (
+              <div className="rounded-md border border-border/50 p-3 text-sm bg-background/50">
+                Send a test email to <span className="font-semibold">{route.address}</span>.
+                If your public email is hei@noddi.no, set a forward to this address in your email provider.
               </div>
             )}
           </div>
