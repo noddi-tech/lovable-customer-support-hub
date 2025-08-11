@@ -422,8 +422,9 @@ export function EmailForwarding() {
     );
   }
 
-  // Count how many accounts have auto-sync enabled
-  const autoSyncEnabledCount = accounts.filter(acc => acc.auto_sync_enabled).length;
+  // Count Gmail accounts and auto-sync state (Gmail-only)
+  const gmailAccountCount = accounts.filter(acc => acc.provider === 'gmail').length;
+  const autoSyncEnabledCount = accounts.filter(acc => acc.provider === 'gmail' && acc.auto_sync_enabled).length;
 
   return (
     <div className="space-y-6">
@@ -431,26 +432,29 @@ export function EmailForwarding() {
       <Alert className="bg-primary-muted border-primary/20">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <strong>Gmail Integration:</strong> Connect your Gmail account to automatically sync emails as conversations. 
+          <strong>Gmail Integration:</strong> Connect your Gmail account (OAuth) to sync emails on a schedule. 
           {autoSyncEnabledCount > 0 ? (
             <div className="flex items-center gap-2 mt-2 text-success">
               <Clock className="h-4 w-4" />
-              <span>Auto-sync enabled for {autoSyncEnabledCount} account{autoSyncEnabledCount > 1 ? 's' : ''}</span>
+              <span>Auto-sync enabled for {autoSyncEnabledCount} Gmail account{autoSyncEnabledCount > 1 ? 's' : ''}</span>
             </div>
           ) : (
             <div className="text-muted-foreground mt-2">
-              Auto-sync is disabled for all accounts. Configure per-account settings below.
+              No Gmail auto-sync enabled yet. Configure per-account settings below.
             </div>
           )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Note: Google Groups or forwarding-only addresses deliver instantly via their forwarding address — manual sync does not apply.
+          </p>
           <div className="mt-3 flex gap-2">
             <Button 
               onClick={() => handleSyncEmails()}
-              disabled={syncEmailsMutation.isPending}
+              disabled={gmailAccountCount === 0 || syncEmailsMutation.isPending}
               variant="outline"
               size="sm"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${syncEmailsMutation.isPending ? 'animate-spin' : ''}`} />
-              {syncEmailsMutation.isPending ? 'Syncing...' : 'Sync All Accounts'}
+              {syncEmailsMutation.isPending ? 'Syncing...' : 'Sync Gmail Accounts'}
             </Button>
             <Button 
               onClick={handleGmailConnect}
@@ -584,62 +588,69 @@ export function EmailForwarding() {
                       </div>
                       
                       {/* Auto-sync Settings per Account */}
-                      <div className="space-y-2 border-t pt-3">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <Label className="text-sm font-medium">Auto-sync</Label>
-                            <p className="text-xs text-muted-foreground">
-                              {account.sync_interval_minutes < 1 
-                                ? `Automatically sync this account every ${Math.ceil(account.sync_interval_minutes * 60)} second${Math.ceil(account.sync_interval_minutes * 60) !== 1 ? 's' : ''}`
-                                : `Automatically sync this account every ${account.sync_interval_minutes} minute${account.sync_interval_minutes > 1 ? 's' : ''}`
-                              }
-                            </p>
-                          </div>
-                          <Switch
-                            checked={account.auto_sync_enabled}
-                            onCheckedChange={(checked) => 
-                              updateAccountSyncMutation.mutate({
-                                accountId: account.id,
-                                autoSyncEnabled: checked,
-                                syncIntervalMinutes: account.sync_interval_minutes
-                              })
-                            }
-                            disabled={updateAccountSyncMutation.isPending}
-                          />
-                        </div>
-                        
-                        {account.auto_sync_enabled && (
-                          <div className="ml-4">
-                            <Label className="text-xs text-muted-foreground">Sync Interval</Label>
-                            <Select 
-                              value={account.sync_interval_minutes?.toString() || "2"}
-                              onValueChange={(value) => {
-                                const numericValue = Number(value);
-                                console.log('Selected value:', value, 'Converted to:', numericValue);
+                      {account.provider === 'gmail' ? (
+                        <div className="space-y-2 border-t pt-3">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <Label className="text-sm font-medium">Auto-sync</Label>
+                              <p className="text-xs text-muted-foreground">
+                                {account.sync_interval_minutes < 1 
+                                  ? `Automatically sync this account every ${Math.ceil(account.sync_interval_minutes * 60)} second${Math.ceil(account.sync_interval_minutes * 60) !== 1 ? 's' : ''}`
+                                  : `Automatically sync this account every ${account.sync_interval_minutes} minute${account.sync_interval_minutes > 1 ? 's' : ''}`
+                                }
+                              </p>
+                            </div>
+                            <Switch
+                              checked={account.auto_sync_enabled}
+                              onCheckedChange={(checked) => 
                                 updateAccountSyncMutation.mutate({
                                   accountId: account.id,
-                                  autoSyncEnabled: true,
-                                  syncIntervalMinutes: numericValue
-                                });
-                              }}
+                                  autoSyncEnabled: checked,
+                                  syncIntervalMinutes: account.sync_interval_minutes
+                                })
+                              }
                               disabled={updateAccountSyncMutation.isPending}
-                            >
-                              <SelectTrigger className="w-32 h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="0.017">1 sec</SelectItem>
-                                <SelectItem value="0.083">5 sec</SelectItem>
-                                <SelectItem value="0.167">10 sec</SelectItem>
-                                <SelectItem value="0.5">30 sec</SelectItem>
-                                <SelectItem value="1">1 min</SelectItem>
-                                <SelectItem value="2">2 min</SelectItem>
-                                <SelectItem value="5">5 min</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            />
                           </div>
-                        )}
-                      </div>
+                          {account.auto_sync_enabled && (
+                            <div className="ml-4">
+                              <Label className="text-xs text-muted-foreground">Sync Interval</Label>
+                              <Select 
+                                value={account.sync_interval_minutes?.toString() || "2"}
+                                onValueChange={(value) => {
+                                  const numericValue = Number(value);
+                                  console.log('Selected value:', value, 'Converted to:', numericValue);
+                                  updateAccountSyncMutation.mutate({
+                                    accountId: account.id,
+                                    autoSyncEnabled: true,
+                                    syncIntervalMinutes: numericValue
+                                  });
+                                }}
+                                disabled={updateAccountSyncMutation.isPending}
+                              >
+                                <SelectTrigger className="w-32 h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0.017">1 sec</SelectItem>
+                                  <SelectItem value="0.083">5 sec</SelectItem>
+                                  <SelectItem value="0.167">10 sec</SelectItem>
+                                  <SelectItem value="0.5">30 sec</SelectItem>
+                                  <SelectItem value="1">1 min</SelectItem>
+                                  <SelectItem value="2">2 min</SelectItem>
+                                  <SelectItem value="5">5 min</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2 border-t pt-3">
+                          <p className="text-sm text-muted-foreground">
+                            This address uses forwarding (e.g., Google Group). Messages arrive in real time via the forwarding address; manual sync is not applicable.
+                          </p>
+                        </div>
+                      )}
                       
                       {/* Inbox Assignment Section */}
                       <div>
@@ -734,25 +745,29 @@ export function EmailForwarding() {
                             </Button>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Forward your emails to this address to receive them in your inbox.
+                            {account.provider === 'google-group'
+                              ? 'In Google Admin → Groups, add this address as a member so messages are forwarded here.'
+                              : 'Forward your emails to this address to receive them in your inbox.'}
                           </p>
                         </div>
                       )}
 
                       <div className="text-sm text-muted-foreground">
-                        Last sync: {formatLastSync(account.last_sync_at)}
+                        {account.provider === 'gmail' ? `Last sync: ${formatLastSync(account.last_sync_at)}` : 'Sync: Real-time via forwarding'}
                       </div>
                     </div>
 
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSyncEmails(account.id)}
-                        disabled={syncEmailsMutation.isPending}
-                      >
-                        <RefreshCw className={`h-4 w-4 ${syncEmailsMutation.isPending ? 'animate-spin' : ''}`} />
-                      </Button>
+                      {account.provider === 'gmail' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSyncEmails(account.id)}
+                          disabled={syncEmailsMutation.isPending}
+                        >
+                          <RefreshCw className={`h-4 w-4 ${syncEmailsMutation.isPending ? 'animate-spin' : ''}`} />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
