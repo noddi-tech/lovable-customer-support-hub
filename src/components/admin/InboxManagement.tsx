@@ -44,6 +44,15 @@ interface InboundRoute {
   group_email: string | null;
 }
 
+
+interface EmailAccount {
+  id: string;
+  inbox_id: string | null;
+  email_address: string;
+  provider: string;
+  is_active: boolean | null;
+}
+
 export function InboxManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingInbox, setEditingInbox] = useState<InboxData | null>(null);
@@ -89,6 +98,16 @@ export function InboxManagement() {
         .select('id,inbox_id,address,group_email');
       if (error) throw error;
       return data as unknown as InboundRoute[];
+    },
+  });
+
+  // Fetch connected email accounts (OAuth/IMAP) per inbox
+  const { data: emailAccounts } = useQuery({
+    queryKey: ['email_accounts'],
+    queryFn: async (): Promise<EmailAccount[]> => {
+      const { data, error } = await supabase.rpc('get_email_accounts');
+      if (error) throw error;
+      return (data || []) as unknown as EmailAccount[];
     },
   });
 
@@ -391,18 +410,26 @@ export function InboxManagement() {
                     <div className="text-muted-foreground">
                       {(() => {
                         const routes = inboundRoutes?.filter(r => r.inbox_id === inbox.id) || [];
-                        return routes.length > 0 ? (
+                        const accounts = (emailAccounts || []).filter(a => a.inbox_id === inbox.id);
+                        if (routes.length + accounts.length === 0) {
+                          return <span>No email connected</span>;
+                        }
+                        return (
                           <ul className="list-disc pl-5 space-y-1">
+                            {accounts.map((a) => (
+                              <li key={`acct-${a.id}`}>
+                                <span className="font-medium">{a.email_address}</span>
+                                <span className="ml-2 text-xs">({a.provider})</span>
+                              </li>
+                            ))}
                             {routes.map((r) => (
-                              <li key={r.id}>
+                              <li key={`route-${r.id}`}>
                                 <span className="font-medium">{r.group_email || 'Public email not set'}</span>
                                 <span className="ml-2">→ forwards to </span>
                                 <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted/50">{r.address}</code>
                               </li>
                             ))}
                           </ul>
-                        ) : (
-                          <span>No inbound email connected</span>
                         );
                       })()}
                     </div>
