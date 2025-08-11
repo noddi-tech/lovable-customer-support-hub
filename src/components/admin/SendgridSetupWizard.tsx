@@ -25,7 +25,7 @@ export const SendgridSetupWizard = () => {
   });
 
   // Inbound address creation state
-  const [alias, setAlias] = useState('hei');
+  const [alias, setAlias] = useState('');
   const [inboxes, setInboxes] = useState<any[]>([]);
   const [selectedInbox, setSelectedInbox] = useState<string | null>(null);
   const [domainRow, setDomainRow] = useState<any>(null);
@@ -268,7 +268,7 @@ export const SendgridSetupWizard = () => {
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <Label>Alias</Label>
-                <Input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="hei" />
+                <Input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="support" />
               </div>
               <div className="sm:col-span-2">
                 <Label>Deliver to inbox</Label>
@@ -285,11 +285,11 @@ export const SendgridSetupWizard = () => {
             <div className="flex items-center justify-between rounded-md border border-border/50 p-3 bg-background/50 text-sm">
               <div>
                 <div className="font-semibold">Receiving address</div>
-                <div className="text-muted-foreground">{`${alias}@${form.getValues().parse_subdomain}.${form.getValues().domain}`}</div>
+                <div className="text-muted-foreground">{`${alias || 'your-alias'}@${form.getValues().parse_subdomain}.${form.getValues().domain}`}</div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" type="button" onClick={() => navigator.clipboard.writeText(`${alias}@${form.getValues().parse_subdomain}.${form.getValues().domain}`)}>Copy</Button>
-                <Button type="button" onClick={createInboundRoute}>Create Inbound Address</Button>
+                <Button variant="outline" type="button" disabled={!alias.trim()} onClick={() => navigator.clipboard.writeText(`${alias}@${form.getValues().parse_subdomain}.${form.getValues().domain}`)}>Copy</Button>
+                <Button type="button" disabled={!alias.trim() || !selectedInbox} onClick={createInboundRoute}>Create Inbound Address</Button>
               </div>
             </div>
             {route && (
