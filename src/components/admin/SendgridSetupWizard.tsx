@@ -94,6 +94,7 @@ export const SendgridSetupWizard = () => {
                 <div className="flex gap-2"><span className="font-semibold">Type:</span><span>MX</span></div>
                 <div className="flex gap-2"><span className="font-semibold">Value:</span><span>mx.sendgrid.net</span></div>
                 <div className="flex gap-2"><span className="font-semibold">Priority:</span><span>10</span></div>
+                <div className="flex gap-2"><span className="font-semibold">TTL:</span><span>3600</span></div>
               </div>
             </div>
 
