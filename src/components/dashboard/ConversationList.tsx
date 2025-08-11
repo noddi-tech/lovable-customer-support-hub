@@ -50,16 +50,6 @@ interface InboundRoute {
   group_email: string | null;
 }
 
-  const { data: inboundRoutes = [] } = useQuery({
-    queryKey: ['inbound_routes'],
-    queryFn: async (): Promise<InboundRoute[]> => {
-      const { data, error } = await supabase
-        .from('inbound_routes')
-        .select('id,inbox_id,address,group_email');
-      if (error) throw error;
-      return data as unknown as InboundRoute[];
-    },
-  });
 
 interface ConversationListProps {
   selectedTab: string;
@@ -133,6 +123,18 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  // Fetch inbound routes for empty-state guidance
+  const { data: inboundRoutes = [] } = useQuery({
+    queryKey: ['inbound_routes'],
+    queryFn: async (): Promise<InboundRoute[]> => {
+      const { data, error } = await supabase
+        .from('inbound_routes')
+        .select('id,inbox_id,address,group_email');
+      if (error) throw error;
+      return data as unknown as InboundRoute[];
+    },
+  });
 
   // Fetch inboxes available to the user
 
