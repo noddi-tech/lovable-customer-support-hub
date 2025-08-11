@@ -262,23 +262,6 @@ export function InboxManagement() {
         </Dialog>
       </div>
 
-      {/* Email setup moved notice */}
-      <Card className="bg-gradient-surface border-border/50 shadow-surface">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Mail className="h-5 w-5" />
-            Email setup moved to Integrations
-          </CardTitle>
-          <CardDescription>
-            Manage all email connections under Admin → Integrations → Email Integration.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            This page now focuses on inboxes only. Use the Admin tab to configure email forwarding, Google Groups, and Gmail OAuth.
-          </p>
-        </CardContent>
-      </Card>
 
       <Separator />
 
