@@ -70,9 +70,27 @@ export const SendgridSetupWizard = () => {
             body: { ...values, action: 'validate' as const },
           });
           if (error) break;
-          if (data?.sender_auth_valid || data?.validation?.valid) {
+          const isValid = !!(data?.sender_auth_valid || data?.validation?.valid);
+          if (isValid) {
             toast({ title: 'Sender auth validated', description: 'Creating parse route now...' });
-            await onSubmit(values);
+            // Try creating parse route with backoff (SendGrid can lag after validation)
+            const createAttempts = 12;
+            for (let c = 1; c <= createAttempts; c++) {
+              const { data: createData, error: createErr } = await supabase.functions.invoke('sendgrid-setup', { body: values });
+              if (createErr) break;
+              if (createData?.ok) {
+                setResult(createData);
+                toast({ title: 'Parse route created', description: 'MX is set and sender auth validated.' });
+                return;
+              }
+              const msg = JSON.stringify(createData);
+              if (!msg.includes('matching senderauth domain')) {
+                // Some other error; stop retries
+                break;
+              }
+              await new Promise((res) => setTimeout(res, 10000));
+            }
+            toast({ title: 'Still pending', description: 'SendGrid has not accepted the parse route yet. Please wait a few minutes and try again.', variant: 'destructive' });
             return;
           }
           await new Promise((res) => setTimeout(res, 10000));
