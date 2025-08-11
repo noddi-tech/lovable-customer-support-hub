@@ -43,6 +43,16 @@ interface Conversation {
   snooze_until?: string;
 }
 
+interface InboxData {
+  id: string;
+  name: string;
+  description?: string | null;
+  color: string;
+  is_active: boolean;
+  is_default?: boolean;
+  conversation_count?: number;
+}
+
 interface ConversationListProps {
   selectedTab: string;
   onSelectConversation: (conversation: Conversation) => void;
@@ -110,9 +120,27 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [selectedInboxId, setSelectedInboxId] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  // Fetch inboxes available to the user
+  const { data: inboxes = [] } = useQuery({
+    queryKey: ['inboxes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_inboxes');
+      if (error) throw error;
+      return data as InboxData[];
+    },
+  });
+
+  // Sync dropdown with sidebar when a specific inbox tab is selected
+  useEffect(() => {
+    if (selectedTab.startsWith('inbox-')) {
+      setSelectedInboxId(selectedTab.replace('inbox-', ''));
+    }
+  }, [selectedTab]);
 
   // Fetch real conversations from database
   const { data: conversations = [], isLoading } = useQuery({
@@ -261,6 +289,10 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
     }
   };
 
+  const effectiveInboxId = selectedTab.startsWith('inbox-')
+    ? selectedTab.replace('inbox-', '')
+    : (selectedInboxId !== 'all' ? selectedInboxId : null);
+
   const filteredConversations = conversations.filter((conversation) => {
     const matchesSearch = conversation.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conversation.customer?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -268,6 +300,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
     
     const matchesStatus = statusFilter === "all" || conversation.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || conversation.priority === priorityFilter;
+    const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
     
     const matchesTab = (() => {
       const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
@@ -303,7 +336,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       }
     })();
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesTab;
+    return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
   });
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
@@ -339,6 +372,18 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         </div>
         
         <div className="flex gap-2">
+          <Select value={selectedInboxId} onValueChange={setSelectedInboxId} disabled={selectedTab.startsWith('inbox-')}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All Inboxes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Inboxes</SelectItem>
+              {inboxes.filter((i: InboxData) => i.is_active).map((i: InboxData) => (
+                <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="All Status" />
