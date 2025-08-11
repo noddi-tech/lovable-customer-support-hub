@@ -63,7 +63,7 @@ serve(async (req: Request) => {
 
     const hostname = `${parse_subdomain}.${domain}`;
 
-    // Configure SendGrid Inbound Parse via API
+    // Configure SendGrid Inbound Parse via API (and ensure Sender Authentication exists)
     const sgKey = Deno.env.get('SENDGRID_API_KEY');
     const inboundToken = Deno.env.get('SENDGRID_INBOUND_TOKEN');
     if (!sgKey || !inboundToken) {
@@ -72,31 +72,69 @@ serve(async (req: Request) => {
 
     const inboundUrl = `https://${Deno.env.get('SUPABASE_URL')!.replace('https://', '')}/functions/v1/sendgrid-inbound?token=${inboundToken}`;
 
-    const sgResp = await fetch('https://api.sendgrid.com/v3/user/webhooks/parse/settings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${sgKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        hostname,
-        url: inboundUrl,
-        spam_check: true,
-        send_raw: false,
-        enable: true,
-        // set_tls: 1,  // optional strict TLS
-      }),
-    });
-
-    const sgData = await sgResp.json();
-    if (!sgResp.ok) {
-      return new Response(JSON.stringify({ error: 'SendGrid API error', details: sgData }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    async function createParseSetting() {
+      const resp = await fetch('https://api.sendgrid.com/v3/user/webhooks/parse/settings', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${sgKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostname, url: inboundUrl, spam_check: true, send_raw: false, enable: true }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      return { ok: resp.ok, status: resp.status, data };
     }
 
-    // Upsert domain record
-    const dns_records = {
+    async function ensureSenderAuth() {
+      // Check if sender auth exists for the domain
+      const check = await fetch(`https://api.sendgrid.com/v3/whitelabel/domains?domain=${encodeURIComponent(domain)}&limit=1`, {
+        headers: { 'Authorization': `Bearer ${sgKey}` },
+      });
+      const existing = await check.json().catch(() => []);
+      if (Array.isArray(existing) && existing.length > 0) {
+        return { created: false, record: existing[0] };
+      }
+      // Create sender auth (domain authentication)
+      const create = await fetch('https://api.sendgrid.com/v3/whitelabel/domains', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${sgKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, subdomain: 'em', automatic_security: true }),
+      });
+      const created = await create.json().catch(() => ({}));
+      if (!create.ok) {
+        return { created: false, record: null, error: created };
+      }
+      return { created: true, record: created };
+    }
+
+    // Try to create parse setting; if blocked by sender auth requirement, provision it then retry
+    let parseResult = await createParseSetting();
+    let authPayload: any = null;
+
+    if (!parseResult.ok) {
+      const msg = JSON.stringify(parseResult.data);
+      if (msg.includes('matching senderauth domain')) {
+        const auth = await ensureSenderAuth();
+        authPayload = auth;
+        // Retry once after creating sender auth
+        parseResult = await createParseSetting();
+      }
+    }
+
+    if (!parseResult.ok) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: 'SendGrid API error',
+        details: parseResult.data,
+        hint: 'Complete Sender Authentication for this domain in DNS, then re-run. We attempted to create it automatically.',
+        sender_auth: authPayload,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Upsert domain record and return DNS instructions (MX + optionally sender auth records)
+    const dns_records: any = {
       mx: [{ host: hostname, type: 'MX', value: 'mx.sendgrid.net', priority: 10 }],
     };
+    if (authPayload?.record?.dns) {
+      dns_records.sender_auth = authPayload.record.dns;
+    }
 
     const { data: domainRow, error: domErr } = await admin
       .from('email_domains')
@@ -119,8 +157,8 @@ serve(async (req: Request) => {
       ok: true,
       hostname,
       dns_records,
-      parse_setting: sgData,
-      message: 'Configure the MX record above on your DNS. We will verify automatically.',
+      parse_setting: parseResult.data,
+      message: 'Add the MX record (and any sender auth records if shown). We will verify automatically.',
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error('sendgrid-setup error', error);

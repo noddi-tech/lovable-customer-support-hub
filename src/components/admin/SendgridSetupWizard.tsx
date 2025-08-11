@@ -30,7 +30,11 @@ export const SendgridSetupWizard = () => {
       return;
     }
     setResult(data);
-    toast({ title: 'Parse route created', description: 'Add the MX record to your DNS and we will verify automatically.' });
+    if (data?.ok === false) {
+      toast({ title: 'Sender Authentication needed', description: 'We created the sender auth config; add the DNS records then retry.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Parse route created', description: 'Add the MX record to your DNS and we will verify automatically.' });
+    }
   };
 
   return (
@@ -82,14 +86,31 @@ export const SendgridSetupWizard = () => {
         </Form>
 
         {result && (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Add this MX record to your DNS:</p>
-            <div className="rounded-md border border-border/50 p-3 text-sm bg-background/50">
-              <div className="flex gap-2"><span className="font-semibold">Host:</span><span>{result.hostname}</span></div>
-              <div className="flex gap-2"><span className="font-semibold">Type:</span><span>MX</span></div>
-              <div className="flex gap-2"><span className="font-semibold">Value:</span><span>mx.sendgrid.net</span></div>
-              <div className="flex gap-2"><span className="font-semibold">Priority:</span><span>10</span></div>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Add this MX record to your DNS:</p>
+              <div className="rounded-md border border-border/50 p-3 text-sm bg-background/50">
+                <div className="flex gap-2"><span className="font-semibold">Host:</span><span>{result.hostname}</span></div>
+                <div className="flex gap-2"><span className="font-semibold">Type:</span><span>MX</span></div>
+                <div className="flex gap-2"><span className="font-semibold">Value:</span><span>mx.sendgrid.net</span></div>
+                <div className="flex gap-2"><span className="font-semibold">Priority:</span><span>10</span></div>
+              </div>
             </div>
+
+            {result?.dns_records?.sender_auth && (
+              <div>
+                <p className="text-sm text-muted-foreground">Sender Authentication records (add these too):</p>
+                <pre className="rounded-md border border-border/50 p-3 text-xs bg-background/50 overflow-auto">
+                  {JSON.stringify(result.dns_records.sender_auth, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {result?.ok === false && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                We created the sender authentication config in SendGrid. Add the DNS records above, wait for propagation, then click "Create Parse Route" again.
+              </div>
+            )}
           </div>
         )}
       </CardContent>
