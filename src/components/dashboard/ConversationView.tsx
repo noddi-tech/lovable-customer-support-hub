@@ -1372,10 +1372,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       onClick={handleAISuggestClick}
                       disabled={aiLoading}
                       className="hover:bg-accent"
-                      title="Få AI-forslag til svar"
+                      title="Get AI suggestions"
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
-                      {aiLoading ? 'Foreslår…' : 'AI forslag'}
+                      {aiLoading ? 'Suggesting…' : 'AI suggestion'}
                     </Button>
                     <Button 
                       variant={isInternalNote ? "default" : "secondary"} 
