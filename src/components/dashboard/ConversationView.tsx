@@ -21,6 +21,7 @@ import {
   Star,
   Paperclip,
   Send,
+  RefreshCw,
   Smile,
   Bold,
   Italic,
@@ -1233,6 +1234,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {!message.is_internal && message.sender_type === 'agent' && message.email_status === 'failed' && (
+                                <DropdownMenuItem onClick={() => retryMessage(message.id)}>
+                                  <RefreshCw className="h-3 w-3 mr-2" />
+                                  Retry send
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => startEdit(message)}>
                                 <Edit3 className="h-3 w-3 mr-2" />
                                 Edit
