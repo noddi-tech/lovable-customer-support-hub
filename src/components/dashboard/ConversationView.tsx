@@ -360,7 +360,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               await supabase.from('notifications').insert({
                 user_id: userData?.user?.id,
                 title: 'Email Failed to Send',
-                message: `Email failed to send: ${emailError.message}`,
+                message: 'Email failed to send: SendGrid credits exceeded. Please increase credits in SendGrid and try again.',
                 type: 'error',
                 data: { conversation_id: conversationId, message_id: newMessage.id, note_preview: extractTextFromHTML_local(processedContent).slice(0, 100) }
               });
@@ -368,7 +368,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               console.error('Failed to create failure notification:', notifyErr);
             }
             
-            toast.error(`Email failed to send: ${emailError.message}`);
+            toast.error('Email failed to send: SendGrid credits exceeded. Please increase credits in SendGrid and try again.');
           } else if (emailData?.error) {
             console.error('Email function returned error:', emailData.error);
             
@@ -384,7 +384,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               await supabase.from('notifications').insert({
                 user_id: userData?.user?.id,
                 title: 'Email Failed to Send',
-                message: `Email failed to send: ${emailData.error}`,
+                message: 'Email failed to send: SendGrid credits exceeded. Please increase credits in SendGrid and try again.',
                 type: 'error',
                 data: { conversation_id: conversationId, message_id: newMessage.id, note_preview: extractTextFromHTML_local(processedContent).slice(0, 100) }
               });
@@ -392,7 +392,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               console.error('Failed to create failure notification:', notifyErr);
             }
             
-            toast.error(`Email failed to send: ${emailData.error}`);
+            toast.error('Email failed to send: SendGrid credits exceeded. Please increase credits in SendGrid and try again.');
           } else {
             console.log('Email sent successfully:', emailData);
             
@@ -432,7 +432,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             await supabase.from('notifications').insert({
               user_id: userData?.user?.id,
               title: 'Email Failed to Send',
-              message: 'Reply saved but email failed to send',
+              message: 'Reply saved but email failed to send. SendGrid credits exceeded. Please increase credits in SendGrid and try again.',
               type: 'error',
               data: { conversation_id: conversationId, message_id: newMessage.id, note_preview: extractTextFromHTML_local(processedContent).slice(0, 100) }
             });
@@ -440,7 +440,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             console.error('Failed to create failure notification:', notifyErr);
           }
           
-          toast.error('Reply saved but email failed to send');
+          toast.error('Reply saved but email failed to send. SendGrid credits exceeded. Please increase credits in SendGrid and try again.');
         }
         
         // Refresh data again to show updated status

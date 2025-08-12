@@ -183,7 +183,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
                 .from('messages')
                 .update({ email_status: 'failed' })
                 .eq('id', newMessage.id);
-              toast.error('Email failed to send');
+              toast.error('Email failed to send: SendGrid credits exceeded. Please increase credits in SendGrid and try again.');
             } else {
               console.log('Email sent successfully:', emailResult);
               toast.success('Email sent successfully');
@@ -203,7 +203,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
               .from('messages')
               .update({ email_status: 'failed' })
               .eq('id', newMessage.id);
-            toast.error('Failed to send email');
+            toast.error('Failed to send email: SendGrid credits exceeded. Please increase credits in SendGrid and try again.');
           }
         } else {
           console.warn('No email account connected to inbox, email not sent');
