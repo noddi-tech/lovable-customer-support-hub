@@ -552,6 +552,7 @@ export function EmailForwarding({ mode = 'full' }: { mode?: 'full' | 'addAliasOn
       )}
 
       {/* Connected Accounts */}
+      {mode === 'full' && (
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="text-primary">Connected Email Accounts</CardTitle>
@@ -786,6 +787,7 @@ export function EmailForwarding({ mode = 'full' }: { mode?: 'full' | 'addAliasOn
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
