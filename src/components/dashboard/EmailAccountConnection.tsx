@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmailForwarding } from "./EmailForwarding";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Forward, Server } from "lucide-react";
+import { Mail, Forward, Server, Plus } from "lucide-react";
 import { InboundRoutesList } from "@/components/admin/InboundRoutesList";
 import { SendgridSetupWizard } from "@/components/admin/SendgridSetupWizard";
 
@@ -20,10 +20,14 @@ export function EmailAccountConnection() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="forwarding" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+            <TabsList className="grid w-full grid-cols-3 bg-muted/50">
               <TabsTrigger value="forwarding" className="flex items-center gap-2">
                 <Forward className="h-4 w-4" />
                 Email Forwarding
+              </TabsTrigger>
+              <TabsTrigger value="add-alias" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Add Alias
               </TabsTrigger>
               <TabsTrigger value="inbound" className="flex items-center gap-2">
                 <Server className="h-4 w-4" />
@@ -32,7 +36,11 @@ export function EmailAccountConnection() {
             </TabsList>
             
             <TabsContent value="forwarding" className="mt-6">
-              <EmailForwarding />
+              <EmailForwarding mode="gmailAndAccounts" />
+            </TabsContent>
+            
+            <TabsContent value="add-alias" className="mt-6">
+              <EmailForwarding mode="addAliasOnly" />
             </TabsContent>
             
             <TabsContent value="inbound" className="mt-6 space-y-6">

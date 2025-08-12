@@ -32,7 +32,7 @@ interface Inbox {
   is_default: boolean;
 }
 
-export function EmailForwarding() {
+export function EmailForwarding({ mode = 'full' }: { mode?: 'full' | 'addAliasOnly' | 'gmailAndAccounts' }) {
   const [email, setEmail] = useState("");
   const [selectedInbox, setSelectedInbox] = useState<string>("unassigned");
   const [connectionType, setConnectionType] = useState<'forwarding' | 'google-group'>("forwarding");
@@ -428,126 +428,128 @@ export function EmailForwarding() {
 
   return (
     <div className="space-y-6">
-      {/* Setup Instructions */}
-      <Alert className="bg-primary-muted border-primary/20">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Gmail Integration:</strong> Connect your Gmail account (OAuth) to sync emails on a schedule. 
-          {autoSyncEnabledCount > 0 ? (
-            <div className="flex items-center gap-2 mt-2 text-success">
-              <Clock className="h-4 w-4" />
-              <span>Auto-sync enabled for {autoSyncEnabledCount} Gmail account{autoSyncEnabledCount > 1 ? 's' : ''}</span>
+      {mode !== 'addAliasOnly' && (
+        <Alert className="bg-primary-muted border-primary/20">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Gmail Integration:</strong> Connect your Gmail account (OAuth) to sync emails on a schedule. 
+            {autoSyncEnabledCount > 0 ? (
+              <div className="flex items-center gap-2 mt-2 text-success">
+                <Clock className="h-4 w-4" />
+                <span>Auto-sync enabled for {autoSyncEnabledCount} Gmail account{autoSyncEnabledCount > 1 ? 's' : ''}</span>
+              </div>
+            ) : (
+              <div className="text-muted-foreground mt-2">
+                No Gmail auto-sync enabled yet. Configure per-account settings below.
+              </div>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              Note: Google Groups or forwarding-only addresses deliver instantly via their forwarding address — manual sync does not apply.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <Button 
+                onClick={() => handleSyncEmails()}
+                disabled={gmailAccountCount === 0 || syncEmailsMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncEmailsMutation.isPending ? 'animate-spin' : ''}`} />
+                {syncEmailsMutation.isPending ? 'Syncing...' : 'Sync Gmail Accounts'}
+              </Button>
+              <Button 
+                onClick={handleGmailConnect}
+                variant="outline"
+                size="sm"
+                className="hover:bg-accent"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Connect Gmail
+              </Button>
             </div>
-          ) : (
-            <div className="text-muted-foreground mt-2">
-              No Gmail auto-sync enabled yet. Configure per-account settings below.
-            </div>
-          )}
-          <p className="mt-2 text-xs text-muted-foreground">
-            Note: Google Groups or forwarding-only addresses deliver instantly via their forwarding address — manual sync does not apply.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <Button 
-              onClick={() => handleSyncEmails()}
-              disabled={gmailAccountCount === 0 || syncEmailsMutation.isPending}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${syncEmailsMutation.isPending ? 'animate-spin' : ''}`} />
-              {syncEmailsMutation.isPending ? 'Syncing...' : 'Sync Gmail Accounts'}
-            </Button>
-            <Button 
-              onClick={handleGmailConnect}
-              variant="outline"
-              size="sm"
-              className="hover:bg-accent"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Connect Gmail
-            </Button>
-          </div>
-        </AlertDescription>
-      </Alert>
+          </AlertDescription>
+        </Alert>
+      )}
 
-      {/* Add New Email */}
-      <Card className="bg-gradient-surface border-border/50 shadow-surface">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Mail className="h-5 w-5" />
-            Add Email Account
-          </CardTitle>
-          <CardDescription>
-            Enter your email address to set up forwarding. We'll generate a unique forwarding address for you.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="connection-type">Connection Type</Label>
-              <Select value={connectionType} onValueChange={(v) => setConnectionType(v as 'forwarding' | 'google-group')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose how this address will connect" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="forwarding">Direct mailbox or alias (forwarding)</SelectItem>
-                  <SelectItem value="google-group">Google Group (add our address as a member)</SelectItem>
-                </SelectContent>
-              </Select>
-              {connectionType === 'google-group' && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  In Google Admin, open your Group → Members → Add members, paste the generated forwarding address, and ensure external posting is allowed.
-                </p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="inbox">Select Inbox</Label>
-              <Select value={selectedInbox} onValueChange={setSelectedInbox}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose which inbox to connect this email to" />
-                </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="unassigned">
-                     <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-muted" />
-                        <span>Unassigned</span>
-                      </div>
-                   </SelectItem>
-                   {inboxes.map((inbox) => (
-                     <SelectItem key={inbox.id} value={inbox.id}>
+      {mode !== 'gmailAndAccounts' && (
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Mail className="h-5 w-5" />
+              Add Email Account
+            </CardTitle>
+            <CardDescription>
+              Enter your email address to set up forwarding. We'll generate a unique forwarding address for you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="connection-type">Connection Type</Label>
+                <Select value={connectionType} onValueChange={(v) => setConnectionType(v as 'forwarding' | 'google-group')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose how this address will connect" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="forwarding">Direct mailbox or alias (forwarding)</SelectItem>
+                    <SelectItem value="google-group">Google Group (add our address as a member)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {connectionType === 'google-group' && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    In Google Admin, open your Group → Members → Add members, paste the generated forwarding address, and ensure external posting is allowed.
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="inbox">Select Inbox</Label>
+                <Select value={selectedInbox} onValueChange={setSelectedInbox}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose which inbox to connect this email to" />
+                  </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="unassigned">
                        <div className="flex items-center gap-2">
-                         <div 
-                           className="w-3 h-3 rounded-full" 
-                           style={{ backgroundColor: inbox.color }}
-                         />
-                         <span>{inbox.name}</span>
-                         {inbox.is_default && <span className="text-xs text-muted-foreground">(Default)</span>}
-                       </div>
+                          <div className="w-3 h-3 rounded-full bg-muted" />
+                          <span>Unassigned</span>
+                        </div>
                      </SelectItem>
-                   ))}
-                 </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="email">Your Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder={connectionType === 'google-group' ? "group@yourcompany.com" : "support@yourcompany.com"}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <Button 
-              type="submit" 
-              disabled={addEmailMutation.isPending}
-              className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
-            >
-              {addEmailMutation.isPending ? "Setting up..." : "Generate Forwarding Address"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+                     {inboxes.map((inbox) => (
+                       <SelectItem key={inbox.id} value={inbox.id}>
+                         <div className="flex items-center gap-2">
+                           <div 
+                             className="w-3 h-3 rounded-full" 
+                             style={{ backgroundColor: inbox.color }}
+                           />
+                           <span>{inbox.name}</span>
+                           {inbox.is_default && <span className="text-xs text-muted-foreground">(Default)</span>}
+                         </div>
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="email">Your Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder={connectionType === 'google-group' ? "group@yourcompany.com" : "support@yourcompany.com"}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <Button 
+                type="submit" 
+                disabled={addEmailMutation.isPending}
+                className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
+              >
+                {addEmailMutation.isPending ? "Setting up..." : "Generate Forwarding Address"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Connected Accounts */}
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
