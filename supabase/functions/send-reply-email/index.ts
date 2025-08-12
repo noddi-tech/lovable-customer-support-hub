@@ -227,7 +227,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (updateError) console.warn('Failed to update message status:', updateError);
 
     return new Response(
-      JSON.stringify({ success: true, sentTo: toEmail, sentFrom: fromEmail, messageId: messageIdHeader }),
+      JSON.stringify({ success: true, sentTo: toEmail, sentFrom: fromEmailFinal, messageId: messageIdHeader }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
