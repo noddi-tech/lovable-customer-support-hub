@@ -80,4 +80,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.suggest-replies]
-verify_jwt = true
+verify_jwt = false
