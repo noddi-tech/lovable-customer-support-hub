@@ -4,12 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Save, Palette, Bell } from 'lucide-react';
+import { Save, Palette, Bell, Wrench, ShieldAlert } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface OrganizationWithMetadata {
   id: string;
@@ -22,9 +24,11 @@ interface OrganizationWithMetadata {
 export const GeneralSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [orgName, setOrgName] = useState('');
-  const [orgDescription, setOrgDescription] = useState('');
-
+const [orgName, setOrgName] = useState('');
+const [orgDescription, setOrgDescription] = useState('');
+const [isBackfillOpen, setIsBackfillOpen] = useState(false);
+const [runningBackfill, setRunningBackfill] = useState(false);
+const { isAdmin } = usePermissions();
   // Fetch current organization data
   const { data: organization, isLoading } = useQuery<OrganizationWithMetadata | null>({
     queryKey: ['organization'],
@@ -91,6 +95,34 @@ export const GeneralSettings = () => {
     });
   };
 
+  const handleRunBackfill = async () => {
+    setRunningBackfill(true);
+    toast({
+      title: 'Backfill started',
+      description: 'Fixing sender mapping on recent email conversations...'
+    });
+    try {
+      const { data, error } = await supabase.functions.invoke('backfill-sender-fix', {
+        body: { limitConversations: 1000, sinceDays: 365, dryRun: false },
+      });
+      if (error) throw error;
+      const { processed = 0, updated = 0, skipped = 0 } = (data as any) || {};
+      toast({
+        title: 'Backfill completed',
+        description: `Processed ${processed}, updated ${updated}, skipped ${skipped}.`
+      });
+    } catch (error: any) {
+      console.error('Backfill failed', error);
+      toast({
+        title: 'Backfill failed',
+        description: error?.message || 'Please check edge function logs.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRunningBackfill(false);
+      setIsBackfillOpen(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -176,6 +208,47 @@ export const GeneralSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      {isAdmin() && (
+        <Card className="bg-gradient-surface border-border/50 shadow-surface">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Wrench className="w-5 h-5" />
+              Data Maintenance
+            </CardTitle>
+            <CardDescription>
+              Fix sender mapping for emails forwarded via groups/aliases (e.g., "via Hei").
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This scans recent email conversations and corrects the customer on the first message using Reply-To/X-Original-From.
+            </p>
+            <AlertDialog open={isBackfillOpen} onOpenChange={setIsBackfillOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={runningBackfill}>
+                  <ShieldAlert className="w-4 h-4" />
+                  {runningBackfill ? 'Running...' : 'Run Sender Backfill'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Run sender backfill now?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    We will process up to 1000 email conversations from the last 365 days and update the linked customer where needed.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleRunBackfill}>
+                    Confirm
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
 
     </div>
   );
