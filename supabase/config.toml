@@ -78,3 +78,6 @@ verify_jwt = true
 
 [functions.backfill-sender-fix]
 verify_jwt = true
+
+[functions.suggest-replies]
+verify_jwt = true

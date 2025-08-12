@@ -26,7 +26,7 @@ import {
   Bold,
   Italic,
   Link2,
-  MessageSquare,
+  MessageSquare, 
   CheckCircle,
   XCircle,
   AlertTriangle,
@@ -38,8 +38,9 @@ import {
   Lock,
   MoreVertical,
   Edit3,
+  Sparkles,
   Loader2
-} from 'lucide-react';
+ } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -94,6 +95,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [snoozeDialogOpen, setSnoozeDialogOpen] = useState(false);
   const [snoozeDate, setSnoozeDate] = useState<Date | undefined>();
   const [snoozeTime, setSnoozeTime] = useState<string>('09:00');
+
+  // AI suggestions state
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<Array<{ title?: string; reply: string; rationale?: string; tags?: string[]; confidence?: number }>>([]);
+  const [aiError, setAiError] = useState<string>('');
 
   // Helper functions
   const getInitials = (name: string) => {
@@ -469,6 +476,41 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     }
   };
 
+  // Get AI suggested replies for the latest customer message
+  const handleAISuggestClick = async () => {
+    try {
+      setAiError('');
+      setAiLoading(true);
+
+      // Find latest customer message in this conversation
+      const latestCustomer = (messages || []).find((m: any) => m.sender_type === 'customer' && !m.is_internal);
+      if (!latestCustomer) {
+        toast.error('Fant ingen kundemelding i tråden');
+        setAiLoading(false);
+        return;
+      }
+
+      const text = latestCustomer.content_type === 'text/html'
+        ? extractTextFromHTML_local(latestCustomer.content)
+        : (latestCustomer.content || '');
+
+      const { data, error } = await supabase.functions.invoke('suggest-replies', {
+        body: { customerMessage: text },
+      });
+
+      if (error) throw error;
+
+      const suggestions = (data as any)?.suggestions || [];
+      setAiSuggestions(suggestions);
+      setAiOpen(true);
+    } catch (e: any) {
+      console.error('AI suggestions failed', e);
+      setAiError(e?.message || 'Kunne ikke hente AI-forslag');
+      toast.error('Kunne ikke hente AI-forslag');
+    } finally {
+      setAiLoading(false);
+    }
+  };
   // Retry sending a failed message
   const retryMessage = async (messageId: string) => {
     try {
@@ -1323,19 +1365,30 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   <EmojiPicker onEmojiSelect={(emoji) => setReplyText(prev => prev + emoji)} />
                 </div>
                 
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant={isInternalNote ? "default" : "secondary"} 
-                    size="sm"
-                    onClick={() => setIsInternalNote(!isInternalNote)}
-                    className="hover:bg-accent"
-                  >
-                    Internal Note
-                  </Button>
-                  <Button variant="secondary" size="sm" className="hover:bg-accent">
-                    Templates
-                  </Button>
-                </div>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={handleAISuggestClick}
+                      disabled={aiLoading}
+                      className="hover:bg-accent"
+                      title="Få AI-forslag til svar"
+                    >
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      {aiLoading ? 'Foreslår…' : 'AI forslag'}
+                    </Button>
+                    <Button 
+                      variant={isInternalNote ? "default" : "secondary"} 
+                      size="sm"
+                      onClick={() => setIsInternalNote(!isInternalNote)}
+                      className="hover:bg-accent"
+                    >
+                      Internal Note
+                    </Button>
+                    <Button variant="secondary" size="sm" className="hover:bg-accent">
+                      Templates
+                    </Button>
+                  </div>
               </div>
 
               {/* Assignment dropdown for internal notes */}
@@ -1407,6 +1460,42 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             </div>
           </div>
         </div>
+
+        {/* AI Suggestions Dialog */}
+        <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>AI forslag</DialogTitle>
+            </DialogHeader>
+            {aiLoading ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" /> Tenker...
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {aiSuggestions.map((s, i) => (
+                  <div key={i} className="border border-border rounded p-3 bg-card">
+                    <div className="text-sm text-muted-foreground mb-1">
+                      {(s.title || 'Forslag')}{typeof s.confidence === 'number' ? ` • ${Math.round((s.confidence||0)*100)}%` : ''}{Array.isArray(s.tags) && s.tags.length ? ` • ${s.tags.join(', ')}` : ''}
+                    </div>
+                    <pre className="whitespace-pre-wrap text-sm">{s.reply}</pre>
+                    <div className="mt-2 flex gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => { setReplyText(s.reply); setAiOpen(false); }}>
+                        Bruk
+                      </Button>
+                    </div>
+                    {s.rationale && (
+                      <details className="text-xs text-muted-foreground mt-2">
+                        <summary>Hvorfor dette</summary>
+                        <p>{s.rationale}</p>
+                      </details>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Customer Info Sidebar - Hidden on mobile */}
         <div className="hidden lg:block w-80 border-l border-border bg-card p-4 overflow-y-auto">
