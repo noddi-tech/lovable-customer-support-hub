@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Mail, Forward, Server, Plus } from "lucide-react";
 import { InboundRoutesList } from "@/components/admin/InboundRoutesList";
 import { SendgridSetupWizard } from "@/components/admin/SendgridSetupWizard";
+import { ConnectedEmailAccounts } from "@/components/dashboard/ConnectedEmailAccounts";
 
 export function EmailAccountConnection() {
   return (
@@ -44,10 +45,14 @@ export function EmailAccountConnection() {
             </TabsContent>
             
             <TabsContent value="inbound" className="mt-6 space-y-6">
-              <InboundRoutesList />
               <SendgridSetupWizard />
             </TabsContent>
           </Tabs>
+
+          <div className="mt-8 space-y-6">
+            <ConnectedEmailAccounts />
+            <InboundRoutesList />
+          </div>
         </CardContent>
       </Card>
     </div>
