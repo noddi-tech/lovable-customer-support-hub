@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper to safely create a RFC 5322 Message-ID using the sender domain
+function createMessageId(fromEmail: string) {
+  const domain = fromEmail.split('@')[1] || 'mail.local';
+  const id = (crypto as any).randomUUID?.() || Math.random().toString(36).slice(2);
+  return `<msg-${id}@${domain}>`;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -13,8 +20,8 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('Send reply email function called');
-    
+    console.log('send-reply-email (SendGrid) called');
+
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -24,11 +31,9 @@ const handler = async (req: Request): Promise<Response> => {
     const { messageId } = await req.json();
     console.log('Processing message ID:', messageId);
 
-    if (!messageId) {
-      throw new Error('Message ID is required');
-    }
+    if (!messageId) throw new Error('Message ID is required');
 
-    // Get message details with conversation, customer, and sender info  
+    // Fetch message, conversation, customer and email account
     const { data: message, error: messageError } = await supabaseClient
       .from('messages')
       .select(`
@@ -49,26 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Message not found');
     }
 
-    // Get sender info separately since there's no foreign key relationship
-    let senderInfo = null;
-    if (message.sender_id) {
-      const { data: sender } = await supabaseClient
-        .from('profiles')
-        .select('full_name, email')
-        .eq('user_id', message.sender_id)
-        .single();
-      
-      senderInfo = sender;
-    }
-
-
-    console.log('Message data:', { 
-      id: message.id, 
-      conversationSubject: message.conversation?.subject,
-      customerEmail: message.conversation?.customer?.email 
-    });
-
-    // Don't send email for internal notes
+    // Skip internal notes
     if (message.is_internal) {
       console.log('Message is internal, skipping email send');
       return new Response(JSON.stringify({ success: true, skipped: 'internal_note' }), {
@@ -77,118 +63,46 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // Get sender (agent) info
+    let senderInfo: { full_name?: string; email?: string } | null = null;
+    if (message.sender_id) {
+      const { data: sender } = await supabaseClient
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', message.sender_id)
+        .single();
+      senderInfo = sender;
+    }
+
     const customer = message.conversation?.customer;
     const emailAccount = message.conversation?.email_account;
-    
-    if (!customer?.email) {
-      console.error('No customer email found');
-      throw new Error('Customer email not found');
-    }
 
-    if (!emailAccount?.access_token || !emailAccount?.refresh_token) {
-      console.error('No Gmail tokens found');
-      throw new Error('Gmail account not properly connected');
-    }
+    if (!customer?.email) throw new Error('Customer email not found');
+    if (!emailAccount?.email_address) throw new Error('Missing sending address (email_account.email_address)');
 
-    // Check if token is expired and refresh if needed
-    let accessToken = emailAccount.access_token;
-    const tokenExpiry = new Date(emailAccount.token_expires_at);
-    const now = new Date();
-    
-    if (tokenExpiry <= now) {
-      console.log('Access token expired, refreshing...');
-      
-      const clientId = '1072539713646-gvkvnmg9v5d15fttugh6om7safekmh4p.apps.googleusercontent.com';
-      const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
-      
-      console.log('Client ID available:', !!clientId);
-      console.log('Client Secret available:', !!clientSecret);
-      console.log('Client Secret length:', clientSecret.length);
-      console.log('Refresh token available:', !!emailAccount.refresh_token);
-      console.log('Refresh token length:', emailAccount.refresh_token?.length);
-      
-      if (!clientSecret) {
-        console.error('GOOGLE_CLIENT_SECRET not found in environment variables');
-        throw new Error('Google Client Secret not configured. Please check your edge function secrets.');
-      }
-      
-      const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: emailAccount.refresh_token,
-          client_id: clientId,
-          client_secret: clientSecret,
-        }),
-      });
-
-      if (!refreshResponse.ok) {
-        const errorText = await refreshResponse.text();
-        console.error('Token refresh failed:', refreshResponse.status, errorText);
-        throw new Error('Failed to refresh Gmail access token. Please reconnect your Gmail account.');
-      }
-
-      const refreshData = await refreshResponse.json();
-      accessToken = refreshData.access_token;
-      
-      // Update the database with new token
-      const newExpiryTime = new Date(Date.now() + (refreshData.expires_in * 1000));
-      await supabaseClient
-        .from('email_accounts')
-        .update({ 
-          access_token: accessToken,
-          token_expires_at: newExpiryTime.toISOString()
-        })
-        .eq('id', emailAccount.id);
-      
-      console.log('Token refreshed successfully');
-    }
-
-    // Get email template for the organization
-    const { data: template, error: templateError } = await supabaseClient
+    // Load org email template (optional)
+    const { data: template } = await supabaseClient
       .from('email_templates')
       .select('*')
       .eq('organization_id', message.conversation.organization_id)
       .eq('is_default', true)
       .single();
 
-    if (templateError) {
-      console.log('No template found, using default styling');
-    }
-
-    // Use template settings or defaults
     const templateSettings = template || {
       header_background_color: '#3B82F6',
       header_text_color: '#FFFFFF',
       header_content: '',
-      footer_background_color: '#F8F9FA', 
+      footer_background_color: '#F8F9FA',
       footer_text_color: '#6B7280',
       footer_content: 'Best regards,<br>Support Team',
       body_background_color: '#FFFFFF',
       body_text_color: '#374151',
       signature_content: 'Best regards,<br>{{agent_name}}<br>Support Team',
       include_agent_name: true
-    };
+    } as any;
 
-    // Determine threading info
-    let threadIdToUse: string | null = message.conversation?.external_id || null;
+    // Threading headers from last customer message if available
     let inReplyToId: string | null = null;
-
-    // Find last known thread/message ids in this conversation
-    const { data: lastKnown } = await supabaseClient
-      .from('messages')
-      .select('email_thread_id, email_message_id, sender_type')
-      .eq('conversation_id', message.conversation_id)
-      .not('email_message_id', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    const lastMsg = lastKnown?.[0] || null;
-    if (!threadIdToUse && lastMsg?.email_thread_id) threadIdToUse = lastMsg.email_thread_id;
-
-    // Prefer replying to the customer's last message
     const { data: lastCustomer } = await supabaseClient
       .from('messages')
       .select('email_message_id')
@@ -197,22 +111,21 @@ const handler = async (req: Request): Promise<Response> => {
       .not('email_message_id', 'is', null)
       .order('created_at', { ascending: false })
       .limit(1);
-    inReplyToId = lastCustomer?.[0]?.email_message_id || lastMsg?.email_message_id || null;
+    inReplyToId = lastCustomer?.[0]?.email_message_id || null;
 
-    // Replace placeholders in signature
-    let signature = templateSettings.signature_content;
+    // Build signature
+    let signature = templateSettings.signature_content || '';
     if (templateSettings.include_agent_name && senderInfo?.full_name) {
       signature = signature.replace('{{agent_name}}', senderInfo.full_name);
     } else {
       signature = signature.replace('{{agent_name}}', 'Support Team');
     }
 
-    // Create email content in RFC 2822 format (multipart/alternative)
     const subject = `Re: ${message.conversation.subject}`;
-    const fromEmail = emailAccount.email_address;
-    const toEmail = customer.email;
-    
-    // Build email HTML with custom template
+    const fromEmail = emailAccount.email_address as string;
+    const toEmail = customer.email as string;
+
+    // Build HTML content
     const emailHTML = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: ${templateSettings.body_background_color};">
         ${templateSettings.header_content ? `
@@ -220,11 +133,9 @@ const handler = async (req: Request): Promise<Response> => {
             ${templateSettings.header_content}
           </div>
         ` : ''}
-        
         <div style="padding: 30px; color: ${templateSettings.body_text_color}; line-height: 1.6;">
-          ${message.content.replace(/\n/g, '<br>')}
+          ${String(message.content || '').replace(/\n/g, '<br>')}
         </div>
-        
         ${signature ? `
           <div style="padding: 20px 30px; margin-top: 20px;">
             <div style="border-top: 1px solid #E5E7EB; padding-top: 20px;">
@@ -232,7 +143,6 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
           </div>
         ` : ''}
-        
         ${templateSettings.footer_content ? `
           <div style="background-color: ${templateSettings.footer_background_color}; color: ${templateSettings.footer_text_color}; padding: 20px; text-align: center; font-size: 12px;">
             ${templateSettings.footer_content}
@@ -240,173 +150,76 @@ const handler = async (req: Request): Promise<Response> => {
         ` : ''}
       </div>
     `;
+    const plainText = String(message.content || '');
 
-    // Plain-text fallback
-    const plainText = message.content || '';
+    // Compose SendGrid payload
+    const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
+    if (!SENDGRID_API_KEY) throw new Error('SENDGRID_API_KEY is not configured');
 
-    // Prepare HTML part as base64 to ensure full fidelity in all clients
-    const utf8Encoder = new TextEncoder();
-    const htmlBase64 = btoa(
-      Array.from(utf8Encoder.encode(emailHTML))
-        .map(byte => String.fromCharCode(byte))
-        .join('')
-    )
-    // Wrap at 76 chars per RFC 2045 for base64 bodies
-    .replace(/.{76}/g, '$&\r\n');
-
-    // Multipart boundary
-    const boundary = `lovable-boundary-${(crypto as any).randomUUID?.() || Math.random().toString(36).slice(2)}`;
-
-    const headerLines = [
-      `From: ${fromEmail}`,
-      `To: ${toEmail}`,
-      `Subject: ${subject}`,
-      `Reply-To: ${fromEmail}`,
-      `Date: ${new Date().toUTCString()}`,
-      ...(inReplyToId ? [
-        `In-Reply-To: ${inReplyToId.startsWith('<') ? inReplyToId : '<' + inReplyToId + '>'}`,
-        `References: ${inReplyToId.startsWith('<') ? inReplyToId : '<' + inReplyToId + '>'}`,
-      ] : []),
-      'MIME-Version: 1.0',
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
-      '',
-    ];
-
-    const emailContent = [
-      ...headerLines,
-      `--${boundary}`,
-      'Content-Type: text/plain; charset="UTF-8"',
-      'Content-Transfer-Encoding: 7bit',
-      '',
-      plainText,
-      '',
-      `--${boundary}`,
-      'Content-Type: text/html; charset="UTF-8"',
-      'Content-Transfer-Encoding: base64',
-      '',
-      htmlBase64,
-      '',
-      `--${boundary}--`,
-      ''
-    ].join('\r\n');
-
-    // Encode email content in base64url format (handle emojis and special characters)
-    const encoder = new TextEncoder();
-    const encodedBytes = encoder.encode(emailContent);
-    
-    // Convert to base64 safely for Unicode characters
-    const base64String = btoa(
-      Array.from(encodedBytes)
-        .map(byte => String.fromCharCode(byte))
-        .join('')
-    );
-    
-    const encodedEmail = base64String
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    // Send email via Gmail API
-    console.log('Sending email via Gmail API to:', toEmail, 'from:', fromEmail);
-    
-    const requestBody: any = { raw: encodedEmail };
-    if (threadIdToUse) {
-      console.log('Using existing threadId for reply:', threadIdToUse);
-      requestBody.threadId = threadIdToUse;
+    const messageIdHeader = createMessageId(fromEmail);
+    const headers: Record<string, string> = {
+      'Message-ID': messageIdHeader,
+    };
+    if (inReplyToId) {
+      const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
+      headers['In-Reply-To'] = normalized;
+      headers['References'] = normalized;
     }
 
-    const gmailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    const sendgridBody = {
+      personalizations: [
+        {
+          to: [{ email: toEmail, name: customer.full_name || undefined }],
+        },
+      ],
+      from: { email: fromEmail, name: senderInfo?.full_name || 'Support' },
+      reply_to: { email: fromEmail },
+      subject,
+      content: [
+        { type: 'text/plain', value: plainText },
+        { type: 'text/html', value: emailHTML },
+      ],
+      headers,
+    } as any;
+
+    console.log('Sending via SendGrid to:', toEmail, 'from:', fromEmail);
+    const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(sendgridBody),
     });
 
-    if (!gmailResponse.ok) {
-      const errorText = await gmailResponse.text();
-      console.error('Gmail API error:', gmailResponse.status, errorText);
-      
-      // If token is expired, we might need to refresh it
-      if (gmailResponse.status === 401) {
-        throw new Error('Gmail access token expired. Please reconnect your Gmail account.');
-      }
-      
-      throw new Error(`Gmail API error: ${gmailResponse.status} ${errorText}`);
+    if (!(sgRes.status === 202)) {
+      const errTxt = await sgRes.text();
+      console.error('SendGrid error:', sgRes.status, errTxt);
+      throw new Error(`SendGrid error ${sgRes.status}: ${errTxt}`);
     }
 
-    const gmailResult = await gmailResponse.json();
-    console.log('Email sent successfully via Gmail:', gmailResult);
-
-    // Update message status to 'sent' in the database
+    // Update message as sent, store Message-ID we generated
     const { error: updateError } = await supabaseClient
       .from('messages')
-      .update({ 
+      .update({
         email_status: 'sent',
-        email_message_id: gmailResult.id, // Store Gmail message ID
-        external_id: gmailResult.id,      // Used by sync to avoid duplicates
-        email_thread_id: gmailResult.threadId || threadIdToUse || null,
+        email_message_id: messageIdHeader.replace(/[<>]/g, ''),
         content_type: 'html',
-        content: emailHTML
+        content: emailHTML,
       })
       .eq('id', messageId);
 
-    if (updateError) {
-      console.error('Error updating message status:', updateError);
-    }
+    if (updateError) console.warn('Failed to update message status:', updateError);
 
-    // Ensure conversation has the Gmail thread id for consistent threading
-    if (gmailResult.threadId) {
-      try {
-        await supabaseClient
-          .from('conversations')
-          .update({ external_id: gmailResult.threadId })
-          .eq('id', message.conversation_id)
-          .is('external_id', null);
-      } catch (convUpdateErr) {
-        console.warn('Could not set conversation external_id:', convUpdateErr);
-      }
-    }
-
-    // Trigger email sync to capture the sent message in the background (non-blocking)
-    console.log('Triggering email sync for account:', emailAccount.id);
-    try {
-      EdgeRuntime.waitUntil((async () => {
-        try {
-          const syncResponse = await supabaseClient.functions.invoke('gmail-sync', {
-            body: { emailAccountId: emailAccount.id, syncSent: true }
-          });
-          console.log('Background sync completed:', syncResponse);
-        } catch (syncError) {
-          console.warn('Background sync failed (email already sent):', syncError);
-        }
-      })());
-    } catch (bgErr) {
-      console.warn('Failed to schedule background sync:', bgErr);
-    }
-
-    return new Response(JSON.stringify({ 
-      success: true, 
-      messageId: gmailResult.id,
-      sentTo: toEmail,
-      sentFrom: fromEmail
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-
-  } catch (error: any) {
-    console.error("Error in send-reply-email function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: error.stack 
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ success: true, sentTo: toEmail, sentFrom: fromEmail, messageId: messageIdHeader }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  } catch (error: any) {
+    console.error('Error in send-reply-email function:', error);
+    return new Response(
+      JSON.stringify({ error: error.message, details: error.stack }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };
