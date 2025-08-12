@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Heading } from '@/components/ui/heading';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,6 +65,10 @@ export function InboxManagement() {
     auto_assignment_rules: {}
   });
 
+  // Sending/Receiving address edit state
+  const [editGroupEmail, setEditGroupEmail] = useState('');
+  const [editRouteId, setEditRouteId] = useState<string | null>(null);
+
   const queryClient = useQueryClient();
 
   // Fetch inboxes
@@ -101,7 +105,7 @@ export function InboxManagement() {
     },
   });
 
-  // Fetch connected email accounts (OAuth/IMAP) per inbox
+// Fetch connected email accounts (OAuth/IMAP) per inbox
   const { data: emailAccounts } = useQuery({
     queryKey: ['email_accounts'],
     queryFn: async (): Promise<EmailAccount[]> => {
@@ -110,6 +114,18 @@ export function InboxManagement() {
       return (data || []) as unknown as EmailAccount[];
     },
   });
+
+  // Initialize group email state when opening edit dialog
+  useEffect(() => {
+    if (editingInbox) {
+      const route = (inboundRoutes || []).find(r => r.inbox_id === editingInbox.id);
+      setEditRouteId(route?.id || null);
+      setEditGroupEmail(route?.group_email || '');
+    } else {
+      setEditRouteId(null);
+      setEditGroupEmail('');
+    }
+  }, [editingInbox, inboundRoutes]);
 
   // Create inbox mutation
   const createInboxMutation = useMutation({
@@ -168,6 +184,24 @@ export function InboxManagement() {
     },
     onError: (error) => {
       toast.error('Failed to update inbox: ' + error.message);
+    }
+  });
+
+  // Update sending/receiving address (inbound route group_email)
+  const updateGroupEmailMutation = useMutation({
+    mutationFn: async ({ routeId, groupEmail }: { routeId: string; groupEmail: string }) => {
+      const { error } = await supabase
+        .from('inbound_routes')
+        .update({ group_email: groupEmail })
+        .eq('id', routeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inbound_routes'] });
+      toast.success('Sending address updated');
+    },
+    onError: (error) => {
+      toast.error('Failed to update sending address: ' + error.message);
     }
   });
 
@@ -516,6 +550,31 @@ export function InboxManagement() {
                   <Label htmlFor="edit-is_default">Set as default inbox</Label>
                 </div>
               )}
+              {/* Sending/Receiving address */}
+              <div className="pt-2">
+                <Label htmlFor="edit-group-email">Sending/Receiving address</Label>
+                {editRouteId ? (
+                  <div className="mt-1 flex gap-2">
+                    <Input
+                      id="edit-group-email"
+                      value={editGroupEmail}
+                      onChange={(e) => setEditGroupEmail(e.target.value)}
+                      placeholder="e.g., hei@noddi.no"
+                    />
+                    <Button
+                      onClick={() => editRouteId && updateGroupEmailMutation.mutate({ routeId: editRouteId, groupEmail: editGroupEmail.trim() })}
+                      disabled={updateGroupEmailMutation.isPending || editGroupEmail.trim().length === 0}
+                    >
+                      {updateGroupEmailMutation.isPending ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    No inbound route linked to this inbox yet. Set it up in Admin → Integrations → Inbound Addresses.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">Used as the From address when replying. Must match your authenticated domain in SendGrid.</p>
+              </div>
             </div>
           )}
           <DialogFooter>

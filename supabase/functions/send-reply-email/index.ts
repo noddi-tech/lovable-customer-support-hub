@@ -42,6 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
           subject,
           organization_id,
           external_id,
+          inbox_id,
           customer:customers(email, full_name),
           email_account:email_accounts(*)
         )
@@ -76,9 +77,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     const customer = message.conversation?.customer;
     const emailAccount = message.conversation?.email_account;
+    let fromEmail: string | null = null;
+
+    // Prefer the inbox's public group email from inbound route
+    const inboxId = (message.conversation as any)?.inbox_id || null;
+    if (inboxId) {
+      const { data: inboundRoute } = await supabaseClient
+        .from('inbound_routes')
+        .select('group_email')
+        .eq('inbox_id', inboxId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      fromEmail = inboundRoute?.group_email || null;
+    }
 
     if (!customer?.email) throw new Error('Customer email not found');
-    if (!emailAccount?.email_address) throw new Error('Missing sending address (email_account.email_address)');
+    if (!fromEmail && !emailAccount?.email_address) throw new Error('Missing sending address (set inbound route public email or connect an email account)');
 
     // Load org email template (optional)
     const { data: template } = await supabaseClient
@@ -122,7 +137,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const subject = `Re: ${message.conversation.subject}`;
-    const fromEmail = emailAccount.email_address as string;
+    const fromEmailFinal = (fromEmail || (emailAccount?.email_address as string)) as string;
     const toEmail = customer.email as string;
 
     // Build HTML content
@@ -156,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
     const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
     if (!SENDGRID_API_KEY) throw new Error('SENDGRID_API_KEY is not configured');
 
-    const messageIdHeader = createMessageId(fromEmail);
+    const messageIdHeader = createMessageId(fromEmailFinal);
     const headers: Record<string, string> = {
       'Message-ID': messageIdHeader,
     };
@@ -172,8 +187,8 @@ const handler = async (req: Request): Promise<Response> => {
           to: [{ email: toEmail, name: customer.full_name || undefined }],
         },
       ],
-      from: { email: fromEmail, name: senderInfo?.full_name || 'Support' },
-      reply_to: { email: fromEmail },
+      from: { email: fromEmailFinal, name: senderInfo?.full_name || 'Support' },
+      reply_to: { email: fromEmailFinal },
       subject,
       content: [
         { type: 'text/plain', value: plainText },
@@ -182,7 +197,7 @@ const handler = async (req: Request): Promise<Response> => {
       headers,
     } as any;
 
-    console.log('Sending via SendGrid to:', toEmail, 'from:', fromEmail);
+    console.log('Sending via SendGrid to:', toEmail, 'from:', fromEmailFinal);
     const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
