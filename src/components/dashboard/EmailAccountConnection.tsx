@@ -1,7 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmailForwarding } from "./EmailForwarding";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Forward, Send } from "lucide-react";
+import { Mail, Forward, Server } from "lucide-react";
+import { InboundRoutesList } from "@/components/admin/InboundRoutesList";
+import { SendgridSetupWizard } from "@/components/admin/SendgridSetupWizard";
 
 export function EmailAccountConnection() {
   return (
@@ -23,9 +25,9 @@ export function EmailAccountConnection() {
                 <Forward className="h-4 w-4" />
                 Email Forwarding
               </TabsTrigger>
-              <TabsTrigger value="sending" className="flex items-center gap-2">
-                <Send className="h-4 w-4" />
-                Sending Setup
+              <TabsTrigger value="inbound" className="flex items-center gap-2">
+                <Server className="h-4 w-4" />
+                Inbound & Domain
               </TabsTrigger>
             </TabsList>
             
@@ -33,35 +35,9 @@ export function EmailAccountConnection() {
               <EmailForwarding />
             </TabsContent>
             
-            <TabsContent value="sending" className="mt-6">
-              <Card className="bg-gradient-surface border-border/50 shadow-surface">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary">
-                    <Send className="h-5 w-5" />
-                    Gmail OAuth for Sending
-                  </CardTitle>
-                  <CardDescription>
-                    Set up OAuth to send emails through your Gmail account. This is only needed when replying to customers.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-lg bg-muted/50">
-                      <h4 className="font-medium mb-2">How it works:</h4>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>1. Connect your Gmail account for sending emails</li>
-                        <li>2. When you reply to customers, we'll send through your Gmail</li>
-                        <li>3. Customers see emails coming from your actual email address</li>
-                        <li>4. Much simpler than traditional SMTP setup</li>
-                      </ul>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground">
-                      You'll set up Gmail OAuth when you're ready to send your first reply. No need to configure this until then.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="inbound" className="mt-6 space-y-6">
+              <InboundRoutesList />
+              <SendgridSetupWizard />
             </TabsContent>
           </Tabs>
         </CardContent>
