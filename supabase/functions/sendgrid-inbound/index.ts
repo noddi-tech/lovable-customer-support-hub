@@ -85,20 +85,40 @@ serve(async (req: Request) => {
     const organization_id = route.organization_id as string;
     const inbox_id = route.inbox_id as string | null;
 
-    // Find or create customer
+    // Determine the real author (handle Google Groups/List rewrites like "via Hei")
+    const replyToRaw = parseHeaderValue(headersRaw, "Reply-To");
+    const xOriginalFromRaw = parseHeaderValue(headersRaw, "X-Original-From") || parseHeaderValue(headersRaw, "X-Google-Original-From");
+    const senderRawHeader = parseHeaderValue(headersRaw, "Sender");
+
+    const replyToEmail = extractEmail(replyToRaw);
+    const xOriginalFromEmail = extractEmail(xOriginalFromRaw);
+    const senderHeaderEmail = extractEmail(senderRawHeader);
+
+    let authorRaw = fromRaw;
+    let authorEmail = fromEmail;
+
+    const looksLikeGroup = (fromEmail === rcptEmail) || / via /i.test(fromRaw) || (senderHeaderEmail && senderHeaderEmail === rcptEmail);
+
+    if (looksLikeGroup && (replyToEmail || xOriginalFromEmail)) {
+      authorEmail = replyToEmail || xOriginalFromEmail!;
+      authorRaw = replyToRaw || xOriginalFromRaw || authorEmail;
+    }
+
+    const displayName = (authorRaw?.replace(/<[^>]+>/g, '').replace(/"/g, '').replace(/\s+via\s+.*/i, '').trim()) || (authorEmail?.split('@')[0] || '');
+
+    // Find or create customer using the detected author
     const { data: customerExisting } = await supabase
       .from("customers")
       .select("id")
-      .eq("email", fromEmail)
+      .eq("email", authorEmail)
       .eq("organization_id", organization_id)
       .maybeSingle();
 
     let customer_id = customerExisting?.id as string | null;
     if (!customer_id) {
-      const fullNameGuess = fromRaw.replace(/<.*>/, "").trim() || fromEmail.split("@")[0];
       const { data: inserted, error: insErr } = await supabase
         .from("customers")
-        .insert({ email: fromEmail, full_name: fullNameGuess, organization_id })
+        .insert({ email: authorEmail, full_name: displayName, organization_id })
         .select("id")
         .single();
       if (insErr) throw insErr;

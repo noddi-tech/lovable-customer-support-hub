@@ -450,10 +450,37 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         }
 
         // Determine sender type and extract relevant email
-        const isFromAgent = folder === 'sent' || from.includes(account.email_address);
-        const customerEmail = isFromAgent 
-          ? (to.match(/<([^>]+)>/)?.[1] || to)
-          : (from.match(/<([^>]+)>/)?.[1] || from);
+        // Determine true author, handling Google Groups/list rewrites ("via ...")
+        const extractAddr = (v: string) => {
+          const angle = v?.match(/<([^>]+)>/)?.[1] || v;
+          const m = angle?.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+          return m ? m[0].toLowerCase() : null;
+        };
+
+        const accountAddress = (account.email_address || '').toLowerCase();
+        const fromEmail = extractAddr(from) || '';
+        const toEmail = extractAddr(to) || '';
+        const replyTo = headers.find((h: any) => h.name === 'Reply-To')?.value || '';
+        const senderHeader = headers.find((h: any) => h.name === 'Sender')?.value || '';
+        const xOrigFrom = headers.find((h: any) => h.name === 'X-Original-From')?.value 
+                          || headers.find((h: any) => h.name === 'X-Google-Original-From')?.value || '';
+
+        const replyToEmail = extractAddr(replyTo);
+        const senderEmail = extractAddr(senderHeader);
+        const xOrigFromEmail = extractAddr(xOrigFrom);
+
+        const looksLikeGroup = (fromEmail === accountAddress) || / via /i.test(from) || (senderEmail === accountAddress);
+
+        let authorEmail = fromEmail;
+        let authorDisplayName = from.replace(/<[^>]+>/, '').replace(/"/g, '').replace(/\s+via\s+.*/i, '').trim() || fromEmail;
+        if (folder !== 'sent' && looksLikeGroup && (replyToEmail || xOrigFromEmail)) {
+          authorEmail = replyToEmail || xOrigFromEmail || fromEmail;
+          const rawForName = replyTo || xOrigFrom || from;
+          authorDisplayName = rawForName.replace(/<[^>]+>/, '').replace(/"/g, '').replace(/\s+via\s+.*/i, '').trim() || authorEmail;
+        }
+
+        const isFromAgent = folder === 'sent' || authorEmail === accountAddress;
+        const customerEmail = isFromAgent ? (toEmail || to) : (authorEmail || fromEmail);
         
         const senderType = isFromAgent ? 'agent' : 'customer';
 
@@ -467,8 +494,8 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
 
         if (!customer) {
           const displayName = isFromAgent 
-            ? to.replace(/<[^>]+>/, '').trim() || customerEmail
-            : from.replace(/<[^>]+>/, '').trim() || customerEmail;
+            ? (to.replace(/<[^>]+>/, '').trim() || customerEmail)
+            : (authorDisplayName || customerEmail);
             
           const { data: newCustomer } = await supabaseClient
             .from('customers')
