@@ -41,7 +41,11 @@
       "supportAgent": "Support Agent",
       "profile": "Profil",
       "designLibrary": "Design Bibliotek",
-      "logOut": "Log Ud"
+      "logOut": "Log Ud",
+      "sync": "Synkroniser",
+      "syncing": "Synkroniserer...",
+      "deleteAll": "Slet Alt",
+      "deleting": "Sletter..."
     },
     "sidebar": {
       "newConversation": "Ny Samtale",
@@ -92,6 +96,39 @@
     "navigation": {
       "back": "← Tilbage",
       "notifications": "Notifikationer"
+    },
+    "notifications": {
+      "title": "Notifikationer",
+      "markAllRead": "Marker alle som læst",
+      "loadingNotifications": "Indlæser notifikationer...",
+      "noNotifications": "Ingen notifikationer",
+      "noNotificationsDescription": "Du vil se notifikationer her, når interne noter tildeles til dig.",
+      "allCaughtUp": "Alt opdateret!",
+      "unreadNotification": "{{count}} ulæst notifikation",
+      "unreadNotifications": "{{count}} ulæste notifikationer",
+      "deleteNotification": "Slet notifikation",
+      "deleteNotificationConfirmation": "Er du sikker på, at du vil slette denne notifikation? Denne handling kan ikke fortrydes.",
+      "view": "Vis",
+      "unread": "Ulæst",
+      "read": "Læst",
+      "close": "Luk",
+      "success": "Succes",
+      "notificationDeleted": "Notifikation slettet",
+      "error": "Fejl",
+      "failedToDeleteNotification": "Kunne ikke slette notifikation"
+    },
+    "deleteAll": {
+      "title": "Slet Alle Samtaler",
+      "description": "Dette vil permanent slette alle samtaler og beskeder. Denne handling kan ikke fortrydes. Du kan gen-synkronisere e-mails bagefter for at importere dem igen med den nyeste formatering.",
+      "confirm": "Slet Alt",
+      "cancel": "Annuller",
+      "deleting": "Sletter...",
+      "success": "Alle samtaler og beskeder slettet succesfuldt",
+      "error": "Fejl ved sletning af alle samtaler"
+    },
+    "sync": {
+      "success": "Gmail-synkronisering startet succesfuldt",
+      "error": "Fejl ved start af synkronisering"
     }
   },
   "conversation": {

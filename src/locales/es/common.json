@@ -51,7 +51,11 @@
       "supportAgent": "Agente de Soporte",
       "profile": "Perfil",
       "designLibrary": "Biblioteca de Diseño",
-      "logOut": "Cerrar Sesión"
+      "logOut": "Cerrar Sesión",
+      "sync": "Sincronizar",
+      "syncing": "Sincronizando...",
+      "deleteAll": "Eliminar Todo",
+      "deleting": "Eliminando..."
     },
     "sidebar": {
       "newConversation": "Nueva Conversación",
@@ -115,6 +119,40 @@
     "selectDate": "Seleccionar fecha",
     "confirm": "Confirmar",
     "snoozeNote": "Horarios mostrados en tu zona horaria"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "markAllRead": "Marcar todas como leídas",
+      "loadingNotifications": "Cargando notificaciones...",
+      "noNotifications": "No hay notificaciones",
+      "noNotificationsDescription": "Verás las notificaciones aquí cuando se te asignen notas internas.",
+      "allCaughtUp": "¡Todo al día!",
+      "unreadNotification": "{{count}} notificación no leída",
+      "unreadNotifications": "{{count}} notificaciones no leídas",
+      "deleteNotification": "Eliminar notificación",
+      "deleteNotificationConfirmation": "¿Estás seguro de que quieres eliminar esta notificación? Esta acción no se puede deshacer.",
+      "view": "Ver",
+      "unread": "No leída",
+      "read": "Leída",
+      "close": "Cerrar",
+      "success": "Éxito",
+      "notificationDeleted": "Notificación eliminada",
+      "error": "Error",
+      "failedToDeleteNotification": "Error al eliminar la notificación"
+    },
+    "deleteAll": {
+      "title": "Eliminar Todas las Conversaciones",
+      "description": "Esto eliminará permanentemente todas las conversaciones y mensajes. Esta acción no se puede deshacer. Puedes volver a sincronizar los correos después para importarlos nuevamente con el formato más reciente.",
+      "confirm": "Eliminar Todo",
+      "cancel": "Cancelar",
+      "deleting": "Eliminando...",
+      "success": "Todas las conversaciones y mensajes eliminados exitosamente",
+      "error": "Error al eliminar todas las conversaciones"
+    },
+    "sync": {
+      "success": "Sincronización de Gmail iniciada exitosamente",
+      "error": "Error al iniciar la sincronización"
+    }
   },
   "common": {
     "loading": "Cargando...",

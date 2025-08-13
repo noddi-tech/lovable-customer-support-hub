@@ -41,7 +41,11 @@
       "supportAgent": "Support-Agent",
       "profile": "Profil",
       "designLibrary": "Design-Bibliothek",
-      "logOut": "Abmelden"
+      "logOut": "Abmelden",
+      "sync": "Synchronisieren",
+      "syncing": "Synchronisierung...",
+      "deleteAll": "Alle Löschen",
+      "deleting": "Löschung..."
     },
     "sidebar": {
       "newConversation": "Neue Unterhaltung",
@@ -92,6 +96,39 @@
     "navigation": {
       "back": "← Zurück",
       "notifications": "Benachrichtigungen"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "markAllRead": "Alle als gelesen markieren",
+      "loadingNotifications": "Benachrichtigungen werden geladen...",
+      "noNotifications": "Keine Benachrichtigungen",
+      "noNotificationsDescription": "Sie sehen hier Benachrichtigungen, wenn Ihnen interne Notizen zugewiesen werden.",
+      "allCaughtUp": "Alles erledigt!",
+      "unreadNotification": "{{count}} ungelesene Benachrichtigung",
+      "unreadNotifications": "{{count}} ungelesene Benachrichtigungen",
+      "deleteNotification": "Benachrichtigung löschen",
+      "deleteNotificationConfirmation": "Sind Sie sicher, dass Sie diese Benachrichtigung löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "view": "Anzeigen",
+      "unread": "Ungelesen",
+      "read": "Gelesen",
+      "close": "Schließen",
+      "success": "Erfolg",
+      "notificationDeleted": "Benachrichtigung gelöscht",
+      "error": "Fehler",
+      "failedToDeleteNotification": "Benachrichtigung konnte nicht gelöscht werden"
+    },
+    "deleteAll": {
+      "title": "Alle Unterhaltungen Löschen",
+      "description": "Dies wird alle Unterhaltungen und Nachrichten dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden. Sie können E-Mails später erneut synchronisieren, um sie mit der neuesten Formatierung zu importieren.",
+      "confirm": "Alle Löschen",
+      "cancel": "Abbrechen",
+      "deleting": "Löschung...",
+      "success": "Alle Unterhaltungen und Nachrichten erfolgreich gelöscht",
+      "error": "Fehler beim Löschen aller Unterhaltungen"
+    },
+    "sync": {
+      "success": "Gmail-Synchronisierung erfolgreich gestartet",
+      "error": "Synchronisierung konnte nicht gestartet werden"
     }
   },
   "common": {

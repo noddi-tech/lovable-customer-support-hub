@@ -41,7 +41,11 @@
       "supportAgent": "Support Agent",
       "profile": "Profil",
       "designLibrary": "Design Bibliotek",
-      "logOut": "Logga Ut"
+      "logOut": "Logga Ut",
+      "sync": "Synkronisera",
+      "syncing": "Synkroniserar...",
+      "deleteAll": "Radera Allt",
+      "deleting": "Raderar..."
     },
     "sidebar": {
       "newConversation": "Nytt Samtal",
@@ -92,6 +96,39 @@
     "navigation": {
       "back": "← Tillbaka",
       "notifications": "Notifikationer"
+    },
+    "notifications": {
+      "title": "Notifikationer",
+      "markAllRead": "Markera alla som lästa",
+      "loadingNotifications": "Laddar notifikationer...",
+      "noNotifications": "Inga notifikationer",
+      "noNotificationsDescription": "Du kommer att se notifikationer här när interna anteckningar tilldelas dig.",
+      "allCaughtUp": "Allt klart!",
+      "unreadNotification": "{{count}} oläst notifikation",
+      "unreadNotifications": "{{count}} olästa notifikationer",
+      "deleteNotification": "Ta bort notifikation",
+      "deleteNotificationConfirmation": "Är du säker på att du vill ta bort denna notifikation? Denna åtgärd kan inte ångras.",
+      "view": "Visa",
+      "unread": "Oläst",
+      "read": "Läst",
+      "close": "Stäng",
+      "success": "Framgång",
+      "notificationDeleted": "Notifikation borttagen",
+      "error": "Fel",
+      "failedToDeleteNotification": "Kunde inte ta bort notifikation"
+    },
+    "deleteAll": {
+      "title": "Ta Bort Alla Konversationer",
+      "description": "Detta kommer att permanent ta bort alla konversationer och meddelanden. Denna åtgärd kan inte ångras. Du kan synkronisera e-post igen efteråt för att importera dem igen med den senaste formateringen.",
+      "confirm": "Ta Bort Alla",
+      "cancel": "Avbryt",
+      "deleting": "Tar bort...",
+      "success": "Alla konversationer och meddelanden har tagits bort framgångsrikt",
+      "error": "Misslyckades med att ta bort alla konversationer"
+    },
+    "sync": {
+      "success": "Gmail-synkronisering startade framgångsrikt",
+      "error": "Misslyckades med att starta synkronisering"
     }
   },
   "common": {

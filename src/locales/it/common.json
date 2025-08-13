@@ -41,7 +41,11 @@
       "supportAgent": "Agente di Supporto",
       "profile": "Profilo",
       "designLibrary": "Libreria Design",
-      "logOut": "Disconnetti"
+      "logOut": "Disconnetti",
+      "sync": "Sincronizza",
+      "syncing": "Sincronizzazione...",
+      "deleteAll": "Elimina Tutto",
+      "deleting": "Eliminazione..."
     },
     "sidebar": {
       "newConversation": "Nuova Conversazione",
@@ -92,6 +96,40 @@
     "navigation": {
       "back": "← Indietro",
       "notifications": "Notifiche"
+    }
+    },
+    "notifications": {
+      "title": "Notifiche",
+      "markAllRead": "Segna tutte come lette",
+      "loadingNotifications": "Caricamento notifiche...",
+      "noNotifications": "Nessuna notifica",
+      "noNotificationsDescription": "Vedrai le notifiche qui quando ti verranno assegnate note interne.",
+      "allCaughtUp": "Tutto aggiornato!",
+      "unreadNotification": "{{count}} notifica non letta",
+      "unreadNotifications": "{{count}} notifiche non lette",
+      "deleteNotification": "Elimina notifica",
+      "deleteNotificationConfirmation": "Sei sicuro di voler eliminare questa notifica? Questa azione non può essere annullata.",
+      "view": "Visualizza",
+      "unread": "Non letta",
+      "read": "Letta",
+      "close": "Chiudi",
+      "success": "Successo",
+      "notificationDeleted": "Notifica eliminata",
+      "error": "Errore",
+      "failedToDeleteNotification": "Impossibile eliminare la notifica"
+    },
+    "deleteAll": {
+      "title": "Elimina Tutte le Conversazioni",
+      "description": "Questo eliminerà permanentemente tutte le conversazioni e i messaggi. Questa azione non può essere annullata. Puoi ri-sincronizzare le email dopo per importarle di nuovo con la formattazione più recente.",
+      "confirm": "Elimina Tutto",
+      "cancel": "Annulla",
+      "deleting": "Eliminazione...",
+      "success": "Tutte le conversazioni e i messaggi eliminati con successo",
+      "error": "Errore nell'eliminazione di tutte le conversazioni"
+    },
+    "sync": {
+      "success": "Sincronizzazione Gmail avviata con successo",
+      "error": "Errore nell'avvio della sincronizzazione"
     }
   },
   "common": {

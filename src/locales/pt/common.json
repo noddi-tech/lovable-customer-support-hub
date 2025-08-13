@@ -41,7 +41,11 @@
       "supportAgent": "Agente de Suporte",
       "profile": "Perfil",
       "designLibrary": "Biblioteca de Design",
-      "logOut": "Sair"
+      "logOut": "Sair",
+      "sync": "Sincronizar",
+      "syncing": "Sincronizando...",
+      "deleteAll": "Excluir Tudo",
+      "deleting": "Excluindo..."
     },
     "sidebar": {
       "newConversation": "Nova Conversa",
@@ -92,6 +96,39 @@
     "navigation": {
       "back": "← Voltar",
       "notifications": "Notificações"
+    },
+    "notifications": {
+      "title": "Notificações",
+      "markAllRead": "Marcar todas como lidas",
+      "loadingNotifications": "Carregando notificações...",
+      "noNotifications": "Nenhuma notificação",
+      "noNotificationsDescription": "Você verá notificações aqui quando notas internas forem atribuídas a você.",
+      "allCaughtUp": "Tudo em dia!",
+      "unreadNotification": "{{count}} notificação não lida",
+      "unreadNotifications": "{{count}} notificações não lidas",
+      "deleteNotification": "Excluir notificação",
+      "deleteNotificationConfirmation": "Tem certeza de que deseja excluir esta notificação? Esta ação não pode ser desfeita.",
+      "view": "Visualizar",
+      "unread": "Não lida",
+      "read": "Lida",
+      "close": "Fechar",
+      "success": "Sucesso",
+      "notificationDeleted": "Notificação excluída",
+      "error": "Erro",
+      "failedToDeleteNotification": "Falha ao excluir notificação"
+    },
+    "deleteAll": {
+      "title": "Excluir Todas as Conversas",
+      "description": "Isso excluirá permanentemente todas as conversas e mensagens. Esta ação não pode ser desfeita. Você pode re-sincronizar os emails depois para importá-los novamente com a formatação mais recente.",
+      "confirm": "Excluir Tudo",
+      "cancel": "Cancelar",
+      "deleting": "Excluindo...",
+      "success": "Todas as conversas e mensagens excluídas com sucesso",
+      "error": "Falha ao excluir todas as conversas"
+    },
+    "sync": {
+      "success": "Sincronização do Gmail iniciada com sucesso",
+      "error": "Falha ao iniciar sincronização"
     }
   },
   "common": {

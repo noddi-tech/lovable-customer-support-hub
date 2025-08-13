@@ -41,7 +41,11 @@
       "supportAgent": "Support Agent",
       "profile": "Profiel",
       "designLibrary": "Design Bibliotheek",
-      "logOut": "Uitloggen"
+      "logOut": "Uitloggen",
+      "sync": "Synchroniseren",
+      "syncing": "Synchroniseren...",
+      "deleteAll": "Alles Verwijderen",
+      "deleting": "Verwijderen..."
     },
     "sidebar": {
       "newConversation": "Nieuw Gesprek",
@@ -92,6 +96,39 @@
     "navigation": {
       "back": "← Terug",
       "notifications": "Meldingen"
+    },
+    "notifications": {
+      "title": "Meldingen",
+      "markAllRead": "Markeer alle als gelezen",
+      "loadingNotifications": "Meldingen laden...",
+      "noNotifications": "Geen meldingen",
+      "noNotificationsDescription": "Je ziet hier meldingen wanneer interne notities aan je worden toegewezen.",
+      "allCaughtUp": "Helemaal bij!",
+      "unreadNotification": "{{count}} ongelezen melding",
+      "unreadNotifications": "{{count}} ongelezen meldingen",
+      "deleteNotification": "Melding verwijderen",
+      "deleteNotificationConfirmation": "Weet je zeker dat je deze melding wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+      "view": "Bekijk",
+      "unread": "Ongelezen",
+      "read": "Gelezen",
+      "close": "Sluiten",
+      "success": "Succes",
+      "notificationDeleted": "Melding verwijderd",
+      "error": "Fout",
+      "failedToDeleteNotification": "Kan melding niet verwijderen"
+    },
+    "deleteAll": {
+      "title": "Alle Gesprekken Verwijderen",
+      "description": "Dit verwijdert permanent alle gesprekken en berichten. Deze actie kan niet ongedaan worden gemaakt. Je kunt e-mails later opnieuw synchroniseren om ze weer te importeren met de nieuwste opmaak.",
+      "confirm": "Alles Verwijderen",
+      "cancel": "Annuleren",
+      "deleting": "Verwijderen...",
+      "success": "Alle gesprekken en berichten succesvol verwijderd",
+      "error": "Fout bij het verwijderen van alle gesprekken"
+    },
+    "sync": {
+      "success": "Gmail-synchronisatie succesvol gestart",
+      "error": "Synchronisatie starten mislukt"
     }
   },
   "common": {

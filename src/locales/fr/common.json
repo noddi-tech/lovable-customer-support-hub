@@ -41,7 +41,11 @@
       "supportAgent": "Agent de Support",
       "profile": "Profil",
       "designLibrary": "Bibliothèque de Design",
-      "logOut": "Se Déconnecter"
+      "logOut": "Se Déconnecter",
+      "sync": "Synchroniser",
+      "syncing": "Synchronisation...",
+      "deleteAll": "Supprimer Tout",
+      "deleting": "Suppression..."
     },
     "sidebar": {
       "newConversation": "Nouvelle Conversation",
@@ -92,6 +96,40 @@
     "navigation": {
       "back": "← Retour",
       "notifications": "Notifications"
+    }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "markAllRead": "Marquer toutes comme lues",
+      "loadingNotifications": "Chargement des notifications...",
+      "noNotifications": "Aucune notification",
+      "noNotificationsDescription": "Vous verrez les notifications ici lorsque des notes internes vous seront assignées.",
+      "allCaughtUp": "Tout est à jour !",
+      "unreadNotification": "{{count}} notification non lue",
+      "unreadNotifications": "{{count}} notifications non lues",
+      "deleteNotification": "Supprimer la notification",
+      "deleteNotificationConfirmation": "Êtes-vous sûr de vouloir supprimer cette notification ? Cette action ne peut pas être annulée.",
+      "view": "Voir",
+      "unread": "Non lue",
+      "read": "Lue",
+      "close": "Fermer",
+      "success": "Succès",
+      "notificationDeleted": "Notification supprimée",
+      "error": "Erreur",
+      "failedToDeleteNotification": "Échec de la suppression de la notification"
+    },
+    "deleteAll": {
+      "title": "Supprimer Toutes les Conversations",
+      "description": "Ceci supprimera définitivement toutes les conversations et messages. Cette action ne peut pas être annulée. Vous pouvez re-synchroniser les e-mails après pour les importer à nouveau avec le formatage le plus récent.",
+      "confirm": "Supprimer Tout",
+      "cancel": "Annuler",
+      "deleting": "Suppression...",
+      "success": "Toutes les conversations et messages supprimés avec succès",
+      "error": "Échec de la suppression de toutes les conversations"
+    },
+    "sync": {
+      "success": "Synchronisation Gmail démarrée avec succès",
+      "error": "Échec du démarrage de la synchronisation"
     }
   },
   "common": {
