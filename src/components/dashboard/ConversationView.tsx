@@ -929,12 +929,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return dateTime(date, false); // Use timezone-aware formatting
   };
 
   // Derive the actual email timestamp from headers when available

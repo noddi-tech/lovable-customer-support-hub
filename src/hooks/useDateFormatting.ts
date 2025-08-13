@@ -39,10 +39,10 @@ export function useDateFormatting() {
 
     /**
      * Format date optimized for conversation lists
-     * Smart formatting: "2m ago" → "2:30 PM" → "Wed 2:30 PM" → "Jan 15"
+     * Smart formatting: "2m ago" → "2:30 PM"/"14:30" → "Wed 2:30 PM"/"Wed 14:30" → "Jan 15"
      */
     conversation: (date: Date | string) => 
-      formatConversationDate(date, i18n.language, timezone),
+      formatConversationDate(date, i18n.language, timezone, timeFormat === '24h'),
 
     /**
      * Format date only (no time) in user's timezone

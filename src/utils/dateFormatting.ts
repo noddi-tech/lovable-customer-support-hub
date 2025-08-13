@@ -127,7 +127,8 @@ export function formatTime(
 export function formatConversationDate(
   date: Date | string,
   locale: string = 'en',
-  timeZone?: string
+  timeZone?: string,
+  format24Hour: boolean = false
 ): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
@@ -147,20 +148,23 @@ export function formatConversationDate(
     return formatRelativeTime(date, locale, timeZone);
   }
   
-  // If today, show time only
+  // If today, show time only  
   const isToday = targetDate.toDateString() === currentDate.toDateString();
   if (isToday) {
-    return formatTime(date, locale, timeZone);
+    return formatTime(date, locale, timeZone, format24Hour);
   }
   
   // If this week, show day and time
   const diffInDays = Math.floor(diffInMinutes / (24 * 60));
   if (diffInDays < 7) {
     const dateFnsLocale = locales[locale as keyof typeof locales] || enUS;
+    // Use the correct format pattern based on 24-hour preference
+    const dayTimePattern = format24Hour ? 'EEE HH:mm' : 'EEE h:mm a';
+    
     if (timeZone) {
-      return formatInTimeZone(dateObj, timeZone, 'EEE h:mm a', { locale: dateFnsLocale });
+      return formatInTimeZone(dateObj, timeZone, dayTimePattern, { locale: dateFnsLocale });
     } else {
-      return format(dateObj, 'EEE h:mm a', { locale: dateFnsLocale });
+      return format(dateObj, dayTimePattern, { locale: dateFnsLocale });
     }
   }
   

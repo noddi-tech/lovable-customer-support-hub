@@ -74,48 +74,7 @@ const statusColors = {
   closed: "bg-muted text-muted-foreground",
 };
 
-const formatTimeAgo = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return "Just now";
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
-  return date.toLocaleDateString();
-};
-
-const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-
-  // Relative labels for today and yesterday; otherwise show localized date (e.g., "11. august")
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-
-  const timePart = date.toLocaleTimeString('nb-NO', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-
-  if (isSameDay(date, now)) return `Today, ${timePart}`;
-  if (isSameDay(date, yesterday)) return `Yesterday, ${timePart}`;
-
-  // e.g., "11. august" (append year if not current year)
-  let datePart = date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long' });
-  if (date.getFullYear() !== now.getFullYear()) {
-    datePart += ` ${date.getFullYear()}`;
-  }
-  return datePart;
-};
+// All date formatting now handled by timezone-aware useDateFormatting hook
 
 export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation, selectedInboxId }: ConversationListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
