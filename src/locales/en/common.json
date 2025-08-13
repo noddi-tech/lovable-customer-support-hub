@@ -227,6 +227,30 @@
     "navigation": {
       "back": "← Back",
       "notifications": "Notifications"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "markAllRead": "Mark all read",
+      "loadingNotifications": "Loading notifications...",
+      "noNotifications": "No notifications yet",
+      "noNotificationsDescription": "You'll see notifications here when internal notes are assigned to you.",
+      "emailFailedToSend": "Email Failed to Send",
+      "emailFailed": "Email failed to send. Edge Function returned a non-2xx status code",
+      "snoozedConversationBack": "Snoozed conversation is back",
+      "reminder": "Reminder: New test",
+      "allCaughtUp": "All caught up!",
+      "unreadNotification": "{{count}} unread notification",
+      "unreadNotifications": "{{count}} unread notifications",
+      "deleteNotification": "Delete notification",
+      "deleteNotificationConfirmation": "Are you sure you want to delete this notification? This action cannot be undone.",
+      "view": "View",
+      "unread": "Unread",
+      "read": "Read",
+      "close": "Close",
+      "success": "Success",
+      "notificationDeleted": "Notification deleted",
+      "error": "Error",
+      "failedToDeleteNotification": "Failed to delete notification"
     }
   },
   "common": {
