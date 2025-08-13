@@ -94,6 +94,18 @@
       "notifications": "Varsler"
     }
   },
+  "conversation": {
+    "snooze": "Utsette",
+    "snoozeDialogTitle": "Utsett samtale",
+    "snoozeForLater": "Utsett til senere",
+    "laterToday": "Senere i dag (3t)",
+    "tomorrowMorning": "I morgen 09:00",
+    "nextMondayMorning": "Neste mandag 09:00",
+    "pickDateTime": "Velg dato og tid",
+    "selectDate": "Velg dato",
+    "confirm": "Bekreft",
+    "snoozeNote": "Tider vist i din tidssone"
+  },
   "common": {
     "loading": "Laster...",
     "search": "Søk",
@@ -103,6 +115,7 @@
     "justNow": "Akkurat nå",
     "minutesAgo": "{{count}}m siden",
     "hoursAgo": "{{count}}t siden",
-    "daysAgo": "{{count}}d siden"
+    "daysAgo": "{{count}}d siden",
+    "cancel": "Avbryt"
   }
 }

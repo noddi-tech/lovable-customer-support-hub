@@ -94,6 +94,18 @@
       "notifications": "Notifikationer"
     }
   },
+  "conversation": {
+    "snooze": "Udsæt",
+    "snoozeDialogTitle": "Udsæt samtale",
+    "snoozeForLater": "Udsæt til senere",
+    "laterToday": "Senere i dag (3t)",
+    "tomorrowMorning": "I morgen 09:00",
+    "nextMondayMorning": "Næste mandag 09:00",
+    "pickDateTime": "Vælg dato og tid",
+    "selectDate": "Vælg dato",
+    "confirm": "Bekræft",
+    "snoozeNote": "Tider vist i din tidszone"
+  },
   "common": {
     "loading": "Indlæser...",
     "search": "Søg",
@@ -103,6 +115,7 @@
     "justNow": "Lige nu",
     "minutesAgo": "{{count}}m siden",
     "hoursAgo": "{{count}}t siden",
-    "daysAgo": "{{count}}d siden"
+    "daysAgo": "{{count}}d siden",
+    "cancel": "Annuller"
   }
 }
