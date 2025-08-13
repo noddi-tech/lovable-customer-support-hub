@@ -66,6 +66,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CustomerNotes } from './CustomerNotes';
 import { useTranslation } from 'react-i18next';
+import { useDateFormatting } from '@/hooks/useDateFormatting';
 
 interface ConversationViewProps {
   conversationId?: string | null;
@@ -90,6 +91,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
   const { t } = useTranslation();
+  const { relative, dateTime, time, timezone } = useDateFormatting();
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
   const [postSendStatus, setPostSendStatus] = useState<'open' | 'pending' | 'closed'>('closed');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -909,22 +911,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
+  // Helper function to format message timestamps using timezone-aware formatting
+  const formatMessageTime = (dateString: string) => {
+    return time(new Date(dateString));
   };
 
   const formatTimestamps = (message: any) => {
-    const createdDate = new Date(message.created_at);
-    const createdTime = formatTime(createdDate);
+    const createdTime = formatMessageTime(message.created_at);
     
     // Check if message has been updated (for internal notes)
     if (message.is_internal && message.updated_at && message.updated_at !== message.created_at) {
-      const updatedDate = new Date(message.updated_at);
-      const updatedTime = formatTime(updatedDate);
+      const updatedTime = formatMessageTime(message.updated_at);
       return `created: ${createdTime} • edited: ${updatedTime}`;
     }
     
@@ -1652,7 +1649,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('conversation.customerSince')}</span>
                     <span className="text-foreground">
-                      {conversation.customer?.created_at ? new Date(conversation.customer.created_at).toLocaleDateString() : t('conversation.unknown')}
+                      {conversation.customer?.created_at ? dateTime(conversation.customer.created_at, false) : t('conversation.unknown')}
                     </span>
                   </div>
                 </div>

@@ -11,6 +11,7 @@ import { Search, Filter, Inbox, Star, Clock, MoreHorizontal, Archive, Trash2, Ch
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { useDateFormatting } from '@/hooks/useDateFormatting';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -125,6 +126,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { conversation: formatConversationTime } = useDateFormatting();
 
   // Fetch inbound routes for empty-state guidance
   const { data: inboundRoutes = [] } = useQuery({
@@ -453,7 +455,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                     <CheckCircle className="h-4 w-4 text-success" aria-label="Read" />
                   )}
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDateTime(conversation.received_at || conversation.updated_at)}
+                    {formatConversationTime(conversation.received_at || conversation.updated_at)}
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

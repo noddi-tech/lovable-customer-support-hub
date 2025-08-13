@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette, Clock } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { SyncButton } from '@/components/dashboard/SyncButton';
 import { DeleteAllButton } from '@/components/dashboard/DeleteAllButton';
@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
+import { useDateFormatting } from '@/hooks/useDateFormatting';
 
 interface HeaderProps {
   organizationName?: string;
@@ -41,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { timezone, time } = useDateFormatting();
 
   // Get unread conversation count for notifications
   const { data: unreadCount = 0 } = useQuery({
@@ -103,6 +105,13 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center space-x-2 md:space-x-4">
+        {/* Current timezone indicator - Hidden on mobile */}
+        <div className="hidden lg:flex items-center space-x-1 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>{time(new Date())}</span>
+          <span className="text-xs opacity-70">({timezone.split('/')[1] || timezone})</span>
+        </div>
+        
         {/* Sync Button */}
         <SyncButton />
         
