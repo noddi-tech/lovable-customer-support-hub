@@ -1184,7 +1184,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <div
                   key={message.id}
                   className={cn(
-                    "flex gap-3 group relative",
+                    "flex gap-3 group relative min-w-0",
                     isFromCustomer ? "justify-start" : "justify-end",
                     isInternal && "opacity-75"
                   )}
@@ -1202,19 +1202,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   )}
 
                   <div className={cn(
-                    "max-w-[85%] md:max-w-[70%]",
+                    "w-full min-w-0",
                     !isFromCustomer && "ml-auto"
                   )}>
                     <div
                       className={cn(
-                        "rounded-lg p-3 relative overflow-hidden",
+                        "w-full rounded-lg p-3 relative overflow-hidden",
                         isFromCustomer
                           ? "bg-muted text-foreground"
                           : isInternal
                           ? "bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800"
                           : isAgentHTML
                           ? "bg-card border border-border text-foreground"
-                          : "bg-primary text-primary-foreground"
+                          : "bg-primary/10 border border-primary/20 text-foreground"
                       )}
                     >
                       {isInternal && (
@@ -1258,7 +1258,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         </div>
                       ) : (
                         <div
-                          className="email-container"
+                          className="email-container email-content w-full break-words"
                           style={{ maxWidth: '100%' }}
                           dangerouslySetInnerHTML={{
                             __html: processEmailContent(message.content, message.content_type || 'text/html')

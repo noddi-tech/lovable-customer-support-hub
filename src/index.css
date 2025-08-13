@@ -249,3 +249,30 @@ All colors MUST be HSL.
     background: var(--gradient-background);
   }
 }
+
+/* Email content rendering fixes */
+.email-container, .email-content {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.email-container pre, .email-content pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.email-container table, .email-content table {
+  width: 100% !important;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.email-container td, .email-container th,
+.email-content td, .email-content th {
+  word-break: break-word;
+}
+.email-container img, .email-content img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+.email-container a, .email-content a {
+  overflow-wrap: anywhere;
+}
