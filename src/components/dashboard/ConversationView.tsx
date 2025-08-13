@@ -860,9 +860,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           
           {/* Empty State Text */}
           <div className="space-y-2">
-            <h3 className="text-lg font-medium text-foreground">No conversation selected</h3>
+            <h3 className="text-lg font-medium text-foreground">{t('conversation.noConversationSelected')}</h3>
             <p className="text-muted-foreground">
-              Choose a conversation from the list to start viewing messages
+              {t('conversation.chooseConversation')}
             </p>
           </div>
         </div>
@@ -875,7 +875,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <div className="flex-1 flex items-center justify-center bg-gradient-surface">
         <div className="text-center space-y-4">
           <Clock className="h-8 w-8 mx-auto text-muted-foreground animate-spin" />
-          <p className="text-muted-foreground">Loading conversation...</p>
+          <p className="text-muted-foreground">{t('conversation.loadingConversation')}</p>
         </div>
       </div>
     );
@@ -886,7 +886,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <div className="flex-1 flex items-center justify-center bg-gradient-surface">
         <div className="text-center space-y-4">
           <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground" />
-          <p className="text-muted-foreground">Conversation not found</p>
+          <p className="text-muted-foreground">{t('conversation.conversationNotFound')}</p>
         </div>
       </div>
     );
@@ -922,7 +922,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     // Check if message has been updated (for internal notes)
     if (message.is_internal && message.updated_at && message.updated_at !== message.created_at) {
       const updatedTime = formatMessageTime(message.updated_at);
-      return `created: ${createdTime} • edited: ${updatedTime}`;
+      return `${t('conversation.messageCreated')} ${createdTime} • ${t('conversation.messageEdited')} ${updatedTime}`;
     }
     
     return createdTime;
@@ -963,7 +963,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       setIsAssigning(true);
       const targetUserId = assignSelectedUserId || null;
       if ((assignedAgent?.user_id ?? null) === targetUserId) {
-        toast.info('No changes to assignment');
+        toast.info(t('conversation.noChangesToAssignment'));
         setAssignDialogOpen(false);
         return;
       }
@@ -974,11 +974,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(targetUserId ? 'Conversation assigned' : 'Conversation unassigned');
+      toast.success(targetUserId ? t('conversation.conversationAssigned') : t('conversation.conversationUnassigned'));
       setAssignDialogOpen(false);
     } catch (e) {
       console.error('Failed to assign conversation:', e);
-      toast.error('Failed to update assignment');
+      toast.error(t('conversation.failedToUpdateAssignment'));
     } finally {
       setIsAssigning(false);
     }
@@ -988,7 +988,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     try {
       setIsMoving(true);
       if (!selectedInboxId || selectedInboxId === conversation?.inbox_id) {
-        toast.info('No changes to inbox');
+        toast.info(t('conversation.noChangesToInbox'));
         setMoveDialogOpen(false);
         return;
       }
@@ -1001,11 +1001,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
       const targetInbox = inboxes.find(i => i.id === selectedInboxId);
-      toast.success(`Conversation moved to ${targetInbox?.name || 'selected inbox'}`);
+      toast.success(t('conversation.conversationMoved', { inboxName: targetInbox?.name || 'selected inbox' }));
       setMoveDialogOpen(false);
     } catch (e) {
       console.error('Failed to move conversation:', e);
-      toast.error('Failed to move conversation');
+      toast.error(t('conversation.failedToMove'));
     } finally {
       setIsMoving(false);
     }
@@ -1019,7 +1019,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success('Conversation archived');
+      toast.success(t('conversation.conversationArchived'));
       const cur = new URLSearchParams(searchParams);
       cur.delete('conversation');
       cur.delete('message');
@@ -1027,7 +1027,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       navigate(qs ? `/?${qs}` : '/', { replace: true });
     } catch (e) {
       console.error('Failed to archive conversation:', e);
-      toast.error('Failed to archive');
+      toast.error(t('conversation.failedToArchive'));
     }
   };
   const handleUnarchive = async () => {
@@ -1039,7 +1039,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success('Conversation unarchived');
+      toast.success(t('conversation.conversationUnarchived'));
       const cur = new URLSearchParams(searchParams);
       cur.delete('conversation');
       cur.delete('message');
@@ -1047,7 +1047,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       navigate(qs ? `/?${qs}` : '/', { replace: true });
     } catch (e) {
       console.error('Failed to unarchive conversation:', e);
-      toast.error('Failed to unarchive');
+      toast.error(t('conversation.failedToUnarchive'));
     }
   };
 
@@ -1061,10 +1061,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success('Conversation closed');
+      toast.success(t('conversation.conversationClosed'));
     } catch (e) {
       console.error('Failed to close conversation:', e);
-      toast.error('Failed to close');
+      toast.error(t('conversation.failedToClose'));
     }
   };
   const setPresetSnooze = (date: Date) => {
@@ -1092,7 +1092,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success('Conversation snoozed');
+      toast.success(t('conversation.conversationSnoozed'));
       setSnoozeDialogOpen(false);
       const cur = new URLSearchParams(searchParams);
       cur.delete('conversation');
@@ -1608,7 +1608,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     </div>
                     {s.rationale && (
                       <details className="text-xs text-muted-foreground mt-2">
-                        <summary>Hvorfor dette</summary>
+                        <summary>{t('conversation.whyThis')}</summary>
                         <p>{s.rationale}</p>
                       </details>
                     )}
