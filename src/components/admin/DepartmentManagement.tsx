@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from 'react-i18next';
 
 interface Department {
   id: string;
@@ -35,6 +36,7 @@ export function DepartmentManagement() {
     description: ''
   });
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -219,7 +221,7 @@ export function DepartmentManagement() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Create Department
+              {t('admin.createDepartment')}
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -262,7 +264,7 @@ export function DepartmentManagement() {
                   type="submit"
                   disabled={createDepartmentMutation.isPending}
                 >
-                  {createDepartmentMutation.isPending ? "Creating..." : "Create Department"}
+                  {createDepartmentMutation.isPending ? t('admin.creating') : t('admin.createDepartment')}
                 </Button>
               </div>
             </form>

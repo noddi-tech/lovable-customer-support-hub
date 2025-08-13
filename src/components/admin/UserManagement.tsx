@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from 'react-i18next';
 
 interface UserProfile {
   id: string;
@@ -57,6 +58,7 @@ export function UserManagement() {
     primary_role: 'user'
   });
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -289,7 +291,7 @@ export function UserManagement() {
           <DialogTrigger asChild>
             <Button>
               <UserPlus className="h-4 w-4 mr-2" />
-              Create User
+              {t('admin.createUser')}
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -382,7 +384,7 @@ export function UserManagement() {
                   type="submit"
                   disabled={createUserMutation.isPending}
                 >
-                  {createUserMutation.isPending ? "Creating..." : "Create User"}
+                  {createUserMutation.isPending ? t('admin.creating') : t('admin.createUser')}
                 </Button>
               </div>
             </form>

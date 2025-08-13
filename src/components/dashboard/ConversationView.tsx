@@ -1497,7 +1497,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       title="Get AI suggestions"
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
-                      {aiLoading ? 'Suggesting…' : 'AI suggestion'}
+                      {aiLoading ? t('conversation.suggesting') : t('conversation.aiSuggestion')}
                     </Button>
                     <Button 
                       variant={isInternalNote ? "default" : "secondary"} 
@@ -1508,7 +1508,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       {t('conversation.internalNote')}
                     </Button>
                     <Button variant="secondary" size="sm" className="hover:bg-accent">
-                      Templates
+                      {t('conversation.templates')}
                     </Button>
                   </div>
               </div>
@@ -1516,7 +1516,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               {/* Assignment dropdown for internal notes */}
               {isInternalNote && (
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-muted-foreground">Assign to:</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t('conversation.assignTo')}</label>
                   <Select value={assignedToId} onValueChange={setAssignedToId}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Select team member" />
@@ -1551,15 +1551,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   {isInternalNote ? t('conversation.internalNoteNote') : t('conversation.sendToCustomer')}
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-muted-foreground hidden sm:block">Set status:</label>
+                  <label className="text-sm text-muted-foreground hidden sm:block">{t('conversation.setStatus')}</label>
                   <Select value={postSendStatus} onValueChange={(v) => setPostSendStatus(v as 'open' | 'pending' | 'closed')}>
                     <SelectTrigger className="w-36">
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue placeholder={t('conversation.selectStatus')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
+                      <SelectItem value="open">{t('conversation.open')}</SelectItem>
+                      <SelectItem value="pending">{t('conversation.pending')}</SelectItem>
+                      <SelectItem value="closed">{t('conversation.closed')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button 
@@ -1591,19 +1591,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             </DialogHeader>
             {aiLoading ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" /> Tenker...
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" /> {t('conversation.thinking')}
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {aiSuggestions.map((s, i) => (
                   <div key={i} className="border border-border rounded p-3 bg-card">
                     <div className="text-sm text-muted-foreground mb-1">
-                      {(s.title || 'Forslag')}{typeof s.confidence === 'number' ? ` • ${Math.round((s.confidence||0)*100)}%` : ''}{Array.isArray(s.tags) && s.tags.length ? ` • ${s.tags.join(', ')}` : ''}
+                      {(s.title || t('conversation.suggestion'))}{typeof s.confidence === 'number' ? ` • ${Math.round((s.confidence||0)*100)}%` : ''}{Array.isArray(s.tags) && s.tags.length ? ` • ${s.tags.join(', ')}` : ''}
                     </div>
                     <pre className="whitespace-pre-wrap text-sm">{s.reply}</pre>
                     <div className="mt-2 flex gap-2">
                       <Button size="sm" variant="secondary" onClick={() => { setReplyText(s.reply); setAiOpen(false); }}>
-                        Bruk
+                        {t('conversation.use')}
                       </Button>
                     </div>
                     {s.rationale && (
@@ -1661,11 +1661,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             {/* Previous Conversations */}
             <Card>
               <CardHeader className="pb-3">
-                <h3 className="font-semibold text-foreground">Previous Conversations</h3>
+                <h3 className="font-semibold text-foreground">{t('conversation.previousConversations')}</h3>
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-muted-foreground text-center py-4">
-                  No previous conversations
+                  {t('conversation.noPreviousConversations')}
                 </div>
               </CardContent>
             </Card>
@@ -1673,7 +1673,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             {/* Quick Actions */}
             <Card>
               <CardHeader className="pb-3">
-                <h3 className="font-semibold text-foreground">Quick Actions</h3>
+                <h3 className="font-semibold text-foreground">{t('conversation.quickActions')}</h3>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button variant="outline" size="sm" className="w-full justify-start">

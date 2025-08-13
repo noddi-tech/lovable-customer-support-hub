@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Edit2, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface CustomerNote {
   id: string;
@@ -36,6 +37,7 @@ const dummyNotes: CustomerNote[] = [
 ];
 
 export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<CustomerNote[]>(dummyNotes);
   const [isAdding, setIsAdding] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
               disabled={isAdding || editingNoteId !== null}
             >
               <Plus className="h-4 w-4 mr-1" />
-              Add Note
+              {t('conversation.addNote')}
             </Button>
           </div>
         </CardHeader>
@@ -145,7 +147,7 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
                   onClick={handleAddNote}
                   disabled={!noteContent.trim()}
                 >
-                  Add Note
+                  {t('conversation.addNote')}
                 </Button>
               </div>
             </div>

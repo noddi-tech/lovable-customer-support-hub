@@ -19,6 +19,17 @@
       "placeholder": "Velg språk",
       "success": "Språk oppdatert vellykket"
     },
+    "timezone": {
+      "title": "Tidssone & Tidsformat",
+      "description": "Velg din tidssone og tidsformat for nøyaktig tidsvisning",
+      "label": "Tidssone",
+      "timeFormat": "Tidsformat",
+      "placeholder": "Velg tidssone",
+      "success": "Innstillinger oppdatert vellykket",
+      "currentTime": "Nåværende tid i din tidssone",
+      "detected": "Oppdaget tidssone fra nettleseren din",
+      "useDetected": "Bruk oppdaget tidssone"
+    },
     "permissions": {
       "denied": "Du har ikke tillatelse til å få tilgang til denne seksjonen."
     }
@@ -94,7 +105,51 @@
       "notifications": "Varsler"
     }
   },
+  "admin": {
+    "createDepartment": "Opprett Avdeling",
+    "createUser": "Opprett Bruker",
+    "creating": "Oppretter...",
+    "userManagement": "Brukeradministrasjon",
+    "departmentManagement": "Avdelingsadministrasjon",
+    "name": "Navn",
+    "description": "Beskrivelse",
+    "email": "E-post",
+    "role": "Rolle",
+    "department": "Avdeling",
+    "noDepartment": "Ingen Avdeling",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "administrator": "Administrator",
+    "agent": "Agent",
+    "user": "Bruker"
+  },
   "conversation": {
+    "addNote": "Legg til Notat",
+    "sendReply": "Send Svar",
+    "reply": "Svar",
+    "internalNote": "Internt Notat",
+    "aiSuggestions": "AI Forslag",
+    "generateSuggestions": "Generer Forslag",
+    "aiSuggestion": "AI forslag",
+    "suggesting": "Foreslår...",
+    "getAISuggestions": "Få AI-forslag",
+    "move": "Flytt",
+    "assign": "Tildel",
+    "archive": "Arkiver",
+    "assignTo": "Tildel til",
+    "status": "Status",
+    "priority": "Prioritet",
+    "setStatus": "Sett status:",
+    "replyPlaceholder": "Skriv ditt svar... (prøv :blush:)",
+    "internalNotePlaceholder": "Legg til et internt notat... (prøv :smile:)",
+    "sending": "Sender...",
+    "adding": "Legger til...",
+    "templates": "Maler",
+    "selectStatus": "Velg status",
+    "open": "Åpen",
+    "pending": "Ventende",
+    "resolved": "Løst",
+    "closed": "Lukket",
     "snooze": "Utsette",
     "snoozeDialogTitle": "Utsett samtale",
     "snoozeForLater": "Utsett til senere",
@@ -104,7 +159,15 @@
     "pickDateTime": "Velg dato og tid",
     "selectDate": "Velg dato",
     "confirm": "Bekreft",
-    "snoozeNote": "Tider vist i din tidssone"
+    "snoozeNote": "Tider vist i din tidssone",
+    "viewFullProfile": "Se full profil",
+    "previousConversations": "Tidligere Samtaler",
+    "noPreviousConversations": "Ingen tidligere samtaler",
+    "quickActions": "Hurtighandlinger",
+    "customerDetails": "Kundedetaljer",
+    "use": "Bruk",
+    "thinking": "Tenker...",
+    "suggestion": "Forslag"
   },
   "common": {
     "loading": "Laster...",
@@ -116,6 +179,21 @@
     "minutesAgo": "{{count}}m siden",
     "hoursAgo": "{{count}}t siden",
     "daysAgo": "{{count}}d siden",
-    "cancel": "Avbryt"
+    "cancel": "Avbryt",
+    "save": "Lagre",
+    "edit": "Rediger",
+    "delete": "Slett",
+    "create": "Opprett",
+    "update": "Oppdater",
+    "close": "Lukk",
+    "filter": "Filter",
+    "all": "Alle",
+    "none": "Ingen",
+    "yes": "Ja",
+    "no": "Nei",
+    "error": "Feil",
+    "success": "Suksess",
+    "warning": "Advarsel",
+    "info": "Info"
   }
 }
