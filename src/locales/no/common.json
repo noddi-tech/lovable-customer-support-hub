@@ -110,6 +110,30 @@
     "navigation": {
       "back": "← Tilbake",
       "notifications": "Varsler"
+    },
+    "notifications": {
+      "title": "Varsler",
+      "markAllRead": "Merk alle som lest",
+      "loadingNotifications": "Laster varsler...",
+      "noNotifications": "Ingen varsler ennå",
+      "noNotificationsDescription": "Du vil se varsler her når interne notater blir tildelt til deg.",
+      "emailFailedToSend": "E-post kunne ikke sendes",
+      "emailFailed": "E-post feilet å sende. Edge Function returnerte en non-2xx status kode",
+      "snoozedConversationBack": "Utsatt samtale er tilbake",
+      "reminder": "Påminnelse: Ny test",
+      "allCaughtUp": "Alt er oppdatert!",
+      "unreadNotification": "{{count}} ulest varsel",
+      "unreadNotifications": "{{count}} uleste varsler",
+      "deleteNotification": "Slett varsel",
+      "deleteNotificationConfirmation": "Er du sikker på at du vil slette dette varslet? Denne handlingen kan ikke angres.",
+      "view": "Vis",
+      "unread": "Ulest",
+      "read": "Lest",
+      "close": "Lukk",
+      "success": "Suksess",
+      "notificationDeleted": "Varsel slettet",
+      "error": "Feil",
+      "failedToDeleteNotification": "Kunne ikke slette varsel"
     }
   },
   "conversation": {

@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useTranslation } from 'react-i18next';
 
 interface Notification {
   id: string;
@@ -35,6 +36,7 @@ export function NotificationsList() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { relative } = useDateFormatting();
+  const { t } = useTranslation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
 
@@ -174,14 +176,14 @@ export function NotificationsList() {
       queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
       
       toast({
-        title: "Success",
-        description: "Notification deleted",
+        title: t('dashboard.notifications.success'),
+        description: t('dashboard.notifications.notificationDeleted'),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to delete notification",
+        title: t('dashboard.notifications.error'),
+        description: t('dashboard.notifications.failedToDeleteNotification'),
         variant: "destructive",
       });
     },
@@ -264,7 +266,7 @@ export function NotificationsList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading notifications...</div>
+        <div className="text-muted-foreground">{t('dashboard.notifications.loadingNotifications')}</div>
       </div>
     );
   }
@@ -275,9 +277,9 @@ export function NotificationsList() {
       <div className="p-6 border-b border-border">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-foreground">Notifications</h2>
+            <h2 className="text-2xl font-semibold text-foreground">{t('dashboard.notifications.title')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : 'All caught up!'}
+              {unreadCount > 0 ? (unreadCount === 1 ? t('dashboard.notifications.unreadNotification', { count: unreadCount }) : t('dashboard.notifications.unreadNotifications', { count: unreadCount })) : t('dashboard.notifications.allCaughtUp')}
             </p>
           </div>
           {unreadCount > 0 && (
@@ -287,7 +289,7 @@ export function NotificationsList() {
               disabled={markAllAsReadMutation.isPending}
             >
               <CheckCheck className="h-4 w-4 mr-2" />
-              Mark all read
+              {t('dashboard.notifications.markAllRead')}
             </Button>
           )}
         </div>
@@ -301,8 +303,8 @@ export function NotificationsList() {
               <CardContent className="p-8 text-center">
                 <div className="text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-medium mb-2">No notifications yet</h3>
-                  <p>You'll see notifications here when internal notes are assigned to you.</p>
+                  <h3 className="text-lg font-medium mb-2">{t('dashboard.notifications.noNotifications')}</h3>
+                  <p>{t('dashboard.notifications.noNotificationsDescription')}</p>
                 </div>
               </CardContent>
             </Card>
@@ -384,7 +386,7 @@ export function NotificationsList() {
                                title="View conversation"
                              >
                                <ExternalLink className="h-3 w-3 mr-1" />
-                               View
+                                {t('dashboard.notifications.view')}
                              </Button>
                            )}
                            
@@ -397,7 +399,7 @@ export function NotificationsList() {
                                title="Mark as unread"
                              >
                                <EyeOff className="h-3 w-3 mr-1" />
-                               Unread
+                                {t('dashboard.notifications.unread')}
                              </Button>
                            ) : (
                              <Button
@@ -408,7 +410,7 @@ export function NotificationsList() {
                                title="Mark as read"
                              >
                                <Eye className="h-3 w-3 mr-1" />
-                               Read
+                                {t('dashboard.notifications.read')}
                              </Button>
                            )}
 
@@ -443,20 +445,20 @@ export function NotificationsList() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete notification</AlertDialogTitle>
+            <AlertDialogTitle>{t('dashboard.notifications.deleteNotification')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this notification? This action cannot be undone.
+              {t('dashboard.notifications.deleteNotificationConfirmation')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

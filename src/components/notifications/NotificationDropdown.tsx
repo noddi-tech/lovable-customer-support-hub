@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useTranslation } from 'react-i18next';
 
 interface Notification {
   id: string;
@@ -37,6 +38,7 @@ export function NotificationDropdown() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { relative } = useDateFormatting();
+  const { t } = useTranslation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
 
@@ -159,14 +161,14 @@ export function NotificationDropdown() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       
       toast({
-        title: "Success",
-        description: "Notification deleted",
+        title: t('dashboard.notifications.success'),
+        description: t('dashboard.notifications.notificationDeleted'),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to delete notification",
+        title: t('dashboard.notifications.error'),
+        description: t('dashboard.notifications.failedToDeleteNotification'),
         variant: "destructive",
       });
     },
@@ -239,7 +241,7 @@ export function NotificationDropdown() {
         </PopoverTrigger>
         <PopoverContent className="w-80 p-0" align="end">
           <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="font-semibold">Notifications</h3>
+            <h3 className="font-semibold">{t('dashboard.notifications.title')}</h3>
             {unreadCount > 0 && (
               <Button
                 variant="ghost"
@@ -247,7 +249,7 @@ export function NotificationDropdown() {
                 onClick={() => markAllAsReadMutation.mutate()}
                 disabled={markAllAsReadMutation.isPending}
               >
-                Mark all read
+                {t('dashboard.notifications.markAllRead')}
               </Button>
             )}
           </div>
@@ -255,11 +257,11 @@ export function NotificationDropdown() {
           <ScrollArea className="h-96">
             {isLoading ? (
               <div className="p-4 text-center text-muted-foreground">
-                Loading notifications...
+                {t('dashboard.notifications.loadingNotifications')}
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
-                No notifications yet
+                {t('dashboard.notifications.noNotifications')}
               </div>
             ) : (
               <div className="divide-y">
@@ -321,7 +323,7 @@ export function NotificationDropdown() {
                   className="w-full text-xs"
                   onClick={() => setOpen(false)}
                 >
-                  Close
+                  {t('dashboard.notifications.close')}
                 </Button>
               </div>
             </>
@@ -333,20 +335,20 @@ export function NotificationDropdown() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete notification</AlertDialogTitle>
+            <AlertDialogTitle>{t('dashboard.notifications.deleteNotification')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this notification? This action cannot be undone.
+              {t('dashboard.notifications.deleteNotificationConfirmation')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
