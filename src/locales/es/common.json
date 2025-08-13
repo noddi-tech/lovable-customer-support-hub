@@ -33,6 +33,17 @@
       "denied": "No tienes permisos para acceder a esta sección."
     }
   },
+  "admin": {
+    "title": "Portal de Administración",
+    "description": "Gestionar configuraciones del sistema",
+    "userManagement": "Gestión de Usuarios",
+    "integrations": "Integraciones",
+    "designLibrary": "Biblioteca de Diseño",
+    "general": "General",
+    "createUser": "Crear Usuario",
+    "createDepartment": "Crear Departamento", 
+    "organizeDepartments": "Organizar departamentos y equipos para su estructura de atención al cliente"
+  },
   "languages": {
     "en": "Inglés",
     "es": "Español",

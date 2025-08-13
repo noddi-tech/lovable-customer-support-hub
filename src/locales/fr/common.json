@@ -23,6 +23,17 @@
       "denied": "Vous n'avez pas la permission d'accéder à cette section."
     }
   },
+  "admin": {
+    "title": "Portail Administrateur",
+    "description": "Gérer les paramètres et configurations du système",
+    "userManagement": "Gestion des Utilisateurs",
+    "integrations": "Intégrations",
+    "designLibrary": "Bibliothèque de Design",
+    "general": "Général",
+    "createUser": "Créer un Utilisateur",
+    "createDepartment": "Créer un Département",
+    "organizeDepartments": "Organiser les départements et équipes pour votre structure de support client"
+  },
   "languages": {
     "en": "Anglais",
     "es": "Espagnol", 

@@ -23,6 +23,17 @@
       "denied": "U heeft geen toestemming om toegang te krijgen tot deze sectie."
     }
   },
+  "admin": {
+    "title": "Admin Portaal",
+    "description": "Beheer systeeminstellingen en configuraties",
+    "userManagement": "Gebruikersbeheer",
+    "integrations": "Integraties",
+    "designLibrary": "Ontwerpbibliotheek",
+    "general": "Algemeen",
+    "createUser": "Gebruiker Aanmaken",
+    "createDepartment": "Afdeling Aanmaken",
+    "organizeDepartments": "Organiseer afdelingen en teams voor uw klantenondersteuningsstructuur"
+  },
   "languages": {
     "en": "Engels",
     "es": "Spaans",

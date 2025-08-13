@@ -23,6 +23,17 @@
       "denied": "Non hai i permessi per accedere a questa sezione."
     }
   },
+  "admin": {
+    "title": "Portale Admin",
+    "description": "Gestisci impostazioni di sistema e configurazioni",
+    "userManagement": "Gestione Utenti",
+    "integrations": "Integrazioni",
+    "designLibrary": "Libreria di Design",
+    "general": "Generale",
+    "createUser": "Crea Utente",
+    "createDepartment": "Crea Dipartimento",
+    "organizeDepartments": "Organizza dipartimenti e team per la tua struttura di supporto clienti"
+  },
   "languages": {
     "en": "Inglese",
     "es": "Spagnolo",

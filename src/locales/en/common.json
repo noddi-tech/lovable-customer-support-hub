@@ -34,6 +34,17 @@
       "denied": "You don't have permission to access this section."
     }
   },
+  "admin": {
+    "title": "Admin Portal",
+    "description": "Manage system settings and configurations",
+    "userManagement": "User Management",
+    "integrations": "Integrations", 
+    "designLibrary": "Design Library",
+    "general": "General",
+    "createUser": "Create User",
+    "createDepartment": "Create Department",
+    "organizeDepartments": "Organize departments and teams for your customer support structure"
+  },
   "languages": {
     "en": "English",
     "es": "Spanish",

@@ -23,6 +23,17 @@
       "denied": "Du har ikke tilladelse til at få adgang til denne sektion."
     }
   },
+  "admin": {
+    "title": "Admin Portal",
+    "description": "Håndter systemindstillinger og konfigurationer",
+    "userManagement": "Brugerstyring",
+    "integrations": "Integrationer",
+    "designLibrary": "Designbibliotek",
+    "general": "Generelt",
+    "createUser": "Opret Bruger",
+    "createDepartment": "Opret Afdeling",
+    "organizeDepartments": "Organiser afdelinger og teams til din kundestøttestruktur"
+  },
   "languages": {
     "en": "Engelsk",
     "es": "Spansk",

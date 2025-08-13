@@ -23,6 +23,17 @@
       "denied": "Sie haben keine Berechtigung, auf diesen Bereich zuzugreifen."
     }
   },
+  "admin": {
+    "title": "Admin Portal",
+    "description": "Systemeinstellungen und Konfigurationen verwalten",
+    "userManagement": "Benutzerverwaltung",
+    "integrations": "Integrationen",
+    "designLibrary": "Design-Bibliothek", 
+    "general": "Allgemein",
+    "createUser": "Benutzer Erstellen",
+    "createDepartment": "Abteilung Erstellen",
+    "organizeDepartments": "Organisieren Sie Abteilungen und Teams für Ihre Kundenbetreuungsstruktur"
+  },
   "languages": {
     "en": "Englisch",
     "es": "Spanisch",

@@ -34,6 +34,17 @@
       "denied": "Du har ikke tillatelse til å få tilgang til denne seksjonen."
     }
   },
+  "admin": {
+    "title": "Admin Portal",
+    "description": "Administrer systeminnstillinger og konfigurasjoner",
+    "userManagement": "Brukeradministrasjon",
+    "integrations": "Integrasjoner",
+    "designLibrary": "Designbibliotek",
+    "general": "Generelt",
+    "createUser": "Opprett Bruker",
+    "createDepartment": "Opprett Avdeling", 
+    "organizeDepartments": "Organiser avdelinger og team for din kundestøttestruktur"
+  },
   "languages": {
     "en": "Engelsk",
     "es": "Spansk",
