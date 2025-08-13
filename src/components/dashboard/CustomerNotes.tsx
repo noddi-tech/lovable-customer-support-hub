@@ -114,16 +114,16 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
   return (
     <>
       <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="space-y-2">
           <h3 className="font-semibold text-foreground">{t('conversation.customerNotes')}</h3>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsAdding(true)}
             disabled={isAdding || editingNoteId !== null}
-            className="w-full sm:w-auto flex-shrink-0"
+            className="w-full h-8 text-xs"
           >
-            <Plus className="h-4 w-4 mr-1 flex-shrink-0" />
+            <Plus className="h-3 w-3 mr-1 flex-shrink-0" />
             <span className="truncate">{t('conversation.addNote')}</span>
           </Button>
         </div>
