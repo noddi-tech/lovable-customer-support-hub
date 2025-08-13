@@ -32,7 +32,9 @@
     "general": "Generale",
     "createUser": "Crea Utente",
     "createDepartment": "Crea Dipartimento",
-    "organizeDepartments": "Organizza dipartimenti e team per la tua struttura di supporto clienti"
+    "organizeDepartments": "Organizza dipartimenti e team per la tua struttura di supporto clienti",
+    "selectTeamMember": "Seleziona membro del team",
+    "unassigned": "Non assegnato"
   },
   "languages": {
     "en": "Inglese",

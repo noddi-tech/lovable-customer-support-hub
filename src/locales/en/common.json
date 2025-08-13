@@ -43,7 +43,9 @@
     "general": "General",
     "createUser": "Create User",
     "createDepartment": "Create Department",
-    "organizeDepartments": "Organize departments and teams for your customer support structure"
+    "organizeDepartments": "Organize departments and teams for your customer support structure",
+    "selectTeamMember": "Select team member",
+    "unassigned": "Unassigned"
   },
   "languages": {
     "en": "English",

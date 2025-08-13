@@ -32,7 +32,9 @@
     "general": "Allgemein",
     "createUser": "Benutzer Erstellen",
     "createDepartment": "Abteilung Erstellen",
-    "organizeDepartments": "Organisieren Sie Abteilungen und Teams für Ihre Kundenbetreuungsstruktur"
+    "organizeDepartments": "Organisieren Sie Abteilungen und Teams für Ihre Kundenbetreuungsstruktur",
+    "selectTeamMember": "Teammitglied auswählen",
+    "unassigned": "Nicht zugewiesen"
   },
   "languages": {
     "en": "Englisch",

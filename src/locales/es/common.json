@@ -42,7 +42,9 @@
     "general": "General",
     "createUser": "Crear Usuario",
     "createDepartment": "Crear Departamento", 
-    "organizeDepartments": "Organizar departamentos y equipos para su estructura de atención al cliente"
+    "organizeDepartments": "Organizar departamentos y equipos para su estructura de atención al cliente",
+    "selectTeamMember": "Seleccionar miembro del equipo",
+    "unassigned": "Sin asignar"
   },
   "languages": {
     "en": "Inglés",

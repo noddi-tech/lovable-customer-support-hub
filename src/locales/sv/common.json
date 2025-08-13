@@ -32,7 +32,9 @@
     "general": "Allmänt",
     "createUser": "Skapa användare",
     "createDepartment": "Skapa avdelning",
-    "organizeDepartments": "Organisera avdelningar och team för din kundtjänststruktur"
+    "organizeDepartments": "Organisera avdelningar och team för din kundtjänststruktur",
+    "selectTeamMember": "Välj teammedlem",
+    "unassigned": "Ej tilldelad"
   },
   "languages": {
     "en": "Engelska",
