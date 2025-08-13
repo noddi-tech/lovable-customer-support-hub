@@ -15,10 +15,30 @@ const locales = {
   da,
 };
 
-export function formatRelativeTime(date: Date | string, locale: string = 'en'): string {
+/**
+ * Format relative time with optional timezone support
+ * @param date - The date to format
+ * @param locale - The locale to use (default: 'en')
+ * @param timeZone - Optional timezone (if not provided, uses browser timezone)
+ * @returns Formatted relative time string
+ */
+export function formatRelativeTime(
+  date: Date | string, 
+  locale: string = 'en',
+  timeZone?: string
+): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const now = new Date();
-  const diffInMinutes = Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60));
+  
+  // Use timezone-aware current time if timezone is provided
+  const now = timeZone ? new Date() : new Date();
+  const timezoneDate = timeZone ? 
+    new Date(formatInTimeZone(dateObj, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx")) : 
+    dateObj;
+  const timezoneNow = timeZone ? 
+    new Date(formatInTimeZone(now, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx")) : 
+    now;
+    
+  const diffInMinutes = Math.floor((timezoneNow.getTime() - timezoneDate.getTime()) / (1000 * 60));
   
   if (diffInMinutes < 1) {
     return getRelativeTimeText('justNow', locale);
@@ -34,24 +54,121 @@ export function formatRelativeTime(date: Date | string, locale: string = 'en'): 
     } else if (days < 7) {
       return getRelativeTimeText('daysAgo', locale, days);
     } else {
-      // For older dates, show the actual date
+      // For older dates, show the actual date in the specified timezone
       const dateFnsLocale = locales[locale as keyof typeof locales] || enUS;
-      return format(dateObj, 'MMM d, yyyy', { locale: dateFnsLocale });
+      if (timeZone) {
+        return formatInTimeZone(dateObj, timeZone, 'MMM d, yyyy', { locale: dateFnsLocale });
+      } else {
+        return format(dateObj, 'MMM d, yyyy', { locale: dateFnsLocale });
+      }
     }
   }
 }
 
-export function formatDateTime(date: Date | string, locale: string = 'en', timeZone?: string): string {
+/**
+ * Format date and time with optional timezone support
+ * @param date - The date to format
+ * @param locale - The locale to use (default: 'en')
+ * @param timeZone - Optional timezone (if not provided, uses browser timezone)
+ * @param includeTime - Whether to include time (default: true)
+ * @returns Formatted date/time string
+ */
+export function formatDateTime(
+  date: Date | string, 
+  locale: string = 'en', 
+  timeZone?: string,
+  includeTime: boolean = true
+): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   const dateFnsLocale = locales[locale as keyof typeof locales] || enUS;
   
+  const formatString = includeTime ? 'MMM d, yyyy HH:mm' : 'MMM d, yyyy';
+  
   if (timeZone) {
-    return formatInTimeZone(dateObj, timeZone, 'MMM d, yyyy HH:mm', { locale: dateFnsLocale });
+    return formatInTimeZone(dateObj, timeZone, formatString, { locale: dateFnsLocale });
   }
   
-  return format(dateObj, 'MMM d, yyyy HH:mm', { locale: dateFnsLocale });
+  return format(dateObj, formatString, { locale: dateFnsLocale });
 }
 
+/**
+ * Format time only with timezone support
+ * @param date - The date to format
+ * @param locale - The locale to use (default: 'en')
+ * @param timeZone - Optional timezone (if not provided, uses browser timezone)
+ * @param format24Hour - Whether to use 24-hour format (default: false)
+ * @returns Formatted time string
+ */
+export function formatTime(
+  date: Date | string,
+  locale: string = 'en',
+  timeZone?: string,
+  format24Hour: boolean = false
+): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateFnsLocale = locales[locale as keyof typeof locales] || enUS;
+  
+  const formatString = format24Hour ? 'HH:mm' : 'h:mm a';
+  
+  if (timeZone) {
+    return formatInTimeZone(dateObj, timeZone, formatString, { locale: dateFnsLocale });
+  }
+  
+  return format(dateObj, formatString, { locale: dateFnsLocale });
+}
+
+/**
+ * Format date for display in conversation lists with timezone support
+ * @param date - The date to format
+ * @param locale - The locale to use (default: 'en')
+ * @param timeZone - Optional timezone (if not provided, uses browser timezone)
+ * @returns Formatted date string optimized for conversation lists
+ */
+export function formatConversationDate(
+  date: Date | string,
+  locale: string = 'en',
+  timeZone?: string
+): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  
+  // Get timezone-aware dates for comparison
+  const targetDate = timeZone ? 
+    new Date(formatInTimeZone(dateObj, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx")) : 
+    dateObj;
+  const currentDate = timeZone ? 
+    new Date(formatInTimeZone(now, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx")) : 
+    now;
+    
+  const diffInMinutes = Math.floor((currentDate.getTime() - targetDate.getTime()) / (1000 * 60));
+  
+  // If less than an hour ago, show relative time
+  if (diffInMinutes < 60) {
+    return formatRelativeTime(date, locale, timeZone);
+  }
+  
+  // If today, show time only
+  const isToday = targetDate.toDateString() === currentDate.toDateString();
+  if (isToday) {
+    return formatTime(date, locale, timeZone);
+  }
+  
+  // If this week, show day and time
+  const diffInDays = Math.floor(diffInMinutes / (24 * 60));
+  if (diffInDays < 7) {
+    const dateFnsLocale = locales[locale as keyof typeof locales] || enUS;
+    if (timeZone) {
+      return formatInTimeZone(dateObj, timeZone, 'EEE h:mm a', { locale: dateFnsLocale });
+    } else {
+      return format(dateObj, 'EEE h:mm a', { locale: dateFnsLocale });
+    }
+  }
+  
+  // Otherwise show date
+  return formatDateTime(date, locale, timeZone, false);
+}
+
+// Legacy function for backward compatibility (keeping exact same signature)
 function getRelativeTimeText(key: string, locale: string, count?: number): string {
   // This is a simplified version - in a real app you'd use the translation system
   const translations: Record<string, Record<string, string>> = {

@@ -105,6 +105,9 @@ export default function Settings() {
             <TabsContent value="general" className="space-y-6">
                     <LanguageSettings />
                     <TimezoneSettings />
+                    {/* Uncomment to test timezone functionality:
+                    <TimezoneTest className="mt-4" />
+                    */}
               <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
                   <CardTitle className="text-primary">General Settings</CardTitle>
