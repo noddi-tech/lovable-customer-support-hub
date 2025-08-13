@@ -298,13 +298,13 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center space-x-2 text-base">
                 <User className="h-4 w-4" />
-                <span>Customer Information</span>
+                <span>{t('conversation.customerInformation')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="customer-email">Email Address *</Label>
+                  <Label htmlFor="customer-email">{t('conversation.emailAddress')} *</Label>
                   <Input
                     id="customer-email"
                     type="email"
@@ -315,10 +315,10 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customer-name">Full Name</Label>
+                  <Label htmlFor="customer-name">{t('conversation.customerName')}</Label>
                   <Input
                     id="customer-name"
-                    placeholder="Customer Name"
+                    placeholder={t('conversation.customerName')}
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                   />
@@ -332,12 +332,12 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center space-x-2 text-base">
                 <Mail className="h-4 w-4" />
-                <span>Conversation Details</span>
+                <span>{t('conversation.conversationDetails')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject *</Label>
+                <Label htmlFor="subject">{t('conversation.subject')} *</Label>
                 <Input
                   id="subject"
                   placeholder="Email subject line"
@@ -349,10 +349,10 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="inbox">Inbox</Label>
+                  <Label htmlFor="inbox">{t('conversation.inbox')}</Label>
                   <Select value={selectedInboxId} onValueChange={setSelectedInboxId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select inbox" />
+                      <SelectValue placeholder={t('conversation.selectInbox')} />
                     </SelectTrigger>
                     <SelectContent>
                       {inboxes.map((inbox) => (
@@ -372,32 +372,32 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
+                  <Label htmlFor="priority">{t('conversation.priority')}</Label>
                   <Select value={priority} onValueChange={setPriority}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="low">{t('conversation.low')}</SelectItem>
+                      <SelectItem value="normal">{t('conversation.normal')}</SelectItem>
+                      <SelectItem value="high">{t('conversation.high')}</SelectItem>
+                      <SelectItem value="urgent">{t('conversation.urgent')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="initial-message">Initial Message (Optional)</Label>
+                <Label htmlFor="initial-message">{t('conversation.initialMessage')}</Label>
                 <Textarea
                   id="initial-message"
-                  placeholder="Type your initial message to the customer..."
+                  placeholder={t('conversation.initialMessagePlaceholder')}
                   value={initialMessage}
                   onChange={(e) => setInitialMessage(e.target.value)}
                   className="min-h-[120px] resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  This message will be sent to the customer immediately after creating the conversation.
+                  {t('conversation.initialMessageNote')}
                 </p>
               </div>
             </CardContent>
@@ -413,13 +413,13 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
               onClick={() => setOpen(false)}
               disabled={createConversationMutation.isPending}
             >
-              Cancel
+              {t('conversation.cancel')}
             </Button>
             <Button 
               type="submit"
               disabled={createConversationMutation.isPending}
             >
-              {createConversationMutation.isPending ? 'Creating...' : 'Create Conversation'}
+              {createConversationMutation.isPending ? t('conversation.creating') : t('conversation.createConversation')}
             </Button>
           </div>
         </form>

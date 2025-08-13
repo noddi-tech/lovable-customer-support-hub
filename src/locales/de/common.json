@@ -144,11 +144,26 @@
       "error": "Synchronisierung konnte nicht gestartet werden"
     },
     "conversation": {
-      "low": "Niedrig",
-      "normal": "Normal",  
-      "high": "Hoch",
-      "urgent": "Dringend"
-    }
+       "low": "Niedrig",
+       "normal": "Normal",
+       "high": "Hoch",
+       "urgent": "Dringend",
+       "newConversation": "Neues Gespräch",
+       "customerInformation": "Kundeninformationen",
+       "emailAddress": "E-Mail-Adresse",
+       "customerName": "Vollständiger Name",
+       "conversationDetails": "Gesprächsdetails",
+       "subject": "Betreff",
+       "inbox": "Posteingang",
+       "priority": "Priorität",
+       "initialMessage": "Erste Nachricht (Optional)",
+       "initialMessagePlaceholder": "Schreiben Sie Ihre erste Nachricht an den Kunden...",
+       "initialMessageNote": "Diese Nachricht wird sofort nach der Erstellung des Gesprächs an den Kunden gesendet.",
+       "cancel": "Abbrechen",
+       "creating": "Erstelle...",
+       "createConversation": "Gespräch erstellen",
+       "selectInbox": "Posteingang auswählen"
+     }
   },
   "common": {
     "loading": "Wird geladen...",
