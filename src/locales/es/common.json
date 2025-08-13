@@ -106,19 +106,6 @@
     "navigation": {
       "back": "← Atrás",
       "notifications": "Notificaciones"
-    }
-  },
-  "conversation": {
-    "snooze": "Posponer",
-    "snoozeDialogTitle": "Posponer conversación",
-    "snoozeForLater": "Posponer para más tarde",
-    "laterToday": "Más tarde hoy (3h)",
-    "tomorrowMorning": "Mañana 09:00",
-    "nextMondayMorning": "Próximo lunes 09:00",
-    "pickDateTime": "Seleccionar fecha y hora",
-    "selectDate": "Seleccionar fecha",
-    "confirm": "Confirmar",
-    "snoozeNote": "Horarios mostrados en tu zona horaria",
     },
     "notifications": {
       "title": "Notificaciones",
