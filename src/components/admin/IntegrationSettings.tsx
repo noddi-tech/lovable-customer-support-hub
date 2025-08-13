@@ -5,8 +5,10 @@ import { Mail, MessageSquare, Instagram } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { InboxManagement } from '@/components/admin/InboxManagement';
+import { useTranslation } from 'react-i18next';
 
 export const IntegrationSettings = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       {/* Email accounts and inbox management */}
@@ -16,10 +18,10 @@ export const IntegrationSettings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Mail className="w-5 h-5" />
-            Email Integration
+            {t('admin.emailIntegration')}
           </CardTitle>
           <CardDescription>
-            Connect and manage email accounts for your organization
+            {t('admin.connectAndManage')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -32,9 +34,9 @@ export const IntegrationSettings = () => {
       {/* Channel toggles */}
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="text-primary">Channel Settings</CardTitle>
+          <CardTitle className="text-primary">{t('admin.channelSettings')}</CardTitle>
           <CardDescription>
-            Enable or disable communication channels for your organization
+            {t('admin.enableOrDisable')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -42,8 +44,8 @@ export const IntegrationSettings = () => {
             <div className="flex items-center gap-3">
               <Mail className="w-5 h-5 text-channel-email" />
               <div>
-                <Label htmlFor="email-channel" className="text-sm font-medium">Email Support</Label>
-                <p className="text-xs text-muted-foreground">Receive and respond to emails</p>
+                <Label htmlFor="email-channel" className="text-sm font-medium">{t('admin.emailSupport')}</Label>
+                <p className="text-xs text-muted-foreground">{t('admin.receiveAndRespond')}</p>
               </div>
             </div>
             <Switch id="email-channel" defaultChecked />
@@ -55,8 +57,8 @@ export const IntegrationSettings = () => {
             <div className="flex items-center gap-3">
               <MessageSquare className="w-5 h-5 text-channel-facebook" />
               <div>
-                <Label htmlFor="messenger-channel" className="text-sm font-medium">Facebook Messenger</Label>
-                <p className="text-xs text-muted-foreground">Connect with customers via Messenger</p>
+                <Label htmlFor="messenger-channel" className="text-sm font-medium">{t('admin.facebookMessenger')}</Label>
+                <p className="text-xs text-muted-foreground">{t('admin.connectCustomers')}</p>
               </div>
             </div>
             <Switch id="messenger-channel" />
@@ -68,8 +70,8 @@ export const IntegrationSettings = () => {
             <div className="flex items-center gap-3">
               <Instagram className="w-5 h-5 text-channel-instagram" />
               <div>
-                <Label htmlFor="instagram-channel" className="text-sm font-medium">Instagram DMs</Label>
-                <p className="text-xs text-muted-foreground">Manage Instagram direct messages</p>
+                <Label htmlFor="instagram-channel" className="text-sm font-medium">{t('admin.instagramDMs')}</Label>
+                <p className="text-xs text-muted-foreground">{t('admin.manageInstagram')}</p>
               </div>
             </div>
             <Switch id="instagram-channel" />

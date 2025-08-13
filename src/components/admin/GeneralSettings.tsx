@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTranslation } from 'react-i18next';
 
 interface OrganizationWithMetadata {
   id: string;
@@ -24,6 +25,7 @@ interface OrganizationWithMetadata {
 export const GeneralSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 const [orgName, setOrgName] = useState('');
 const [orgDescription, setOrgDescription] = useState('');
 const [isBackfillOpen, setIsBackfillOpen] = useState(false);
@@ -130,28 +132,28 @@ const { isAdmin } = usePermissions();
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Palette className="w-5 h-5" />
-            Organization Branding
+            {t('admin.organizationBranding')}
           </CardTitle>
           <CardDescription>
-            Customize your organization's appearance and branding
+            {t('admin.customizeAppearance')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="org-name">Organization Name</Label>
+            <Label htmlFor="org-name">{t('admin.organizationName')}</Label>
             <Input 
               id="org-name" 
-              placeholder="Enter organization name" 
+              placeholder={t('admin.enterOrgName')} 
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="org-description">Description</Label>
+            <Label htmlFor="org-description">{t('admin.description')}</Label>
             <Textarea 
               id="org-description" 
-              placeholder="Organization description..."
+              placeholder={t('admin.orgDescription')}
               value={orgDescription}
               onChange={(e) => setOrgDescription(e.target.value)}
             />
@@ -163,7 +165,7 @@ const { isAdmin } = usePermissions();
             disabled={updateBrandingMutation.isPending || isLoading}
           >
             <Save className="w-4 h-4" />
-            {updateBrandingMutation.isPending ? 'Saving...' : 'Save Branding'}
+            {updateBrandingMutation.isPending ? t('admin.saving') : t('admin.saveBranding')}
           </Button>
         </CardContent>
       </Card>
@@ -172,17 +174,17 @@ const { isAdmin } = usePermissions();
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Bell className="w-5 h-5" />
-            Notification Settings
+            {t('admin.notificationSettings')}
           </CardTitle>
           <CardDescription>
-            Configure organization-wide notification preferences
+            {t('admin.configureNotifications')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">Email Notifications</Label>
-              <p className="text-xs text-muted-foreground">Send email alerts for new conversations</p>
+              <Label className="text-sm font-medium">{t('admin.emailNotifications')}</Label>
+              <p className="text-xs text-muted-foreground">{t('admin.sendEmailAlerts')}</p>
             </div>
             <Switch defaultChecked />
           </div>
@@ -191,8 +193,8 @@ const { isAdmin } = usePermissions();
 
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">Auto-assignment</Label>
-              <p className="text-xs text-muted-foreground">Automatically assign conversations to available agents</p>
+              <Label className="text-sm font-medium">{t('admin.autoAssignment')}</Label>
+              <p className="text-xs text-muted-foreground">{t('admin.automaticallyAssign')}</p>
             </div>
             <Switch defaultChecked />
           </div>
@@ -201,8 +203,8 @@ const { isAdmin } = usePermissions();
 
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">Response Templates</Label>
-              <p className="text-xs text-muted-foreground">Enable suggested responses for common queries</p>
+              <Label className="text-sm font-medium">{t('admin.responseTemplates')}</Label>
+              <p className="text-xs text-muted-foreground">{t('admin.enableSuggested')}</p>
             </div>
             <Switch defaultChecked />
           </div>
@@ -214,34 +216,34 @@ const { isAdmin } = usePermissions();
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <Wrench className="w-5 h-5" />
-              Data Maintenance
+              {t('admin.dataMaintenance')}
             </CardTitle>
             <CardDescription>
-              Fix sender mapping for emails forwarded via groups/aliases (e.g., "via Hei").
+              {t('admin.fixSenderMapping')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This scans recent email conversations and corrects the customer on the first message using Reply-To/X-Original-From.
+              {t('admin.scanRecent')}
             </p>
             <AlertDialog open={isBackfillOpen} onOpenChange={setIsBackfillOpen}>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" disabled={runningBackfill}>
                   <ShieldAlert className="w-4 h-4" />
-                  {runningBackfill ? 'Running...' : 'Run Sender Backfill'}
+                  {runningBackfill ? t('admin.running') : t('admin.runSenderBackfill')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Run sender backfill now?</AlertDialogTitle>
+                  <AlertDialogTitle>{t('admin.runSenderBackfillTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    We will process up to 1000 email conversations from the last 365 days and update the linked customer where needed.
+                    {t('admin.runSenderBackfillDescription')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                   <AlertDialogAction onClick={handleRunBackfill}>
-                    Confirm
+                    {t('admin.confirm')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

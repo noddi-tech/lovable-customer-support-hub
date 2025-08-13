@@ -6,14 +6,16 @@ import { GeneralSettings } from './GeneralSettings';
 import { DesignLibrary } from './DesignLibrary';
 import { Users, Settings, Plug, Palette } from 'lucide-react';
 import { Heading } from '@/components/ui/heading';
+import { useTranslation } from 'react-i18next';
 
 export const AdminPortal = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       <div>
-        <Heading level={2}>Admin Portal</Heading>
+        <Heading level={2}>{t('admin.title')}</Heading>
         <p className="text-muted-foreground mt-1">
-          Manage organization settings, users, and integrations
+          {t('admin.description')}
         </p>
       </div>
 
@@ -21,19 +23,19 @@ export const AdminPortal = () => {
         <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm shadow-surface">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            User Management
+            {t('admin.userManagement')}
           </TabsTrigger>
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Plug className="w-4 h-4" />
-            Integrations
+            {t('admin.integrations')}
           </TabsTrigger>
           <TabsTrigger value="design" className="flex items-center gap-2">
             <Palette className="w-4 h-4" />
-            Design Library
+            {t('admin.designLibrary')}
           </TabsTrigger>
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
-            General
+            {t('admin.general')}
           </TabsTrigger>
         </TabsList>
 

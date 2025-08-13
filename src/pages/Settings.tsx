@@ -34,7 +34,7 @@ export default function Settings() {
   if (loading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">Loading...</div>
+        <div className="text-center">{t('common.loading')}</div>
       </div>
     );
   }
@@ -110,14 +110,14 @@ export default function Settings() {
                     */}
               <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
-                  <CardTitle className="text-primary">General Settings</CardTitle>
+                  <CardTitle className="text-primary">{t('common.settings')}</CardTitle>
                   <CardDescription>
-                    Basic account and preference settings
+                    {t('settings.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Additional general settings will be implemented here.
+                    {t('settings.description')}
                   </p>
                 </CardContent>
               </Card>
@@ -127,14 +127,14 @@ export default function Settings() {
             <TabsContent value="profile" className="space-y-6">
               <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
-                  <CardTitle className="text-primary">Profile Settings</CardTitle>
+                  <CardTitle className="text-primary">{t('settings.tabs.profile')}</CardTitle>
                   <CardDescription>
-                    Manage your profile information
+                    {t('settings.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Profile settings will be implemented here.
+                    {t('settings.description')}
                   </p>
                 </CardContent>
               </Card>
@@ -144,14 +144,14 @@ export default function Settings() {
             <TabsContent value="notifications" className="space-y-6">
               <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
-                  <CardTitle className="text-primary">Notification Settings</CardTitle>
+                  <CardTitle className="text-primary">{t('settings.tabs.notifications')}</CardTitle>
                   <CardDescription>
-                    Configure your notification preferences
+                    {t('settings.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Notification settings will be implemented here.
+                    {t('settings.description')}
                   </p>
                 </CardContent>
               </Card>

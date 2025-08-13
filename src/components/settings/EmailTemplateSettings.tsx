@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 interface EmailTemplate {
   id?: string;
@@ -27,6 +28,7 @@ interface EmailTemplate {
 export function EmailTemplateSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [template, setTemplate] = useState<EmailTemplate>({
     name: 'Default Template',
@@ -137,15 +139,15 @@ export function EmailTemplateSettings() {
     <div className="space-y-6">
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="text-primary">Email Template Settings</CardTitle>
+          <CardTitle className="text-primary">{t('emailTemplate.title')}</CardTitle>
           <CardDescription>
-            Customize how your outgoing emails look. The email body will be exactly what you type in your replies.
+            {t('emailTemplate.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Preview */}
           <div className="border rounded-lg p-4 bg-muted/50">
-            <h4 className="font-medium mb-3">Preview</h4>
+            <h4 className="font-medium mb-3">{t('emailTemplate.preview')}</h4>
             <div className="border rounded bg-background max-w-md mx-auto">
               {template.header_content && (
                 <div 
@@ -166,7 +168,7 @@ export function EmailTemplateSettings() {
                 }}
               >
                 <div style={{ lineHeight: '1.6' }}>
-                  Your reply message content goes here...
+                  {t('emailTemplate.yourReply')}
                 </div>
                 {template.signature_content && (
                   <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #E5E7EB' }}>
@@ -193,10 +195,10 @@ export function EmailTemplateSettings() {
 
           {/* Header Settings */}
           <div className="space-y-4">
-            <h4 className="font-medium">Header</h4>
+            <h4 className="font-medium">{t('emailTemplate.header')}</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="header-bg">Background Color</Label>
+                <Label htmlFor="header-bg">{t('emailTemplate.backgroundColor')}</Label>
                 <Input
                   id="header-bg"
                   type="color"
@@ -205,7 +207,7 @@ export function EmailTemplateSettings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="header-text">Text Color</Label>
+                <Label htmlFor="header-text">{t('emailTemplate.textColor')}</Label>
                 <Input
                   id="header-text"
                   type="color"
@@ -215,10 +217,10 @@ export function EmailTemplateSettings() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="header-content">Header Content (HTML allowed)</Label>
+              <Label htmlFor="header-content">{t('emailTemplate.headerContent')}</Label>
               <Textarea
                 id="header-content"
-                placeholder="Leave empty for no header"
+                placeholder={t('emailTemplate.leaveEmpty')}
                 value={template.header_content}
                 onChange={(e) => updateTemplate('header_content', e.target.value)}
               />
@@ -227,7 +229,7 @@ export function EmailTemplateSettings() {
 
           {/* Body Settings */}
           <div className="space-y-4">
-            <h4 className="font-medium">Body</h4>
+            <h4 className="font-medium">{t('emailTemplate.body')}</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="body-bg">Background Color</Label>
@@ -252,32 +254,32 @@ export function EmailTemplateSettings() {
 
           {/* Signature Settings */}
           <div className="space-y-4">
-            <h4 className="font-medium">Signature</h4>
+            <h4 className="font-medium">{t('emailTemplate.signature')}</h4>
             <div className="flex items-center space-x-2">
               <Switch
                 id="include-agent"
                 checked={template.include_agent_name}
                 onCheckedChange={(checked) => updateTemplate('include_agent_name', checked)}
               />
-              <Label htmlFor="include-agent">Include agent name in signature</Label>
+              <Label htmlFor="include-agent">{t('emailTemplate.includeAgentName')}</Label>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="signature">Signature Content (HTML allowed)</Label>
+              <Label htmlFor="signature">{t('emailTemplate.signatureContent')}</Label>
               <Textarea
                 id="signature"
-                placeholder="Use {{agent_name}} to insert the agent's name"
+                placeholder={t('emailTemplate.useAgentName')}
                 value={template.signature_content}
                 onChange={(e) => updateTemplate('signature_content', e.target.value)}
               />
               <p className="text-sm text-muted-foreground">
-                Use {`{{agent_name}}`} to automatically insert the agent's name
+                {t('emailTemplate.automaticallyInsert')}
               </p>
             </div>
           </div>
 
           {/* Footer Settings */}
           <div className="space-y-4">
-            <h4 className="font-medium">Footer</h4>
+            <h4 className="font-medium">{t('emailTemplate.footer')}</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="footer-bg">Background Color</Label>
@@ -299,10 +301,10 @@ export function EmailTemplateSettings() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="footer-content">Footer Content (HTML allowed)</Label>
+              <Label htmlFor="footer-content">{t('emailTemplate.footerContent')}</Label>
               <Textarea
                 id="footer-content"
-                placeholder="Leave empty for no footer"
+                placeholder={t('emailTemplate.leaveEmptyFooter')}
                 value={template.footer_content}
                 onChange={(e) => updateTemplate('footer_content', e.target.value)}
               />
@@ -314,7 +316,7 @@ export function EmailTemplateSettings() {
             disabled={saveTemplateMutation.isPending}
             className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
           >
-            {saveTemplateMutation.isPending ? 'Saving...' : 'Save Template'}
+            {saveTemplateMutation.isPending ? t('admin.saving') : t('emailTemplate.saveTemplate')}
           </Button>
         </CardContent>
       </Card>
