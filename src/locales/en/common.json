@@ -127,6 +127,8 @@
     "pickDateTime": "Pick a date & time",
     "selectDate": "Select date",
     "confirm": "Confirm",
+    "selectDate": "Select date",
+    "confirm": "Confirm",
     "deleteDialogTitle": "Delete message",
     "deleteDialogDescription": "Are you sure you want to delete this message? This action cannot be undone.",
     "customerDetails": "Customer Details",
@@ -185,6 +187,13 @@
       "facebook": "Facebook",
       "instagram": "Instagram",
       "whatsapp": "WhatsApp"
+    },
+    "conversation": {
+      "snoozeNote": "Times shown in your timezone",
+      "customerSince": "Customer since",
+      "lastSeen": "Last seen",
+      "emailStatus": "Email status",
+      "messageStatus": "Message status"
     },
     "conversationList": {
       "inbox": "Inbox",

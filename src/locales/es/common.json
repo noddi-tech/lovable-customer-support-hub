@@ -104,6 +104,18 @@
       "notifications": "Notificaciones"
     }
   },
+  "conversation": {
+    "snooze": "Posponer",
+    "snoozeDialogTitle": "Posponer conversación",
+    "snoozeForLater": "Posponer para más tarde",
+    "laterToday": "Más tarde hoy (3h)",
+    "tomorrowMorning": "Mañana 09:00",
+    "nextMondayMorning": "Próximo lunes 09:00",
+    "pickDateTime": "Seleccionar fecha y hora",
+    "selectDate": "Seleccionar fecha",
+    "confirm": "Confirmar",
+    "snoozeNote": "Horarios mostrados en tu zona horaria"
+  },
   "common": {
     "loading": "Cargando...",
     "search": "Buscar",
@@ -113,6 +125,7 @@
     "justNow": "Ahora mismo",
     "minutesAgo": "hace {{count}}m",
     "hoursAgo": "hace {{count}}h",
-    "daysAgo": "hace {{count}}d"
+    "daysAgo": "hace {{count}}d",
+    "cancel": "Cancelar"
   }
 }
