@@ -39,7 +39,8 @@ import {
   MoreVertical,
   Edit3,
   Sparkles,
-  Loader2
+  Loader2,
+  Move
  } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -95,6 +96,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [snoozeDialogOpen, setSnoozeDialogOpen] = useState(false);
   const [snoozeDate, setSnoozeDate] = useState<Date | undefined>();
   const [snoozeTime, setSnoozeTime] = useState<string>('09:00');
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [selectedInboxId, setSelectedInboxId] = useState<string>('');
+  const [isMoving, setIsMoving] = useState(false);
 
   // AI suggestions state
   const [aiOpen, setAiOpen] = useState(false);
@@ -667,6 +671,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     },
   });
 
+  // Fetch inboxes for moving conversations
+  const { data: inboxes = [] } = useQuery({
+    queryKey: ['inboxes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_inboxes');
+      if (error) {
+        console.error('Error fetching inboxes:', error);
+        return [];
+      }
+      return data;
+    },
+  });
+
   // Handle editing internal notes
   const handleEditMessage = (message: any) => {
     setEditingMessageId(message.id);
@@ -972,6 +989,33 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       setIsAssigning(false);
     }
   };
+
+  const handleMoveConversation = async () => {
+    try {
+      setIsMoving(true);
+      if (!selectedInboxId || selectedInboxId === conversation?.inbox_id) {
+        toast.info('No changes to inbox');
+        setMoveDialogOpen(false);
+        return;
+      }
+      const { error } = await supabase
+        .from('conversations')
+        .update({ inbox_id: selectedInboxId })
+        .eq('id', conversationId as string);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      const targetInbox = inboxes.find(i => i.id === selectedInboxId);
+      toast.success(`Conversation moved to ${targetInbox?.name || 'selected inbox'}`);
+      setMoveDialogOpen(false);
+    } catch (e) {
+      console.error('Failed to move conversation:', e);
+      toast.error('Failed to move conversation');
+    } finally {
+      setIsMoving(false);
+    }
+  };
   const handleArchive = async () => {
     try {
       await supabase
@@ -1138,6 +1182,53 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           </>
                         ) : (
                           'Assign'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={moveDialogOpen} onOpenChange={(open) => { setMoveDialogOpen(open); if (open) { setSelectedInboxId(conversation?.inbox_id || ''); } }}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Move className="h-4 w-4 mr-2" />
+                    Move
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Move conversation</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Select
+                      value={selectedInboxId}
+                      onValueChange={setSelectedInboxId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select inbox" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {inboxes.map((inbox) => (
+                          <SelectItem key={inbox.id} value={inbox.id}>
+                            {inbox.name}
+                            {inbox.id === conversation?.inbox_id && " (current)"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setMoveDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleMoveConversation} disabled={isMoving}>
+                        {isMoving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Moving...
+                          </>
+                        ) : (
+                          'Move'
                         )}
                       </Button>
                     </div>
