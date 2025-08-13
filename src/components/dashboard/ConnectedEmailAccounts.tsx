@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from 'react-i18next';
 
 interface EmailAccount {
   id: string;
@@ -37,6 +38,7 @@ export function ConnectedEmailAccounts() {
   const [copiedForwarding, setCopiedForwarding] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   // Fetch inboxes
   const { data: inboxes = [] } = useQuery({
@@ -70,7 +72,7 @@ export function ConnectedEmailAccounts() {
       queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
       setEditingAccount(null);
       setEditingInbox("unassigned");
-      toast({ title: "Inbox updated", description: "Email account has been reassigned." });
+      toast({ title: t('admin.inboxUpdated'), description: t('admin.emailAccountReassigned') });
     },
   });
 
@@ -99,7 +101,7 @@ export function ConnectedEmailAccounts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
-      toast({ title: "Email account removed", description: "Disconnected successfully." });
+      toast({ title: t('admin.emailAccountRemoved'), description: t('admin.disconnectedSuccessfully') });
     },
   });
 
@@ -252,7 +254,7 @@ export function ConnectedEmailAccounts() {
                               <SelectItem value="unassigned">
                                 <div className="flex items-center gap-2">
                                   <div className="w-3 h-3 rounded-full bg-muted" />
-                                  <span>Unassigned</span>
+                                  <span>{t('admin.unassigned')}</span>
                                 </div>
                               </SelectItem>
                               {inboxes.map((inbox) => (
@@ -283,7 +285,7 @@ export function ConnectedEmailAccounts() {
                                 <span className="font-medium">{inboxes.find(i => i.id === account.inbox_id)?.name || 'Unknown Inbox'}</span>
                               </div>
                             ) : (
-                              <span className="text-warning">Not assigned</span>
+                              <span className="text-warning">{t('admin.notAssigned')}</span>
                             )}
                           </div>
                           <Button variant="ghost" size="sm" onClick={() => startEditingAccount(account.id, account.inbox_id)}>
@@ -320,7 +322,7 @@ export function ConnectedEmailAccounts() {
                       </Button>
                     )}
                     <Button variant="outline" size="sm" onClick={() => removeAccountMutation.mutate(account.id)} disabled={removeAccountMutation.isPending}>
-                      Remove
+                       {t('admin.remove')}
                     </Button>
                   </div>
                 </div>

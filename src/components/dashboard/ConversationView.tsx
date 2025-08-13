@@ -1152,10 +1152,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       onValueChange={(v) => setAssignSelectedUserId(v === 'unassigned' ? '' : v)}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select team member" />
+                         <SelectValue placeholder={t('admin.selectTeamMember')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                         <SelectItem value="unassigned">{t('admin.unassigned')}</SelectItem>
                         {teamMembers.map((member) => (
                           <SelectItem key={member.user_id} value={member.user_id}>
                             {member.full_name} ({member.email})
@@ -1519,7 +1519,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   <label className="text-sm font-medium text-muted-foreground">{t('conversation.assignTo')}</label>
                   <Select value={assignedToId} onValueChange={setAssignedToId}>
                     <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Select team member" />
+                      <SelectValue placeholder={t('admin.selectTeamMember')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>

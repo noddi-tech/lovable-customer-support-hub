@@ -144,14 +144,14 @@ export function DepartmentManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       toast({
-        title: "Department deleted",
-        description: "The department has been deleted successfully.",
+        title: t('admin.departmentDeleted'),
+        description: t('admin.departmentDeletedDescription'),
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to delete department. Please try again.",
+        description: t('admin.failedToDelete'),
         variant: "destructive",
       });
     },
@@ -212,9 +212,9 @@ export function DepartmentManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <Heading level={2}>Department Management</Heading>
+          <Heading level={2}>{t('settings.tabs.departments')}</Heading>
           <p className="text-muted-foreground mt-1">
-            Organize your team into departments for better workflow management.
+            {t('admin.organizeDepartments')}
           </p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -226,9 +226,9 @@ export function DepartmentManagement() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Department</DialogTitle>
+              <DialogTitle>{t('admin.createDepartment')}</DialogTitle>
               <DialogDescription>
-                Add a new department to organize your team and workflows.
+                {t('admin.addNewDepartment')}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
@@ -258,7 +258,7 @@ export function DepartmentManagement() {
                   variant="outline"
                   onClick={() => setShowCreateDialog(false)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   type="submit"
@@ -319,19 +319,19 @@ export function DepartmentManagement() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Department</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{department.name}"? This action cannot be undone.
-                            Any inboxes assigned to this department will be unassigned.
-                          </AlertDialogDescription>
+                          <AlertDialogTitle>{t('admin.deleteDepartment')}</AlertDialogTitle>
+                           <AlertDialogDescription>
+                             {t('conversation.deleteConfirmation')} "{department.name}". {t('conversation.deleteDescription')}
+                             {t('admin.moveToDefault')}
+                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => deleteDepartmentMutation.mutate(department.id)}
                             disabled={deleteDepartmentMutation.isPending}
                           >
-                            {deleteDepartmentMutation.isPending ? "Deleting..." : "Delete"}
+                            {deleteDepartmentMutation.isPending ? t('admin.deleting') : t('common.delete')}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -353,14 +353,14 @@ export function DepartmentManagement() {
       <Dialog open={!!editingDepartment} onOpenChange={() => cancelEdit()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Department</DialogTitle>
+            <DialogTitle>{t('admin.editDepartment')}</DialogTitle>
             <DialogDescription>
               Update the department details.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdate} className="space-y-4">
             <div>
-              <Label htmlFor="edit-name">Department Name</Label>
+              <Label htmlFor="edit-name">{t('admin.departmentName')}</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
@@ -370,7 +370,7 @@ export function DepartmentManagement() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-description">{t('admin.description')}</Label>
               <Textarea
                 id="edit-description"
                 value={formData.description}
@@ -385,7 +385,7 @@ export function DepartmentManagement() {
                 variant="outline"
                 onClick={cancelEdit}
               >
-                Cancel
+                 {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
