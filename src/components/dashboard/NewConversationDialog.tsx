@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 interface NewConversationDialogProps {
   children: React.ReactNode;
@@ -36,6 +37,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Fetch inboxes
@@ -286,7 +288,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <MessageSquare className="h-5 w-5" />
-            <span>New Conversation</span>
+            <span>{t('conversation.newConversation')}</span>
           </DialogTitle>
         </DialogHeader>
 

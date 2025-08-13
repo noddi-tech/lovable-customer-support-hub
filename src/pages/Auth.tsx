@@ -11,6 +11,7 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
+import { useTranslation } from 'react-i18next';
 
 export const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -21,6 +22,7 @@ export const Auth: React.FC = () => {
   const [success, setSuccess] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (user) {
@@ -184,24 +186,24 @@ export const Auth: React.FC = () => {
           <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Building2 className="h-8 w-8 text-primary-foreground" />
           </div>
-          <Heading level={1} className="text-foreground mb-2">Customer Support Hub</Heading>
+          <Heading level={1} className="text-foreground mb-2">{t('auth.welcomeTitle')}</Heading>
           <p className="text-muted-foreground">
-            Sign in to access your organization's support dashboard
+            {t('auth.welcomeDescription')}
           </p>
         </div>
 
         <Card className="shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle>Welcome</CardTitle>
+            <CardTitle>{t('auth.welcome')}</CardTitle>
             <CardDescription>
-              Sign in to your account or create a new one
+              {t('auth.signInDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin">{t('auth.signIn')}</TabsTrigger>
+                <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin" className="space-y-4">
@@ -213,7 +215,7 @@ export const Auth: React.FC = () => {
                   disabled={loading}
                 >
                   <FcGoogle className="mr-2 h-4 w-4" />
-                  Continue with Google
+                  {t('auth.continueWithGoogle')}
                 </Button>
                 
                 <div className="relative">
@@ -222,7 +224,7 @@ export const Auth: React.FC = () => {
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-background px-2 text-muted-foreground">
-                      Or continue with email
+                      {t('auth.orContinueWithEmail')}
                     </span>
                   </div>
                 </div>

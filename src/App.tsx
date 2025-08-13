@@ -13,14 +13,21 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import "@/lib/i18n";
+import { useUserLanguage } from "@/hooks/useUserLanguage";
 
 const queryClient = new QueryClient();
+
+const AppContent = () => {
+  useUserLanguage(); // Load user's preferred language
+  return null; // This component only handles language loading
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <DesignSystemProvider>
         <TooltipProvider>
+          <AppContent />
           <Toaster />
           <Sonner />
           <BrowserRouter>
