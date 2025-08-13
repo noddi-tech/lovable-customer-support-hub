@@ -169,7 +169,11 @@
       "supportAgent": "Support Agent",
       "profile": "Profile",
       "designLibrary": "Design Library",
-      "logOut": "Log Out"
+      "logOut": "Log Out",
+      "sync": "Sync",
+      "syncing": "Syncing...",
+      "deleteAll": "Delete All",
+      "deleting": "Deleting..."
     },
     "sidebar": {
       "newConversation": "New Conversation",
@@ -251,6 +255,19 @@
       "notificationDeleted": "Notification deleted",
       "error": "Error",
       "failedToDeleteNotification": "Failed to delete notification"
+    },
+    "deleteAll": {
+      "title": "Delete All Conversations",
+      "description": "This will permanently delete all conversations and messages. This action cannot be undone. You can re-sync emails afterwards to import them again with the latest formatting.",
+      "confirm": "Delete All",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "success": "All conversations and messages deleted successfully",
+      "error": "Failed to delete all conversations"
+    },
+    "sync": {
+      "success": "Gmail sync started successfully",
+      "error": "Failed to trigger sync"
     }
   },
   "common": {

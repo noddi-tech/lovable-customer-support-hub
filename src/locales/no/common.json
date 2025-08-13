@@ -52,7 +52,11 @@
       "supportAgent": "Støtte Agent",
       "profile": "Profil",
       "designLibrary": "Design Bibliotek",
-      "logOut": "Logg Ut"
+      "logOut": "Logg Ut",
+      "sync": "Synk",
+      "syncing": "Synkroniserer...",
+      "deleteAll": "Slett Alt",
+      "deleting": "Sletter..."
     },
     "sidebar": {
       "newConversation": "Ny Samtale",
@@ -134,6 +138,19 @@
       "notificationDeleted": "Varsel slettet",
       "error": "Feil",
       "failedToDeleteNotification": "Kunne ikke slette varsel"
+    },
+    "deleteAll": {
+      "title": "Slett Alle Samtaler",
+      "description": "Dette vil permanent slette alle samtaler og meldinger. Denne handlingen kan ikke angres. Du kan synkronisere e-poster igjen etterpå for å importere dem på nytt med nyeste formatering.",
+      "confirm": "Slett Alt",
+      "cancel": "Avbryt",
+      "deleting": "Sletter...",
+      "success": "Alle samtaler og meldinger slettet vellykket",
+      "error": "Kunne ikke slette alle samtaler"
+    },
+    "sync": {
+      "success": "Gmail synkronisering startet vellykket",
+      "error": "Kunne ikke starte synkronisering"
     }
   },
   "conversation": {

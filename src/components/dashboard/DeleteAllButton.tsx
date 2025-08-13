@@ -4,9 +4,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const DeleteAllButton = () => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const { t } = useTranslation();
 
   const handleDeleteAll = async () => {
     setIsDeleting(true);
@@ -19,9 +21,9 @@ export const DeleteAllButton = () => {
 
       if (error) {
         console.error('Delete error:', error);
-        toast.error('Failed to delete all conversations');
+        toast.error(t('dashboard.deleteAll.error'));
       } else {
-        toast.success('All conversations and messages deleted successfully');
+        toast.success(t('dashboard.deleteAll.success'));
         
         // Refresh the page after a short delay
         setTimeout(() => {
@@ -30,7 +32,7 @@ export const DeleteAllButton = () => {
       }
     } catch (error) {
       console.error('Delete error:', error);
-      toast.error('Failed to delete all conversations');
+      toast.error(t('dashboard.deleteAll.error'));
     } finally {
       setIsDeleting(false);
     }
@@ -45,25 +47,24 @@ export const DeleteAllButton = () => {
           className="gap-2"
         >
           <Trash2 className="h-4 w-4" />
-          Delete All
+          {t('dashboard.header.deleteAll')}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete All Conversations</AlertDialogTitle>
+          <AlertDialogTitle>{t('dashboard.deleteAll.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete all conversations and messages. This action cannot be undone.
-            You can re-sync emails afterwards to import them again with the latest formatting.
+            {t('dashboard.deleteAll.description')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('dashboard.deleteAll.cancel')}</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleDeleteAll}
             disabled={isDeleting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isDeleting ? 'Deleting...' : 'Delete All'}
+            {isDeleting ? t('dashboard.deleteAll.deleting') : t('dashboard.deleteAll.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
