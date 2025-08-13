@@ -471,14 +471,14 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                       {t('conversation.snoozed')}
                     </>
                   ) : (
-                    <>{conversation.status}</>
+                    <>{t(`conversation.${conversation.status}`)}</>
                   )}
                 </Badge>
                 <Badge 
                   variant="secondary" 
                   className={cn("text-xs font-normal", priorityColors[conversation.priority])}
                 >
-                  {conversation.priority}
+                  {t(`conversation.${conversation.priority}`)}
                 </Badge>
               </div>
               
