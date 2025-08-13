@@ -66,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
   });
 
   return (
-    <header className="h-16 bg-card/90 backdrop-blur-sm border-b border-border flex items-center justify-between px-4 md:px-6 shadow-surface">
+    <header className="h-18 bg-card/90 backdrop-blur-sm border-b border-border flex items-center justify-between px-6 md:px-8 py-4 shadow-surface">
       <div className="flex items-center space-x-2 md:space-x-4">
         {/* Mobile Menu/Back Button */}
         {showMenuButton && (
