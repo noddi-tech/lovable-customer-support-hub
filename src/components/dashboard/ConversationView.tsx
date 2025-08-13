@@ -40,7 +40,9 @@ import {
   Edit3,
   Sparkles,
   Loader2,
-  Move
+  Move,
+  ChevronLeft,
+  ChevronRight
  } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -103,6 +105,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [selectedInboxId, setSelectedInboxId] = useState<string>('');
   const [isMoving, setIsMoving] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // AI suggestions state
   const [aiOpen, setAiOpen] = useState(false);
@@ -1618,7 +1621,108 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </DialogContent>
         </Dialog>
 
-        {/* Removed Customer Info Sidebar to maximize content space */}
+        {/* Customer Info Sidebar - Collapsible */}
+        <div className={`hidden lg:block border-l border-border bg-card overflow-y-auto transition-all duration-300 ${
+          sidebarCollapsed ? 'w-12' : 'w-80'
+        }`}>
+          <div className="p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="w-full justify-center mb-4"
+            >
+              {sidebarCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+            
+            {!sidebarCollapsed && (
+              <div className="px-2 space-y-6">
+                {/* Customer Details */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-foreground">{t('conversation.customerDetails')}</h3>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h4 className="font-medium text-foreground">{conversation.customer?.full_name || t('conversation.unknownCustomer')}</h4>
+                      <p className="text-sm text-muted-foreground">{conversation.customer?.email}</p>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('conversation.customerSince')}</span>
+                      <span className="text-foreground">
+                        {conversation.customer?.created_at ? dateTime(conversation.customer.created_at, false) : t('conversation.unknown')}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Button variant="outline" size="sm" className="w-full text-xs h-8">
+                    <span className="truncate">{t('conversation.viewFullProfile')}</span>
+                  </Button>
+                </div>
+
+                {/* Customer Notes */}
+                <CustomerNotes customerId={conversation.customer?.id} />
+
+                {/* Previous Conversations */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-foreground">{t('conversation.previousConversations')}</h3>
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    {t('conversation.noPreviousConversations')}
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-foreground">{t('conversation.quickActions')}</h3>
+                  <div className="space-y-2">
+                    <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 px-3">
+                      <Star className="h-3 w-3 mr-2 flex-shrink-0" />
+                      <span className="truncate">{t('conversation.markAsPriority')}</span>
+                    </Button>
+                    {conversation.is_archived ? (
+                      <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 px-3" onClick={handleUnarchive}>
+                        <ArchiveRestore className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="truncate">{t('conversation.unarchiveConversation')}</span>
+                      </Button>
+                    ) : (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 px-3">
+                            <Archive className="h-3 w-3 mr-2 flex-shrink-0" />
+                            <span className="truncate">{t('conversation.archiveConversation')}</span>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t('conversation.archiveDialogTitle')}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t('conversation.archiveDialogDescription')}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleArchive}>{t('conversation.archive')}</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 px-3" onClick={() => setSnoozeDialogOpen(true)}>
+                      <Clock className="h-3 w-3 mr-2 flex-shrink-0" />
+                      <span className="truncate">{t('conversation.snoozeForLater')}</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Snooze Dialog */}
