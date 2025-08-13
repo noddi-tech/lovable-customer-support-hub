@@ -224,7 +224,11 @@
       "enterCustomerNote": "Ange kundanteckning...",
       "noNotesYet": "Inga anteckningar än. Lägg till en för att komma igång.",
       "deleteNote": "Radera anteckning",
-      "deleteNoteConfirmation": "Är du säker på att du vill radera denna kundanteckning? Denna åtgärd kan inte ångras."
+      "deleteNoteConfirmation": "Är du säker på att du vill radera denna kundanteckning? Denna åtgärd kan inte ångras.",
+      "low": "Låg",
+      "normal": "Normal",
+      "high": "Hög",
+      "urgent": "Brådskande"
     },
     "navigation": {
       "back": "← Tillbaka",

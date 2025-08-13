@@ -1129,10 +1129,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           
           <div className="flex items-center space-x-1 md:space-x-2">
             <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'}>
-              {conversation.status}
+              {t(`conversation.${conversation.status}`)}
             </Badge>
             <Badge variant={conversation.priority === 'high' || conversation.priority === 'urgent' ? 'destructive' : 'secondary'}>
-              {conversation.priority}
+              {t(`conversation.${conversation.priority}`)}
             </Badge>
             <div className="hidden sm:flex items-center space-x-2">
               <Dialog open={assignDialogOpen} onOpenChange={(open) => { setAssignDialogOpen(open); if (open) { setAssignSelectedUserId(assignedAgent?.user_id || ''); } }}>

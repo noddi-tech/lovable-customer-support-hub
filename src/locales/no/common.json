@@ -387,6 +387,10 @@
     "error": "Feil",
     "success": "Suksess",
     "warning": "Advarsel",
-    "info": "Info"
+    "info": "Info",
+    "low": "Lav",
+    "normal": "Normal",
+    "high": "Høy", 
+    "urgent": "Haster"
   }
 }

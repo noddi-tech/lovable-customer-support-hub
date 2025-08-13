@@ -152,7 +152,11 @@
     "pickDateTime": "Vælg dato og tid",
     "selectDate": "Vælg dato",
     "confirm": "Bekræft",
-    "snoozeNote": "Tider vist i din tidszone"
+    "snoozeNote": "Tider vist i din tidszone",
+    "low": "Lav",
+    "normal": "Normal",
+    "high": "Høj",
+    "urgent": "Hastende"
   },
   "common": {
     "loading": "Indlæser...",

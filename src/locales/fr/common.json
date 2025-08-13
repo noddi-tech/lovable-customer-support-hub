@@ -231,7 +231,11 @@
       "enterCustomerNote": "Saisir une note client...",
       "noNotesYet": "Aucune note pour le moment. Ajoutez-en une pour commencer.",
       "deleteNote": "Supprimer la note",
-      "deleteNoteConfirmation": "Êtes-vous sûr de vouloir supprimer cette note client ? Cette action ne peut pas être annulée."
+      "deleteNoteConfirmation": "Êtes-vous sûr de vouloir supprimer cette note client ? Cette action ne peut pas être annulée.",
+      "low": "Basse",
+      "normal": "Normale",
+      "high": "Haute",
+      "urgent": "Urgente"
   },
   "common": {
     "loading": "Chargement...",

@@ -243,8 +243,12 @@
       "enterCustomerNote": "Ingresar nota del cliente...",
       "noNotesYet": "Aún no hay notas. Agrega una para comenzar.",
       "deleteNote": "Eliminar nota",
-      "deleteNoteConfirmation": "¿Estás seguro de que quieres eliminar esta nota del cliente? Esta acción no se puede deshacer."
-  },
+      "deleteNoteConfirmation": "¿Estás seguro de que quieres eliminar esta nota del cliente? Esta acción no se puede deshacer.",
+      "low": "Baja",
+      "normal": "Normal",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
   "common": {
     "loading": "Cargando...",
     "search": "Buscar",
