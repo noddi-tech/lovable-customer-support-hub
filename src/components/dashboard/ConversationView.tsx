@@ -1101,7 +1101,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       navigate(qs ? `/?${qs}` : '/', { replace: true });
     } catch (e) {
       console.error('Failed to snooze conversation:', e);
-      toast.error('Failed to snooze');
+      toast.error(t('conversation.failedToSnooze'));
     }
   };
   return (

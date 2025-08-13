@@ -377,7 +377,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
               const routes = (inboundRoutes || []).filter(r => effectiveInboxId && r.inbox_id === effectiveInboxId);
               if (effectiveInboxId && routes.length > 0) {
                 const list = routes.map(r => r.group_email || r.address).join(", ");
-                return `Send an email to ${list} to create your first conversation`;
+                return t('dashboard.conversationList.sendEmailToCreateFirst', { address: list });
               }
               return t('dashboard.conversationList.connectInboundEmail');
             })()}</p>
@@ -468,7 +468,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                   {(conversation.snooze_until && new Date(conversation.snooze_until) > new Date()) ? (
                     <>
                       <Clock className="h-3 w-3" />
-                      Snoozed
+                      {t('conversation.snoozed')}
                     </>
                   ) : (
                     <>{conversation.status}</>
@@ -483,9 +483,9 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
               </div>
               
               <div className="text-xs text-muted-foreground">
-                <p>From: {conversation.customer?.full_name || "Unknown"}</p>
+                <p>{t('conversation.from')}: {conversation.customer?.full_name || t('conversation.unknown')}</p>
                 {conversation.assigned_to && (
-                  <p>Assigned to: {conversation.assigned_to.full_name}</p>
+                  <p>{t('conversation.assignedTo')}: {conversation.assigned_to.full_name}</p>
                 )}
               </div>
             </div>
@@ -497,21 +497,21 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete conversation</AlertDialogTitle>
+            <AlertDialogTitle>{t('dashboard.conversationList.deleteConfirmation')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this conversation? This action cannot be undone and will permanently delete all messages in this conversation.
+              {t('dashboard.conversationList.deleteDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t('dashboard.conversationList.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteConversationMutation.isPending}
             >
-              {deleteConversationMutation.isPending ? 'Deleting...' : 'Delete'}
+              {deleteConversationMutation.isPending ? t('dashboard.conversationList.deleting') : t('dashboard.conversationList.deleteButton')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
