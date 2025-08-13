@@ -113,114 +113,112 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">{t('conversation.customerNotes')}</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAdding(true)}
-              disabled={isAdding || editingNoteId !== null}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              {t('conversation.addNote')}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Add new note form */}
-          {isAdding && (
-            <div className="space-y-3 p-3 border border-border rounded-md bg-muted/50">
-              <Textarea
-                placeholder={t('conversation.enterCustomerNote')}
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                className="min-h-[80px] resize-none"
-              />
-              <div className="flex items-center justify-end space-x-2">
-                <Button variant="outline" size="sm" onClick={handleCancel}>
-                  {t('common.cancel')}
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={handleAddNote}
-                  disabled={!noteContent.trim()}
-                >
-                  {t('conversation.addNote')}
-                </Button>
-              </div>
-            </div>
-          )}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">{t('conversation.customerNotes')}</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAdding(true)}
+            disabled={isAdding || editingNoteId !== null}
+            className="shrink-0"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            {t('conversation.addNote')}
+          </Button>
+        </div>
 
-          {/* Notes list */}
-          {notes.length === 0 ? (
-            <div className="text-sm text-muted-foreground text-center py-4">
-              {t('conversation.noNotesYet')}
+        {/* Add new note form */}
+        {isAdding && (
+          <div className="space-y-2 p-2 border border-border rounded-md bg-muted/50">
+            <Textarea
+              placeholder={t('conversation.enterCustomerNote')}
+              value={noteContent}
+              onChange={(e) => setNoteContent(e.target.value)}
+              className="min-h-[60px] resize-none"
+            />
+            <div className="flex items-center justify-end space-x-2">
+              <Button variant="outline" size="sm" onClick={handleCancel}>
+                {t('common.cancel')}
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleAddNote}
+                disabled={!noteContent.trim()}
+              >
+                {t('conversation.addNote')}
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {notes.map((note) => (
-                <div key={note.id} className="group p-3 border border-border rounded-md hover:bg-muted/50 transition-colors">
-                  {editingNoteId === note.id ? (
-                    <div className="space-y-3">
-                      <Textarea
-                        value={noteContent}
-                        onChange={(e) => setNoteContent(e.target.value)}
-                        className="min-h-[80px] resize-none"
-                      />
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button variant="outline" size="sm" onClick={handleCancel}>
-                          {t('common.cancel')}
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          onClick={handleSaveEdit}
-                          disabled={!noteContent.trim()}
+          </div>
+        )}
+
+        {/* Notes list */}
+        {notes.length === 0 ? (
+          <div className="text-sm text-muted-foreground text-center py-3">
+            {t('conversation.noNotesYet')}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {notes.map((note) => (
+              <div key={note.id} className="group p-2 border border-border rounded-md hover:bg-muted/50 transition-colors">
+                {editingNoteId === note.id ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={noteContent}
+                      onChange={(e) => setNoteContent(e.target.value)}
+                      className="min-h-[60px] resize-none"
+                    />
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button variant="outline" size="sm" onClick={handleCancel}>
+                        {t('common.cancel')}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={handleSaveEdit}
+                        disabled={!noteContent.trim()}
+                      >
+                        {t('conversation.save')}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-foreground flex-1 min-w-0">{note.content}</p>
+                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditNote(note.id)}
+                          className="h-6 w-6 p-0"
                         >
-                          {t('conversation.save')}
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(note.id)}
+                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex items-start justify-between">
-                        <p className="text-sm text-foreground flex-1">{note.content}</p>
-                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditNote(note.id)}
-                            className="h-7 w-7 p-0"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteClick(note.id)}
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                    <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground">
+                      <span>by {note.created_by}</span>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{formatDate(note.updated_at || note.created_at)}</span>
+                        {note.updated_at && <span>(edited)</span>}
                       </div>
-                      <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                        <span>by {note.created_by}</span>
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{formatDate(note.updated_at || note.created_at)}</span>
-                          {note.updated_at && <span>(edited)</span>}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
