@@ -13,7 +13,7 @@ import {
  */
 export function useDateFormatting() {
   const { i18n } = useTranslation();
-  const { timezone, isLoading } = useUserTimezone();
+  const { timezone, timeFormat, isLoading } = useUserTimezone();
 
   const formatters = {
     /**
@@ -31,11 +31,11 @@ export function useDateFormatting() {
       formatDateTime(date, i18n.language, timezone, includeTime),
 
     /**
-     * Format time only in user's timezone
+     * Format time only in user's timezone and preferred format
      * Example: "2:30 PM" or "14:30"
      */
-    time: (date: Date | string, format24Hour: boolean = false) => 
-      formatTime(date, i18n.language, timezone, format24Hour),
+    time: (date: Date | string) => 
+      formatTime(date, i18n.language, timezone, timeFormat === '24h'),
 
     /**
      * Format date optimized for conversation lists
@@ -55,6 +55,7 @@ export function useDateFormatting() {
   return {
     ...formatters,
     timezone,
+    timeFormat,
     isLoading,
     locale: i18n.language,
   };

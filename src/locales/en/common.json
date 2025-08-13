@@ -20,11 +20,12 @@
       "success": "Language updated successfully"
     },
     "timezone": {
-      "title": "Timezone Preferences", 
-      "description": "Choose your timezone for accurate time display",
+      "title": "Timezone & Time Format", 
+      "description": "Choose your timezone and time format for accurate time display",
       "label": "Timezone",
+      "timeFormat": "Time format",
       "placeholder": "Select timezone",
-      "success": "Timezone updated successfully",
+      "success": "Settings updated successfully",
       "currentTime": "Current time in your timezone",
       "detected": "Detected timezone from your browser",
       "useDetected": "Use detected timezone"

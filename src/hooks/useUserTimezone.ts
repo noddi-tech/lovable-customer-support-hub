@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 export function useUserTimezone() {
   const { user } = useAuth();
   const [timezone, setTimezone] = useState<string>('UTC');
+  const [timeFormat, setTimeFormat] = useState<string>('12h');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -20,12 +21,13 @@ export function useUserTimezone() {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('timezone')
+          .select('timezone, time_format')
           .eq('user_id', user.id)
           .single();
 
         if (profile?.timezone) {
           setTimezone(profile.timezone);
+          setTimeFormat(profile.time_format || '12h');
         } else {
           // Auto-detect and save browser timezone if not set
           const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -34,7 +36,7 @@ export function useUserTimezone() {
           // Save the detected timezone to database
           await supabase
             .from('profiles')
-            .update({ timezone: browserTimezone })
+            .update({ timezone: browserTimezone, time_format: '12h' })
             .eq('user_id', user.id);
         }
       } catch (error) {
@@ -50,5 +52,5 @@ export function useUserTimezone() {
     loadUserTimezone();
   }, [user]);
 
-  return { timezone, isLoading };
+  return { timezone, timeFormat, isLoading };
 }

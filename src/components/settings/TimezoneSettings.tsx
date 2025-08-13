@@ -60,6 +60,7 @@ export function TimezoneSettings() {
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentTimezone, setCurrentTimezone] = useState<string>('');
+  const [currentTimeFormat, setCurrentTimeFormat] = useState<string>('12h');
   const [detectedTimezone, setDetectedTimezone] = useState<string>('');
 
   // Auto-detect browser timezone on component mount
@@ -74,18 +75,19 @@ export function TimezoneSettings() {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('timezone')
+          .select('timezone, time_format')
           .eq('user_id', user.id)
           .single();
 
         if (profile?.timezone) {
           setCurrentTimezone(profile.timezone);
+          setCurrentTimeFormat(profile.time_format || '12h');
         } else {
           // If no timezone is set, auto-save the detected one
           setCurrentTimezone(browserTimezone);
           await supabase
             .from('profiles')
-            .update({ timezone: browserTimezone })
+            .update({ timezone: browserTimezone, time_format: '12h' })
             .eq('user_id', user.id);
         }
       } catch (error) {
@@ -128,13 +130,43 @@ export function TimezoneSettings() {
     }
   };
 
-  const getCurrentTime = (timezone: string) => {
+  const handleTimeFormatChange = async (timeFormat: string) => {
+    if (!user) return;
+
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ time_format: timeFormat })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setCurrentTimeFormat(timeFormat);
+      
+      toast({
+        title: t('settings.timezone.success'),
+        description: `Time format changed to ${timeFormat === '12h' ? '12-hour (AM/PM)' : '24-hour'}`,
+      });
+    } catch (error) {
+      console.error('Error updating time format:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update time format preference",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const getCurrentTime = (timezone: string, format24Hour: boolean = false) => {
     try {
       return new Intl.DateTimeFormat('en-US', {
         timeZone: timezone,
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true,
+        hour12: !format24Hour,
         weekday: 'short',
         month: 'short',
         day: 'numeric'
@@ -163,7 +195,7 @@ export function TimezoneSettings() {
               {t('settings.timezone.currentTime')}
             </div>
             <div className="text-lg font-semibold">
-              {getCurrentTime(currentTimezone)}
+              {getCurrentTime(currentTimezone, currentTimeFormat === '24h')}
             </div>
             <div className="text-xs text-muted-foreground">
               {ALL_TIMEZONES.find(tz => tz.value === currentTimezone)?.label || currentTimezone}
@@ -193,13 +225,45 @@ export function TimezoneSettings() {
                       <div className="flex flex-col">
                         <span>{timezone.label}</span>
                         <span className="text-xs text-muted-foreground">
-                          {timezone.offset} • {getCurrentTime(timezone.value)}
+                          {timezone.offset} • {getCurrentTime(timezone.value, currentTimeFormat === '24h')}
                         </span>
                       </div>
                     </SelectItem>
                   ))}
                 </div>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Time Format Selector */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">{t('settings.timezone.timeFormat')}</label>
+          <Select
+            value={currentTimeFormat}
+            onValueChange={handleTimeFormatChange}
+            disabled={isUpdating}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select time format" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="12h">
+                <div className="flex flex-col">
+                  <span>12-hour (AM/PM)</span>
+                  <span className="text-xs text-muted-foreground">
+                    Example: 2:30 PM
+                  </span>
+                </div>
+              </SelectItem>
+              <SelectItem value="24h">
+                <div className="flex flex-col">
+                  <span>24-hour</span>
+                  <span className="text-xs text-muted-foreground">
+                    Example: 14:30
+                  </span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
