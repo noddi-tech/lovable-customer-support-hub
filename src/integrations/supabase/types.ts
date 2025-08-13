@@ -851,6 +851,10 @@ export type Database = {
         Args: { email_domain: string }
         Returns: string
       }
+      get_user_department_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_organization_from_profile: {
         Args: { _user_id: string }
         Returns: string
