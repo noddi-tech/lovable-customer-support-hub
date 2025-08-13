@@ -45,8 +45,8 @@
     },
     "sidebar": {
       "newConversation": "Ny Samtale",
-      "inbox": "INNBOKS",
-      "notifications": "VARSLER",
+      "inbox": "Innboks",
+      "notifications": "Varsler",
       "channels": "KANALER",
       "inboxes": "INNBOKSER",
       "unread": "Uleste",

@@ -45,8 +45,8 @@
     },
     "sidebar": {
       "newConversation": "New Conversation",
-      "inbox": "INBOX",
-      "notifications": "NOTIFICATIONS",
+      "inbox": "Inbox",
+      "notifications": "Notifications",
       "channels": "CHANNELS",
       "inboxes": "INBOXES",
       "unread": "Unread",

@@ -45,8 +45,8 @@
     },
     "sidebar": {
       "newConversation": "Neue Unterhaltung",
-      "inbox": "POSTEINGANG",
-      "notifications": "BENACHRICHTIGUNGEN",
+      "inbox": "Posteingang",
+      "notifications": "Benachrichtigungen",
       "channels": "KANÄLE",
       "inboxes": "POSTFÄCHER",
       "unread": "Ungelesen",

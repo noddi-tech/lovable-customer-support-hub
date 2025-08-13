@@ -45,8 +45,8 @@
     },
     "sidebar": {
       "newConversation": "Nytt Samtal",
-      "inbox": "INKORG",
-      "notifications": "NOTIFIKATIONER",
+      "inbox": "Inkorg",
+      "notifications": "Notifikationer",
       "channels": "KANALER",
       "inboxes": "INKORGAR",
       "unread": "Olästa",
