@@ -1116,7 +1116,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             <div>
               <h2 className="font-semibold text-foreground text-sm md:text-base line-clamp-1">{conversation.subject}</h2>
               <div className="flex items-center space-x-2 text-xs md:text-sm text-muted-foreground">
-                <span className="truncate">{conversation.customer?.full_name || 'Unknown Customer'}</span>
+                <span className="truncate">{conversation.customer?.full_name || t('conversation.unknownCustomer')}</span>
                 <span className="hidden sm:inline">•</span>
                 <span className="hidden sm:inline truncate">{conversation.customer?.email}</span>
                 <span className="hidden sm:inline">•</span>
@@ -1139,12 +1139,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Assign
+                    {t('conversation.assign')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Assign conversation</DialogTitle>
+                    <DialogTitle>{t('conversation.assignConversation')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <Select
@@ -1166,16 +1166,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(false)}>
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                       <Button size="sm" onClick={handleAssignConversation} disabled={isAssigning}>
                         {isAssigning ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
+                            {t('conversation.saving')}
                           </>
                         ) : (
-                          'Assign'
+                          t('conversation.assign')
                         )}
                       </Button>
                     </div>
@@ -1186,12 +1186,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Move className="h-4 w-4 mr-2" />
-                    Move
+                    {t('conversation.move')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Move conversation</DialogTitle>
+                    <DialogTitle>{t('conversation.moveConversation')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <Select
@@ -1199,13 +1199,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       onValueChange={setSelectedInboxId}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select inbox" />
+                        <SelectValue placeholder={t('conversation.selectInbox')} />
                       </SelectTrigger>
                       <SelectContent>
                         {inboxes.map((inbox) => (
                           <SelectItem key={inbox.id} value={inbox.id}>
                             {inbox.name}
-                            {inbox.id === conversation?.inbox_id && " (current)"}
+                            {inbox.id === conversation?.inbox_id && ` (${t('conversation.current')})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1213,16 +1213,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => setMoveDialogOpen(false)}>
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                       <Button size="sm" onClick={handleMoveConversation} disabled={isMoving}>
                         {isMoving ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Moving...
+                            {t('conversation.moving')}
                           </>
                         ) : (
-                          'Move'
+                          t('conversation.move')
                         )}
                       </Button>
                     </div>
@@ -1231,38 +1231,38 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               </Dialog>
               <Button variant="outline" size="sm" onClick={handleMarkClosed} disabled={conversation.status === 'closed'}>
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Closed
+                {t('conversation.closed')}
               </Button>
               {conversation.is_archived ? (
                 <Button variant="outline" size="sm" onClick={handleUnarchive}>
                   <ArchiveRestore className="h-4 w-4 mr-2" />
-                  Unarchive
+                  {t('conversation.unarchive')}
                 </Button>
               ) : (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Archive className="h-4 w-4 mr-2" />
-                      Archive
+                      {t('conversation.archive')}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Archive this conversation?</AlertDialogTitle>
+                      <AlertDialogTitle>{t('conversation.archiveDialogTitle')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        You can find it later in the Archived inbox and unarchive at any time.
+                        {t('conversation.archiveDialogDescription')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleArchive}>Archive</AlertDialogAction>
+                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleArchive}>{t('conversation.archive')}</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               )}
               <Button variant="outline" size="sm" onClick={() => setSnoozeDialogOpen(true)}>
                 <Clock className="h-4 w-4 mr-2" />
-                Snooze
+                {t('conversation.snooze')}
               </Button>
             </div>
             <Button variant="ghost" size="sm">
@@ -1278,7 +1278,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No messages yet</p>
+              <p>{t('conversation.noMessages')}</p>
             </div>
           ) : (
             messages.map((message, index) => {
@@ -1401,19 +1401,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                               {!message.is_internal && message.sender_type === 'agent' && message.email_status === 'failed' && (
                                 <DropdownMenuItem onClick={() => retryMessage(message.id)}>
                                   <RefreshCw className="h-3 w-3 mr-2" />
-                                  Retry send
+                                  {t('conversation.retrySend')}
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={() => startEdit(message)}>
                                 <Edit3 className="h-3 w-3 mr-2" />
-                                Edit
+                                {t('conversation.edit')}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => deleteMessage(message.id)}
                                 className="text-destructive"
                               >
                                 <Trash2 className="h-3 w-3 mr-2" />
-                                Delete
+                                {t('conversation.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -1522,7 +1522,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       <SelectValue placeholder={t('admin.selectTeamMember')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">{t('admin.unassigned')}</SelectItem>
                       {teamMembers.map((member) => (
                         <SelectItem key={member.user_id} value={member.user_id}>
                           {member.full_name}
@@ -1587,7 +1587,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         <Dialog open={aiOpen} onOpenChange={setAiOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>AI forslag</DialogTitle>
+              <DialogTitle>{t('conversation.aiSuggestions')}</DialogTitle>
             </DialogHeader>
             {aiLoading ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -1678,38 +1678,38 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               <CardContent className="space-y-2">
                 <Button variant="outline" size="sm" className="w-full justify-start">
                   <Star className="h-4 w-4 mr-2" />
-                  Mark as Priority
+                  {t('conversation.markAsPriority')}
                 </Button>
                 {conversation.is_archived ? (
                   <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleUnarchive}>
                     <ArchiveRestore className="h-4 w-4 mr-2" />
-                    Unarchive Conversation
+                    {t('conversation.unarchiveConversation')}
                   </Button>
                 ) : (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="sm" className="w-full justify-start">
                         <Archive className="h-4 w-4 mr-2" />
-                        Archive Conversation
+                        {t('conversation.archiveConversation')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Archive this conversation?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('conversation.archiveDialogTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          You can find it later in the Archived inbox and unarchive at any time.
+                          {t('conversation.archiveDialogDescription')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleArchive}>Archive</AlertDialogAction>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleArchive}>{t('conversation.archive')}</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
                 <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setSnoozeDialogOpen(true)}>
                   <Clock className="h-4 w-4 mr-2" />
-                  Snooze for Later
+                  {t('conversation.snoozeForLater')}
                 </Button>
               </CardContent>
             </Card>
@@ -1721,17 +1721,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <Dialog open={snoozeDialogOpen} onOpenChange={setSnoozeDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Snooze conversation</DialogTitle>
+            <DialogTitle>{t('conversation.snoozeDialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={() => setPresetSnooze(new Date(Date.now() + 3 * 60 * 60 * 1000))}>Later today (3h)</Button>
+              <Button variant="outline" onClick={() => setPresetSnooze(new Date(Date.now() + 3 * 60 * 60 * 1000))}>{t('conversation.laterToday')}</Button>
               <Button variant="outline" onClick={() => {
                 const t = new Date();
                 t.setDate(t.getDate() + 1);
                 t.setHours(9, 0, 0, 0);
                 setPresetSnooze(t);
-              }}>Tomorrow 09:00</Button>
+              }}>{t('conversation.tomorrowMorning')}</Button>
               <Button variant="outline" onClick={() => {
                 const d = new Date();
                 const day = d.getDay();
@@ -1740,15 +1740,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 nextMon.setDate(d.getDate() + diff);
                 nextMon.setHours(9, 0, 0, 0);
                 setPresetSnooze(nextMon);
-              }}>Next Monday 09:00</Button>
+              }}>{t('conversation.nextMondayMorning')}</Button>
             </div>
             <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">Pick a date & time</div>
+              <div className="text-sm text-muted-foreground">{t('conversation.pickDateTime')}</div>
               <div className="flex items-center gap-3">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-[200px] justify-start">
-                      {snoozeDate ? format(snoozeDate, 'PPP') : 'Select date'}
+                      {snoozeDate ? format(snoozeDate, 'PPP') : t('conversation.selectDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -1765,8 +1765,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setSnoozeDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleConfirmSnooze}>Confirm</Button>
+              <Button variant="outline" onClick={() => setSnoozeDialogOpen(false)}>{t('common.cancel')}</Button>
+              <Button onClick={handleConfirmSnooze}>{t('conversation.confirm')}</Button>
             </div>
           </div>
         </DialogContent>
@@ -1776,20 +1776,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete message</AlertDialogTitle>
+            <AlertDialogTitle>{t('conversation.deleteMessage')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this message? This action cannot be undone.
+              {t('conversation.deleteMessageConfirmation')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

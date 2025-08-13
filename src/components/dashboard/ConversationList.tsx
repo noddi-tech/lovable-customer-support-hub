@@ -309,7 +309,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Inbox className="h-5 w-5" />
-            <h2 className="font-semibold text-lg">Inbox</h2>
+            <h2 className="font-semibold text-lg">{t('dashboard.conversationList.inbox')}</h2>
             {unreadCount > 0 && (
               <Badge variant="destructive" className="h-5 px-2 text-xs">
                 {unreadCount}
@@ -318,14 +318,14 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
           </div>
           <Button variant="outline" size="sm">
             <Filter className="w-4 h-4 mr-2" />
-            Filter
+            {t('dashboard.conversationList.filter')}
           </Button>
         </div>
         
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="Search conversations..."
+            placeholder={t('dashboard.conversationList.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -336,27 +336,27 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="All Status" />
+              <SelectValue placeholder={t('dashboard.conversationList.allStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
+              <SelectItem value="all">{t('dashboard.conversationList.allStatus')}</SelectItem>
+              <SelectItem value="open">{t('dashboard.conversationList.open')}</SelectItem>
+              <SelectItem value="pending">{t('dashboard.conversationList.pending')}</SelectItem>
+              <SelectItem value="resolved">{t('dashboard.conversationList.resolved')}</SelectItem>
+              <SelectItem value="closed">{t('dashboard.conversationList.closed')}</SelectItem>
             </SelectContent>
           </Select>
           
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="All Priority" />
+              <SelectValue placeholder={t('dashboard.conversationList.allPriority')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
+              <SelectItem value="all">{t('dashboard.conversationList.allPriority')}</SelectItem>
+              <SelectItem value="low">{t('dashboard.conversationList.low')}</SelectItem>
+              <SelectItem value="normal">{t('dashboard.conversationList.normal')}</SelectItem>
+              <SelectItem value="high">{t('dashboard.conversationList.high')}</SelectItem>
+              <SelectItem value="urgent">{t('dashboard.conversationList.urgent')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -367,19 +367,19 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">
             <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
-            <p>Loading conversations...</p>
+            <p>{t('dashboard.conversationList.loadingConversations')}</p>
           </div>
         ) : filteredConversations.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No conversations found</p>
+            <p>{t('dashboard.conversationList.noConversations')}</p>
             <p className="text-sm">{(() => {
               const routes = (inboundRoutes || []).filter(r => effectiveInboxId && r.inbox_id === effectiveInboxId);
               if (effectiveInboxId && routes.length > 0) {
                 const list = routes.map(r => r.group_email || r.address).join(", ");
                 return `Send an email to ${list} to create your first conversation`;
               }
-              return "Connect an inbound email in Admin → Integrations, then send an email to it to create your first conversation";
+              return t('dashboard.conversationList.connectInboundEmail');
             })()}</p>
           </div>
         ) : (
@@ -438,7 +438,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                         disabled={archiveConversationMutation.isPending}
                       >
                         <Archive className="mr-2 h-4 w-4" />
-                        Archive
+                        {t('dashboard.conversationList.archive')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => {
@@ -449,7 +449,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        {t('dashboard.conversationList.delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
