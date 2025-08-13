@@ -65,6 +65,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { CustomerNotes } from './CustomerNotes';
+import { useTranslation } from 'react-i18next';
 
 interface ConversationViewProps {
   conversationId?: string | null;
@@ -88,6 +89,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const queryClient = useQueryClient();
   const { getMessageTextColor, autoContrastEnabled } = useAutoContrast();
+  const { t } = useTranslation();
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
   const [postSendStatus, setPostSendStatus] = useState<'open' | 'pending' | 'closed'>('closed');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -177,10 +179,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       setOriginalEditingAssignedTo('');
       
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      toast.success('Message updated successfully');
+      toast.success(t('conversation.internalNoteUpdated'));
     } catch (error) {
       console.error('Error updating message:', error);
-      toast.error('Failed to update message');
+      toast.error(t('conversation.failedToUpdateNote'));
     } finally {
       setIsUpdatingMessage(false);
     }
@@ -471,7 +473,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         } catch (e) {
           console.error('Failed to update conversation status:', e);
         }
-        toast.success('Internal note added');
+        toast.success(t('conversation.internalNoteAdded'));
       }
       
     } catch (error) {
@@ -639,7 +641,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       if (error) throw error;
 
       console.log('Message deleted successfully from database');
-      toast.success('Message deleted');
+      toast.success(t('conversation.messageDeleted'));
       
       // Don't refetch - let the optimistic update stay
       // The cache is already updated correctly
@@ -649,7 +651,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       
       // If the mutation fails, invalidate to restore correct state
       queryClient.invalidateQueries({ queryKey });
-      toast.error('Failed to delete message');
+      toast.error(t('conversation.failedToDeleteMessage'));
     }
   };
 
@@ -718,7 +720,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       setEditingAssignedTo('');
       setOriginalEditingContent('');
       setOriginalEditingAssignedTo('');
-      toast.info('No changes to save');
+      toast.info(t('conversation.noChangesToSave'));
       return;
     }
 
@@ -748,10 +750,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       setOriginalEditingAssignedTo('');
       
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      toast.success('Internal note updated successfully');
+      toast.success(t('conversation.internalNoteUpdated'));
     } catch (error) {
       console.error('Error updating message:', error);
-      toast.error('Failed to update internal note');
+      toast.error(t('conversation.failedToUpdateNote'));
     }
   };
 
@@ -1334,7 +1336,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       {isInternal ? (
                         <div className="flex items-center gap-1 mb-2 text-xs text-orange-600 dark:text-orange-400">
                           <Lock className="h-3 w-3" />
-                          Internal Note
+                          {t('conversation.internalNote')}
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 mb-2 text-xs">
@@ -1511,7 +1513,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       onClick={() => setIsInternalNote(!isInternalNote)}
                       className="hover:bg-accent"
                     >
-                      Internal Note
+                      {t('conversation.internalNote')}
                     </Button>
                     <Button variant="secondary" size="sm" className="hover:bg-accent">
                       Templates
@@ -1544,7 +1546,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <EmojiAutocompleteInput
                   value={replyText}
                   onChange={setReplyText}
-                  placeholder={isInternalNote ? "Add an internal note... (try :smile:)" : "Type your reply... (try :blush:)"}
+                  placeholder={isInternalNote ? t('conversation.internalNotePlaceholder') : t('conversation.replyPlaceholder')}
                   className={`min-h-[100px] resize-none w-full p-3 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                     isInternalNote ? 'border-warning bg-warning/5' : ''
                   }`}
@@ -1554,7 +1556,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               {/* Send Button */}
               <div className="flex items-center justify-between">
                 <div className="text-xs text-muted-foreground">
-                  {isInternalNote ? 'This note will only be visible to your team' : 'This reply will be sent to the customer'}
+                  {isInternalNote ? t('conversation.internalNoteNote') : t('conversation.sendToCustomer')}
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm text-muted-foreground hidden sm:block">Set status:</label>
@@ -1579,8 +1581,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   >
                     <Send className="h-4 w-4 mr-2" />
                     {isSending 
-                      ? (isInternalNote ? 'Adding...' : 'Sending...') 
-                      : (isInternalNote ? 'Add Note' : 'Send Reply')
+                      ? (isInternalNote ? t('conversation.adding') : t('conversation.sending')) 
+                      : (isInternalNote ? t('conversation.addNote') : t('conversation.sendReply'))
                     }
                   </Button>
                 </div>
@@ -1631,7 +1633,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             {/* Customer Details */}
             <Card>
               <CardHeader className="pb-3">
-                <h3 className="font-semibold text-foreground">Customer Details</h3>
+                <h3 className="font-semibold text-foreground">{t('conversation.customerDetails')}</h3>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-3">
@@ -1639,7 +1641,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h4 className="font-medium text-foreground">{conversation.customer?.full_name || 'Unknown Customer'}</h4>
+                    <h4 className="font-medium text-foreground">{conversation.customer?.full_name || t('conversation.unknownCustomer')}</h4>
                     <p className="text-sm text-muted-foreground">{conversation.customer?.email}</p>
                   </div>
                 </div>
@@ -1648,15 +1650,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Customer since:</span>
+                    <span className="text-muted-foreground">{t('conversation.customerSince')}</span>
                     <span className="text-foreground">
-                      {conversation.customer?.created_at ? new Date(conversation.customer.created_at).toLocaleDateString() : 'Unknown'}
+                      {conversation.customer?.created_at ? new Date(conversation.customer.created_at).toLocaleDateString() : t('conversation.unknown')}
                     </span>
                   </div>
                 </div>
                 
                 <Button variant="outline" size="sm" className="w-full">
-                  View Full Profile
+                  {t('conversation.viewFullProfile')}
                 </Button>
               </CardContent>
             </Card>
