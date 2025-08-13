@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDistanceToNow } from 'date-fns';
 import { CheckCheck, Eye, MessageSquare, EyeOff, ExternalLink, Trash2 } from 'lucide-react';
+import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -34,6 +34,7 @@ export function NotificationsList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { relative } = useDateFormatting();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
 
@@ -352,10 +353,10 @@ export function NotificationsList() {
                         </div>
                       )}
                       
-                       <div className="flex items-center justify-between mt-3">
-                         <p className="text-xs text-muted-foreground">
-                           {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                         </p>
+                         <div className="flex items-center justify-between mt-3">
+                          <p className="text-xs text-muted-foreground">
+                            {relative(notification.created_at)}
+                          </p>
                          
                          <div className="flex items-center space-x-1">
                            {/* Action buttons */}

@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { formatDistanceToNow } from 'date-fns';
 import { Bell, Trash2 } from 'lucide-react';
+import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -36,6 +36,7 @@ export function NotificationDropdown() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { relative } = useDateFormatting();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
 
@@ -290,7 +291,7 @@ export function NotificationDropdown() {
                             {notification.message}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                            {relative(notification.created_at)}
                           </p>
                         </div>
                       </div>
