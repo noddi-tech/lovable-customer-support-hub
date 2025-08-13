@@ -628,6 +628,7 @@ export type Database = {
           preferred_language: string | null
           primary_role: Database["public"]["Enums"]["app_role"] | null
           role: string
+          timezone: string | null
           updated_at: string
           user_id: string
         }
@@ -643,6 +644,7 @@ export type Database = {
           preferred_language?: string | null
           primary_role?: Database["public"]["Enums"]["app_role"] | null
           role?: string
+          timezone?: string | null
           updated_at?: string
           user_id: string
         }
@@ -658,6 +660,7 @@ export type Database = {
           preferred_language?: string | null
           primary_role?: Database["public"]["Enums"]["app_role"] | null
           role?: string
+          timezone?: string | null
           updated_at?: string
           user_id?: string
         }

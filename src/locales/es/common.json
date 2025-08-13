@@ -19,6 +19,16 @@
       "placeholder": "Seleccionar idioma",
       "success": "Idioma actualizado exitosamente"
     },
+    "timezone": {
+      "title": "Preferencias de Zona Horaria",
+      "description": "Elige tu zona horaria para mostrar la hora correcta",
+      "label": "Zona Horaria",
+      "placeholder": "Seleccionar zona horaria",
+      "success": "Zona horaria actualizada exitosamente",
+      "currentTime": "Hora actual en tu zona horaria",
+      "detected": "Zona horaria detectada desde tu navegador",
+      "useDetected": "Usar zona horaria detectada"
+    },
     "permissions": {
       "denied": "No tienes permisos para acceder a esta sección."
     }

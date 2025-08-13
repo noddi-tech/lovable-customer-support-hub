@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette, Building } from 'lucide-react';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { LanguageSettings } from '@/components/settings/LanguageSettings';
+import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -102,7 +103,8 @@ export default function Settings() {
 
             {/* General Settings */}
             <TabsContent value="general" className="space-y-6">
-              <LanguageSettings />
+                    <LanguageSettings />
+                    <TimezoneSettings />
               <Card className="bg-gradient-surface border-border/50 shadow-surface">
                 <CardHeader>
                   <CardTitle className="text-primary">General Settings</CardTitle>

@@ -19,6 +19,16 @@
       "placeholder": "Select language",
       "success": "Language updated successfully"
     },
+    "timezone": {
+      "title": "Timezone Preferences", 
+      "description": "Choose your timezone for accurate time display",
+      "label": "Timezone",
+      "placeholder": "Select timezone",
+      "success": "Timezone updated successfully",
+      "currentTime": "Current time in your timezone",
+      "detected": "Detected timezone from your browser",
+      "useDetected": "Use detected timezone"
+    },
     "permissions": {
       "denied": "You don't have permission to access this section."
     }
