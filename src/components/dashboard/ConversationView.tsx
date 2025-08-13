@@ -1648,8 +1648,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   </div>
                 </div>
                 
-                <Button variant="outline" size="sm" className="w-full">
-                  {t('conversation.viewFullProfile')}
+                <Button variant="outline" size="sm" className="w-full text-xs h-8">
+                  <span className="truncate">{t('conversation.viewFullProfile')}</span>
                 </Button>
               </CardContent>
             </Card>
@@ -1675,21 +1675,21 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <h3 className="font-semibold text-foreground">{t('conversation.quickActions')}</h3>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <Star className="h-4 w-4 mr-2" />
-                  {t('conversation.markAsPriority')}
+                <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 px-3">
+                  <Star className="h-3 w-3 mr-2 flex-shrink-0" />
+                  <span className="truncate">{t('conversation.markAsPriority')}</span>
                 </Button>
                 {conversation.is_archived ? (
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleUnarchive}>
-                    <ArchiveRestore className="h-4 w-4 mr-2" />
-                    {t('conversation.unarchiveConversation')}
+                  <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 px-3" onClick={handleUnarchive}>
+                    <ArchiveRestore className="h-3 w-3 mr-2 flex-shrink-0" />
+                    <span className="truncate">{t('conversation.unarchiveConversation')}</span>
                   </Button>
                 ) : (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full justify-start">
-                        <Archive className="h-4 w-4 mr-2" />
-                        {t('conversation.archiveConversation')}
+                      <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 px-3">
+                        <Archive className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="truncate">{t('conversation.archiveConversation')}</span>
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -1706,9 +1706,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
-                <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setSnoozeDialogOpen(true)}>
-                  <Clock className="h-4 w-4 mr-2" />
-                  {t('conversation.snoozeForLater')}
+                <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 px-3" onClick={() => setSnoozeDialogOpen(true)}>
+                  <Clock className="h-3 w-3 mr-2 flex-shrink-0" />
+                  <span className="truncate">{t('conversation.snoozeForLater')}</span>
                 </Button>
               </CardContent>
             </Card>
