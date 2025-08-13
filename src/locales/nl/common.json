@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "title": "Instellingen",
+    "description": "Beheer uw account en applicatie voorkeuren",
+    "backToDashboard": "Terug naar Dashboard",
+    "tabs": {
+      "departments": "Afdelingen",
+      "general": "Algemeen",
+      "profile": "Profiel",
+      "notifications": "Meldingen",
+      "emailDesign": "E-mail Ontwerp",
+      "users": "Gebruikers",
+      "admin": "Beheerder"
+    },
+    "language": {
+      "title": "Taalvoorkeuren",
+      "description": "Kies uw voorkeurstaal voor de applicatie",
+      "label": "Taal",
+      "placeholder": "Selecteer taal",
+      "success": "Taal succesvol bijgewerkt"
+    },
+    "permissions": {
+      "denied": "U heeft geen toestemming om toegang te krijgen tot deze sectie."
+    }
+  },
+  "languages": {
+    "en": "Engels",
+    "es": "Spaans",
+    "fr": "Frans",
+    "de": "Duits",
+    "it": "Italiaans",
+    "pt": "Portugees",
+    "nl": "Nederlands",
+    "no": "Noors",
+    "sv": "Zweeds",
+    "da": "Deens"
+  }
+}

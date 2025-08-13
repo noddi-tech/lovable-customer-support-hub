@@ -12,6 +12,7 @@ import Settings from "./pages/Settings";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import "@/lib/i18n";
 
 const queryClient = new QueryClient();
 

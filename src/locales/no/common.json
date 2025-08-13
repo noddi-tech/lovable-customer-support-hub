@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "title": "Innstillinger",
+    "description": "Administrer kontoen din og applikasjonsinnstillinger",
+    "backToDashboard": "Tilbake til Dashboard",
+    "tabs": {
+      "departments": "Avdelinger",
+      "general": "Generelt",
+      "profile": "Profil",
+      "notifications": "Varsler",
+      "emailDesign": "E-post Design",
+      "users": "Brukere",
+      "admin": "Administrator"
+    },
+    "language": {
+      "title": "Språkinnstillinger",
+      "description": "Velg ditt foretrukne språk for applikasjonen",
+      "label": "Språk",
+      "placeholder": "Velg språk",
+      "success": "Språk oppdatert vellykket"
+    },
+    "permissions": {
+      "denied": "Du har ikke tillatelse til å få tilgang til denne seksjonen."
+    }
+  },
+  "languages": {
+    "en": "Engelsk",
+    "es": "Spansk",
+    "fr": "Fransk",
+    "de": "Tysk",
+    "it": "Italiensk",
+    "pt": "Portugisisk",
+    "nl": "Nederlandsk",
+    "no": "Norsk",
+    "sv": "Svensk",
+    "da": "Dansk"
+  }
+}

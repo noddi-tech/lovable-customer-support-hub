@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "title": "Configurações",
+    "description": "Gerencie sua conta e preferências do aplicativo",
+    "backToDashboard": "Voltar ao Dashboard",
+    "tabs": {
+      "departments": "Departamentos",
+      "general": "Geral",
+      "profile": "Perfil",
+      "notifications": "Notificações",
+      "emailDesign": "Design de Email",
+      "users": "Usuários",
+      "admin": "Administrador"
+    },
+    "language": {
+      "title": "Preferências de Idioma",
+      "description": "Escolha seu idioma preferido para o aplicativo",
+      "label": "Idioma",
+      "placeholder": "Selecionar idioma",
+      "success": "Idioma atualizado com sucesso"
+    },
+    "permissions": {
+      "denied": "Você não tem permissão para acessar esta seção."
+    }
+  },
+  "languages": {
+    "en": "Inglês",
+    "es": "Espanhol",
+    "fr": "Francês",
+    "de": "Alemão",
+    "it": "Italiano",
+    "pt": "Português",
+    "nl": "Holandês",
+    "no": "Norueguês",
+    "sv": "Sueco",
+    "da": "Dinamarquês"
+  }
+}

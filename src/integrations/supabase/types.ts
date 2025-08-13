@@ -625,6 +625,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           organization_id: string
+          preferred_language: string | null
           primary_role: Database["public"]["Enums"]["app_role"] | null
           role: string
           updated_at: string
@@ -639,6 +640,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id: string
+          preferred_language?: string | null
           primary_role?: Database["public"]["Enums"]["app_role"] | null
           role?: string
           updated_at?: string
@@ -653,6 +655,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id?: string
+          preferred_language?: string | null
           primary_role?: Database["public"]["Enums"]["app_role"] | null
           role?: string
           updated_at?: string
@@ -754,6 +757,42 @@ export type Database = {
           id?: string
           permission?: Database["public"]["Enums"]["app_permission"]
           role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      translations: {
+        Row: {
+          context: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          source_language: string
+          source_text: string
+          target_language: string
+          translated_text: string
+          updated_at: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          source_language?: string
+          source_text: string
+          target_language: string
+          translated_text: string
+          updated_at?: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          source_language?: string
+          source_text?: string
+          target_language?: string
+          translated_text?: string
+          updated_at?: string
         }
         Relationships: []
       }

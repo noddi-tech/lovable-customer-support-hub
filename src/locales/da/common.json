@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "title": "Indstillinger",
+    "description": "Administrer din konto og applikationsindstillinger",
+    "backToDashboard": "Tilbage til Dashboard",
+    "tabs": {
+      "departments": "Afdelinger",
+      "general": "Generelt",
+      "profile": "Profil",
+      "notifications": "Notifikationer",
+      "emailDesign": "E-mail Design",
+      "users": "Brugere",
+      "admin": "Administrator"
+    },
+    "language": {
+      "title": "Sprogindstillinger",
+      "description": "Vælg dit foretrukne sprog til applikationen",
+      "label": "Sprog",
+      "placeholder": "Vælg sprog",
+      "success": "Sprog opdateret succesfuldt"
+    },
+    "permissions": {
+      "denied": "Du har ikke tilladelse til at få adgang til denne sektion."
+    }
+  },
+  "languages": {
+    "en": "Engelsk",
+    "es": "Spansk",
+    "fr": "Fransk",
+    "de": "Tysk",
+    "it": "Italiensk",
+    "pt": "Portugisisk",
+    "nl": "Hollandsk",
+    "no": "Norsk",
+    "sv": "Svensk",
+    "da": "Dansk"
+  }
+}

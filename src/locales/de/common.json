@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "title": "Einstellungen",
+    "description": "Verwalten Sie Ihr Konto und Anwendungseinstellungen",
+    "backToDashboard": "Zurück zum Dashboard",
+    "tabs": {
+      "departments": "Abteilungen",
+      "general": "Allgemein",
+      "profile": "Profil",
+      "notifications": "Benachrichtigungen",
+      "emailDesign": "E-Mail-Design", 
+      "users": "Benutzer",
+      "admin": "Administrator"
+    },
+    "language": {
+      "title": "Spracheinstellungen",
+      "description": "Wählen Sie Ihre bevorzugte Sprache für die Anwendung",
+      "label": "Sprache",
+      "placeholder": "Sprache auswählen",
+      "success": "Sprache erfolgreich aktualisiert"
+    },
+    "permissions": {
+      "denied": "Sie haben keine Berechtigung, auf diesen Bereich zuzugreifen."
+    }
+  },
+  "languages": {
+    "en": "Englisch",
+    "es": "Spanisch",
+    "fr": "Französisch",
+    "de": "Deutsch",
+    "it": "Italienisch", 
+    "pt": "Portugiesisch",
+    "nl": "Niederländisch",
+    "no": "Norwegisch",
+    "sv": "Schwedisch",
+    "da": "Dänisch"
+  }
+}
