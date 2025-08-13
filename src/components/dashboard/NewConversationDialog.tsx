@@ -138,6 +138,7 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
             content: conversationData.initialMessage,
             sender_type: 'agent',
             sender_id: profile?.user_id,
+            content_type: 'text',
             is_internal: false,
             email_status: 'pending',
             email_subject: conversationData.subject

@@ -257,6 +257,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       const processedContent = convertShortcodesToEmojis(replyText.trim());
       
       // First, save the message to the database with 'sending' status
+      const { data: userData } = await supabase.auth.getUser();
       const { data: newMessage, error } = await supabase
         .from('messages')
         .insert({
@@ -264,6 +265,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           content: processedContent,
           is_internal: isInternalNote,
           sender_type: 'agent',
+          sender_id: userData?.user?.id || null,
           content_type: 'text',
           assigned_to_id: isInternalNote && assignedToId && assignedToId !== 'unassigned' ? assignedToId : null,
           email_status: isInternalNote ? 'sent' : 'sending'  // Internal notes don't need email sending
@@ -1217,10 +1219,24 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           : "bg-primary/10 border border-primary/20 text-foreground"
                       )}
                     >
-                      {isInternal && (
+                      {isInternal ? (
                         <div className="flex items-center gap-1 mb-2 text-xs text-orange-600 dark:text-orange-400">
                           <Lock className="h-3 w-3" />
                           Internal Note
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 mb-2 text-xs">
+                          {isFromCustomer ? (
+                            <>
+                              <Badge variant="secondary">Customer</Badge>
+                              <span className="text-muted-foreground">{customer?.full_name || customer?.email}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Badge variant="default">Agent</Badge>
+                              <span className="text-muted-foreground">{(message as any).sender?.full_name || assignedAgent?.full_name || 'Agent'}</span>
+                            </>
+                          )}
                         </div>
                       )}
 
@@ -1303,10 +1319,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       <span title={getMessageDate(message).toLocaleString(undefined, { hour12: false })}>
                         {format(getMessageDate(message), 'MMM d, yyyy HH:mm:ss')}
                       </span>
-                      {message.sender_type === 'agent' && assignedAgent && (
+                      {message.sender_type === 'agent' && (
                         <>
                           <span>•</span>
-                          <span>{assignedAgent.full_name}</span>
+                          <span>{(message as any).sender?.full_name || assignedAgent?.full_name || 'Agent'}</span>
                         </>
                       )}
                       {message.email_status && message.sender_type === 'agent' && (
@@ -1328,7 +1344,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   {!isFromCustomer && showAvatar && (
                     <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
                       <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                        {getInitials(assignedAgent?.full_name || 'A')}
+                        {getInitials(((message as any).sender?.full_name) || assignedAgent?.full_name || 'A')}
                       </AvatarFallback>
                     </Avatar>
                   )}
