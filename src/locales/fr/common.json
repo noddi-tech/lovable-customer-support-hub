@@ -225,8 +225,13 @@
     "selectInbox": "Sélectionner la boîte",
     "current": "actuel",
     "moving": "Déplacement...",
-    "saving": "Sauvegarde...",
-    "noMessages": "Aucun message pour le moment"
+      "saving": "Sauvegarde...",
+      "noMessages": "Aucun message pour le moment",
+      "customerNotes": "Notes Client",
+      "enterCustomerNote": "Saisir une note client...",
+      "noNotesYet": "Aucune note pour le moment. Ajoutez-en une pour commencer.",
+      "deleteNote": "Supprimer la note",
+      "deleteNoteConfirmation": "Êtes-vous sûr de vouloir supprimer cette note client ? Cette action ne peut pas être annulée."
   },
   "common": {
     "loading": "Chargement...",
@@ -237,6 +242,7 @@
     "justNow": "À l'instant",
     "minutesAgo": "il y a {{count}}m",
     "hoursAgo": "il y a {{count}}h",
-    "daysAgo": "il y a {{count}}j"
+    "daysAgo": "il y a {{count}}j",
+    "cancel": "Annuler"
   }
 }

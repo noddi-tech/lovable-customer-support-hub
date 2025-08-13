@@ -140,6 +140,18 @@
     "sync": {
       "success": "Gmail-synchronisatie succesvol gestart",
       "error": "Synchronisatie starten mislukt"
+    },
+    "conversation": {
+      "customerNotes": "Klant Notities",
+      "enterCustomerNote": "Voer klant notitie in...",
+      "noNotesYet": "Nog geen notities. Voeg er een toe om te beginnen.",
+      "deleteNote": "Notitie verwijderen",
+      "deleteNoteConfirmation": "Weet je zeker dat je deze klant notitie wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+      "customerDetails": "Klant Details",
+      "viewFullProfile": "Volledig Profiel Bekijken",
+      "addNote": "Notitie Toevoegen",
+      "save": "Opslaan",
+      "delete": "Verwijderen"
     }
   },
   "common": {
@@ -151,6 +163,7 @@
     "justNow": "Zojuist",
     "minutesAgo": "{{count}}m geleden",
     "hoursAgo": "{{count}}u geleden",
-    "daysAgo": "{{count}}d geleden"
+    "daysAgo": "{{count}}d geleden",
+    "cancel": "Annuleren"
   }
 }

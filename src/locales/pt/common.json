@@ -140,6 +140,18 @@
     "sync": {
       "success": "Sincronização do Gmail iniciada com sucesso",
       "error": "Falha ao iniciar sincronização"
+    },
+    "conversation": {
+      "customerNotes": "Notas do Cliente",
+      "enterCustomerNote": "Digite nota do cliente...",
+      "noNotesYet": "Nenhuma nota ainda. Adicione uma para começar.",
+      "deleteNote": "Excluir nota",
+      "deleteNoteConfirmation": "Tem certeza de que deseja excluir esta nota do cliente? Esta ação não pode ser desfeita.",
+      "customerDetails": "Detalhes do Cliente",
+      "viewFullProfile": "Visualizar Perfil Completo",
+      "addNote": "Adicionar Nota",
+      "save": "Salvar",
+      "delete": "Excluir"
     }
   },
   "common": {
@@ -151,6 +163,7 @@
     "justNow": "Agora mesmo",
     "minutesAgo": "{{count}}m atrás",
     "hoursAgo": "{{count}}h atrás",
-    "daysAgo": "{{count}}d atrás"
+    "daysAgo": "{{count}}d atrás",
+    "cancel": "Cancelar"
   }
 }

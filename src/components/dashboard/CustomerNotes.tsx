@@ -116,7 +116,7 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">Customer Notes</h3>
+            <h3 className="font-semibold text-foreground">{t('conversation.customerNotes')}</h3>
             <Button
               variant="outline"
               size="sm"
@@ -133,14 +133,14 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
           {isAdding && (
             <div className="space-y-3 p-3 border border-border rounded-md bg-muted/50">
               <Textarea
-                placeholder="Enter customer note..."
+                placeholder={t('conversation.enterCustomerNote')}
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
                 className="min-h-[80px] resize-none"
               />
               <div className="flex items-center justify-end space-x-2">
                 <Button variant="outline" size="sm" onClick={handleCancel}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button 
                   size="sm" 
@@ -156,7 +156,7 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
           {/* Notes list */}
           {notes.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center py-4">
-              No notes yet. Add one to get started.
+              {t('conversation.noNotesYet')}
             </div>
           ) : (
             <div className="space-y-3">
@@ -171,14 +171,14 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
                       />
                       <div className="flex items-center justify-end space-x-2">
                         <Button variant="outline" size="sm" onClick={handleCancel}>
-                          Cancel
+                          {t('common.cancel')}
                         </Button>
                         <Button 
                           size="sm" 
                           onClick={handleSaveEdit}
                           disabled={!noteContent.trim()}
                         >
-                          Save
+                          {t('conversation.save')}
                         </Button>
                       </div>
                     </div>
@@ -226,20 +226,20 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete note</AlertDialogTitle>
+            <AlertDialogTitle>{t('conversation.deleteNote')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this customer note? This action cannot be undone.
+              {t('conversation.deleteNoteConfirmation')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('conversation.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

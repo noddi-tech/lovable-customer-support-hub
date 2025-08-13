@@ -217,7 +217,12 @@
       "current": "nuvarande",
       "moving": "Flyttar...",
       "saving": "Sparar...",
-      "noMessages": "Inga meddelanden än"
+      "noMessages": "Inga meddelanden än",
+      "customerNotes": "Kundanteckningar",
+      "enterCustomerNote": "Ange kundanteckning...",
+      "noNotesYet": "Inga anteckningar än. Lägg till en för att komma igång.",
+      "deleteNote": "Radera anteckning",
+      "deleteNoteConfirmation": "Är du säker på att du vill radera denna kundanteckning? Denna åtgärd kan inte ångras."
     },
     "navigation": {
       "back": "← Tillbaka",
@@ -266,6 +271,7 @@
     "justNow": "Just nu",
     "minutesAgo": "{{count}}m sedan",
     "hoursAgo": "{{count}}t sedan",
-    "daysAgo": "{{count}}d sedan"
+    "daysAgo": "{{count}}d sedan",
+    "cancel": "Avbryt"
   }
 }

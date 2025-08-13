@@ -235,8 +235,13 @@
     "selectInbox": "Seleccionar bandeja",
     "current": "actual",
     "moving": "Moviendo...",
-    "saving": "Guardando...",
-    "noMessages": "Aún no hay mensajes"
+      "saving": "Guardando...",
+      "noMessages": "Aún no hay mensajes",
+      "customerNotes": "Notas del Cliente",
+      "enterCustomerNote": "Ingresar nota del cliente...",
+      "noNotesYet": "Aún no hay notas. Agrega una para comenzar.",
+      "deleteNote": "Eliminar nota",
+      "deleteNoteConfirmation": "¿Estás seguro de que quieres eliminar esta nota del cliente? Esta acción no se puede deshacer."
   },
   "common": {
     "loading": "Cargando...",
