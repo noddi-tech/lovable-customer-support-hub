@@ -154,7 +154,11 @@
       "high": "Alta",
       "urgent": "Urgente",
       "customerDetails": "Dettagli Cliente",
+      "customerSince": "Cliente dal:",
       "viewFullProfile": "Visualizza Profilo Completo",
+      "previousConversations": "Conversazioni Precedenti",
+      "noPreviousConversations": "Nessuna conversazione precedente",
+      "quickActions": "Azioni Rapide",
       "addNote": "Aggiungi Nota",
       "save": "Salva",
       "delete": "Elimina"
