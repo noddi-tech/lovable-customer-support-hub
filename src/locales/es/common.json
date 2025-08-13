@@ -153,8 +153,17 @@
       "success": "Sincronización de Gmail iniciada exitosamente",
       "error": "Error al iniciar la sincronización"
     }
-  },
-  "conversation": {
+    },
+    "conversation": {
+      "customer": "Cliente",
+      "agent": "Agente",
+      "getAISuggestions": "Obtener sugerencias de IA",
+      "emailStatus": {
+        "sent": "Enviado",
+        "sending": "Enviando",
+        "failed": "Falló",
+        "pending": "Pendiente"
+      },
       "customerDetails": "Detalles del Cliente",
       "customerSince": "Cliente desde:",
       "viewFullProfile": "Ver Perfil Completo",

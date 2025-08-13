@@ -1334,13 +1334,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         <div className="flex items-center gap-2 mb-2 text-xs">
                           {isFromCustomer ? (
                             <>
-                              <Badge variant="secondary">Customer</Badge>
+                              <Badge variant="secondary">{t('conversation.customer')}</Badge>
                               <span className="text-muted-foreground">{customer?.full_name || customer?.email}</span>
                             </>
                           ) : (
                             <>
-                              <Badge variant="default">Agent</Badge>
-                              <span className="text-muted-foreground">{(message as any).sender?.full_name || assignedAgent?.full_name || 'Agent'}</span>
+                              <Badge variant="default">{t('conversation.agent')}</Badge>
+                              <span className="text-muted-foreground">{(message as any).sender?.full_name || assignedAgent?.full_name || t('conversation.agent')}</span>
                             </>
                           )}
                         </div>
@@ -1360,7 +1360,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                               variant="outline"
                               onClick={cancelEdit}
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                             <Button
                               size="sm"
@@ -1370,10 +1370,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                               {isUpdatingMessage ? (
                                 <>
                                   <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  Saving...
+                                  {t('conversation.saving')}
                                 </>
                               ) : (
-                                'Save'
+                                t('conversation.save')
                               )}
                             </Button>
                           </div>
@@ -1428,19 +1428,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       {message.sender_type === 'agent' && (
                         <>
                           <span>•</span>
-                          <span>{(message as any).sender?.full_name || assignedAgent?.full_name || 'Agent'}</span>
+                          <span>{(message as any).sender?.full_name || assignedAgent?.full_name || t('conversation.agent')}</span>
                         </>
                       )}
                       {message.email_status && message.sender_type === 'agent' && (
                         <>
                           <span>•</span>
-                          <span className={cn(
-                            "capitalize",
+                           <span className={cn(
                             message.email_status === 'sent' && "text-green-600 dark:text-green-400",
                             message.email_status === 'failed' && "text-red-600 dark:text-red-400",
                             message.email_status === 'pending' && "text-yellow-600 dark:text-yellow-400"
                           )}>
-                            {message.email_status}
+                            {t(`conversation.emailStatus.${message.email_status}`)}
                           </span>
                         </>
                       )}
@@ -1450,7 +1449,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   {!isFromCustomer && showAvatar && (
                     <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
                       <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                        {getInitials(((message as any).sender?.full_name) || assignedAgent?.full_name || 'A')}
+                        {getInitials(((message as any).sender?.full_name) || assignedAgent?.full_name || t('conversation.agent'))}
                       </AvatarFallback>
                     </Avatar>
                   )}
@@ -1494,7 +1493,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       onClick={handleAISuggestClick}
                       disabled={aiLoading}
                       className="hover:bg-accent"
-                      title="Get AI suggestions"
+                      title={t('conversation.getAISuggestions')}
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
                       {aiLoading ? t('conversation.suggesting') : t('conversation.aiSuggestion')}

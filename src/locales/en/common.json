@@ -233,6 +233,15 @@
       "whatsapp": "WhatsApp"
     },
     "conversation": {
+      "customer": "Customer",
+      "agent": "Agent",
+      "getAISuggestions": "Get AI suggestions",
+      "emailStatus": {
+        "sent": "Sent",
+        "sending": "Sending",
+        "failed": "Failed",
+        "pending": "Pending"
+      },
       "snoozeNote": "Times shown in your timezone",
       "customerSince": "Customer since",
       "lastSeen": "Last seen",

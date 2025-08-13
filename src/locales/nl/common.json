@@ -142,6 +142,15 @@
       "error": "Synchronisatie starten mislukt"
     },
     "conversation": {
+      "customer": "Klant",
+      "agent": "Agent",
+      "getAISuggestions": "AI-suggesties verkrijgen",
+      "emailStatus": {
+        "sent": "Verzonden",
+        "sending": "Verzenden",
+        "failed": "Mislukt",
+        "pending": "In behandeling"
+      },
       "customerNotes": "Klant Notities",
       "enterCustomerNote": "Voer klant notitie in...",
       "noNotesYet": "Nog geen notities. Voeg er een toe om te beginnen.",

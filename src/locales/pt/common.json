@@ -142,6 +142,15 @@
       "error": "Falha ao iniciar sincronização"
     },
     "conversation": {
+      "customer": "Cliente",
+      "agent": "Agente",
+      "getAISuggestions": "Obter sugestões de IA",
+      "emailStatus": {
+        "sent": "Enviado",
+        "sending": "Enviando",
+        "failed": "Falhou",
+        "pending": "Pendente"
+      },
       "customerNotes": "Notas do Cliente",
       "enterCustomerNote": "Digite nota do cliente...",
       "noNotesYet": "Nenhuma nota ainda. Adicione uma para começar.",

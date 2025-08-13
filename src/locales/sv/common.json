@@ -107,6 +107,15 @@
       "deleteError": "Fel vid radering av samtal"
     },
     "conversation": {
+      "customer": "Kund",
+      "agent": "Agent",
+      "getAISuggestions": "Få AI-förslag",
+      "emailStatus": {
+        "sent": "Skickat",
+        "sending": "Skickar",
+        "failed": "Misslyckades",
+        "pending": "Väntar"
+      },
       "newConversation": "Nytt Samtal",
       "customerInformation": "Kundinformation",
       "emailAddress": "E-postadress",

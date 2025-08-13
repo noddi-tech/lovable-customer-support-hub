@@ -141,8 +141,17 @@
       "success": "Gmail-synkronisering startet succesfuldt",
       "error": "Fejl ved start af synkronisering"
     }
-  },
-  "conversation": {
+    },
+    "conversation": {
+      "customer": "Kunde",
+      "agent": "Agent",
+      "getAISuggestions": "Få AI-forslag",
+      "emailStatus": {
+        "sent": "Sendt",
+        "sending": "Sender",
+        "failed": "Fejlet",
+        "pending": "Afventer"
+      },
     "snooze": "Udsæt",
     "snoozeDialogTitle": "Udsæt samtale",
     "snoozeForLater": "Udsæt til senere",

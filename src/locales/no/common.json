@@ -163,8 +163,17 @@
       "success": "Gmail synkronisering startet vellykket",
       "error": "Kunne ikke starte synkronisering"
     }
-  },
-  "conversation": {
+    },
+    "conversation": {
+      "customer": "Kunde",
+      "agent": "Agent",
+      "getAISuggestions": "Få AI-forslag",
+      "emailStatus": {
+        "sent": "Sendt",
+        "sending": "Sender",
+        "failed": "Mislyktes",
+        "pending": "Venter"
+      },
     "newConversation": "Ny Samtale",
     "customerInformation": "Kundeinformasjon",
     "emailAddress": "E-postadresse",

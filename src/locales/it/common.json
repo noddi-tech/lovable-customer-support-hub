@@ -144,6 +144,15 @@
       "error": "Errore nell'avvio della sincronizzazione"
     },
     "conversation": {
+      "customer": "Cliente",
+      "agent": "Agente",
+      "getAISuggestions": "Ottieni suggerimenti IA",
+      "emailStatus": {
+        "sent": "Inviato",
+        "sending": "Invio",
+        "failed": "Fallito",
+        "pending": "In attesa"
+      },
       "customerNotes": "Note Cliente",
       "enterCustomerNote": "Inserisci nota cliente...",
       "noNotesYet": "Nessuna nota ancora. Aggiungine una per iniziare.",

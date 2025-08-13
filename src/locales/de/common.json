@@ -144,6 +144,15 @@
       "error": "Synchronisierung konnte nicht gestartet werden"
     },
     "conversation": {
+      "customer": "Kunde",
+      "agent": "Agent",
+      "getAISuggestions": "KI-Vorschläge erhalten",
+      "emailStatus": {
+        "sent": "Gesendet",
+        "sending": "Senden",
+        "failed": "Fehlgeschlagen",
+        "pending": "Ausstehend"
+      },
        "low": "Niedrig",
        "normal": "Normal",
        "high": "Hoch",
