@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { NewConversationDialog } from './NewConversationDialog';
+import { useTranslation } from 'react-i18next';
 
 interface InboxSidebarProps {
   selectedTab: string;
@@ -41,6 +42,7 @@ interface InboxData {
 export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabChange, selectedInboxId }) => {
   const [expandedChannels, setExpandedChannels] = useState(true);
   const [expandedInboxes, setExpandedInboxes] = useState(true);
+  const { t } = useTranslation();
 
   const effectiveInboxId = selectedTab.startsWith('inbox-')
     ? selectedTab.replace('inbox-', '')
@@ -109,20 +111,20 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
   });
 
   const sidebarItems = [
-    { id: 'unread', label: 'Unread', icon: Inbox, count: conversationCounts.unread || 0 },
-    { id: 'pending', label: 'Pending', icon: Clock, count: conversationCounts.pending || 0 },
-    { id: 'closed', label: 'Closed', icon: CheckCircle, count: conversationCounts.closed || 0 },
-    { id: 'assigned', label: 'Assigned to me', icon: Users, count: conversationCounts.assigned || 0 },
-    { id: 'all', label: 'Inbox', icon: Inbox, count: conversationCounts.inbox || 0 },
-    { id: 'archived', label: 'Archived', icon: Archive, count: conversationCounts.archived || 0 },
-    { id: 'snoozed', label: 'Snoozed', icon: Clock, count: conversationCounts.snoozed || 0 },
+    { id: 'unread', label: t('dashboard.sidebar.unread'), icon: Inbox, count: conversationCounts.unread || 0 },
+    { id: 'pending', label: t('dashboard.sidebar.pending'), icon: Clock, count: conversationCounts.pending || 0 },
+    { id: 'closed', label: t('dashboard.sidebar.closed'), icon: CheckCircle, count: conversationCounts.closed || 0 },
+    { id: 'assigned', label: t('dashboard.sidebar.assignedToMe'), icon: Users, count: conversationCounts.assigned || 0 },
+    { id: 'all', label: t('dashboard.sidebar.inbox'), icon: Inbox, count: conversationCounts.inbox || 0 },
+    { id: 'archived', label: t('dashboard.sidebar.archived'), icon: Archive, count: conversationCounts.archived || 0 },
+    { id: 'snoozed', label: t('dashboard.sidebar.snoozed'), icon: Clock, count: conversationCounts.snoozed || 0 },
   ];
 
   const channelItems = [
-    { id: 'email', label: 'Email', icon: Mail, count: conversationCounts.email || 0, color: 'channel-email' },
-    { id: 'facebook', label: 'Facebook', icon: MessageCircle, count: conversationCounts.facebook || 0, color: 'channel-facebook' },
-    { id: 'instagram', label: 'Instagram', icon: Camera, count: conversationCounts.instagram || 0, color: 'channel-instagram' },
-    { id: 'whatsapp', label: 'WhatsApp', icon: Phone, count: conversationCounts.whatsapp || 0, color: 'channel-whatsapp' },
+    { id: 'email', label: t('dashboard.sidebar.email'), icon: Mail, count: conversationCounts.email || 0, color: 'channel-email' },
+    { id: 'facebook', label: t('dashboard.sidebar.facebook'), icon: MessageCircle, count: conversationCounts.facebook || 0, color: 'channel-facebook' },
+    { id: 'instagram', label: t('dashboard.sidebar.instagram'), icon: Camera, count: conversationCounts.instagram || 0, color: 'channel-instagram' },
+    { id: 'whatsapp', label: t('dashboard.sidebar.whatsapp'), icon: Phone, count: conversationCounts.whatsapp || 0, color: 'channel-whatsapp' },
   ];
 
   return (
@@ -132,7 +134,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
         <NewConversationDialog>
           <Button className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
             <Plus className="mr-2 h-4 w-4" />
-            New Conversation
+            {t('dashboard.sidebar.newConversation')}
           </Button>
         </NewConversationDialog>
       </div>
@@ -141,7 +143,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
       <div className="flex-1 overflow-y-auto">
         <div className="px-2">
           <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">INBOX</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inbox')}</h3>
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
               <Filter className="h-3 w-3" />
             </Button>
@@ -183,7 +185,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
         {/* Notifications */}
         <div className="px-2">
           <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">NOTIFICATIONS</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.notifications')}</h3>
           </div>
           
           <div className="space-y-1">
@@ -200,7 +202,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
               }}
             >
               <Bell className="mr-3 h-4 w-4" />
-              <span className="flex-1 text-left">Notifications</span>
+              <span className="flex-1 text-left">{t('dashboard.sidebar.notifications')}</span>
               {unreadNotifications > 0 && (
                 <Badge 
                   variant={selectedTab === 'notifications' ? "default" : "secondary"} 
@@ -218,7 +220,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
         {/* Channels */}
         <div className="px-2">
           <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">CHANNELS</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.channels')}</h3>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -272,7 +274,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
         {/* Inboxes */}
         <div className="px-2">
           <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">INBOXES</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inboxes')}</h3>
             <Button 
               variant="ghost" 
               size="sm" 

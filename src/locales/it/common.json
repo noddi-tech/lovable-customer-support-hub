@@ -34,5 +34,75 @@
     "no": "Norvegese",
     "sv": "Svedese",
     "da": "Danese"
+  },
+  "dashboard": {
+    "header": {
+      "allInboxes": "Tutte le Caselle",
+      "supportAgent": "Agente di Supporto",
+      "profile": "Profilo",
+      "designLibrary": "Libreria Design",
+      "logOut": "Disconnetti"
+    },
+    "sidebar": {
+      "newConversation": "Nuova Conversazione",
+      "inbox": "POSTA IN ARRIVO",
+      "notifications": "NOTIFICHE",
+      "channels": "CANALI",
+      "inboxes": "CASELLE",
+      "unread": "Non letti",
+      "pending": "In attesa",
+      "closed": "Chiusi",
+      "assignedToMe": "Assegnati a me",
+      "archived": "Archiviati",
+      "snoozed": "Posticipati",
+      "email": "Email",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "conversationList": {
+      "inbox": "Posta in Arrivo",
+      "filter": "Filtra",
+      "searchPlaceholder": "Cerca conversazioni...",
+      "allStatus": "Tutti gli Stati",
+      "allPriority": "Tutte le Priorità",
+      "open": "Aperto",
+      "pending": "In attesa",
+      "resolved": "Risolto",
+      "closed": "Chiuso",
+      "low": "Bassa",
+      "normal": "Normale",
+      "high": "Alta",
+      "urgent": "Urgente",
+      "loadingConversations": "Caricamento conversazioni...",
+      "noConversations": "Nessuna conversazione trovata",
+      "sendEmailToCreateFirst": "Invia un'email a {{address}} per creare la tua prima conversazione",
+      "connectInboundEmail": "Connetti un'email in arrivo in Admin → Integrazioni, poi invia un'email per creare la tua prima conversazione",
+      "archive": "Archivia",
+      "delete": "Elimina",
+      "deleteConfirmation": "Sei sicuro di voler eliminare questa conversazione?",
+      "deleteDescription": "Questa azione non può essere annullata. Eliminerà permanentemente la conversazione e tutti i suoi messaggi.",
+      "cancel": "Annulla",
+      "deleteButton": "Elimina",
+      "archiveSuccess": "Conversazione archiviata con successo",
+      "archiveError": "Errore nell'archiviazione della conversazione",
+      "deleteSuccess": "Conversazione eliminata con successo",
+      "deleteError": "Errore nell'eliminazione della conversazione"
+    },
+    "navigation": {
+      "back": "← Indietro",
+      "notifications": "Notifiche"
+    }
+  },
+  "common": {
+    "loading": "Caricamento...",
+    "search": "Cerca",
+    "settings": "Impostazioni",
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "justNow": "Ora",
+    "minutesAgo": "{{count}}m fa",
+    "hoursAgo": "{{count}}h fa",
+    "daysAgo": "{{count}}g fa"
   }
 }

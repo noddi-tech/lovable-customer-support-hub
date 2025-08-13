@@ -34,5 +34,75 @@
     "no": "Norueguês",
     "sv": "Sueco",
     "da": "Dinamarquês"
+  },
+  "dashboard": {
+    "header": {
+      "allInboxes": "Todas as Caixas",
+      "supportAgent": "Agente de Suporte",
+      "profile": "Perfil",
+      "designLibrary": "Biblioteca de Design",
+      "logOut": "Sair"
+    },
+    "sidebar": {
+      "newConversation": "Nova Conversa",
+      "inbox": "CAIXA DE ENTRADA",
+      "notifications": "NOTIFICAÇÕES",
+      "channels": "CANAIS",
+      "inboxes": "CAIXAS",
+      "unread": "Não lidas",
+      "pending": "Pendentes",
+      "closed": "Fechadas",
+      "assignedToMe": "Atribuídas a mim",
+      "archived": "Arquivadas",
+      "snoozed": "Adiadas",
+      "email": "Email",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "conversationList": {
+      "inbox": "Caixa de Entrada",
+      "filter": "Filtrar",
+      "searchPlaceholder": "Pesquisar conversas...",
+      "allStatus": "Todos os Status",
+      "allPriority": "Todas as Prioridades",
+      "open": "Aberto",
+      "pending": "Pendente",
+      "resolved": "Resolvido",
+      "closed": "Fechado",
+      "low": "Baixa",
+      "normal": "Normal",
+      "high": "Alta",
+      "urgent": "Urgente",
+      "loadingConversations": "Carregando conversas...",
+      "noConversations": "Nenhuma conversa encontrada",
+      "sendEmailToCreateFirst": "Envie um email para {{address}} para criar sua primeira conversa",
+      "connectInboundEmail": "Conecte um email de entrada em Admin → Integrações, depois envie um email para criar sua primeira conversa",
+      "archive": "Arquivar",
+      "delete": "Excluir",
+      "deleteConfirmation": "Tem certeza de que deseja excluir esta conversa?",
+      "deleteDescription": "Esta ação não pode ser desfeita. Isso excluirá permanentemente a conversa e todas as suas mensagens.",
+      "cancel": "Cancelar",
+      "deleteButton": "Excluir",
+      "archiveSuccess": "Conversa arquivada com sucesso",
+      "archiveError": "Falha ao arquivar conversa",
+      "deleteSuccess": "Conversa excluída com sucesso",
+      "deleteError": "Falha ao excluir conversa"
+    },
+    "navigation": {
+      "back": "← Voltar",
+      "notifications": "Notificações"
+    }
+  },
+  "common": {
+    "loading": "Carregando...",
+    "search": "Pesquisar",
+    "settings": "Configurações",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "justNow": "Agora mesmo",
+    "minutesAgo": "{{count}}m atrás",
+    "hoursAgo": "{{count}}h atrás",
+    "daysAgo": "{{count}}d atrás"
   }
 }

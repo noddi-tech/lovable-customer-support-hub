@@ -34,5 +34,75 @@
     "no": "Norwegisch",
     "sv": "Schwedisch",
     "da": "Dänisch"
+  },
+  "dashboard": {
+    "header": {
+      "allInboxes": "Alle Postfächer",
+      "supportAgent": "Support-Agent",
+      "profile": "Profil",
+      "designLibrary": "Design-Bibliothek",
+      "logOut": "Abmelden"
+    },
+    "sidebar": {
+      "newConversation": "Neue Unterhaltung",
+      "inbox": "POSTEINGANG",
+      "notifications": "BENACHRICHTIGUNGEN",
+      "channels": "KANÄLE",
+      "inboxes": "POSTFÄCHER",
+      "unread": "Ungelesen",
+      "pending": "Ausstehend",
+      "closed": "Geschlossen",
+      "assignedToMe": "Mir zugewiesen",
+      "archived": "Archiviert",
+      "snoozed": "Verschoben",
+      "email": "E-Mail",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "conversationList": {
+      "inbox": "Posteingang",
+      "filter": "Filter",
+      "searchPlaceholder": "Unterhaltungen suchen...",
+      "allStatus": "Alle Status",
+      "allPriority": "Alle Prioritäten",
+      "open": "Offen",
+      "pending": "Ausstehend",
+      "resolved": "Gelöst",
+      "closed": "Geschlossen",
+      "low": "Niedrig",
+      "normal": "Normal",
+      "high": "Hoch",
+      "urgent": "Dringend",
+      "loadingConversations": "Lade Unterhaltungen...",
+      "noConversations": "Keine Unterhaltungen gefunden",
+      "sendEmailToCreateFirst": "Senden Sie eine E-Mail an {{address}}, um Ihre erste Unterhaltung zu erstellen",
+      "connectInboundEmail": "Verbinden Sie eine eingehende E-Mail unter Admin → Integrationen, dann senden Sie eine E-Mail, um Ihre erste Unterhaltung zu erstellen",
+      "archive": "Archivieren",
+      "delete": "Löschen",
+      "deleteConfirmation": "Sind Sie sicher, dass Sie diese Unterhaltung löschen möchten?",
+      "deleteDescription": "Diese Aktion kann nicht rückgängig gemacht werden. Dadurch wird die Unterhaltung und alle ihre Nachrichten dauerhaft gelöscht.",
+      "cancel": "Abbrechen",
+      "deleteButton": "Löschen",
+      "archiveSuccess": "Unterhaltung erfolgreich archiviert",
+      "archiveError": "Fehler beim Archivieren der Unterhaltung",
+      "deleteSuccess": "Unterhaltung erfolgreich gelöscht",
+      "deleteError": "Fehler beim Löschen der Unterhaltung"
+    },
+    "navigation": {
+      "back": "← Zurück",
+      "notifications": "Benachrichtigungen"
+    }
+  },
+  "common": {
+    "loading": "Wird geladen...",
+    "search": "Suchen",
+    "settings": "Einstellungen",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "justNow": "Gerade eben",
+    "minutesAgo": "vor {{count}}m",
+    "hoursAgo": "vor {{count}}h",
+    "daysAgo": "vor {{count}}T"
   }
 }

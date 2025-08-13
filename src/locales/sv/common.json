@@ -34,5 +34,75 @@
     "no": "Norska",
     "sv": "Svenska",
     "da": "Danska"
+  },
+  "dashboard": {
+    "header": {
+      "allInboxes": "Alla Inkorgar",
+      "supportAgent": "Support Agent",
+      "profile": "Profil",
+      "designLibrary": "Design Bibliotek",
+      "logOut": "Logga Ut"
+    },
+    "sidebar": {
+      "newConversation": "Nytt Samtal",
+      "inbox": "INKORG",
+      "notifications": "NOTIFIKATIONER",
+      "channels": "KANALER",
+      "inboxes": "INKORGAR",
+      "unread": "Olästa",
+      "pending": "Väntande",
+      "closed": "Stängda",
+      "assignedToMe": "Tilldelade till mig",
+      "archived": "Arkiverade",
+      "snoozed": "Snoozade",
+      "email": "E-post",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "conversationList": {
+      "inbox": "Inkorg",
+      "filter": "Filter",
+      "searchPlaceholder": "Sök samtal...",
+      "allStatus": "Alla Status",
+      "allPriority": "Alla Prioritet",
+      "open": "Öppen",
+      "pending": "Väntande",
+      "resolved": "Löst",
+      "closed": "Stängd",
+      "low": "Låg",
+      "normal": "Normal",
+      "high": "Hög",
+      "urgent": "Brådskande",
+      "loadingConversations": "Laddar samtal...",
+      "noConversations": "Inga samtal hittades",
+      "sendEmailToCreateFirst": "Skicka ett e-post till {{address}} för att skapa ditt första samtal",
+      "connectInboundEmail": "Anslut en inkommande e-post i Admin → Integrationer, skicka sedan ett e-post för att skapa ditt första samtal",
+      "archive": "Arkivera",
+      "delete": "Radera",
+      "deleteConfirmation": "Är du säker på att du vill radera detta samtal?",
+      "deleteDescription": "Denna åtgärd kan inte ångras. Detta kommer att permanent radera samtalet och alla dess meddelanden.",
+      "cancel": "Avbryt",
+      "deleteButton": "Radera",
+      "archiveSuccess": "Samtal arkiverat framgångsrikt",
+      "archiveError": "Fel vid arkivering av samtal",
+      "deleteSuccess": "Samtal raderat framgångsrikt",
+      "deleteError": "Fel vid radering av samtal"
+    },
+    "navigation": {
+      "back": "← Tillbaka",
+      "notifications": "Notifikationer"
+    }
+  },
+  "common": {
+    "loading": "Laddar...",
+    "search": "Sök",
+    "settings": "Inställningar",
+    "today": "Idag",
+    "yesterday": "Igår",
+    "justNow": "Just nu",
+    "minutesAgo": "{{count}}m sedan",
+    "hoursAgo": "{{count}}t sedan",
+    "daysAgo": "{{count}}d sedan"
   }
 }

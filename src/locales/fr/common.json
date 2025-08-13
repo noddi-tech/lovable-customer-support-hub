@@ -34,5 +34,75 @@
     "no": "Norvégien",
     "sv": "Suédois",
     "da": "Danois"
+  },
+  "dashboard": {
+    "header": {
+      "allInboxes": "Toutes les Boîtes",
+      "supportAgent": "Agent de Support",
+      "profile": "Profil",
+      "designLibrary": "Bibliothèque de Design",
+      "logOut": "Se Déconnecter"
+    },
+    "sidebar": {
+      "newConversation": "Nouvelle Conversation",
+      "inbox": "BOÎTE DE RÉCEPTION",
+      "notifications": "NOTIFICATIONS",
+      "channels": "CANAUX",
+      "inboxes": "BOÎTES",
+      "unread": "Non lus",
+      "pending": "En attente",
+      "closed": "Fermés",
+      "assignedToMe": "Assignés à moi",
+      "archived": "Archivés",
+      "snoozed": "Reportés",
+      "email": "Email",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "conversationList": {
+      "inbox": "Boîte de Réception",
+      "filter": "Filtrer",
+      "searchPlaceholder": "Rechercher des conversations...",
+      "allStatus": "Tous les Statuts",
+      "allPriority": "Toutes les Priorités",
+      "open": "Ouvert",
+      "pending": "En attente",
+      "resolved": "Résolu",
+      "closed": "Fermé",
+      "low": "Faible",
+      "normal": "Normal",
+      "high": "Élevée",
+      "urgent": "Urgent",
+      "loadingConversations": "Chargement des conversations...",
+      "noConversations": "Aucune conversation trouvée",
+      "sendEmailToCreateFirst": "Envoyez un email à {{address}} pour créer votre première conversation",
+      "connectInboundEmail": "Connectez un email entrant dans Admin → Intégrations, puis envoyez un email pour créer votre première conversation",
+      "archive": "Archiver",
+      "delete": "Supprimer",
+      "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer cette conversation ?",
+      "deleteDescription": "Cette action ne peut pas être annulée. Cela supprimera définitivement la conversation et tous ses messages.",
+      "cancel": "Annuler",
+      "deleteButton": "Supprimer",
+      "archiveSuccess": "Conversation archivée avec succès",
+      "archiveError": "Échec de l'archivage de la conversation",
+      "deleteSuccess": "Conversation supprimée avec succès",
+      "deleteError": "Échec de la suppression de la conversation"
+    },
+    "navigation": {
+      "back": "← Retour",
+      "notifications": "Notifications"
+    }
+  },
+  "common": {
+    "loading": "Chargement...",
+    "search": "Rechercher",
+    "settings": "Paramètres",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "justNow": "À l'instant",
+    "minutesAgo": "il y a {{count}}m",
+    "hoursAgo": "il y a {{count}}h",
+    "daysAgo": "il y a {{count}}j"
   }
 }

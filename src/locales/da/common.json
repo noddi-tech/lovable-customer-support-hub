@@ -34,5 +34,75 @@
     "no": "Norsk",
     "sv": "Svensk",
     "da": "Dansk"
+  },
+  "dashboard": {
+    "header": {
+      "allInboxes": "Alle Indbakker",
+      "supportAgent": "Support Agent",
+      "profile": "Profil",
+      "designLibrary": "Design Bibliotek",
+      "logOut": "Log Ud"
+    },
+    "sidebar": {
+      "newConversation": "Ny Samtale",
+      "inbox": "INDBAKKE",
+      "notifications": "NOTIFIKATIONER",
+      "channels": "KANALER",
+      "inboxes": "INDBAKKER",
+      "unread": "Ulæste",
+      "pending": "Ventende",
+      "closed": "Lukkede",
+      "assignedToMe": "Tildelt til mig",
+      "archived": "Arkiverede",
+      "snoozed": "Udskudte",
+      "email": "E-mail",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "conversationList": {
+      "inbox": "Indbakke",
+      "filter": "Filter",
+      "searchPlaceholder": "Søg samtaler...",
+      "allStatus": "Alle Status",
+      "allPriority": "Alle Prioritet",
+      "open": "Åben",
+      "pending": "Ventende",
+      "resolved": "Løst",
+      "closed": "Lukket",
+      "low": "Lav",
+      "normal": "Normal",
+      "high": "Høj",
+      "urgent": "Hastende",
+      "loadingConversations": "Indlæser samtaler...",
+      "noConversations": "Ingen samtaler fundet",
+      "sendEmailToCreateFirst": "Send en e-mail til {{address}} for at oprette din første samtale",
+      "connectInboundEmail": "Tilslut en indgående e-mail i Admin → Integrationer, send derefter en e-mail for at oprette din første samtale",
+      "archive": "Arkiver",
+      "delete": "Slet",
+      "deleteConfirmation": "Er du sikker på, at du vil slette denne samtale?",
+      "deleteDescription": "Denne handling kan ikke fortrydes. Dette vil permanent slette samtalen og alle dens beskeder.",
+      "cancel": "Annuller",
+      "deleteButton": "Slet",
+      "archiveSuccess": "Samtale arkiveret succesfuldt",
+      "archiveError": "Fejl ved arkivering af samtale",
+      "deleteSuccess": "Samtale slettet succesfuldt",
+      "deleteError": "Fejl ved sletning af samtale"
+    },
+    "navigation": {
+      "back": "← Tilbage",
+      "notifications": "Notifikationer"
+    }
+  },
+  "common": {
+    "loading": "Indlæser...",
+    "search": "Søg",
+    "settings": "Indstillinger",
+    "today": "I dag",
+    "yesterday": "I går",
+    "justNow": "Lige nu",
+    "minutesAgo": "{{count}}m siden",
+    "hoursAgo": "{{count}}t siden",
+    "daysAgo": "{{count}}d siden"
   }
 }

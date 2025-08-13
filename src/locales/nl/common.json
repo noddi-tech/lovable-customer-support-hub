@@ -34,5 +34,75 @@
     "no": "Noors",
     "sv": "Zweeds",
     "da": "Deens"
+  },
+  "dashboard": {
+    "header": {
+      "allInboxes": "Alle Postvakken",
+      "supportAgent": "Support Agent",
+      "profile": "Profiel",
+      "designLibrary": "Design Bibliotheek",
+      "logOut": "Uitloggen"
+    },
+    "sidebar": {
+      "newConversation": "Nieuw Gesprek",
+      "inbox": "POSTVAK IN",
+      "notifications": "MELDINGEN",
+      "channels": "KANALEN",
+      "inboxes": "POSTVAKKEN",
+      "unread": "Ongelezen",
+      "pending": "Wachtend",
+      "closed": "Gesloten",
+      "assignedToMe": "Aan mij toegewezen",
+      "archived": "Gearchiveerd",
+      "snoozed": "Uitgesteld",
+      "email": "E-mail",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "conversationList": {
+      "inbox": "Postvak In",
+      "filter": "Filter",
+      "searchPlaceholder": "Zoek gesprekken...",
+      "allStatus": "Alle Status",
+      "allPriority": "Alle Prioriteit",
+      "open": "Open",
+      "pending": "Wachtend",
+      "resolved": "Opgelost",
+      "closed": "Gesloten",
+      "low": "Laag",
+      "normal": "Normaal",
+      "high": "Hoog",
+      "urgent": "Urgent",
+      "loadingConversations": "Gesprekken laden...",
+      "noConversations": "Geen gesprekken gevonden",
+      "sendEmailToCreateFirst": "Stuur een e-mail naar {{address}} om uw eerste gesprek te maken",
+      "connectInboundEmail": "Verbind een inkomende e-mail in Admin → Integraties, stuur dan een e-mail om uw eerste gesprek te maken",
+      "archive": "Archiveren",
+      "delete": "Verwijderen",
+      "deleteConfirmation": "Weet u zeker dat u dit gesprek wilt verwijderen?",
+      "deleteDescription": "Deze actie kan niet ongedaan worden gemaakt. Dit zal het gesprek en alle berichten permanent verwijderen.",
+      "cancel": "Annuleren",
+      "deleteButton": "Verwijderen",
+      "archiveSuccess": "Gesprek succesvol gearchiveerd",
+      "archiveError": "Fout bij archiveren van gesprek",
+      "deleteSuccess": "Gesprek succesvol verwijderd",
+      "deleteError": "Fout bij verwijderen van gesprek"
+    },
+    "navigation": {
+      "back": "← Terug",
+      "notifications": "Meldingen"
+    }
+  },
+  "common": {
+    "loading": "Laden...",
+    "search": "Zoeken",
+    "settings": "Instellingen",
+    "today": "Vandaag",
+    "yesterday": "Gisteren",
+    "justNow": "Zojuist",
+    "minutesAgo": "{{count}}m geleden",
+    "hoursAgo": "{{count}}u geleden",
+    "daysAgo": "{{count}}d geleden"
   }
 }

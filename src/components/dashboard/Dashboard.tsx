@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTranslation } from 'react-i18next';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -46,6 +47,7 @@ export const Dashboard: React.FC = () => {
   const [selectedInboxId, setSelectedInboxId] = useState<string>(() => localStorage.getItem('selectedInboxId') || 'all');
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   // Fetch inboxes to resolve selected inbox name
   const { data: inboxes = [] } = useQuery({

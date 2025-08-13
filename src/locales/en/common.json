@@ -34,5 +34,75 @@
     "no": "Norwegian",
     "sv": "Swedish",
     "da": "Danish"
+  },
+  "dashboard": {
+    "header": {
+      "allInboxes": "All Inboxes",
+      "supportAgent": "Support Agent",
+      "profile": "Profile",
+      "designLibrary": "Design Library",
+      "logOut": "Log out"
+    },
+    "sidebar": {
+      "newConversation": "New Conversation",
+      "inbox": "INBOX",
+      "notifications": "NOTIFICATIONS",
+      "channels": "CHANNELS",
+      "inboxes": "INBOXES",
+      "unread": "Unread",
+      "pending": "Pending",
+      "closed": "Closed",
+      "assignedToMe": "Assigned to me",
+      "archived": "Archived",
+      "snoozed": "Snoozed",
+      "email": "Email",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "conversationList": {
+      "inbox": "Inbox",
+      "filter": "Filter",
+      "searchPlaceholder": "Search conversations...",
+      "allStatus": "All Status",
+      "allPriority": "All Priority",
+      "open": "Open",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent",
+      "loadingConversations": "Loading conversations...",
+      "noConversations": "No conversations found",
+      "sendEmailToCreateFirst": "Send an email to {{address}} to create your first conversation",
+      "connectInboundEmail": "Connect an inbound email in Admin → Integrations, then send an email to it to create your first conversation",
+      "archive": "Archive",
+      "delete": "Delete",
+      "deleteConfirmation": "Are you sure you want to delete this conversation?",
+      "deleteDescription": "This action cannot be undone. This will permanently delete the conversation and all its messages.",
+      "cancel": "Cancel",
+      "deleteButton": "Delete",
+      "archiveSuccess": "Conversation archived successfully",
+      "archiveError": "Failed to archive conversation",
+      "deleteSuccess": "Conversation deleted successfully",
+      "deleteError": "Failed to delete conversation"
+    },
+    "navigation": {
+      "back": "← Back",
+      "notifications": "Notifications"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "search": "Search",
+    "settings": "Settings",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
   }
 }

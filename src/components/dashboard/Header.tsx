@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   organizationName?: string;
@@ -39,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Get unread conversation count for notifications
   const { data: unreadCount = 0 } = useQuery({
@@ -87,10 +89,10 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden sm:block min-w-[180px]">
             <Select value={(typeof selectedInboxId === 'string' ? selectedInboxId : 'all') || 'all'} onValueChange={(v) => onInboxChange?.(v)}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All Inboxes" />
+                <SelectValue placeholder={t('dashboard.header.allInboxes')} />
               </SelectTrigger>
               <SelectContent className="z-[60]">
-                <SelectItem value="all">All Inboxes</SelectItem>
+                <SelectItem value="all">{t('dashboard.header.allInboxes')}</SelectItem>
                 {inboxes.filter((i: any) => i.is_active).map((i: any) => (
                   <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
                 ))}
@@ -142,27 +144,27 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user?.email || 'User'}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  Support Agent
+                  {t('dashboard.header.supportAgent')}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>{t('dashboard.header.profile')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>{t('common.settings')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/design-library')}>
               <Palette className="mr-2 h-4 w-4" />
-              <span>Design Library</span>
+              <span>{t('dashboard.header.designLibrary')}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>{t('dashboard.header.logOut')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
