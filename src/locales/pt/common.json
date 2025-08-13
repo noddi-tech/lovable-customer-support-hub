@@ -181,9 +181,18 @@
        "creating": "Criando...",
        "createConversation": "Criar Conversa",
        "selectInbox": "Selecionar caixa de entrada",
-       "addNote": "Adicionar Nota",
-       "save": "Salvar",
-       "delete": "Excluir"
+      "addNote": "Adicionar Nota",
+      "save": "Salvar",
+      "delete": "Excluir",
+      "templates": "Modelos",
+      "saving": "Salvando...",
+      "unarchive": "Desarquivar",
+      "markAsPriority": "Marcar como prioridade",
+      "unknownCustomer": "Cliente desconhecido",
+      "unknown": "Desconhecido",
+      "retrySend": "Tentar enviar novamente",
+      "deleteMessage": "Excluir mensagem",
+      "deleteMessageConfirmation": "Tem certeza de que deseja excluir esta mensagem? Esta ação não pode ser desfeita."
     }
   },
   "common": {

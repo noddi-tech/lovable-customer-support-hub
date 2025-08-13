@@ -184,8 +184,17 @@
       "createConversation": "Crea Conversazione",
       "selectInbox": "Seleziona casella",
       "addNote": "Aggiungi Nota",
-      "save": "Salva",
-      "delete": "Elimina"
+      "save": "Salva", 
+      "delete": "Elimina",
+      "templates": "Modelli",
+      "saving": "Salvataggio...",
+      "unarchive": "Ripristina",
+      "markAsPriority": "Segna come priorità",
+      "unknownCustomer": "Cliente sconosciuto",
+      "unknown": "Sconosciuto",
+      "retrySend": "Riprova invio",
+      "deleteMessage": "Elimina messaggio",
+      "deleteMessageConfirmation": "Sei sicuro di voler eliminare questo messaggio? Questa azione non può essere annullata."
     }
   },
   "common": {

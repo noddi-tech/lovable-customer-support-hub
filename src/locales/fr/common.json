@@ -249,6 +249,7 @@
     "selectInbox": "Sélectionner la boîte",
     "current": "actuel",
     "moving": "Déplacement...",
+      "addNote": "Ajouter une Note",
       "saving": "Sauvegarde...",
       "noMessages": "Aucun message pour le moment",
       "customerNotes": "Notes Client",
@@ -257,9 +258,17 @@
       "deleteNote": "Supprimer la note",
       "deleteNoteConfirmation": "Êtes-vous sûr de vouloir supprimer cette note client ? Cette action ne peut pas être annulée.",
       "low": "Basse",
-      "normal": "Normale",
+      "normal": "Normale", 
       "high": "Haute",
-      "urgent": "Urgente"
+      "urgent": "Urgente",
+      "templates": "Modèles",
+      "unarchive": "Désarchiver",
+      "markAsPriority": "Marquer comme priorité",
+      "unknownCustomer": "Client inconnu",
+      "unknown": "Inconnu",
+      "retrySend": "Réessayer l'envoi",
+      "deleteMessage": "Supprimer le message",
+      "deleteMessageConfirmation": "Êtes-vous sûr de vouloir supprimer ce message ? Cette action ne peut pas être annulée."
   },
   "common": {
     "loading": "Chargement...",
