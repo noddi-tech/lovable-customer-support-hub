@@ -1012,6 +1012,23 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       toast.error('Failed to unarchive');
     }
   };
+
+  // Mark conversation as closed
+  const handleMarkClosed = async () => {
+    try {
+      await supabase
+        .from('conversations')
+        .update({ status: 'closed' })
+        .eq('id', conversationId as string);
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success('Conversation closed');
+    } catch (e) {
+      console.error('Failed to close conversation:', e);
+      toast.error('Failed to close');
+    }
+  };
   const setPresetSnooze = (date: Date) => {
     setSnoozeDate(date);
     // default time if none chosen: keep hours/minutes from date
@@ -1127,6 +1144,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   </div>
                 </DialogContent>
               </Dialog>
+              <Button variant="outline" size="sm" onClick={handleMarkClosed} disabled={conversation.status === 'closed'}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Closed
+              </Button>
               {conversation.is_archived ? (
                 <Button variant="outline" size="sm" onClick={handleUnarchive}>
                   <ArchiveRestore className="h-4 w-4 mr-2" />
