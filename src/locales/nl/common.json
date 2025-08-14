@@ -19,9 +19,31 @@
       "placeholder": "Selecteer taal",
       "success": "Taal succesvol bijgewerkt"
     },
+    "timezone": {
+      "title": "Tijdzone Instellingen",
+      "description": "Configureer je tijdzone voorkeuren",
+      "currentTime": "Huidige Tijd",
+      "label": "Tijdzone",
+      "timeFormat": "Tijdformaat"
+    },
     "permissions": {
       "denied": "Je hebt geen toestemming om toegang te krijgen tot deze sectie."
     }
+  },
+  "emailTemplate": {
+    "title": "E-mail Sjabloon",
+    "description": "Pas het uiterlijk van je e-mail sjabloon aan",
+    "preview": "Voorbeeld",
+    "yourReply": "Jouw Antwoord",
+    "header": "Koptekst",
+    "backgroundColor": "Achtergrondkleur",
+    "textColor": "Tekstkleur",
+    "headerContent": "Koptekst Inhoud",
+    "leaveEmpty": "Leeg laten",
+    "body": "Hoofdtekst",
+    "signature": "Handtekening",
+    "includeAgentName": "Agent Naam Opnemen",
+    "signatureContent": "Handtekening Inhoud"
   },
   "admin": {
     "title": "Admin Portaal",

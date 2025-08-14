@@ -19,9 +19,31 @@
       "placeholder": "Seleziona lingua",
       "success": "Lingua aggiornata con successo"
     },
+    "timezone": {
+      "title": "Impostazioni Fuso Orario",
+      "description": "Configura le tue preferenze di fuso orario",
+      "currentTime": "Ora Attuale",
+      "label": "Fuso Orario",
+      "timeFormat": "Formato Ora"
+    },
     "permissions": {
       "denied": "Non hai i permessi per accedere a questa sezione."
     }
+  },
+  "emailTemplate": {
+    "title": "Modello Email",
+    "description": "Personalizza l'aspetto del tuo modello email",
+    "preview": "Anteprima",
+    "yourReply": "La Tua Risposta",
+    "header": "Intestazione",
+    "backgroundColor": "Colore Sfondo",
+    "textColor": "Colore Testo",
+    "headerContent": "Contenuto Intestazione",
+    "leaveEmpty": "Lascia vuoto",
+    "body": "Corpo",
+    "signature": "Firma",
+    "includeAgentName": "Includi Nome Agente",
+    "signatureContent": "Contenuto Firma"
   },
   "admin": {
     "title": "Portale Admin",

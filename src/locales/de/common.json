@@ -19,9 +19,31 @@
       "placeholder": "Sprache auswählen",
       "success": "Sprache erfolgreich aktualisiert"
     },
+    "timezone": {
+      "title": "Zeitzoneneinstellungen",
+      "description": "Konfigurieren Sie Ihre Zeitzonenpräferenzen",
+      "currentTime": "Aktuelle Zeit",
+      "label": "Zeitzone",
+      "timeFormat": "Zeitformat"
+    },
     "permissions": {
       "denied": "Sie haben keine Berechtigung, auf diesen Bereich zuzugreifen."
     }
+  },
+  "emailTemplate": {
+    "title": "E-Mail-Vorlage",
+    "description": "Passen Sie das Aussehen Ihrer E-Mail-Vorlage an",
+    "preview": "Vorschau",
+    "yourReply": "Ihre Antwort",
+    "header": "Kopfzeile",
+    "backgroundColor": "Hintergrundfarbe",
+    "textColor": "Textfarbe",
+    "headerContent": "Kopfzeileninhalt",
+    "leaveEmpty": "Leer lassen",
+    "body": "Körper",
+    "signature": "Signatur",
+    "includeAgentName": "Agentennamen einschließen",
+    "signatureContent": "Signaturinhalt"
   },
   "admin": {
     "title": "Admin Portal",

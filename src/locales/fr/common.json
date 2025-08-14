@@ -19,9 +19,31 @@
       "placeholder": "Sélectionner la langue",
       "success": "Langue mise à jour avec succès"
     },
+    "timezone": {
+      "title": "Paramètres de Fuseau Horaire",
+      "description": "Configurez vos préférences de fuseau horaire",
+      "currentTime": "Heure Actuelle",
+      "label": "Fuseau Horaire",
+      "timeFormat": "Format d'Heure"
+    },
     "permissions": {
       "denied": "Vous n'avez pas la permission d'accéder à cette section."
     }
+  },
+  "emailTemplate": {
+    "title": "Modèle d'Email",
+    "description": "Personnalisez l'apparence de votre modèle d'email",
+    "preview": "Aperçu",
+    "yourReply": "Votre Réponse",
+    "header": "En-tête",
+    "backgroundColor": "Couleur de Fond",
+    "textColor": "Couleur du Texte",
+    "headerContent": "Contenu de l'En-tête",
+    "leaveEmpty": "Laisser vide",
+    "body": "Corps",
+    "signature": "Signature",
+    "includeAgentName": "Inclure le Nom de l'Agent",
+    "signatureContent": "Contenu de la Signature"
   },
   "admin": {
     "title": "Portail Administrateur",

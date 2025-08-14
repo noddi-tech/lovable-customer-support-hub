@@ -19,9 +19,31 @@
       "placeholder": "Select language",
       "success": "Language updated successfully"
     },
+    "timezone": {
+      "title": "Timezone Settings",
+      "description": "Configure your timezone preferences",
+      "currentTime": "Current Time",
+      "label": "Timezone",
+      "timeFormat": "Time Format"
+    },
     "permissions": {
       "denied": "You don't have permission to access this section."
     }
+  },
+  "emailTemplate": {
+    "title": "Email Template",
+    "description": "Customize your email template appearance",
+    "preview": "Preview",
+    "yourReply": "Your Reply",
+    "header": "Header",
+    "backgroundColor": "Background Color",
+    "textColor": "Text Color",
+    "headerContent": "Header Content",
+    "leaveEmpty": "Leave empty",
+    "body": "Body",
+    "signature": "Signature",
+    "includeAgentName": "Include Agent Name",
+    "signatureContent": "Signature Content"
   },
   "admin": {
     "title": "Admin Portal",

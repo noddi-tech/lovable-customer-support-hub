@@ -19,9 +19,31 @@
       "placeholder": "Velg språk",
       "success": "Språk oppdatert vellykket"
     },
+    "timezone": {
+      "title": "Tidssone Innstillinger",
+      "description": "Konfigurer dine tidssone preferanser",
+      "currentTime": "Nåværende Tid",
+      "label": "Tidssone",
+      "timeFormat": "Tidsformat"
+    },
     "permissions": {
       "denied": "Du har ikke tillatelse til å få tilgang til denne seksjonen."
     }
+  },
+  "emailTemplate": {
+    "title": "E-post Mal",
+    "description": "Tilpass utseendet på e-post malen din",
+    "preview": "Forhåndsvisning",
+    "yourReply": "Ditt Svar",
+    "header": "Overskrift",
+    "backgroundColor": "Bakgrunnsfarge",
+    "textColor": "Tekstfarge",
+    "headerContent": "Overskrift Innhold",
+    "leaveEmpty": "La stå tom",
+    "body": "Kropp",
+    "signature": "Signatur",
+    "includeAgentName": "Inkluder Agent Navn",
+    "signatureContent": "Signatur Innhold"
   },
   "admin": {
     "title": "Admin Portal",

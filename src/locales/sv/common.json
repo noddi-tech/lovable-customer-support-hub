@@ -19,9 +19,31 @@
       "placeholder": "Välj språk",
       "success": "Språk uppdaterat framgångsrikt"
     },
+    "timezone": {
+      "title": "Tidszon Inställningar",
+      "description": "Konfigurera dina tidszon preferenser",
+      "currentTime": "Nuvarande Tid",
+      "label": "Tidszon",
+      "timeFormat": "Tidsformat"
+    },
     "permissions": {
       "denied": "Du har inte behörighet att komma åt denna sektion."
     }
+  },
+  "emailTemplate": {
+    "title": "E-post Mall",
+    "description": "Anpassa utseendet på din e-post mall",
+    "preview": "Förhandsvisning",
+    "yourReply": "Ditt Svar",
+    "header": "Rubrik",
+    "backgroundColor": "Bakgrundsfärg",
+    "textColor": "Textfärg",
+    "headerContent": "Rubrik Innehåll",
+    "leaveEmpty": "Lämna tom",
+    "body": "Kropp",
+    "signature": "Signatur",
+    "includeAgentName": "Inkludera Agent Namn",
+    "signatureContent": "Signatur Innehåll"
   },
   "admin": {
     "title": "Admin Portal",

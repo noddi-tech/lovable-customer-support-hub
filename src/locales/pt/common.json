@@ -19,9 +19,31 @@
       "placeholder": "Selecionar idioma",
       "success": "Idioma atualizado com sucesso"
     },
+    "timezone": {
+      "title": "Configurações de Fuso Horário",
+      "description": "Configure suas preferências de fuso horário",
+      "currentTime": "Hora Atual",
+      "label": "Fuso Horário",
+      "timeFormat": "Formato de Hora"
+    },
     "permissions": {
       "denied": "Você não tem permissão para acessar esta seção."
     }
+  },
+  "emailTemplate": {
+    "title": "Modelo de Email",
+    "description": "Personalize a aparência do seu modelo de email",
+    "preview": "Visualização",
+    "yourReply": "Sua Resposta",
+    "header": "Cabeçalho",
+    "backgroundColor": "Cor de Fundo",
+    "textColor": "Cor do Texto",
+    "headerContent": "Conteúdo do Cabeçalho",
+    "leaveEmpty": "Deixar vazio",
+    "body": "Corpo",
+    "signature": "Assinatura",
+    "includeAgentName": "Incluir Nome do Agente",
+    "signatureContent": "Conteúdo da Assinatura"
   },
   "admin": {
     "title": "Portal Admin",

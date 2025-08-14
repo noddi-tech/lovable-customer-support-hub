@@ -19,9 +19,31 @@
       "placeholder": "Seleccionar idioma",
       "success": "Idioma actualizado exitosamente"
     },
+    "timezone": {
+      "title": "Configuración de Zona Horaria",
+      "description": "Configura tus preferencias de zona horaria",
+      "currentTime": "Hora Actual",
+      "label": "Zona Horaria",
+      "timeFormat": "Formato de Hora"
+    },
     "permissions": {
       "denied": "No tienes permisos para acceder a esta sección."
     }
+  },
+  "emailTemplate": {
+    "title": "Plantilla de Email",
+    "description": "Personaliza la apariencia de tu plantilla de email",
+    "preview": "Vista Previa",
+    "yourReply": "Tu Respuesta",
+    "header": "Encabezado",
+    "backgroundColor": "Color de Fondo",
+    "textColor": "Color de Texto",
+    "headerContent": "Contenido del Encabezado",
+    "leaveEmpty": "Dejar vacío",
+    "body": "Cuerpo",
+    "signature": "Firma",
+    "includeAgentName": "Incluir Nombre del Agente",
+    "signatureContent": "Contenido de la Firma"
   },
   "admin": {
     "title": "Portal Admin",
