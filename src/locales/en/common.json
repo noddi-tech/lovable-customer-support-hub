@@ -307,5 +307,101 @@
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago",
     "cancel": "Cancel"
+  },
+  "forms": {
+    "placeholders": {
+      "email": "Enter your email",
+      "password": "Enter your password",
+      "createPassword": "Create a password",
+      "fullName": "Enter your full name",
+      "searchEmojis": "Search emojis... (try :smile:)",
+      "department": "e.g., Customer Support, Sales, Technical",
+      "departmentDescription": "Brief description of this department's role...",
+      "inboxName": "e.g., Sales, Support, Billing",
+      "inboxDescription": "Brief description of this inbox",
+      "customerEmail": "customer@example.com",
+      "emailSubject": "Email subject line",
+      "userEmail": "user@company.com",
+      "temporaryPassword": "Temporary password for the user",
+      "userName": "John Doe",
+      "sampleText": "Sample text",
+      "textareaContent": "This is a sample textarea content...",
+      "typeMessage": "Type your message here... (try :smile: :shipit: :woman_technologist:)",
+      "searchConversations": "Search conversations...",
+      "selectOption": "Select an option",
+      "selectInbox": "Select inbox",
+      "selectDepartment": "Select department (optional)",
+      "selectTimeFormat": "Select time format",
+      "domain": "yourdomain.com",
+      "subdomain": "inbound",
+      "emailAlias": "support",
+      "chooseInbox": "Choose inbox",
+      "chooseConnection": "Choose how this address will connect"
+    },
+    "labels": {
+      "email": "Email",
+      "password": "Password",
+      "fullName": "Full Name"
+    },
+    "buttons": {
+      "forgotPassword": "Forgot password?",
+      "signingIn": "Signing in...",
+      "signIn": "Sign In",
+      "creatingAccount": "Creating account...",
+      "createAccount": "Create Account",
+      "updating": "Updating...",
+      "updateDepartment": "Update Department",
+      "updateUser": "Update User"
+    },
+    "validation": {
+      "departmentCreated": "Department created",
+      "departmentUpdated": "Department updated",
+      "userCreated": "User created",
+      "userUpdated": "User updated",
+      "userDeleted": "User deleted",
+      "validationError": "Validation Error",
+      "settingsSaved": "Settings saved"
+    }
+  },
+  "auth": {
+    "continueWithGoogleSignup": "Continue with Google",
+    "orCreateWithEmail": "Or create account with email",
+    "errorMessages": {
+      "enterEmailReset": "Please enter your email to reset your password.",
+      "resetEmailSent": "If an account exists, a reset link has been sent to your email.",
+      "unableToSendReset": "Unable to send password reset email",
+      "alreadyRegistered": "This email is already registered. Please sign in instead.",
+      "signInError": "An error occurred during sign in",
+      "signUpError": "An error occurred during sign up",
+      "googleSignInError": "An error occurred during Google sign in. Please ensure Google OAuth is configured in Supabase."
+    },
+    "success": {
+      "accountCreated": "Account created! Please check your email for the confirmation link."
+    },
+    "demo": {
+      "title": "Demo Mode",
+      "description": "This is a demonstration version. API integrations for external services will be configured when you provide the necessary credentials."
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Oops! Page not found",
+    "returnHome": "Return to Home"
+  },
+  "components": {
+    "preview": "Preview",
+    "title": "title",
+    "realTimeChanges": "See how your changes affect the components in real-time",
+    "justNow": "Just now",
+    "syncComplete": "Sync Complete",
+    "gmailSyncFinished": "Gmail sync finished",
+    "syncError": "Sync Error",
+    "authRequired": "Authentication required",
+    "inboxRequired": "Inbox required",
+    "gmailConnected": "Gmail Connected",
+    "deleteNotification": "Delete notification",
+    "viewConversation": "View conversation",
+    "colorPreview": "Color preview",
+    "primaryGradient": "Primary Gradient",
+    "surfaceGradient": "Surface Gradient"
   }
-}
