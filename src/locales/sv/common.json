@@ -307,5 +307,8 @@
     "hoursAgo": "{{count}}h sedan",
     "daysAgo": "{{count}}d sedan",
     "cancel": "Avbryt"
-  }
+  },
+  "interactions": "Interaktioner",
+  "emailMarketing": "E-post Marknadsföring",
+  "emailMarketingComingSoon": "E-post marknadsföringsfunktioner kommer snart"
 }

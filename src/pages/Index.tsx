@@ -1,9 +1,9 @@
 import React from 'react';
-import { Dashboard } from '@/components/dashboard/Dashboard';
+import MainApp from './MainApp';
 
 const Index = () => {
-  // Show dashboard for authenticated users (auth is handled by ProtectedRoute)
-  return <Dashboard />;
+  // Show main app for authenticated users (auth is handled by ProtectedRoute)
+  return <MainApp />;
 };
 
 export default Index;

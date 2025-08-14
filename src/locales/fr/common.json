@@ -313,5 +313,8 @@
     "hoursAgo": "il y a {{count}}h",
     "daysAgo": "il y a {{count}}j",
     "cancel": "Annuler"
-  }
+  },
+  "interactions": "Interactions",
+  "emailMarketing": "Marketing par Email",
+  "emailMarketingComingSoon": "Les fonctionnalités de marketing par email arrivent bientôt"
 }

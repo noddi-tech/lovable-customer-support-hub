@@ -404,5 +404,8 @@
     "colorPreview": "Color preview",
     "primaryGradient": "Primary Gradient",
     "surfaceGradient": "Surface Gradient"
-  }
+  },
+  "interactions": "Interactions",
+  "emailMarketing": "Email Marketing",
+  "emailMarketingComingSoon": "Email Marketing features coming soon"
 }

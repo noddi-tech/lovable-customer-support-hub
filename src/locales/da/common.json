@@ -307,5 +307,8 @@
     "hoursAgo": "{{count}}t siden",
     "daysAgo": "{{count}}d siden",
     "cancel": "Annuller"
-  }
+  },
+  "interactions": "Interaktioner",
+  "emailMarketing": "E-mail Marketing",
+  "emailMarketingComingSoon": "E-mail marketing funktioner kommer snart"
 }

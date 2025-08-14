@@ -307,5 +307,8 @@
     "hoursAgo": "{{count}}u geleden",
     "daysAgo": "{{count}}d geleden",
     "cancel": "Annuleren"
-  }
+  },
+  "interactions": "Interacties",
+  "emailMarketing": "E-mail Marketing",
+  "emailMarketingComingSoon": "E-mail marketing functies komen binnenkort"
 }

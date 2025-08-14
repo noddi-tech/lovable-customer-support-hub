@@ -307,5 +307,8 @@
     "hoursAgo": "vor {{count}}h",
     "daysAgo": "vor {{count}}T",
     "cancel": "Abbrechen"
-  }
+  },
+  "interactions": "Interaktionen",
+  "emailMarketing": "E-Mail-Marketing",
+  "emailMarketingComingSoon": "E-Mail-Marketing-Funktionen kommen bald"
 }
