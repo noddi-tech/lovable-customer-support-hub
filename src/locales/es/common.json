@@ -264,6 +264,16 @@
     "deleteNote": "Eliminar nota",
     "deleteNoteConfirmation": "¿Estás seguro de que quieres eliminar esta nota del cliente? Esta acción no se puede deshacer."
   },
+  "auth": {
+    "welcomeTitle": "Bienvenido de Vuelta",
+    "welcomeDescription": "Inicia sesión en tu cuenta para acceder a tu panel de soporte al cliente",
+    "welcome": "Bienvenido",
+    "signInDescription": "Ingresa tus credenciales para iniciar sesión en tu cuenta",
+    "signIn": "Iniciar Sesión",
+    "signUp": "Registrarse",
+    "continueWithGoogle": "Continuar con Google",
+    "orContinueWithEmail": "O continuar con email"
+  },
   "common": {
     "loading": "Cargando...",
     "search": "Buscar",

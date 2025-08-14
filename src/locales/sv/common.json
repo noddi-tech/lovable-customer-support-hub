@@ -264,6 +264,16 @@
     "deleteNote": "Ta bort anteckning",
     "deleteNoteConfirmation": "Är du säker på att du vill ta bort denna kundanteckning? Denna åtgärd kan inte ångras."
   },
+  "auth": {
+    "welcomeTitle": "Välkommen Tillbaka",
+    "welcomeDescription": "Logga in på ditt konto för att komma åt din kundsupport-instrumentpanel",
+    "welcome": "Välkommen",
+    "signInDescription": "Ange dina inloggningsuppgifter för att logga in på ditt konto",
+    "signIn": "Logga In",
+    "signUp": "Registrera Dig",
+    "continueWithGoogle": "Fortsätt med Google",
+    "orContinueWithEmail": "Eller fortsätt med e-post"
+  },
   "common": {
     "loading": "Laddar...",
     "search": "Sök",

@@ -264,6 +264,16 @@
     "deleteNote": "Delete note",
     "deleteNoteConfirmation": "Are you sure you want to delete this customer note? This action cannot be undone."
   },
+  "auth": {
+    "welcomeTitle": "Welcome Back",
+    "welcomeDescription": "Sign in to your account to access your customer support dashboard",
+    "welcome": "Welcome",
+    "signInDescription": "Enter your credentials to sign in to your account",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "continueWithGoogle": "Continue with Google",
+    "orContinueWithEmail": "Or continue with email"
+  },
   "common": {
     "loading": "Loading...",
     "search": "Search",

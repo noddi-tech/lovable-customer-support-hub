@@ -264,6 +264,16 @@
     "deleteNote": "Slett notat",
     "deleteNoteConfirmation": "Er du sikker på at du vil slette dette kundenotatet? Denne handlingen kan ikke angres."
   },
+  "auth": {
+    "welcomeTitle": "Velkommen Tilbake",
+    "welcomeDescription": "Logg inn på kontoen din for å få tilgang til kundeservice-dashbordet",
+    "welcome": "Velkommen",
+    "signInDescription": "Skriv inn påloggingsinformasjonen din for å logge inn på kontoen din",
+    "signIn": "Logg Inn",
+    "signUp": "Registrer Deg",
+    "continueWithGoogle": "Fortsett med Google",
+    "orContinueWithEmail": "Eller fortsett med e-post"
+  },
   "common": {
     "loading": "Laster...",
     "search": "Søk",

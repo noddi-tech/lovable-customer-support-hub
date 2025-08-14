@@ -270,6 +270,16 @@
       "deleteMessage": "Supprimer le message",
       "deleteMessageConfirmation": "Êtes-vous sûr de vouloir supprimer ce message ? Cette action ne peut pas être annulée."
   },
+  "auth": {
+    "welcomeTitle": "Bienvenue",
+    "welcomeDescription": "Connectez-vous à votre compte pour accéder à votre tableau de bord de support client",
+    "welcome": "Bienvenue",
+    "signInDescription": "Entrez vos identifiants pour vous connecter à votre compte",
+    "signIn": "Se Connecter",
+    "signUp": "S'inscrire",
+    "continueWithGoogle": "Continuer avec Google",
+    "orContinueWithEmail": "Ou continuer avec email"
+  },
   "common": {
     "loading": "Chargement...",
     "search": "Rechercher",

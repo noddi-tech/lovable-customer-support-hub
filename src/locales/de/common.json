@@ -264,6 +264,16 @@
     "deleteNote": "Notiz löschen",
     "deleteNoteConfirmation": "Sind Sie sicher, dass Sie diese Kundennotiz löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
   },
+  "auth": {
+    "welcomeTitle": "Willkommen zurück",
+    "welcomeDescription": "Melden Sie sich in Ihrem Konto an, um auf Ihr Kundensupport-Dashboard zuzugreifen",
+    "welcome": "Willkommen",
+    "signInDescription": "Geben Sie Ihre Anmeldedaten ein, um sich in Ihrem Konto anzumelden",
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "continueWithGoogle": "Mit Google fortfahren",
+    "orContinueWithEmail": "Oder mit E-Mail fortfahren"
+  },
   "common": {
     "loading": "Laden...",
     "search": "Suchen",

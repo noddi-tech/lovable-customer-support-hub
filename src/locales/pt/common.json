@@ -264,6 +264,16 @@
     "deleteNote": "Excluir nota",
     "deleteNoteConfirmation": "Tem certeza de que deseja excluir esta nota do cliente? Esta ação não pode ser desfeita."
   },
+  "auth": {
+    "welcomeTitle": "Bem-vindo de Volta",
+    "welcomeDescription": "Faça login em sua conta para acessar seu painel de suporte ao cliente",
+    "welcome": "Bem-vindo",
+    "signInDescription": "Digite suas credenciais para fazer login em sua conta",
+    "signIn": "Entrar",
+    "signUp": "Cadastrar",
+    "continueWithGoogle": "Continuar com Google",
+    "orContinueWithEmail": "Ou continuar com email"
+  },
   "common": {
     "loading": "Carregando...",
     "search": "Pesquisar",

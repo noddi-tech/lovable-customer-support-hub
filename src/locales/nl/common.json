@@ -264,6 +264,16 @@
     "deleteNote": "Notitie verwijderen",
     "deleteNoteConfirmation": "Weet je zeker dat je deze klantnotitie wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt."
   },
+  "auth": {
+    "welcomeTitle": "Welkom Terug",
+    "welcomeDescription": "Meld je aan bij je account om toegang te krijgen tot je klantenservice dashboard",
+    "welcome": "Welkom",
+    "signInDescription": "Voer je inloggegevens in om aan te melden bij je account",
+    "signIn": "Aanmelden",
+    "signUp": "Registreren",
+    "continueWithGoogle": "Doorgaan met Google",
+    "orContinueWithEmail": "Of doorgaan met email"
+  },
   "common": {
     "loading": "Laden...",
     "search": "Zoeken",

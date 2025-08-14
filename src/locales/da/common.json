@@ -264,6 +264,16 @@
     "deleteNote": "Slet note",
     "deleteNoteConfirmation": "Er du sikker på, at du vil slette denne kundenote? Denne handling kan ikke fortrydes."
   },
+  "auth": {
+    "welcomeTitle": "Velkommen Tilbage",
+    "welcomeDescription": "Log ind på din konto for at få adgang til dit kundesupport-dashboard",
+    "welcome": "Velkommen",
+    "signInDescription": "Indtast dine loginoplysninger for at logge ind på din konto",
+    "signIn": "Log Ind",
+    "signUp": "Tilmeld Dig",
+    "continueWithGoogle": "Fortsæt med Google",
+    "orContinueWithEmail": "Eller fortsæt med e-mail"
+  },
   "common": {
     "loading": "Indlæser...",
     "search": "Søg",

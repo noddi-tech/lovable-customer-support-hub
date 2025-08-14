@@ -264,6 +264,16 @@
     "deleteNote": "Elimina nota",
     "deleteNoteConfirmation": "Sei sicuro di voler eliminare questa nota cliente? Questa azione non può essere annullata."
   },
+  "auth": {
+    "welcomeTitle": "Bentornato",
+    "welcomeDescription": "Accedi al tuo account per accedere al tuo dashboard di supporto clienti",
+    "welcome": "Benvenuto",
+    "signInDescription": "Inserisci le tue credenziali per accedere al tuo account",
+    "signIn": "Accedi",
+    "signUp": "Registrati",
+    "continueWithGoogle": "Continua con Google",
+    "orContinueWithEmail": "O continua con email"
+  },
   "common": {
     "loading": "Caricamento...",
     "search": "Cerca",
