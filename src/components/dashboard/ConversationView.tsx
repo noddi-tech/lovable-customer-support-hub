@@ -119,7 +119,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const processEmailContent = (content: string, contentType: string = 'text/html') => {
+  const processEmailContent = (content: string, contentType: string = 'text/html', attachments: EmailAttachment[] = [], messageId?: string) => {
     // Use existing utilities to determine content type and process accordingly
     if (shouldRenderAsHTML(content, contentType)) {
       // Strip quoted previous messages first, then fix common patterns
@@ -138,7 +138,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       );
       
       // Use the comprehensive email HTML sanitizer with original styles preserved
-      return sanitizeEmailHTML(processedContent, [], true);
+      return sanitizeEmailHTML(processedContent, attachments, true, messageId);
     } else {
       // Process as plain text: strip quoted content, then format
       const stripped = stripQuotedEmailText(content);
@@ -1386,7 +1386,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           className="email-container email-content w-full break-words"
                           style={{ maxWidth: '100%' }}
                           dangerouslySetInnerHTML={{
-                            __html: processEmailContent(message.content, message.content_type || 'text/html')
+                            __html: processEmailContent(
+                              message.content, 
+                              message.content_type || 'text/html',
+                              Array.isArray(message.attachments) ? message.attachments.map(att => att as unknown as EmailAttachment) : [],
+                              message.id
+                            )
                           }}
                         />
                       )}

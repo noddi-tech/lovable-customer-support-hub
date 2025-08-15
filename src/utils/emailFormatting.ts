@@ -55,14 +55,32 @@ export const sanitizeEmailHTML = (
         const cidPattern = new RegExp(`cid:${attachment.contentId.replace(/[<>]/g, '')}`, 'gi');
         const srcCidPattern = new RegExp(`src=["']cid:${attachment.contentId.replace(/[<>]/g, '')}["']`, 'gi');
         
-        // Placeholder for inline images - in production fetch actual attachment
-        const placeholderUrl = `https://via.placeholder.com/400x200/e5e7eb/6b7280?text=Image`;
+        // Use Supabase edge function to fetch attachment data
+        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}`;
         
-        processedContent = processedContent.replace(cidPattern, placeholderUrl);
-        processedContent = processedContent.replace(srcCidPattern, `src="${placeholderUrl}"`);
+        processedContent = processedContent.replace(cidPattern, attachmentUrl);
+        processedContent = processedContent.replace(srcCidPattern, `src="${attachmentUrl}"`);
       }
     });
   }
+
+  // Also handle CID references that might not have attachments data but are in content
+  processedContent = processedContent.replace(
+    /src=["']cid:([^"']+)["']/gi,
+    (match, cidId) => {
+      // Try to find attachment by CID
+      const attachment = attachments?.find(att => 
+        att.contentId && att.contentId.replace(/[<>]/g, '') === cidId
+      );
+      
+      if (attachment) {
+        return `src="${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}"`;
+      }
+      
+      // Fallback to a placeholder for missing attachments
+      return `src="data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="#f3f4f6"/><text x="100" y="55" text-anchor="middle" fill="#9ca3af" font-size="12">Image unavailable</text></svg>')}"`;
+    }
+  );
 
   // Fix common email HTML issues
   processedContent = processedContent
