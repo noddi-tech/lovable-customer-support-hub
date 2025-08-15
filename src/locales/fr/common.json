@@ -300,7 +300,21 @@
     "signIn": "Se Connecter",
     "signUp": "S'inscrire",
     "continueWithGoogle": "Continuer avec Google",
-    "orContinueWithEmail": "Ou continuer avec email"
+    "orContinueWithEmail": "Ou continuer avec email",
+    "orCreateAccountWithEmail": "Ou créer un compte avec email",
+    "email": "Email",
+    "password": "Mot de passe",
+    "fullName": "Nom Complet",
+    "emailPlaceholder": "Entrez votre email",
+    "passwordPlaceholder": "Entrez votre mot de passe",
+    "fullNamePlaceholder": "Entrez votre nom complet",
+    "createPasswordPlaceholder": "Créez un mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "signingIn": "Connexion...",
+    "creatingAccount": "Création du compte...",
+    "createAccount": "Créer un Compte",
+    "demoMode": "Mode Démo",
+    "demoModeDescription": "Ceci est une version de démonstration. Les intégrations d'API pour les services externes seront configurées lorsque vous fournirez les identifiants nécessaires."
   },
   "common": {
     "loading": "Chargement...",

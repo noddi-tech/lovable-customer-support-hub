@@ -294,7 +294,21 @@
     "signIn": "Log Ind",
     "signUp": "Tilmeld Dig",
     "continueWithGoogle": "Fortsæt med Google",
-    "orContinueWithEmail": "Eller fortsæt med e-mail"
+    "orContinueWithEmail": "Eller fortsæt med e-mail",
+    "orCreateAccountWithEmail": "Eller opret konto med e-mail",
+    "email": "E-mail",
+    "password": "Adgangskode",
+    "fullName": "Fulde Navn",
+    "emailPlaceholder": "Indtast din e-mail",
+    "passwordPlaceholder": "Indtast din adgangskode",
+    "fullNamePlaceholder": "Indtast dit fulde navn",
+    "createPasswordPlaceholder": "Opret en adgangskode",
+    "forgotPassword": "Glemt adgangskode?",
+    "signingIn": "Logger ind...",
+    "creatingAccount": "Opretter konto...",
+    "createAccount": "Opret Konto",
+    "demoMode": "Demo Tilstand",
+    "demoModeDescription": "Dette er en demonstrationsversion. API-integrationer for eksterne tjenester vil blive konfigureret, når du leverer de nødvendige legitimationsoplysninger."
   },
   "common": {
     "loading": "Indlæser...",

@@ -294,7 +294,21 @@
     "signIn": "Aanmelden",
     "signUp": "Registreren",
     "continueWithGoogle": "Doorgaan met Google",
-    "orContinueWithEmail": "Of doorgaan met email"
+    "orContinueWithEmail": "Of doorgaan met email",
+    "orCreateAccountWithEmail": "Of account aanmaken met email",
+    "email": "Email",
+    "password": "Wachtwoord",
+    "fullName": "Volledige Naam",
+    "emailPlaceholder": "Voer je email in",
+    "passwordPlaceholder": "Voer je wachtwoord in",
+    "fullNamePlaceholder": "Voer je volledige naam in",
+    "createPasswordPlaceholder": "Maak een wachtwoord",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "signingIn": "Aanmelden...",
+    "creatingAccount": "Account aanmaken...",
+    "createAccount": "Account Aanmaken",
+    "demoMode": "Demo Modus",
+    "demoModeDescription": "Dit is een demonstratieversie. API-integraties voor externe services worden geconfigureerd wanneer je de benodigde inloggegevens verstrekt."
   },
   "common": {
     "loading": "Laden...",

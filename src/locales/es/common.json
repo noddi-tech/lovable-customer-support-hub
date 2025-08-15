@@ -294,7 +294,21 @@
     "signIn": "Iniciar Sesión",
     "signUp": "Registrarse",
     "continueWithGoogle": "Continuar con Google",
-    "orContinueWithEmail": "O continuar con email"
+    "orContinueWithEmail": "O continuar con email",
+    "orCreateAccountWithEmail": "O crear cuenta con email",
+    "email": "Email",
+    "password": "Contraseña",
+    "fullName": "Nombre Completo",
+    "emailPlaceholder": "Ingresa tu email",
+    "passwordPlaceholder": "Ingresa tu contraseña",
+    "fullNamePlaceholder": "Ingresa tu nombre completo",
+    "createPasswordPlaceholder": "Crea una contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "signingIn": "Iniciando sesión...",
+    "creatingAccount": "Creando cuenta...",
+    "createAccount": "Crear Cuenta",
+    "demoMode": "Modo Demo",
+    "demoModeDescription": "Esta es una versión de demostración. Las integraciones de API para servicios externos se configurarán cuando proporciones las credenciales necesarias."
   },
   "common": {
     "loading": "Cargando...",

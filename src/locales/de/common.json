@@ -294,7 +294,21 @@
     "signIn": "Anmelden",
     "signUp": "Registrieren",
     "continueWithGoogle": "Mit Google fortfahren",
-    "orContinueWithEmail": "Oder mit E-Mail fortfahren"
+    "orContinueWithEmail": "Oder mit E-Mail fortfahren",
+    "orCreateAccountWithEmail": "Oder Konto mit E-Mail erstellen",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "fullName": "Vollständiger Name",
+    "emailPlaceholder": "Geben Sie Ihre E-Mail ein",
+    "passwordPlaceholder": "Geben Sie Ihr Passwort ein",
+    "fullNamePlaceholder": "Geben Sie Ihren vollständigen Namen ein",
+    "createPasswordPlaceholder": "Erstellen Sie ein Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "signingIn": "Anmelden...",
+    "creatingAccount": "Konto erstellen...",
+    "createAccount": "Konto Erstellen",
+    "demoMode": "Demo-Modus",
+    "demoModeDescription": "Dies ist eine Demonstrationsversion. API-Integrationen für externe Dienste werden konfiguriert, wenn Sie die erforderlichen Anmeldedaten bereitstellen."
   },
   "common": {
     "loading": "Laden...",

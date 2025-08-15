@@ -294,7 +294,21 @@
     "signIn": "Logg Inn",
     "signUp": "Registrer Deg",
     "continueWithGoogle": "Fortsett med Google",
-    "orContinueWithEmail": "Eller fortsett med e-post"
+    "orContinueWithEmail": "Eller fortsett med e-post",
+    "orCreateAccountWithEmail": "Eller opprett konto med e-post",
+    "email": "E-post",
+    "password": "Passord",
+    "fullName": "Fullt Navn",
+    "emailPlaceholder": "Skriv inn e-posten din",
+    "passwordPlaceholder": "Skriv inn passordet ditt",
+    "fullNamePlaceholder": "Skriv inn ditt fulle navn",
+    "createPasswordPlaceholder": "Lag et passord",
+    "forgotPassword": "Glemt passord?",
+    "signingIn": "Logger inn...",
+    "creatingAccount": "Oppretter konto...",
+    "createAccount": "Opprett Konto",
+    "demoMode": "Demo Modus",
+    "demoModeDescription": "Dette er en demoversjon. API-integrasjoner for eksterne tjenester vil bli konfigurert når du oppgir nødvendige legitimasjon."
   },
   "common": {
     "loading": "Laster...",

@@ -294,7 +294,21 @@
     "signIn": "Logga In",
     "signUp": "Registrera Dig",
     "continueWithGoogle": "Fortsätt med Google",
-    "orContinueWithEmail": "Eller fortsätt med e-post"
+    "orContinueWithEmail": "Eller fortsätt med e-post",
+    "orCreateAccountWithEmail": "Eller skapa konto med e-post",
+    "email": "E-post",
+    "password": "Lösenord",
+    "fullName": "Fullständigt Namn",
+    "emailPlaceholder": "Ange din e-post",
+    "passwordPlaceholder": "Ange ditt lösenord",
+    "fullNamePlaceholder": "Ange ditt fullständiga namn",
+    "createPasswordPlaceholder": "Skapa ett lösenord",
+    "forgotPassword": "Glömt lösenord?",
+    "signingIn": "Loggar in...",
+    "creatingAccount": "Skapar konto...",
+    "createAccount": "Skapa Konto",
+    "demoMode": "Demo Läge",
+    "demoModeDescription": "Detta är en demoversion. API-integrationer för externa tjänster kommer att konfigureras när du tillhandahåller nödvändiga autentiseringsuppgifter."
   },
   "common": {
     "loading": "Laddar...",
