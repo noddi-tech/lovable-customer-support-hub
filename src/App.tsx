@@ -19,7 +19,20 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   useUserLanguage(); // Load user's preferred language
-  return null; // This component only handles language loading
+  
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
+        <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
+      </Routes>
+    </BrowserRouter>
+  );
 };
 
 const App = () => (
@@ -30,17 +43,6 @@ const App = () => (
           <AppContent />
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
-              <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
-            </Routes>
-          </BrowserRouter>
         </TooltipProvider>
       </DesignSystemProvider>
     </AuthProvider>

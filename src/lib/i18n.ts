@@ -34,6 +34,7 @@ i18n
     resources,
     fallbackLng: 'en',
     defaultNS: 'common',
+    debug: false,
     
     interpolation: {
       escapeValue: false,
