@@ -101,30 +101,60 @@ serve(async (req) => {
       filename: attachment.filename, 
       mimeType: attachment.mimeType,
       size: attachment.size,
-      isInline: attachment.isInline
+      isInline: attachment.isInline,
+      data: attachment.data ? 'Data present' : 'No data'
     })
 
-    // For now, return a better placeholder that shows we found the attachment
-    // TODO: Implement actual Gmail API download and storage
+    // If we have the attachment data, serve it directly
+    if (attachment.data) {
+      try {
+        // Decode base64url data
+        const base64Data = attachment.data.replace(/-/g, '+').replace(/_/g, '/')
+        const binaryData = atob(base64Data)
+        const bytes = new Uint8Array(binaryData.length)
+        for (let i = 0; i < binaryData.length; i++) {
+          bytes[i] = binaryData.charCodeAt(i)
+        }
+
+        console.log('📎 Serving attachment data:', { 
+          filename: attachment.filename,
+          size: bytes.length,
+          mimeType: attachment.mimeType 
+        })
+
+        return new Response(bytes, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': attachment.mimeType || 'application/octet-stream',
+            'Content-Disposition': `inline; filename="${attachment.filename || 'attachment'}"`,
+            'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+          }
+        })
+      } catch (error) {
+        console.error('❌ Error decoding attachment data:', error)
+      }
+    }
+
+    // Fallback: return placeholder if no data available
     const foundSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
         <defs>
           <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#e0f2fe;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#bae6fd;stop-opacity:1" />
+            <stop offset="0%" style="stop-color:#fef3c7;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#fde68a;stop-opacity:1" />
           </linearGradient>
         </defs>
-        <rect width="400" height="300" fill="url(#bg)" stroke="#0ea5e9" stroke-width="2" rx="12"/>
-        <circle cx="200" cy="120" r="35" fill="#0ea5e9" opacity="0.8"/>
-        <text x="200" y="130" text-anchor="middle" fill="white" font-size="28" font-weight="bold">📷</text>
-        <text x="200" y="180" text-anchor="middle" fill="#0369a1" font-size="16" font-family="Arial, sans-serif" font-weight="bold">
+        <rect width="400" height="300" fill="url(#bg)" stroke="#f59e0b" stroke-width="2" rx="12"/>
+        <circle cx="200" cy="120" r="35" fill="#f59e0b" opacity="0.8"/>
+        <text x="200" y="130" text-anchor="middle" fill="white" font-size="28" font-weight="bold">📎</text>
+        <text x="200" y="180" text-anchor="middle" fill="#92400e" font-size="16" font-family="Arial, sans-serif" font-weight="bold">
           ${attachment.filename || 'Attachment Found'}
         </text>
-        <text x="200" y="205" text-anchor="middle" fill="#075985" font-size="13" font-family="Arial, sans-serif">
+        <text x="200" y="205" text-anchor="middle" fill="#78350f" font-size="13" font-family="Arial, sans-serif">
           ${attachment.mimeType || 'Unknown type'} • ${Math.round((attachment.size || 0) / 1024)}KB
         </text>
-        <text x="200" y="230" text-anchor="middle" fill="#0c4a6e" font-size="11" font-family="Arial, sans-serif">
-          Gmail attachment loading...
+        <text x="200" y="230" text-anchor="middle" fill="#451a03" font-size="11" font-family="Arial, sans-serif">
+          Content not cached - click to download
         </text>
         <text x="200" y="250" text-anchor="middle" fill="#64748b" font-size="10" font-family="Arial, sans-serif">
           ID: ${attachmentId.slice(0, 30)}${attachmentId.length > 30 ? '...' : ''}
@@ -136,7 +166,7 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
+        'Cache-Control': 'no-cache'
       }
     })
 
