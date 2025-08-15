@@ -231,13 +231,13 @@ export const Auth: React.FC = () => {
 
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-email">{t('auth.email')}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signin-email"
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder={t('auth.emailPlaceholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10"
@@ -247,13 +247,13 @@ export const Auth: React.FC = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <Label htmlFor="signin-password">{t('auth.password')}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signin-password"
                         type="password"
-                        placeholder="Enter your password"
+                        placeholder={t('auth.passwordPlaceholder')}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="pl-10"
@@ -264,7 +264,7 @@ export const Auth: React.FC = () => {
                   
                   <div className="flex justify-end">
                     <Button variant="link" type="button" size="sm" className="px-0" onClick={handleForgotPassword} disabled={loading}>
-                      Forgot password?
+                      {t('auth.forgotPassword')}
                     </Button>
                   </div>
                   <Button 
@@ -272,7 +272,7 @@ export const Auth: React.FC = () => {
                     className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
                     disabled={loading}
                   >
-                    {loading ? 'Signing in...' : 'Sign In'}
+                    {loading ? t('auth.signingIn') : t('auth.signIn')}
                   </Button>
                 </form>
               </TabsContent>
@@ -286,7 +286,7 @@ export const Auth: React.FC = () => {
                   disabled={loading}
                 >
                   <FcGoogle className="mr-2 h-4 w-4" />
-                  Continue with Google
+                  {t('auth.continueWithGoogle')}
                 </Button>
                 
                 <div className="relative">
@@ -295,20 +295,20 @@ export const Auth: React.FC = () => {
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-background px-2 text-muted-foreground">
-                      Or create account with email
+                      {t('auth.orCreateAccountWithEmail')}
                     </span>
                   </div>
                 </div>
 
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name">{t('auth.fullName')}</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
                         type="text"
-                        placeholder="Enter your full name"
+                        placeholder={t('auth.fullNamePlaceholder')}
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className="pl-10"
@@ -318,13 +318,13 @@ export const Auth: React.FC = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email">{t('auth.email')}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-email"
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder={t('auth.emailPlaceholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10"
@@ -334,13 +334,13 @@ export const Auth: React.FC = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password">{t('auth.password')}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="Create a password"
+                        placeholder={t('auth.createPasswordPlaceholder')}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="pl-10"
@@ -355,7 +355,7 @@ export const Auth: React.FC = () => {
                     className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
                     disabled={loading}
                   >
-                    {loading ? 'Creating account...' : 'Create Account'}
+                    {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
                   </Button>
                 </form>
               </TabsContent>
@@ -381,10 +381,9 @@ export const Auth: React.FC = () => {
         <Card className="mt-6 bg-primary-muted border-primary">
           <CardContent className="pt-6">
             <div className="text-center">
-              <h3 className="font-medium text-primary-foreground mb-2">Demo Mode</h3>
+              <h3 className="font-medium text-primary-foreground mb-2">{t('auth.demoMode')}</h3>
               <p className="text-sm text-primary-foreground/80">
-                This is a demonstration version. API integrations for external services 
-                will be configured when you provide the necessary credentials.
+                {t('auth.demoModeDescription')}
               </p>
             </div>
           </CardContent>
