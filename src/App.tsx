@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { I18nWrapper } from "@/components/i18n/I18nWrapper";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -13,34 +14,31 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import "@/lib/i18n";
-import { useUserLanguage } from "@/hooks/useUserLanguage";
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
-  useUserLanguage(); // Load user's preferred language
-  
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
-        <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
-      </Routes>
-    </BrowserRouter>
-  );
-};
+const AppContent = () => (
+  <BrowserRouter>
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
+      <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
+    </Routes>
+  </BrowserRouter>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <DesignSystemProvider>
         <TooltipProvider>
-          <AppContent />
+          <I18nWrapper>
+            <AppContent />
+          </I18nWrapper>
           <Toaster />
           <Sonner />
         </TooltipProvider>
