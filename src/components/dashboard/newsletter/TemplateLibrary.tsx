@@ -609,6 +609,350 @@ const TEMPLATE_BLOCKS = {
       styles: { backgroundColor: '#1f2937', color: '#ffffff', borderRadius: '8px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(31, 41, 55, 0.3)' }
     },
     TIRE_FOOTER_TEMPLATE
+  ],
+
+  // WHEEL STORAGE TEMPLATES
+
+  // Storage Benefits
+  'storage-benefits': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'storage-benefits-hero',
+      type: 'image' as const,
+      content: { 
+        url: '/api/placeholder/600/300',
+        alt: 'Clean, organized tire storage facility with stacked wheels',
+        caption: 'Professional wheel storage that protects your investment'
+      },
+      styles: { borderRadius: '12px', margin: '32px 0' }
+    },
+    {
+      id: 'storage-benefits-content',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <h2 style="color: #1f2937; font-size: 32px; margin: 0 0 24px 0; text-align: center;">🏠 Professional Wheel Storage Benefits</h2>
+            
+            <p style="color: #374151; font-size: 18px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
+              Hello {{first_name}}, discover why thousands of {{vehicle_type}} owners choose our professional storage service.
+            </p>
+            
+            <div style="display: grid; gap: 24px; margin-bottom: 32px;">
+              <div style="background: #f0f9ff; padding: 24px; border-radius: 16px; border-left: 6px solid #0ea5e9;">
+                <h3 style="color: #0c4a6e; font-size: 20px; margin: 0 0 12px 0;">🏠 Space Saving Solution</h3>
+                <p style="color: #374151; margin: 0; line-height: 1.6;">Free up your garage, basement, or storage space. No more heavy wheels cluttering your home!</p>
+              </div>
+              
+              <div style="background: #ecfdf5; padding: 24px; border-radius: 16px; border-left: 6px solid #10b981;">
+                <h3 style="color: #065f46; font-size: 20px; margin: 0 0 12px 0;">🛡️ Protection & Insurance</h3>
+                <p style="color: #374151; margin: 0; line-height: 1.6;">Climate-controlled environment with full insurance coverage against damage, theft, or loss.</p>
+              </div>
+              
+              <div style="background: #fef7ff; padding: 24px; border-radius: 16px; border-left: 6px solid #a855f7;">
+                <h3 style="color: #7c2d12; font-size: 20px; margin: 0 0 12px 0;">✨ Professional Cleaning</h3>
+                <p style="color: #374151; margin: 0; line-height: 1.6;">Machine washing and proper drying before storage prevents corrosion and extends tire life.</p>
+              </div>
+              
+              <div style="background: #fffbeb; padding: 24px; border-radius: 16px; border-left: 6px solid #f59e0b;">
+                <h3 style="color: #92400e; font-size: 20px; margin: 0 0 12px 0;">☀️ UV Protection</h3>
+                <p style="color: #374151; margin: 0; line-height: 1.6;">Dark storage environment protects rubber from UV degradation and cracking.</p>
+              </div>
+            </div>
+            
+            <div style="background: #1f2937; padding: 24px; border-radius: 12px; text-align: center;">
+              <p style="color: #f9fafb; margin: 0; font-size: 16px; font-weight: 500;">
+                📞 Ready to free up space and protect your wheels? Contact us today!
+              </p>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'storage-benefits-cta',
+      type: 'button' as const,
+      content: { text: '🏠 Learn About Our Storage', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#0ea5e9', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+    },
+    TIRE_FOOTER_TEMPLATE
+  ],
+
+  // Storage Care
+  'storage-care': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'storage-care-hero',
+      type: 'image' as const,
+      content: { 
+        url: '/api/placeholder/600/300',
+        alt: 'Professional cleaning equipment and organized storage racks',
+        caption: 'Our professional care standards ensure your wheels stay perfect'
+      },
+      styles: { borderRadius: '12px', margin: '32px 0' }
+    },
+    {
+      id: 'storage-care-content',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <h2 style="color: #1f2937; font-size: 32px; margin: 0 0 24px 0; text-align: center;">🔧 How We Care for Your Stored Wheels</h2>
+            
+            <p style="color: #374151; font-size: 18px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
+              Dear {{first_name}}, professional wheel storage requires more than just space. Here's how we ensure your {{vehicle_type}}'s wheels stay in perfect condition:
+            </p>
+            
+            <div style="background: #f8fafc; padding: 32px; border-radius: 16px; margin-bottom: 32px;">
+              <h3 style="color: #1e293b; font-size: 24px; margin: 0 0 24px 0; text-align: center;">📋 Our Storage Standards</h3>
+              
+              <div style="display: grid; gap: 20px;">
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <h4 style="color: #dc2626; font-size: 18px; margin: 0 0 8px 0;">🌡️ Temperature Control</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Maintained between 10-20°C to prevent rubber degradation</p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <h4 style="color: #0ea5e9; font-size: 18px; margin: 0 0 8px 0;">💧 Humidity Management</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Controlled environment prevents moisture damage and corrosion</p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <h4 style="color: #a855f7; font-size: 18px; margin: 0 0 8px 0;">🧽 Professional Cleaning</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Each wheel is machine-washed and dried before storage</p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <h4 style="color: #10b981; font-size: 18px; margin: 0 0 8px 0;">📐 Proper Positioning</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Wheels stored to maintain shape and prevent flat spots</p>
+                </div>
+              </div>
+            </div>
+            
+            <div style="background: #ecfdf5; padding: 24px; border-radius: 12px; text-align: center;">
+              <h4 style="color: #065f46; font-size: 20px; margin: 0 0 12px 0;">✅ Condition Guarantee</h4>
+              <p style="color: #374151; margin: 0; font-weight: 500;">We guarantee your wheels will be in the same condition as when stored - or your money back!</p>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'storage-care-cta',
+      type: 'button' as const,
+      content: { text: '🔧 View Our Care Process', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#10b981', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+    },
+    TIRE_FOOTER_TEMPLATE
+  ],
+
+  // Storage Promotion
+  'storage-promotion': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'storage-promo-hero',
+      type: 'image' as const,
+      content: { 
+        url: '/api/placeholder/600/300',
+        alt: 'Modern storage facility with promotional banner',
+        caption: 'Limited time offer - act now!'
+      },
+      styles: { borderRadius: '12px', margin: '32px 0' }
+    },
+    {
+      id: 'storage-promo-content',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <h2 style="color: #dc2626; font-size: 36px; margin: 0 0 16px 0; text-align: center;">🎉 FREE First Month Storage!</h2>
+            <p style="color: #374151; font-size: 20px; margin: 0 0 32px 0; text-align: center; font-weight: 500;">Limited Time Offer - Ends November 30th</p>
+            
+            <div style="background: #fef2f2; padding: 32px; border-radius: 16px; border: 2px solid #dc2626; margin-bottom: 32px;">
+              <p style="color: #374151; font-size: 18px; line-height: 1.6; margin: 0 0 24px 0;">
+                Hi {{first_name}},<br><br>
+                Book your wheel storage service this month and get your <strong>first month completely FREE!</strong>
+              </p>
+              
+              <div style="background: white; padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+                <h3 style="color: #dc2626; font-size: 20px; margin: 0 0 16px 0;">What's Included:</h3>
+                <ul style="color: #374151; margin: 0; padding-left: 20px;">
+                  <li style="margin-bottom: 8px;">✅ Professional cleaning included</li>
+                  <li style="margin-bottom: 8px;">✅ Insurance coverage at no extra cost</li>
+                  <li style="margin-bottom: 8px;">✅ SMS reminders when it's time to change</li>
+                  <li style="margin-bottom: 8px;">✅ Climate-controlled storage facility</li>
+                </ul>
+              </div>
+              
+              <div style="text-align: center; background: #ecfdf5; padding: 20px; border-radius: 12px;">
+                <p style="color: #065f46; margin: 0; font-size: 18px;">
+                  <span style="text-decoration: line-through; color: #6b7280;">Regular price: €25/month</span><br>
+                  <strong style="font-size: 24px;">Your price: FREE first month, then €25/month</strong>
+                </p>
+              </div>
+            </div>
+            
+            <div style="background: #fef3c7; padding: 16px; border-radius: 8px; border: 1px solid #f59e0b; text-align: center;">
+              <p style="color: #92400e; margin: 0; font-weight: 500;">
+                ⏰ Perfect for your {{vehicle_type}}'s winter or summer wheels. Don't wait - offer expires soon!
+              </p>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'storage-promo-cta',
+      type: 'button' as const,
+      content: { text: '🎉 Claim FREE Storage Month', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#dc2626', color: '#ffffff', borderRadius: '8px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(220, 38, 38, 0.3)' }
+    },
+    TIRE_FOOTER_TEMPLATE
+  ],
+
+  // Seasonal Storage
+  'storage-seasonal': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'seasonal-hero',
+      type: 'image' as const,
+      content: { 
+        url: '/api/placeholder/600/300',
+        alt: 'Split image showing winter and summer tires in storage',
+        caption: 'Seamless seasonal transitions with our storage service'
+      },
+      styles: { borderRadius: '12px', margin: '32px 0' }
+    },
+    {
+      id: 'seasonal-content',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <h2 style="color: #1f2937; font-size: 32px; margin: 0 0 24px 0; text-align: center;">🔄 Seasonal Storage Made Simple</h2>
+            
+            <p style="color: #374151; font-size: 18px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
+              Hello {{first_name}}, make seasonal tire changes effortless with our storage service for your {{vehicle_type}}.
+            </p>
+            
+            <div style="display: grid; gap: 24px; margin-bottom: 32px;">
+              <div style="background: #eff6ff; padding: 24px; border-radius: 16px; border-left: 6px solid #3b82f6;">
+                <h3 style="color: #1e40af; font-size: 20px; margin: 0 0 16px 0;">❄️ Winter to Summer Transition</h3>
+                <ul style="color: #374151; margin: 0; padding-left: 20px;">
+                  <li style="margin-bottom: 8px;">We clean and store your winter wheels professionally</li>
+                  <li style="margin-bottom: 8px;">Mount your summer tires with pressure optimization</li>
+                  <li style="margin-bottom: 8px;">Send reminder SMS before next winter season</li>
+                </ul>
+              </div>
+              
+              <div style="background: #fef7ff; padding: 24px; border-radius: 16px; border-left: 6px solid #a855f7;">
+                <h3 style="color: #7c2d12; font-size: 20px; margin: 0 0 16px 0;">🌸 Summer to Winter Transition</h3>
+                <ul style="color: #374151; margin: 0; padding-left: 20px;">
+                  <li style="margin-bottom: 8px;">Store summer wheels in perfect conditions</li>
+                  <li style="margin-bottom: 8px;">Install winter tires with comprehensive safety inspection</li>
+                  <li style="margin-bottom: 8px;">Schedule spring changeover automatically</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div style="background: #ecfdf5; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+              <h4 style="color: #065f46; font-size: 20px; margin: 0 0 12px 0;">💰 Book Both Seasons & Save 15%</h4>
+              <div style="margin-bottom: 12px;">
+                <span style="color: #6b7280; text-decoration: line-through; margin-right: 8px; font-size: 18px;">€178</span>
+                <span style="font-size: 28px; font-weight: bold; color: #065f46;">€149/year</span>
+              </div>
+              <p style="color: #065f46; margin: 0; font-weight: 500;">Complete seasonal package with priority booking</p>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'seasonal-cta',
+      type: 'button' as const,
+      content: { text: '🔄 Start Seasonal Storage', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#a855f7', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+    },
+    TIRE_FOOTER_TEMPLATE
+  ],
+
+  // Premium Storage
+  'storage-premium': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'premium-hero',
+      type: 'image' as const,
+      content: { 
+        url: '/api/placeholder/600/300',
+        alt: 'Luxury storage facility with premium wheel display',
+        caption: 'Premium care for your valuable wheels and tires'
+      },
+      styles: { borderRadius: '12px', margin: '32px 0' }
+    },
+    {
+      id: 'premium-content',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <h2 style="color: #1f2937; font-size: 32px; margin: 0 0 24px 0; text-align: center;">👑 Premium Wheel Storage Service</h2>
+            
+            <p style="color: #374151; font-size: 18px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
+              Dear {{first_name}}, our Premium Storage Service is designed for customers who demand the best care for their valuable {{vehicle_type}} wheels.
+            </p>
+            
+            <div style="background: #fafafa; padding: 32px; border-radius: 16px; margin-bottom: 32px;">
+              <h3 style="color: #1e293b; font-size: 24px; margin: 0 0 24px 0; text-align: center;">✨ Premium Features</h3>
+              
+              <div style="display: grid; gap: 20px;">
+                <div style="background: #fff7ed; padding: 20px; border-radius: 12px; border-left: 4px solid #f59e0b;">
+                  <h4 style="color: #92400e; font-size: 18px; margin: 0 0 8px 0;">👑 VIP Treatment</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Individual wheel covers, premium cleaning products, and dedicated storage space</p>
+                </div>
+                
+                <div style="background: #f0f9ff; padding: 20px; border-radius: 12px; border-left: 4px solid #0ea5e9;">
+                  <h4 style="color: #0c4a6e; font-size: 18px; margin: 0 0 8px 0;">📱 Digital Tracking</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Photo documentation, condition reports, and mobile app access</p>
+                </div>
+                
+                <div style="background: #ecfdf5; padding: 20px; border-radius: 12px; border-left: 4px solid #10b981;">
+                  <h4 style="color: #065f46; font-size: 18px; margin: 0 0 8px 0;">🚚 Pickup & Delivery</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">We collect and deliver wheels to your location at no extra charge</p>
+                </div>
+                
+                <div style="background: #fef7ff; padding: 20px; border-radius: 12px; border-left: 4px solid #a855f7;">
+                  <h4 style="color: #7c2d12; font-size: 18px; margin: 0 0 8px 0;">⭐ Concierge Service</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Dedicated account manager and priority appointment booking</p>
+                </div>
+              </div>
+            </div>
+            
+            <div style="background: #1f2937; padding: 24px; border-radius: 12px; text-align: center; color: white;">
+              <h4 style="color: #f9fafb; font-size: 20px; margin: 0 0 12px 0;">Perfect For:</h4>
+              <p style="color: #d1d5db; margin: 0; line-height: 1.6;">
+                Luxury vehicles • Performance cars • Expensive alloy wheels • Customers who value premium service
+              </p>
+              <div style="margin-top: 16px;">
+                <span style="font-size: 24px; font-weight: bold; color: #f9fafb;">Starting at €45/month</span>
+                <p style="color: #d1d5db; margin: 8px 0 0 0; font-size: 14px;">Includes all premium features</p>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'premium-cta',
+      type: 'button' as const,
+      content: { text: '👑 Explore Premium Storage', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#1f2937', color: '#ffffff', borderRadius: '8px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(31, 41, 55, 0.3)' }
+    },
+    TIRE_FOOTER_TEMPLATE
   ]
 };
 
@@ -679,13 +1023,57 @@ const TEMPLATES = [
     category: 'tire-promo',
     icon: Megaphone,
     preview: '/api/placeholder/300/200'
+  },
+
+  // WHEEL STORAGE TEMPLATES
+  {
+    id: 'storage-benefits',
+    name: 'Storage Benefits Guide',
+    description: 'Comprehensive guide to professional wheel storage advantages',
+    category: 'storage-info',
+    icon: FileText,
+    preview: '/api/placeholder/300/200'
+  },
+  {
+    id: 'storage-care',
+    name: 'Storage Care Standards',
+    description: 'How we maintain and protect your stored wheels',
+    category: 'storage-info',
+    icon: FileText,
+    preview: '/api/placeholder/300/200'
+  },
+  {
+    id: 'storage-promotion',
+    name: 'Free First Month Storage',
+    description: 'Limited time promotional offer for new storage customers',
+    category: 'storage-promo',
+    icon: Megaphone,
+    preview: '/api/placeholder/300/200'
+  },
+  {
+    id: 'storage-seasonal',
+    name: 'Seasonal Storage Package',
+    description: 'Complete seasonal storage solutions with savings',
+    category: 'storage-promo',
+    icon: Megaphone,
+    preview: '/api/placeholder/300/200'
+  },
+  {
+    id: 'storage-premium',
+    name: 'Premium Storage Service',
+    description: 'VIP storage service for luxury and performance vehicles',
+    category: 'storage-promo',
+    icon: Megaphone,
+    preview: '/api/placeholder/300/200'
   }
 ];
 
 const CATEGORIES = [
   { id: 'all', name: 'All Templates', icon: Star },
   { id: 'tire-info', name: 'Tire Information', icon: FileText },
-  { id: 'tire-promo', name: 'Tire Promotions', icon: Megaphone }
+  { id: 'tire-promo', name: 'Tire Promotions', icon: Megaphone },
+  { id: 'storage-info', name: 'Storage Information', icon: FileText },
+  { id: 'storage-promo', name: 'Storage Promotions', icon: Megaphone }
 ];
 
 export const TemplateLibrary: React.FC = () => {
