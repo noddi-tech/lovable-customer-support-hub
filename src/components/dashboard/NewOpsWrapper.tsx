@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pane, PaneToolbar, PaneBody } from '@/components/layout';
+import { Pane, PaneToolbar, PaneBody, LazyComponent } from '@/components/layout';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useTranslation } from 'react-i18next';
+import { usePerformanceMonitoring } from '@/hooks/usePerformanceMonitoring';
 import { 
   Shield, 
   Users, 
@@ -54,6 +55,7 @@ const operationsServices: OperationsService[] = [
 const NewOpsWrapper = () => {
   const { t } = useTranslation();
   const { isMobile } = useResponsive();
+  const { measureRender } = usePerformanceMonitoring('NewOpsWrapper');
   const [selectedService, setSelectedService] = useState<OperationsService | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -208,9 +210,11 @@ const NewOpsWrapper = () => {
   );
 
   return (
-    <div className="h-full flex bg-background">
-      {servicesGrid}
-    </div>
+    <LazyComponent>
+      <div className="h-full flex bg-background">
+        {servicesGrid}
+      </div>
+    </LazyComponent>
   );
 };
 

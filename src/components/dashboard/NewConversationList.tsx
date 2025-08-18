@@ -10,6 +10,8 @@ import { fetchConversationsPaginated, Conversation, ConversationFilters } from "
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useAriaAnnouncement } from "@/hooks/useAriaAnnouncement";
 import { useTranslation } from "react-i18next";
+import { useDebounce } from '@/hooks/useDebounce';
+import { usePerformanceMonitoring } from '@/hooks/usePerformanceMonitoring';
 import { 
   Search, 
   Filter, 
@@ -70,12 +72,14 @@ export function NewConversationList({
   const { t } = useTranslation();
   const { dateTime } = useDateFormatting();
   const { announce } = useAriaAnnouncement();
+  const { measureRender } = usePerformanceMonitoring('NewConversationList');
   
   const [filters, setFilters] = useState<ConversationFilters>({
     inbox_id: inboxId,
     is_archived: false
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // Update filters when inboxId changes
   useState(() => {
@@ -99,10 +103,10 @@ export function NewConversationList({
     setSort,
     pagination
   } = usePaginatedQuery({
-    queryKey: ['conversations-paginated'],
+    queryKey: ['conversations-paginated', debouncedSearchQuery],
     queryFn: (params) => fetchConversationsPaginated({
       ...params,
-      filters: { ...filters, search: searchQuery }
+      filters: { ...filters, search: debouncedSearchQuery }
     }),
     initialPageSize: 25
   });

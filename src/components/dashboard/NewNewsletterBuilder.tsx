@@ -31,9 +31,10 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
-import { Pane, PaneToolbar, PaneBody, Inspector } from '@/components/layout';
+import { Pane, PaneToolbar, PaneBody, Inspector, LazyComponent } from '@/components/layout';
 import { ResponsiveLayout } from '@/components/layout/ResponsiveLayout';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+import { usePerformanceMonitoring } from '@/hooks/usePerformanceMonitoring';
 import { NewsletterCanvas } from './newsletter/NewsletterCanvas';
 import { BlocksPalette } from './newsletter/BlocksPalette';
 import { PropertiesPanel } from './newsletter/PropertiesPanel';
@@ -56,6 +57,7 @@ const NewNewsletterBuilder = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { showInspector, setShowInspector, isMobile } = useResponsive();
+  const { measureRender } = usePerformanceMonitoring('NewNewsletterBuilder');
   const [isDarkMode, setIsDarkMode] = useState(false);
   
   const {
@@ -259,47 +261,49 @@ const NewNewsletterBuilder = () => {
   );
 
   return (
-    <div className="h-full flex bg-background">
-      {/* Mobile layout */}
-      {isMobile ? (
-        <div className="flex-1 flex flex-col">
-          {canvasContent}
-        </div>
-      ) : (
-        <>
-          {/* Blocks palette */}
-          {blocksPaletteContent}
-          
-          {/* Main canvas */}
-          <div className="flex-1 flex">
+    <LazyComponent>
+      <div className="h-full flex bg-background">
+        {/* Mobile layout */}
+        {isMobile ? (
+          <div className="flex-1 flex flex-col">
             {canvasContent}
-            
-            {/* Inspector */}
-            {showInspector && (
-              <div className="w-80 border-l">
-                {inspectorContent}
-              </div>
-            )}
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            {/* Blocks palette */}
+            {blocksPaletteContent}
+            
+            {/* Main canvas */}
+            <div className="flex-1 flex">
+              {canvasContent}
+              
+              {/* Inspector */}
+              {showInspector && (
+                <div className="w-80 border-l">
+                  {inspectorContent}
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
-      {/* Dialogs */}
-      <PreviewDialog 
-        open={showPreview} 
-        onOpenChange={setShowPreview}
-        blocks={blocks}
-        globalStyles={globalStyles}
-        device={previewDevice}
-        darkMode={isDarkMode}
-      />
-      
-      {/* Simplified dialogs without props for now */}
-      {showTemplates && <div>Template Library Modal</div>}
-      
-      {showSaveDraft && <div>Save Draft Modal</div>}
-      {showSchedule && <div>Schedule Modal</div>}
-    </div>
+        {/* Dialogs */}
+        <PreviewDialog 
+          open={showPreview} 
+          onOpenChange={setShowPreview}
+          blocks={blocks}
+          globalStyles={globalStyles}
+          device={previewDevice}
+          darkMode={isDarkMode}
+        />
+        
+        {/* Simplified dialogs without props for now */}
+        {showTemplates && <div>Template Library Modal</div>}
+        
+        {showSaveDraft && <div>Save Draft Modal</div>}
+        {showSchedule && <div>Schedule Modal</div>}
+      </div>
+    </LazyComponent>
   );
 };
 

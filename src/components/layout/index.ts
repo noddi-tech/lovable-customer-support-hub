@@ -6,3 +6,5 @@ export { ResponsiveLayout } from './ResponsiveLayout';
 export { MobileNavigation } from './MobileNavigation';
 export { Pane, PaneToolbar, PaneBody, PaneFooter } from './Pane';
 export { default as Inspector } from './Inspector';
+export { ErrorBoundary } from './ErrorBoundary';
+export { LazyComponent, withLazyLoading } from './LazyComponent';
