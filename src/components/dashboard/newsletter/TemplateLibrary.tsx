@@ -13,6 +13,114 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
+import { useNewsletterStore } from './useNewsletterStore';
+
+const TEMPLATE_BLOCKS = {
+  'promotion-basic': [
+    {
+      id: 'promo-img',
+      type: 'image' as const,
+      content: { src: '', alt: 'Promotional banner', width: '100%', height: 'auto' },
+      styles: { margin: '0', padding: '20px', textAlign: 'center' }
+    },
+    {
+      id: 'promo-title',
+      type: 'text' as const,
+      content: { text: 'Special Offer - Limited Time!', tag: 'h1' },
+      styles: { fontSize: '28px', color: '#333333', textAlign: 'center', margin: '0', padding: '16px' }
+    },
+    {
+      id: 'promo-desc',
+      type: 'text' as const,
+      content: { text: 'Don\'t miss out on this amazing opportunity. Get 30% off your next purchase.', tag: 'p' },
+      styles: { fontSize: '16px', color: '#666666', textAlign: 'center', margin: '0', padding: '16px' }
+    },
+    {
+      id: 'promo-btn',
+      type: 'button' as const,
+      content: { text: 'Shop Now', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#007aff', color: '#ffffff', borderRadius: '6px', padding: '12px 24px', textAlign: 'center', margin: '20px auto' }
+    }
+  ],
+  'hr-welcome': [
+    {
+      id: 'welcome-title',
+      type: 'text' as const,
+      content: { text: 'Welcome to the Team!', tag: 'h1' },
+      styles: { fontSize: '32px', color: '#333333', textAlign: 'center', margin: '0', padding: '20px' }
+    },
+    {
+      id: 'welcome-msg',
+      type: 'text' as const,
+      content: { text: 'We\'re excited to have you join our team. Here\'s everything you need to know to get started.', tag: 'p' },
+      styles: { fontSize: '16px', color: '#666666', textAlign: 'left', margin: '0', padding: '16px' }
+    },
+    {
+      id: 'welcome-divider',
+      type: 'divider' as const,
+      content: {},
+      styles: { borderTop: '1px solid #e5e5e5', margin: '24px 0', padding: '0' }
+    },
+    {
+      id: 'welcome-info',
+      type: 'text' as const,
+      content: { text: 'Your first day starts on Monday. Please bring your ID and signed contract.', tag: 'p' },
+      styles: { fontSize: '14px', color: '#555555', textAlign: 'left', margin: '0', padding: '16px' }
+    }
+  ],
+  'ops-update': [
+    {
+      id: 'ops-title',
+      type: 'text' as const,
+      content: { text: 'Operations Update', tag: 'h1' },
+      styles: { fontSize: '28px', color: '#333333', textAlign: 'center', margin: '0', padding: '20px' }
+    },
+    {
+      id: 'ops-date',
+      type: 'text' as const,
+      content: { text: new Date().toLocaleDateString(), tag: 'p' },
+      styles: { fontSize: '14px', color: '#888888', textAlign: 'center', margin: '0', padding: '8px' }
+    },
+    {
+      id: 'ops-content',
+      type: 'text' as const,
+      content: { text: 'Important updates regarding our operational procedures and upcoming changes.', tag: 'p' },
+      styles: { fontSize: '16px', color: '#666666', textAlign: 'left', margin: '0', padding: '16px' }
+    }
+  ],
+  'newsletter-basic': [
+    {
+      id: 'news-header',
+      type: 'text' as const,
+      content: { text: 'Monthly Newsletter', tag: 'h1' },
+      styles: { fontSize: '32px', color: '#333333', textAlign: 'center', margin: '0', padding: '20px' }
+    },
+    {
+      id: 'news-intro',
+      type: 'text' as const,
+      content: { text: 'Stay updated with the latest news and updates from our team.', tag: 'p' },
+      styles: { fontSize: '16px', color: '#666666', textAlign: 'center', margin: '0', padding: '16px' }
+    },
+    {
+      id: 'news-divider',
+      type: 'divider' as const,
+      content: {},
+      styles: { borderTop: '2px solid #007aff', margin: '24px 0', padding: '0' }
+    },
+    {
+      id: 'news-article',
+      type: 'text' as const,
+      content: { text: 'Feature Article: Latest developments in our industry', tag: 'h2' },
+      styles: { fontSize: '20px', color: '#333333', textAlign: 'left', margin: '0', padding: '16px' }
+    },
+    {
+      id: 'news-content',
+      type: 'text' as const,
+      content: { text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', tag: 'p' },
+      styles: { fontSize: '16px', color: '#666666', textAlign: 'left', margin: '0', padding: '16px' }
+    }
+  ]
+};
 
 const TEMPLATES = [
   {
@@ -60,6 +168,7 @@ const CATEGORIES = [
 export const TemplateLibrary: React.FC = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { clearNewsletter, addBlock, updateBlock } = useNewsletterStore();
   const [selectedCategory, setSelectedCategory] = React.useState('all');
 
   const filteredTemplates = selectedCategory === 'all' 
@@ -67,11 +176,24 @@ export const TemplateLibrary: React.FC = () => {
     : TEMPLATES.filter(template => template.category === selectedCategory);
 
   const handleUseTemplate = (templateId: string) => {
-    toast({
-      title: t('templateLoaded'),
-      description: t('templateLoadedDescription'),
-    });
-    // TODO: Load template blocks into the newsletter
+    const templateBlocks = TEMPLATE_BLOCKS[templateId as keyof typeof TEMPLATE_BLOCKS];
+    
+    if (templateBlocks) {
+      // Clear existing blocks and load template
+      clearNewsletter();
+      
+      // Load template blocks into the store
+      useNewsletterStore.setState(state => ({
+        ...state,
+        blocks: templateBlocks,
+        selectedBlockId: null
+      }));
+      
+      toast({
+        title: t('templateLoaded'),
+        description: t('templateLoadedDescription'),
+      });
+    }
   };
 
   const handleCreateTemplate = () => {
