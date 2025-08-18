@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Mail } from 'lucide-react';
 import InteractionsWrapper from '@/components/dashboard/InteractionsWrapper';
+import MarketingWrapper from '@/components/dashboard/MarketingWrapper';
 import { useTranslation } from 'react-i18next';
 
 const MainApp = () => {
@@ -19,7 +20,7 @@ const MainApp = () => {
             </TabsTrigger>
             <TabsTrigger value="marketing" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
-              {t('emailMarketing')}
+              {t('marketing')}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -28,14 +29,8 @@ const MainApp = () => {
           <InteractionsWrapper />
         </TabsContent>
 
-        <TabsContent value="marketing" className="flex-1 m-0 p-6">
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <Mail className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h2 className="text-2xl font-semibold mb-2">{t('emailMarketing')}</h2>
-              <p className="text-muted-foreground">{t('emailMarketingComingSoon')}</p>
-            </div>
-          </div>
+        <TabsContent value="marketing" className="flex-1 m-0 p-0">
+          <MarketingWrapper />
         </TabsContent>
       </Tabs>
     </div>

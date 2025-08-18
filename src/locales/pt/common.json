@@ -323,9 +323,14 @@
     "cancel": "Cancelar"
   },
   "interactions": "Interações",
+  "marketing": "Marketing",
   "emailMarketing": "Marketing por Email",
   "emailMarketingComingSoon": "Recursos de marketing por email em breve",
   "textCommunication": "Texto",
   "voiceCommunication": "Voz",
-  "voiceFeaturesComingSoon": "Recursos de voz em breve"
+  "voiceFeaturesComingSoon": "Recursos de voz em breve",
+  "email": "E-mail",
+  "sms": "SMS",
+  "smsFeatures": "Recursos SMS",
+  "smsMarketingComingSoon": "Recursos de marketing SMS em breve"
 }

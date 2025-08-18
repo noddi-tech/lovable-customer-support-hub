@@ -323,9 +323,14 @@
     "cancel": "Annuleren"
   },
   "interactions": "Interacties",
+  "marketing": "Marketing",
   "emailMarketing": "E-mail Marketing",
   "emailMarketingComingSoon": "E-mail marketing functies komen binnenkort",
   "textCommunication": "Tekst",
   "voiceCommunication": "Spraak",
-  "voiceFeaturesComingSoon": "Spraakfuncties komen binnenkort"
+  "voiceFeaturesComingSoon": "Spraakfuncties komen binnenkort",
+  "email": "E-mail",
+  "sms": "SMS",
+  "smsFeatures": "SMS-functies",
+  "smsMarketingComingSoon": "SMS-marketingfuncties komen binnenkort"
 }

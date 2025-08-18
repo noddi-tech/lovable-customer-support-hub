@@ -420,9 +420,14 @@
     "surfaceGradient": "Surface Gradient"
   },
   "interactions": "Interactions",
+  "marketing": "Marketing",
   "emailMarketing": "Email Marketing",
   "emailMarketingComingSoon": "Email Marketing features coming soon",
   "textCommunication": "Text",
   "voiceCommunication": "Voice",
-  "voiceFeaturesComingSoon": "Voice features coming soon"
+  "voiceFeaturesComingSoon": "Voice features coming soon",
+  "email": "Email",
+  "sms": "SMS",
+  "smsFeatures": "SMS Features",
+  "smsMarketingComingSoon": "SMS marketing features coming soon"
 }

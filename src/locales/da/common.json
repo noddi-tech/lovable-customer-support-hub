@@ -323,9 +323,14 @@
     "cancel": "Annuller"
   },
   "interactions": "Interaktioner",
+  "marketing": "Marketing",
   "emailMarketing": "E-mail Marketing",
   "emailMarketingComingSoon": "E-mail marketing funktioner kommer snart",
   "textCommunication": "Tekst",
   "voiceCommunication": "Stemme",
-  "voiceFeaturesComingSoon": "Stemmefunktioner kommer snart"
+  "voiceFeaturesComingSoon": "Stemmefunktioner kommer snart",
+  "email": "E-mail",
+  "sms": "SMS",
+  "smsFeatures": "SMS-funktioner",
+  "smsMarketingComingSoon": "SMS-marketingfunktioner kommer snart"
 }
