@@ -24,6 +24,17 @@ export const Auth: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // Dev auto-login: set bypass flag and redirect without prompting
+  useEffect(() => {
+    if (!user) {
+      // Prevent limbo: clear any stale auth keys then set bypass email
+      cleanupAuthState();
+      localStorage.setItem('dev_auto_login_email', 'joachim.rathke@gmail.com');
+      window.location.href = '/';
+    }
+  }, [user]);
+
+  // If a real session exists, just go home
   useEffect(() => {
     if (user) {
       navigate('/');

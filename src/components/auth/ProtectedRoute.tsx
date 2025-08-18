@@ -10,11 +10,19 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Development bypass: if dev_auto_login_email is set, allow access without auth
+  const devBypass = typeof window !== 'undefined' && !!localStorage.getItem('dev_auto_login_email');
+
   useEffect(() => {
+    if (devBypass) return;
     if (!loading && !user) {
       navigate('/auth', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, devBypass]);
+
+  if (devBypass) {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (
