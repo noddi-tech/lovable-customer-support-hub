@@ -24,15 +24,11 @@ export const Auth: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  // Comment out auth redirect for development
-  // useEffect(() => {
-  //   console.log('Auth page - user state:', user);
-  //   if (user) {
-  //     console.log('Auth page - redirecting authenticated user to main app');
-  //     // Use replace: true to prevent back navigation to auth page
-  //     navigate('/', { replace: true });
-  //   }
-  // }, [user, navigate]);
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const cleanupAuthState = () => {
     localStorage.removeItem('supabase.auth.token');
@@ -64,8 +60,7 @@ export const Auth: React.FC = () => {
       if (error) throw error;
       
       if (data.user) {
-        // Force immediate navigation instead of window.location.href
-        navigate('/', { replace: true });
+        window.location.href = '/';
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign in');
@@ -144,7 +139,6 @@ export const Auth: React.FC = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
           data: {
             full_name: fullName,
           }
@@ -171,7 +165,7 @@ export const Auth: React.FC = () => {
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed, redirect to main app
           console.log('User immediately confirmed, redirecting...');
-          navigate('/', { replace: true });
+          window.location.href = '/';
         } else {
           console.log('User needs email confirmation');
           setSuccess('Account created! Please check your email for the confirmation link.');

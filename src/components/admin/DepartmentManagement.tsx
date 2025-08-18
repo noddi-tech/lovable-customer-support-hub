@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-// import { useAuth } from "@/hooks/useAuth"; // Disabled for development
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from 'react-i18next';
 
@@ -38,7 +38,7 @@ export function DepartmentManagement() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  // const { user } = useAuth(); // Disabled for development
+  const { user } = useAuth();
 
   // Fetch departments
   const { data: departments = [], isLoading } = useQuery({
@@ -57,11 +57,9 @@ export function DepartmentManagement() {
   // Create department mutation
   const createDepartmentMutation = useMutation({
     mutationFn: async (departmentData: DepartmentFormData) => {
-      // if (!user) throw new Error("User not authenticated"); // Disabled for development
+      if (!user) throw new Error("User not authenticated");
 
-      // Get organization - using mock for development
-      const mockOrgId = "default-org-id"; // Replace with actual org ID when auth is enabled
-      /*
+      // Get user's organization
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("organization_id")
@@ -71,13 +69,12 @@ export function DepartmentManagement() {
       if (profileError || !profile) {
         throw new Error("Failed to get user organization");
       }
-      */
 
       const { data, error } = await supabase
         .from("departments")
         .insert({
           ...departmentData,
-          organization_id: mockOrgId
+          organization_id: profile.organization_id
         })
         .select()
         .single();

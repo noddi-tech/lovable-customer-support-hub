@@ -564,9 +564,5 @@
   "newsletterSent": "Newsletter Sent",
   "newsletterSentSuccessfully": "Newsletter sent successfully",
   "failedToSendNewsletter": "Failed to send newsletter",
-  "personalizationDescription": "Add dynamic content and merge tags to personalize your newsletters",
-  "navigation": {
-    "main": "Main",
-    "account": "Account"
-  }
+  "personalizationDescription": "Add dynamic content and merge tags to personalize your newsletters"
 }

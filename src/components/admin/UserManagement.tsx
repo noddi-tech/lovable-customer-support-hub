@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-// import { useAuth } from "@/hooks/useAuth"; // Disabled for development
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from 'react-i18next';
 
@@ -60,7 +60,7 @@ export function UserManagement() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  // const { user } = useAuth(); // Disabled for development
+  const { user } = useAuth();
 
   // Fetch users with their roles and departments
   const { data: users = [], isLoading } = useQuery({
@@ -103,7 +103,7 @@ export function UserManagement() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserData) => {
-      // if (!user) throw new Error("User not authenticated"); // Disabled for development
+      if (!user) throw new Error("User not authenticated");
 
       // Create the user account
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -118,9 +118,7 @@ export function UserManagement() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Failed to create user");
 
-      // Get organization - using mock for development
-      const mockOrgId = "default-org-id"; // Replace with actual org ID when auth is enabled
-      /*
+      // Get user's organization
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("organization_id")
@@ -130,7 +128,6 @@ export function UserManagement() {
       if (profileError || !profile) {
         throw new Error("Failed to get user organization");
       }
-      */
 
       // Update the created profile with additional data
       const { error: updateError } = await supabase
@@ -440,7 +437,7 @@ export function UserManagement() {
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    {/* Allow all user deletions during development - userProfile.user_id !== user?.id && */}
+                    {userProfile.user_id !== user?.id && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" size="sm">
@@ -466,7 +463,7 @@ export function UserManagement() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                    {/* )} - Disabled for development */}
+                    )}
                   </div>
                 </div>
               </CardHeader>

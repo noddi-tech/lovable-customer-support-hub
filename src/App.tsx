@@ -1,7 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthContext";
@@ -22,10 +21,12 @@ const AppContent = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/*" element={<Index />} />
+      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
+      <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
     </Routes>
   </BrowserRouter>
 );
@@ -34,15 +35,13 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <DesignSystemProvider>
-        <SidebarProvider>
-          <TooltipProvider>
-            <I18nWrapper>
-              <AppContent />
-            </I18nWrapper>
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
-        </SidebarProvider>
+        <TooltipProvider>
+          <I18nWrapper>
+            <AppContent />
+          </I18nWrapper>
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
       </DesignSystemProvider>
     </AuthProvider>
   </QueryClientProvider>

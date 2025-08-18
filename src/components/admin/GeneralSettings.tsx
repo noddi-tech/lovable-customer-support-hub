@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// import { usePermissions } from '@/hooks/usePermissions'; // Disabled for development
+import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
 
 interface OrganizationWithMetadata {
@@ -30,7 +30,7 @@ const [orgName, setOrgName] = useState('');
 const [orgDescription, setOrgDescription] = useState('');
 const [isBackfillOpen, setIsBackfillOpen] = useState(false);
 const [runningBackfill, setRunningBackfill] = useState(false);
-// const { isAdmin } = usePermissions(); // Disabled for development
+const { isAdmin } = usePermissions();
   // Fetch current organization data
   const { data: organization, isLoading } = useQuery<OrganizationWithMetadata | null>({
     queryKey: ['organization'],
@@ -211,8 +211,7 @@ const [runningBackfill, setRunningBackfill] = useState(false);
         </CardContent>
       </Card>
 
-      {/* isAdmin() check disabled for development */}
-      {true && (
+      {isAdmin() && (
         <Card className="bg-gradient-surface border-border/50 shadow-surface">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
