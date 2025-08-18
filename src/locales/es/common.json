@@ -324,5 +324,8 @@
   },
   "interactions": "Interacciones",
   "emailMarketing": "Marketing por Email",
-  "emailMarketingComingSoon": "Las funciones de marketing por email están próximamente"
+  "emailMarketingComingSoon": "Las funciones de marketing por email están próximamente",
+  "textCommunication": "Texto",
+  "voiceCommunication": "Voz",
+  "voiceFeaturesComingSoon": "Funciones de voz próximamente"
 }

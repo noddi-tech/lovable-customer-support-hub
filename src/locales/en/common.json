@@ -421,5 +421,8 @@
   },
   "interactions": "Interactions",
   "emailMarketing": "Email Marketing",
-  "emailMarketingComingSoon": "Email Marketing features coming soon"
+  "emailMarketingComingSoon": "Email Marketing features coming soon",
+  "textCommunication": "Text",
+  "voiceCommunication": "Voice",
+  "voiceFeaturesComingSoon": "Voice features coming soon"
 }

@@ -324,5 +324,8 @@
   },
   "interactions": "Interaktioner",
   "emailMarketing": "E-mail Marketing",
-  "emailMarketingComingSoon": "E-mail marketing funktioner kommer snart"
+  "emailMarketingComingSoon": "E-mail marketing funktioner kommer snart",
+  "textCommunication": "Tekst",
+  "voiceCommunication": "Stemme",
+  "voiceFeaturesComingSoon": "Stemmefunktioner kommer snart"
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Mail } from 'lucide-react';
-import { Dashboard } from '@/components/dashboard/Dashboard';
+import InteractionsWrapper from '@/components/dashboard/InteractionsWrapper';
 import { useTranslation } from 'react-i18next';
 
 const MainApp = () => {
@@ -25,7 +25,7 @@ const MainApp = () => {
         </div>
 
         <TabsContent value="interactions" className="flex-1 m-0 p-0">
-          <Dashboard />
+          <InteractionsWrapper />
         </TabsContent>
 
         <TabsContent value="marketing" className="flex-1 m-0 p-6">
