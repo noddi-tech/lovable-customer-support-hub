@@ -22,10 +22,10 @@ const AppContent = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
-      <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
-      <Route path="/*" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/*" element={<Index />} />
     </Routes>
   </BrowserRouter>
 );

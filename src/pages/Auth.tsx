@@ -24,14 +24,15 @@ export const Auth: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  useEffect(() => {
-    console.log('Auth page - user state:', user);
-    if (user) {
-      console.log('Auth page - redirecting authenticated user to main app');
-      // Use replace: true to prevent back navigation to auth page
-      navigate('/', { replace: true });
-    }
-  }, [user, navigate]);
+  // Comment out auth redirect for development
+  // useEffect(() => {
+  //   console.log('Auth page - user state:', user);
+  //   if (user) {
+  //     console.log('Auth page - redirecting authenticated user to main app');
+  //     // Use replace: true to prevent back navigation to auth page
+  //     navigate('/', { replace: true });
+  //   }
+  // }, [user, navigate]);
 
   const cleanupAuthState = () => {
     localStorage.removeItem('supabase.auth.token');
