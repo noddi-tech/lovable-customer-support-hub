@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Phone } from 'lucide-react';
-import { Dashboard } from '@/components/dashboard/Dashboard';
+import { NewDashboard } from '@/components/dashboard/NewDashboard';
 import { VoiceInterface } from '@/components/dashboard/VoiceInterface';
 import { useTranslation } from 'react-i18next';
 
@@ -26,7 +26,7 @@ const InteractionsWrapper = () => {
         </div>
 
         <TabsContent value="text" className="flex-1 m-0 p-0">
-          <Dashboard />
+          <NewDashboard />
         </TabsContent>
 
         <TabsContent value="voice" className="flex-1 m-0 p-0">
