@@ -110,11 +110,25 @@ export function NewDashboard() {
 
         {/* Conversation View - Inspector */}
         {selectedConversation && (
-          <div className="w-2/5 border-l border-border overflow-hidden">
-            <ConversationView
-              conversation={selectedConversation}
-              onClose={handleCloseConversation}
-            />
+          <div className="w-2/5 border-l border-border overflow-hidden flex flex-col">
+            {/* Close button header */}
+            <div className="flex items-center justify-between p-4 border-b bg-background">
+              <h3 className="font-medium">Conversation Details</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCloseConversation}
+                className="h-8 w-8 p-0"
+              >
+                ✕
+              </Button>
+            </div>
+            {/* Conversation content */}
+            <div className="flex-1 overflow-hidden">
+              <ConversationView
+                conversationId={selectedConversation.id}
+              />
+            </div>
           </div>
         )}
       </div>
