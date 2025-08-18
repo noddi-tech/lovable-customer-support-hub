@@ -10,6 +10,8 @@ import { X } from 'lucide-react';
 import { InboxSidebar } from './InboxSidebar';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScrollContainer } from '@/components/ui/scroll-container';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MessageSquare, Phone } from 'lucide-react';
 
 export const NewDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,11 +50,32 @@ export const NewDashboard: React.FC = () => {
   };
 
   const mainContent = (
-    <NewConversationList
-      selectedConversation={selectedConversation}
-      onConversationSelect={handleConversationSelect}
-      inboxId={selectedInboxId}
-    />
+    <div className="flex-1 flex flex-col">
+      {/* Text/Voice tabs */}
+      <div className="border-b bg-background px-6 py-3">
+        <Tabs defaultValue="text" className="w-full max-w-md">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="text" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Text
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              Voice
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      
+      {/* Conversation List */}
+      <div className="flex-1">
+        <NewConversationList
+          selectedConversation={selectedConversation}
+          onConversationSelect={handleConversationSelect}
+          inboxId={selectedInboxId}
+        />
+      </div>
+    </div>
   );
 
   const inspectorContent = selectedConversation && (
