@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -546,6 +546,152 @@ export type Database = {
           },
         ]
       }
+      newsletter_campaigns: {
+        Row: {
+          clicked_count: number | null
+          created_at: string
+          delivered_count: number | null
+          id: string
+          name: string
+          newsletter_id: string
+          opened_count: number | null
+          personalization_rules: Json | null
+          segment_criteria: Json | null
+          sent_at: string | null
+          sent_count: number | null
+          status: string
+          updated_at: string
+          user_id: string
+          utm_parameters: Json | null
+        }
+        Insert: {
+          clicked_count?: number | null
+          created_at?: string
+          delivered_count?: number | null
+          id?: string
+          name: string
+          newsletter_id: string
+          opened_count?: number | null
+          personalization_rules?: Json | null
+          segment_criteria?: Json | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          utm_parameters?: Json | null
+        }
+        Update: {
+          clicked_count?: number | null
+          created_at?: string
+          delivered_count?: number | null
+          id?: string
+          name?: string
+          newsletter_id?: string
+          opened_count?: number | null
+          personalization_rules?: Json | null
+          segment_criteria?: Json | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          utm_parameters?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_campaigns_newsletter_id_fkey"
+            columns: ["newsletter_id"]
+            isOneToOne: false
+            referencedRelation: "newsletters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_templates: {
+        Row: {
+          category: string
+          content: Json
+          created_at: string
+          description: string | null
+          global_styles: Json | null
+          id: string
+          is_public: boolean | null
+          name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string
+          content?: Json
+          created_at?: string
+          description?: string | null
+          global_styles?: Json | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          content?: Json
+          created_at?: string
+          description?: string | null
+          global_styles?: Json | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      newsletters: {
+        Row: {
+          content: Json
+          created_at: string
+          global_styles: Json | null
+          id: string
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_data: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          global_styles?: Json | null
+          id?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_data?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          global_styles?: Json | null
+          id?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_data?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -846,50 +992,50 @@ export type Database = {
       get_conversations: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          subject: string
-          status: string
-          priority: string
-          is_read: boolean
-          is_archived: boolean
-          channel: string
-          updated_at: string
-          received_at: string
-          inbox_id: string
-          customer: Json
           assigned_to: Json
+          channel: string
+          customer: Json
+          id: string
+          inbox_id: string
+          is_archived: boolean
+          is_read: boolean
+          priority: string
+          received_at: string
           snooze_until: string
+          status: string
+          subject: string
+          updated_at: string
         }[]
       }
       get_email_accounts: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
+          auto_sync_enabled: boolean
+          created_at: string
           email_address: string
-          provider: string
+          forwarding_address: string
+          id: string
+          inbox_id: string
           is_active: boolean
           last_sync_at: string
-          created_at: string
-          forwarding_address: string
-          inbox_id: string
-          auto_sync_enabled: boolean
+          provider: string
           sync_interval_minutes: number
         }[]
       }
       get_inboxes: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          name: string
-          description: string
-          department_id: string
-          is_default: boolean
           auto_assignment_rules: Json
           color: string
-          is_active: boolean
-          created_at: string
-          updated_at: string
           conversation_count: number
+          created_at: string
+          department_id: string
+          description: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          updated_at: string
         }[]
       }
       get_organization_by_email_domain: {
@@ -910,15 +1056,15 @@ export type Database = {
       }
       has_permission: {
         Args: {
-          _user_id: string
           _permission: Database["public"]["Enums"]["app_permission"]
+          _user_id: string
         }
         Returns: boolean
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }

@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, MessageSquare } from 'lucide-react';
 import { SMSInterface } from '@/components/dashboard/SMSInterface';
 import { useTranslation } from 'react-i18next';
+import NewsletterBuilder from './NewsletterBuilder';
 
 const MarketingWrapper = () => {
   const { t } = useTranslation();
@@ -24,14 +25,8 @@ const MarketingWrapper = () => {
           </TabsList>
         </div>
 
-        <TabsContent value="email" className="flex-1 m-0 p-6">
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <Mail className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h2 className="text-2xl font-semibold mb-2">{t('emailMarketing')}</h2>
-              <p className="text-muted-foreground">{t('emailMarketingComingSoon')}</p>
-            </div>
-          </div>
+        <TabsContent value="email" className="flex-1 m-0 p-0">
+          <NewsletterBuilder />
         </TabsContent>
 
         <TabsContent value="sms" className="flex-1 m-0 p-0">
