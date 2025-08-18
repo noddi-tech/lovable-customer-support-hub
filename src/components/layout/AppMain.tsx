@@ -1,16 +1,14 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+import { ReactNode } from "react";
 
 interface AppMainProps {
-  children: React.ReactNode;
-  className?: string;
+  children: ReactNode;
 }
 
-const AppMain = ({ children, className }: AppMainProps) => {
+const AppMain = ({ children }: AppMainProps) => {
   return (
-    <main className={cn("app-main", className)}>
+    <div className="flex flex-1 overflow-hidden">
       {children}
-    </main>
+    </div>
   );
 };
 

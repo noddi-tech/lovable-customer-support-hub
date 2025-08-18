@@ -1,63 +1,32 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Search, Bell, Settings, User, Plus } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/hooks/useAuth';
-import { useTranslation } from 'react-i18next';
+import { Search, Bell, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
 
-interface AppHeaderProps {
-  className?: string;
-}
-
-const AppHeader = ({ className }: AppHeaderProps) => {
+const AppHeader = () => {
   const { signOut } = useAuth();
-  const { t } = useTranslation();
 
   return (
-    <header className={cn(
-      "flex items-center justify-between px-6 py-3 border-b bg-background",
-      "sticky top-0 z-50",
-      className
-    )}>
+    <header className="h-16 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-50">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
-            <span className="text-sm font-bold text-primary">N</span>
-          </div>
-          <span className="font-semibold">Noddi Customer Hub</span>
+        <SidebarTrigger className="h-8 w-8" />
+        <div className="relative w-96">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search conversations, customers..." 
+            className="pl-10 bg-muted/30"
+          />
         </div>
       </div>
-
+      
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm">
-          <Search className="h-4 w-4" />
-        </Button>
-        
-        <Button variant="ghost" size="sm">
-          <Plus className="h-4 w-4" />
-        </Button>
-
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="icon" className="h-8 w-8">
           <Bell className="h-4 w-4" />
         </Button>
-
-        <Button variant="ghost" size="sm">
-          <Settings className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => signOut()}>
+          <User className="h-4 w-4" />
         </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <User className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => signOut()}>
-              {t('logout')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   );
