@@ -25,34 +25,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Dev mode: check for bypass email and create mock session
-    const devEmail = localStorage.getItem('dev_auto_login_email');
-    if (devEmail === 'joachim.rathke@gmail.com') {
-      const mockUser = {
-        id: 'ffee179d-b9c9-428d-8ce9-8c8956e6af52',
-        email: 'joachim.rathke@gmail.com',
-        created_at: '2025-08-04T12:00:56.055512+00:00',
-        app_metadata: {},
-        user_metadata: {},
-        aud: 'authenticated',
-        role: 'authenticated'
-      } as User;
-      
-      const mockSession = {
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh',
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: mockUser
-      } as Session;
-      
-      setUser(mockUser);
-      setSession(mockSession);
-      setLoading(false);
-      return;
-    }
-
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -76,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Clean up auth state
       localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('dev_auto_login_email'); // Clean up dev flag
       Object.keys(localStorage).forEach((key) => {
         if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
           localStorage.removeItem(key);

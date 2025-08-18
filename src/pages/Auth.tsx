@@ -18,28 +18,49 @@ export const Auth: React.FC = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [devLoading, setDevLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  // Dev auto-login: set bypass flag and redirect without prompting
   useEffect(() => {
-    if (!user) {
-      // Prevent limbo: clear any stale auth keys then set bypass email
-      cleanupAuthState();
-      localStorage.setItem('dev_auto_login_email', 'joachim.rathke@gmail.com');
-      window.location.href = '/';
-    }
-  }, [user]);
-
-  // If a real session exists, just go home
-  useEffect(() => {
+    // Redirect if already logged in
     if (user) {
-      navigate('/');
+      navigate('/', { replace: true });
     }
   }, [user, navigate]);
+
+  const handleDevLogin = async () => {
+    setDevLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('dev-login', {
+        body: { 
+          email: 'joachim@noddi.no',
+          redirectTo: window.location.origin + '/'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.magicLink) {
+        setSuccess('Dev login link generated! Redirecting...');
+        // Redirect to the magic link to complete authentication
+        window.location.href = data.magicLink;
+      } else {
+        throw new Error('No magic link received');
+      }
+    } catch (error: any) {
+      console.error('Dev login error:', error);
+      setError(error.message || 'Failed to generate dev login');
+    } finally {
+      setDevLoading(false);
+    }
+  };
 
   const cleanupAuthState = () => {
     localStorage.removeItem('supabase.auth.token');
@@ -210,6 +231,23 @@ export const Auth: React.FC = () => {
               {t('auth.signInDescription')}
             </CardDescription>
           </CardHeader>
+          
+          {/* Dev Login Section */}
+          <div className="px-6 pb-4">
+            <div className="bg-muted/50 rounded-lg p-4 border border-border">
+              <p className="text-sm text-muted-foreground mb-3 text-center">
+                Development Mode
+              </p>
+              <Button 
+                onClick={handleDevLogin}
+                disabled={devLoading}
+                variant="outline"
+                className="w-full"
+              >
+                {devLoading ? 'Generating login...' : 'Log in as joachim@noddi.no'}
+              </Button>
+            </div>
+          </div>
           <CardContent>
             <Tabs defaultValue="signin" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
