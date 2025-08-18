@@ -15,40 +15,42 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { useNewsletterStore } from './useNewsletterStore';
 
-// Header template used in all newsletters
-const HEADER_TEMPLATE = {
-  id: 'header',
+// Tire service header template
+const TIRE_HEADER_TEMPLATE = {
+  id: 'tire-header',
   type: 'html' as const,
   content: { 
     html: `
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; text-align: center;">
-        <img src="/placeholder.svg" alt="Company Logo" style="height: 48px; margin-bottom: 16px;" />
+      <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%); padding: 24px; text-align: center;">
+        <img src="/placeholder.svg" alt="{{company_name}} Logo" style="height: 48px; margin-bottom: 16px;" />
         <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{company_name}}</h1>
+        <p style="color: #e2e8f0; font-size: 14px; margin: 8px 0 0 0;">Your trusted tire & automotive service partner</p>
       </div>
     `
   },
   styles: { margin: '0', padding: '0' }
 };
 
-// Footer template used in all newsletters
-const FOOTER_TEMPLATE = {
-  id: 'footer',
+// Tire service footer template
+const TIRE_FOOTER_TEMPLATE = {
+  id: 'tire-footer',
   type: 'html' as const,
   content: { 
     html: `
-      <div style="background: #f8f9fa; padding: 32px 24px; border-top: 1px solid #e9ecef;">
+      <div style="background: #f8fafc; padding: 32px 24px; border-top: 1px solid #e2e8f0;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <a href="#" style="color: #007aff; text-decoration: none; margin: 0 16px; font-weight: 500;">About Us</a>
-          <a href="#" style="color: #007aff; text-decoration: none; margin: 0 16px; font-weight: 500;">Contact</a>
-          <a href="#" style="color: #007aff; text-decoration: none; margin: 0 16px; font-weight: 500;">Privacy Policy</a>
-          <a href="#" style="color: #007aff; text-decoration: none; margin: 0 16px; font-weight: 500;">Terms</a>
+          <a href="#" style="color: #1e40af; text-decoration: none; margin: 0 16px; font-weight: 500;">Tire Services</a>
+          <a href="#" style="color: #1e40af; text-decoration: none; margin: 0 16px; font-weight: 500;">Book Appointment</a>
+          <a href="#" style="color: #1e40af; text-decoration: none; margin: 0 16px; font-weight: 500;">Storage Options</a>
+          <a href="#" style="color: #1e40af; text-decoration: none; margin: 0 16px; font-weight: 500;">Contact</a>
         </div>
         <div style="text-align: center; margin-bottom: 16px;">
-          <p style="color: #6c757d; font-size: 14px; margin: 8px 0;">{{company_address}}</p>
-          <p style="color: #6c757d; font-size: 14px; margin: 8px 0;">{{company_phone}} | {{company_email}}</p>
+          <p style="color: #64748b; font-size: 14px; margin: 8px 0;">📍 {{company_address}}</p>
+          <p style="color: #64748b; font-size: 14px; margin: 8px 0;">📞 {{company_phone}} | 📧 {{company_email}}</p>
+          <p style="color: #64748b; font-size: 12px; margin: 8px 0;">Open Mon-Fri 8AM-6PM, Sat 9AM-4PM</p>
         </div>
-        <div style="text-align: center; padding-top: 16px; border-top: 1px solid #dee2e6;">
-          <a href="{{unsubscribe_url}}" style="color: #dc3545; text-decoration: none; font-size: 12px;">Unsubscribe from these emails</a>
+        <div style="text-align: center; padding-top: 16px; border-top: 1px solid #cbd5e1;">
+          <a href="{{unsubscribe_url}}" style="color: #dc2626; text-decoration: none; font-size: 12px;">Unsubscribe from tire service updates</a>
         </div>
       </div>
     `
@@ -57,18 +59,19 @@ const FOOTER_TEMPLATE = {
 };
 
 const TEMPLATE_BLOCKS = {
-  'promotion-flash-sale': [
-    HEADER_TEMPLATE,
+  // INFORMATIONAL TEMPLATES
+  'tire-winter-safety': [
+    TIRE_HEADER_TEMPLATE,
     {
-      id: 'promo-hero',
+      id: 'winter-hero',
       type: 'html' as const,
       content: { 
         html: `
-          <div style="background: linear-gradient(45deg, #ff6b6b, #feca57); padding: 48px 24px; text-align: center; color: white;">
-            <h1 style="font-size: 42px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">⚡ FLASH SALE ⚡</h1>
-            <p style="font-size: 24px; margin: 0 0 24px 0; opacity: 0.95;">LIMITED TIME ONLY</p>
-            <div style="background: rgba(255,255,255,0.2); border-radius: 12px; padding: 24px; margin: 24px auto; max-width: 400px;">
-              <span style="font-size: 72px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">50% OFF</span>
+          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%); padding: 48px 24px; text-align: center; color: white; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="white" opacity="0.3"/><circle cx="80" cy="40" r="1.5" fill="white" opacity="0.5"/><circle cx="60" cy="70" r="1" fill="white" opacity="0.4"/></svg>') repeat; opacity: 0.3;"></div>
+            <div style="position: relative; z-index: 1;">
+              <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">❄️ Winter Tire Safety Guide</h1>
+              <p style="font-size: 18px; margin: 0; opacity: 0.9;">Essential tips to keep you safe on winter roads</p>
             </div>
           </div>
         `
@@ -76,143 +79,444 @@ const TEMPLATE_BLOCKS = {
       styles: { margin: '0', padding: '0' }
     },
     {
-      id: 'promo-details',
+      id: 'winter-intro',
       type: 'text' as const,
-      content: { text: 'Don\'t miss out on our biggest sale of the year! Use code FLASH50 at checkout to save 50% on all items. Sale ends in 24 hours!', tag: 'p' },
-      styles: { fontSize: '18px', color: '#333333', textAlign: 'center', margin: '0', padding: '32px 24px', lineHeight: '1.6' }
+      content: { text: 'Hello {{first_name}}, as winter approaches, ensuring your {{vehicle_type}} is equipped with proper winter tires becomes crucial for your safety and the safety of your loved ones.', tag: 'p' },
+      styles: { fontSize: '16px', color: '#374151', textAlign: 'left', margin: '0', padding: '32px 24px 16px 24px', lineHeight: '1.6' }
     },
     {
-      id: 'promo-cta',
-      type: 'button' as const,
-      content: { text: '🛒 Shop Now & Save 50%', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#ff6b6b', color: '#ffffff', borderRadius: '30px', padding: '16px 32px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 4px 15px rgba(255, 107, 107, 0.4)' }
-    },
-    FOOTER_TEMPLATE
-  ],
-  
-  'promotion-product-launch': [
-    HEADER_TEMPLATE,
-    {
-      id: 'launch-announcement',
+      id: 'safety-checklist',
       type: 'html' as const,
       content: { 
         html: `
-          <div style="padding: 48px 24px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-            <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0;">🚀 NEW PRODUCT LAUNCH</h1>
-            <p style="font-size: 20px; margin: 0; opacity: 0.9;">Introducing our latest innovation</p>
+          <div style="padding: 0 24px 32px 24px;">
+            <h2 style="color: #1e40af; font-size: 24px; margin: 0 0 24px 0; border-bottom: 3px solid #dbeafe; padding-bottom: 8px;">🔍 Pre-Winter Safety Checklist</h2>
+            <div style="background: #f8fafc; padding: 24px; border-radius: 12px; border-left: 4px solid #3b82f6;">
+              <div style="margin-bottom: 16px;">
+                <span style="background: #1e40af; color: white; padding: 4px 8px; border-radius: 4px; font-size: 14px; font-weight: bold;">✓</span>
+                <strong style="color: #1e40af; margin-left: 8px;">Tread Depth:</strong>
+                <span style="color: #374151;"> Minimum 4mm for winter conditions (legal minimum is 1.6mm)</span>
+              </div>
+              <div style="margin-bottom: 16px;">
+                <span style="background: #1e40af; color: white; padding: 4px 8px; border-radius: 4px; font-size: 14px; font-weight: bold;">✓</span>
+                <strong style="color: #1e40af; margin-left: 8px;">Tire Pressure:</strong>
+                <span style="color: #374151;"> Check monthly - cold weather reduces pressure</span>
+              </div>
+              <div>
+                <span style="background: #1e40af; color: white; padding: 4px 8px; border-radius: 4px; font-size: 14px; font-weight: bold;">✓</span>
+                <strong style="color: #1e40af; margin-left: 8px;">Professional Installation:</strong>
+                <span style="color: #374151;"> Proper mounting and balancing for optimal performance</span>
+              </div>
+            </div>
           </div>
         `
       },
       styles: { margin: '0', padding: '0' }
     },
     {
-      id: 'product-showcase',
-      type: 'image' as const,
-      content: { src: '/placeholder.svg', alt: 'New Product', width: '100%', height: 'auto' },
-      styles: { margin: '0', padding: '24px', textAlign: 'center' }
+      id: 'winter-cta',
+      type: 'button' as const,
+      content: { text: '📅 Book Winter Tire Change', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#1e40af', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 4px 15px rgba(30, 64, 175, 0.3)' }
+    },
+    TIRE_FOOTER_TEMPLATE
+  ],
+
+  'tire-spring-maintenance': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'spring-hero',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="background: linear-gradient(135deg, #059669 0%, #6ee7b7 100%); padding: 48px 24px; text-align: center; color: white;">
+            <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🌱 Spring Tire Transition Guide</h1>
+            <p style="font-size: 18px; margin: 0; opacity: 0.9;">Time to switch back to summer tires and maintain your vehicle</p>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
     },
     {
-      id: 'product-description',
-      type: 'text' as const,
-      content: { text: 'Meet our revolutionary new product that will change the way you work. Packed with cutting-edge features and designed with you in mind.', tag: 'p' },
-      styles: { fontSize: '18px', color: '#333333', textAlign: 'center', margin: '0', padding: '0 24px 32px 24px', lineHeight: '1.6' }
+      id: 'spring-content',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+              Hi {{first_name}}, spring is here! Time to transition your {{vehicle_type}} back to summer tires and give your winter tires the care they deserve during storage.
+            </p>
+            
+            <h3 style="color: #059669; font-size: 20px; margin: 0 0 16px 0;">🧼 Proper Winter Tire Storage</h3>
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
+              <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.8;">
+                <li><strong>Clean thoroughly:</strong> Remove salt, dirt, and debris with machine washing</li>
+                <li><strong>Dry storage:</strong> Store in cool, dark, dry environment away from UV rays</li>
+                <li><strong>Proper positioning:</strong> Stack flat or hang to maintain shape</li>
+                <li><strong>Insurance coverage:</strong> Protect your investment with tire insurance</li>
+              </ul>
+            </div>
+            
+            <h3 style="color: #059669; font-size: 20px; margin: 0 0 16px 0;">🔧 Spring Vehicle Maintenance</h3>
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">
+              Perfect time for comprehensive vehicle inspection, alignment check, and general maintenance.
+            </p>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'spring-cta',
+      type: 'button' as const,
+      content: { text: '🌸 Schedule Spring Change & Storage', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#059669', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+    },
+    TIRE_FOOTER_TEMPLATE
+  ],
+
+  'tire-midseason-check': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'check-hero',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="background: linear-gradient(135deg, #dc2626 0%, #fca5a5 100%); padding: 48px 24px; text-align: center; color: white;">
+            <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🔍 Mid-Season Tire Health Check</h1>
+            <p style="font-size: 18px; margin: 0; opacity: 0.9;">Keep your tires in optimal condition year-round</p>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'health-check-content',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+              Hello {{first_name}}, regular tire maintenance extends tire life and ensures optimal safety for your {{vehicle_type}}. Our professional inspections catch issues before they become costly problems.
+            </p>
+            
+            <div style="background: #fef2f2; padding: 24px; border-radius: 12px; border-left: 4px solid #dc2626; margin-bottom: 24px;">
+              <h3 style="color: #dc2626; font-size: 20px; margin: 0 0 16px 0;">⚠️ Warning Signs to Watch For</h3>
+              <div style="display: grid; gap: 12px;">
+                <div style="display: flex; align-items: start;">
+                  <span style="color: #dc2626; margin-right: 8px;">•</span>
+                  <span style="color: #374151;">Uneven tread wear patterns</span>
+                </div>
+                <div style="display: flex; align-items: start;">
+                  <span style="color: #dc2626; margin-right: 8px;">•</span>
+                  <span style="color: #374151;">Vibration while driving</span>
+                </div>
+                <div style="display: flex; align-items: start;">
+                  <span style="color: #dc2626; margin-right: 8px;">•</span>
+                  <span style="color: #374151;">Frequent pressure loss</span>
+                </div>
+                <div style="display: flex; align-items: start;">
+                  <span style="color: #dc2626; margin-right: 8px;">•</span>
+                  <span style="color: #374151;">Sidewall cracks or bulges</span>
+                </div>
+              </div>
+            </div>
+            
+            <div style="background: #eff6ff; padding: 24px; border-radius: 12px;">
+              <h3 style="color: #1e40af; font-size: 18px; margin: 0 0 12px 0;">📊 Our Digital Inspection Includes:</h3>
+              <p style="color: #374151; margin: 0; line-height: 1.6;">
+                Digital tread depth measurements, pressure optimization, wear pattern analysis, and rotation recommendations with detailed reporting.
+              </p>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'check-cta',
+      type: 'button' as const,
+      content: { text: '🔧 Book Free Inspection', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#dc2626', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+    },
+    TIRE_FOOTER_TEMPLATE
+  ],
+
+  'tire-yearround-care': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'care-hero',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="background: linear-gradient(135deg, #7c3aed 0%, #c4b5fd 100%); padding: 48px 24px; text-align: center; color: white;">
+            <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🛡️ Year-Round Tire Care Guide</h1>
+            <p style="font-size: 18px; margin: 0; opacity: 0.9;">Maximize tire life with proper maintenance and storage</p>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'care-tips',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">
+              Dear {{first_name}}, proper tire care protects your investment and ensures your {{vehicle_type}} performs safely in all conditions. Follow these expert recommendations for maximum tire longevity.
+            </p>
+            
+            <div style="display: grid; gap: 24px; margin-bottom: 32px;">
+              <div style="background: #faf5ff; padding: 24px; border-radius: 12px; border-left: 4px solid #7c3aed;">
+                <h3 style="color: #7c3aed; font-size: 18px; margin: 0 0 12px 0;">🌡️ Optimal Storage Conditions</h3>
+                <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.6;">
+                  <li>Temperature: 10-25°C (50-77°F)</li>
+                  <li>Humidity: Below 70% relative humidity</li>
+                  <li>UV Protection: Away from direct sunlight</li>
+                  <li>Clean environment: Free from oils and chemicals</li>
+                </ul>
+              </div>
+              
+              <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; border-left: 4px solid #10b981;">
+                <h3 style="color: #10b981; font-size: 18px; margin: 0 0 12px 0;">📅 Maintenance Schedule</h3>
+                <div style="color: #374151; line-height: 1.6;">
+                  <div style="margin-bottom: 8px;"><strong>Monthly:</strong> Pressure check & visual inspection</div>
+                  <div style="margin-bottom: 8px;"><strong>Seasonal:</strong> Professional inspection & rotation</div>
+                  <div><strong>Annual:</strong> Comprehensive tread depth measurement</div>
+                </div>
+              </div>
+            </div>
+            
+            <div style="background: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fbbf24;">
+              <p style="color: #92400e; margin: 0; font-weight: 500;">
+                💡 Pro Tip: Our automated SMS reminders ensure you never miss important maintenance dates!
+              </p>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'care-cta',
+      type: 'button' as const,
+      content: { text: '📋 Set Up Maintenance Reminders', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#7c3aed', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+    },
+    TIRE_FOOTER_TEMPLATE
+  ],
+
+  // PROMOTIONAL TEMPLATES
+  'tire-early-bird-winter': [
+    TIRE_HEADER_TEMPLATE,
+    {
+      id: 'early-bird-hero',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="background: linear-gradient(45deg, #dc2626, #f97316); padding: 48px 24px; text-align: center; color: white; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50px; right: -50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; animation: pulse 2s infinite;"></div>
+            <h1 style="font-size: 42px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🐦 EARLY BIRD SPECIAL</h1>
+            <p style="font-size: 24px; margin: 0 0 24px 0; opacity: 0.95;">Winter Tire Change</p>
+            <div style="background: rgba(255,255,255,0.2); border-radius: 12px; padding: 24px; margin: 24px auto; max-width: 400px;">
+              <span style="font-size: 48px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Save 25%</span>
+              <p style="margin: 8px 0 0 0; font-size: 16px;">Book before November 1st</p>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
+    },
+    {
+      id: 'early-bird-content',
+      type: 'html' as const,
+      content: { 
+        html: `
+          <div style="padding: 32px 24px;">
+            <p style="color: #374151; font-size: 18px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
+              Hello {{first_name}}, beat the winter rush and save money! Book your {{vehicle_type}} winter tire change early and enjoy priority service with our professional team.
+            </p>
+            
+            <div style="background: #fef2f2; padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+              <h3 style="color: #dc2626; font-size: 20px; margin: 0 0 16px 0; text-align: center;">⏰ Limited Time Offer</h3>
+              <div style="text-align: center; margin-bottom: 16px;">
+                <span style="background: #dc2626; color: white; padding: 8px 16px; border-radius: 8px; font-size: 18px; font-weight: bold;">SAVE25EARLY</span>
+              </div>
+              <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.8;">
+                <li>25% off tire change service (book before Nov 1st)</li>
+                <li>Priority booking - avoid November wait times</li>
+                <li>Professional installation with digital measurements</li>
+                <li>Complimentary tread depth inspection</li>
+                <li>Free tire pressure optimization</li>
+              </ul>
+            </div>
+            
+            <div style="background: #eff6ff; padding: 20px; border-radius: 8px; text-align: center;">
+              <p style="color: #1e40af; margin: 0; font-weight: 500;">
+                🎯 Why book early? Our November calendar fills up fast! Secure your spot and enjoy stress-free winter preparation.
+              </p>
+            </div>
+          </div>
+        `
+      },
+      styles: { margin: '0', padding: '0' }
     },
     {
       id: 'early-bird-cta',
       type: 'button' as const,
-      content: { text: 'Get Early Bird Access', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#667eea', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto' }
+      content: { text: '🎯 Book Now & Save 25%', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#dc2626', color: '#ffffff', borderRadius: '30px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(220, 38, 38, 0.4)' }
     },
-    FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE
   ],
 
-  'newsletter-weekly-digest': [
-    HEADER_TEMPLATE,
+  'tire-spring-bundle': [
+    TIRE_HEADER_TEMPLATE,
     {
-      id: 'newsletter-intro',
+      id: 'bundle-hero',
       type: 'html' as const,
       content: { 
         html: `
-          <div style="padding: 32px 24px; background: #f8f9fa; border-left: 4px solid #007aff;">
-            <h2 style="color: #333333; font-size: 24px; margin: 0 0 16px 0;">📰 Weekly Digest</h2>
-            <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.6;">Stay informed with this week's top stories and updates from our team.</p>
+          <div style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); padding: 48px 24px; text-align: center; color: white;">
+            <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🌸 Spring Service Bundle</h1>
+            <p style="font-size: 20px; margin: 0; opacity: 0.9;">Complete care package for your vehicle</p>
           </div>
         `
       },
       styles: { margin: '0', padding: '0' }
     },
     {
-      id: 'featured-article',
+      id: 'bundle-packages',
       type: 'html' as const,
       content: { 
         html: `
           <div style="padding: 32px 24px;">
-            <h3 style="color: #333333; font-size: 22px; margin: 0 0 16px 0; padding-bottom: 8px; border-bottom: 2px solid #007aff;">🌟 Featured Article</h3>
-            <h4 style="color: #007aff; font-size: 18px; margin: 0 0 12px 0;">Industry Trends: What's Coming Next</h4>
-            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">Discover the latest trends shaping our industry and how they might impact your business in the coming months...</p>
-            <a href="#" style="color: #007aff; text-decoration: none; font-weight: 500;">Read Full Article →</a>
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
+              Hi {{first_name}}, spring is the perfect time to refresh your {{vehicle_type}}! Choose from our comprehensive service bundles designed to keep you safe and your car looking great.
+            </p>
+            
+            <div style="display: grid; gap: 24px; margin-bottom: 32px;">
+              <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; border: 2px solid #10b981;">
+                <div style="text-align: center; margin-bottom: 16px;">
+                  <span style="background: #10b981; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">MOST POPULAR</span>
+                </div>
+                <h3 style="color: #10b981; font-size: 22px; margin: 0 0 12px 0; text-align: center;">🚗 Complete Spring Package</h3>
+                <div style="text-align: center; margin-bottom: 16px;">
+                  <span style="font-size: 32px; font-weight: bold; color: #10b981;">$199</span>
+                  <span style="color: #6b7280; text-decoration: line-through; margin-left: 8px;">$259</span>
+                </div>
+                <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.6;">
+                  <li>Summer tire installation</li>
+                  <li>Winter tire cleaning & storage</li>
+                  <li>Premium car wash & wax</li>
+                  <li>Wheel alignment check</li>
+                  <li>Digital tread measurements</li>
+                </ul>
+              </div>
+              
+              <div style="background: #fffbeb; padding: 24px; border-radius: 12px; border: 1px solid #f59e0b;">
+                <h3 style="color: #f59e0b; font-size: 20px; margin: 0 0 12px 0; text-align: center;">⚡ Express Package</h3>
+                <div style="text-align: center; margin-bottom: 16px;">
+                  <span style="font-size: 28px; font-weight: bold; color: #f59e0b;">$129</span>
+                  <span style="color: #6b7280; text-decoration: line-through; margin-left: 8px;">$169</span>
+                </div>
+                <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.6;">
+                  <li>Tire change service</li>
+                  <li>Basic cleaning & storage</li>
+                  <li>Pressure optimization</li>
+                  <li>Visual inspection</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div style="background: #e0f2fe; padding: 20px; border-radius: 8px; text-align: center;">
+              <p style="color: #0369a1; margin: 0; font-weight: 500;">
+                🎁 Bonus: Book online and receive a free vehicle interior cleaning (€25 value)!
+              </p>
+            </div>
           </div>
         `
       },
       styles: { margin: '0', padding: '0' }
     },
     {
-      id: 'quick-updates',
-      type: 'html' as const,
-      content: { 
-        html: `
-          <div style="padding: 32px 24px; background: #f8f9fa;">
-            <h3 style="color: #333333; font-size: 22px; margin: 0 0 24px 0;">⚡ Quick Updates</h3>
-            <div style="margin-bottom: 16px;">
-              <strong style="color: #333333;">Product Update:</strong>
-              <span style="color: #666666;"> New features released in v2.1</span>
-            </div>
-            <div style="margin-bottom: 16px;">
-              <strong style="color: #333333;">Team News:</strong>
-              <span style="color: #666666;"> Welcome our new marketing director</span>
-            </div>
-            <div>
-              <strong style="color: #333333;">Event:</strong>
-              <span style="color: #666666;"> Join us at the annual conference next month</span>
-            </div>
-          </div>
-        `
-      },
-      styles: { margin: '0', padding: '0' }
+      id: 'bundle-cta',
+      type: 'button' as const,
+      content: { text: '🌸 Choose Your Spring Package', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#10b981', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
     },
-    FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE
   ],
 
-  'newsletter-monthly-insights': [
-    HEADER_TEMPLATE,
+  'tire-loyalty-club': [
+    TIRE_HEADER_TEMPLATE,
     {
-      id: 'monthly-header',
+      id: 'loyalty-hero',
       type: 'html' as const,
       content: { 
         html: `
-          <div style="padding: 40px 24px; text-align: center; background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white;">
-            <h1 style="font-size: 32px; font-weight: bold; margin: 0 0 8px 0;">📊 Monthly Insights</h1>
-            <p style="font-size: 16px; margin: 0; opacity: 0.9;">{{current_month}} {{current_year}} Edition</p>
+          <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 48px 24px; text-align: center; color: white;">
+            <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">👑 VIP Tire Club Membership</h1>
+            <p style="font-size: 18px; margin: 0; opacity: 0.9;">Exclusive benefits for tire care enthusiasts</p>
           </div>
         `
       },
       styles: { margin: '0', padding: '0' }
     },
     {
-      id: 'insights-grid',
+      id: 'loyalty-benefits',
       type: 'html' as const,
       content: { 
         html: `
           <div style="padding: 32px 24px;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
-              <div style="background: #f8f9fa; padding: 24px; border-radius: 8px; border-left: 4px solid #74b9ff;">
-                <h4 style="color: #333333; font-size: 18px; margin: 0 0 12px 0;">📈 Performance</h4>
-                <p style="color: #666666; font-size: 14px; line-height: 1.5; margin: 0;">Key metrics and achievements from this month's activities.</p>
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
+              Dear {{first_name}}, join our exclusive VIP Tire Club and enjoy premium benefits designed for smart {{vehicle_type}} owners who value quality service and convenience.
+            </p>
+            
+            <div style="background: #faf5ff; padding: 28px; border-radius: 16px; margin-bottom: 32px; border: 2px solid #7c3aed;">
+              <h3 style="color: #7c3aed; font-size: 24px; margin: 0 0 20px 0; text-align: center;">🎖️ Membership Benefits</h3>
+              
+              <div style="display: grid; gap: 16px;">
+                <div style="display: flex; align-items: start; padding: 12px; background: white; border-radius: 8px;">
+                  <span style="background: #7c3aed; color: white; padding: 6px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 12px;">💾</span>
+                  <div>
+                    <strong style="color: #7c3aed;">Free Tire Storage</strong>
+                    <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 14px;">Climate-controlled facility with insurance coverage</p>
+                  </div>
+                </div>
+                
+                <div style="display: flex; align-items: start; padding: 12px; background: white; border-radius: 8px;">
+                  <span style="background: #7c3aed; color: white; padding: 6px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 12px;">📱</span>
+                  <div>
+                    <strong style="color: #7c3aed;">Automatic SMS Reminders</strong>
+                    <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 14px;">Never miss a seasonal change again</p>
+                  </div>
+                </div>
+                
+                <div style="display: flex; align-items: start; padding: 12px; background: white; border-radius: 8px;">
+                  <span style="background: #7c3aed; color: white; padding: 6px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 12px;">⭐</span>
+                  <div>
+                    <strong style="color: #7c3aed;">Priority Booking</strong>
+                    <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 14px;">Skip the queue during busy seasons</p>
+                  </div>
+                </div>
+                
+                <div style="display: flex; align-items: start; padding: 12px; background: white; border-radius: 8px;">
+                  <span style="background: #7c3aed; color: white; padding: 6px; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 12px;">💰</span>
+                  <div>
+                    <strong style="color: #7c3aed;">Member Discounts</strong>
+                    <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 14px;">15% off all services and new tire purchases</p>
+                  </div>
+                </div>
               </div>
-              <div style="background: #f8f9fa; padding: 24px; border-radius: 8px; border-left: 4px solid #00b894;">
-                <h4 style="color: #333333; font-size: 18px; margin: 0 0 12px 0;">🎯 Goals</h4>
-                <p style="color: #666666; font-size: 14px; line-height: 1.5; margin: 0;">Progress on our strategic objectives and upcoming targets.</p>
-              </div>
+            </div>
+            
+            <div style="background: #ddd6fe; padding: 20px; border-radius: 12px; text-align: center;">
+              <p style="color: #5b21b6; margin: 0 0 8px 0; font-weight: bold; font-size: 18px;">Special Launch Offer</p>
+              <p style="color: #5b21b6; margin: 0; font-size: 14px;">
+                First year membership: <span style="text-decoration: line-through;">€99</span> <strong>FREE</strong> with any service booking!
+              </p>
             </div>
           </div>
         `
@@ -220,152 +524,168 @@ const TEMPLATE_BLOCKS = {
       styles: { margin: '0', padding: '0' }
     },
     {
-      id: 'detailed-analysis',
-      type: 'text' as const,
-      content: { text: 'This month brought significant developments across multiple areas. Our team achieved record-breaking results while maintaining our commitment to quality and innovation. Looking ahead, we\'re excited about the opportunities that lie ahead.', tag: 'p' },
-      styles: { fontSize: '16px', color: '#333333', textAlign: 'left', margin: '0', padding: '0 24px 32px 24px', lineHeight: '1.6' }
+      id: 'loyalty-cta',
+      type: 'button' as const,
+      content: { text: '👑 Join VIP Club FREE', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#7c3aed', color: '#ffffff', borderRadius: '25px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(124, 58, 237, 0.4)' }
     },
-    FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE
   ],
 
-  'hr-welcome': [
-    HEADER_TEMPLATE,
+  'tire-annual-package': [
+    TIRE_HEADER_TEMPLATE,
     {
-      id: 'welcome-hero',
+      id: 'annual-hero',
       type: 'html' as const,
       content: { 
         html: `
-          <div style="padding: 48px 24px; text-align: center; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); color: white;">
-            <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0;">🎉 Welcome to the Team!</h1>
-            <p style="font-size: 18px; margin: 0; opacity: 0.9;">We're thrilled to have you join our family</p>
+          <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 48px 24px; text-align: center; color: white;">
+            <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🎯 Complete Annual Care Package</h1>
+            <p style="font-size: 18px; margin: 0; opacity: 0.9;">Everything your vehicle needs, all year round</p>
           </div>
         `
       },
       styles: { margin: '0', padding: '0' }
     },
     {
-      id: 'welcome-message',
-      type: 'text' as const,
-      content: { text: 'Dear {{employee_name}}, welcome aboard! We\'re excited to have you join our team and look forward to the fresh perspectives and ideas you\'ll bring. Your journey with us starts now, and we\'re here to support you every step of the way.', tag: 'p' },
-      styles: { fontSize: '16px', color: '#333333', textAlign: 'left', margin: '0', padding: '32px 24px', lineHeight: '1.6' }
-    },
-    {
-      id: 'next-steps',
+      id: 'annual-content',
       type: 'html' as const,
       content: { 
         html: `
-          <div style="padding: 24px; background: #f8f9fa; margin: 0 24px 32px 24px; border-radius: 8px;">
-            <h3 style="color: #333333; font-size: 20px; margin: 0 0 16px 0;">📋 Your First Week</h3>
-            <ul style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0; padding-left: 20px;">
-              <li>Monday: Orientation and office tour</li>
-              <li>Tuesday: Meet your team and manager</li>
-              <li>Wednesday: IT setup and system access</li>
-              <li>Thursday: Training sessions begin</li>
-              <li>Friday: Welcome lunch with the team</li>
-            </ul>
+          <div style="padding: 32px 24px;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
+              Hello {{first_name}}, simplify your {{vehicle_type}} maintenance with our comprehensive annual package. One payment covers everything your vehicle needs throughout the year.
+            </p>
+            
+            <div style="background: #f9fafb; padding: 32px; border-radius: 16px; border: 2px solid #1f2937; margin-bottom: 32px;">
+              <h3 style="color: #1f2937; font-size: 24px; margin: 0 0 24px 0; text-align: center;">📋 Complete Package Includes</h3>
+              
+              <div style="display: grid; gap: 20px;">
+                <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #3b82f6;">
+                  <h4 style="color: #1e40af; font-size: 18px; margin: 0 0 8px 0;">🔄 Seasonal Changes (2x/year)</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Professional winter/summer tire installation with digital measurements</p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #10b981;">
+                  <h4 style="color: #059669; font-size: 18px; margin: 0 0 8px 0;">🏠 Premium Storage</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Climate-controlled storage with insurance coverage and cleaning</p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #f59e0b;">
+                  <h4 style="color: #d97706; font-size: 18px; margin: 0 0 8px 0;">🔍 Health Inspections (4x/year)</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Quarterly digital tread measurements and pressure optimization</p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #dc2626;">
+                  <h4 style="color: #dc2626; font-size: 18px; margin: 0 0 8px 0;">🔧 Additional Services</h4>
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Wheel alignment, bolt retightening, and comprehensive vehicle inspection</p>
+                </div>
+              </div>
+            </div>
+            
+            <div style="background: #ecfdf5; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+              <h4 style="color: #065f46; font-size: 20px; margin: 0 0 12px 0;">💰 Package Value</h4>
+              <div style="margin-bottom: 12px;">
+                <span style="font-size: 28px; font-weight: bold; color: #065f46;">€399/year</span>
+                <span style="color: #6b7280; text-decoration: line-through; margin-left: 8px; font-size: 18px;">€549</span>
+              </div>
+              <p style="color: #065f46; margin: 0; font-weight: 500;">Save €150 compared to individual services</p>
+            </div>
+            
+            <div style="background: #fef3c7; padding: 16px; border-radius: 8px; border: 1px solid #f59e0b;">
+              <p style="color: #92400e; margin: 0; text-align: center; font-weight: 500;">
+                ⏰ Limited spots available - Secure your annual care package today!
+              </p>
+            </div>
           </div>
         `
       },
       styles: { margin: '0', padding: '0' }
     },
-    FOOTER_TEMPLATE
-  ],
-
-  'ops-update': [
-    HEADER_TEMPLATE,
     {
-      id: 'ops-announcement',
-      type: 'html' as const,
-      content: { 
-        html: `
-          <div style="padding: 32px 24px; background: #fff3cd; border-left: 4px solid #ffc107;">
-            <h2 style="color: #856404; font-size: 24px; margin: 0 0 16px 0;">⚙️ Operations Update</h2>
-            <p style="color: #856404; font-size: 16px; margin: 0; font-weight: 500;">Important changes to our operational procedures</p>
-          </div>
-        `
-      },
-      styles: { margin: '0', padding: '0' }
+      id: 'annual-cta',
+      type: 'button' as const,
+      content: { text: '🎯 Secure My Annual Package', href: '#', target: '_blank' },
+      styles: { backgroundColor: '#1f2937', color: '#ffffff', borderRadius: '8px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(31, 41, 55, 0.3)' }
     },
-    {
-      id: 'update-details',
-      type: 'text' as const,
-      content: { text: 'Effective immediately, we are implementing new operational procedures to improve efficiency and better serve our customers. These changes affect scheduling, reporting, and communication protocols.', tag: 'p' },
-      styles: { fontSize: '16px', color: '#333333', textAlign: 'left', margin: '0', padding: '32px 24px', lineHeight: '1.6' }
-    },
-    {
-      id: 'action-required',
-      type: 'html' as const,
-      content: { 
-        html: `
-          <div style="padding: 24px; background: #d4edda; margin: 0 24px 32px 24px; border-radius: 8px; border-left: 4px solid #28a745;">
-            <h3 style="color: #155724; font-size: 18px; margin: 0 0 12px 0;">✅ Action Required</h3>
-            <p style="color: #155724; font-size: 16px; line-height: 1.5; margin: 0;">Please review the updated procedures document and confirm your understanding by {{deadline_date}}.</p>
-          </div>
-        `
-      },
-      styles: { margin: '0', padding: '0' }
-    },
-    FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE
   ]
 };
 
 const TEMPLATES = [
+  // TIRE SERVICE INFORMATIONAL TEMPLATES
   {
-    id: 'promotion-flash-sale',
-    name: 'Flash Sale',
-    description: 'Eye-catching sale promotion with countdown urgency',
-    category: 'promotion',
-    icon: Megaphone,
-    preview: '/api/placeholder/300/200'
-  },
-  {
-    id: 'promotion-product-launch',
-    name: 'Product Launch',
-    description: 'Professional product announcement with showcase',
-    category: 'promotion',
-    icon: Megaphone,
-    preview: '/api/placeholder/300/200'
-  },
-  {
-    id: 'newsletter-weekly-digest',
-    name: 'Weekly Digest',
-    description: 'News roundup with featured articles and quick updates',
-    category: 'newsletter',
+    id: 'tire-winter-safety',
+    name: 'Winter Safety Guide',
+    description: 'Essential winter tire safety tips and preparation checklist',
+    category: 'tire-info',
     icon: FileText,
     preview: '/api/placeholder/300/200'
   },
   {
-    id: 'newsletter-monthly-insights',
-    name: 'Monthly Insights',
-    description: 'Comprehensive monthly report with analytics and goals',
-    category: 'newsletter',
+    id: 'tire-spring-maintenance',
+    name: 'Spring Transition Guide',
+    description: 'Spring tire change and proper winter tire storage tips',
+    category: 'tire-info',
     icon: FileText,
     preview: '/api/placeholder/300/200'
   },
   {
-    id: 'hr-welcome',
-    name: 'Employee Welcome',
-    description: 'Warm welcome message with onboarding schedule',
-    category: 'hr',
-    icon: Users,
+    id: 'tire-midseason-check',
+    name: 'Mid-Season Health Check',
+    description: 'Professional tire inspection and maintenance reminders',
+    category: 'tire-info',
+    icon: FileText,
     preview: '/api/placeholder/300/200'
   },
   {
-    id: 'ops-update',
-    name: 'Operations Update',
-    description: 'Important operational changes with action items',
-    category: 'ops',
-    icon: Wrench,
+    id: 'tire-yearround-care',
+    name: 'Year-Round Care Guide',
+    description: 'Complete tire maintenance and storage best practices',
+    category: 'tire-info',
+    icon: FileText,
+    preview: '/api/placeholder/300/200'
+  },
+  
+  // TIRE SERVICE PROMOTIONAL TEMPLATES
+  {
+    id: 'tire-early-bird-winter',
+    name: 'Early Bird Winter Special',
+    description: 'Pre-November booking discount for winter tire changes',
+    category: 'tire-promo',
+    icon: Megaphone,
+    preview: '/api/placeholder/300/200'
+  },
+  {
+    id: 'tire-spring-bundle',
+    name: 'Spring Service Bundle',
+    description: 'Complete spring packages with tire change and car wash',
+    category: 'tire-promo',
+    icon: Megaphone,
+    preview: '/api/placeholder/300/200'
+  },
+  {
+    id: 'tire-loyalty-club',
+    name: 'VIP Tire Club Membership',
+    description: 'Exclusive membership benefits with storage and discounts',
+    category: 'tire-promo',
+    icon: Megaphone,
+    preview: '/api/placeholder/300/200'
+  },
+  {
+    id: 'tire-annual-package',
+    name: 'Annual Care Package',
+    description: 'Complete yearly tire service with seasonal changes',
+    category: 'tire-promo',
+    icon: Megaphone,
     preview: '/api/placeholder/300/200'
   }
 ];
 
 const CATEGORIES = [
   { id: 'all', name: 'All Templates', icon: Star },
-  { id: 'promotion', name: 'Promotions', icon: Megaphone },
-  { id: 'hr', name: 'HR Communications', icon: Users },
-  { id: 'ops', name: 'Operations', icon: Wrench },
-  { id: 'newsletter', name: 'Newsletters', icon: FileText }
+  { id: 'tire-info', name: 'Tire Information', icon: FileText },
+  { id: 'tire-promo', name: 'Tire Promotions', icon: Megaphone }
 ];
 
 export const TemplateLibrary: React.FC = () => {
