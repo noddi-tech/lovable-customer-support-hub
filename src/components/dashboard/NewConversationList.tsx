@@ -3,11 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { StandardList } from "@/components/ui/standard-list";
+import { AccessibleStandardList } from "@/components/ui/accessible-standard-list";
 import { Pane, PaneToolbar, PaneBody } from "@/components/layout";
 import { usePaginatedQuery } from "@/hooks/usePaginatedQuery";
 import { fetchConversationsPaginated, Conversation, ConversationFilters } from "@/services/conversationsService";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
+import { useAriaAnnouncement } from "@/hooks/useAriaAnnouncement";
 import { useTranslation } from "react-i18next";
 import { 
   Search, 
@@ -68,6 +69,7 @@ export function NewConversationList({
 }: NewConversationListProps) {
   const { t } = useTranslation();
   const { dateTime } = useDateFormatting();
+  const { announce } = useAriaAnnouncement();
   
   const [filters, setFilters] = useState<ConversationFilters>({
     inbox_id: inboxId,
@@ -204,6 +206,7 @@ export function NewConversationList({
       icon: CheckCircle,
       action: async (conversations) => {
         console.log('Mark as read:', conversations);
+        announce(`Marked ${conversations.length} conversations as read`);
         // TODO: Implement bulk mark as read
       }
     },
@@ -213,6 +216,7 @@ export function NewConversationList({
       icon: Archive,
       action: async (conversations) => {
         console.log('Archive:', conversations);
+        announce(`Archived ${conversations.length} conversations`);
         // TODO: Implement bulk archive
       }
     },
@@ -223,6 +227,7 @@ export function NewConversationList({
       destructive: true,
       action: async (conversations) => {
         console.log('Delete:', conversations);
+        announce(`Deleted ${conversations.length} conversations`);
         // TODO: Implement bulk delete
       }
     }
@@ -231,6 +236,9 @@ export function NewConversationList({
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setPage(1); // Reset to first page when searching
+    if (query) {
+      announce(`Searching for ${query}`);
+    }
   };
 
   const handleFilterChange = (key: keyof ConversationFilters, value: string) => {
@@ -239,11 +247,16 @@ export function NewConversationList({
       [key]: value === 'all' ? undefined : value
     }));
     setPage(1); // Reset to first page when filtering
+    announce(`Filtered by ${key}: ${value}`);
   };
 
   return (
     <Pane className="flex-1">
-      <PaneToolbar className="flex items-center justify-between gap-4 p-4 border-b">
+      <PaneToolbar 
+        className="flex items-center justify-between gap-4 p-4 border-b"
+        role="toolbar"
+        aria-label="Conversation filters and actions"
+      >
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -252,11 +265,19 @@ export function NewConversationList({
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 w-64"
+              aria-label="Search conversations"
+              aria-describedby="search-description"
             />
+            <div id="search-description" className="sr-only">
+              Search through conversation subjects, customer names, and email addresses
+            </div>
           </div>
           
-          <Select value={filters.status || 'all'} onValueChange={(value) => handleFilterChange('status', value)}>
-            <SelectTrigger className="w-32">
+          <Select 
+            value={filters.status || 'all'} 
+            onValueChange={(value) => handleFilterChange('status', value)}
+          >
+            <SelectTrigger className="w-32" aria-label="Filter by status">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -268,8 +289,11 @@ export function NewConversationList({
             </SelectContent>
           </Select>
 
-          <Select value={filters.priority || 'all'} onValueChange={(value) => handleFilterChange('priority', value)}>
-            <SelectTrigger className="w-32">
+          <Select 
+            value={filters.priority || 'all'} 
+            onValueChange={(value) => handleFilterChange('priority', value)}
+          >
+            <SelectTrigger className="w-32" aria-label="Filter by priority">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -291,7 +315,7 @@ export function NewConversationList({
       </PaneToolbar>
 
       <PaneBody className="flex-1">
-        <StandardList
+        <AccessibleStandardList
           data={paginatedData?.data || []}
           columns={columns}
           isLoading={isLoading}
@@ -317,6 +341,8 @@ export function NewConversationList({
           )}
           emptyMessage="No conversations found"
           emptyDescription="No conversations match your current filters"
+          ariaLabel="Conversations table"
+          ariaDescription="List of customer conversations with status, priority, and assignment information"
         />
       </PaneBody>
     </Pane>

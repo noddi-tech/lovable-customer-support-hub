@@ -7,7 +7,7 @@ interface PaneProps {
   id?: string;
 }
 
-interface PaneToolbarProps {
+interface PaneToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
@@ -30,9 +30,9 @@ const Pane = ({ children, className, id }: PaneProps) => {
   );
 };
 
-const PaneToolbar = ({ children, className }: PaneToolbarProps) => {
+const PaneToolbar = ({ children, className, ...props }: PaneToolbarProps) => {
   return (
-    <div className={cn("pane-toolbar flex items-center gap-2 p-4", className)}>
+    <div className={cn("pane-toolbar flex items-center gap-2 p-4", className)} {...props}>
       {children}
     </div>
   );
