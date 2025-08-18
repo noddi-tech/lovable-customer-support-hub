@@ -4,7 +4,10 @@ import { AppRoot, AppHeader, AppMain, AppSidebar, ResponsiveLayout, MobileNaviga
 import { ResponsiveProvider, useResponsive } from '@/contexts/ResponsiveContext';
 import { useAccessibleNavigation } from '@/hooks/useAccessibleNavigation';
 import { KeyboardShortcutsHelp } from '@/components/ui/keyboard-shortcuts-help';
+import { PerformanceMonitor } from '@/components/ui/performance-monitor';
+import { TestRunner } from '@/components/testing/TestRunner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import InteractionsWrapper from '@/components/dashboard/InteractionsWrapper';
 import MarketingWrapper from '@/components/dashboard/MarketingWrapper';
 import OpsWrapper from '@/components/dashboard/OpsWrapper';
@@ -12,6 +15,8 @@ import OpsWrapper from '@/components/dashboard/OpsWrapper';
 const IndexContent = () => {
   const { isMobile, showInspector, setShowInspector } = useResponsive();
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showPerformance, setShowPerformance] = useState(false);
+  const [showTestRunner, setShowTestRunner] = useState(false);
   const navigate = useNavigate();
 
   useAccessibleNavigation({
@@ -21,6 +26,21 @@ const IndexContent = () => {
       navigate(`/${section}`);
     }
   });
+
+  // Additional keyboard shortcuts for development
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+        setShowPerformance(true);
+      }
+      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        setShowTestRunner(true);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (isMobile) {
     return (
@@ -39,6 +59,19 @@ const IndexContent = () => {
             <KeyboardShortcutsHelp />
           </DialogContent>
         </Dialog>
+
+        <Dialog open={showTestRunner} onOpenChange={setShowTestRunner}>
+          <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>Test Runner</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto max-h-[60vh]">
+              <TestRunner />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <PerformanceMonitor show={showPerformance} onClose={() => setShowPerformance(false)} />
       </>
     );
   }
@@ -67,6 +100,19 @@ const IndexContent = () => {
           <KeyboardShortcutsHelp />
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showTestRunner} onOpenChange={setShowTestRunner}>
+        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Test Runner & Validation</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh]">
+            <TestRunner />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <PerformanceMonitor show={showPerformance} onClose={() => setShowPerformance(false)} />
     </>
   );
 };

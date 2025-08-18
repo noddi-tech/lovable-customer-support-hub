@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationFooter } from "./pagination-footer";
 import { ResponsivePane, ResponsiveTable, ResponsiveToolbar } from "./responsive-components";
+import { ScrollContainer } from "./scroll-container";
 import { ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ListColumn, BulkAction } from "@/types/pagination";
@@ -253,7 +254,7 @@ export function AccessibleStandardList<T extends { id: string }>({
       )}
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollContainer orientation="vertical" className="flex-1">
         <ResponsiveTable>
           <table 
             ref={tableRef}
@@ -391,7 +392,7 @@ export function AccessibleStandardList<T extends { id: string }>({
             </tbody>
           </table>
         </ResponsiveTable>
-      </div>
+      </ScrollContainer>
 
       {/* Pagination Footer */}
       <PaginationFooter

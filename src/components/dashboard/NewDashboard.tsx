@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { InboxSidebar } from './InboxSidebar';
 import { useQueryClient } from '@tanstack/react-query';
+import { ScrollContainer } from '@/components/ui/scroll-container';
 
 export const NewDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,11 +69,11 @@ export const NewDashboard: React.FC = () => {
         </Button>
       </div>
       
-      <div className="flex-1 overflow-y-auto">
+      <ScrollContainer orientation="vertical" className="flex-1">
         <ConversationView
           conversationId={selectedConversation.id}
         />
-      </div>
+      </ScrollContainer>
     </div>
   );
 
