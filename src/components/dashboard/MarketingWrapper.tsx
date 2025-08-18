@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, MessageSquare } from 'lucide-react';
 import { SMSInterface } from '@/components/dashboard/SMSInterface';
 import { useTranslation } from 'react-i18next';
-import NewsletterBuilder from './NewsletterBuilder';
+import NewNewsletterBuilder from './NewNewsletterBuilder';
 
 const MarketingWrapper = () => {
   const { t } = useTranslation();
@@ -12,7 +12,7 @@ const MarketingWrapper = () => {
   return (
     <div className="h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <div className="border-b bg-background px-6 py-3">
+        <div className="border-b bg-background px-6 py-3 sticky top-0 z-10">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="email" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
@@ -25,11 +25,11 @@ const MarketingWrapper = () => {
           </TabsList>
         </div>
 
-        <TabsContent value="email" className="flex-1 m-0 p-0">
-          <NewsletterBuilder />
+        <TabsContent value="email" className="flex-1 m-0 p-0 overflow-hidden">
+          <NewNewsletterBuilder />
         </TabsContent>
 
-        <TabsContent value="sms" className="flex-1 m-0 p-0">
+        <TabsContent value="sms" className="flex-1 m-0 p-0 overflow-hidden">
           <SMSInterface />
         </TabsContent>
       </Tabs>
