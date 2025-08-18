@@ -254,7 +254,7 @@ export function AccessibleStandardList<T extends { id: string }>({
       )}
 
       {/* Table */}
-      <ScrollContainer orientation="vertical" className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <ResponsiveTable>
           <table 
             ref={tableRef}
@@ -392,7 +392,7 @@ export function AccessibleStandardList<T extends { id: string }>({
             </tbody>
           </table>
         </ResponsiveTable>
-      </ScrollContainer>
+      </div>
 
       {/* Pagination Footer */}
       <PaginationFooter

@@ -1,116 +1,123 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { NewConversationList } from './NewConversationList';
-import { ConversationView } from './ConversationView';
-import { ResponsiveLayout } from '@/components/layout';
-import { useResponsive } from '@/contexts/ResponsiveContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MessageSquare, Phone, Plus } from 'lucide-react';
+import { InboxSidebar } from '@/components/dashboard/InboxSidebar';
+import { NewConversationList } from '@/components/dashboard/NewConversationList';
+import { ConversationView } from '@/components/dashboard/ConversationView';
+import { useTranslation } from 'react-i18next';
 import { Conversation } from '@/services/conversationsService';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
-import { InboxSidebar } from './InboxSidebar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
-import { ScrollContainer } from '@/components/ui/scroll-container';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, Phone } from 'lucide-react';
 
-export const NewDashboard: React.FC = () => {
+export function NewDashboard() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const { showInspector, setShowInspector, isMobile } = useResponsive();
+  const [selectedTab, setSelectedTab] = useState('unread');
+  const [activeTab, setActiveTab] = useState('text');
+  const [selectedInboxId, setSelectedInboxId] = useState<string>('all');
   const queryClient = useQueryClient();
-
-  const conversationIdFromUrl = searchParams.get('conversation');
-  const selectedInboxId = localStorage.getItem('selectedInboxId') || 'all';
 
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    
-    // On mobile, navigate to a full conversation view
-    if (isMobile) {
-      // TODO: Navigate to dedicated conversation page
-      console.log('Mobile conversation select:', conversation.id);
-    } else {
-      setShowInspector(true);
-    }
-    
-    // Update URL with conversation ID
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('conversation', conversation.id);
-    setSearchParams(newParams, { replace: true });
+    setSearchParams({ conversationId: conversation.id });
   };
 
   const handleCloseConversation = () => {
     setSelectedConversation(null);
-    setShowInspector(false);
-    
-    // Remove conversation ID from URL
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('conversation');
-    setSearchParams(newParams, { replace: true });
+    setSearchParams({});
   };
 
-  const mainContent = (
-    <div className="flex-1 flex flex-col">
-      {/* Text/Voice tabs */}
-      <div className="border-b bg-background px-6 py-3">
-        <Tabs defaultValue="text" className="w-full max-w-md">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="text" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Text
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Voice
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-      
-      {/* Conversation List */}
-      <div className="flex-1">
-        <NewConversationList
-          selectedConversation={selectedConversation}
-          onConversationSelect={handleConversationSelect}
-          inboxId={selectedInboxId}
-        />
-      </div>
-    </div>
-  );
-
-  const inspectorContent = selectedConversation && (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">
-        <h3 className="font-medium">Conversation Details</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCloseConversation}
-          className="h-8 w-8 p-0"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <ScrollContainer orientation="vertical" className="flex-1">
-        <ConversationView
-          conversationId={selectedConversation.id}
-        />
-      </ScrollContainer>
-    </div>
-  );
+  const handleTabChange = (tab: string) => {
+    setSelectedTab(tab);
+    // Invalidate conversation queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+  };
 
   return (
-    <ResponsiveLayout
-      sidebar={<InboxSidebar selectedTab={selectedInboxId} onTabChange={(tab) => {
-        localStorage.setItem('selectedInboxId', tab);
-        // Refresh conversation list by invalidating queries
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      }} />}
-      main={mainContent}
-      inspector={inspectorContent}
-      showInspector={showInspector && !!selectedConversation}
-      onToggleInspector={() => setShowInspector(!showInspector)}
-    />
+    <div className="h-full flex overflow-hidden">
+      {/* Left Sidebar - Inbox Navigation */}
+      <div className="w-80 border-r border-border bg-background flex flex-col overflow-hidden">
+        {/* Inbox Selector */}
+        <div className="p-4 border-b border-border">
+          <div className="space-y-3">
+            <Select value={selectedInboxId} onValueChange={setSelectedInboxId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select inbox" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Inboxes</SelectItem>
+                <SelectItem value="support">Support</SelectItem>
+                <SelectItem value="sales">Sales</SelectItem>
+                <SelectItem value="billing">Billing</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Button className="w-full" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              New Conversation
+            </Button>
+          </div>
+        </div>
+
+        {/* Inbox Sidebar */}
+        <div className="flex-1 overflow-y-auto">
+          <InboxSidebar 
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+            selectedInboxId={selectedInboxId}
+          />
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Conversation List */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Tabs */}
+          <div className="border-b bg-background px-4 py-2 flex-shrink-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full max-w-lg grid-cols-2">
+                <TabsTrigger value="text" className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  {t('text')}
+                </TabsTrigger>
+                <TabsTrigger value="voice" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  {t('voice')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-hidden">
+            {activeTab === 'text' ? (
+              <NewConversationList 
+                selectedConversation={selectedConversation}
+                onConversationSelect={handleConversationSelect}
+                inboxId={selectedTab === 'all' ? undefined : selectedTab}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                Voice interface coming soon
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Conversation View - Inspector */}
+        {selectedConversation && (
+          <div className="w-2/5 border-l border-border overflow-hidden">
+            <ConversationView
+              conversation={selectedConversation}
+              onClose={handleCloseConversation}
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
-};
+}

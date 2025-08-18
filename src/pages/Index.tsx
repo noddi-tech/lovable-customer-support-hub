@@ -78,19 +78,14 @@ const IndexContent = () => {
 
   return (
     <>
-      <ResponsiveLayout
-        sidebar={<AppSidebar />}
-        main={
-          <div className="flex-1 overflow-hidden">
-            <Routes>
-              <Route path="/" element={<Navigate to="/interactions" replace />} />
-              <Route path="/interactions/*" element={<InteractionsWrapper />} />
-              <Route path="/marketing/*" element={<MarketingWrapper />} />
-              <Route path="/ops/*" element={<OpsWrapper />} />
-            </Routes>
-          </div>
-        }
-      />
+      <div className="flex-1 overflow-hidden">
+        <Routes>
+          <Route path="/" element={<Navigate to="/interactions" replace />} />
+          <Route path="/interactions/*" element={<InteractionsWrapper />} />
+          <Route path="/marketing/*" element={<MarketingWrapper />} />
+          <Route path="/ops/*" element={<OpsWrapper />} />
+        </Routes>
+      </div>
       
       <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
         <DialogContent className="sm:max-w-2xl">

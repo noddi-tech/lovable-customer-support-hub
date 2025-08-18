@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { InboxSidebarItem } from './InboxSidebarItem';
 import { 
   Inbox, 
   Archive, 
@@ -14,13 +14,16 @@ import {
   Filter,
   Plus,
   Bell,
-  CheckCircle
+  CheckCircle,
+  Hash,
+  ChevronDown, 
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { NewConversationDialog } from './NewConversationDialog';
 import { useTranslation } from 'react-i18next';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface InboxSidebarProps {
   selectedTab: string;
@@ -128,197 +131,147 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
   ];
 
   return (
-    <div className="w-64 bg-card/90 backdrop-blur-sm border-r border-border h-full flex flex-col shadow-surface">
-      {/* Create Button */}
-      <div className="p-4">
-        <NewConversationDialog>
-          <Button className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
-            <Plus className="mr-2 h-4 w-4" />
-            {t('dashboard.sidebar.newConversation')}
-          </Button>
-        </NewConversationDialog>
-      </div>
-
-      {/* Inbox Categories */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inbox')}</h3>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <Filter className="h-3 w-3" />
-            </Button>
-          </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Sidebar content */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-1">
+        {/* Conversations section */}
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 py-1">
+            {t('conversations')}
+          </h3>
           
-          <div className="space-y-1">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon;
-              const isSelected = selectedTab === item.id;
-              
-              return (
-                <Button
-                  key={item.id}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start px-2 py-2 h-auto font-normal",
-                    isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
-                  )}
-                  onClick={() => onTabChange(item.id)}
-                >
-                  <Icon className="mr-3 h-4 w-4" />
-                  <span className="flex-1 text-left">{item.label}</span>
-                  {item.count > 0 && (
-                    <Badge 
-                      variant={isSelected ? "default" : "secondary"} 
-                      className="ml-auto h-5 text-xs"
-                    >
-                      {item.count}
-                    </Badge>
-                  )}
-                </Button>
-              );
-            })}
-          </div>
+          <InboxSidebarItem
+            id="unread"
+            label={t('unread')}
+            icon={Inbox}
+            count={conversationCounts.unread}
+            isActive={selectedTab === 'unread'}
+            onClick={() => onTabChange('unread')}
+          />
+
+          <InboxSidebarItem
+            id="pending"
+            label={t('pending')}
+            icon={Clock}
+            count={conversationCounts.pending}
+            isActive={selectedTab === 'pending'}
+            onClick={() => onTabChange('pending')}
+          />
+
+          <InboxSidebarItem
+            id="closed"
+            label={t('closed')}
+            icon={Archive}
+            count={conversationCounts.closed}
+            isActive={selectedTab === 'closed'}
+            onClick={() => onTabChange('closed')}
+          />
+
+          <InboxSidebarItem
+            id="assigned"
+            label={t('assignedToMe')}
+            icon={Users}
+            count={conversationCounts.assigned}
+            isActive={selectedTab === 'assigned'}
+            onClick={() => onTabChange('assigned')}
+          />
+
+          <InboxSidebarItem
+            id="all"
+            label={t('inbox')}
+            icon={Inbox}
+            count={conversationCounts.inbox}
+            isActive={selectedTab === 'all'}
+            onClick={() => onTabChange('all')}
+          />
+
+          <InboxSidebarItem
+            id="notifications"
+            label={t('notifications')}
+            icon={Bell}
+            count={unreadNotifications}
+            isActive={selectedTab === 'notifications'}
+            onClick={() => onTabChange('notifications')}
+          />
         </div>
 
-        <Separator className="my-4" />
+        <Separator />
 
-        {/* Notifications */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.notifications')}</h3>
-          </div>
-          
-          <div className="space-y-1">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start px-2 py-2 h-auto font-normal",
-                selectedTab === 'notifications' ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
-              )}
-              onClick={() => {
-                console.log('Notifications tab clicked, current selectedTab:', selectedTab);
-                onTabChange('notifications');
-                console.log('onTabChange called with notifications');
-              }}
-            >
-              <Bell className="mr-3 h-4 w-4" />
-              <span className="flex-1 text-left">{t('dashboard.sidebar.notifications')}</span>
-              {unreadNotifications > 0 && (
-                <Badge 
-                  variant={selectedTab === 'notifications' ? "default" : "secondary"} 
-                  className="ml-auto h-5 text-xs"
-                >
-                  {unreadNotifications}
-                </Badge>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        <Separator className="my-4" />
-
-        {/* Channels */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.channels')}</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => setExpandedChannels(!expandedChannels)}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          {expandedChannels && (
-            <div className="space-y-1">
-              {channelItems.map((item) => {
-                const Icon = item.icon;
-                const isSelected = selectedTab === item.id;
-                
-                return (
-                  <Button
-                    key={item.id}
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start px-2 py-2 h-auto font-normal",
-                      isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
-                    )}
-                    onClick={() => onTabChange(item.id)}
-                  >
-                    <Icon 
-                      className={cn(
-                        "mr-3 h-4 w-4",
-                        `text-${item.color}`
-                      )} 
-                    />
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {item.count > 0 && (
-                      <Badge 
-                        variant={isSelected ? "default" : "secondary"} 
-                        className="ml-auto h-5 text-xs"
-                      >
-                        {item.count}
-                      </Badge>
-                    )}
-                  </Button>
-                );
-              })}
+        {/* Channels section */}
+        <Collapsible open={expandedChannels} onOpenChange={setExpandedChannels}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-muted/50 rounded">
+              {expandedChannels ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {t('channels')}
+              </span>
             </div>
-          )}
-        </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1">
+            <InboxSidebarItem
+              id="email"
+              label={t('email')}
+              icon={Mail}
+              count={conversationCounts.email}
+              isActive={selectedTab === 'email'}
+              onClick={() => onTabChange('email')}
+            />
 
-        <Separator className="my-4" />
+            <InboxSidebarItem
+              id="facebook"
+              label={t('facebook')}
+              icon={MessageCircle}
+              count={conversationCounts.facebook}
+              isActive={selectedTab === 'facebook'}
+              onClick={() => onTabChange('facebook')}
+            />
 
-        {/* Inboxes */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inboxes')}</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => setExpandedInboxes(!expandedInboxes)}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          {expandedInboxes && (
-            <div className="space-y-1">
-              {inboxes.filter(inbox => inbox.is_active).map((inbox) => {
-                const isSelected = selectedTab === `inbox-${inbox.id}`;
-                
-                return (
-                  <Button
-                    key={inbox.id}
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start px-2 py-2 h-auto font-normal",
-                      isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
-                    )}
-                    onClick={() => onTabChange(`inbox-${inbox.id}`)}
-                  >
-                    <div 
-                      className="mr-3 w-3 h-3 rounded-full flex-shrink-0" 
-                      style={{ backgroundColor: inbox.color }}
-                    />
-                    <span className="flex-1 text-left truncate">{inbox.name}</span>
-                    {inbox.conversation_count > 0 && (
-                      <Badge 
-                        variant={isSelected ? "default" : "secondary"} 
-                        className="ml-auto h-5 text-xs"
-                      >
-                        {inbox.conversation_count}
-                      </Badge>
-                    )}
-                  </Button>
-                );
-              })}
+            <InboxSidebarItem
+              id="instagram"
+              label={t('instagram')}
+              icon={Camera}
+              count={conversationCounts.instagram}
+              isActive={selectedTab === 'instagram'}
+              onClick={() => onTabChange('instagram')}
+            />
+
+            <InboxSidebarItem
+              id="whatsapp"
+              label={t('whatsapp')}
+              icon={Phone}
+              count={conversationCounts.whatsapp}
+              isActive={selectedTab === 'whatsapp'}
+              onClick={() => onTabChange('whatsapp')}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Separator />
+
+        {/* Custom inboxes section */}
+        <Collapsible open={expandedInboxes} onOpenChange={setExpandedInboxes}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-muted/50 rounded">
+              {expandedInboxes ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {t('inboxes')}
+              </span>
             </div>
-          )}
-        </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1">
+            {inboxes?.filter(inbox => inbox.is_active).map((inbox) => (
+              <InboxSidebarItem
+                key={inbox.id}
+                id={inbox.id}
+                label={inbox.name}
+                icon={Hash}
+                count={inbox.conversation_count}
+                isActive={selectedInboxId === inbox.id}
+                onClick={() => onTabChange(inbox.id)}
+              />
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );
