@@ -253,7 +253,7 @@ export function AccessibleStandardList<T extends { id: string }>({
       )}
 
       {/* Table */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         <ResponsiveTable>
           <table 
             ref={tableRef}

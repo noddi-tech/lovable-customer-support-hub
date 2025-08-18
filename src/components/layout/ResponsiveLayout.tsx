@@ -51,7 +51,7 @@ export const ResponsiveLayout = ({
             {main}
           </div>
           {showInspector && inspector && (
-            <div className="w-80 border-l border-border">
+            <div className="w-80 border-l border-border overflow-y-auto">
               {inspector}
             </div>
           )}
@@ -81,7 +81,7 @@ export const ResponsiveLayout = ({
           {main}
         </div>
         {showInspector && inspector && (
-          <div className="w-96 border-l border-border">
+          <div className="w-96 border-l border-border overflow-y-auto">
             {inspector}
           </div>
         )}

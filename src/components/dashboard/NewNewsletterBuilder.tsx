@@ -278,11 +278,9 @@ const NewNewsletterBuilder = () => {
               {canvasContent}
               
               {/* Inspector */}
-              {showInspector && (
-                <div className="w-80 border-l">
-                  {inspectorContent}
-                </div>
-              )}
+              <div className="w-80 border-l border-border overflow-y-auto">
+                {inspectorContent}
+              </div>
             </div>
           </>
         )}

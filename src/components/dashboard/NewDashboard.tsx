@@ -7,11 +7,14 @@ import { useResponsive } from '@/contexts/ResponsiveContext';
 import { Conversation } from '@/services/conversationsService';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { InboxSidebar } from './InboxSidebar';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const NewDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const { showInspector, setShowInspector, isMobile } = useResponsive();
+  const queryClient = useQueryClient();
 
   const conversationIdFromUrl = searchParams.get('conversation');
   const selectedInboxId = localStorage.getItem('selectedInboxId') || 'all';
@@ -65,7 +68,7 @@ export const NewDashboard: React.FC = () => {
         </Button>
       </div>
       
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         <ConversationView
           conversationId={selectedConversation.id}
         />
@@ -75,7 +78,11 @@ export const NewDashboard: React.FC = () => {
 
   return (
     <ResponsiveLayout
-      sidebar={null} // No nested sidebar needed here
+      sidebar={<InboxSidebar selectedTab={selectedInboxId} onTabChange={(tab) => {
+        localStorage.setItem('selectedInboxId', tab);
+        // Refresh conversation list by invalidating queries
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }} />}
       main={mainContent}
       inspector={inspectorContent}
       showInspector={showInspector && !!selectedConversation}
