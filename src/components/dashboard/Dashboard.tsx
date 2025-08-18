@@ -10,7 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { usePermissions } from '@/hooks/usePermissions';
+// import { usePermissions } from '@/hooks/usePermissions'; // Disabled for development
 import { useTranslation } from 'react-i18next';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
