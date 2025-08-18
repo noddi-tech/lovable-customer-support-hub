@@ -25,8 +25,11 @@ export const Auth: React.FC = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
+    console.log('Auth page - user state:', user);
     if (user) {
-      navigate('/');
+      console.log('Auth page - redirecting authenticated user to main app');
+      // Use replace: true to prevent back navigation to auth page
+      navigate('/', { replace: true });
     }
   }, [user, navigate]);
 
@@ -60,7 +63,8 @@ export const Auth: React.FC = () => {
       if (error) throw error;
       
       if (data.user) {
-        window.location.href = '/';
+        // Force immediate navigation instead of window.location.href
+        navigate('/', { replace: true });
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign in');
@@ -166,7 +170,7 @@ export const Auth: React.FC = () => {
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed, redirect to main app
           console.log('User immediately confirmed, redirecting...');
-          window.location.href = '/';
+          navigate('/', { replace: true });
         } else {
           console.log('User needs email confirmation');
           setSuccess('Account created! Please check your email for the confirmation link.');
