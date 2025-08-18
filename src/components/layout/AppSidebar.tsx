@@ -46,7 +46,10 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-border">
+    <Sidebar 
+      className="border-r border-border"
+      collapsible="icon"
+    >
       <SidebarContent className="bg-background">
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-3 py-2">
@@ -56,12 +59,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild tooltip={collapsed ? t(item.title) : undefined}>
                     <NavLink 
                       to={item.url} 
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${getNavCls(item.url)}`}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-4 w-4 min-w-4" />
                       {!collapsed && <span className="text-sm">{t(item.title)}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -79,12 +82,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {secondaryItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild tooltip={collapsed ? t(item.title) : undefined}>
                     <NavLink 
                       to={item.url} 
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${getNavCls(item.url)}`}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-4 w-4 min-w-4" />
                       {!collapsed && <span className="text-sm">{t(item.title)}</span>}
                     </NavLink>
                   </SidebarMenuButton>

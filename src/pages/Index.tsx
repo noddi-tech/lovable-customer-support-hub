@@ -1,16 +1,28 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AppRoot, AppHeader, AppMain, AppSidebar } from '@/components/layout';
+import { AppRoot, AppHeader, AppMain, AppSidebar, ResponsiveLayout, MobileNavigation } from '@/components/layout';
+import { ResponsiveProvider, useResponsive } from '@/contexts/ResponsiveContext';
 import InteractionsWrapper from '@/components/dashboard/InteractionsWrapper';
 import MarketingWrapper from '@/components/dashboard/MarketingWrapper';
 import OpsWrapper from '@/components/dashboard/OpsWrapper';
 
-const Index = () => {
+const IndexContent = () => {
+  const { isMobile } = useResponsive();
+
+  if (isMobile) {
+    return (
+      <MobileNavigation
+        interactions={<InteractionsWrapper />}
+        marketing={<MarketingWrapper />}
+        ops={<OpsWrapper />}
+      />
+    );
+  }
+
   return (
-    <AppRoot>
-      <AppHeader />
-      <AppMain>
-        <AppSidebar />
+    <ResponsiveLayout
+      sidebar={<AppSidebar />}
+      main={
         <div className="flex-1 overflow-hidden">
           <Routes>
             <Route path="/" element={<Navigate to="/interactions" replace />} />
@@ -19,8 +31,21 @@ const Index = () => {
             <Route path="/ops/*" element={<OpsWrapper />} />
           </Routes>
         </div>
-      </AppMain>
-    </AppRoot>
+      }
+    />
+  );
+};
+
+const Index = () => {
+  return (
+    <ResponsiveProvider>
+      <AppRoot>
+        <AppHeader />
+        <AppMain>
+          <IndexContent />
+        </AppMain>
+      </AppRoot>
+    </ResponsiveProvider>
   );
 };
 

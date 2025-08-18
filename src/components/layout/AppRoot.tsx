@@ -8,7 +8,12 @@ interface AppRootProps {
 
 const AppRoot = ({ children, className }: AppRootProps) => {
   return (
-    <div className={cn("app-root", className)}>
+    <div className={cn(
+      "h-screen overflow-hidden bg-background",
+      "flex flex-col",
+      "max-w-[var(--max-app-w)] mx-auto",
+      className
+    )}>
       {children}
     </div>
   );
