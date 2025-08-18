@@ -332,5 +332,12 @@
   "email": "Email",
   "sms": "SMS",
   "smsFeatures": "Funzionalità SMS",
-  "smsMarketingComingSoon": "Funzionalità di marketing SMS in arrivo"
+  "smsMarketingComingSoon": "Funzionalità di marketing SMS in arrivo",
+  "ops": "Operazioni",
+  "serviceTickets": "Ticket di Servizio",
+  "doorman": "Portiere",
+  "recruitment": "Reclutamento",
+  "serviceTicketsComingSoon": "Le funzionalità dei ticket di servizio arriveranno presto",
+  "doormanComingSoon": "Le funzionalità del portiere arriveranno presto",
+  "recruitmentComingSoon": "Le funzionalità di reclutamento arriveranno presto"
 }

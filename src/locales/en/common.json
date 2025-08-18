@@ -429,5 +429,12 @@
   "email": "Email",
   "sms": "SMS",
   "smsFeatures": "SMS Features",
-  "smsMarketingComingSoon": "SMS marketing features coming soon"
+  "smsMarketingComingSoon": "SMS marketing features coming soon",
+  "ops": "Ops",
+  "serviceTickets": "Service Tickets",
+  "doorman": "Doorman",
+  "recruitment": "Recruitment",
+  "serviceTicketsComingSoon": "Service ticket features coming soon",
+  "doormanComingSoon": "Doorman features coming soon",
+  "recruitmentComingSoon": "Recruitment features coming soon"
 }

@@ -332,5 +332,12 @@
   "email": "E-mail",
   "sms": "SMS",
   "smsFeatures": "Recursos SMS",
-  "smsMarketingComingSoon": "Recursos de marketing SMS em breve"
+  "smsMarketingComingSoon": "Recursos de marketing SMS em breve",
+  "ops": "Operações",
+  "serviceTickets": "Tickets de Serviço",
+  "doorman": "Porteiro",
+  "recruitment": "Recrutamento",
+  "serviceTicketsComingSoon": "Recursos de tickets de serviço em breve",
+  "doormanComingSoon": "Recursos de porteiro em breve",
+  "recruitmentComingSoon": "Recursos de recrutamento em breve"
 }

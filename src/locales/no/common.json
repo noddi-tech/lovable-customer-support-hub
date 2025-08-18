@@ -332,5 +332,12 @@
   "email": "E-post",
   "sms": "SMS",
   "smsFeatures": "SMS-funksjoner",
-  "smsMarketingComingSoon": "SMS-markedsføringsfunksjoner kommer snart"
+  "smsMarketingComingSoon": "SMS-markedsføringsfunksjoner kommer snart",
+  "ops": "Drift",
+  "serviceTickets": "Servicebilletter",
+  "doorman": "Dørvakt",
+  "recruitment": "Rekruttering",
+  "serviceTicketsComingSoon": "Servicebillett-funksjoner kommer snart",
+  "doormanComingSoon": "Dørvakt-funksjoner kommer snart",
+  "recruitmentComingSoon": "Rekrutteringsfunksjoner kommer snart"
 }
