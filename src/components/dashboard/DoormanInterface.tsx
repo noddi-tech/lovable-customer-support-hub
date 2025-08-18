@@ -1,29 +1,15 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 const DoormanInterface = () => {
-  const { t } = useTranslation();
-
   return (
-    <div className="flex items-center justify-center h-full p-8">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader>
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Shield className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle>{t('doorman')}</CardTitle>
-          <CardDescription>
-            {t('doormanComingSoon')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Access control, security management, and visitor tracking system.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="h-full w-full">
+      <iframe
+        src="https://doorman.noddi.co/"
+        className="w-full h-full border-0"
+        title="Doorman Service"
+        allowFullScreen
+        loading="lazy"
+      />
     </div>
   );
 };
