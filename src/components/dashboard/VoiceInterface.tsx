@@ -144,17 +144,15 @@ export const VoiceInterface = () => {
   return (
     <div className="app-root bg-gradient-surface">
       {/* Header */}
-      <div className="app-header">
-        <div className="flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <Phone className="h-6 w-6" />
-              Call Monitor
-            </h2>
-            <p className="text-muted-foreground">
-              Real-time call events and monitoring
-            </p>
-          </div>
+      <div className="app-header flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+        <div>
+          <h2 className="text-2xl font-semibold flex items-center gap-2">
+            <Phone className="h-6 w-6" />
+            Call Monitor
+          </h2>
+          <p className="text-muted-foreground">
+            Real-time call events and monitoring
+          </p>
         </div>
       </div>
       
