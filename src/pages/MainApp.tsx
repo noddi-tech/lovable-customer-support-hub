@@ -142,7 +142,7 @@ const MainApp = () => {
   const breadcrumb = getCurrentBreadcrumb();
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       {/* Navigation Header */}
       <div className="border-b bg-background px-6 py-3 space-y-3">
         <div className="flex gap-0">
@@ -212,7 +212,7 @@ const MainApp = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-hidden">
         {renderContent()}
       </div>
     </div>

@@ -212,7 +212,7 @@ useEffect(() => {
   // Debug logging
   console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!hasTimestamp);
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-surface">
+    <div className="h-screen flex flex-col bg-gradient-surface">
       {/* Header */}
       <Header 
         organizationName={selectedInboxName}
