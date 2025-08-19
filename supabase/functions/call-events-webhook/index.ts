@@ -35,6 +35,7 @@ class AircallAdapter {
       'ringing': 'ringing', 
       'answered': 'answered',
       'hungup': 'completed',
+      'done': 'completed',  // Add missing 'done' status
       'missed': 'missed',
       'busy': 'busy',
       'failed': 'failed',
