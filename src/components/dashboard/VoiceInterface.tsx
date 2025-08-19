@@ -55,19 +55,52 @@ export const VoiceInterface = () => {
     );
   }
 
+  const getFilterFromSection = (section: string) => {
+    if (section.startsWith('callbacks-')) {
+      const status = section.replace('callbacks-', '');
+      return status === 'all' ? undefined : status;
+    }
+    if (section.startsWith('voicemails-')) {
+      const status = section.replace('voicemails-', '');
+      return status === 'all' ? undefined : status;
+    }
+    return undefined;
+  };
+
+  const getSectionTitle = (section: string) => {
+    const titles = {
+      'ongoing-calls': 'Active Calls',
+      'callbacks-pending': 'Pending Callback Requests',
+      'callbacks-assigned': 'Assigned Callback Requests', 
+      'callbacks-closed': 'Closed Callback Requests',
+      'callbacks-all': 'All Callback Requests',
+      'voicemails-pending': 'Pending Voicemails',
+      'voicemails-assigned': 'Assigned Voicemails',
+      'voicemails-closed': 'Closed Voicemails', 
+      'voicemails-all': 'All Voicemails',
+      'calls-today': 'Today\'s Calls',
+      'events-all': 'All Call Events',
+      'config-settings': 'Configuration'
+    };
+    return titles[section] || 'Voice Monitor';
+  };
+
   const renderMainContent = () => {
+    const sectionTitle = getSectionTitle(selectedSection);
+    const filter = getFilterFromSection(selectedSection);
+
     switch (selectedSection) {
       case 'ongoing-calls':
         return (
           <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
+            </div>
             <CallStatsSummary 
               callsByStatus={callsByStatus}
               activeCalls={activeCalls.length}
             />
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">
-                Active Calls ({activeCalls.length})
-              </h3>
               {activeCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -92,23 +125,54 @@ export const VoiceInterface = () => {
       case 'callbacks-assigned':
       case 'callbacks-closed':
       case 'callbacks-all':
-        return <CallbackRequestsList />;
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
+            </div>
+            <CallbackRequestsList statusFilter={filter} />
+          </div>
+        );
 
       case 'voicemails-pending':
       case 'voicemails-assigned':
       case 'voicemails-closed':
       case 'voicemails-all':
-        return <VoicemailsList />;
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
+            </div>
+            <VoicemailsList statusFilter={filter} />
+          </div>
+        );
 
       case 'calls-today':
-        return <CallsList />;
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
+            </div>
+            <CallsList />
+          </div>
+        );
 
       case 'events-all':
-        return <CallEventsList events={callEvents} />;
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
+            </div>
+            <CallEventsList events={callEvents} />
+          </div>
+        );
 
       case 'config-settings':
         return (
           <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
+            </div>
             <div className="p-4 bg-muted rounded-lg">
               <h4 className="font-semibold mb-2">Webhook Configuration</h4>
               <p className="text-sm text-muted-foreground mb-2">
@@ -122,6 +186,11 @@ export const VoiceInterface = () => {
               </p>
               
               <WebhookTester />
+            </div>
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800 italic">
+                📝 Note: This configuration section will be moved to the Settings page in a future update.
+              </p>
             </div>
           </div>
         );

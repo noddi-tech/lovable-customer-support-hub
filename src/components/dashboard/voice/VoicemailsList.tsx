@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Phone, Play, Pause, Download, FileAudio, Clock, User, AlertCircle } from 'lucide-react';
+import { Phone, Play, Pause, Download, FileAudio, Clock, User, AlertCircle, Voicemail as VoicemailIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -194,8 +194,12 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
   );
 };
 
-export const VoicemailsList = () => {
-  const { t } = useTranslation();
+interface VoicemailsListProps {
+  statusFilter?: string;
+}
+
+export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) => {
+  const [filter, setFilter] = useState<string>(statusFilter || 'all');
   
   const {
     voicemails,
@@ -207,6 +211,21 @@ export const VoicemailsList = () => {
     downloadVoicemail,
     isDownloading
   } = useVoicemails();
+  
+  // Use statusFilter from props or local filter state
+  const effectiveFilter = statusFilter || filter;
+
+  // Filter voicemails based on effective filter
+  const filteredVoicemails = effectiveFilter === 'all' 
+    ? voicemails
+    : voicemails?.filter(voicemail => {
+        switch (effectiveFilter) {
+          case 'pending': return voicemail.status === 'pending';
+          case 'assigned': return voicemail.status === 'assigned';
+          case 'closed': return voicemail.status === 'closed';
+          default: return true;
+        }
+      }) || [];
 
   if (error) {
     return (
@@ -223,14 +242,16 @@ export const VoicemailsList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Voicemails</h3>
-          <p className="text-sm text-muted-foreground">
-            Customer voicemail messages
-          </p>
+      {!statusFilter && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Voicemails</h3>
+            <p className="text-sm text-muted-foreground">
+              Customer voicemail messages
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -297,7 +318,7 @@ export const VoicemailsList = () => {
             </Card>
           ))}
         </div>
-      ) : voicemails.length === 0 ? (
+      ) : filteredVoicemails.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <FileAudio className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -306,7 +327,7 @@ export const VoicemailsList = () => {
         </Card>
       ) : (
         <div className="space-y-3">
-          {voicemails.map((voicemail) => (
+          {filteredVoicemails.map((voicemail) => (
             <VoicemailCard
               key={voicemail.id}
               voicemail={voicemail}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, Clock, CheckCircle, AlertCircle, User } from 'lucide-react';
+import { Phone, Clock, CheckCircle, AlertCircle, User, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -129,9 +129,13 @@ const CallbackRequestCard = ({ request, onStatusChange, isUpdating }: CallbackRe
   );
 };
 
-export const CallbackRequestsList = () => {
+interface CallbackRequestsListProps {
+  statusFilter?: string;
+}
+
+export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ statusFilter }) => {
   const { t } = useTranslation();
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState<string>(statusFilter || 'all');
   
   const {
     callbackRequests,
@@ -158,38 +162,43 @@ export const CallbackRequestsList = () => {
     );
   }
 
-  const filteredRequests = filter === 'all' 
+  // Use statusFilter from props or local filter state
+  const effectiveFilter = statusFilter || filter;
+
+  const filteredRequests = effectiveFilter === 'all' 
     ? callbackRequests
-    : callbackRequests.filter(req => req.status === filter);
+    : callbackRequests.filter(req => req.status === effectiveFilter);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Callback Requests</h3>
-          <p className="text-sm text-muted-foreground">
-            Customer callback requests from IVR
-          </p>
-        </div>
+      {!statusFilter && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Callback Requests</h3>
+            <p className="text-sm text-muted-foreground">
+              Customer callback requests from IVR
+            </p>
+          </div>
 
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Requests</SelectItem>
-            <SelectItem value="pending">
-              Pending ({requestsByStatus.pending || 0})
-            </SelectItem>
-            <SelectItem value="processed">
-              Processed ({requestsByStatus.processed || 0})
-            </SelectItem>
-            <SelectItem value="completed">
-              Completed ({requestsByStatus.completed || 0})
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Requests</SelectItem>
+              <SelectItem value="pending">
+                Pending ({requestsByStatus.pending || 0})
+              </SelectItem>
+              <SelectItem value="processed">
+                Processed ({requestsByStatus.processed || 0})
+              </SelectItem>
+              <SelectItem value="completed">
+                Completed ({requestsByStatus.completed || 0})
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -261,9 +270,9 @@ export const CallbackRequestsList = () => {
           <CardContent className="p-8 text-center">
             <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">
-              {filter === 'all' 
+              {effectiveFilter === 'all' 
                 ? 'No callback requests yet'
-                : `No ${filter} callback requests`
+                : `No ${effectiveFilter} callback requests`
               }
             </p>
           </CardContent>
