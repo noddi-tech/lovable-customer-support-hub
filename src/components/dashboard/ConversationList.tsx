@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Search, Filter, Inbox, Star, Clock, MoreHorizontal, Archive, Trash2, CheckCircle } from "lucide-react";
+import { Search, Filter, Inbox, Star, Clock, MoreHorizontal, Archive, Trash2, CheckCircle, Sidebar, MessageCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -59,6 +60,8 @@ interface ConversationListProps {
   onSelectConversation: (conversation: Conversation) => void;
   selectedConversation?: Conversation;
   selectedInboxId: string;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const priorityColors = {
@@ -77,7 +80,7 @@ const statusColors = {
 
 // All date formatting now handled by timezone-aware useDateFormatting hook
 
-export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation, selectedInboxId }: ConversationListProps) => {
+export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation, selectedInboxId, isCollapsed = false, onToggleCollapse }: ConversationListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -302,6 +305,79 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   });
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
+
+  // If collapsed, show minimal view
+  if (isCollapsed) {
+    return (
+      <div className="pane flex flex-col bg-gradient-surface">
+        {/* Collapsed Header */}
+        <div className="flex-shrink-0 p-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+          <div className="flex flex-col items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={onToggleCollapse}
+                  className="h-8 w-8 p-0"
+                >
+                  <Sidebar className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Expand conversation list</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <div className="flex flex-col items-center gap-1">
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="h-4 px-1 text-xs min-w-[16px] flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Collapsed Conversation List */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {filteredConversations.slice(0, 10).map((conversation) => (
+            <Tooltip key={conversation.id}>
+              <TooltipTrigger asChild>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onSelectConversation(conversation);
+                  }}
+                  className={cn(
+                    "p-2 border-b border-border hover:bg-inbox-hover cursor-pointer transition-colors flex flex-col items-center gap-1",
+                    selectedConversation?.id === conversation.id && "bg-inbox-selected border-l-4 border-l-primary",
+                    !conversation.is_read && selectedConversation?.id !== conversation.id && "border-l-4 border-l-inbox-unread bg-primary-muted/30"
+                  )}
+                >
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                    {conversation.customer?.full_name?.[0]?.toUpperCase() || conversation.customer?.email?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                  {!conversation.is_read && (
+                    <div className="w-2 h-2 bg-primary rounded-full" />
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs">
+                <div className="flex flex-col gap-1">
+                  <p className="font-medium text-sm">{conversation.subject}</p>
+                  <p className="text-xs text-muted-foreground">{conversation.customer?.full_name || conversation.customer?.email}</p>
+                  <p className="text-xs text-muted-foreground">{formatConversationTime(conversation.received_at || conversation.updated_at)}</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pane flex flex-col bg-gradient-surface">

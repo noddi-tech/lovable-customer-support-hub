@@ -292,6 +292,13 @@ All colors MUST be HSL.
   .list-pane { 
     flex: 0 0 280px;
     border-right: 1px solid hsl(var(--border));
+    transition: flex-basis 0.3s ease-in-out;
+  }
+  
+  .list-pane-collapsed {
+    flex: 0 0 60px;
+    border-right: 1px solid hsl(var(--border));
+    transition: flex-basis 0.3s ease-in-out;
   }
 
   .detail-pane { 

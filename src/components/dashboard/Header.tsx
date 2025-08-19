@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette, Clock } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette, Clock, Sidebar } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { SyncButton } from '@/components/dashboard/SyncButton';
 import { DeleteAllButton } from '@/components/dashboard/DeleteAllButton';
@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
   organizationName?: string;
@@ -29,6 +30,9 @@ interface HeaderProps {
   onBackClick?: () => void;
   selectedInboxId?: string;
   onInboxChange?: (id: string) => void;
+  showConversationList?: boolean;
+  onToggleConversationList?: () => void;
+  selectedConversation?: any;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -37,12 +41,16 @@ export const Header: React.FC<HeaderProps> = ({
   showMenuButton = false,
   onBackClick,
   selectedInboxId,
-  onInboxChange
+  onInboxChange,
+  showConversationList,
+  onToggleConversationList,
+  selectedConversation
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { timezone, time } = useDateFormatting();
+  const isMobile = useIsMobile();
 
   // Get unread conversation count for notifications
   const { data: unreadCount = 0 } = useQuery({
@@ -111,6 +119,19 @@ export const Header: React.FC<HeaderProps> = ({
           <span>{time(new Date())}</span>
           <span className="text-xs opacity-70">({timezone.split('/')[1] || timezone})</span>
         </div>
+        
+        {/* Toggle Conversation List Button - Desktop only, when conversation is selected */}
+        {!isMobile && selectedConversation && onToggleConversationList && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={onToggleConversationList}
+            className="text-muted-foreground hover:text-foreground"
+            title={`${showConversationList ? 'Hide' : 'Show'} conversation list (Ctrl+Shift+L)`}
+          >
+            <Sidebar className="h-4 w-4" />
+          </Button>
+        )}
         
         {/* Sync Button */}
         <SyncButton />

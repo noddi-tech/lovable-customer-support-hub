@@ -44,6 +44,10 @@ export const Dashboard: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
+  const [showConversationListDesktop, setShowConversationListDesktop] = useState<boolean>(() => {
+    const saved = localStorage.getItem('showConversationListDesktop');
+    return saved ? JSON.parse(saved) : true;
+  });
   const [selectedInboxId, setSelectedInboxId] = useState<string>(() => localStorage.getItem('selectedInboxId') || 'all');
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -78,6 +82,24 @@ useEffect(() => {
     localStorage.setItem('selectedInboxId', selectedInboxId);
   }
 }, [selectedInboxId]);
+
+// Persist desktop conversation list state
+useEffect(() => {
+  localStorage.setItem('showConversationListDesktop', JSON.stringify(showConversationListDesktop));
+}, [showConversationListDesktop]);
+
+// Keyboard shortcut for toggling conversation list
+useEffect(() => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.ctrlKey && event.shiftKey && event.key === 'L' && !isMobile) {
+      event.preventDefault();
+      setShowConversationListDesktop(prev => !prev);
+    }
+  };
+  
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [isMobile]);
 
   const markConversationRead = async (id: string) => {
     try {
@@ -149,6 +171,8 @@ useEffect(() => {
         setSelectedConversation(urlConversation);
         if (isMobile) {
           setShowConversationList(false);
+        } else {
+          setShowConversationListDesktop(false);
         }
       }
     } else if (conversationIdFromUrl && urlConversation) {
@@ -157,6 +181,8 @@ useEffect(() => {
         setSelectedConversation(urlConversation);
         if (isMobile) {
           setShowConversationList(false);
+        } else {
+          setShowConversationListDesktop(false);
         }
       }
     }
@@ -182,6 +208,9 @@ useEffect(() => {
     
     if (isMobile) {
       setShowConversationList(false);
+    } else {
+      // Auto-collapse conversation list on desktop when selecting a conversation
+      setShowConversationListDesktop(false);
     }
   };
 
@@ -221,6 +250,15 @@ useEffect(() => {
           onMenuClick={() => setShowSidebar(!showSidebar)}
           selectedInboxId={selectedInboxId}
           onInboxChange={(id) => setSelectedInboxId(id)}
+          showConversationList={isMobile ? showConversationList : showConversationListDesktop}
+          onToggleConversationList={() => {
+            if (isMobile) {
+              setShowConversationList(!showConversationList);
+            } else {
+              setShowConversationListDesktop(!showConversationListDesktop);
+            }
+          }}
+          selectedConversation={selectedConversation}
         />
       </div>
       
@@ -274,14 +312,16 @@ useEffect(() => {
           <>
             {/* Conversation List */}
             <div className={`
-              ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'list-pane'}
-              ${isMobile ? 'w-full' : ''} flex flex-col bg-gradient-surface
+              ${isMobile ? (showConversationList ? 'flex' : 'hidden') : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'}
+              ${isMobile ? 'w-full' : ''} flex flex-col bg-gradient-surface transition-all duration-300 ease-in-out
             `}>
               <ConversationList 
                 selectedTab={selectedTab}
                 selectedConversation={selectedConversation}
                 onSelectConversation={handleSelectConversation}
                 selectedInboxId={selectedInboxId}
+                isCollapsed={!isMobile && !showConversationListDesktop}
+                onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
               />
             </div>
             
