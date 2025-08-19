@@ -5,6 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { FullScreenLayout } from '@/components/ui/full-screen-layout';
 import { 
   MessageSquare, 
   Mail, 
@@ -141,81 +142,79 @@ const MainApp = () => {
 
   const breadcrumb = getCurrentBreadcrumb();
 
-  return (
-    <div className="h-screen flex flex-col">
-      {/* Navigation Header */}
-      <div className="border-b bg-background px-6 py-3 space-y-3">
-        <div className="flex gap-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger 
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
-                navigationState.mainSection === 'interactions' && "bg-accent text-accent-foreground"
-              )}
-            >
-              <MessageSquare className="h-4 w-4" />
-              {t('interactions')}
-            </DropdownMenuTrigger>
-            {renderDropdownContent(interactionsItems, 'interactions')}
-          </DropdownMenu>
+  const navigationHeader = (
+    <div className="border-b bg-background px-6 py-3 space-y-3">
+      <div className="flex gap-0">
+        <DropdownMenu>
+          <DropdownMenuTrigger 
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
+              navigationState.mainSection === 'interactions' && "bg-accent text-accent-foreground"
+            )}
+          >
+            <MessageSquare className="h-4 w-4" />
+            {t('interactions')}
+          </DropdownMenuTrigger>
+          {renderDropdownContent(interactionsItems, 'interactions')}
+        </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger 
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
-                navigationState.mainSection === 'marketing' && "bg-accent text-accent-foreground"
-              )}
-            >
-              <Mail className="h-4 w-4" />
-              {t('marketing')}
-            </DropdownMenuTrigger>
-            {renderDropdownContent(marketingItems, 'marketing')}
-          </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger 
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
+              navigationState.mainSection === 'marketing' && "bg-accent text-accent-foreground"
+            )}
+          >
+            <Mail className="h-4 w-4" />
+            {t('marketing')}
+          </DropdownMenuTrigger>
+          {renderDropdownContent(marketingItems, 'marketing')}
+        </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger 
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
-                navigationState.mainSection === 'ops' && "bg-accent text-accent-foreground"
-              )}
-            >
-              <Wrench className="h-4 w-4" />
-              {t('ops')}
-            </DropdownMenuTrigger>
-            {renderDropdownContent(opsItems, 'ops')}
-          </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger 
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
+              navigationState.mainSection === 'ops' && "bg-accent text-accent-foreground"
+            )}
+          >
+            <Wrench className="h-4 w-4" />
+            {t('ops')}
+          </DropdownMenuTrigger>
+          {renderDropdownContent(opsItems, 'ops')}
+        </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger 
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
-                navigationState.mainSection === 'settings' && "bg-accent text-accent-foreground"
-              )}
-            >
-              <SettingsIcon className="h-4 w-4" />
-              {t('settings.title')}
-            </DropdownMenuTrigger>
-            {renderDropdownContent(settingsItems, 'settings')}
-          </DropdownMenu>
-        </div>
-
-        {/* Breadcrumb */}
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <span className="font-medium text-foreground">{breadcrumb.main}</span>
-          {breadcrumb.sub && (
-            <>
-              <span>›</span>
-              <span>{breadcrumb.sub}</span>
-            </>
-          )}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger 
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
+              navigationState.mainSection === 'settings' && "bg-accent text-accent-foreground"
+            )}
+          >
+            <SettingsIcon className="h-4 w-4" />
+            {t('settings.title')}
+          </DropdownMenuTrigger>
+          {renderDropdownContent(settingsItems, 'settings')}
+        </DropdownMenu>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto">
-        {renderContent()}
+      {/* Breadcrumb */}
+      <div className="text-sm text-muted-foreground flex items-center gap-2">
+        <span className="font-medium text-foreground">{breadcrumb.main}</span>
+        {breadcrumb.sub && (
+          <>
+            <span>›</span>
+            <span>{breadcrumb.sub}</span>
+          </>
+        )}
       </div>
     </div>
+  );
+
+  return (
+    <FullScreenLayout header={navigationHeader}>
+      {renderContent()}
+    </FullScreenLayout>
   );
 };
 

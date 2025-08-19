@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Full-screen layout: Disable page-level scrolling */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
 /* Professional Customer Support Hub Design System 
 Inspired by modern support platforms like Intercom, Zendesk
 All colors MUST be HSL.
