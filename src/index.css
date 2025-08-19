@@ -286,11 +286,11 @@ All colors MUST be HSL.
   }
 
   .nav-pane { 
-    flex: 0 0 256px; 
+    flex: 0 0 280px; 
   }
 
   .list-pane { 
-    flex: 0 0 512px;
+    flex: 1 1 auto;
     border-right: 1px solid hsl(var(--border));
   }
 

@@ -216,10 +216,10 @@ const NewsletterBuilder = () => {
               <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
               <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
             </TabsList>
-            <TabsContent value="blocks" className="flex-1 m-0 h-0">
+            <TabsContent value="blocks" className="flex-1 m-0 h-0 overflow-y-auto">
               <BlocksPalette onAddBlock={addBlock} />
             </TabsContent>
-            <TabsContent value="templates" className="flex-1 m-0 h-0">
+            <TabsContent value="templates" className="flex-1 m-0 h-0 overflow-y-auto">
               <TemplateLibrary />
             </TabsContent>
           </Tabs>
