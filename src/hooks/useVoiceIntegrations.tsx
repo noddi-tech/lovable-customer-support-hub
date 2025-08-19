@@ -63,10 +63,20 @@ export function useVoiceIntegrations() {
       if (!currentUserOrg) return null;
       
       try {
-        const { data } = await supabase.rpc('get_last_call_event', {
-          org_id: currentUserOrg
-        });
-        return data;
+        // For now, just get the most recent call event
+        // TODO: Add organization filtering when call_events table is updated
+        const { data, error } = await supabase
+          .from('call_events')
+          .select('created_at')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching last event:', error);
+          return null;
+        }
+        return data?.created_at || null;
       } catch (error) {
         console.error('Error fetching last event:', error);
         return null;
