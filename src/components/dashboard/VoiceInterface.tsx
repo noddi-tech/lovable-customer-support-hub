@@ -9,7 +9,6 @@ import { CallEventsList } from './voice/CallEventsList';
 import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
 import { CallsList } from './voice/CallsList';
-import { WebhookTester } from './voice/WebhookTester';
 import { VoiceSidebar } from './voice/VoiceSidebar';
 import { RealTimeIndicator } from './voice/RealTimeIndicator';
 import { useQueryClient } from '@tanstack/react-query';
@@ -88,8 +87,7 @@ export const VoiceInterface = () => {
       'voicemails-closed': 'Closed Voicemails', 
       'voicemails-all': 'All Voicemails',
       'calls-today': 'Today\'s Calls',
-      'events-all': 'All Call Events',
-      'config-settings': 'Configuration'
+      'events-log': 'Call Events Log'
     };
     return titles[section] || 'Voice Monitor';
   };
@@ -163,41 +161,14 @@ export const VoiceInterface = () => {
           </div>
         );
 
-      case 'events-all':
+      case 'events-log':
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
+              <RealTimeIndicator onRefresh={handleRefreshAll} />
             </div>
             <CallEventsList events={callEvents} />
-          </div>
-        );
-
-      case 'config-settings':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
-            </div>
-            <div className="p-4 bg-muted rounded-lg">
-              <h4 className="font-semibold mb-2">Webhook Configuration</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Configure your VoIP provider to send webhooks to:
-              </p>
-              <code className="text-sm bg-background p-2 rounded border block">
-                https://qgfaycwsangsqzpveoup.functions.supabase.co/call-events-webhook/aircall
-              </code>
-              <p className="text-xs text-muted-foreground mt-2">
-                Replace 'aircall' with your provider name for other services
-              </p>
-              
-              <WebhookTester />
-            </div>
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800 italic">
-                📝 Note: This configuration section will be moved to the Settings page in a future update.
-              </p>
-            </div>
           </div>
         );
 

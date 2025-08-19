@@ -35,8 +35,7 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
     callbacks: true,
     voicemails: true,
     calls: true,
-    events: true,
-    config: true
+    events: true
   });
 
   const { activeCalls, recentCalls } = useCalls();
@@ -139,19 +138,10 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
 
   const eventsItems = [
     { 
-      id: 'events-all', 
-      label: 'All Events', 
+      id: 'events-log', 
+      label: 'Call Events Log', 
       icon: Activity, 
       count: 0 // TODO: Get from call events
-    }
-  ];
-
-  const configItems = [
-    { 
-      id: 'config-settings', 
-      label: 'Configuration', 
-      icon: Settings, 
-      count: 0 
     }
   ];
 
@@ -271,7 +261,7 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
         <Separator className="my-4" />
 
         {/* Events */}
-        <div className="px-2">
+        <div className="px-2 pb-4">
           <div className="flex items-center justify-between px-2 py-2">
             <h3 className="text-sm font-medium text-muted-foreground">Events</h3>
             <Button 
@@ -289,33 +279,10 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
               {renderSidebarItems(eventsItems, 'events')}
             </div>
           )}
-        </div>
-
-        <Separator className="my-4" />
-
-        {/* Configuration */}
-        <div className="px-2 pb-4">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Configuration</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('config')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
-          </div>
           
-          {expandedSections.config && (
-            <div className="space-y-1">
-              {renderSidebarItems(configItems, 'config')}
-              {/* Placeholder info */}
-              <div className="px-2 py-2 text-xs text-muted-foreground italic">
-                This section will be moved to Settings page
-              </div>
-            </div>
-          )}
+          <div className="px-2 py-2 text-xs text-muted-foreground italic">
+            Configuration moved to Settings → Admin → Integrations → Voice
+          </div>
         </div>
       </div>
     </div>

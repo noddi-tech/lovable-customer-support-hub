@@ -6,6 +6,7 @@ import { Mail, MessageSquare, Instagram, Phone } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { InboxManagement } from '@/components/admin/InboxManagement';
+import { AircallSettings } from '@/components/admin/AircallSettings';
 import { useTranslation } from 'react-i18next';
 
 export const IntegrationSettings = () => {
@@ -133,11 +134,7 @@ export const IntegrationSettings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="text-center py-8 text-muted-foreground">
-                <Phone className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Voice integration configuration will be available here</p>
-                <p className="text-sm">Configure Twilio Voice, AWS Connect, or other telephony providers</p>
-              </div>
+              <AircallSettings />
             </CardContent>
           </Card>
         </TabsContent>

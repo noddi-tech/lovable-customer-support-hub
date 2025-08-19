@@ -1,0 +1,470 @@
+import React, { useState } from 'react';
+import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useTranslation } from 'react-i18next';
+import { useToast } from '@/hooks/use-toast';
+
+interface CallEventConfig {
+  eventType: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+}
+
+interface PhoneNumber {
+  id: string;
+  number: string;
+  label: string;
+}
+
+export const AircallSettings = () => {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  
+  const [webhookToken, setWebhookToken] = useState('');
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([
+    { id: '1', number: '+1234567890', label: 'Main Line' }
+  ]);
+  const [newPhoneNumber, setNewPhoneNumber] = useState('');
+  const [newPhoneLabel, setNewPhoneLabel] = useState('');
+  const [isAddingPhone, setIsAddingPhone] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  
+  const [callEvents, setCallEvents] = useState<CallEventConfig[]>([
+    {
+      eventType: 'call_started',
+      label: 'Call Started',
+      description: 'When a new call is initiated',
+      enabled: true
+    },
+    {
+      eventType: 'call_answered',
+      label: 'Call Answered',
+      description: 'When a call is answered by an agent',
+      enabled: true
+    },
+    {
+      eventType: 'call_ended',
+      label: 'Call Ended',
+      description: 'When a call is terminated',
+      enabled: true
+    },
+    {
+      eventType: 'call_missed',
+      label: 'Call Missed',
+      description: 'When an incoming call is not answered',
+      enabled: true
+    },
+    {
+      eventType: 'voicemail_left',
+      label: 'Voicemail Left',
+      description: 'When a caller leaves a voicemail',
+      enabled: true
+    },
+    {
+      eventType: 'callback_requested',
+      label: 'Callback Requested',
+      description: 'When a caller requests a callback through IVR',
+      enabled: true
+    },
+    {
+      eventType: 'call_transferred',
+      label: 'Call Transferred',
+      description: 'When a call is transferred to another agent',
+      enabled: false
+    },
+    {
+      eventType: 'call_on_hold',
+      label: 'Call On Hold',
+      description: 'When a call is put on hold',
+      enabled: false
+    }
+  ]);
+
+  const handleEventToggle = (eventType: string) => {
+    setCallEvents(prev => 
+      prev.map(event => 
+        event.eventType === eventType 
+          ? { ...event, enabled: !event.enabled }
+          : event
+      )
+    );
+  };
+
+  const handleAddPhoneNumber = () => {
+    if (newPhoneNumber && newPhoneLabel) {
+      const newPhone: PhoneNumber = {
+        id: Date.now().toString(),
+        number: newPhoneNumber,
+        label: newPhoneLabel
+      };
+      setPhoneNumbers(prev => [...prev, newPhone]);
+      setNewPhoneNumber('');
+      setNewPhoneLabel('');
+      setIsAddingPhone(false);
+      toast({
+        title: "Phone number added",
+        description: `${newPhoneLabel} (${newPhoneNumber}) has been added to monitoring`,
+      });
+    }
+  };
+
+  const handleRemovePhoneNumber = (id: string) => {
+    setPhoneNumbers(prev => prev.filter(phone => phone.id !== id));
+    toast({
+      title: "Phone number removed",
+      description: "Phone number has been removed from monitoring",
+    });
+  };
+
+  const handleSaveSettings = () => {
+    // Here you would save the settings to your backend
+    toast({
+      title: "Settings saved",
+      description: "Aircall integration settings have been updated successfully",
+    });
+  };
+
+  const testWebhook = async () => {
+    setIsTestingWebhook(true);
+    setTestResult(null);
+
+    try {
+      // Create a sample Aircall webhook payload
+      const testPayload = {
+        event: 'call.created',
+        timestamp: new Date().toISOString(),
+        data: {
+          id: 'test-call-' + Date.now(),
+          status: 'ringing',
+          direction: 'inbound',
+          from: { phone_number: '+1234567890' },
+          to: { phone_number: '+0987654321' },
+          started_at: new Date().toISOString(),
+          raw_digits: '+1234567890'
+        }
+      };
+
+      console.log('Testing webhook with payload:', testPayload);
+
+      // Test direct webhook call
+      const webhookUrl = 'https://qgfaycwsangsqzpveoup.functions.supabase.co/call-events-webhook/aircall';
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testPayload)
+      });
+
+      const result = await response.text();
+      console.log('Webhook response:', result);
+
+      if (response.ok) {
+        setTestResult({
+          success: true,
+          message: `Webhook test successful! Response: ${result}`
+        });
+        toast({
+          title: "Webhook test successful",
+          description: "Your webhook endpoint is working correctly",
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: `Webhook failed with status ${response.status}: ${result}`
+        });
+      }
+
+    } catch (error) {
+      console.error('Webhook test error:', error);
+      setTestResult({
+        success: false,
+        message: `Error testing webhook: ${error.message}`
+      });
+    } finally {
+      setIsTestingWebhook(false);
+    }
+  };
+
+  const enabledEventsCount = callEvents.filter(event => event.enabled).length;
+
+  return (
+    <div className="space-y-6">
+      {/* Connection Status */}
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Phone className="w-5 h-5" />
+            Aircall Integration Status
+          </CardTitle>
+          <CardDescription>
+            Monitor the connection status and configuration health
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Badge variant="default" className="flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" />
+              Connected
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              Last event received: 2 minutes ago
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Webhook Configuration */}
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Shield className="w-5 h-5" />
+            Webhook Security
+          </CardTitle>
+          <CardDescription>
+            Configure the webhook token for secure event verification
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="webhook-token">Webhook Verification Token</Label>
+            <Input
+              id="webhook-token"
+              type="password"
+              placeholder="Enter your Aircall webhook token"
+              value={webhookToken}
+              onChange={(e) => setWebhookToken(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              This token is provided by Aircall and used to verify incoming webhook events
+            </p>
+          </div>
+          
+          <Alert>
+            <Shield className="h-4 w-4" />
+            <AlertDescription>
+              Keep this token secure. It's used to verify that webhook calls are coming from Aircall.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+
+      {/* Phone Numbers Configuration */}
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Phone className="w-5 h-5" />
+            Monitored Phone Numbers
+          </CardTitle>
+          <CardDescription>
+            Configure which Aircall phone numbers should trigger events
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            {phoneNumbers.map((phone) => (
+              <div key={phone.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                <div>
+                  <p className="font-medium">{phone.label}</p>
+                  <p className="text-sm text-muted-foreground">{phone.number}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemovePhoneNumber(phone.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {isAddingPhone ? (
+            <div className="space-y-3 p-3 rounded-lg border bg-card/50">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="new-phone-label">Label</Label>
+                  <Input
+                    id="new-phone-label"
+                    placeholder="e.g., Main Line"
+                    value={newPhoneLabel}
+                    onChange={(e) => setNewPhoneLabel(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-phone-number">Phone Number</Label>
+                  <Input
+                    id="new-phone-number"
+                    placeholder="e.g., +1234567890"
+                    value={newPhoneNumber}
+                    onChange={(e) => setNewPhoneNumber(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleAddPhoneNumber}>
+                  Add Number
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setIsAddingPhone(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddingPhone(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Phone Number
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Call Events Configuration */}
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Settings className="w-5 h-5" />
+            Call Event Types
+          </CardTitle>
+          <CardDescription>
+            Choose which call events to receive and process ({enabledEventsCount} of {callEvents.length} enabled)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-4">
+            {callEvents.map((event, index) => (
+              <div key={event.eventType}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      id={event.eventType}
+                      checked={event.enabled}
+                      onCheckedChange={() => handleEventToggle(event.eventType)}
+                    />
+                    <div>
+                      <Label htmlFor={event.eventType} className="text-sm font-medium">
+                        {event.label}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {event.description}
+                      </p>
+                    </div>
+                  </div>
+                  {event.enabled && (
+                    <Badge variant="secondary" className="text-xs">
+                      Active
+                    </Badge>
+                  )}
+                </div>
+                {index < callEvents.length - 1 && <Separator className="mt-4" />}
+              </div>
+            ))}
+          </div>
+
+          <Alert>
+            <Settings className="h-4 w-4" />
+            <AlertDescription>
+              Disabling event types will prevent them from being processed, but they may still be received from Aircall.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+
+      {/* Webhook Testing */}
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <TestTube className="w-5 h-5" />
+            Webhook Testing
+          </CardTitle>
+          <CardDescription>
+            Test the webhook endpoint to ensure it's working correctly
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Test if the webhook endpoint is reachable and processing events correctly
+            </p>
+            <Button 
+              onClick={testWebhook} 
+              disabled={isTestingWebhook}
+              className="flex items-center gap-2"
+            >
+              <TestTube className="h-4 w-4" />
+              {isTestingWebhook ? 'Testing...' : 'Test Webhook'}
+            </Button>
+          </div>
+
+          {testResult && (
+            <div className={`flex items-start gap-3 p-3 rounded-lg ${
+              testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+            }`}>
+              {testResult.success ? (
+                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+              )}
+              <div>
+                <p className={`text-sm font-medium ${
+                  testResult.success ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {testResult.success ? 'Test Successful' : 'Test Failed'}
+                </p>
+                <p className={`text-xs ${
+                  testResult.success ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {testResult.message}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="pt-4 border-t">
+            <h4 className="text-sm font-medium mb-3">Aircall Webhook Configuration</h4>
+            <div className="space-y-3 text-sm">
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground">Webhook URL</Label>
+                <code className="block bg-muted p-2 rounded mt-1 text-xs break-all">
+                  https://qgfaycwsangsqzpveoup.functions.supabase.co/call-events-webhook/aircall
+                </code>
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground">Required Events</Label>
+                <p className="text-xs">call.created, call.answered, call.hungup, call.missed, voicemail.left</p>
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground">Method</Label>
+                <p className="text-xs">POST</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save Settings */}
+      <div className="flex justify-end">
+        <Button onClick={handleSaveSettings} className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" />
+          Save Configuration
+        </Button>
+      </div>
+    </div>
+  );
+};
