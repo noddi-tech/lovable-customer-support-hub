@@ -175,22 +175,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   }
 
   return (
-    <div 
-      className="flex-1 flex flex-col bg-gradient-surface min-h-0"
-      ref={(el) => {
-        if (el) {
-          console.log('ConversationView container:', {
-            offsetHeight: el.offsetHeight,
-            scrollHeight: el.scrollHeight,
-            clientHeight: el.clientHeight,
-            computedStyle: window.getComputedStyle(el).height,
-            flexGrow: window.getComputedStyle(el).flexGrow
-          });
-        }
-      }}
-    >
+    <div className="h-full w-full flex flex-col bg-gradient-surface">
       {/* Conversation Header */}
-      <div className="p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex-shrink-0">
+      <div className="h-16 flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
              <Avatar className="h-10 w-10">
@@ -224,34 +211,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         </div>
       </div>
 
-      {/* Messages Area with ScrollArea - DEBUG VERSION */}
-      <div 
-        className="flex-1 min-h-0 border-2 border-red-500"
-        ref={(el) => {
-          if (el) {
-            console.log('Messages container:', {
-              offsetHeight: el.offsetHeight,
-              scrollHeight: el.scrollHeight,
-              clientHeight: el.clientHeight,
-              computedStyle: window.getComputedStyle(el).height,
-              flexGrow: window.getComputedStyle(el).flexGrow
-            });
-          }
-        }}
-      >
+      {/* Messages Area - FIXED HEIGHT APPROACH */}
+      <div className="flex-1 h-0 border-2 border-red-500">
         <div 
-          className="h-full overflow-auto border-2 border-blue-500"
-          ref={(el) => {
-            if (el) {
-              console.log('Scrollable area:', {
-                offsetHeight: el.offsetHeight,
-                scrollHeight: el.scrollHeight,
-                clientHeight: el.clientHeight,
-                computedStyle: window.getComputedStyle(el).height,
-                overflow: window.getComputedStyle(el).overflow
-              });
-            }
-          }}
+          style={{ height: 'calc(100vh - 200px)', overflow: 'auto' }}
+          className="border-2 border-blue-500"
         >
           <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
             {/* Debug info */}
