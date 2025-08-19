@@ -7,6 +7,7 @@ import { useCalls } from '@/hooks/useCalls';
 import { CallStatusCard } from './voice/CallStatusCard';
 import { CallEventsList } from './voice/CallEventsList';
 import { CallStatsSummary } from './voice/CallStatsSummary';
+import { WebhookTester } from './voice/WebhookTester';
 
 export const VoiceInterface = () => {
   const { t } = useTranslation();
@@ -133,6 +134,9 @@ export const VoiceInterface = () => {
           <p className="text-xs text-muted-foreground mt-2">
             Replace 'aircall' with your provider name for other services
           </p>
+          
+          {/* Webhook Tester */}
+          <WebhookTester />
         </div>
       </div>
     </div>
