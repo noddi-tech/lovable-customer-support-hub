@@ -47,11 +47,13 @@ class AircallAdapter {
       'call.created': 'call_started',
       'call.answered': 'call_answered', 
       'call.hungup': 'call_ended',
+      'call.ended': 'call_ended',  // Add missing call.ended
       'call.missed': 'call_missed',
       'call.transferred': 'call_transferred',
       'call.hold': 'call_on_hold',
       'call.unhold': 'call_resumed',
-      'call.voicemail': 'voicemail_left'
+      'call.voicemail': 'voicemail_left',
+      'call.ivr_option_selected': 'dtmf_pressed'  // Map to appropriate event type
     };
 
     // Convert Unix timestamps to ISO strings
