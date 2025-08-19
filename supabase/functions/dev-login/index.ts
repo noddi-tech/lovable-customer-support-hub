@@ -30,12 +30,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Ensure we use the correct redirect URL
+    const finalRedirectTo = redirectTo || `${new URL(req.url).origin}/`;
+    console.log('Using redirect URL:', finalRedirectTo);
+
     // Generate magic link
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: email,
       options: {
-        redirectTo: redirectTo || `${new URL(req.url).origin}/`
+        redirectTo: finalRedirectTo
       }
     });
 
