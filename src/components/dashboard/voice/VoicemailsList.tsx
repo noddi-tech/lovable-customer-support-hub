@@ -253,56 +253,6 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
         </div>
       )}
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <FileAudio className="h-4 w-4 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium">Total</p>
-                <p className="text-xl font-bold">{voicemails.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Play className="h-4 w-4 text-green-600" />
-              <div>
-                <p className="text-sm font-medium">With Audio</p>
-                <p className="text-xl font-bold">{voicemailsWithRecordings.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-purple-600" />
-              <div>
-                <p className="text-sm font-medium">Transcribed</p>
-                <p className="text-xl font-bold">{transcribedVoicemails.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-600" />
-              <div>
-                <p className="text-sm font-medium">Recent</p>
-                <p className="text-xl font-bold">{recentVoicemails.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Voicemails List */}
       {isLoading ? (

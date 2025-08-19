@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCalls } from '@/hooks/useCalls';
 import { CallStatusCard } from './voice/CallStatusCard';
 import { CallEventsList } from './voice/CallEventsList';
-import { CallStatsSummary } from './voice/CallStatsSummary';
+
 import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
 import { CallsList } from './voice/CallsList';
@@ -96,10 +96,6 @@ export const VoiceInterface = () => {
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
             </div>
-            <CallStatsSummary 
-              callsByStatus={callsByStatus}
-              activeCalls={activeCalls.length}
-            />
             <div className="space-y-4">
               {activeCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -198,10 +194,6 @@ export const VoiceInterface = () => {
       default:
         return (
           <div className="space-y-6">
-            <CallStatsSummary 
-              callsByStatus={callsByStatus}
-              activeCalls={activeCalls.length}
-            />
             <div className="text-center py-8 text-muted-foreground">
               <p>Select a section from the sidebar</p>
             </div>
