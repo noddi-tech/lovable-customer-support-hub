@@ -54,6 +54,18 @@ class AircallAdapter {
       'call.voicemail': 'voicemail_left'
     };
 
+    // Convert Unix timestamps to ISO strings
+    const convertTimestamp = (unixTimestamp: any): string | undefined => {
+      if (!unixTimestamp) return undefined;
+      if (typeof unixTimestamp === 'number') {
+        return new Date(unixTimestamp * 1000).toISOString();
+      }
+      if (typeof unixTimestamp === 'string' && /^\d+$/.test(unixTimestamp)) {
+        return new Date(parseInt(unixTimestamp) * 1000).toISOString();
+      }
+      return unixTimestamp; // Already in proper format
+    };
+
     return {
       externalId: call.id.toString(),
       provider: 'aircall',
@@ -61,8 +73,8 @@ class AircallAdapter {
       agentPhone: call.to?.phone_number,
       status: statusMap[call.status] || 'ringing',
       direction: call.direction === 'inbound' ? 'inbound' : 'outbound',
-      startedAt: call.started_at || new Date().toISOString(),
-      endedAt: call.ended_at || undefined,
+      startedAt: convertTimestamp(call.started_at) || new Date().toISOString(),
+      endedAt: convertTimestamp(call.ended_at),
       durationSeconds: call.duration || undefined,
       recordingUrl: call.recording?.url || undefined,
       metadata: {
