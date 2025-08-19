@@ -2,6 +2,7 @@
 // Enhanced email processing for Apple Mail-like appearance
 import DOMPurify from 'dompurify';
 import { convertShortcodesToEmojis } from './emojiUtils';
+import { formatPlainTextEmail } from './plainTextEmailFormatter';
 
 export interface EmailAttachment {
   filename: string;
@@ -14,7 +15,7 @@ export interface EmailAttachment {
 }
 
 /**
- * Enhanced email HTML sanitization for Apple Mail-like appearance
+ * Enhanced email HTML sanitization with strict security and formatting controls
  */
 export const sanitizeEmailHTML = (
   htmlContent: string, 
@@ -22,28 +23,67 @@ export const sanitizeEmailHTML = (
   preserveOriginalStyles: boolean = true,
   messageId?: string
 ): string => {
-  // Comprehensive email HTML configuration
+  // Strict email HTML configuration following security best practices
   const config = {
     ALLOWED_TAGS: [
-      'div', 'span', 'p', 'br', 'a', 'img', 'strong', 'b', 'em', 'i', 'u', 
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote',
-      'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'caption',
-      'pre', 'code', 'hr', 'center', 'font', 'small', 'big', 'sub', 'sup',
-      'address', 'cite', 'del', 'ins', 'mark', 'time', 'style'
+      'a', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'img', 
+      'table', 'thead', 'tbody', 'tr', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+      'span', 'div', 'pre', 'code'
     ],
     ALLOWED_ATTR: [
-      'href', 'src', 'alt', 'title', 'width', 'height', 'style', 'class', 
-      'id', 'target', 'rel', 'colspan', 'rowspan', 'border', 'cellpadding', 
-      'cellspacing', 'align', 'valign', 'bgcolor', 'color', 'face', 'size',
-      'data-*', 'role', 'aria-*', 'dir', 'background', 'font-family', 
-      'font-size', 'font-weight', 'text-align', 'margin', 'padding'
+      'href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan', 
+      'align', 'cellpadding', 'cellspacing', 'style'
     ],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link'],
-    FORBID_ATTR: ['javascript:', 'vbscript:', 'onload', 'onerror', 'onclick'],
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link', 'style'],
+    FORBID_ATTR: ['javascript:', 'vbscript:', 'on*'],
     KEEP_CONTENT: true,
-    ADD_ATTR: ['target'],
-    ALLOW_DATA_ATTR: true
+    ADD_ATTR: ['target', 'rel'],
+    ALLOW_DATA_ATTR: false,
+    // Custom hook to add security attributes to links
+    HOOKS: {
+      afterSanitizeAttributes: function (node: Element) {
+        // Add security attributes to all links
+        if (node.tagName === 'A') {
+          node.setAttribute('target', '_blank');
+          node.setAttribute('rel', 'noopener noreferrer nofollow');
+        }
+        
+        // Ensure images are responsive and secure
+        if (node.tagName === 'IMG') {
+          node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
+          // Block external images by default for privacy
+          const src = node.getAttribute('src');
+          if (src && !src.startsWith('cid:') && !src.startsWith('/')) {
+            node.setAttribute('src', '');
+            node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
+          }
+        }
+        
+        // Sanitize style attributes to only allow safe properties
+        if (node.hasAttribute('style')) {
+          const style = node.getAttribute('style') || '';
+          const safeStyles = style
+            .split(';')
+            .filter(rule => {
+              const property = rule.split(':')[0]?.trim().toLowerCase();
+              const safeProperties = [
+                'color', 'background-color', 'font-family', 'font-size', 'font-weight',
+                'text-decoration', 'text-align', 'margin', 'padding', 'border',
+                'border-color', 'border-width', 'border-style', 'line-height', 'max-width'
+              ];
+              return safeProperties.includes(property);
+            })
+            .join(';');
+          
+          if (safeStyles) {
+            node.setAttribute('style', safeStyles);
+          } else {
+            node.removeAttribute('style');
+          }
+        }
+      }
+    }
   };
 
   let processedContent = htmlContent;
@@ -403,10 +443,14 @@ export const stripQuotedEmailHTML = (htmlContent: string): string => {
 /**
  * Strip quoted previous messages from plain text replies for display
  */
+/**
+ * Strip quoted previous messages from plain text replies for display
+ */
 export const stripQuotedEmailText = (text: string): string => {
   try {
     const cutPattern = /(On .+wrote:|-----Original Message-----|---+ Forwarded message ---+|From: .+\n.*Sent: .+\n.*To: .+\n.*Subject: .+)/i;
     let result = text.replace(cutPattern, '').trim();
+    
     // Remove classic '>' quoted lines
     result = result.replace(/^\s*>.*$/gm, '').trim();
     return result;
@@ -414,3 +458,6 @@ export const stripQuotedEmailText = (text: string): string => {
     return text;
   }
 };
+
+// Re-export enhanced plain text formatter
+export { formatPlainTextEmail };

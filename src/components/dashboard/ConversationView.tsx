@@ -8,6 +8,7 @@ import { sanitizeEmailHTML, extractTextFromHTML, shouldRenderAsHTML, fixEncoding
 import { convertShortcodesToEmojis } from '@/utils/emojiUtils';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { EmojiAutocompleteInput } from '@/components/ui/emoji-autocomplete-input';
+import { EmailRender } from '@/components/ui/email-render';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -502,10 +503,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               ) : (
                 messages.map((message, index) => {
                   const isFromCustomer = message.sender_type === 'customer';
-                  const shouldUseHTML = shouldRenderAsHTML(message.content, message.content_type || 'text/plain');
-                  const processedContent = shouldUseHTML
-                    ? DOMPurify.sanitize(sanitizeEmailHTML(message.content))
-                    : formatEmailText(message.content);
                   
                   return (
                     <Card key={message.id} className="overflow-hidden">
@@ -534,18 +531,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        <div className="email-container">
-                          {shouldUseHTML ? (
-                            <div 
-                              className="email-content prose prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: processedContent }}
-                            />
-                          ) : (
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                              {processedContent}
-                            </div>
-                          )}
-                        </div>
+                        <EmailRender
+                          content={message.content}
+                          contentType={message.content_type || 'text/plain'}
+                          attachments={((message.attachments as unknown) as EmailAttachment[]) || []}
+                          messageId={message.id}
+                        />
                       </CardContent>
                     </Card>
                   );
