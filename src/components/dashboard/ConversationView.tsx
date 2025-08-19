@@ -94,6 +94,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [showCustomerInfo, setShowCustomerInfo] = useState(true);
   const [sendLoading, setSendLoading] = useState(false);
+  const [showReplyArea, setShowReplyArea] = useState(false);
 
   // Fetch conversation
   const { data: conversation, isLoading: conversationLoading } = useQuery({
@@ -534,117 +535,131 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 })
               )}
 
-              {/* Reply Area - Positioned After Last Message */}
-              <div className="mt-8 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-2 border-primary/20 rounded-xl shadow-lg">
-                {/* Quick Reply Header */}
-                <div className="flex items-center justify-between mb-4 p-4 bg-card rounded-lg border shadow-sm">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        A
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium text-sm">Reply to this conversation</div>
-                      <div className="text-xs text-muted-foreground">Type your response or use AI suggestions</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={getAiSuggestions}
-                      disabled={aiLoading}
-                      className="text-primary hover:text-primary/80"
-                    >
-                      {aiLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Sparkles className="h-4 w-4 mr-2" />
-                      )}
-                      AI Suggest
-                    </Button>
-                  </div>
-                </div>
+              {/* Reply Button - Always Visible */}
+              <div className="mt-6 flex justify-center">
+                <Button 
+                  onClick={() => setShowReplyArea(!showReplyArea)}
+                  className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-lg"
+                  size="lg"
+                >
+                  <Reply className="h-5 w-5 mr-2" />
+                  {showReplyArea ? 'Hide Reply' : 'Reply to this conversation'}
+                </Button>
+              </div>
 
-                {/* Reply Form */}
-                <div className="space-y-4">
-                  {/* Reply Type Toggle */}
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant={isInternalNote ? "outline" : "default"}
-                      size="sm"
-                      onClick={() => setIsInternalNote(false)}
-                      className="flex-1 max-w-[120px]"
-                    >
-                      <Reply className="h-4 w-4 mr-2" />
-                      Reply
-                    </Button>
-                    <Button
-                      variant={isInternalNote ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setIsInternalNote(true)}
-                      className="flex-1 max-w-[140px]"
-                    >
-                      <Lock className="h-4 w-4 mr-2" />
-                      Internal Note
-                    </Button>
-                  </div>
-
-                  {/* Text Area */}
-                  <div className="relative">
-                    <Textarea
-                      ref={replyRef}
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
-                      className="min-h-[120px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg"
-                    />
-                    
-                    {/* Action Buttons - Right Side */}
-                    <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                        <Paperclip className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                        <Smile className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Send Actions Row */}
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center space-x-3 text-sm text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
-                        <span>+</span>
-                        <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Enter</kbd>
-                        <span>to send</span>
+              {/* Reply Area - Toggleable */}
+              {showReplyArea && (
+                <div className="mt-6 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-2 border-primary/20 rounded-xl shadow-lg">
+                  {/* Quick Reply Header */}
+                  <div className="flex items-center justify-between mb-4 p-4 bg-card rounded-lg border shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          A
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-sm">Reply to this conversation</div>
+                        <div className="text-xs text-muted-foreground">Type your response or use AI suggestions</div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-3">
-                      <Button variant="outline" size="sm" onClick={() => setReplyText('')} disabled={sendLoading}>
-                        Cancel
-                      </Button>
+                    <div className="flex items-center space-x-2">
                       <Button 
+                        variant="ghost" 
                         size="sm" 
-                        disabled={!replyText.trim() || sendLoading}
-                        onClick={handleSendReply}
-                        className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                        onClick={getAiSuggestions}
+                        disabled={aiLoading}
+                        className="text-primary hover:text-primary/80"
                       >
-                        {sendLoading ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {aiLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : (
-                          <Send className="h-4 w-4 mr-2" />
+                          <Sparkles className="h-4 w-4 mr-2" />
                         )}
-                        {isInternalNote ? 'Add Note' : 'Send Reply'}
+                        AI Suggest
                       </Button>
                     </div>
                   </div>
+
+                  {/* Reply Form */}
+                  <div className="space-y-4">
+                    {/* Reply Type Toggle */}
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant={isInternalNote ? "outline" : "default"}
+                        size="sm"
+                        onClick={() => setIsInternalNote(false)}
+                        className="flex-1 max-w-[120px]"
+                      >
+                        <Reply className="h-4 w-4 mr-2" />
+                        Reply
+                      </Button>
+                      <Button
+                        variant={isInternalNote ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIsInternalNote(true)}
+                        className="flex-1 max-w-[140px]"
+                      >
+                        <Lock className="h-4 w-4 mr-2" />
+                        Internal Note
+                      </Button>
+                    </div>
+
+                    {/* Text Area */}
+                    <div className="relative">
+                      <Textarea
+                        ref={replyRef}
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
+                        className="min-h-[120px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg"
+                      />
+                      
+                      {/* Action Buttons - Right Side */}
+                      <div className="absolute bottom-3 right-3 flex items-center space-x-2">
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                          <Paperclip className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                          <Smile className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Send Actions Row */}
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
+                          <span>+</span>
+                          <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Enter</kbd>
+                          <span>to send</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <Button variant="outline" size="sm" onClick={() => setReplyText('')} disabled={sendLoading}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          disabled={!replyText.trim() || sendLoading}
+                          onClick={handleSendReply}
+                          className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                        >
+                          {sendLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4 mr-2" />
+                          )}
+                          {isInternalNote ? 'Add Note' : 'Send Reply'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
