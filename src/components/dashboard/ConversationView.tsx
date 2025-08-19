@@ -1111,9 +1111,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     }
   };
   return (
-    <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">
-      {/* Conversation Header */}
-      <div className="p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+    <div className="flex-1 flex flex-col bg-gradient-surface min-h-0 overflow-hidden">
+      <div className="flex-1 overflow-auto">
+        {/* Conversation Header */}
+        <div className="p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar className="h-10 w-10">
@@ -1275,13 +1276,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
-        </div>
-      </div>
+          </div>
 
-      <div className="flex-1 flex relative">
-        {/* Messages Area - Full height with bottom padding for fixed reply */}
-        <ScrollArea className="flex-1 h-0 min-h-0">
-          <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
+          <div className="flex-1 flex relative">
+            {/* Messages Area with ScrollArea */}
+            <ScrollArea className="flex-1 h-0 min-h-0">
+              <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -1618,8 +1618,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               </div>
             </div>
           )}
-          </div>
-        </ScrollArea>
+              </div>
+            </ScrollArea>
 
         {/* AI Suggestions Dialog */}
         <Dialog open={aiOpen} onOpenChange={setAiOpen}>
@@ -1760,7 +1760,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
       </div>
-
+    </div>
+      
       {/* Snooze Dialog */}
       <Dialog open={snoozeDialogOpen} onOpenChange={setSnoozeDialogOpen}>
         <DialogContent>
@@ -1838,6 +1839,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 };
