@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Phone, Play, Pause, Download, FileAudio, Clock, User } from 'lucide-react';
+import { Phone, Play, Pause, Download, FileAudio, Clock, User, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ const AudioPlayer = ({ src, duration }: AudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(duration || 0);
+  const [hasError, setHasError] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const togglePlay = () => {
@@ -24,7 +25,10 @@ const AudioPlayer = ({ src, duration }: AudioPlayerProps) => {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch((error) => {
+          console.error('Audio play failed:', error);
+          setHasError(true);
+        });
       }
       setIsPlaying(!isPlaying);
     }
@@ -39,12 +43,24 @@ const AudioPlayer = ({ src, duration }: AudioPlayerProps) => {
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setTotalDuration(audioRef.current.duration);
+      setHasError(false);
     }
   };
 
   const handleEnded = () => {
     setIsPlaying(false);
     setCurrentTime(0);
+  };
+
+  const handleError = (error: any) => {
+    console.error('Audio error:', error);
+    setHasError(true);
+    setIsPlaying(false);
+  };
+
+  // Open recording in new tab for direct download/play
+  const handleDirectAccess = () => {
+    window.open(src, '_blank');
   };
 
   const progress = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
@@ -54,6 +70,26 @@ const AudioPlayer = ({ src, duration }: AudioPlayerProps) => {
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  if (hasError) {
+    return (
+      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+        <AlertCircle className="h-4 w-4 text-amber-600" />
+        <div className="flex-1">
+          <p className="text-sm text-muted-foreground">Cannot play audio in browser</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDirectAccess}
+          className="flex items-center gap-2"
+        >
+          <Download className="h-3 w-3" />
+          Open Recording
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
@@ -74,13 +110,25 @@ const AudioPlayer = ({ src, duration }: AudioPlayerProps) => {
         </div>
       </div>
 
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleDirectAccess}
+        className="flex-shrink-0"
+        title="Open in new tab"
+      >
+        <Download className="h-3 w-3" />
+      </Button>
+
       <audio
         ref={audioRef}
         src={src}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
+        onError={handleError}
         preload="metadata"
+        crossOrigin="anonymous"
       />
     </div>
   );
@@ -176,18 +224,16 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
 
         {/* Actions */}
         <div className="flex gap-2">
-          {hasRecording && voicemail.event_data.recording_url && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDownload(voicemail.id, voicemail.event_data.recording_url!)}
-              disabled={isDownloading}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-3 w-3" />
-              {isDownloading ? 'Downloading...' : 'Download'}
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(voicemail.event_data.recording_url, '_blank')}
+            className="flex items-center gap-2"
+            title="Open recording in new tab for download"
+          >
+            <Download className="h-3 w-3" />
+            Download
+          </Button>
         </div>
 
         {!hasRecording && !hasTranscription && (
@@ -317,8 +363,8 @@ export const VoicemailsList = () => {
             <VoicemailCard
               key={voicemail.id}
               voicemail={voicemail}
-              onDownload={(id, url) => downloadVoicemail({ voicemailId: id, recordingUrl: url })}
-              isDownloading={isDownloading}
+              onDownload={() => {}} // Not needed with direct download
+              isDownloading={false}
             />
           ))}
         </div>
