@@ -699,6 +699,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "internal_events_assigned_to_id_fkey"
+            columns: ["assigned_to_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "internal_events_call_id_fkey"
             columns: ["call_id"]
             isOneToOne: false
