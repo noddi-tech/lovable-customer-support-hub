@@ -8,128 +8,46 @@ import { Progress } from '@/components/ui/progress';
 import { useVoicemails, Voicemail } from '@/hooks/useVoicemails';
 import { formatDistanceToNow } from 'date-fns';
 
-interface AudioPlayerProps {
-  src: string;
-  duration?: number;
-}
-
-const AudioPlayer = ({ src, duration }: AudioPlayerProps) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [totalDuration, setTotalDuration] = useState(duration || 0);
-  const [hasError, setHasError] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
-
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch((error) => {
-          console.error('Audio play failed:', error);
-          setHasError(true);
-        });
-      }
-      setIsPlaying(!isPlaying);
+const AudioPlayerSimple = ({ src, duration }: { src: string; duration?: number }) => {
+  const handleOpenRecording = () => {
+    if (src) {
+      // Create a temporary anchor element to force download
+      const link = document.createElement('a');
+      link.href = src;
+      link.download = `voicemail-${new Date().toISOString()}.mp3`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return 'Unknown duration';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setTotalDuration(audioRef.current.duration);
-      setHasError(false);
-    }
-  };
-
-  const handleEnded = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-  };
-
-  const handleError = (error: any) => {
-    console.error('Audio error:', error);
-    setHasError(true);
-    setIsPlaying(false);
-  };
-
-  // Open recording in new tab for direct download/play
-  const handleDirectAccess = () => {
-    window.open(src, '_blank');
-  };
-
-  const progress = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  if (hasError) {
-    return (
-      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-        <AlertCircle className="h-4 w-4 text-amber-600" />
-        <div className="flex-1">
-          <p className="text-sm text-muted-foreground">Cannot play audio in browser</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDirectAccess}
-          className="flex items-center gap-2"
-        >
-          <Download className="h-3 w-3" />
-          Open Recording
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+      <FileAudio className="h-4 w-4 text-muted-foreground" />
+      <div className="flex-1">
+        <p className="text-sm font-medium">Voicemail Recording</p>
+        <p className="text-xs text-muted-foreground">
+          Duration: {formatDuration(duration)}
+        </p>
+      </div>
       <Button
         variant="outline"
         size="sm"
-        onClick={togglePlay}
-        className="flex-shrink-0"
-      >
-        {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-      </Button>
-      
-      <div className="flex-1 space-y-1">
-        <Progress value={progress} className="h-1" />
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(totalDuration)}</span>
-        </div>
-      </div>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleDirectAccess}
-        className="flex-shrink-0"
-        title="Open in new tab"
+        onClick={handleOpenRecording}
+        className="flex items-center gap-2"
+        title="Download/Play recording"
       >
         <Download className="h-3 w-3" />
+        Open Recording
       </Button>
-
-      <audio
-        ref={audioRef}
-        src={src}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
-        onError={handleError}
-        preload="metadata"
-        crossOrigin="anonymous"
-      />
     </div>
   );
 };
@@ -194,7 +112,7 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
       <CardContent className="pt-0 space-y-4">
         {/* Audio Player */}
         {hasRecording && voicemail.event_data.recording_url && (
-          <AudioPlayer 
+          <AudioPlayerSimple 
             src={voicemail.event_data.recording_url} 
             duration={voicemail.event_data.duration}
           />
@@ -223,18 +141,28 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
         )}
 
         {/* Actions */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(voicemail.event_data.recording_url, '_blank')}
-            className="flex items-center gap-2"
-            title="Open recording in new tab for download"
-          >
-            <Download className="h-3 w-3" />
-            Download
-          </Button>
-        </div>
+        {hasRecording && voicemail.event_data.recording_url && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = voicemail.event_data.recording_url!;
+                link.download = `voicemail-${voicemail.customer_phone}-${new Date(voicemail.created_at).toISOString().split('T')[0]}.mp3`;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="flex items-center gap-2"
+              title="Download recording"
+            >
+              <Download className="h-3 w-3" />
+              Download
+            </Button>
+          </div>
+        )}
 
         {!hasRecording && !hasTranscription && (
           <div className="text-center py-4 text-muted-foreground">
