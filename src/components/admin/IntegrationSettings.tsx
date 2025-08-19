@@ -6,7 +6,7 @@ import { Mail, MessageSquare, Instagram, Phone } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { InboxManagement } from '@/components/admin/InboxManagement';
-import { AircallSettings } from '@/components/admin/AircallSettings';
+import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
 import { useTranslation } from 'react-i18next';
 
 export const IntegrationSettings = () => {
@@ -130,11 +130,11 @@ export const IntegrationSettings = () => {
                 {t('admin.voiceIntegration')}
               </CardTitle>
               <CardDescription>
-                {t('admin.voiceConfiguration')}
+                Configure voice communication providers and telephony integrations
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <AircallSettings />
+              <VoiceIntegrationsList />
             </CardContent>
           </Card>
         </TabsContent>
