@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Call {
   id: string;
@@ -31,6 +32,7 @@ export interface CallEvent {
 
 export function useCalls() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: calls = [], isLoading, error } = useQuery({
     queryKey: ['calls'],
@@ -69,6 +71,26 @@ export function useCalls() {
         table: 'calls'
       }, (payload) => {
         console.log('Call change received:', payload);
+        
+        // Show toast notification for new calls
+        if (payload.eventType === 'INSERT') {
+          const newCall = payload.new as Call;
+          if (newCall.direction === 'inbound') {
+            toast({
+              title: "Incoming Call",
+              description: `New call from ${newCall.customer_phone || 'Unknown'}`,
+            });
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedCall = payload.new as Call;
+          if (payload.old?.status !== updatedCall.status) {
+            toast({
+              title: "Call Status Updated",
+              description: `Call ${updatedCall.status}`,
+            });
+          }
+        }
+        
         queryClient.invalidateQueries({ queryKey: ['calls'] });
       })
       .subscribe();
@@ -81,6 +103,16 @@ export function useCalls() {
         table: 'call_events'
       }, (payload) => {
         console.log('Call event received:', payload);
+        
+        // Show toast for significant call events
+        const newEvent = payload.new as CallEvent;
+        if (['voicemail_left', 'callback_requested'].includes(newEvent.event_type)) {
+          toast({
+            title: "New Voice Event",
+            description: `${newEvent.event_type.replace('_', ' ')} received`,
+          });
+        }
+        
         queryClient.invalidateQueries({ queryKey: ['call-events'] });
       })
       .subscribe();

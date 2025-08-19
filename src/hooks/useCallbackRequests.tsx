@@ -91,6 +91,24 @@ export function useCallbackRequests() {
         filter: 'event_type=eq.callback_requested'
       }, (payload) => {
         console.log('Callback request change received:', payload);
+        
+        // Show toast notification for new callback requests
+        if (payload.eventType === 'INSERT') {
+          const newRequest = payload.new as CallbackRequest;
+          toast({
+            title: "Callback Request",
+            description: `New request from ${newRequest.customer_phone || 'Unknown'}`,
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedRequest = payload.new as CallbackRequest;
+          if (payload.old?.status !== updatedRequest.status) {
+            toast({
+              title: "Request Status Updated",
+              description: `Request marked as ${updatedRequest.status}`,
+            });
+          }
+        }
+        
         queryClient.invalidateQueries({ queryKey: ['callback-requests'] });
       })
       .subscribe();

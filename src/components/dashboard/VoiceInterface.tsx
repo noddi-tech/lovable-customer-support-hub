@@ -6,15 +6,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCalls } from '@/hooks/useCalls';
 import { CallStatusCard } from './voice/CallStatusCard';
 import { CallEventsList } from './voice/CallEventsList';
-
 import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
 import { CallsList } from './voice/CallsList';
 import { WebhookTester } from './voice/WebhookTester';
 import { VoiceSidebar } from './voice/VoiceSidebar';
+import { RealTimeIndicator } from './voice/RealTimeIndicator';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const VoiceInterface = () => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { 
     calls, 
     callEvents, 
@@ -27,6 +29,13 @@ export const VoiceInterface = () => {
   
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [selectedSection, setSelectedSection] = useState('ongoing-calls');
+
+  const handleRefreshAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['calls'] });
+    queryClient.invalidateQueries({ queryKey: ['call-events'] });
+    queryClient.invalidateQueries({ queryKey: ['voicemails'] });
+    queryClient.invalidateQueries({ queryKey: ['callback-requests'] });
+  };
 
   if (error) {
     return (
@@ -95,6 +104,7 @@ export const VoiceInterface = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
+              <RealTimeIndicator onRefresh={handleRefreshAll} />
             </div>
             <div className="space-y-4">
               {activeCalls.length === 0 ? (

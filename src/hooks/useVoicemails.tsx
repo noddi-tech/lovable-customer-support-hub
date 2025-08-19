@@ -95,6 +95,16 @@ export function useVoicemails() {
         filter: 'event_type=eq.voicemail_left'
       }, (payload) => {
         console.log('Voicemail change received:', payload);
+        
+        // Show toast notification for new voicemails
+        if (payload.eventType === 'INSERT') {
+          const newVoicemail = payload.new as Voicemail;
+          toast({
+            title: "New Voicemail",
+            description: `Voicemail from ${newVoicemail.customer_phone || 'Unknown'}`,
+          });
+        }
+        
         queryClient.invalidateQueries({ queryKey: ['voicemails'] });
       })
       .subscribe();
