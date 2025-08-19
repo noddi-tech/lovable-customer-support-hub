@@ -1280,7 +1280,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       <div className="flex-1 flex relative">
         {/* Messages Area - Full height with bottom padding for fixed reply */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 h-0 min-h-0">
           <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
