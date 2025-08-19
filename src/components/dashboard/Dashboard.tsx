@@ -246,7 +246,7 @@ useEffect(() => {
       )}
 
         {/* Content Area */}
-        <div className="flex-1 h-full min-h-0 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Show Notifications List if notifications tab is selected */}
         {selectedTab === 'notifications' ? (
           <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">
