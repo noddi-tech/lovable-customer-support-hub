@@ -1223,6 +1223,47 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_integrations: {
+        Row: {
+          configuration: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          provider: string
+          updated_at: string
+          webhook_token: string | null
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          provider: string
+          updated_at?: string
+          webhook_token?: string | null
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          provider?: string
+          updated_at?: string
+          webhook_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_event_mappings: {
         Row: {
           condition_rules: Json | null

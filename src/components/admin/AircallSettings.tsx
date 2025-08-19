@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
+import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 
 interface CallEventConfig {
   eventType: string;
@@ -27,16 +28,40 @@ interface PhoneNumber {
 export const AircallSettings = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { 
+    getIntegrationByProvider, 
+    saveIntegration, 
+    isSaving, 
+    isLoading: isLoadingIntegrations 
+  } = useVoiceIntegrations();
+  
+  // Get existing Aircall configuration
+  const existingConfig = getIntegrationByProvider('aircall');
   
   const [webhookToken, setWebhookToken] = useState('');
-  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([
-    { id: '1', number: '+1234567890', label: 'Main Line' }
-  ]);
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [newPhoneNumber, setNewPhoneNumber] = useState('');
   const [newPhoneLabel, setNewPhoneLabel] = useState('');
   const [isAddingPhone, setIsAddingPhone] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+
+  // Load existing configuration when it changes
+  useEffect(() => {
+    if (existingConfig) {
+      setWebhookToken(existingConfig.webhook_token || '');
+      setPhoneNumbers(existingConfig.configuration.phoneNumbers || []);
+      
+      // Update call events with saved configuration
+      const savedEvents = existingConfig.configuration.callEvents;
+      if (savedEvents) {
+        setCallEvents(savedEvents);
+      }
+    } else {
+      // Set default phone number if no config exists
+      setPhoneNumbers([{ id: '1', number: '+1234567890', label: 'Main Line' }]);
+    }
+  }, [existingConfig]);
   
   const [callEvents, setCallEvents] = useState<CallEventConfig[]>([
     {
@@ -126,10 +151,17 @@ export const AircallSettings = () => {
   };
 
   const handleSaveSettings = () => {
-    // Here you would save the settings to your backend
-    toast({
-      title: "Settings saved",
-      description: "Aircall integration settings have been updated successfully",
+    const configuration = {
+      phoneNumbers,
+      callEvents,
+      enabledEvents: callEvents.filter(event => event.enabled).map(event => event.eventType)
+    };
+
+    saveIntegration({
+      provider: 'aircall',
+      is_active: true,
+      webhook_token: webhookToken,
+      configuration
     });
   };
 
@@ -197,6 +229,19 @@ export const AircallSettings = () => {
   };
 
   const enabledEventsCount = callEvents.filter(event => event.enabled).length;
+
+  if (isLoadingIntegrations) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <div className="animate-pulse">
+            <div className="h-4 bg-muted rounded w-1/3 mx-auto mb-2"></div>
+            <div className="h-3 bg-muted rounded w-1/2 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -460,9 +505,13 @@ export const AircallSettings = () => {
 
       {/* Save Settings */}
       <div className="flex justify-end">
-        <Button onClick={handleSaveSettings} className="flex items-center gap-2">
+        <Button 
+          onClick={handleSaveSettings} 
+          disabled={isSaving}
+          className="flex items-center gap-2"
+        >
           <CheckCircle className="h-4 w-4" />
-          Save Configuration
+          {isSaving ? 'Saving...' : 'Save Configuration'}
         </Button>
       </div>
     </div>

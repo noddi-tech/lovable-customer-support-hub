@@ -1,0 +1,137 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+export interface VoiceIntegrationConfig {
+  id?: string;
+  organization_id?: string;
+  provider: string;
+  is_active: boolean;
+  webhook_token?: string;
+  configuration: {
+    phoneNumbers?: Array<{ id: string; number: string; label: string }>;
+    enabledEvents?: Array<string>;
+    callEvents?: Array<{
+      eventType: string;
+      label: string;
+      description: string;
+      enabled: boolean;
+    }>;
+  };
+}
+
+export function useVoiceIntegrations() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch all voice integrations for the current organization
+  const { data: integrations = [], isLoading, error } = useQuery({
+    queryKey: ['voice-integrations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('voice_integrations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as VoiceIntegrationConfig[];
+    },
+  });
+
+  // Get specific integration by provider
+  const getIntegrationByProvider = (provider: string) => {
+    return integrations.find(integration => integration.provider === provider);
+  };
+
+  // Save or update voice integration configuration
+  const saveIntegrationMutation = useMutation({
+    mutationFn: async (config: VoiceIntegrationConfig) => {
+      const existingIntegration = getIntegrationByProvider(config.provider);
+      
+      if (existingIntegration) {
+        // Update existing integration
+        const { data, error } = await supabase
+          .from('voice_integrations')
+          .update({
+            webhook_token: config.webhook_token,
+            configuration: config.configuration,
+            is_active: config.is_active,
+          })
+          .eq('id', existingIntegration.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else {
+        // Create new integration - organization_id is handled by RLS/triggers
+        const { data, error } = await supabase
+          .from('voice_integrations')
+          .insert({
+            provider: config.provider,
+            webhook_token: config.webhook_token,
+            configuration: config.configuration,
+            is_active: config.is_active,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['voice-integrations'] });
+      toast({
+        title: "Settings saved",
+        description: `${variables.provider} integration settings have been updated successfully`,
+      });
+    },
+    onError: (error) => {
+      console.error('Error saving voice integration:', error);
+      toast({
+        title: "Error saving settings",
+        description: "Failed to save integration settings. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete voice integration
+  const deleteIntegrationMutation = useMutation({
+    mutationFn: async (integrationId: string) => {
+      const { error } = await supabase
+        .from('voice_integrations')
+        .delete()
+        .eq('id', integrationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['voice-integrations'] });
+      toast({
+        title: "Integration removed",
+        description: "Voice integration has been successfully removed",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting voice integration:', error);
+      toast({
+        title: "Error removing integration",
+        description: "Failed to remove integration. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  return {
+    integrations,
+    isLoading,
+    error,
+    getIntegrationByProvider,
+    saveIntegration: saveIntegrationMutation.mutate,
+    deleteIntegration: deleteIntegrationMutation.mutate,
+    isSaving: saveIntegrationMutation.isPending,
+    isDeleting: deleteIntegrationMutation.isPending,
+  };
+}
