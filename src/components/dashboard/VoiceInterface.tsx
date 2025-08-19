@@ -11,6 +11,7 @@ import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
 import { CallsList } from './voice/CallsList';
 import { WebhookTester } from './voice/WebhookTester';
+import { VoiceSidebar } from './voice/VoiceSidebar';
 
 export const VoiceInterface = () => {
   const { t } = useTranslation();
@@ -25,6 +26,7 @@ export const VoiceInterface = () => {
   } = useCalls();
   
   const [selectedCall, setSelectedCall] = useState<any>(null);
+  const [selectedSection, setSelectedSection] = useState('ongoing-calls');
 
   if (error) {
     return (
@@ -53,70 +55,27 @@ export const VoiceInterface = () => {
     );
   }
 
-  return (
-    <div className="pane p-6 h-full overflow-y-auto">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <Phone className="h-6 w-6" />
-              Voice Call Monitor
-            </h2>
-            <p className="text-muted-foreground">
-              Real-time call events and monitoring
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Summary */}
-        <CallStatsSummary 
-          callsByStatus={callsByStatus}
-          activeCalls={activeCalls.length}
-        />
-
-        {/* Callback Requests */}
-        <CallbackRequestsList />
-
-        {/* Voicemails */}
-        <VoicemailsList />
-
-        {/* Calls History */}
-        <CallsList />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Active Calls */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">
-              Active Calls ({activeCalls.length})
-            </h3>
-            {activeCalls.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No active calls</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {activeCalls.map((call) => (
-                  <CallStatusCard
-                    key={call.id}
-                    call={call}
-                    onViewDetails={setSelectedCall}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Recent Calls */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">
-                Recent Calls
+  const renderMainContent = () => {
+    switch (selectedSection) {
+      case 'ongoing-calls':
+        return (
+          <div className="space-y-6">
+            <CallStatsSummary 
+              callsByStatus={callsByStatus}
+              activeCalls={activeCalls.length}
+            />
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">
+                Active Calls ({activeCalls.length})
               </h3>
-              {recentCalls.length === 0 ? (
-                <p className="text-muted-foreground">No recent calls</p>
+              {activeCalls.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No active calls</p>
+                </div>
               ) : (
-                <div className="space-y-2">
-                  {recentCalls.slice(0, 5).map((call) => (
+                <div className="space-y-4">
+                  {activeCalls.map((call) => (
                     <CallStatusCard
                       key={call.id}
                       call={call}
@@ -127,28 +86,93 @@ export const VoiceInterface = () => {
               )}
             </div>
           </div>
+        );
 
-          {/* Call Events */}
-          <div className="space-y-4">
-            <CallEventsList events={callEvents} />
+      case 'callbacks-pending':
+      case 'callbacks-assigned':
+      case 'callbacks-closed':
+      case 'callbacks-all':
+        return <CallbackRequestsList />;
+
+      case 'voicemails-pending':
+      case 'voicemails-assigned':
+      case 'voicemails-closed':
+      case 'voicemails-all':
+        return <VoicemailsList />;
+
+      case 'calls-today':
+        return <CallsList />;
+
+      case 'events-all':
+        return <CallEventsList events={callEvents} />;
+
+      case 'config-settings':
+        return (
+          <div className="space-y-6">
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold mb-2">Webhook Configuration</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                Configure your VoIP provider to send webhooks to:
+              </p>
+              <code className="text-sm bg-background p-2 rounded border block">
+                https://qgfaycwsangsqzpveoup.functions.supabase.co/call-events-webhook/aircall
+              </code>
+              <p className="text-xs text-muted-foreground mt-2">
+                Replace 'aircall' with your provider name for other services
+              </p>
+              
+              <WebhookTester />
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="space-y-6">
+            <CallStatsSummary 
+              callsByStatus={callsByStatus}
+              activeCalls={activeCalls.length}
+            />
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Select a section from the sidebar</p>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="app-root bg-gradient-surface">
+      {/* Header */}
+      <div className="app-header">
+        <div className="flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+          <div>
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
+              <Phone className="h-6 w-6" />
+              Call Monitor
+            </h2>
+            <p className="text-muted-foreground">
+              Real-time call events and monitoring
+            </p>
           </div>
         </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="app-main bg-gradient-surface">
+        {/* Sidebar */}
+        <div className="nav-pane border-r border-border bg-card/80 backdrop-blur-sm shadow-surface">
+          <VoiceSidebar 
+            selectedSection={selectedSection}
+            onSectionChange={setSelectedSection}
+          />
+        </div>
 
-        {/* Webhook Info */}
-        <div className="mt-8 p-4 bg-muted rounded-lg">
-          <h4 className="font-semibold mb-2">Webhook Configuration</h4>
-          <p className="text-sm text-muted-foreground mb-2">
-            Configure your VoIP provider to send webhooks to:
-          </p>
-          <code className="text-sm bg-background p-2 rounded border block">
-            https://qgfaycwsangsqzpveoup.functions.supabase.co/call-events-webhook/aircall
-          </code>
-          <p className="text-xs text-muted-foreground mt-2">
-            Replace 'aircall' with your provider name for other services
-          </p>
-          
-          {/* Webhook Tester */}
-          <WebhookTester />
+        {/* Content Area */}
+        <div className="detail-pane flex flex-col bg-gradient-surface">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6">
+            {renderMainContent()}
+          </div>
         </div>
       </div>
     </div>
