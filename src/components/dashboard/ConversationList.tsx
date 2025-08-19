@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Search, Filter, Inbox, Star, Clock, MoreHorizontal, Archive, Trash2, CheckCircle } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -363,7 +364,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       </div>
       
       {/* Conversation List */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">
             <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
@@ -490,8 +491,8 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
               </div>
             </div>
           ))
-        )}
-      </div>
+          )}
+      </ScrollArea>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

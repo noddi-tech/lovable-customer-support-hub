@@ -45,6 +45,7 @@ import {
   ChevronRight
  } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -1277,7 +1278,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Messages Area - Full height with bottom padding for fixed reply */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full pb-32">
+        <ScrollArea className="flex-1">
+          <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full pb-32">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -1469,7 +1471,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               );
             })
           )}
-        </div>
+          </div>
+        </ScrollArea>
 
         {/* Fixed Reply Area - Sticky to viewport bottom */}
         <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur-sm z-50">
