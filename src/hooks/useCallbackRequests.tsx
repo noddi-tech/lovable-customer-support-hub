@@ -146,11 +146,23 @@ export function useCallbackRequests() {
           });
         } else if (payload.eventType === 'UPDATE') {
           const updatedRequest = payload.new as CallbackRequest;
-          if (payload.old?.status !== updatedRequest.status) {
-            toast({
-              title: "Request Status Updated",
-              description: `Request marked as ${updatedRequest.status}`,
-            });
+          const oldRequest = payload.old as CallbackRequest;
+          
+          if (oldRequest?.status !== updatedRequest.status) {
+            // Check if this was an auto-closure due to outbound call
+            if (updatedRequest.status === 'completed' && 
+                (oldRequest?.status === 'pending' || oldRequest?.status === 'processed')) {
+              toast({
+                title: "Callback Completed",
+                description: `Request auto-completed - outbound call made to ${updatedRequest.customer_phone}`,
+                className: "border-green-200 bg-green-50",
+              });
+            } else {
+              toast({
+                title: "Request Status Updated",
+                description: `Request marked as ${updatedRequest.status}`,
+              });
+            }
           }
         }
         

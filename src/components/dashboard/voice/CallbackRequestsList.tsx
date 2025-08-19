@@ -134,7 +134,19 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
 
           {request.processed_at && (
             <div className="text-xs text-muted-foreground">
-              Processed {formatDistanceToNow(new Date(request.processed_at), { addSuffix: true })}
+              {request.status === 'completed' ? 'Completed' : 'Processed'} {formatDistanceToNow(new Date(request.processed_at), { addSuffix: true })}
+            </div>
+          )}
+
+          {request.status === 'completed' && (
+            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+              <div className="flex items-center gap-2 text-green-800">
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">Auto-completed</span>
+              </div>
+              <p className="text-xs text-green-600 mt-1">
+                Outbound call made to this customer
+              </p>
             </div>
           )}
         </div>
