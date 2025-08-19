@@ -487,13 +487,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <div className="flex-1 min-h-0 flex">
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Messages Area with Reply - All Scrollable */}
+          {/* Messages Area - Only Messages, Scrollable */}
           <div 
             ref={messagesContainerRef}
             className="flex-1 min-h-0 overflow-y-auto p-3 md:p-6" 
             style={{ 
-              maxHeight: 'calc(100vh - 160px)',
-              paddingBottom: showReplyArea ? '120px' : undefined
+              maxHeight: showReplyArea ? 'calc(100vh - 400px)' : 'calc(100vh - 220px)'
             }}
           >
             <div className="space-y-4 max-w-4xl mx-auto w-full">
@@ -554,26 +553,31 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   );
                 })
               )}
+            </div>
+          </div>
 
-              {/* Reply Button - Always Visible */}
-              <div className="mt-6 flex justify-center">
-                <Button 
-                  onClick={() => setShowReplyArea(!showReplyArea)}
-                  className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-lg"
-                  size="lg"
-                >
-                  <Reply className="h-5 w-5 mr-2" />
-                  {showReplyArea ? 'Hide Reply' : 'Reply to this conversation'}
-                </Button>
-              </div>
-
-              {/* Reply Area - Toggleable */}
-              {showReplyArea && (
-                <div className="mt-6 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-2 border-primary/20 rounded-xl shadow-lg">
+          {/* Fixed Reply Toolbar - Always Visible at Bottom */}
+          {conversation.status === 'open' && !conversation.is_archived && (
+            <div className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-sm shadow-lg">
+              {!showReplyArea ? (
+                /* Collapsed Reply Button */
+                <div className="p-4 flex justify-center">
+                  <Button 
+                    onClick={() => setShowReplyArea(true)}
+                    className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-lg"
+                    size="lg"
+                  >
+                    <Reply className="h-5 w-5 mr-2" />
+                    Reply to this conversation
+                  </Button>
+                </div>
+              ) : (
+                /* Expanded Reply Area */
+                <div className="p-4 space-y-4 max-w-4xl mx-auto w-full">
                   {/* Quick Reply Header */}
-                  <div className="flex items-center justify-between mb-4 p-4 bg-card rounded-lg border shadow-sm">
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
+                      <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-primary text-primary-foreground">
                           A
                         </AvatarFallback>
@@ -598,11 +602,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         )}
                         AI Suggest
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setShowReplyArea(false)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
                   {/* Reply Form */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Reply Type Toggle */}
                     <div className="flex items-center space-x-2">
                       <Button
@@ -633,7 +645,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         onChange={(e) => setReplyText(e.target.value)}
                         onKeyDown={handleKeyPress}
                         placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
-                        className="min-h-[120px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg"
+                        className="min-h-[100px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg resize-none"
                       />
                       
                       {/* Action Buttons - Right Side */}
@@ -648,7 +660,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     </div>
 
                     {/* Send Actions Row */}
-                    <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3 text-sm text-muted-foreground">
                         <div className="flex items-center space-x-1">
                           <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
@@ -681,7 +693,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 </div>
               )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Customer Info Sidebar */}
