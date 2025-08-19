@@ -229,61 +229,22 @@ export const extractTextFromHTML = (htmlContent: string): string => {
  * Enhanced content type detection with better heuristics
  */
 export const shouldRenderAsHTML = (content: string, contentType: string): boolean => {
-  // If content looks like plain text with asterisks/decorative chars, don't render as HTML
-  const plainTextIndicators = [
-    /^\*{3,}[\s\S]*?\*{3,}/m, // Lines with multiple asterisks
-    /^-{3,}/m, // Lines with multiple dashes
-    /\[\s*[^\]]*\s*\(\s*https?:\/\/[^\)]+\s*\)\s*\]/m // [Link text ( url )] patterns
-  ];
-  
-  const hasPlainTextIndicators = plainTextIndicators.some(pattern => pattern.test(content));
-  
-  // Check for actual HTML elements
-  const htmlIndicators = [
-    /<html[^>]*>/i,
-    /<!DOCTYPE html/i,
-    /<body[^>]*>/i,
-    /<table[^>]*>/i,
-    /<img[^>]*>/i,
-    /<div[^>]*>/i,
-    /<p[^>]*>/i,
-    /<br\s*\/?>/i,
-    /<strong[^>]*>/i,
-    /<em[^>]*>/i,
-    /<a[^>]*href/i,
-    /<td[^>]*>/i,
-    /<tr[^>]*>/i,
-    /<span[^>]*>/i,
-    /<h[1-6][^>]*>/i
-  ];
-  
-  const htmlMatches = htmlIndicators.filter(pattern => pattern.test(content)).length;
-  const hasRealHtml = htmlMatches >= 1;
-  
-  // If it looks like plain text format, treat it as plain text regardless of content type
-  if (hasPlainTextIndicators && !hasRealHtml) {
-    return false;
-  }
-  
-  // Check explicit content type with HTML presence
-  if (contentType.toLowerCase().includes('html') && hasRealHtml) {
+  // If explicitly HTML content type, check for HTML elements
+  if (contentType.toLowerCase().includes('html')) {
     return true;
   }
   
-  // Advanced HTML detection
-  return hasRealHtml && (
-    content.includes('<html') || 
-    content.includes('<!DOCTYPE html') ||
-    (content.includes('<table') && content.includes('</table>')) ||
-    (content.includes('<div') && content.includes('</div>')) ||
-    // Detect if content has HTML entities
-    /&[a-zA-Z]+;/.test(content) ||
-    // Detect common email HTML patterns
-    content.includes('mso-table') ||
-    content.includes('border=') ||
-    content.includes('cellpadding=') ||
-    content.includes('cellspacing=')
-  );
+  // Check for actual HTML elements (be more lenient)
+  const htmlIndicators = [
+    /<[^>]+>/g // Any HTML tag
+  ];
+  
+  const hasHtmlTags = htmlIndicators.some(pattern => pattern.test(content));
+  
+  // If it has HTML tags and doesn't look like markdown, render as HTML
+  const isMarkdown = content.includes('**') || content.includes('*') || content.includes('#') || content.includes('[') || content.includes('](');
+  
+  return hasHtmlTags && !isMarkdown;
 };
 
 /**

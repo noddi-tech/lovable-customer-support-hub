@@ -88,10 +88,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [moveSelectedInboxId, setMoveSelectedInboxId] = useState('');
   const [moveLoading, setMoveLoading] = useState(false);
   const [snoozeDialogOpen, setSnoozeDialogOpen] = useState(false);
-  const [snoozeDateTime, setSnoozeDateTime] = useState<Date | null>(null);
+  const [snoozeDate, setSnoozeDate] = useState<Date | undefined>(undefined);
+  const [snoozeTime, setSnoozeTime] = useState<string>('09:00');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [showCustomerInfo, setShowCustomerInfo] = useState(true);
+  const [sendLoading, setSendLoading] = useState(false);
 
   // Fetch conversation
   const { data: conversation, isLoading: conversationLoading } = useQuery({
@@ -126,7 +128,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const { data: assignUsers = [] } = useQuery({
     queryKey: ['users-for-assignment'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, full_name').order('full_name');
+      const { data, error } = await supabase.from('profiles').select('id, user_id, full_name').order('full_name');
       if (error) throw error;
       return data || [];
     },
@@ -141,6 +143,209 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       return data || [];
     },
   });
+
+  // Mutations
+  const sendReplyMutation = useMutation({
+    mutationFn: async ({ content, isInternal }: { content: string; isInternal: boolean }) => {
+      if (!conversationId) throw new Error('No conversation ID');
+
+      // Create message in database
+      const { data: message, error: insertError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          content,
+          sender_type: 'agent',
+          is_internal: isInternal,
+          content_type: 'text/plain'
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Send email if not internal
+      if (!isInternal) {
+        const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
+          body: { messageId: message.id }
+        });
+        
+        if (emailError) {
+          console.warn('Email sending failed:', emailError);
+          toast.warning('Reply saved but email sending failed');
+        }
+      }
+
+      return message;
+    },
+    onSuccess: () => {
+      setReplyText('');
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(isInternalNote ? 'Internal note added' : 'Reply sent successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to send reply: ' + error.message);
+    },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      if (!conversationId) throw new Error('No conversation ID');
+      const { error } = await supabase
+        .from('conversations')
+        .update({ assigned_to_id: userId })
+        .eq('id', conversationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setAssignDialogOpen(false);
+      toast.success('Conversation assigned successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to assign: ' + error.message);
+    },
+  });
+
+  const moveMutation = useMutation({
+    mutationFn: async (inboxId: string) => {
+      if (!conversationId) throw new Error('No conversation ID');
+      const { error } = await supabase
+        .from('conversations')
+        .update({ inbox_id: inboxId })
+        .eq('id', conversationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setMoveDialogOpen(false);
+      toast.success('Conversation moved successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to move: ' + error.message);
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ status, isArchived }: { status?: string; isArchived?: boolean }) => {
+      if (!conversationId) throw new Error('No conversation ID');
+      const updates: any = {};
+      if (status !== undefined) updates.status = status;
+      if (isArchived !== undefined) updates.is_archived = isArchived;
+      
+      const { error } = await supabase
+        .from('conversations')
+        .update(updates)
+        .eq('id', conversationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success('Status updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update status: ' + error.message);
+    },
+  });
+
+  const snoozeMutation = useMutation({
+    mutationFn: async () => {
+      if (!conversationId || !snoozeDate) throw new Error('No conversation ID or date');
+      
+      // Combine date and time
+      const [hours, minutes] = snoozeTime.split(':').map(Number);
+      const snoozeDateTime = new Date(snoozeDate);
+      snoozeDateTime.setHours(hours, minutes, 0, 0);
+      
+      const { error } = await supabase
+        .from('conversations')
+        .update({ snooze_until: snoozeDateTime.toISOString() })
+        .eq('id', conversationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setSnoozeDialogOpen(false);
+      setSnoozeDate(undefined);
+      setSnoozeTime('09:00');
+      toast.success('Conversation snoozed successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to snooze: ' + error.message);
+    },
+  });
+
+  // AI Suggestions
+  const getAiSuggestions = async () => {
+    if (!conversationId || messages.length === 0) return;
+    
+    setAiLoading(true);
+    try {
+      const lastCustomerMessage = [...messages].reverse().find(m => m.sender_type === 'customer');
+      if (!lastCustomerMessage) {
+        toast.error('No customer message found for AI suggestions');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('suggest-replies', {
+        body: { customerMessage: lastCustomerMessage.content }
+      });
+
+      if (error) throw error;
+      
+      setAiSuggestions(data.suggestions || []);
+      setAiOpen(true);
+    } catch (error: any) {
+      toast.error('Failed to get AI suggestions: ' + error.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Event handlers
+  const handleSendReply = async () => {
+    if (!replyText.trim()) return;
+    
+    setSendLoading(true);
+    try {
+      await sendReplyMutation.mutateAsync({ 
+        content: replyText, 
+        isInternal: isInternalNote 
+      });
+    } finally {
+      setSendLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleSendReply();
+    }
+  };
+
+  const handleAssign = () => {
+    if (assignSelectedUserId) {
+      assignMutation.mutate(assignSelectedUserId);
+    }
+  };
+
+  const handleMove = () => {
+    if (moveSelectedInboxId) {
+      moveMutation.mutate(moveSelectedInboxId);
+    }
+  };
+
+  const handleSnooze = () => {
+    if (snoozeDate) {
+      snoozeMutation.mutate();
+    }
+  };
 
   if (!conversationId) {
     return (
@@ -206,37 +411,53 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             </Badge>
             
             <div className="hidden sm:flex items-center space-x-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 {t('conversation.assign')}
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setMoveDialogOpen(true)}>
                 <Move className="h-4 w-4 mr-2" />
                 {t('conversation.move')}
               </Button>
               {conversation.status === 'open' ? (
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => updateStatusMutation.mutate({ status: 'closed' })}
+                >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {t('conversation.markAsClosed')}
                 </Button>
               ) : (
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => updateStatusMutation.mutate({ status: 'open' })}
+                >
                   <Archive className="h-4 w-4 mr-2" />
                   {t('conversation.reopen')}
                 </Button>
               )}
               {conversation.is_archived ? (
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => updateStatusMutation.mutate({ isArchived: false })}
+                >
                   <ArchiveRestore className="h-4 w-4 mr-2" />
                   {t('conversation.unarchive')}
                 </Button>
               ) : (
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => updateStatusMutation.mutate({ isArchived: true })}
+                >
                   <Archive className="h-4 w-4 mr-2" />
                   {t('conversation.archive')}
                 </Button>
               )}
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setSnoozeDialogOpen(true)}>
                 <Clock className="h-4 w-4 mr-2" />
                 {t('conversation.snooze')}
               </Button>
@@ -267,8 +488,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 ) : (
                   messages.map((message, index) => {
                     const isFromCustomer = message.sender_type === 'customer';
-                    const processedContent = shouldRenderAsHTML(message.content, message.content_type || 'text/plain')
-                      ? sanitizeEmailHTML(message.content)
+                    const shouldUseHTML = shouldRenderAsHTML(message.content, message.content_type || 'text/plain');
+                    const processedContent = shouldUseHTML
+                      ? DOMPurify.sanitize(sanitizeEmailHTML(message.content))
                       : formatEmailText(message.content);
                     
                     return (
@@ -299,7 +521,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                         </CardHeader>
                         <CardContent className="pt-0">
                           <div className="email-container">
-                            {shouldRenderAsHTML(message.content, message.content_type || 'text/plain') ? (
+                            {shouldUseHTML ? (
                               <div 
                                 className="email-content prose prose-sm max-w-none"
                                 dangerouslySetInnerHTML={{ __html: processedContent }}
@@ -355,6 +577,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       ref={replyRef}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
+                      onKeyDown={handleKeyPress}
                       placeholder={isInternalNote ? t('conversation.writeInternalNote') : t('conversation.writeReply')}
                       className="min-h-[100px] pr-32"
                     />
@@ -367,8 +590,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       <Button variant="ghost" size="sm">
                         <Smile className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <Sparkles className="h-4 w-4" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={getAiSuggestions}
+                        disabled={aiLoading}
+                      >
+                        {aiLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
                         {t('conversation.ai')}
                       </Button>
                     </div>
@@ -384,11 +616,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => setReplyText('')}>
                         {t('common.cancel')}
                       </Button>
-                      <Button size="sm" disabled={!replyText.trim()}>
-                        <Send className="h-4 w-4 mr-2" />
+                      <Button 
+                        size="sm" 
+                        disabled={!replyText.trim() || sendLoading}
+                        onClick={handleSendReply}
+                      >
+                        {sendLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
                         {isInternalNote ? t('conversation.addNote') : t('conversation.send')}
                       </Button>
                     </div>
@@ -433,21 +673,41 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 {t('conversation.quickActions')}
               </h3>
               <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => setAssignDialogOpen(true)}
+                >
                   <UserPlus className="h-4 w-4 mr-2" />
                   {t('conversation.assignTo')}
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => updateStatusMutation.mutate({ isArchived: !conversation.is_archived })}
+                >
                   <Archive className="h-4 w-4 mr-2" />
-                  {t('conversation.archive')}
+                  {conversation.is_archived ? t('conversation.unarchive') : t('conversation.archive')}
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => setSnoozeDialogOpen(true)}
+                >
                   <Clock className="h-4 w-4 mr-2" />
                   {t('conversation.snooze')}
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => updateStatusMutation.mutate({ status: conversation.status === 'open' ? 'closed' : 'open' })}
+                >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {t('conversation.markResolved')}
+                  {conversation.status === 'open' ? t('conversation.markAsClosed') : t('conversation.reopen')}
                 </Button>
               </div>
             </div>
@@ -489,6 +749,133 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
       </div>
+
+      {/* Assign Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Conversation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select value={assignSelectedUserId} onValueChange={setAssignSelectedUserId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select user to assign" />
+              </SelectTrigger>
+              <SelectContent>
+                {assignUsers.map((user) => (
+                  <SelectItem key={user.user_id} value={user.user_id}>
+                    {user.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAssign}
+              disabled={!assignSelectedUserId || assignMutation.isPending}
+            >
+              {assignMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move Dialog */}
+      <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move Conversation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select value={moveSelectedInboxId} onValueChange={setMoveSelectedInboxId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select inbox to move to" />
+              </SelectTrigger>
+              <SelectContent>
+                {moveInboxes.map((inbox) => (
+                  <SelectItem key={inbox.id} value={inbox.id}>
+                    {inbox.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleMove}
+              disabled={!moveSelectedInboxId || moveMutation.isPending}
+            >
+              {moveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Move
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Snooze Dialog */}
+      <Dialog open={snoozeDialogOpen} onOpenChange={setSnoozeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Snooze Conversation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <TimezoneAwareDateTimePicker
+              date={snoozeDate}
+              time={snoozeTime}
+              onDateChange={setSnoozeDate}
+              onTimeChange={setSnoozeTime}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSnoozeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSnooze}
+              disabled={!snoozeDate || snoozeMutation.isPending}
+            >
+              {snoozeMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Snooze
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Suggestions Dialog */}
+      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>AI Reply Suggestions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {aiSuggestions.map((suggestion, index) => (
+              <div key={index} className="p-3 border rounded-lg cursor-pointer hover:bg-accent"
+                   onClick={() => {
+                     setReplyText(suggestion.reply);
+                     setAiOpen(false);
+                   }}>
+                <p className="text-sm">{suggestion.reply}</p>
+                {suggestion.title && (
+                  <p className="text-xs text-muted-foreground mt-1">{suggestion.title}</p>
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAiOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
