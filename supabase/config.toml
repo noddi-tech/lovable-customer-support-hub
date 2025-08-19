@@ -84,3 +84,6 @@ verify_jwt = false
 
 [functions.call-events-webhook]
 verify_jwt = false
+
+[functions.download-voicemail]
+verify_jwt = true
