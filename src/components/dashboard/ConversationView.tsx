@@ -473,179 +473,175 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <div className="flex-1 min-h-0 flex">
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Messages Area */}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <div className="h-full overflow-auto p-3 md:p-6">
-              <div className="space-y-4 max-w-4xl mx-auto w-full">
-                {messages.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">
-                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>{t('conversation.noMessages')}</p>
-                  </div>
-                ) : (
-                  messages.map((message, index) => {
-                    const isFromCustomer = message.sender_type === 'customer';
-                    const shouldUseHTML = shouldRenderAsHTML(message.content, message.content_type || 'text/plain');
-                    const processedContent = shouldUseHTML
-                      ? DOMPurify.sanitize(sanitizeEmailHTML(message.content))
-                      : formatEmailText(message.content);
-                    
-                    return (
-                      <Card key={message.id} className="overflow-hidden">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center space-x-3">
-                               <Avatar className="h-8 w-8">
-                                 <AvatarFallback className={isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                                   {message.sender_id?.[0] || (isFromCustomer ? 'C' : 'A')}
-                                 </AvatarFallback>
-                               </Avatar>
-                               <div>
-                                 <div className="font-medium text-sm">
-                                   {isFromCustomer ? (conversation.customer as any)?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
-                                 </div>
-                                 <div className="text-xs text-muted-foreground">
-                                   {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
-                                 </div>
+          {/* Messages Area with Reply - All Scrollable */}
+          <div className="flex-1 min-h-0 overflow-auto p-3 md:p-6">
+            <div className="space-y-4 max-w-4xl mx-auto w-full">
+              {messages.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>{t('conversation.noMessages')}</p>
+                </div>
+              ) : (
+                messages.map((message, index) => {
+                  const isFromCustomer = message.sender_type === 'customer';
+                  const shouldUseHTML = shouldRenderAsHTML(message.content, message.content_type || 'text/plain');
+                  const processedContent = shouldUseHTML
+                    ? DOMPurify.sanitize(sanitizeEmailHTML(message.content))
+                    : formatEmailText(message.content);
+                  
+                  return (
+                    <Card key={message.id} className="overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                             <Avatar className="h-8 w-8">
+                               <AvatarFallback className={isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"}>
+                                 {message.sender_id?.[0] || (isFromCustomer ? 'C' : 'A')}
+                               </AvatarFallback>
+                             </Avatar>
+                             <div>
+                               <div className="font-medium text-sm">
+                                 {isFromCustomer ? (conversation.customer as any)?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
+                               </div>
+                               <div className="text-xs text-muted-foreground">
+                                 {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
                                </div>
                              </div>
-                             {message.is_internal && (
-                              <Badge variant="outline" className="text-xs">
-                                {t('conversation.internalNote')}
-                              </Badge>
-                            )}
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="email-container">
-                            {shouldUseHTML ? (
-                              <div 
-                                className="email-content prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{ __html: processedContent }}
-                              />
-                            ) : (
-                              <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                                {processedContent}
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
+                           </div>
+                           {message.is_internal && (
+                            <Badge variant="outline" className="text-xs">
+                              {t('conversation.internalNote')}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="email-container">
+                          {shouldUseHTML ? (
+                            <div 
+                              className="email-content prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: processedContent }}
+                            />
+                          ) : (
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                              {processedContent}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
 
-          {/* Reply Area - Always Visible */}
-          <div className="flex-shrink-0 border-t-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 backdrop-blur-sm p-4 shadow-lg">
-            <div className="max-w-4xl mx-auto">
-              {/* Quick Reply Bar */}
-              <div className="flex items-center justify-between mb-4 p-3 bg-card rounded-lg border shadow-sm">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      A
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium text-sm">Reply to this conversation</div>
-                    <div className="text-xs text-muted-foreground">Type your response or use AI suggestions</div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={getAiSuggestions}
-                    disabled={aiLoading}
-                    className="text-primary hover:text-primary/80"
-                  >
-                    {aiLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}
-                    AI Suggest
-                  </Button>
-                </div>
-              </div>
-
-              {/* Main Reply Area */}
-              <div className="space-y-4">
-                {/* Reply Type Toggle */}
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant={isInternalNote ? "outline" : "default"}
-                    size="sm"
-                    onClick={() => setIsInternalNote(false)}
-                    className="flex-1 max-w-[120px]"
-                  >
-                    <Reply className="h-4 w-4 mr-2" />
-                    Reply
-                  </Button>
-                  <Button
-                    variant={isInternalNote ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIsInternalNote(true)}
-                    className="flex-1 max-w-[140px]"
-                  >
-                    <Lock className="h-4 w-4 mr-2" />
-                    Internal Note
-                  </Button>
-                </div>
-
-                {/* Text Area with Enhanced UI */}
-                <div className="relative">
-                  <Textarea
-                    ref={replyRef}
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
-                    className="min-h-[120px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg"
-                  />
-                  
-                  {/* Action Buttons - Right Side */}
-                  <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                      <Smile className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Send Actions Row */}
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center space-x-3 text-sm text-muted-foreground">
-                    <div className="flex items-center space-x-1">
-                      <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
-                      <span>+</span>
-                      <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Enter</kbd>
-                      <span>to send</span>
+              {/* Reply Area - Positioned After Last Message */}
+              <div className="mt-8 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-2 border-primary/20 rounded-xl shadow-lg">
+                {/* Quick Reply Header */}
+                <div className="flex items-center justify-between mb-4 p-4 bg-card rounded-lg border shadow-sm">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        A
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium text-sm">Reply to this conversation</div>
+                      <div className="text-xs text-muted-foreground">Type your response or use AI suggestions</div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <Button variant="outline" size="sm" onClick={() => setReplyText('')} disabled={sendLoading}>
-                      Cancel
-                    </Button>
+                  <div className="flex items-center space-x-2">
                     <Button 
+                      variant="ghost" 
                       size="sm" 
-                      disabled={!replyText.trim() || sendLoading}
-                      onClick={handleSendReply}
-                      className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                      onClick={getAiSuggestions}
+                      disabled={aiLoading}
+                      className="text-primary hover:text-primary/80"
                     >
-                      {sendLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {aiLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : (
-                        <Send className="h-4 w-4 mr-2" />
+                        <Sparkles className="h-4 w-4 mr-2" />
                       )}
-                      {isInternalNote ? 'Add Note' : 'Send Reply'}
+                      AI Suggest
                     </Button>
+                  </div>
+                </div>
+
+                {/* Reply Form */}
+                <div className="space-y-4">
+                  {/* Reply Type Toggle */}
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant={isInternalNote ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => setIsInternalNote(false)}
+                      className="flex-1 max-w-[120px]"
+                    >
+                      <Reply className="h-4 w-4 mr-2" />
+                      Reply
+                    </Button>
+                    <Button
+                      variant={isInternalNote ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setIsInternalNote(true)}
+                      className="flex-1 max-w-[140px]"
+                    >
+                      <Lock className="h-4 w-4 mr-2" />
+                      Internal Note
+                    </Button>
+                  </div>
+
+                  {/* Text Area */}
+                  <div className="relative">
+                    <Textarea
+                      ref={replyRef}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
+                      className="min-h-[120px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg"
+                    />
+                    
+                    {/* Action Buttons - Right Side */}
+                    <div className="absolute bottom-3 right-3 flex items-center space-x-2">
+                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Send Actions Row */}
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                      <div className="flex items-center space-x-1">
+                        <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
+                        <span>+</span>
+                        <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Enter</kbd>
+                        <span>to send</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <Button variant="outline" size="sm" onClick={() => setReplyText('')} disabled={sendLoading}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        disabled={!replyText.trim() || sendLoading}
+                        onClick={handleSendReply}
+                        className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                      >
+                        {sendLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        {isInternalNote ? 'Add Note' : 'Send Reply'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
