@@ -200,56 +200,6 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
         </div>
       )}
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-600" />
-              <div>
-                <p className="text-sm font-medium">Pending</p>
-                <p className="text-xl font-bold">{requestsByStatus.pending || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium">Processed</p>
-                <p className="text-xl font-bold">{requestsByStatus.processed || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <div>
-                <p className="text-sm font-medium">Completed</p>
-                <p className="text-xl font-bold">{requestsByStatus.completed || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Total</p>
-                <p className="text-xl font-bold">{callbackRequests.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Requests List */}
       {isLoading ? (
