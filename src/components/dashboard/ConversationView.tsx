@@ -211,53 +211,161 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         </div>
       </div>
 
-      {/* Messages Area - WORKING SCROLLABLE VERSION */}
-      <div className="flex-1 h-0">
-        <div 
-          style={{ height: 'calc(100vh - 180px)', overflow: 'auto' }}
-          className="p-3 md:p-6"
-        >
-          <div className="space-y-4 max-w-5xl mx-auto w-full">
-            {messages.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>{t('conversation.noMessages')}</p>
+      <div className="flex-1 h-0 flex">
+        {/* Messages Area */}
+        <div className="flex-1">
+          <div 
+            style={{ height: 'calc(100vh - 180px)', overflow: 'auto' }}
+            className="p-3 md:p-6"
+          >
+            <div className="space-y-4 max-w-4xl mx-auto w-full">
+              {messages.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>{t('conversation.noMessages')}</p>
+                </div>
+              ) : (
+                messages.map((message, index) => {
+                  const isFromCustomer = message.sender_type === 'customer';
+                  const processedContent = shouldRenderAsHTML(message.content, message.content_type || 'text/plain')
+                    ? sanitizeEmailHTML(message.content)
+                    : formatEmailText(message.content);
+                  
+                  return (
+                    <Card key={message.id} className="overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                             <Avatar className="h-8 w-8">
+                               <AvatarFallback className={isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"}>
+                                 {message.sender_id?.[0] || (isFromCustomer ? 'C' : 'A')}
+                               </AvatarFallback>
+                             </Avatar>
+                             <div>
+                               <div className="font-medium text-sm">
+                                 {isFromCustomer ? (conversation.customer as any)?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
+                               </div>
+                               <div className="text-xs text-muted-foreground">
+                                 {dateTime(message.created_at)}
+                               </div>
+                             </div>
+                           </div>
+                           {message.is_internal && (
+                            <Badge variant="outline" className="text-xs">
+                              {t('conversation.internalNote')}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="email-container">
+                          {shouldRenderAsHTML(message.content, message.content_type || 'text/plain') ? (
+                            <div 
+                              className="email-content prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: processedContent }}
+                            />
+                          ) : (
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                              {processedContent}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Customer Info Sidebar */}
+        <div className="hidden lg:block w-80 border-l border-border bg-card/50 backdrop-blur-sm">
+          <div 
+            style={{ height: 'calc(100vh - 180px)', overflow: 'auto' }}
+            className="p-4 space-y-6"
+          >
+            {/* Customer Details */}
+            <div>
+              <h3 className="font-semibold text-sm mb-3 flex items-center">
+                <UserCheck className="h-4 w-4 mr-2" />
+                {t('conversation.customerDetails')}
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>{(conversation.customer as any)?.full_name?.[0] || 'C'}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium text-sm">{(conversation.customer as any)?.full_name || t('conversation.unknownCustomer')}</div>
+                    <div className="text-xs text-muted-foreground">{(conversation.customer as any)?.email}</div>
+                  </div>
+                </div>
               </div>
-            ) : (
-              messages.map((message, index) => (
-                <Card key={message.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-3">
-                         <Avatar className="h-8 w-8">
-                           <AvatarFallback>
-                             {message.sender_id?.[0] || 'U'}
-                           </AvatarFallback>
-                         </Avatar>
-                         <div>
-                           <div className="font-medium text-sm">
-                             {message.sender_id || t('conversation.unknownSender')}
-                           </div>
-                           <div className="text-xs text-muted-foreground">
-                             {dateTime(message.created_at)}
-                           </div>
-                         </div>
-                       </div>
-                       {message.is_internal && (
-                        <Badge variant="outline" className="text-xs">
-                          {t('conversation.internalNote')}
-                        </Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="text-sm">
-                      {message.content}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+            </div>
+
+            <Separator />
+
+            {/* Quick Actions */}
+            <div>
+              <h3 className="font-semibold text-sm mb-3 flex items-center">
+                <Star className="h-4 w-4 mr-2" />
+                {t('conversation.quickActions')}
+              </h3>
+              <div className="space-y-2">
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {t('conversation.assignTo')}
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Archive className="h-4 w-4 mr-2" />
+                  {t('conversation.archive')}
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Clock className="h-4 w-4 mr-2" />
+                  {t('conversation.snooze')}
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {t('conversation.markResolved')}
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Customer Notes */}
+            <div>
+              <h3 className="font-semibold text-sm mb-3 flex items-center">
+                <Edit3 className="h-4 w-4 mr-2" />
+                {t('conversation.customerNotes')}
+              </h3>
+              <div className="space-y-2">
+                <Textarea 
+                  placeholder={t('conversation.addNote')}
+                  className="text-xs min-h-[80px]"
+                />
+                <Button size="sm" className="w-full">
+                  <Save className="h-4 w-4 mr-2" />
+                  {t('conversation.saveNote')}
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Conversation History */}
+            <div>
+              <h3 className="font-semibold text-sm mb-3 flex items-center">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                {t('conversation.conversationHistory')}
+              </h3>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>Messages: {messages.length}</div>
+                <div>Received: {dateTime(conversation.received_at)}</div>
+                <div>Last updated: {dateTime(conversation.updated_at)}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
