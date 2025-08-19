@@ -31,6 +31,8 @@ export function useVoicemails() {
   const { data: voicemails = [], isLoading, error } = useQuery({
     queryKey: ['voicemails'],
     queryFn: async () => {
+      console.log('🔍 Fetching voicemails from internal_events...');
+      
       const { data, error } = await supabase
         .from('internal_events')
         .select(`
@@ -44,7 +46,13 @@ export function useVoicemails() {
         .eq('event_type', 'voicemail_left')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('📧 Voicemails query result:', { data, error, count: data?.length });
+
+      if (error) {
+        console.error('❌ Error fetching voicemails:', error);
+        throw error;
+      }
+      
       return data as Voicemail[];
     },
   });
