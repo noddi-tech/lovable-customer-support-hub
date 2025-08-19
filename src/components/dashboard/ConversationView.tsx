@@ -214,6 +214,20 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       {/* Messages Area with ScrollArea */}
       <ScrollArea className="flex-1 h-0 min-h-0">
         <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
+          {/* Debug info */}
+          <div className="bg-yellow-100 p-2 mb-4 text-xs">
+            DEBUG: Messages length: {messages.length}, Loading: {messagesLoading.toString()}
+          </div>
+          
+          {/* Test scrollable content */}
+          {[...Array(20)].map((_, i) => (
+            <Card key={`test-${i}`} className="overflow-hidden">
+              <CardContent className="p-4">
+                <p>Test message #{i + 1} - This is a test message to verify scrolling functionality works properly. This content should be long enough to trigger scrolling when there are multiple messages.</p>
+              </CardContent>
+            </Card>
+          ))}
+          
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
