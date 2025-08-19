@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar } from 'lucide-react';
+import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCalls } from '@/hooks/useCalls';
+import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { formatDistanceToNow, format } from 'date-fns';
 import { CallDetailsDialog } from './CallDetailsDialog';
+import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 
 export const CallsList = () => {
   const { t } = useTranslation();
@@ -17,6 +19,8 @@ export const CallsList = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
   const { calls, isLoading, error } = useCalls();
+  const { getIntegrationByProvider } = useVoiceIntegrations();
+  const aircallIntegration = getIntegrationByProvider('aircall');
 
   if (error) {
     return (
@@ -179,6 +183,30 @@ export const CallsList = () => {
                           </div>
                         )}
                       </div>
+                      
+                      {/* Show monitored phone number */}
+                      {(() => {
+                        const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
+                        if (monitoredPhone) {
+                          return (
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="flex items-center gap-1 text-xs">
+                                <Building2 className="h-3 w-3 text-primary" />
+                                <span className="text-primary font-medium">
+                                  {monitoredPhone.phoneNumber.label}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  ({monitoredPhone.phoneNumber.number})
+                                </span>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {monitoredPhone.type === 'company' ? 'Company Line' : 'Agent Line'}
+                              </Badge>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}

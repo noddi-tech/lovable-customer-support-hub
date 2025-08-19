@@ -1,10 +1,12 @@
 import React from 'react';
-import { Phone, PhoneCall, PhoneIncoming, PhoneOff } from 'lucide-react';
+import { Phone, PhoneCall, PhoneIncoming, PhoneOff, Building2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Call } from '@/hooks/useCalls';
+import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { formatDistanceToNow } from 'date-fns';
+import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 
 interface CallStatusCardProps {
   call: Call;
@@ -12,6 +14,8 @@ interface CallStatusCardProps {
 }
 
 export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDetails }) => {
+  const { getIntegrationByProvider } = useVoiceIntegrations();
+  const aircallIntegration = getIntegrationByProvider('aircall');
   const getStatusIcon = () => {
     switch (call.status) {
       case 'ringing':
@@ -91,6 +95,25 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
               <span className="text-sm font-medium">{formatDuration(call.duration_seconds)}</span>
             </div>
           )}
+          
+          {/* Show monitored phone number */}
+          {(() => {
+            const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
+            if (monitoredPhone) {
+              return (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Line:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{monitoredPhone.phoneNumber.label}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {monitoredPhone.type === 'company' ? 'Company' : 'Agent'}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
         </div>
         
         <div className="flex gap-2 pt-2">
