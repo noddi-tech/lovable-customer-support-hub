@@ -9,13 +9,23 @@ import { useVoicemails, Voicemail } from '@/hooks/useVoicemails';
 import { formatDistanceToNow } from 'date-fns';
 
 const AudioPlayerSimple = ({ src, duration }: { src: string; duration?: number }) => {
-  const handleOpenRecording = () => {
+  const handleOpenRecording = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     console.log('Opening recording:', src);
-    if (src) {
-      // Try simple window.open first
-      window.open(src, '_blank');
-    } else {
+    
+    if (!src) {
       console.error('No recording URL provided');
+      alert('No recording URL available');
+      return;
+    }
+
+    try {
+      window.open(src, '_blank', 'noopener,noreferrer');
+      console.log('Successfully opened URL in new tab');
+    } catch (error) {
+      console.error('Failed to open URL:', error);
+      alert('Failed to open recording');
     }
   };
 
@@ -36,6 +46,7 @@ const AudioPlayerSimple = ({ src, duration }: { src: string; duration?: number }
         </p>
       </div>
       <Button
+        type="button"
         variant="outline"
         size="sm"
         onClick={handleOpenRecording}
@@ -141,14 +152,26 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
         {hasRecording && voicemail.event_data.recording_url && (
           <div className="flex gap-2">
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 console.log('Download clicked for voicemail:', voicemail.event_data.recording_url);
-                if (voicemail.event_data.recording_url) {
-                  window.open(voicemail.event_data.recording_url, '_blank');
-                } else {
+                
+                if (!voicemail.event_data.recording_url) {
                   console.error('No recording URL available');
+                  alert('No recording URL available');
+                  return;
+                }
+
+                try {
+                  window.open(voicemail.event_data.recording_url, '_blank', 'noopener,noreferrer');
+                  console.log('Successfully opened recording URL');
+                } catch (error) {
+                  console.error('Failed to open recording:', error);
+                  alert('Failed to open recording');
                 }
               }}
               className="flex items-center gap-2"
