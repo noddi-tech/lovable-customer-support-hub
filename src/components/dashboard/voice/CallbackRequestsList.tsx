@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCallbackRequests, CallbackRequest } from '@/hooks/useCallbackRequests';
+import { AgentAssignmentSelect } from './AgentAssignmentSelect';
 import { formatDistanceToNow } from 'date-fns';
 
 const statusConfig = {
@@ -36,12 +37,14 @@ const statusConfig = {
 };
 
 interface CallbackRequestCardProps {
-  request: CallbackRequest;
+  request: any;
   onStatusChange: (id: string, status: string) => void;
+  onAssign: (id: string, agentId: string) => void;
   isUpdating: boolean;
+  isAssigning: boolean;
 }
 
-const CallbackRequestCard = ({ request, onStatusChange, isUpdating }: CallbackRequestCardProps) => {
+const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, isAssigning }: CallbackRequestCardProps) => {
   const { t } = useTranslation();
   const config = statusConfig[request.status as keyof typeof statusConfig];
   const StatusIcon = config.icon;
@@ -99,6 +102,17 @@ const CallbackRequestCard = ({ request, onStatusChange, isUpdating }: CallbackRe
             </div>
           )}
 
+          {/* Assignment Section */}
+          <div className="border-t pt-3">
+            <div className="text-sm text-muted-foreground mb-2">Assignment</div>
+            <AgentAssignmentSelect
+              currentAssigneeId={request.assigned_to_id}
+              onAssign={(agentId) => onAssign(request.id, agentId)}
+              isAssigning={isAssigning}
+              placeholder="Assign to agent"
+            />
+          </div>
+
           {/* Status Actions */}
           {request.status === 'pending' && (
             <div className="flex gap-2 pt-2">
@@ -146,7 +160,9 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
     isLoading,
     error,
     updateStatus,
-    isUpdating
+    isUpdating,
+    assignCallback,
+    isAssigning
   } = useCallbackRequests();
 
   if (error) {
@@ -229,12 +245,14 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
         </Card>
       ) : (
         <div className="space-y-3">
-          {filteredRequests.map((request) => (
+          {filteredRequests.map((request: any) => (
             <CallbackRequestCard
               key={request.id}
               request={request}
               onStatusChange={(id, status) => updateStatus({ id, status })}
+              onAssign={(id, agentId) => assignCallback({ callbackId: id, agentId })}
               isUpdating={isUpdating}
+              isAssigning={isAssigning}
             />
           ))}
         </div>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useVoicemails, Voicemail } from '@/hooks/useVoicemails';
+import { AgentAssignmentSelect } from './AgentAssignmentSelect';
 import { formatDistanceToNow } from 'date-fns';
 
 const AudioPlayerSimple = ({ src, duration }: { src: string; duration?: number }) => {
@@ -61,12 +62,14 @@ const AudioPlayerSimple = ({ src, duration }: { src: string; duration?: number }
 };
 
 interface VoicemailCardProps {
-  voicemail: Voicemail;
+  voicemail: any;
   onDownload: (id: string, url: string) => void;
+  onAssign: (id: string, agentId: string) => void;
   isDownloading: boolean;
+  isAssigning: boolean;
 }
 
-const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardProps) => {
+const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssigning }: VoicemailCardProps) => {
   const { t } = useTranslation();
 
   const formatPhoneNumber = (phone?: string) => {
@@ -81,8 +84,8 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const hasRecording = !!voicemail.event_data.recording_url;
-  const hasTranscription = !!voicemail.event_data.transcription;
+  const hasRecording = !!voicemail.event_data?.recording_url;
+  const hasTranscription = !!voicemail.event_data?.transcription;
 
   return (
     <Card className="transition-all duration-200 hover:shadow-md">
@@ -111,7 +114,7 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
         </div>
         <CardDescription>
           Left {formatDistanceToNow(new Date(voicemail.created_at), { addSuffix: true })}
-          {voicemail.event_data.duration && (
+          {voicemail.event_data?.duration && (
             <span className="ml-2">• {formatDuration(voicemail.event_data.duration)}</span>
           )}
         </CardDescription>
@@ -119,7 +122,7 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
       
       <CardContent className="pt-0 space-y-4">
         {/* Audio Player */}
-        {hasRecording && voicemail.event_data.recording_url && (
+        {hasRecording && voicemail.event_data?.recording_url && (
           <AudioPlayerSimple 
             src={voicemail.event_data.recording_url} 
             duration={voicemail.event_data.duration}
@@ -131,7 +134,7 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
           <div className="p-3 bg-muted rounded-lg">
             <h4 className="text-sm font-medium mb-2">Transcription:</h4>
             <p className="text-sm text-muted-foreground italic">
-              "{voicemail.event_data.transcription}"
+              "{voicemail.event_data?.transcription}"
             </p>
           </div>
         )}
@@ -148,8 +151,19 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
           </div>
         )}
 
+        {/* Assignment Section */}
+        <div className="border-t pt-3">
+          <div className="text-sm text-muted-foreground mb-2">Assignment</div>
+          <AgentAssignmentSelect
+            currentAssigneeId={voicemail.assigned_to_id}
+            onAssign={(agentId) => onAssign(voicemail.id, agentId)}
+            isAssigning={isAssigning}
+            placeholder="Assign to agent"
+          />
+        </div>
+
         {/* Actions */}
-        {hasRecording && voicemail.event_data.recording_url && (
+        {hasRecording && voicemail.event_data?.recording_url && (
           <div className="flex gap-2">
             <Button
               type="button"
@@ -209,7 +223,9 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
     isLoading,
     error,
     downloadVoicemail,
-    isDownloading
+    isDownloading,
+    assignVoicemail,
+    isAssigning
   } = useVoicemails();
   
   // Use statusFilter from props or local filter state
@@ -277,12 +293,14 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
         </Card>
       ) : (
         <div className="space-y-3">
-          {filteredVoicemails.map((voicemail) => (
+          {filteredVoicemails.map((voicemail: any) => (
             <VoicemailCard
               key={voicemail.id}
               voicemail={voicemail}
               onDownload={() => {}} // Not needed with direct download
-              isDownloading={false}
+              onAssign={(id, agentId) => assignVoicemail({ voicemailId: id, agentId })}
+              isDownloading={isDownloading}
+              isAssigning={isAssigning}
             />
           ))}
         </div>

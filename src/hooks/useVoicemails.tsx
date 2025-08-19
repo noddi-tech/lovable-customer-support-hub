@@ -9,11 +9,8 @@ export interface Voicemail {
   event_type: string;
   call_id?: string;
   customer_phone?: string;
-  event_data: {
-    recording_url?: string;
-    duration?: number;
-    transcription?: string;
-  };
+  assigned_to_id?: string;
+  event_data: any;
   status: string;
   created_at: string;
   updated_at: string;
@@ -22,6 +19,11 @@ export interface Voicemail {
     started_at: string;
     metadata: any;
   };
+  assigned_to?: {
+    user_id: string;
+    full_name: string;
+    avatar_url?: string;
+  } | null;
 }
 
 export function useVoicemails() {
@@ -41,6 +43,11 @@ export function useVoicemails() {
             customer_phone,
             started_at,
             metadata
+          ),
+          assigned_to:profiles!assigned_to_id (
+            user_id,
+            full_name,
+            avatar_url
           )
         `)
         .eq('event_type', 'voicemail_left')
@@ -53,7 +60,7 @@ export function useVoicemails() {
         throw error;
       }
       
-      return data as Voicemail[];
+      return data || [];
     },
   });
 
@@ -81,6 +88,40 @@ export function useVoicemails() {
         variant: "destructive"
       });
       console.error('Error downloading voicemail:', error);
+    }
+  });
+
+  // Assign voicemail to agent
+  const assignVoicemailMutation = useMutation({
+    mutationFn: async ({ voicemailId, agentId }: { voicemailId: string; agentId: string }) => {
+      const { data, error } = await supabase
+        .from('internal_events')
+        .update({ 
+          assigned_to_id: agentId,
+          status: agentId ? 'processed' : 'pending'
+        })
+        .eq('id', voicemailId)
+        .eq('event_type', 'voicemail_left')
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Voicemail assigned",
+        description: "Voicemail has been assigned to agent",
+      });
+      queryClient.invalidateQueries({ queryKey: ['voicemails'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Assignment failed",
+        description: "Could not assign voicemail to agent",
+        variant: "destructive"
+      });
+      console.error('Error assigning voicemail:', error);
     }
   });
 
@@ -116,8 +157,8 @@ export function useVoicemails() {
 
   // Derived data
   const recentVoicemails = voicemails.slice(0, 10);
-  const voicemailsWithRecordings = voicemails.filter(vm => vm.event_data.recording_url);
-  const transcribedVoicemails = voicemails.filter(vm => vm.event_data.transcription);
+  const voicemailsWithRecordings = voicemails.filter((vm: any) => vm.event_data?.recording_url);
+  const transcribedVoicemails = voicemails.filter((vm: any) => vm.event_data?.transcription);
 
   return {
     voicemails,
@@ -127,6 +168,8 @@ export function useVoicemails() {
     isLoading,
     error,
     downloadVoicemail: downloadVoicemailMutation.mutate,
-    isDownloading: downloadVoicemailMutation.isPending
+    isDownloading: downloadVoicemailMutation.isPending,
+    assignVoicemail: assignVoicemailMutation.mutate,
+    isAssigning: assignVoicemailMutation.isPending
   };
 }

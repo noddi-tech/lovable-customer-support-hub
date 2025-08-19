@@ -653,6 +653,7 @@ export type Database = {
       }
       internal_events: {
         Row: {
+          assigned_to_id: string | null
           call_id: string | null
           conversation_id: string | null
           created_at: string | null
@@ -667,6 +668,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          assigned_to_id?: string | null
           call_id?: string | null
           conversation_id?: string | null
           created_at?: string | null
@@ -681,6 +683,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          assigned_to_id?: string | null
           call_id?: string | null
           conversation_id?: string | null
           created_at?: string | null
