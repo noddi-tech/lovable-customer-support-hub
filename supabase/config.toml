@@ -81,3 +81,6 @@ verify_jwt = true
 
 [functions.suggest-replies]
 verify_jwt = false
+
+[functions.call-events-webhook]
+verify_jwt = false

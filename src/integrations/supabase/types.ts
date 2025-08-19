@@ -14,9 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_events: {
+        Row: {
+          call_id: string
+          created_at: string
+          event_data: Json | null
+          event_type: Database["public"]["Enums"]["call_event_type"]
+          id: string
+          timestamp: string
+        }
+        Insert: {
+          call_id: string
+          created_at?: string
+          event_data?: Json | null
+          event_type: Database["public"]["Enums"]["call_event_type"]
+          id?: string
+          timestamp?: string
+        }
+        Update: {
+          call_id?: string
+          created_at?: string
+          event_data?: Json | null
+          event_type?: Database["public"]["Enums"]["call_event_type"]
+          id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_events_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calls: {
+        Row: {
+          agent_phone: string | null
+          created_at: string
+          customer_phone: string | null
+          direction: Database["public"]["Enums"]["call_direction"]
+          duration_seconds: number | null
+          ended_at: string | null
+          external_id: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+          provider: string
+          recording_url: string | null
+          started_at: string
+          status: Database["public"]["Enums"]["call_status"]
+          updated_at: string
+        }
+        Insert: {
+          agent_phone?: string | null
+          created_at?: string
+          customer_phone?: string | null
+          direction: Database["public"]["Enums"]["call_direction"]
+          duration_seconds?: number | null
+          ended_at?: string | null
+          external_id: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          provider?: string
+          recording_url?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["call_status"]
+          updated_at?: string
+        }
+        Update: {
+          agent_phone?: string | null
+          created_at?: string
+          customer_phone?: string | null
+          direction?: Database["public"]["Enums"]["call_direction"]
+          duration_seconds?: number | null
+          ended_at?: string | null
+          external_id?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          provider?: string
+          recording_url?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["call_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           assigned_to_id: string | null
+          call_id: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
           created_at: string
           customer_id: string | null
@@ -39,6 +129,7 @@ export type Database = {
         }
         Insert: {
           assigned_to_id?: string | null
+          call_id?: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
           created_at?: string
           customer_id?: string | null
@@ -61,6 +152,7 @@ export type Database = {
         }
         Update: {
           assigned_to_id?: string | null
+          call_id?: string | null
           channel?: Database["public"]["Enums"]["communication_channel"]
           created_at?: string
           customer_id?: string | null
@@ -87,6 +179,13 @@ export type Database = {
             columns: ["assigned_to_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
             referencedColumns: ["id"]
           },
           {
@@ -1087,6 +1186,29 @@ export type Database = {
         | "send_emails"
         | "receive_emails"
       app_role: "admin" | "user"
+      call_direction: "inbound" | "outbound"
+      call_event_type:
+        | "call_started"
+        | "call_answered"
+        | "call_ended"
+        | "call_missed"
+        | "call_transferred"
+        | "call_on_hold"
+        | "call_resumed"
+        | "voicemail_left"
+        | "dtmf_pressed"
+        | "callback_requested"
+        | "agent_assigned"
+      call_status:
+        | "ringing"
+        | "answered"
+        | "missed"
+        | "busy"
+        | "failed"
+        | "completed"
+        | "transferred"
+        | "on_hold"
+        | "voicemail"
       communication_channel:
         | "email"
         | "facebook"
@@ -1230,6 +1352,31 @@ export const Constants = {
         "receive_emails",
       ],
       app_role: ["admin", "user"],
+      call_direction: ["inbound", "outbound"],
+      call_event_type: [
+        "call_started",
+        "call_answered",
+        "call_ended",
+        "call_missed",
+        "call_transferred",
+        "call_on_hold",
+        "call_resumed",
+        "voicemail_left",
+        "dtmf_pressed",
+        "callback_requested",
+        "agent_assigned",
+      ],
+      call_status: [
+        "ringing",
+        "answered",
+        "missed",
+        "busy",
+        "failed",
+        "completed",
+        "transferred",
+        "on_hold",
+        "voicemail",
+      ],
       communication_channel: [
         "email",
         "facebook",
