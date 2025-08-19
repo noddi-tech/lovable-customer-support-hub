@@ -49,6 +49,47 @@ export type Database = {
           },
         ]
       }
+      call_notes: {
+        Row: {
+          call_id: string
+          content: string
+          created_at: string
+          created_by_id: string
+          id: string
+          is_private: boolean | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          call_id: string
+          content: string
+          created_at?: string
+          created_by_id: string
+          id?: string
+          is_private?: boolean | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          call_id?: string
+          content?: string
+          created_at?: string
+          created_by_id?: string
+          id?: string
+          is_private?: boolean | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_notes_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
           agent_phone: string | null
