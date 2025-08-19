@@ -87,7 +87,7 @@ class AircallAdapter {
       eventType: eventTypeMap[payload.event] || 'call_started',
       eventData: {
         webhookEvent: payload.event,
-        timestamp: payload.timestamp || new Date().toISOString(),
+        timestamp: convertTimestamp(payload.timestamp) || new Date().toISOString(),
         callData: call
       }
     };
