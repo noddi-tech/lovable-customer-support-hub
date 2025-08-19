@@ -296,6 +296,8 @@ All colors MUST be HSL.
 
   .detail-pane { 
     flex: 0 0 320px; 
+  }
+
 /* Email render component styles - scoped to prevent leakage */
 .email-render {
   max-width: 700px;
