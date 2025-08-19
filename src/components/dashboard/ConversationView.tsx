@@ -204,6 +204,44 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             <Badge variant={conversation.priority === 'high' || conversation.priority === 'urgent' ? 'destructive' : 'secondary'}>
               {t(`conversation.${conversation.priority}`)}
             </Badge>
+            
+            <div className="hidden sm:flex items-center space-x-2">
+              <Button variant="outline" size="sm">
+                <UserPlus className="h-4 w-4 mr-2" />
+                {t('conversation.assign')}
+              </Button>
+              <Button variant="outline" size="sm">
+                <Move className="h-4 w-4 mr-2" />
+                {t('conversation.move')}
+              </Button>
+              {conversation.status === 'open' ? (
+                <Button variant="outline" size="sm">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {t('conversation.markAsClosed')}
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm">
+                  <Archive className="h-4 w-4 mr-2" />
+                  {t('conversation.reopen')}
+                </Button>
+              )}
+              {conversation.is_archived ? (
+                <Button variant="outline" size="sm">
+                  <ArchiveRestore className="h-4 w-4 mr-2" />
+                  {t('conversation.unarchive')}
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm">
+                  <Archive className="h-4 w-4 mr-2" />
+                  {t('conversation.archive')}
+                </Button>
+              )}
+              <Button variant="outline" size="sm">
+                <Clock className="h-4 w-4 mr-2" />
+                {t('conversation.snooze')}
+              </Button>
+            </div>
+            
             <Button variant="ghost" size="sm">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
@@ -212,69 +250,151 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       </div>
 
       <div className="flex-1 h-0 flex">
-        {/* Messages Area */}
-        <div className="flex-1">
-          <div 
-            style={{ height: 'calc(100vh - 180px)', overflow: 'auto' }}
-            className="p-3 md:p-6"
-          >
-            <div className="space-y-4 max-w-4xl mx-auto w-full">
-              {messages.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>{t('conversation.noMessages')}</p>
-                </div>
-              ) : (
-                messages.map((message, index) => {
-                  const isFromCustomer = message.sender_type === 'customer';
-                  const processedContent = shouldRenderAsHTML(message.content, message.content_type || 'text/plain')
-                    ? sanitizeEmailHTML(message.content)
-                    : formatEmailText(message.content);
-                  
-                  return (
-                    <Card key={message.id} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center space-x-3">
-                             <Avatar className="h-8 w-8">
-                               <AvatarFallback className={isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                                 {message.sender_id?.[0] || (isFromCustomer ? 'C' : 'A')}
-                               </AvatarFallback>
-                             </Avatar>
-                             <div>
-                               <div className="font-medium text-sm">
-                                 {isFromCustomer ? (conversation.customer as any)?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
-                               </div>
-                               <div className="text-xs text-muted-foreground">
-                                 {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Messages Area */}
+          <div className="flex-1">
+            <div 
+              style={{ height: 'calc(100vh - 280px)', overflow: 'auto' }}
+              className="p-3 md:p-6"
+            >
+              <div className="space-y-4 max-w-4xl mx-auto w-full">
+                {messages.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>{t('conversation.noMessages')}</p>
+                  </div>
+                ) : (
+                  messages.map((message, index) => {
+                    const isFromCustomer = message.sender_type === 'customer';
+                    const processedContent = shouldRenderAsHTML(message.content, message.content_type || 'text/plain')
+                      ? sanitizeEmailHTML(message.content)
+                      : formatEmailText(message.content);
+                    
+                    return (
+                      <Card key={message.id} className="overflow-hidden">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center space-x-3">
+                               <Avatar className="h-8 w-8">
+                                 <AvatarFallback className={isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"}>
+                                   {message.sender_id?.[0] || (isFromCustomer ? 'C' : 'A')}
+                                 </AvatarFallback>
+                               </Avatar>
+                               <div>
+                                 <div className="font-medium text-sm">
+                                   {isFromCustomer ? (conversation.customer as any)?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
+                                 </div>
+                                 <div className="text-xs text-muted-foreground">
+                                   {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
+                                 </div>
                                </div>
                              </div>
-                           </div>
-                           {message.is_internal && (
-                            <Badge variant="outline" className="text-xs">
-                              {t('conversation.internalNote')}
-                            </Badge>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="email-container">
-                          {shouldRenderAsHTML(message.content, message.content_type || 'text/plain') ? (
-                            <div 
-                              className="email-content prose prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: processedContent }}
-                            />
-                          ) : (
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                              {processedContent}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
+                             {message.is_internal && (
+                              <Badge variant="outline" className="text-xs">
+                                {t('conversation.internalNote')}
+                              </Badge>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="email-container">
+                            {shouldRenderAsHTML(message.content, message.content_type || 'text/plain') ? (
+                              <div 
+                                className="email-content prose prose-sm max-w-none"
+                                dangerouslySetInnerHTML={{ __html: processedContent }}
+                              />
+                            ) : (
+                              <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                                {processedContent}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Reply Area */}
+          <div className="flex-shrink-0 border-t border-border bg-card/50 backdrop-blur-sm p-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-start space-x-3">
+                <Avatar className="h-8 w-8 mt-1">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    A
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-3">
+                  {/* Reply Type Toggle */}
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant={isInternalNote ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => setIsInternalNote(false)}
+                    >
+                      <Reply className="h-3 w-3 mr-1" />
+                      {t('conversation.reply')}
+                    </Button>
+                    <Button
+                      variant={isInternalNote ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setIsInternalNote(true)}
+                    >
+                      <Lock className="h-3 w-3 mr-1" />
+                      {t('conversation.internalNote')}
+                    </Button>
+                  </div>
+
+                  {/* Text Area */}
+                  <div className="relative">
+                    <Textarea
+                      ref={replyRef}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder={isInternalNote ? t('conversation.writeInternalNote') : t('conversation.writeReply')}
+                      className="min-h-[100px] pr-32"
+                    />
+                    
+                    {/* Action Buttons */}
+                    <div className="absolute bottom-3 right-3 flex items-center space-x-2">
+                      <Button variant="ghost" size="sm">
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Sparkles className="h-4 w-4" />
+                        {t('conversation.ai')}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Send Actions */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded">Ctrl</kbd>
+                      <span>+</span>
+                      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded">Enter</kbd>
+                      <span>{t('conversation.toSend')}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="sm">
+                        {t('common.cancel')}
+                      </Button>
+                      <Button size="sm" disabled={!replyText.trim()}>
+                        <Send className="h-4 w-4 mr-2" />
+                        {isInternalNote ? t('conversation.addNote') : t('conversation.send')}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
