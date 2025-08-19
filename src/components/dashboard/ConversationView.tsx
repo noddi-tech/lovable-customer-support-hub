@@ -495,7 +495,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               maxHeight: showReplyArea ? 'calc(100vh - 400px)' : 'calc(100vh - 220px)'
             }}
           >
-            <div className="space-y-4 max-w-4xl mx-auto w-full">
+            <div className="space-y-4 max-w-4xl mx-auto w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
               {messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -702,6 +702,43 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             style={{ height: 'calc(100vh - 180px)', overflow: 'auto' }}
             className="p-4 space-y-6"
           >
+            {/* Reply Actions - Top Priority */}
+            {conversation.status === 'open' && !conversation.is_archived && (
+              <div>
+                <h3 className="font-semibold text-sm mb-3 flex items-center">
+                  <Reply className="h-4 w-4 mr-2" />
+                  Actions
+                </h3>
+                <div className="space-y-2">
+                  <Button 
+                    onClick={() => {
+                      setIsInternalNote(false);
+                      setShowReplyArea(true);
+                    }}
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                    size="sm"
+                  >
+                    <Reply className="h-4 w-4 mr-2" />
+                    Reply
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setIsInternalNote(true);
+                      setShowReplyArea(true);
+                    }}
+                    className="w-full"
+                    size="sm"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {(conversation.status === 'open' && !conversation.is_archived) && <Separator />}
+
             {/* Customer Details */}
             <div>
               <h3 className="font-semibold text-sm mb-3 flex items-center">
