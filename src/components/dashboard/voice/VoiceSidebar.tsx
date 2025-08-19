@@ -133,6 +133,12 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
       label: 'Today\'s Calls', 
       icon: Calendar, 
       count: recentCalls?.length || 0 
+    },
+    { 
+      id: 'calls-all', 
+      label: 'All Calls', 
+      icon: Phone, 
+      count: 0 // Will be populated from all calls data
     }
   ];
 

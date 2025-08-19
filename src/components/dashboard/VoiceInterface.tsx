@@ -107,6 +107,7 @@ export const VoiceInterface = () => {
       'voicemails-closed': 'Completed Voicemails', 
       'voicemails-all': 'All Voicemails',
       'calls-today': 'Today\'s Calls',
+      'calls-all': 'All Calls',
       'events-log': 'Call Events Log'
     };
     return titles[section] || 'Voice Monitor';
@@ -172,6 +173,7 @@ export const VoiceInterface = () => {
         );
 
       case 'calls-today':
+      case 'calls-all':
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">

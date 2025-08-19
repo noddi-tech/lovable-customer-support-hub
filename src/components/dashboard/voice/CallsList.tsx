@@ -145,14 +145,14 @@ export const CallsList = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredCalls.map((call) => (
             <Card key={call.id} className="transition-all duration-200 hover:shadow-md">
-              <CardContent className="p-4">
+              <CardContent className="p-2">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
+                  <div className="flex items-start gap-2 flex-1">
                     {/* Direction Icon */}
-                    <div className="flex-shrink-0 mt-1">
+                    <div className="flex-shrink-0 mt-0.5">
                       {getDirectionIcon(call.direction)}
                     </div>
                     
@@ -162,12 +162,12 @@ export const CallsList = () => {
                         <span className="font-medium text-sm">
                           {formatPhoneNumber(call.customer_phone)}
                         </span>
-                        <Badge variant={getStatusColor(call.status) as any}>
+                        <Badge variant={getStatusColor(call.status) as any} className="text-xs px-1.5 py-0">
                           {call.status}
                         </Badge>
                       </div>
                       
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           <span>{format(new Date(call.started_at), 'MMM d, HH:mm')}</span>
@@ -189,7 +189,7 @@ export const CallsList = () => {
                         const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
                         if (monitoredPhone) {
                           return (
-                            <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-2 mt-1">
                               <div className="flex items-center gap-1 text-xs">
                                 <Building2 className="h-3 w-3 text-primary" />
                                 <span className="text-primary font-medium">
@@ -199,7 +199,7 @@ export const CallsList = () => {
                                   ({monitoredPhone.phoneNumber.number})
                                 </span>
                               </div>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs px-1 py-0">
                                 {monitoredPhone.type === 'company' ? 'Company Line' : 'Agent Line'}
                               </Badge>
                             </div>
@@ -215,12 +215,12 @@ export const CallsList = () => {
                   </div>
                   
                   {/* Actions */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openCallDetails(call)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1 h-8 px-2"
                       title="View call details and notes"
                     >
                       <MessageSquare className="h-3 w-3" />
