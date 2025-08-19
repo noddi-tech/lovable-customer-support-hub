@@ -539,5 +539,241 @@ All colors MUST be HSL.
   overflow-wrap: anywhere;
 }
 
+/* Enhanced Email Render Styles - Scoped to prevent layout leakage */
+.email-render {
+  max-width: 700px;
+  margin: 0 auto;
+  word-break: break-word;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.email-render__controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.email-render__content {
+  position: relative;
+}
+
+/* HTML Content Wrapper */
+.email-render__html-content {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Plain Text Content */
+.email-render__plain-content {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.email-render__text-line {
+  margin: 0;
+  padding: 2px 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre-wrap;
+}
+
+.email-render__quoted-text {
+  background-color: hsl(var(--muted));
+  border-left: 3px solid hsl(var(--border));
+  padding: 8px 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Collapsible Sections */
+.email-render__collapsible {
+  margin: 8px 0;
+}
+
+.email-render__collapsible-toggle {
+  padding: 4px 8px;
+  height: auto;
+  border-radius: 4px;
+  transition: var(--transition-smooth);
+}
+
+.email-render__collapsible-toggle:hover {
+  background-color: hsl(var(--accent));
+}
+
+.email-render__collapsible-toggle:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.email-render__collapsible-content {
+  margin-top: 8px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Attachments */
+.email-render__attachments {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.email-render__attachments-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: hsl(var(--foreground));
+}
+
+.email-render__attachments-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.email-render__attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  transition: var(--transition-smooth);
+}
+
+.email-render__attachment-item:hover {
+  background-color: hsl(var(--muted));
+}
+
+.email-render__attachment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.email-render__attachment-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-render__attachment-size {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+}
+
+.email-render__attachment-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Image Loading States */
+.email-render img[data-blocked="true"] {
+  background-color: hsl(var(--muted));
+  border: 2px dashed hsl(var(--border));
+  padding: 20px;
+  text-align: center;
+  display: block;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.email-render img[loading="lazy"] {
+  transition: opacity 0.3s ease;
+}
+
+.email-render img[loading="lazy"]:not([src]) {
+  opacity: 0.7;
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .email-render {
+    max-width: 100%;
+    padding: 0 8px;
+  }
+  
+  .email-render__controls {
+    flex-wrap: wrap;
+  }
+  
+  .email-render__attachment-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .email-render__attachment-actions {
+    align-self: flex-end;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .email-render__quoted-text {
+    border-left-width: 4px;
+  }
+  
+  .email-render__attachment-item {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .email-render__collapsible-content {
+    animation: none;
+  }
+  
+  .email-render__attachment-item,
+  .email-render__collapsible-toggle {
+    transition: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .email-render__controls {
+    display: none;
+  }
+  
+  .email-render__collapsible-content {
+    display: block !important;
+  }
+  
+  .email-render__attachment-actions {
+    display: none;
+  }
+}
+
 }
 

@@ -37,26 +37,52 @@ export const sanitizeEmailHTML = (
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link', 'style'],
     FORBID_ATTR: ['javascript:', 'vbscript:', 'on*'],
+    // Enhanced data URL filtering - only allow safe image data URLs
     KEEP_CONTENT: true,
     ADD_ATTR: ['target', 'rel'],
     ALLOW_DATA_ATTR: false,
     // Custom hook to add security attributes to links
     HOOKS: {
       afterSanitizeAttributes: function (node: Element) {
-        // Add security attributes to all links
+        // Enhanced link security validation
         if (node.tagName === 'A') {
-          node.setAttribute('target', '_blank');
-          node.setAttribute('rel', 'noopener noreferrer nofollow');
+          const href = node.getAttribute('href');
+          if (href) {
+            // Validate href against safe URL patterns
+            const safeUrlPattern = /^(https?:\/\/|mailto:|tel:|#)/i;
+            if (!safeUrlPattern.test(href)) {
+              node.removeAttribute('href');
+            } else {
+              node.setAttribute('target', '_blank');
+              node.setAttribute('rel', 'noopener noreferrer nofollow');
+            }
+          }
         }
         
-        // Ensure images are responsive and secure
+        // Enhanced image security and performance
         if (node.tagName === 'IMG') {
-          node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
-          // Block external images by default for privacy
           const src = node.getAttribute('src');
-          if (src && !src.startsWith('cid:') && !src.startsWith('/')) {
+          
+          // Handle data URLs with strict filtering
+          if (src?.startsWith('data:')) {
+            const safeDataPattern = /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i;
+            if (!safeDataPattern.test(src)) {
+              node.setAttribute('src', '');
+              node.setAttribute('alt', node.getAttribute('alt') || 'Unsafe image blocked');
+            }
+          }
+          
+          // Set performance and security attributes
+          node.setAttribute('loading', 'lazy');
+          node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
+          node.setAttribute('referrerpolicy', 'no-referrer');
+          
+          // Block external images by default for privacy
+          if (src && !src.startsWith('cid:') && !src.startsWith('/') && !src.startsWith('data:')) {
+            node.setAttribute('data-original-src', src);
             node.setAttribute('src', '');
             node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
+            node.setAttribute('data-blocked', 'true');
           }
         }
         

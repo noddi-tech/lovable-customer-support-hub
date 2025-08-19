@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useCallback, useMemo, Suspense, lazy } from 'react';
+import { ChevronDown, ChevronUp, Download, Eye, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment } from '@/utils/emailFormatting';
 
 interface EmailRenderProps {
@@ -9,6 +10,7 @@ interface EmailRenderProps {
   attachments?: EmailAttachment[];
   messageId?: string;
   className?: string;
+  showLoadImagesControl?: boolean;
 }
 
 interface CollapsibleSectionProps {
@@ -30,29 +32,43 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
     setIsCollapsed(prev => !prev);
   }, []);
 
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      toggleCollapse();
+    }
+  }, [toggleCollapse]);
+
   return (
     <div className="email-render__collapsible">
       <Button
         variant="ghost"
         size="sm"
-        className="email-render__collapsible-toggle"
+        className="email-render__collapsible-toggle focus:ring-2 focus:ring-primary focus:outline-none"
         onClick={toggleCollapse}
+        onKeyDown={handleKeyDown}
         aria-expanded={!isCollapsed}
         aria-controls={id}
+        aria-label={`${isCollapsed ? 'Show' : 'Hide'} ${buttonText.toLowerCase()}`}
+        tabIndex={0}
       >
         <span className="text-muted-foreground text-xs">{buttonText}</span>
         {isCollapsed ? (
-          <ChevronDown className="h-3 w-3 ml-1" />
+          <ChevronDown className="h-3 w-3 ml-1" aria-hidden="true" />
         ) : (
-          <ChevronUp className="h-3 w-3 ml-1" />
+          <ChevronUp className="h-3 w-3 ml-1" aria-hidden="true" />
         )}
       </Button>
       {!isCollapsed && (
         <div 
           id={id} 
           className="email-render__collapsible-content"
+          role="region"
+          aria-labelledby={`${id}-toggle`}
         >
-          {children}
+          <Suspense fallback={<div className="text-muted-foreground text-xs">Loading...</div>}>
+            {children}
+          </Suspense>
         </div>
       )}
     </div>
@@ -64,8 +80,12 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   contentType = 'text/plain',
   attachments = [],
   messageId,
-  className = ''
+  className = '',
+  showLoadImagesControl = true
 }) => {
+  const { toast } = useToast();
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const isHTML = useMemo(() => 
     contentType.toLowerCase().includes('html') || /<[^>]+>/.test(content),
     [content, contentType]
@@ -144,6 +164,44 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
     
     return tempDiv.innerHTML;
   }, [processedContent, isHTML]);
+
+  const loadImages = useCallback(() => {
+    const emailContainer = document.querySelector('.email-render__html-content');
+    if (emailContainer) {
+      const blockedImages = emailContainer.querySelectorAll('img[data-blocked="true"]');
+      blockedImages.forEach((img) => {
+        const originalSrc = img.getAttribute('data-original-src');
+        if (originalSrc) {
+          img.setAttribute('src', originalSrc);
+          img.removeAttribute('data-blocked');
+          img.removeAttribute('data-original-src');
+        }
+      });
+      setImagesLoaded(true);
+      toast({
+        title: "Images loaded",
+        description: "External images are now visible",
+      });
+    }
+  }, [toast]);
+
+  const copyToClipboard = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedToClipboard(true);
+      toast({
+        title: "Copied to clipboard",
+        description: "Email content has been copied",
+      });
+      setTimeout(() => setCopiedToClipboard(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Could not copy email content to clipboard",
+        variant: "destructive",
+      });
+    }
+  }, [content, toast]);
 
   const renderContent = () => {
     if (isHTML) {
@@ -224,23 +282,108 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
     }
   };
 
+  const hasBlockedImages = useMemo(() => {
+    return isHTML && content.includes('Image blocked for privacy');
+  }, [isHTML, content]);
+
   return (
     <article 
       className={`email-render ${isHTML ? 'email-render--html' : 'email-render--text'} ${className}`}
-      aria-label="Email content"
+      aria-label="Email message content"
+      role="article"
     >
-      {renderContent()}
+      {/* Email Controls */}
+      <div className="email-render__controls" role="toolbar" aria-label="Email actions">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={copyToClipboard}
+          className="text-xs"
+          aria-label="Copy email content to clipboard"
+        >
+          {copiedToClipboard ? (
+            <Check className="h-3 w-3 mr-1" aria-hidden="true" />
+          ) : (
+            <Copy className="h-3 w-3 mr-1" aria-hidden="true" />
+          )}
+          {copiedToClipboard ? 'Copied' : 'Copy'}
+        </Button>
+        
+        {showLoadImagesControl && hasBlockedImages && !imagesLoaded && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={loadImages}
+            className="text-xs"
+            aria-label="Load blocked images"
+          >
+            <ImageIcon className="h-3 w-3 mr-1" aria-hidden="true" />
+            Load images
+          </Button>
+        )}
+      </div>
+
+      {/* Email Content */}
+      <div className="email-render__content" role="main">
+        {renderContent()}
+      </div>
       
+      {/* Attachments */}
       {attachments && attachments.length > 0 && (
-        <div className="email-render__attachments">
-          <h4 className="email-render__attachments-title">Attachments</h4>
-          <ul className="email-render__attachments-list">
+        <div className="email-render__attachments" role="region" aria-label="Email attachments">
+          <h4 className="email-render__attachments-title" id="attachments-heading">
+            Attachments ({attachments.length})
+          </h4>
+          <ul 
+            className="email-render__attachments-list" 
+            role="list"
+            aria-labelledby="attachments-heading"
+          >
             {attachments.map((attachment, index) => (
-              <li key={index} className="email-render__attachment-item">
-                <span className="email-render__attachment-name">{attachment.filename}</span>
-                <span className="email-render__attachment-size">
-                  {(attachment.size / 1024).toFixed(1)} KB
-                </span>
+              <li key={index} className="email-render__attachment-item" role="listitem">
+                <div className="email-render__attachment-info">
+                  <span className="email-render__attachment-name" title={attachment.filename}>
+                    {attachment.filename}
+                  </span>
+                  <span className="email-render__attachment-size" aria-label={`File size: ${(attachment.size / 1024).toFixed(1)} kilobytes`}>
+                    {(attachment.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+                <div className="email-render__attachment-actions">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    aria-label={`Download ${attachment.filename}`}
+                    onClick={() => {
+                      // Download functionality would be implemented here
+                      const downloadUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}&download=true`;
+                      const link = document.createElement('a');
+                      link.href = downloadUrl;
+                      link.download = attachment.filename;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                  >
+                    <Download className="h-3 w-3 mr-1" aria-hidden="true" />
+                    Download
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    aria-label={`Preview ${attachment.filename}`}
+                    onClick={() => {
+                      // Preview functionality would be implemented here
+                      const previewUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}`;
+                      window.open(previewUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <Eye className="h-3 w-3 mr-1" aria-hidden="true" />
+                    Preview
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
