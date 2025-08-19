@@ -1,5 +1,4 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,7 +26,7 @@ export const GlobalStylesPanel: React.FC = () => {
   };
 
   return (
-    <ScrollArea className="h-full">
+    <div className="pane">
       <div className="p-4 space-y-6">
         <div>
           <h3 className="font-medium mb-2">{t('globalStyles')}</h3>
@@ -186,6 +185,6 @@ export const GlobalStylesPanel: React.FC = () => {
           </div>
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 };

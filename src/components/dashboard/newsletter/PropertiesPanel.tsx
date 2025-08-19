@@ -1,5 +1,4 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -202,7 +201,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedBlockI
   };
 
   return (
-    <ScrollArea className="h-full">
+    <div className="pane">
       <div className="p-4 space-y-6">
         <div>
           <h3 className="font-medium mb-2">{t('blockProperties')}</h3>
@@ -314,6 +313,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedBlockI
           )}
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 };

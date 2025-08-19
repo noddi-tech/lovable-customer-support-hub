@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -48,7 +47,7 @@ export const PersonalizationPanel: React.FC = () => {
   };
 
   return (
-    <ScrollArea className="h-full">
+    <div className="pane">
       <div className="p-4 space-y-6">
         <div>
           <h3 className="font-medium mb-2">{t('personalization')}</h3>
@@ -188,6 +187,6 @@ export const PersonalizationPanel: React.FC = () => {
           </div>
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 };

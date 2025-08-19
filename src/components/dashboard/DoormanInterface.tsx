@@ -2,7 +2,7 @@ import React from 'react';
 
 const DoormanInterface = () => {
   return (
-    <div className="h-full w-full">
+    <div className="pane w-full">
       <iframe
         src="https://doorman.noddi.co/"
         className="w-full h-full border-0"

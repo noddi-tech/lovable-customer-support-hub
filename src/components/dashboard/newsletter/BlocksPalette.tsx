@@ -1,6 +1,5 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Type, 
   Image, 
@@ -37,7 +36,7 @@ export const BlocksPalette: React.FC<BlocksPaletteProps> = ({ onAddBlock }) => {
   ];
 
   return (
-    <ScrollArea className="h-full">
+    <div className="pane">
       <div className="p-4 space-y-2">
         <h3 className="font-medium text-sm text-muted-foreground mb-4">{t('dragBlocks')}</h3>
         {blocks.map((block) => {
@@ -55,6 +54,6 @@ export const BlocksPalette: React.FC<BlocksPaletteProps> = ({ onAddBlock }) => {
           );
         })}
       </div>
-    </ScrollArea>
+    </div>
   );
 };

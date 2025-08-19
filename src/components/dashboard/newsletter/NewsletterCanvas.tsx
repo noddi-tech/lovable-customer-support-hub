@@ -1,5 +1,4 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { NewsletterBlock } from '../NewsletterBuilder';
 import { SortableNewsletterBlock } from './SortableNewsletterBlock';
 import { cn } from '@/lib/utils';
@@ -24,7 +23,7 @@ export const NewsletterCanvas: React.FC<NewsletterCanvasProps> = ({
   const canvasMaxWidth = previewDevice === 'mobile' ? '375px' : globalStyles.maxWidth || '600px';
 
   return (
-    <ScrollArea className="flex-1">
+    <div className="pane">
       <div className="p-8 min-h-full bg-muted/20">
         <div className="mx-auto" style={{ maxWidth: canvasMaxWidth }}>
           <div
@@ -60,6 +59,6 @@ export const NewsletterCanvas: React.FC<NewsletterCanvasProps> = ({
           </div>
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 };

@@ -4,7 +4,6 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Type, 
@@ -99,9 +98,9 @@ const NewsletterBuilder = () => {
   }, [toast]);
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="app-root flex flex-col bg-background">
       {/* Top Toolbar */}
-      <div className="border-b bg-card px-4 py-2 flex items-center justify-between">
+      <div className="app-header border-b bg-card px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -209,9 +208,9 @@ const NewsletterBuilder = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="app-main flex">
         {/* Left Sidebar - Blocks */}
-        <div className="w-64 border-r bg-card">
+        <div className="nav-pane border-r bg-card">
           <Tabs defaultValue="blocks" className="h-full flex flex-col">
             <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
               <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
@@ -227,7 +226,7 @@ const NewsletterBuilder = () => {
         </div>
 
         {/* Center Canvas */}
-        <div className="flex-1 flex flex-col">
+        <div className="list-pane flex flex-col">
           <DndContext
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
@@ -254,7 +253,7 @@ const NewsletterBuilder = () => {
         </div>
 
         {/* Right Sidebar - Properties */}
-        <div className="w-80 border-l bg-card">
+        <div className="detail-pane border-l bg-card">
           <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full flex flex-col">
             <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
               <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>

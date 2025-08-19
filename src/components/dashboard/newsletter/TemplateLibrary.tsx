@@ -1,5 +1,4 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -1116,7 +1115,7 @@ export const TemplateLibrary: React.FC = () => {
   };
 
   return (
-    <ScrollArea className="h-full">
+    <div className="pane">
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-medium text-sm">{t('templates')}</h3>
@@ -1188,6 +1187,6 @@ export const TemplateLibrary: React.FC = () => {
           </div>
         )}
       </div>
-    </ScrollArea>
+    </div>
   );
 };

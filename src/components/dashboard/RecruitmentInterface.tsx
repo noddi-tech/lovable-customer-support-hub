@@ -2,7 +2,7 @@ import React from 'react';
 
 const RecruitmentInterface = () => {
   return (
-    <div className="h-full w-full">
+    <div className="pane w-full">
       <iframe
         src="https://apply.noddi.co/login"
         className="w-full h-full border-0"
