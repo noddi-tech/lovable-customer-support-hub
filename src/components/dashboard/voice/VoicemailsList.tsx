@@ -10,15 +10,12 @@ import { formatDistanceToNow } from 'date-fns';
 
 const AudioPlayerSimple = ({ src, duration }: { src: string; duration?: number }) => {
   const handleOpenRecording = () => {
+    console.log('Opening recording:', src);
     if (src) {
-      // Create a temporary anchor element to force download
-      const link = document.createElement('a');
-      link.href = src;
-      link.download = `voicemail-${new Date().toISOString()}.mp3`;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Try simple window.open first
+      window.open(src, '_blank');
+    } else {
+      console.error('No recording URL provided');
     }
   };
 
@@ -147,13 +144,12 @@ const VoicemailCard = ({ voicemail, onDownload, isDownloading }: VoicemailCardPr
               variant="outline"
               size="sm"
               onClick={() => {
-                const link = document.createElement('a');
-                link.href = voicemail.event_data.recording_url!;
-                link.download = `voicemail-${voicemail.customer_phone}-${new Date(voicemail.created_at).toISOString().split('T')[0]}.mp3`;
-                link.target = '_blank';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                console.log('Download clicked for voicemail:', voicemail.event_data.recording_url);
+                if (voicemail.event_data.recording_url) {
+                  window.open(voicemail.event_data.recording_url, '_blank');
+                } else {
+                  console.error('No recording URL available');
+                }
               }}
               className="flex items-center gap-2"
               title="Download recording"
