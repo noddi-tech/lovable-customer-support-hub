@@ -246,19 +246,7 @@ useEffect(() => {
       )}
 
         {/* Content Area */}
-        <div className="flex-1 flex overflow-hidden min-h-0"
-          ref={(el) => {
-            if (el) {
-              console.log('Dashboard content area:', {
-                offsetHeight: el.offsetHeight,
-                scrollHeight: el.scrollHeight,
-                clientHeight: el.clientHeight,
-                computedStyle: window.getComputedStyle(el).height,
-                flexGrow: window.getComputedStyle(el).flexGrow
-              });
-            }
-          }}
-        >
+        <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Show Notifications List if notifications tab is selected */}
         {selectedTab === 'notifications' ? (
           <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">

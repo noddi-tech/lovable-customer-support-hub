@@ -6,11 +6,11 @@ This application uses a full-screen layout pattern where the page itself never s
 
 ## Implementation Status
 
-✅ **FIXED**: ConversationView now properly implements the scrolling pattern with clean HTML structure
-✅ **FIXED**: Dashboard uses proper height constraints and overflow management
-✅ **ACTIVE**: All components follow the standardized ScrollArea pattern
+✅ **FIXED**: ConversationView now uses explicit height calculations for reliable scrolling
+✅ **WORKING**: Messages area scrolls properly with native overflow behavior
+✅ **SOLUTION**: Using `calc(100vh - 180px)` bypasses flex layout height issues
 
-## Core Architecture
+## Core Architecture - FINAL WORKING SOLUTION
 
 ```
 ┌─ html/body/root (height: 100%, overflow: hidden) ─┐
@@ -22,12 +22,34 @@ This application uses a full-screen layout pattern where the page itself never s
 │  │     │  │  • Navigation items      │  │   │   │
 │  │     │  └─ ConversationList (ScrollArea) │  │   │   │
 │  │     │  └─ ConversationView Container ─┐  │   │   │
-│  │     │     ┌─ Header (flex-shrink-0) │  │   │   │
-│  │     │     └─ Messages (ScrollArea)  ─┘  │   │   │
+│  │     │     ┌─ Header (h-16 fixed) ───┐│  │   │   │
+│  │     │     └─ Messages (calc height) ─┘│  │   │   │
+│  │     │       overflow: auto          ││  │   │   │
 │  │     └────────────────────────────────────┘   │   │
 │  └──────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────┘
 ```
+
+## Final Working Pattern
+
+**ConversationView Structure (WORKING):**
+```tsx
+<div className="h-full w-full flex flex-col bg-gradient-surface">
+  {/* Header - Fixed Height */}
+  <div className="h-16 flex-shrink-0">
+    <ConversationHeader />
+  </div>
+  
+  {/* Messages - Explicit Calculated Height */}
+  <div className="flex-1 h-0">
+    <div style={{ height: 'calc(100vh - 180px)', overflow: 'auto' }}>
+      <MessageList />
+    </div>
+  </div>
+</div>
+```
+
+**Key Insight**: The flex layout constraints (`flex-1 h-0 min-h-0`) were not properly propagating height through the component hierarchy. Using explicit height calculations with `calc()` provides reliable scrolling behavior.
 
 ## Components
 
