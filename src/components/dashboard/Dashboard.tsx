@@ -246,7 +246,7 @@ useEffect(() => {
       )}
 
         {/* Content Area */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 h-full min-h-0 flex overflow-hidden">
         {/* Show Notifications List if notifications tab is selected */}
         {selectedTab === 'notifications' ? (
           <div className="flex-1 flex flex-col bg-gradient-surface">
@@ -271,7 +271,7 @@ useEffect(() => {
             {/* Conversation List */}
             <div className={`
               ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
-              w-96 border-r border-border bg-gradient-surface flex-col
+              w-96 h-full min-h-0 border-r border-border bg-gradient-surface flex-col
             `}>
               <ConversationList 
                 selectedTab={selectedTab}
@@ -284,7 +284,7 @@ useEffect(() => {
             {/* Conversation View */}
             <div className={`
               ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'flex'}
-              flex-1 flex-col bg-gradient-surface
+              flex-1 h-full min-h-0 flex-col bg-gradient-surface
             `}>
               {/* Mobile Header */}
               {isMobile && (
