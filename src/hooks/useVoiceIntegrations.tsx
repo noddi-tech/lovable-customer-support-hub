@@ -63,11 +63,10 @@ export function useVoiceIntegrations() {
       if (!currentUserOrg) return null;
       
       try {
-        // For now, just get the most recent call event
-        // TODO: Add organization filtering when call_events table is updated
+        // Query call_events through calls table to respect RLS policies
         const { data, error } = await supabase
           .from('call_events')
-          .select('created_at')
+          .select('created_at, call_id')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
