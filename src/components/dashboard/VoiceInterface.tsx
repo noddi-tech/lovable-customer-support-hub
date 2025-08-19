@@ -78,11 +78,19 @@ export const VoiceInterface = () => {
   const getFilterFromSection = (section: string) => {
     if (section.startsWith('callbacks-')) {
       const status = section.replace('callbacks-', '');
-      return status === 'all' ? undefined : status;
+      if (status === 'all') return undefined;
+      // Map UI terms to database terms
+      if (status === 'closed') return 'completed';
+      if (status === 'assigned') return 'processed';
+      return status;
     }
     if (section.startsWith('voicemails-')) {
       const status = section.replace('voicemails-', '');
-      return status === 'all' ? undefined : status;
+      if (status === 'all') return undefined;
+      // Map UI terms to database terms for voicemails
+      if (status === 'closed') return 'completed';
+      if (status === 'assigned') return 'processed';
+      return status;
     }
     return undefined;
   };
@@ -92,11 +100,11 @@ export const VoiceInterface = () => {
       'ongoing-calls': 'Active Calls',
       'callbacks-pending': 'Pending Callback Requests',
       'callbacks-assigned': 'Assigned Callback Requests', 
-      'callbacks-closed': 'Closed Callback Requests',
+      'callbacks-closed': 'Completed Callback Requests',
       'callbacks-all': 'All Callback Requests',
       'voicemails-pending': 'Pending Voicemails',
       'voicemails-assigned': 'Assigned Voicemails',
-      'voicemails-closed': 'Closed Voicemails', 
+      'voicemails-closed': 'Completed Voicemails', 
       'voicemails-all': 'All Voicemails',
       'calls-today': 'Today\'s Calls',
       'events-log': 'Call Events Log'
