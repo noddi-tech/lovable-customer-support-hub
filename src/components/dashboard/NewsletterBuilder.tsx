@@ -216,10 +216,10 @@ const NewsletterBuilder = () => {
               <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
               <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
             </TabsList>
-            <TabsContent value="blocks" className="flex-1 m-0 h-0 overflow-hidden">
+            <TabsContent value="blocks" className="flex-1 m-0 h-0">
               <BlocksPalette onAddBlock={addBlock} />
             </TabsContent>
-            <TabsContent value="templates" className="flex-1 m-0 h-0 overflow-hidden">
+            <TabsContent value="templates" className="flex-1 m-0 h-0">
               <TemplateLibrary />
             </TabsContent>
           </Tabs>
@@ -260,13 +260,13 @@ const NewsletterBuilder = () => {
               <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
               <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
             </TabsList>
-            <TabsContent value="properties" className="flex-1 m-0 h-0 overflow-hidden">
+            <TabsContent value="properties" className="flex-1 m-0 h-0">
               <PropertiesPanel selectedBlockId={selectedBlockId} />
             </TabsContent>
-            <TabsContent value="global" className="flex-1 m-0 h-0 overflow-hidden">
+            <TabsContent value="global" className="flex-1 m-0 h-0">
               <GlobalStylesPanel />
             </TabsContent>
-            <TabsContent value="personalization" className="flex-1 m-0 h-0 overflow-hidden">
+            <TabsContent value="personalization" className="flex-1 m-0 h-0">
               <PersonalizationPanel />
             </TabsContent>
           </Tabs>

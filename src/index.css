@@ -290,12 +290,12 @@ All colors MUST be HSL.
   }
 
   .list-pane { 
-    flex: 0 0 384px;
+    flex: 0 0 512px;
     border-right: 1px solid hsl(var(--border));
   }
 
   .detail-pane { 
-    flex: 1 1 auto; 
+    flex: 0 0 320px; 
   }
 }
 
