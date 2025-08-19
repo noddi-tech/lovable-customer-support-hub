@@ -284,7 +284,7 @@ useEffect(() => {
             {/* Conversation View */}
             <div className={`
               ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'flex'}
-              flex-1 h-full min-h-0 flex-col bg-gradient-surface
+              flex-1 min-h-0 flex-col bg-gradient-surface overflow-hidden
             `}>
               {/* Mobile Header */}
               {isMobile && (
