@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
+import { formatRelativeTime } from '@/utils/dateFormatting';
 
 interface CallEventConfig {
   eventType: string;
@@ -32,7 +33,8 @@ export const AircallSettings = () => {
     getIntegrationByProvider, 
     saveIntegration, 
     isSaving, 
-    isLoading: isLoadingIntegrations 
+    isLoading: isLoadingIntegrations,
+    lastEventTimestamp
   } = useVoiceIntegrations();
   
   // Get existing Aircall configuration
@@ -263,7 +265,10 @@ export const AircallSettings = () => {
               Connected
             </Badge>
             <span className="text-sm text-muted-foreground">
-              Last event received: 2 minutes ago
+              {lastEventTimestamp 
+                ? `Last event: ${formatRelativeTime(lastEventTimestamp)}`
+                : 'No events received yet'
+              }
             </span>
           </div>
         </CardContent>

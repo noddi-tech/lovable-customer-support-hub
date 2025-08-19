@@ -56,6 +56,25 @@ export function useVoiceIntegrations() {
     },
   });
 
+  // Fetch last event timestamp for the current organization
+  const { data: lastEventTimestamp } = useQuery({
+    queryKey: ['last-call-event', currentUserOrg],
+    queryFn: async (): Promise<string | null> => {
+      if (!currentUserOrg) return null;
+      
+      try {
+        const { data } = await supabase.rpc('get_last_call_event', {
+          org_id: currentUserOrg
+        });
+        return data;
+      } catch (error) {
+        console.error('Error fetching last event:', error);
+        return null;
+      }
+    },
+    enabled: !!currentUserOrg,
+  });
+
   // Get specific integration by provider
   const getIntegrationByProvider = (provider: string) => {
     return integrations.find(integration => integration.provider === provider);
@@ -151,6 +170,7 @@ export function useVoiceIntegrations() {
     integrations,
     isLoading,
     error,
+    lastEventTimestamp,
     getIntegrationByProvider,
     saveIntegration: saveIntegrationMutation.mutate,
     deleteIntegration: deleteIntegrationMutation.mutate,
