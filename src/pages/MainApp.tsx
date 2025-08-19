@@ -1,12 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { 
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   MessageSquare, 
   Mail, 
@@ -74,27 +72,27 @@ const MainApp = () => {
   ];
 
   const renderDropdownContent = (items: any[], mainSection: MainSection) => (
-    <NavigationMenuContent className="absolute left-0 top-full mt-0 bg-card border border-border shadow-lg rounded-md rounded-t-none border-t-0 p-2 min-w-[200px] z-50 data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52">
-      <ul className="space-y-1">
-        {items.map((item) => (
-          <li key={item.key}>
-            <NavigationMenuLink
-              onClick={() => handleNavigation(mainSection, item.key)}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
-                "hover:bg-accent hover:text-accent-foreground",
-                navigationState.mainSection === mainSection && navigationState.subSection === item.key
-                  ? "bg-accent text-accent-foreground"
-                  : "text-foreground"
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </NavigationMenuLink>
-          </li>
-        ))}
-      </ul>
-    </NavigationMenuContent>
+    <DropdownMenuContent 
+      className="bg-card border border-border shadow-lg rounded-md rounded-t-none border-t-0 p-1 min-w-[200px] z-50"
+      side="bottom" 
+      align="start"
+    >
+      {items.map((item) => (
+        <DropdownMenuItem
+          key={item.key}
+          onClick={() => handleNavigation(mainSection, item.key)}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 text-sm cursor-pointer",
+            navigationState.mainSection === mainSection && navigationState.subSection === item.key
+              ? "bg-accent text-accent-foreground"
+              : "text-foreground"
+          )}
+        >
+          <item.icon className="h-4 w-4" />
+          {item.label}
+        </DropdownMenuItem>
+      ))}
+    </DropdownMenuContent>
   );
 
   const renderContent = () => {
@@ -147,61 +145,59 @@ const MainApp = () => {
     <div className="h-screen flex flex-col">
       {/* Navigation Header */}
       <div className="border-b bg-background px-6 py-3 space-y-3">
-        <NavigationMenu className="max-w-none">
-          <NavigationMenuList className="flex gap-0">
-            <NavigationMenuItem className="relative">
-              <NavigationMenuTrigger 
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-b-none border-b-0",
-                  navigationState.mainSection === 'interactions' && "bg-accent text-accent-foreground"
-                )}
-              >
-                <MessageSquare className="h-4 w-4" />
-                {t('interactions')}
-              </NavigationMenuTrigger>
-              {renderDropdownContent(interactionsItems, 'interactions')}
-            </NavigationMenuItem>
+        <div className="flex gap-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger 
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
+                navigationState.mainSection === 'interactions' && "bg-accent text-accent-foreground"
+              )}
+            >
+              <MessageSquare className="h-4 w-4" />
+              {t('interactions')}
+            </DropdownMenuTrigger>
+            {renderDropdownContent(interactionsItems, 'interactions')}
+          </DropdownMenu>
 
-            <NavigationMenuItem className="relative">
-              <NavigationMenuTrigger 
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-b-none border-b-0",
-                  navigationState.mainSection === 'marketing' && "bg-accent text-accent-foreground"
-                )}
-              >
-                <Mail className="h-4 w-4" />
-                {t('marketing')}
-              </NavigationMenuTrigger>
-              {renderDropdownContent(marketingItems, 'marketing')}
-            </NavigationMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger 
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
+                navigationState.mainSection === 'marketing' && "bg-accent text-accent-foreground"
+              )}
+            >
+              <Mail className="h-4 w-4" />
+              {t('marketing')}
+            </DropdownMenuTrigger>
+            {renderDropdownContent(marketingItems, 'marketing')}
+          </DropdownMenu>
 
-            <NavigationMenuItem className="relative">
-              <NavigationMenuTrigger 
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-b-none border-b-0",
-                  navigationState.mainSection === 'ops' && "bg-accent text-accent-foreground"
-                )}
-              >
-                <Wrench className="h-4 w-4" />
-                {t('ops')}
-              </NavigationMenuTrigger>
-              {renderDropdownContent(opsItems, 'ops')}
-            </NavigationMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger 
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
+                navigationState.mainSection === 'ops' && "bg-accent text-accent-foreground"
+              )}
+            >
+              <Wrench className="h-4 w-4" />
+              {t('ops')}
+            </DropdownMenuTrigger>
+            {renderDropdownContent(opsItems, 'ops')}
+          </DropdownMenu>
 
-            <NavigationMenuItem className="relative">
-              <NavigationMenuTrigger 
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-b-none border-b-0",
-                  navigationState.mainSection === 'settings' && "bg-accent text-accent-foreground"
-                )}
-              >
-                <SettingsIcon className="h-4 w-4" />
-                {t('settings.title')}
-              </NavigationMenuTrigger>
-              {renderDropdownContent(settingsItems, 'settings')}
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger 
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
+                navigationState.mainSection === 'settings' && "bg-accent text-accent-foreground"
+              )}
+            >
+              <SettingsIcon className="h-4 w-4" />
+              {t('settings.title')}
+            </DropdownMenuTrigger>
+            {renderDropdownContent(settingsItems, 'settings')}
+          </DropdownMenu>
+        </div>
 
         {/* Breadcrumb */}
         <div className="text-sm text-muted-foreground flex items-center gap-2">
