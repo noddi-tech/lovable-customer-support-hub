@@ -491,8 +491,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           <div 
             ref={messagesContainerRef}
             className="flex-1 min-h-0 overflow-y-auto p-3 md:p-6" 
-            style={{ 
-              maxHeight: showReplyArea ? 'calc(100vh - 400px)' : 'calc(100vh - 220px)'
+            style={{
+              height: 'calc(100vh - 180px)'
             }}
           >
             <div className="space-y-4 max-w-4xl mx-auto w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
@@ -553,27 +553,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   );
                 })
               )}
-            </div>
-          </div>
 
-          {/* Fixed Reply Toolbar - Always Visible at Bottom */}
-          {conversation.status === 'open' && !conversation.is_archived && (
-            <div className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-sm shadow-lg">
-              {!showReplyArea ? (
-                /* Collapsed Reply Button */
-                <div className="p-4 flex justify-center">
-                  <Button 
-                    onClick={() => setShowReplyArea(true)}
-                    className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-lg"
-                    size="lg"
-                  >
-                    <Reply className="h-5 w-5 mr-2" />
-                    Reply to this conversation
-                  </Button>
-                </div>
-              ) : (
-                /* Expanded Reply Area */
-                <div className="p-4 space-y-4 max-w-4xl mx-auto w-full">
+              {/* Reply Area - Inside scrollable content */}
+              {conversation.status === 'open' && !conversation.is_archived && showReplyArea && (
+                <div className="mt-8 p-4 space-y-4 max-w-4xl mx-auto w-full border-t border-border bg-card/50 rounded-lg">
                   {/* Quick Reply Header */}
                   <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg shadow-sm">
                     <div className="flex items-center space-x-3">
@@ -693,7 +676,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Customer Info Sidebar */}
