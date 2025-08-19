@@ -212,7 +212,7 @@ const MainApp = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-auto min-h-0">
         {renderContent()}
       </div>
     </div>

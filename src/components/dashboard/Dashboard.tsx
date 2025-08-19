@@ -212,7 +212,7 @@ useEffect(() => {
   // Debug logging
   console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!hasTimestamp);
   return (
-    <div className="h-screen flex flex-col bg-gradient-surface">
+    <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">
       {/* Header */}
       <Header 
         organizationName={selectedInboxName}
@@ -246,10 +246,10 @@ useEffect(() => {
       )}
 
         {/* Content Area */}
-        <div className="flex-1 h-full min-h-0 flex overflow-auto">
+        <div className="flex-1 h-full min-h-0 flex overflow-hidden">
         {/* Show Notifications List if notifications tab is selected */}
         {selectedTab === 'notifications' ? (
-          <div className="flex-1 flex flex-col bg-gradient-surface">
+          <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">
             {/* Mobile Header */}
             {isMobile && (
               <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">

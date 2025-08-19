@@ -1111,7 +1111,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     }
   };
   return (
-    <div className="flex-1 flex flex-col bg-gradient-surface">
+    <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">
       {/* Conversation Header */}
       <div className="p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between">
