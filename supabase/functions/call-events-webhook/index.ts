@@ -176,7 +176,149 @@ async function processCallEvent(supabase: any, standardEvent: StandardCallEvent,
 
   console.log('Call event inserted successfully:', callEvent);
 
+  // Process internal events based on webhook mappings
+  await processInternalEvents(supabase, standardEvent, call, callEvent, organizationId);
+
   return { call, callEvent };
+}
+
+// New function to handle internal event processing
+async function processInternalEvents(
+  supabase: any, 
+  standardEvent: StandardCallEvent, 
+  call: any, 
+  callEvent: any, 
+  organizationId: string
+) {
+  try {
+    console.log('Checking for internal event mappings...');
+    
+    // Get webhook event mappings for this provider and event
+    const { data: mappings, error: mappingsError } = await supabase
+      .from('webhook_event_mappings')
+      .select('*')
+      .eq('provider', standardEvent.provider)
+      .eq('external_event', standardEvent.eventData.webhookEvent)
+      .eq('is_active', true);
+
+    if (mappingsError) {
+      console.error('Error fetching webhook mappings:', mappingsError);
+      return;
+    }
+
+    if (!mappings || mappings.length === 0) {
+      console.log('No webhook mappings found for:', standardEvent.provider, standardEvent.eventData.webhookEvent);
+      return;
+    }
+
+    console.log('Found webhook mappings:', mappings);
+
+    for (const mapping of mappings) {
+      // Check if conditions are met
+      if (!evaluateConditions(mapping.condition_rules, standardEvent)) {
+        console.log('Conditions not met for mapping:', mapping.id);
+        continue;
+      }
+
+      // Extract data using mapping rules
+      const eventData = extractEventData(mapping.data_mapping, standardEvent);
+      
+      console.log('Creating internal event:', mapping.internal_event_type, eventData);
+
+      // Create internal event
+      const { data: internalEvent, error: internalError } = await supabase
+        .from('internal_events')
+        .insert({
+          organization_id: organizationId,
+          event_type: mapping.internal_event_type,
+          call_id: call.id,
+          customer_phone: standardEvent.customerPhone,
+          event_data: eventData,
+          triggered_by_event_id: callEvent.id,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (internalError) {
+        console.error('Error creating internal event:', internalError);
+      } else {
+        console.log('Internal event created successfully:', internalEvent);
+      }
+    }
+  } catch (error) {
+    console.error('Error processing internal events:', error);
+  }
+}
+
+// Helper function to evaluate condition rules
+function evaluateConditions(conditionRules: any, standardEvent: StandardCallEvent): boolean {
+  if (!conditionRules || Object.keys(conditionRules).length === 0) {
+    return true; // No conditions means always match
+  }
+
+  try {
+    // Check IVR options condition
+    if (conditionRules.ivr_options) {
+      const callData = standardEvent.eventData.callData;
+      const ivrOptions = callData?.ivr_options || [];
+      
+      for (const option of ivrOptions) {
+        if (conditionRules.ivr_options.branch && option.branch === conditionRules.ivr_options.branch) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Add more condition types as needed
+    return true;
+  } catch (error) {
+    console.error('Error evaluating conditions:', error);
+    return false;
+  }
+}
+
+// Helper function to extract data using JSONPath-like mapping
+function extractEventData(dataMapping: any, standardEvent: StandardCallEvent): any {
+  const result: any = {};
+
+  try {
+    for (const [key, path] of Object.entries(dataMapping)) {
+      if (typeof path === 'string') {
+        // Simple JSONPath-like extraction
+        if (path.startsWith('$.')) {
+          const pathParts = path.substring(2).split('.');
+          let value = standardEvent;
+          
+          for (const part of pathParts) {
+            if (part.includes('[') && part.includes(']')) {
+              // Handle array access like 'ivr_options[0]'
+              const [arrayName, indexStr] = part.split('[');
+              const index = parseInt(indexStr.replace(']', ''));
+              value = value?.[arrayName]?.[index];
+            } else {
+              value = value?.[part];
+            }
+            
+            if (value === undefined) break;
+          }
+          
+          result[key] = value;
+        } else {
+          // Direct value
+          result[key] = path;
+        }
+      } else {
+        // Direct value (non-string)
+        result[key] = path;
+      }
+    }
+  } catch (error) {
+    console.error('Error extracting event data:', error);
+  }
+
+  return result;
 }
 
 serve(async (req) => {

@@ -573,6 +573,110 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_event_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          schema: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          schema?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          schema?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      internal_events: {
+        Row: {
+          call_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          customer_phone: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          organization_id: string
+          processed_at: string | null
+          status: string | null
+          triggered_by_event_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          call_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          customer_phone?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          organization_id: string
+          processed_at?: string | null
+          status?: string | null
+          triggered_by_event_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          call_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          customer_phone?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          organization_id?: string
+          processed_at?: string | null
+          status?: string | null
+          triggered_by_event_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_events_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_events_event_type_fkey"
+            columns: ["event_type"]
+            isOneToOne: false
+            referencedRelation: "internal_event_types"
+            referencedColumns: ["name"]
+          },
+          {
+            foreignKeyName: "internal_events_triggered_by_event_id_fkey"
+            columns: ["triggered_by_event_id"]
+            isOneToOne: false
+            referencedRelation: "call_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           assigned_to_id: string | null
@@ -1070,6 +1174,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      webhook_event_mappings: {
+        Row: {
+          condition_rules: Json | null
+          created_at: string | null
+          data_mapping: Json | null
+          external_event: string
+          id: string
+          internal_event_type: string
+          is_active: boolean | null
+          provider: string
+          updated_at: string | null
+        }
+        Insert: {
+          condition_rules?: Json | null
+          created_at?: string | null
+          data_mapping?: Json | null
+          external_event: string
+          id?: string
+          internal_event_type: string
+          is_active?: boolean | null
+          provider: string
+          updated_at?: string | null
+        }
+        Update: {
+          condition_rules?: Json | null
+          created_at?: string | null
+          data_mapping?: Json | null
+          external_event?: string
+          id?: string
+          internal_event_type?: string
+          is_active?: boolean | null
+          provider?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_event_mappings_internal_event_type_fkey"
+            columns: ["internal_event_type"]
+            isOneToOne: false
+            referencedRelation: "internal_event_types"
+            referencedColumns: ["name"]
+          },
+        ]
       }
     }
     Views: {
