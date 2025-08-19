@@ -1,0 +1,364 @@
+import { useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useVoiceIntegrations } from './useVoiceIntegrations';
+import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
+import { Phone, PhoneCall, PhoneOff, Voicemail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useQueryClient } from '@tanstack/react-query';
+
+interface CallEvent {
+  id: string;
+  call_id: string;
+  event_type: string;
+  event_data: any;
+  timestamp: string;
+  created_at: string;
+}
+
+interface Call {
+  id: string;
+  external_id: string;
+  provider: string;
+  customer_phone: string;
+  agent_phone?: string;
+  status: string;
+  direction: string;
+  started_at: string;
+  ended_at?: string;
+  duration_seconds?: number;
+  metadata: any;
+  organization_id: string;
+}
+
+export const useRealTimeCallNotifications = () => {
+  const { toast } = useToast();
+  const { getIntegrationByProvider } = useVoiceIntegrations();
+  const queryClient = useQueryClient();
+  const aircallIntegration = getIntegrationByProvider('aircall');
+  const processedEventsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    // Subscribe to new call events
+    const callEventsChannel = supabase
+      .channel('call-events-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'call_events'
+        },
+        async (payload) => {
+          console.log('New call event received:', payload);
+          const callEvent = payload.new as CallEvent;
+          
+          // Prevent duplicate processing
+          if (processedEventsRef.current.has(callEvent.id)) {
+            return;
+          }
+          processedEventsRef.current.add(callEvent.id);
+
+          // Get the associated call data
+          try {
+            const { data: call, error } = await supabase
+              .from('calls')
+              .select('*')
+              .eq('id', callEvent.call_id)
+              .single();
+
+            if (error) {
+              console.error('Error fetching call data:', error);
+              return;
+            }
+
+            await handleCallEventNotification(callEvent, call);
+          } catch (error) {
+            console.error('Error processing call event:', error);
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to call status changes
+    const callsChannel = supabase
+      .channel('calls-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calls'
+        },
+        async (payload) => {
+          console.log('Call status change:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const call = payload.new as Call;
+            await handleNewCallNotification(call);
+          } else if (payload.eventType === 'UPDATE') {
+            const oldCall = payload.old as Call;
+            const newCall = payload.new as Call;
+            
+            if (oldCall.status !== newCall.status) {
+              await handleCallStatusChangeNotification(oldCall, newCall);
+            }
+          }
+
+          // Refresh call data
+          queryClient.invalidateQueries({ queryKey: ['calls'] });
+          queryClient.invalidateQueries({ queryKey: ['call-events'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(callEventsChannel);
+      supabase.removeChannel(callsChannel);
+    };
+  }, [aircallIntegration]);
+
+  const handleCallEventNotification = async (callEvent: CallEvent, call: Call) => {
+    const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
+    
+    let title = '';
+    let description = '';
+    let icon = <Phone className="h-4 w-4" />;
+    let shouldNotify = false;
+
+    switch (callEvent.event_type) {
+      case 'call_started':
+        if (call.direction === 'inbound') {
+          title = '📞 Incoming Call';
+          description = `Call to ${monitoredPhone?.phoneNumber.label || 'monitored line'}`;
+          icon = <PhoneCall className="h-4 w-4 text-green-600" />;
+          shouldNotify = true;
+        }
+        break;
+        
+      case 'call_missed':
+        title = '❌ Missed Call';
+        description = `Missed call from ${call.customer_phone}`;
+        icon = <PhoneOff className="h-4 w-4 text-red-600" />;
+        shouldNotify = true;
+        break;
+        
+      case 'voicemail_left':
+        title = '🎙️ New Voicemail';
+        description = `Voicemail from ${call.customer_phone}`;
+        icon = <Voicemail className="h-4 w-4 text-blue-600" />;
+        shouldNotify = true;
+        break;
+        
+      case 'callback_requested':
+        title = '📞 Callback Requested';
+        description = `${call.customer_phone} requested a callback`;
+        icon = <Phone className="h-4 w-4 text-orange-600" />;
+        shouldNotify = true;
+        break;
+    }
+
+    if (shouldNotify) {
+      const fullDescription = `${description}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ''}`;
+      
+      toast({
+        title,
+        description: (
+          <div className="space-y-3">
+            <p>{fullDescription}</p>
+            <div className="text-sm text-muted-foreground">
+              Customer: {call.customer_phone}
+            </div>
+            {monitoredPhone && (
+              <div className="text-sm text-muted-foreground">
+                Line: {monitoredPhone.phoneNumber.label} ({monitoredPhone.type})
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => navigateToCall(call.id)}
+                className="h-8"
+              >
+                View Call
+              </Button>
+              {callEvent.event_type === 'callback_requested' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCallbackAction(call.id)}
+                  className="h-8"
+                >
+                  Schedule Callback
+                </Button>
+              )}
+              {callEvent.event_type === 'voicemail_left' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleVoicemailAction(call.id)}
+                  className="h-8"
+                >
+                  Listen
+                </Button>
+              )}
+            </div>
+          </div>
+        ),
+        duration: 10000, // Show for 10 seconds
+      });
+
+      // Create a persistent notification in the database
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        if (user.user) {
+          await supabase
+            .from('notifications')
+            .insert({
+              user_id: user.user.id,
+              title,
+              message: fullDescription,
+              type: 'info',
+              data: {
+                call_id: call.id,
+                event_type: callEvent.event_type,
+                customer_phone: call.customer_phone,
+                monitored_line: monitoredPhone?.phoneNumber.label,
+                line_type: monitoredPhone?.type
+              }
+            });
+        }
+      } catch (error) {
+        console.error('Error creating notification:', error);
+      }
+    }
+  };
+
+  const handleNewCallNotification = async (call: Call) => {
+    const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
+    
+    if (call.direction === 'inbound' && call.status === 'ringing') {
+      const title = '📞 New Incoming Call';
+      const description = `Call from ${call.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ''}`;
+      
+      toast({
+        title,
+        description: (
+          <div className="space-y-3">
+            <p>{description}</p>
+            <div className="text-sm text-muted-foreground">
+              Customer: {call.customer_phone}
+            </div>
+            {monitoredPhone && (
+              <div className="text-sm text-muted-foreground">
+                Line: {monitoredPhone.phoneNumber.label} ({monitoredPhone.type})
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => navigateToCall(call.id)}
+                className="h-8"
+              >
+                View Call
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleQuickNote(call.id)}
+                className="h-8"
+              >
+                Add Note
+              </Button>
+            </div>
+          </div>
+        ),
+        duration: 15000, // Show longer for active calls
+      });
+    }
+  };
+
+  const handleCallStatusChangeNotification = async (oldCall: Call, newCall: Call) => {
+    let title = '';
+    let shouldNotify = false;
+
+    if (oldCall.status === 'ringing' && newCall.status === 'answered') {
+      title = '✅ Call Answered';
+      shouldNotify = true;
+    } else if (oldCall.status === 'ringing' && newCall.status === 'completed') {
+      title = '❌ Call Missed';
+      shouldNotify = true;
+    } else if (newCall.status === 'completed' && newCall.duration_seconds) {
+      title = '📞 Call Completed';
+      shouldNotify = true;
+    }
+
+    if (shouldNotify) {
+      const monitoredPhone = getMonitoredPhoneForCall(newCall, aircallIntegration);
+      const description = `Call with ${newCall.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ''}`;
+      
+      toast({
+        title,
+        description: (
+          <div className="space-y-2">
+            <p>{description}</p>
+            {newCall.duration_seconds && (
+              <div className="text-sm text-muted-foreground">
+                Duration: {Math.floor(newCall.duration_seconds / 60)}:{(newCall.duration_seconds % 60).toString().padStart(2, '0')}
+              </div>
+            )}
+            <Button
+              size="sm"
+              onClick={() => navigateToCall(newCall.id)}
+              className="h-8"
+            >
+              View Details
+            </Button>
+          </div>
+        ),
+        duration: 5000,
+      });
+    }
+  };
+
+  const navigateToCall = (callId: string) => {
+    // Navigate to call details - you can implement this based on your routing
+    console.log('Navigate to call:', callId);
+    // Example: navigate(`/voice/calls/${callId}`);
+  };
+
+  const handleCallbackAction = async (callId: string) => {
+    // Handle callback scheduling
+    console.log('Schedule callback for call:', callId);
+    toast({
+      title: "Callback Scheduled",
+      description: "The callback has been added to your queue",
+    });
+  };
+
+  const handleVoicemailAction = (callId: string) => {
+    // Handle voicemail listening
+    console.log('Listen to voicemail for call:', callId);
+    toast({
+      title: "Opening Voicemail",
+      description: "Loading voicemail player...",
+    });
+  };
+
+  const handleQuickNote = (callId: string) => {
+    // Handle quick note adding
+    console.log('Add quick note for call:', callId);
+    toast({
+      title: "Quick Note",
+      description: "Opening note editor...",
+    });
+  };
+
+  return {
+    // You can return any utility functions here if needed
+    navigateToCall,
+    handleCallbackAction,
+    handleVoicemailAction,
+    handleQuickNote
+  };
+};

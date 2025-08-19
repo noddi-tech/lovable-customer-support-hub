@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCalls } from '@/hooks/useCalls';
+import { useRealTimeCallNotifications } from '@/hooks/useRealTimeCallNotifications';
 import { CallStatusCard } from './voice/CallStatusCard';
 import { CallEventsList } from './voice/CallEventsList';
 import { CallbackRequestsList } from './voice/CallbackRequestsList';
@@ -11,6 +12,7 @@ import { VoicemailsList } from './voice/VoicemailsList';
 import { CallsList } from './voice/CallsList';
 import { VoiceSidebar } from './voice/VoiceSidebar';
 import { RealTimeIndicator } from './voice/RealTimeIndicator';
+import { CallNotificationCenter } from './voice/CallNotificationCenter';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const VoiceInterface = () => {
@@ -26,6 +28,9 @@ export const VoiceInterface = () => {
     error 
   } = useCalls();
   
+  // Initialize real-time notifications
+  useRealTimeCallNotifications();
+  
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [selectedSection, setSelectedSection] = useState('ongoing-calls');
 
@@ -34,6 +39,13 @@ export const VoiceInterface = () => {
     queryClient.invalidateQueries({ queryKey: ['call-events'] });
     queryClient.invalidateQueries({ queryKey: ['voicemails'] });
     queryClient.invalidateQueries({ queryKey: ['callback-requests'] });
+    queryClient.invalidateQueries({ queryKey: ['call-notifications'] });
+  };
+
+  const navigateToCall = (callId: string) => {
+    // Navigate to specific call - you can expand this based on your needs
+    setSelectedSection('calls-today');
+    setSelectedCall(calls.find(call => call.id === callId));
   };
 
   if (error) {
@@ -196,6 +208,9 @@ export const VoiceInterface = () => {
             Real-time call events and monitoring
           </p>
         </div>
+        
+        {/* Notification Center */}
+        <CallNotificationCenter onNavigateToCall={navigateToCall} />
       </div>
       
       {/* Main Content */}
