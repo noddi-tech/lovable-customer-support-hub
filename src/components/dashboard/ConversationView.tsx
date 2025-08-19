@@ -211,65 +211,67 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         </div>
       </div>
 
-      {/* Messages Area with ScrollArea */}
-      <ScrollArea className="flex-1 h-0 min-h-0">
-        <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
-          {/* Debug info */}
-          <div className="bg-yellow-100 p-2 mb-4 text-xs">
-            DEBUG: Messages length: {messages.length}, Loading: {messagesLoading.toString()}
-          </div>
-          
-          {/* Test scrollable content */}
-          {[...Array(20)].map((_, i) => (
-            <Card key={`test-${i}`} className="overflow-hidden">
-              <CardContent className="p-4">
-                <p>Test message #{i + 1} - This is a test message to verify scrolling functionality works properly. This content should be long enough to trigger scrolling when there are multiple messages.</p>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {messages.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>{t('conversation.noMessages')}</p>
+      {/* Messages Area with ScrollArea - DEBUG VERSION */}
+      <div className="flex-1 min-h-0 border-2 border-red-500">
+        <div className="h-full overflow-auto border-2 border-blue-500">
+          <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
+            {/* Debug info */}
+            <div className="bg-yellow-100 p-2 mb-4 text-xs">
+              DEBUG: Messages length: {messages.length}, Loading: {messagesLoading.toString()}
             </div>
-          ) : (
-            messages.map((message, index) => (
-              <Card key={message.id} className="overflow-hidden">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                       <Avatar className="h-8 w-8">
-                         <AvatarFallback>
-                           {message.sender_id?.[0] || 'U'}
-                         </AvatarFallback>
-                       </Avatar>
-                       <div>
-                         <div className="font-medium text-sm">
-                           {message.sender_id || t('conversation.unknownSender')}
-                         </div>
-                         <div className="text-xs text-muted-foreground">
-                           {dateTime(message.created_at)}
-                         </div>
-                       </div>
-                     </div>
-                     {message.is_internal && (
-                      <Badge variant="outline" className="text-xs">
-                        {t('conversation.internalNote')}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="text-sm">
-                    {message.content}
-                  </div>
+            
+            {/* Test scrollable content */}
+            {[...Array(50)].map((_, i) => (
+              <Card key={`test-${i}`} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <p>Test message #{i + 1} - This is a test message to verify scrolling functionality works properly. This content should be long enough to trigger scrolling when there are multiple messages. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
                 </CardContent>
               </Card>
-            ))
-          )}
+            ))}
+            
+            {messages.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>{t('conversation.noMessages')}</p>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                <Card key={message.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                         <Avatar className="h-8 w-8">
+                           <AvatarFallback>
+                             {message.sender_id?.[0] || 'U'}
+                           </AvatarFallback>
+                         </Avatar>
+                         <div>
+                           <div className="font-medium text-sm">
+                             {message.sender_id || t('conversation.unknownSender')}
+                           </div>
+                           <div className="text-xs text-muted-foreground">
+                             {dateTime(message.created_at)}
+                           </div>
+                         </div>
+                       </div>
+                       {message.is_internal && (
+                        <Badge variant="outline" className="text-xs">
+                          {t('conversation.internalNote')}
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="text-sm">
+                      {message.content}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
