@@ -51,7 +51,7 @@ export function useCallNotes(callId?: string) {
         .from('call_notes')
         .select(`
           *,
-          profiles (
+          profiles!call_notes_created_by_id_profiles_fkey (
             full_name,
             avatar_url
           )
@@ -93,7 +93,7 @@ export function useCallNotes(callId?: string) {
         }])
         .select(`
           *,
-          profiles (
+          profiles!call_notes_created_by_id_profiles_fkey (
             full_name,
             avatar_url
           )
@@ -138,7 +138,7 @@ export function useCallNotes(callId?: string) {
         .eq('id', noteId)
         .select(`
           *,
-          profiles (
+          profiles!call_notes_created_by_id_profiles_fkey (
             full_name,
             avatar_url
           )

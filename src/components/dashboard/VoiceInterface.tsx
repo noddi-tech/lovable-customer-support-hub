@@ -9,6 +9,7 @@ import { CallEventsList } from './voice/CallEventsList';
 import { CallStatsSummary } from './voice/CallStatsSummary';
 import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
+import { CallsList } from './voice/CallsList';
 import { WebhookTester } from './voice/WebhookTester';
 
 export const VoiceInterface = () => {
@@ -79,6 +80,9 @@ export const VoiceInterface = () => {
 
         {/* Voicemails */}
         <VoicemailsList />
+
+        {/* Calls History */}
+        <CallsList />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Active Calls */}

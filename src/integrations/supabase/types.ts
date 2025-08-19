@@ -88,6 +88,13 @@ export type Database = {
             referencedRelation: "calls"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "call_notes_created_by_id_profiles_fkey"
+            columns: ["created_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       calls: {
