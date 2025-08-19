@@ -472,13 +472,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
       <div className="flex-1 h-0 flex">
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Messages Area */}
-          <div className="flex-1">
-            <div 
-              style={{ height: 'calc(100vh - 280px)', overflow: 'auto' }}
-              className="p-3 md:p-6"
-            >
+          <div className="flex-1 overflow-hidden">
+            <div className="h-full overflow-auto p-3 md:p-6">
               <div className="space-y-4 max-w-4xl mx-auto w-full">
                 {messages.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
