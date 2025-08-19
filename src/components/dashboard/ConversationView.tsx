@@ -42,7 +42,8 @@ import {
   Loader2,
   Move,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Reply
  } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -81,6 +82,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showReplyField, setShowReplyField] = useState(false);
   const [assignedToId, setAssignedToId] = useState<string>('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
@@ -1279,7 +1281,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <div className="flex-1 flex overflow-hidden relative">
         {/* Messages Area - Full height with bottom padding for fixed reply */}
         <ScrollArea className="flex-1">
-          <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full pb-32">
+          <div className="p-3 md:p-6 space-y-4 max-w-5xl mx-auto w-full">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -1471,12 +1473,24 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               );
             })
           )}
-          </div>
-        </ScrollArea>
 
-        {/* Fixed Reply Area - Sticky to viewport bottom */}
-        <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur-sm z-50">
-          <div className="p-3 md:p-4 max-w-5xl mx-auto">
+          {/* Reply Button */}
+          {!showReplyField && (
+            <div className="pt-6 pb-4 flex justify-center">
+              <Button 
+                onClick={() => setShowReplyField(true)}
+                className="shadow-lg"
+              >
+                <Reply className="h-4 w-4 mr-2" />
+                {t('conversation.reply')}
+              </Button>
+            </div>
+          )}
+
+          {/* Reply Area - Inside ScrollArea */}
+          {showReplyField && (
+            <div className="pt-6 pb-4 border-t border-border bg-card/50 rounded-lg mt-4">
+          <div className="p-4 space-y-3">
             <div className="space-y-3">
               {/* Toolbar */}
               <div className="flex items-center justify-between">
@@ -1556,42 +1570,56 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               </div>
 
               {/* Send Button */}
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                  {isInternalNote ? t('conversation.internalNoteNote') : t('conversation.sendToCustomer')}
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-muted-foreground hidden sm:block">{t('conversation.setStatus')}</label>
-                  <Select value={postSendStatus} onValueChange={(v) => setPostSendStatus(v as 'open' | 'pending' | 'closed')}>
-                    <SelectTrigger className="w-36">
-                      <SelectValue placeholder={t('conversation.selectStatus')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="open">{t('conversation.open')}</SelectItem>
-                      <SelectItem value="pending">{t('conversation.pending')}</SelectItem>
-                      <SelectItem value="closed">{t('conversation.closed')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    variant="default"
-                    disabled={!replyText.trim() || isSending}
-                    onClick={async () => {
-                      setIsSending(true);
-                      await handleSendMessage();
-                      setIsSending(false);
-                    }}
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    {isSending 
-                      ? (isInternalNote ? t('conversation.adding') : t('conversation.sending')) 
-                      : (isInternalNote ? t('conversation.addNote') : t('conversation.sendReply'))
-                    }
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowReplyField(false)}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      {t('common.cancel')}
+                    </Button>
+                    <div className="text-xs text-muted-foreground">
+                      {isInternalNote ? t('conversation.internalNoteNote') : t('conversation.sendToCustomer')}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-muted-foreground hidden sm:block">{t('conversation.setStatus')}</label>
+                    <Select value={postSendStatus} onValueChange={(v) => setPostSendStatus(v as 'open' | 'pending' | 'closed')}>
+                      <SelectTrigger className="w-36">
+                        <SelectValue placeholder={t('conversation.selectStatus')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">{t('conversation.open')}</SelectItem>
+                        <SelectItem value="pending">{t('conversation.pending')}</SelectItem>
+                        <SelectItem value="closed">{t('conversation.closed')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      variant="default"
+                      disabled={!replyText.trim() || isSending}
+                      onClick={async () => {
+                        setIsSending(true);
+                        await handleSendMessage();
+                        setIsSending(false);
+                        setShowReplyField(false);
+                      }}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {isSending 
+                        ? (isInternalNote ? t('conversation.adding') : t('conversation.sending')) 
+                        : (isInternalNote ? t('conversation.addNote') : t('conversation.sendReply'))
+                      }
+                    </Button>
+                  </div>
+                  </div>
                 </div>
               </div>
             </div>
+          )}
           </div>
-        </div>
+        </ScrollArea>
 
         {/* AI Suggestions Dialog */}
         <Dialog open={aiOpen} onOpenChange={setAiOpen}>
