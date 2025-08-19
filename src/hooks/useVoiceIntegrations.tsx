@@ -24,6 +24,24 @@ export function useVoiceIntegrations() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Get current user's organization
+  const { data: currentUserOrg } = useQuery({
+    queryKey: ['current-user-organization'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data.organization_id;
+    },
+  });
+
   // Fetch all voice integrations for the current organization
   const { data: integrations = [], isLoading, error } = useQuery({
     queryKey: ['voice-integrations'],
@@ -46,6 +64,10 @@ export function useVoiceIntegrations() {
   // Save or update voice integration configuration
   const saveIntegrationMutation = useMutation({
     mutationFn: async (config: VoiceIntegrationConfig) => {
+      if (!currentUserOrg) {
+        throw new Error('User organization not found');
+      }
+
       const existingIntegration = getIntegrationByProvider(config.provider);
       
       if (existingIntegration) {
@@ -54,7 +76,7 @@ export function useVoiceIntegrations() {
           .from('voice_integrations')
           .update({
             webhook_token: config.webhook_token,
-            configuration: config.configuration,
+            configuration: config.configuration as any,
             is_active: config.is_active,
           })
           .eq('id', existingIntegration.id)
@@ -64,13 +86,14 @@ export function useVoiceIntegrations() {
         if (error) throw error;
         return data;
       } else {
-        // Create new integration - organization_id is handled by RLS/triggers
+        // Create new integration
         const { data, error } = await supabase
           .from('voice_integrations')
           .insert({
+            organization_id: currentUserOrg,
             provider: config.provider,
             webhook_token: config.webhook_token,
-            configuration: config.configuration,
+            configuration: config.configuration as any,
             is_active: config.is_active,
           })
           .select()
