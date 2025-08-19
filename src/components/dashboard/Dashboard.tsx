@@ -49,6 +49,7 @@ export const Dashboard: React.FC = () => {
     return saved ? JSON.parse(saved) : true;
   });
   const [selectedInboxId, setSelectedInboxId] = useState<string>(() => localStorage.getItem('selectedInboxId') || 'all');
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -88,18 +89,15 @@ useEffect(() => {
   localStorage.setItem('showConversationListDesktop', JSON.stringify(showConversationListDesktop));
 }, [showConversationListDesktop]);
 
-// Keyboard shortcut for toggling conversation list
+// Track viewport width for responsive panel management
 useEffect(() => {
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.ctrlKey && event.shiftKey && event.key === 'L' && !isMobile) {
-      event.preventDefault();
-      setShowConversationListDesktop(prev => !prev);
-    }
+  const handleResize = () => {
+    setViewportWidth(window.innerWidth);
   };
   
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [isMobile]);
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
 
   const markConversationRead = async (id: string) => {
     try {
@@ -114,6 +112,38 @@ useEffect(() => {
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
     }
   };
+
+  const handleBackToList = () => {
+    if (selectedConversation && !selectedConversation.is_read) {
+      void markConversationRead(selectedConversation.id);
+      setSelectedConversation({ ...selectedConversation, is_read: true });
+    }
+    if (isMobile) {
+      setShowConversationList(true);
+    }
+    // Clear selected conversation and navigate to clean URL
+    setSelectedConversation(null);
+    navigate('/', { replace: true });
+  };
+
+// Keyboard shortcut for toggling conversation list and back navigation
+useEffect(() => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    // Toggle conversation list with Ctrl+Shift+L
+    if (event.ctrlKey && event.shiftKey && event.key === 'L' && !isMobile) {
+      event.preventDefault();
+      setShowConversationListDesktop(prev => !prev);
+    }
+    // Back to inbox with Escape key
+    if (event.key === 'Escape' && selectedConversation) {
+      event.preventDefault();
+      handleBackToList();
+    }
+  };
+  
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [isMobile, selectedConversation, handleBackToList]);
 
   // Get conversation ID from URL parameters
   const conversationIdFromUrl = searchParams.get('conversation');
@@ -210,7 +240,10 @@ useEffect(() => {
       setShowConversationList(false);
     } else {
       // Auto-collapse conversation list on desktop when selecting a conversation
-      setShowConversationListDesktop(false);
+      // But only on smaller screens to prevent content overflow
+      if (viewportWidth < 1400) {
+        setShowConversationListDesktop(false);
+      }
     }
   };
 
@@ -226,16 +259,6 @@ useEffect(() => {
     
     setSelectedTab(tab);
     console.log('setSelectedTab called, new tab should be:', tab);
-  };
-
-  const handleBackToList = () => {
-    if (selectedConversation && !selectedConversation.is_read) {
-      void markConversationRead(selectedConversation.id);
-      setSelectedConversation({ ...selectedConversation, is_read: true });
-    }
-    if (isMobile) {
-      setShowConversationList(true);
-    }
   };
 
   // Debug logging
@@ -255,7 +278,14 @@ useEffect(() => {
             if (isMobile) {
               setShowConversationList(!showConversationList);
             } else {
-              setShowConversationListDesktop(!showConversationListDesktop);
+              // When expanding conversation list on smaller screens, 
+              // ensure we have space by managing panel visibility intelligently
+              if (viewportWidth < 1400 && selectedConversation && !showConversationListDesktop) {
+                // Expanding on smaller screen - good to go
+                setShowConversationListDesktop(true);
+              } else {
+                setShowConversationListDesktop(!showConversationListDesktop);
+              }
             }
           }}
           selectedConversation={selectedConversation}

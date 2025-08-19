@@ -306,6 +306,22 @@ All colors MUST be HSL.
     min-width: 400px;
   }
 
+/* Responsive panel management */
+@media (max-width: 1400px) {
+  .list-pane {
+    flex: 0 0 260px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .list-pane {
+    flex: 0 0 240px;
+  }
+  .detail-pane {
+    min-width: 350px;
+  }
+}
+
 /* Enhanced Email Render Styles - Scoped to prevent layout leakage */
 .email-render {
   max-width: 700px;

@@ -171,7 +171,8 @@
     },
     "navigation": {
       "back": "← Back",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "backToInbox": "Back to Inbox"
     },
     "notifications": {
       "title": "Notifications",
@@ -210,6 +211,7 @@
   "conversation": {
     "customer": "Customer",
     "agent": "Agent",
+    "backToInbox": "Back to Inbox",
     "getAISuggestions": "Get AI suggestions",
     "emailStatus": {
       "sent": "Sent",

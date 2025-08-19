@@ -342,7 +342,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         
         {/* Collapsed Conversation List */}
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {filteredConversations.slice(0, 10).map((conversation) => (
+          {filteredConversations.map((conversation) => (
             <Tooltip key={conversation.id}>
               <TooltipTrigger asChild>
                 <div

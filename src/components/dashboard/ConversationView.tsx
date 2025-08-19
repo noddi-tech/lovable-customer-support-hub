@@ -400,6 +400,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <div className="h-16 flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
+            {/* Back to Inbox Button */}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                navigate('/', { replace: true });
+              }}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('conversation.backToInbox')}</span>
+            </Button>
              <Avatar className="h-10 w-10">
                <AvatarFallback>{(conversation.customer as any)?.full_name?.[0] || 'C'}</AvatarFallback>
              </Avatar>
