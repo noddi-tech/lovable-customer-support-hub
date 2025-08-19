@@ -286,16 +286,17 @@ All colors MUST be HSL.
   }
 
   .nav-pane { 
-    flex: 0 0 280px; 
+    flex: 0 0 240px; 
   }
 
   .list-pane { 
-    flex: 1 1 auto;
+    flex: 0 0 360px;
     border-right: 1px solid hsl(var(--border));
   }
 
   .detail-pane { 
-    flex: 0 0 320px; 
+    flex: 1 1 auto;
+    min-width: 400px;
   }
 
 /* Enhanced Email Render Styles - Scoped to prevent layout leakage */
