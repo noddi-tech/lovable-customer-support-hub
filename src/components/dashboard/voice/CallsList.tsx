@@ -118,14 +118,14 @@ export const CallsList = () => {
 
       {/* Calls List */}
       {isLoading ? (
-        <div className="space-y-3">
+        <div className="space-y-1">
           {[...Array(5)].map((_, i) => (
             <Card key={i}>
-              <CardContent className="p-4">
+              <CardContent className="px-2 py-1">
                 <div className="animate-pulse">
-                  <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/2 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/3 mb-1"></div>
+                  <div className="h-2 bg-muted rounded w-1/2 mb-1"></div>
+                  <div className="h-2 bg-muted rounded w-1/4"></div>
                 </div>
               </CardContent>
             </Card>
@@ -145,12 +145,12 @@ export const CallsList = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {filteredCalls.map((call) => (
             <Card key={call.id} className="transition-all duration-200 hover:shadow-md">
-              <CardContent className="p-2">
+              <CardContent className="px-2 py-1">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-2 flex-1">
+                  <div className="flex items-start gap-1.5 flex-1">
                     {/* Direction Icon */}
                     <div className="flex-shrink-0 mt-0.5">
                       {getDirectionIcon(call.direction)}
@@ -158,26 +158,26 @@ export const CallsList = () => {
                     
                     {/* Call Details */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="font-medium text-sm">
                           {formatPhoneNumber(call.customer_phone)}
                         </span>
-                        <Badge variant={getStatusColor(call.status) as any} className="text-xs px-1.5 py-0">
+                        <Badge variant={getStatusColor(call.status) as any} className="text-xs px-1 py-0 h-4">
                           {call.status}
                         </Badge>
                       </div>
                       
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-0.5">
                           <Calendar className="h-3 w-3" />
                           <span>{format(new Date(call.started_at), 'MMM d, HH:mm')}</span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5">
                           <Clock className="h-3 w-3" />
                           <span>{formatDuration(call.duration_seconds)}</span>
                         </div>
                         {call.agent_phone && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-0.5">
                             <User className="h-3 w-3" />
                             <span>{formatPhoneNumber(call.agent_phone)}</span>
                           </div>
@@ -189,8 +189,8 @@ export const CallsList = () => {
                         const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
                         if (monitoredPhone) {
                           return (
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="flex items-center gap-1 text-xs">
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <div className="flex items-center gap-0.5 text-xs">
                                 <Building2 className="h-3 w-3 text-primary" />
                                 <span className="text-primary font-medium">
                                   {monitoredPhone.phoneNumber.label}
@@ -199,7 +199,7 @@ export const CallsList = () => {
                                   ({monitoredPhone.phoneNumber.number})
                                 </span>
                               </div>
-                              <Badge variant="outline" className="text-xs px-1 py-0">
+                              <Badge variant="outline" className="text-xs px-1 py-0 h-4">
                                 {monitoredPhone.type === 'company' ? 'Company Line' : 'Agent Line'}
                               </Badge>
                             </div>
@@ -208,19 +208,19 @@ export const CallsList = () => {
                         return null;
                       })()}
                       
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
                       </p>
                     </div>
                   </div>
                   
                   {/* Actions */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openCallDetails(call)}
-                      className="flex items-center gap-1 h-8 px-2"
+                      className="flex items-center gap-1 h-6 px-2 text-xs"
                       title="View call details and notes"
                     >
                       <MessageSquare className="h-3 w-3" />
