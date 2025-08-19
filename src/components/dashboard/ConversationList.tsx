@@ -304,9 +304,9 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-surface">
-      {/* Header */}
-      <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+    <div className="pane flex flex-col bg-gradient-surface">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Inbox className="h-5 w-5" />
@@ -363,8 +363,8 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         </div>
       </div>
       
-      {/* Conversation List */}
-      <ScrollArea className="flex-1 h-0 min-h-0">
+      {/* Conversation List - Scrollable */}
+      <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch" aria-label="Conversations list">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">
             <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
@@ -491,8 +491,8 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
               </div>
             </div>
           ))
-          )}
-      </ScrollArea>
+        )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -212,23 +212,25 @@ useEffect(() => {
   // Debug logging
   console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!hasTimestamp);
   return (
-    <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">
+    <div className="app-root bg-gradient-surface">
       {/* Header */}
-      <Header 
-        organizationName={selectedInboxName}
-        showMenuButton={isMobile}
-        onMenuClick={() => setShowSidebar(!showSidebar)}
-        selectedInboxId={selectedInboxId}
-        onInboxChange={(id) => setSelectedInboxId(id)}
-      />
+      <div className="app-header">
+        <Header 
+          organizationName={selectedInboxName}
+          showMenuButton={isMobile}
+          onMenuClick={() => setShowSidebar(!showSidebar)}
+          selectedInboxId={selectedInboxId}
+          onInboxChange={(id) => setSelectedInboxId(id)}
+        />
+      </div>
       
       {/* Main Content */}
-      <div className="flex-1 flex bg-gradient-surface">
+      <div className="app-main bg-gradient-surface">
         {/* Sidebar */}
       <div className={`
-        ${isMobile ? 'fixed left-0 top-0 bottom-0 z-50 transform transition-transform' : ''}
+        ${isMobile ? 'fixed left-0 top-0 bottom-0 z-50 transform transition-transform' : 'nav-pane'}
         ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}
-        w-64 border-r border-border bg-card/80 backdrop-blur-sm shadow-surface
+        ${isMobile ? 'w-64' : ''} border-r border-border bg-card/80 backdrop-blur-sm shadow-surface
       `}>
         <InboxSidebar 
           selectedTab={selectedTab} 
@@ -246,13 +248,13 @@ useEffect(() => {
       )}
 
         {/* Content Area */}
-        <div className="flex-1 flex overflow-hidden min-h-0">
+        <div className="flex flex-1 min-h-0">
         {/* Show Notifications List if notifications tab is selected */}
         {selectedTab === 'notifications' ? (
-          <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">
+          <div className="detail-pane flex flex-col bg-gradient-surface">
             {/* Mobile Header */}
             {isMobile && (
-              <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
+              <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -264,14 +266,16 @@ useEffect(() => {
                 <h1 className="font-semibold">{t('dashboard.navigation.notifications')}</h1>
               </div>
             )}
-            <NotificationsList />
+            <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
+              <NotificationsList />
+            </div>
           </div>
         ) : (
           <>
             {/* Conversation List */}
             <div className={`
-              ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'flex'}
-              w-96 h-full min-h-0 border-r border-border bg-gradient-surface flex-col
+              ${isMobile ? (showConversationList ? 'flex' : 'hidden') : 'list-pane'}
+              ${isMobile ? 'w-full' : ''} flex flex-col bg-gradient-surface
             `}>
               <ConversationList 
                 selectedTab={selectedTab}
@@ -283,12 +287,12 @@ useEffect(() => {
             
             {/* Conversation View */}
             <div className={`
-              ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'flex'}
-              flex-1 min-h-0 flex-col bg-gradient-surface overflow-hidden
+              ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'detail-pane'}
+              flex flex-col bg-gradient-surface
             `}>
               {/* Mobile Header */}
               {isMobile && (
-                <div className="p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
+                <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
                   <Button 
                     variant="ghost" 
                     size="sm" 

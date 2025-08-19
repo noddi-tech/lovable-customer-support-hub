@@ -488,9 +488,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Messages Area - Only Messages, Scrollable */}
-          <ScrollArea 
+          <div 
             ref={messagesContainerRef}
-            className="flex-1 min-h-0 p-3 md:p-6" 
+            className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch p-3 md:p-6" 
+            aria-label="Conversation messages"
           >
             <div className="space-y-4 max-w-4xl mx-auto w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
               {messages.length === 0 ? (
@@ -673,7 +674,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </div>
 
         {/* Customer Info Sidebar */}

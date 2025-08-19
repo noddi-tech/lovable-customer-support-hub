@@ -110,6 +110,9 @@ All colors MUST be HSL.
     --transition-normal: 0.2s ease-out;
     --transition-slow: 0.3s ease-out;
 
+    /* layout heights */
+    --app-header-height: 64px;
+
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
@@ -253,6 +256,46 @@ All colors MUST be HSL.
   /* Gradient background utilities */
   .bg-gradient-custom {
     background: var(--gradient-background);
+  }
+
+  /* App shell layout - HelpScout style */
+  .app-root {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .app-header {
+    height: var(--app-header-height);
+    flex: 0 0 auto;
+  }
+
+  .app-main {
+    height: calc(100vh - var(--app-header-height));
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Scrollable panes */
+  .pane {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .nav-pane { 
+    flex: 0 0 256px; 
+  }
+
+  .list-pane { 
+    flex: 0 0 384px;
+    border-right: 1px solid hsl(var(--border));
+  }
+
+  .detail-pane { 
+    flex: 1 1 auto; 
   }
 }
 

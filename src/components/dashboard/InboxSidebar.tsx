@@ -129,9 +129,9 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
   ];
 
   return (
-    <div className="w-64 bg-card/90 backdrop-blur-sm border-r border-border h-full flex flex-col shadow-surface">
+    <div className="pane flex flex-col bg-card/90 backdrop-blur-sm shadow-surface">
       {/* Create Button */}
-      <div className="p-4">
+      <div className="flex-shrink-0 p-4">
         <NewConversationDialog>
           <Button className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
             <Plus className="mr-2 h-4 w-4" />
@@ -140,8 +140,8 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
         </NewConversationDialog>
       </div>
 
-      {/* Inbox Categories */}
-      <ScrollArea className="flex-1">
+      {/* Inbox Categories - Scrollable Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
         <div className="px-2">
           <div className="flex items-center justify-between px-2 py-2">
             <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inbox')}</h3>
@@ -320,7 +320,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
