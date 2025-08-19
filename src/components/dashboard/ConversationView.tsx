@@ -541,97 +541,114 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             </div>
           </div>
 
-          {/* Reply Area */}
-          <div className="flex-shrink-0 border-t border-border bg-card/50 backdrop-blur-sm p-4">
+          {/* Reply Area - Always Visible */}
+          <div className="flex-shrink-0 border-t-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 backdrop-blur-sm p-4 shadow-lg">
             <div className="max-w-4xl mx-auto">
-              <div className="flex items-start space-x-3">
-                <Avatar className="h-8 w-8 mt-1">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    A
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-3">
-                  {/* Reply Type Toggle */}
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant={isInternalNote ? "outline" : "default"}
-                      size="sm"
-                      onClick={() => setIsInternalNote(false)}
-                    >
-                      <Reply className="h-3 w-3 mr-1" />
-                      {t('conversation.reply')}
+              {/* Quick Reply Bar */}
+              <div className="flex items-center justify-between mb-4 p-3 bg-card rounded-lg border shadow-sm">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      A
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium text-sm">Reply to this conversation</div>
+                    <div className="text-xs text-muted-foreground">Type your response or use AI suggestions</div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={getAiSuggestions}
+                    disabled={aiLoading}
+                    className="text-primary hover:text-primary/80"
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    AI Suggest
+                  </Button>
+                </div>
+              </div>
+
+              {/* Main Reply Area */}
+              <div className="space-y-4">
+                {/* Reply Type Toggle */}
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant={isInternalNote ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => setIsInternalNote(false)}
+                    className="flex-1 max-w-[120px]"
+                  >
+                    <Reply className="h-4 w-4 mr-2" />
+                    Reply
+                  </Button>
+                  <Button
+                    variant={isInternalNote ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsInternalNote(true)}
+                    className="flex-1 max-w-[140px]"
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Internal Note
+                  </Button>
+                </div>
+
+                {/* Text Area with Enhanced UI */}
+                <div className="relative">
+                  <Textarea
+                    ref={replyRef}
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
+                    className="min-h-[120px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg"
+                  />
+                  
+                  {/* Action Buttons - Right Side */}
+                  <div className="absolute bottom-3 right-3 flex items-center space-x-2">
+                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                      <Paperclip className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant={isInternalNote ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setIsInternalNote(true)}
-                    >
-                      <Lock className="h-3 w-3 mr-1" />
-                      {t('conversation.internalNote')}
+                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                      <Smile className="h-4 w-4" />
                     </Button>
                   </div>
+                </div>
 
-                  {/* Text Area */}
-                  <div className="relative">
-                    <Textarea
-                      ref={replyRef}
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      placeholder={isInternalNote ? t('conversation.writeInternalNote') : t('conversation.writeReply')}
-                      className="min-h-[100px] pr-32"
-                    />
-                    
-                    {/* Action Buttons */}
-                    <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Paperclip className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Smile className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={getAiSuggestions}
-                        disabled={aiLoading}
-                      >
-                        {aiLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-4 w-4" />
-                        )}
-                        {t('conversation.ai')}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Send Actions */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded">Ctrl</kbd>
+                {/* Send Actions Row */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-1">
+                      <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
                       <span>+</span>
-                      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded">Enter</kbd>
-                      <span>{t('conversation.toSend')}</span>
+                      <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Enter</kbd>
+                      <span>to send</span>
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => setReplyText('')}>
-                        {t('common.cancel')}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        disabled={!replyText.trim() || sendLoading}
-                        onClick={handleSendReply}
-                      >
-                        {sendLoading ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4 mr-2" />
-                        )}
-                        {isInternalNote ? t('conversation.addNote') : t('conversation.send')}
-                      </Button>
-                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Button variant="outline" size="sm" onClick={() => setReplyText('')} disabled={sendLoading}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      disabled={!replyText.trim() || sendLoading}
+                      onClick={handleSendReply}
+                      className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                    >
+                      {sendLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      {isInternalNote ? 'Add Note' : 'Send Reply'}
+                    </Button>
                   </div>
                 </div>
               </div>
