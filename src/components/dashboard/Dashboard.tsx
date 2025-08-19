@@ -259,9 +259,9 @@ useEffect(() => {
                   onClick={() => setSelectedTab('all')}
                   className="mr-2"
                 >
-                  ← Back
+                  {t('dashboard.navigation.back')}
                 </Button>
-                <h1 className="font-semibold">Notifications</h1>
+                <h1 className="font-semibold">{t('dashboard.navigation.notifications')}</h1>
               </div>
             )}
             <NotificationsList />
@@ -295,7 +295,7 @@ useEffect(() => {
                     onClick={handleBackToList}
                     className="mr-2"
                   >
-                    ← Back
+                    {t('dashboard.navigation.back')}
                   </Button>
                   <h1 className="font-semibold">{selectedInboxName}</h1>
                 </div>

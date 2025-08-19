@@ -17,15 +17,15 @@ export const IntegrationSettings = () => {
         <TabsList className="grid w-full grid-cols-3 bg-card/50 backdrop-blur-sm shadow-surface">
           <TabsTrigger value="email" className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            Email
+            {t('admin.email')}
           </TabsTrigger>
           <TabsTrigger value="sms" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
-            SMS
+            {t('admin.sms')}
           </TabsTrigger>
           <TabsTrigger value="voice" className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
-            Voice
+            {t('admin.voice')}
           </TabsTrigger>
         </TabsList>
 
@@ -52,9 +52,9 @@ export const IntegrationSettings = () => {
           {/* Email channel settings */}
           <Card className="bg-gradient-surface border-border/50 shadow-surface">
             <CardHeader>
-              <CardTitle className="text-primary">Email Channel Settings</CardTitle>
+              <CardTitle className="text-primary">{t('admin.emailChannelSettings')}</CardTitle>
               <CardDescription>
-                Configure email support and messaging channels
+                {t('admin.configureEmailSupport')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -104,10 +104,10 @@ export const IntegrationSettings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 <MessageSquare className="w-5 h-5" />
-                SMS Integration
+                {t('admin.smsIntegration')}
               </CardTitle>
               <CardDescription>
-                Configure SMS messaging and provider settings
+                {t('admin.smsConfiguration')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -126,10 +126,10 @@ export const IntegrationSettings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 <Phone className="w-5 h-5" />
-                Voice Integration
+                {t('admin.voiceIntegration')}
               </CardTitle>
               <CardDescription>
-                Configure voice calling and telephony settings
+                {t('admin.voiceConfiguration')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
