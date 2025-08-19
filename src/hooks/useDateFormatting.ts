@@ -27,8 +27,15 @@ export function useDateFormatting() {
      * Format full date and time in user's timezone
      * Example: "Jan 15, 2024 14:30"
      */
-    dateTime: (date: Date | string, includeTime: boolean = true) => 
-      formatDateTime(date, i18n.language, timezone, includeTime),
+    dateTime: (date: Date | string, includeTime: boolean = true) => {
+      if (!date) return '';
+      try {
+        return formatDateTime(date, i18n.language, timezone, includeTime);
+      } catch (error) {
+        console.warn('Invalid date provided to dateTime formatter:', date, error);
+        return 'Invalid date';
+      }
+    },
 
     /**
      * Format time only in user's timezone and preferred format

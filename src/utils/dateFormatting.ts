@@ -79,16 +79,29 @@ export function formatDateTime(
   timeZone?: string,
   includeTime: boolean = true
 ): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const dateFnsLocale = locales[locale as keyof typeof locales] || enUS;
+  if (!date) return '';
   
-  const formatString = includeTime ? 'MMM d, yyyy HH:mm' : 'MMM d, yyyy';
-  
-  if (timeZone) {
-    return formatInTimeZone(dateObj, timeZone, formatString, { locale: dateFnsLocale });
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) {
+      console.warn('Invalid date provided to formatDateTime:', date);
+      return 'Invalid date';
+    }
+    
+    const dateFnsLocale = locales[locale as keyof typeof locales] || enUS;
+    const formatString = includeTime ? 'MMM d, yyyy HH:mm' : 'MMM d, yyyy';
+    
+    if (timeZone) {
+      return formatInTimeZone(dateObj, timeZone, formatString, { locale: dateFnsLocale });
+    }
+    
+    return format(dateObj, formatString, { locale: dateFnsLocale });
+  } catch (error) {
+    console.warn('Error formatting date:', date, error);
+    return 'Invalid date';
   }
-  
-  return format(dateObj, formatString, { locale: dateFnsLocale });
 }
 
 /**

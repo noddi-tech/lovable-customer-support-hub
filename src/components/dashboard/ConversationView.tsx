@@ -246,7 +246,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                  {isFromCustomer ? (conversation.customer as any)?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
                                </div>
                                <div className="text-xs text-muted-foreground">
-                                 {dateTime(message.created_at)}
+                                 {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
                                </div>
                              </div>
                            </div>
@@ -362,8 +362,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               </h3>
               <div className="text-xs text-muted-foreground space-y-1">
                 <div>Messages: {messages.length}</div>
-                <div>Received: {dateTime(conversation.received_at)}</div>
-                <div>Last updated: {dateTime(conversation.updated_at)}</div>
+                <div>Received: {conversation.received_at ? dateTime(conversation.received_at) : 'N/A'}</div>
+                <div>Last updated: {conversation.updated_at ? dateTime(conversation.updated_at) : 'N/A'}</div>
               </div>
             </div>
           </div>
