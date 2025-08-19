@@ -364,7 +364,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       </div>
       
       {/* Conversation List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 h-0 min-h-0">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">
             <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
