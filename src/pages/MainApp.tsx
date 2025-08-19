@@ -74,7 +74,7 @@ const MainApp = () => {
   ];
 
   const renderDropdownContent = (items: any[], mainSection: MainSection) => (
-    <NavigationMenuContent className="bg-card border border-border shadow-lg rounded-lg p-2 min-w-[200px] z-50">
+    <NavigationMenuContent className="absolute left-0 top-full mt-0 bg-card border border-border shadow-lg rounded-md rounded-t-none border-t-0 p-2 min-w-[200px] z-50 data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52">
       <ul className="space-y-1">
         {items.map((item) => (
           <li key={item.key}>
@@ -148,11 +148,11 @@ const MainApp = () => {
       {/* Navigation Header */}
       <div className="border-b bg-background px-6 py-3 space-y-3">
         <NavigationMenu className="max-w-none">
-          <NavigationMenuList className="flex gap-1">
-            <NavigationMenuItem>
+          <NavigationMenuList className="flex gap-0">
+            <NavigationMenuItem className="relative">
               <NavigationMenuTrigger 
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium",
+                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-b-none border-b-0",
                   navigationState.mainSection === 'interactions' && "bg-accent text-accent-foreground"
                 )}
               >
@@ -162,10 +162,10 @@ const MainApp = () => {
               {renderDropdownContent(interactionsItems, 'interactions')}
             </NavigationMenuItem>
 
-            <NavigationMenuItem>
+            <NavigationMenuItem className="relative">
               <NavigationMenuTrigger 
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium",
+                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-b-none border-b-0",
                   navigationState.mainSection === 'marketing' && "bg-accent text-accent-foreground"
                 )}
               >
@@ -175,10 +175,10 @@ const MainApp = () => {
               {renderDropdownContent(marketingItems, 'marketing')}
             </NavigationMenuItem>
 
-            <NavigationMenuItem>
+            <NavigationMenuItem className="relative">
               <NavigationMenuTrigger 
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium",
+                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-b-none border-b-0",
                   navigationState.mainSection === 'ops' && "bg-accent text-accent-foreground"
                 )}
               >
@@ -188,10 +188,10 @@ const MainApp = () => {
               {renderDropdownContent(opsItems, 'ops')}
             </NavigationMenuItem>
 
-            <NavigationMenuItem>
+            <NavigationMenuItem className="relative">
               <NavigationMenuTrigger 
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium",
+                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-b-none border-b-0",
                   navigationState.mainSection === 'settings' && "bg-accent text-accent-foreground"
                 )}
               >
