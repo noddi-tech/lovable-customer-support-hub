@@ -51,7 +51,7 @@ export const VoiceInterface = () => {
   }
 
   return (
-    <div className="pane p-6">
+    <div className="pane p-6 h-full overflow-y-auto">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
