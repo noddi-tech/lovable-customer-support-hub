@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { AudioPlayer } from '@/components/ui/audio-player';
+import { DynamicAudioPlayer } from '@/components/ui/dynamic-audio-player';
 import { useVoicemails, Voicemail } from '@/hooks/useVoicemails';
 import { AgentAssignmentSelect } from './AgentAssignmentSelect';
 import { CallActionButton } from './CallActionButton';
@@ -15,12 +15,13 @@ import { formatDistanceToNow } from 'date-fns';
 interface VoicemailCardProps {
   voicemail: any;
   downloadVoicemail: (params: { voicemailId: string; recordingUrl: string }) => void;
+  getPlaybackUrl: (params: { voicemailId: string; recordingUrl: string }) => Promise<any>;
   onAssign: (id: string, agentId: string) => void;
   isDownloading: boolean;
   isAssigning: boolean;
 }
 
-const VoicemailCard = ({ voicemail, downloadVoicemail, onAssign, isDownloading, isAssigning }: VoicemailCardProps) => {
+const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign, isDownloading, isAssigning }: VoicemailCardProps) => {
   const { t } = useTranslation();
 
   const formatPhoneNumber = (phone?: string) => {
@@ -117,20 +118,26 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, onAssign, isDownloading, 
       <CardContent className="pt-0 space-y-4">
         {/* Audio Player */}
         {hasValidRecordingUrl && recordingUrl && (
-          <AudioPlayer 
-            src={recordingUrl} 
+          <DynamicAudioPlayer 
+            initialSrc={recordingUrl} 
             title="Voicemail Recording"
             duration={voicemail.event_data.duration}
+            onGetFreshUrl={async () => {
+              console.log('🔄 Getting fresh URL for playback...');
+              const result = await getPlaybackUrl({ 
+                voicemailId: voicemail.id, 
+                recordingUrl: voicemail.event_data?.recording_url || '' 
+              });
+              return result;
+            }}
             onDownload={() => {
               console.log('Download clicked for voicemail:', recordingUrl);
               
               try {
-                // Always use the download function to get a fresh signed URL
                 console.log('Using download function for fresh signed URL...');
                 downloadVoicemail({ voicemailId: voicemail.id, recordingUrl: voicemail.event_data?.recording_url || '' });
               } catch (error) {
                 console.error('Failed to download recording:', error);
-                // Final fallback to opening in new tab
                 if (recordingUrl) {
                   window.open(recordingUrl, '_blank', 'noopener,noreferrer');
                 }
@@ -208,7 +215,8 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
     downloadVoicemail,
     isDownloading,
     assignVoicemail,
-    isAssigning
+    isAssigning,
+    getPlaybackUrl
   } = useVoicemails();
   
   // Use statusFilter from props or local filter state
@@ -281,6 +289,7 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
               key={voicemail.id}
               voicemail={voicemail}
               downloadVoicemail={downloadVoicemail}
+              getPlaybackUrl={getPlaybackUrl}
               onAssign={(id, agentId) => assignVoicemail({ voicemailId: id, agentId })}
               isDownloading={isDownloading}
               isAssigning={isAssigning}

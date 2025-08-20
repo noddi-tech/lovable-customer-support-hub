@@ -65,6 +65,21 @@ export function useVoicemails() {
   });
 
   // Download voicemail recording
+  // Add a mutation for getting playback URL
+  const getPlaybackUrlMutation = useMutation({
+    mutationFn: async ({ voicemailId, recordingUrl }: { voicemailId: string; recordingUrl: string }) => {
+      const { data, error } = await supabase.functions.invoke('download-voicemail', {
+        body: { voicemailId, recordingUrl }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onError: (error) => {
+      console.error('Error getting playback URL:', error);
+    }
+  });
+
   const downloadVoicemailMutation = useMutation({
     mutationFn: async ({ voicemailId, recordingUrl }: { voicemailId: string; recordingUrl: string }) => {
       const { data, error } = await supabase.functions.invoke('download-voicemail', {
@@ -170,6 +185,8 @@ export function useVoicemails() {
     downloadVoicemail: downloadVoicemailMutation.mutate,
     isDownloading: downloadVoicemailMutation.isPending,
     assignVoicemail: assignVoicemailMutation.mutate,
-    isAssigning: assignVoicemailMutation.isPending
+    isAssigning: assignVoicemailMutation.isPending,
+    getPlaybackUrl: getPlaybackUrlMutation.mutateAsync,
+    isGettingPlaybackUrl: getPlaybackUrlMutation.isPending
   };
 }
