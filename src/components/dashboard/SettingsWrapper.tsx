@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,18 +7,15 @@ import { AdminPortal } from '@/components/admin/AdminPortal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { DepartmentManagement } from '@/components/admin/DepartmentManagement';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield } from 'lucide-react';
+import { Settings, User, Bell, Mail, Users, Shield, Building } from 'lucide-react';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { LanguageSettings } from '@/components/settings/LanguageSettings';
 import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import { NotificationsList } from '@/components/notifications/NotificationsList';
 import { useTranslation } from 'react-i18next';
 
-interface SettingsWrapperProps {
-  activeSubSection: string;
-}
-
-const SettingsWrapper = ({ activeSubSection }: SettingsWrapperProps) => {
+const SettingsWrapper = () => {
+  const [activeSubSection, setActiveSubSection] = useState('general');
   const { loading } = useAuth();
   const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const { t } = useTranslation();
@@ -147,12 +145,43 @@ const SettingsWrapper = ({ activeSubSection }: SettingsWrapperProps) => {
   };
 
   return (
-    <div className="h-full overflow-auto">
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          {renderContent()}
+    <div className="h-full">
+      <Tabs value={activeSubSection} onValueChange={setActiveSubSection} className="h-full flex flex-col">
+        <TabsList className="grid w-full grid-cols-6 mb-4">
+          <TabsTrigger value="general">
+            <Settings className="h-4 w-4 mr-2" />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="profile">
+            <User className="h-4 w-4 mr-2" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="notifications">
+            <Bell className="h-4 w-4 mr-2" />
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger value="email-templates">
+            <Mail className="h-4 w-4 mr-2" />
+            Email Templates
+          </TabsTrigger>
+          <TabsTrigger value="users">
+            <Users className="h-4 w-4 mr-2" />
+            Users
+          </TabsTrigger>
+          <TabsTrigger value="admin">
+            <Shield className="h-4 w-4 mr-2" />
+            Admin
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="flex-1 overflow-auto">
+          <div className="container mx-auto py-8 px-4">
+            <div className="max-w-6xl mx-auto">
+              {renderContent()}
+            </div>
+          </div>
         </div>
-      </div>
+      </Tabs>
     </div>
   );
 };
