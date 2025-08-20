@@ -2,6 +2,21 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Global state to share across all instances
+let globalConnectionState = {
+  isConnected: false,
+  lastConnected: null as Date | null,
+  connectionAttempts: 0,
+  subscriptions: new Map()
+};
+
+let globalStateListeners = new Set<(state: any) => void>();
+
+const updateGlobalState = (updater: (prev: any) => any) => {
+  globalConnectionState = updater(globalConnectionState);
+  globalStateListeners.forEach(listener => listener(globalConnectionState));
+};
+
 interface ConnectionState {
   isConnected: boolean;
   lastConnected: Date | null;
@@ -29,12 +44,19 @@ const DEFAULT_CONFIG: ReconnectionConfig = {
 
 export const useRealtimeConnectionManager = () => {
   const { toast } = useToast();
-  const [connectionState, setConnectionState] = useState<ConnectionState>({
-    isConnected: false,
-    lastConnected: null,
-    connectionAttempts: 0,
-    subscriptions: new Map()
-  });
+  const [connectionState, setConnectionState] = useState<ConnectionState>(globalConnectionState);
+  
+  // Subscribe to global state changes
+  useEffect(() => {
+    const listener = (newState: ConnectionState) => {
+      setConnectionState(newState);
+    };
+    globalStateListeners.add(listener);
+    
+    return () => {
+      globalStateListeners.delete(listener);
+    };
+  }, []);
   
   const reconnectionTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectionConfigRef = useRef<ReconnectionConfig>(DEFAULT_CONFIG);
@@ -76,7 +98,7 @@ export const useRealtimeConnectionManager = () => {
 
     const config = reconnectionConfigRef.current;
     
-    setConnectionState(prev => {
+    updateGlobalState(prev => {
       const currentAttempts = prev.connectionAttempts;
       
       if (currentAttempts >= config.maxRetries) {
@@ -107,7 +129,7 @@ export const useRealtimeConnectionManager = () => {
   const reconnectAllSubscriptions = useCallback(() => {
     console.log('🔄 Reconnecting all subscriptions...');
     
-    setConnectionState(prev => {
+    updateGlobalState(prev => {
       // Clear existing subscriptions
       prev.subscriptions.forEach((channel, channelName) => {
         console.log(`🧹 Cleaning up channel: ${channelName}`);
@@ -142,7 +164,7 @@ export const useRealtimeConnectionManager = () => {
         console.log('✅ Real-time connection established');
         
         currentConnectionStateRef.current = true;
-        setConnectionState(prev => ({
+        updateGlobalState(prev => ({
           ...prev,
           isConnected: true,
           lastConnected: new Date(),
@@ -167,7 +189,7 @@ export const useRealtimeConnectionManager = () => {
           lastToastTimeRef.current.reconnect = now;
         }
       }
-    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
       // Only debounce disconnection events to prevent flapping
       if (currentConnectionStateRef.current) {
         // Clear any pending debounce timeout for disconnections
@@ -175,15 +197,15 @@ export const useRealtimeConnectionManager = () => {
           clearTimeout(statusDebounceTimeoutRef.current);
         }
         
-          // Update connection state immediately (before the timeout check)
-          currentConnectionStateRef.current = false;
+        // Update connection state immediately (before the timeout check)
+        currentConnectionStateRef.current = false;
         statusDebounceTimeoutRef.current = setTimeout(() => {
           // Double-check we're still disconnected after the debounce period
           if (currentConnectionStateRef.current) return; // If we reconnected, don't process disconnect
           
-          console.log('🔴 Real-time connection lost');
+          console.log(`🔴 Real-time connection lost (${status})`);
           
-          setConnectionState(prev => ({
+          updateGlobalState(prev => ({
             ...prev,
             isConnected: false
           }));
@@ -229,7 +251,7 @@ export const useRealtimeConnectionManager = () => {
         handleConnectionStatus(status, channelName);
       });
 
-      setConnectionState(prev => ({
+      updateGlobalState(prev => ({
         ...prev,
         subscriptions: new Map(prev.subscriptions.set(channelName, channel))
       }));
@@ -237,7 +259,7 @@ export const useRealtimeConnectionManager = () => {
       return () => {
         console.log(`🧹 Removing managed subscription: ${channelName}`);
         supabase.removeChannel(channel);
-        setConnectionState(prev => {
+        updateGlobalState(prev => {
           const newSubscriptions = new Map(prev.subscriptions);
           newSubscriptions.delete(channelName);
           return {
@@ -267,13 +289,10 @@ export const useRealtimeConnectionManager = () => {
         clearTimeout(statusDebounceTimeoutRef.current);
       }
       
-      // Use the current state via ref to avoid stale closure
-      setConnectionState(current => {
-        current.subscriptions.forEach((channel, channelName) => {
-          console.log(`🧹 Final cleanup of channel: ${channelName}`);
-          supabase.removeChannel(channel);
-        });
-        return current;
+      // Use the global state for cleanup
+      globalConnectionState.subscriptions.forEach((channel, channelName) => {
+        console.log(`🧹 Final cleanup of channel: ${channelName}`);
+        supabase.removeChannel(channel);
       });
     };
   }, []);
