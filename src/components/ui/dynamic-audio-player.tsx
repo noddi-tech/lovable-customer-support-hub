@@ -97,8 +97,13 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
       
       if (result?.localUrl) {
         console.log('✅ Setting new source URL:', result.localUrl.substring(0, 100) + '...');
-        setSrc(result.localUrl);
+        // Reset states before changing src to avoid race condition
+        setIsPlaying(false);
+        setCurrentTime(0);
         setIsLoading(true);
+        setHasError(false);
+        setIsLoadingAudio(false);
+        setSrc(result.localUrl);
       } else if (result?.error) {
         console.error('❌ Edge function returned error:', result.error);
         throw new Error(result.error || 'Failed to get playback URL');
@@ -223,19 +228,12 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
     };
   }, [src]);
 
-  // Reset state when src changes
+  // Initialize state when component mounts or expectedDuration changes
   useEffect(() => {
-    console.log('🔧 Source changed, resetting states:', { src: src?.substring(0, 50) + '...', isLoading, hasError });
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setIsLoading(true);
-    setHasError(false);
-    setIsLoadingAudio(false);
-    
     if (expectedDuration) {
       setDuration(expectedDuration);
     }
-  }, [src, expectedDuration]);
+  }, [expectedDuration]);
 
   if (hasError) {
     return (
