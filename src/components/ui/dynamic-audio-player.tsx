@@ -177,6 +177,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
       setHasError(true);
       setIsLoading(false);
       setIsLoadingAudio(false);
+      setIsGettingFreshUrl(false); // Reset this state too
     };
 
     const handleLoadStart = () => {
