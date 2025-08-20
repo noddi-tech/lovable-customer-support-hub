@@ -202,64 +202,45 @@ export const Dashboard = ({ activeMainTab, activeSubTab, onMainTabChange }: Dash
   console.log('Layout className:', layoutClassName);
   
   return (
-    <SidebarProvider>
-      <div className={cn("flex h-full w-full", layoutClassName)}>
-        <AppSidebar 
-          selectedTab={selectedTab}
-          onTabChange={handleTabChange}
-          selectedInboxId={selectedInboxId}
-          context="text"
-          activeMainTab={activeMainTab}
-          activeSubTab={activeSubTab}
-          onMainTabChange={onMainTabChange}
-        />
-        
-        <SidebarInset className="flex-1">
-          <div className="flex h-14 items-center border-b px-4">
-            <SidebarTrigger className="mr-4" />
-            <span className="font-medium">Text</span>
-          </div>
-          
-          <ResponsiveLayout 
-            className="flex-1"
-          >
-            <div className={cn(
-              "flex flex-col bg-gradient-surface",
-              isMobile ? "w-full" : "list-pane"
-            )}>
-              <ConversationList 
-                selectedConversation={selectedConversation}
-                onSelectConversation={handleSelectConversation}
-                selectedInboxId={selectedInboxId}
-                selectedTab={selectedTab}
-              />
-            </div>
-            
-            <div className={cn(
-              "flex flex-col bg-gradient-surface",
-              isMobile ? "w-full" : "detail-pane"
-            )}>
-              {selectedConversation ? (
-                <ConversationView conversationId={selectedConversation.id} />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                  <div className="max-w-md">
-                    <h2 className="text-2xl font-semibold mb-4">{t('dashboard.conversationView.noConversationSelected', 'No conversation selected')}</h2>
-                    <p className="text-muted-foreground">{t('dashboard.conversationView.selectConversation', 'Select a conversation from the list to start viewing messages.')}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </ResponsiveLayout>
-
-          {/* Debug components in development */}
-          <LayoutDebugger 
-            showConversationList={isMobile ? showConversationList : showConversationListDesktop}
-            showSidebar={showSidebar}
-            className={layoutClassName}
+    <div className={cn("flex h-full w-full", layoutClassName)}>
+      <ResponsiveLayout 
+        className="flex-1"
+      >
+        <div className={cn(
+          "flex flex-col bg-gradient-surface",
+          isMobile ? "w-full" : "list-pane"
+        )}>
+          <ConversationList 
+            selectedConversation={selectedConversation}
+            onSelectConversation={handleSelectConversation}
+            selectedInboxId={selectedInboxId}
+            selectedTab={selectedTab}
           />
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+        </div>
+        
+        <div className={cn(
+          "flex flex-col bg-gradient-surface",
+          isMobile ? "w-full" : "detail-pane"
+        )}>
+          {selectedConversation ? (
+            <ConversationView conversationId={selectedConversation.id} />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <div className="max-w-md">
+                <h2 className="text-2xl font-semibold mb-4">{t('dashboard.conversationView.noConversationSelected', 'No conversation selected')}</h2>
+                <p className="text-muted-foreground">{t('dashboard.conversationView.selectConversation', 'Select a conversation from the list to start viewing messages.')}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </ResponsiveLayout>
+
+      {/* Debug components in development */}
+      <LayoutDebugger 
+        showConversationList={isMobile ? showConversationList : showConversationListDesktop}
+        showSidebar={showSidebar}
+        className={layoutClassName}
+      />
+    </div>
   );
 };

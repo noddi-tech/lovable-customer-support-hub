@@ -7,6 +7,8 @@ import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterf
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
+import { AppSidebar } from '@/components/dashboard/AppSidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 
 interface MainAppProps {
   activeTab: string;
@@ -64,9 +66,28 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange 
   };
 
   return (
-    <div className="h-screen w-full">
-      {renderActiveContent()}
-    </div>
+    <SidebarProvider>
+      <div className="flex h-screen w-full">
+        <AppSidebar 
+          selectedTab="all"
+          onTabChange={() => {}}
+          activeMainTab={activeTab}
+          activeSubTab={activeSubTab}
+          onMainTabChange={onTabChange}
+        />
+        
+        <SidebarInset className="flex-1">
+          <div className="flex h-14 items-center border-b px-4">
+            <SidebarTrigger className="mr-4" />
+            <span className="font-medium capitalize">{activeSubTab}</span>
+          </div>
+          
+          <div className="flex-1">
+            {renderActiveContent()}
+          </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 };
 
