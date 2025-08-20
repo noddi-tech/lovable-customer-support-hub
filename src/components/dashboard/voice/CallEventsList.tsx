@@ -257,7 +257,10 @@ const EventCard: React.FC<{ event: CallEvent; onFilter: (callId: string) => void
 
 export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
   const [filteredCallId, setFilteredCallId] = useState<string | null>(null);
-  const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(null);
+  const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(() => {
+    // Default to last hour
+    return new Date(Date.now() - 60 * 60 * 1000);
+  });
 
   const handleFilter = (callId: string) => {
     setFilteredCallId(callId);
@@ -343,6 +346,7 @@ export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
           <TimeRangeFilter
             onTimeRangeChange={setTimeRangeStart}
             presets={eventsTimeRangePresets}
+            defaultPreset="1h"
           />
           <Badge variant="secondary" className="text-xs">
             {filteredEvents.length} events

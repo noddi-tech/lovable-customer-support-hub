@@ -13,7 +13,7 @@ import { CallDetailsDialog } from './CallDetailsDialog';
 import { CallActionButton } from './CallActionButton';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 
-export const CallsList = () => {
+export const CallsList = ({ showTimeFilter = true }: { showTimeFilter?: boolean }) => {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<string>('all');
@@ -43,8 +43,8 @@ export const CallsList = () => {
     if (statusFilter !== 'all' && call.status !== statusFilter) return false;
     if (directionFilter !== 'all' && call.direction !== directionFilter) return false;
     
-    // Time range filter
-    if (timeRangeStart) {
+    // Filter calls based on status, direction, and time range
+    if (showTimeFilter && timeRangeStart) {
       const callDate = new Date(call.started_at);
       if (!isAfter(callDate, timeRangeStart)) return false;
     }
@@ -253,10 +253,12 @@ export const CallsList = () => {
         <div className="flex items-center gap-3">
           <Filter className="h-4 w-4 text-muted-foreground" />
           
-          <TimeRangeFilter
-            onTimeRangeChange={setTimeRangeStart}
-            presets={callsTimeRangePresets}
-          />
+          {showTimeFilter && (
+            <TimeRangeFilter
+              onTimeRangeChange={setTimeRangeStart}
+              presets={callsTimeRangePresets}
+            />
+          )}
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32">
@@ -304,7 +306,7 @@ export const CallsList = () => {
             <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">No calls found</p>
             <p className="text-sm text-muted-foreground">
-              {statusFilter !== 'all' || directionFilter !== 'all' || timeRangeStart
+              {statusFilter !== 'all' || directionFilter !== 'all' || (showTimeFilter && timeRangeStart)
                 ? 'Try adjusting your filters to see more calls'
                 : 'Call history will appear here'
               }

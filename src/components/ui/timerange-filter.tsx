@@ -17,17 +17,26 @@ interface TimeRangeFilterProps {
     weeks?: number;
   }>;
   showCustomInput?: boolean;
+  defaultPreset?: string;
 }
 
 export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
   onTimeRangeChange,
   presets,
-  showCustomInput = true
+  showCustomInput = true,
+  defaultPreset = 'all'
 }) => {
-  const [selectedPreset, setSelectedPreset] = useState<string>('all');
+  const [selectedPreset, setSelectedPreset] = useState<string>(defaultPreset);
   const [customValue, setCustomValue] = useState<string>('');
   const [customUnit, setCustomUnit] = useState<'hours' | 'days'>('hours');
   const [isOpen, setIsOpen] = useState(false);
+
+  // Initialize with default preset on mount
+  React.useEffect(() => {
+    if (defaultPreset !== 'all') {
+      handlePresetChange(defaultPreset);
+    }
+  }, []);
 
   const handlePresetChange = (presetId: string) => {
     setSelectedPreset(presetId);
