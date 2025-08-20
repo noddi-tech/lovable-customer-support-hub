@@ -301,6 +301,13 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
             </Button>
           )}
         </div>
+        
+        {/* System ID */}
+        <div className="pt-2 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground/60 font-mono">
+            ID: {call.id}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
