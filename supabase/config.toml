@@ -55,8 +55,14 @@ enable_confirmations = false
 [edge_functions]
 enabled = true
 
+[functions.call-events-webhook]
+verify_jwt = false
+
 [functions.download-voicemail]
 verify_jwt = false
 
 [functions.test-basic]
+verify_jwt = false
+
+[functions.test-aircall-webhook]
 verify_jwt = false
