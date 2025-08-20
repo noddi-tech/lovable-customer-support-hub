@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Phone, AlertCircle, RefreshCw } from 'lucide-react';
+import { Phone, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownLeft, Clock, User, MessageSquare, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCalls } from '@/hooks/useCalls';
 import { useRealTimeCallNotifications } from '@/hooks/useRealTimeCallNotifications';
@@ -13,7 +15,9 @@ import { CallsList } from './voice/CallsList';
 import { VoiceSidebar } from './voice/VoiceSidebar';
 import { RealTimeIndicator } from './voice/RealTimeIndicator';
 import { CallNotificationCenter } from './voice/CallNotificationCenter';
+import { CallDetailsDialog } from './voice/CallDetailsDialog';
 import { useQueryClient } from '@tanstack/react-query';
+import { formatDistanceToNow, format } from 'date-fns';
 
 export const VoiceInterface = () => {
   const { t } = useTranslation();
@@ -33,6 +37,7 @@ export const VoiceInterface = () => {
   
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [selectedSection, setSelectedSection] = useState('ongoing-calls');
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const handleRefreshAll = () => {
     queryClient.invalidateQueries({ queryKey: ['calls'] });
@@ -119,12 +124,21 @@ export const VoiceInterface = () => {
 
     switch (selectedSection) {
       case 'ongoing-calls':
+        const recentlyEndedCalls = calls.filter(call => {
+          if (call.status !== 'completed' || !call.ended_at || !call.agent_phone) return false;
+          const endTime = new Date(call.ended_at);
+          const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+          return endTime >= tenMinutesAgo;
+        });
+
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
               <RealTimeIndicator onRefresh={handleRefreshAll} />
             </div>
+            
+            {/* Active Calls Section */}
             <div className="space-y-4">
               {activeCalls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -143,6 +157,101 @@ export const VoiceInterface = () => {
                 </div>
               )}
             </div>
+
+            {/* Recently Ended Calls Section */}
+            {recentlyEndedCalls.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-medium">Recently Ended Calls</h2>
+                  <span className="text-sm text-muted-foreground">
+                    (Last 10 minutes - Add notes)
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {recentlyEndedCalls.map((call) => {
+                    const formatPhoneNumber = (phone?: string) => {
+                      if (!phone) return 'Unknown';
+                      return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+                    };
+
+                    const formatDuration = (seconds?: number) => {
+                      if (!seconds) return '0:00';
+                      const minutes = Math.floor(seconds / 60);
+                      const remainingSeconds = seconds % 60;
+                      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                    };
+
+                    const getDirectionIcon = (direction: string) => {
+                      return direction === 'inbound' ? 
+                        <ArrowDownLeft className="h-4 w-4 text-blue-600" /> : 
+                        <ArrowUpRight className="h-4 w-4 text-green-600" />;
+                    };
+
+                    return (
+                      <Card key={call.id} className="transition-all duration-200 hover:shadow-md">
+                        <CardContent className="px-2 py-1">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-1.5 flex-1">
+                              <div className="flex-shrink-0 mt-0.5">
+                                {getDirectionIcon(call.direction)}
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="font-medium text-sm">
+                                    {formatPhoneNumber(call.customer_phone)}
+                                  </span>
+                                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4">
+                                    completed
+                                  </Badge>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <div className="flex items-center gap-0.5">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{format(new Date(call.ended_at!), 'MMM d, HH:mm')}</span>
+                                  </div>
+                                  <div className="flex items-center gap-0.5">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{formatDuration(call.duration_seconds)}</span>
+                                  </div>
+                                  {call.agent_phone && (
+                                    <div className="flex items-center gap-0.5">
+                                      <User className="h-3 w-3" />
+                                      <span>{formatPhoneNumber(call.agent_phone)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Ended {formatDistanceToNow(new Date(call.ended_at!), { addSuffix: true })}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center">
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedCall(call);
+                                  setIsDetailsOpen(true);
+                                }}
+                                className="flex items-center gap-1 h-6 px-2 text-xs"
+                                title="Add call notes"
+                              >
+                                <MessageSquare className="h-3 w-3" />
+                                Add Notes
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -240,6 +349,13 @@ export const VoiceInterface = () => {
           </div>
         </div>
       </div>
+      
+      {/* Call Details Dialog */}
+      <CallDetailsDialog
+        call={selectedCall}
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+      />
     </div>
   );
 };
