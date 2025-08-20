@@ -734,7 +734,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
         {/* Customer Info Sidebar - Desktop Only */}
         <div className="hidden lg:block w-80 border-l border-border bg-card/50 backdrop-blur-sm">
-          <ScrollArea className="h-full">
+          <div className="pane h-full">
             <div className="p-4 space-y-6">
             {/* Reply Actions - Top Priority */}
             {conversation.status === 'open' && !conversation.is_archived && (
@@ -875,7 +875,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               </div>
             </div>
             </div>
-          </ScrollArea>
+          </div>
         </div>
         
         {/* Mobile-optimized floating reply button */}

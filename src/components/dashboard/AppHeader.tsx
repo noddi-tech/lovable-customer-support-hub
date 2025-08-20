@@ -266,22 +266,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       {!isMobile && activeMainTab?.subTabs.length > 0 && (
         <div className="border-t border-border/50 bg-muted/30">
           <div className="px-4 py-2">
-            <nav className="flex items-center gap-1">
-              {activeMainTab.subTabs.map((subTab) => (
-                <Button
-                  key={subTab.id}
-                  variant={activeSubTab === subTab.id ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => onTabChange(activeTab, subTab.id)}
-                  className={cn(
-                    "text-sm",
-                    activeSubTab === subTab.id && "bg-background text-foreground shadow-sm font-medium"
-                  )}
-                >
-                  {subTab.label}
-                </Button>
-              ))}
-            </nav>
+            <div className="overflow-x-auto scrollbar-none">
+              <nav className="flex items-center gap-1 whitespace-nowrap">
+                {activeMainTab.subTabs.map((subTab) => (
+                  <Button
+                    key={subTab.id}
+                    variant={activeSubTab === subTab.id ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => onTabChange(activeTab, subTab.id)}
+                    className={cn(
+                      "text-sm flex-shrink-0",
+                      activeSubTab === subTab.id && "bg-background text-foreground shadow-sm font-medium"
+                    )}
+                  >
+                    {subTab.label}
+                  </Button>
+                ))}
+              </nav>
+            </div>
           </div>
         </div>
       )}

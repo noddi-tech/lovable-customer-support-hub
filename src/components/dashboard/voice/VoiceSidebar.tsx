@@ -184,7 +184,7 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
 
   return (
     <div className="pane flex flex-col bg-card/90 backdrop-blur-sm shadow-surface">
-      <ScrollArea className="flex-1 h-0 min-h-0">
+      <div className="pane flex-1 min-h-0">
         <div>
         {/* Ongoing Calls */}
         <div className="px-2 pt-4">
@@ -293,7 +293,7 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
           </div>
         </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

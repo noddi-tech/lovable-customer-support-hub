@@ -5,15 +5,20 @@ interface FullScreenLayoutProps {
   children: React.ReactNode
   header?: React.ReactNode
   className?: string
+  lockScroll?: boolean
 }
 
 const FullScreenLayout = React.forwardRef<
   HTMLDivElement,
   FullScreenLayoutProps
->(({ className, children, header, ...props }, ref) => (
+>(({ className, children, header, lockScroll = false, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("h-screen flex flex-col overflow-hidden", className)}
+    className={cn(
+      "h-screen flex flex-col",
+      lockScroll ? "overflow-hidden" : "overflow-y-auto",
+      className
+    )}
     {...props}
   >
     {header && (
@@ -21,7 +26,10 @@ const FullScreenLayout = React.forwardRef<
         {header}
       </div>
     )}
-    <div className="flex-1 overflow-hidden min-h-0">
+    <div className={cn(
+      "flex-1 min-h-0",
+      lockScroll ? "overflow-hidden" : "overflow-y-auto"
+    )}>
       {children}
     </div>
   </div>

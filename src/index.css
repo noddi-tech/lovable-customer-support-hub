@@ -10,7 +10,8 @@ html, body, #root {
 }
 
 body {
-  overflow: hidden; /* page never scrolls */
+  overflow-y: auto; /* Allow controlled page scrolling */
+  overflow-x: hidden; /* Prevent horizontal page scrolling */
   font-family: var(--font-body);
   font-size: var(--font-body);
   line-height: 1.5;
@@ -298,7 +299,8 @@ Optimized for accessibility with WCAG AA compliance.
     
     display: grid;
     grid-template-rows: var(--app-header-h, 64px) 1fr;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .app-header {
@@ -311,7 +313,8 @@ Optimized for accessibility with WCAG AA compliance.
   .app-main {
     min-height: 0;
     min-width: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     display: grid;
   }
 
@@ -338,6 +341,7 @@ Optimized for accessibility with WCAG AA compliance.
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+      min-height: 0; /* Critical: ensures proper shrinkage */
     }
     
     /* List pane visibility controls */
@@ -353,6 +357,7 @@ Optimized for accessibility with WCAG AA compliance.
       overflow: auto;
       opacity: 1;
       transition: all 0.3s ease-in-out;
+      min-height: 0; /* Critical: ensures proper shrinkage */
     }
   }
 
@@ -494,11 +499,12 @@ Optimized for accessibility with WCAG AA compliance.
       outline-offset: 2px;
     }
   }
-
+  
   .pane, .card__body {
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    min-height: 0; /* Critical: allows proper shrinkage */
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }

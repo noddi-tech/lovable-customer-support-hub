@@ -150,13 +150,13 @@ const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'g
 
   return (
     <div className="h-full">
-      <ScrollArea className="h-full">
+      <div className="pane h-full">
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
           {renderContent()}
         </div>
       </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

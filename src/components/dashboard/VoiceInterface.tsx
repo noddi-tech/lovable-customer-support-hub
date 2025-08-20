@@ -390,11 +390,11 @@ export const VoiceInterface = () => {
 
         {/* Content Area */}
         <div className="detail-pane flex flex-col bg-gradient-surface">
-          <ScrollArea className="flex-1 h-0 min-h-0">
+          <div className="pane flex-1 min-h-0">
             <div className="p-6">
             {renderMainContent()}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
       

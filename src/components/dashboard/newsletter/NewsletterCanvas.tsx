@@ -25,7 +25,7 @@ export const NewsletterCanvas: React.FC<NewsletterCanvasProps> = ({
 
   return (
     <div className="flex-1 min-h-0">
-      <ScrollArea className="h-full">
+      <div className="pane h-full">
         <div className="p-8 min-h-full bg-muted/20">
           <div className="mx-auto" style={{ maxWidth: canvasMaxWidth }}>
             <div
@@ -61,7 +61,7 @@ export const NewsletterCanvas: React.FC<NewsletterCanvasProps> = ({
             </div>
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

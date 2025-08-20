@@ -217,15 +217,15 @@ const NewsletterBuilder = () => {
               <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
               <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
             </TabsList>
-            <TabsContent value="blocks" className="flex-1 m-0 h-0">
-              <ScrollArea className="h-full">
+            <TabsContent value="blocks" className="flex-1 m-0 min-h-0">
+              <div className="pane">
                 <BlocksPalette onAddBlock={addBlock} />
-              </ScrollArea>
+              </div>
             </TabsContent>
-            <TabsContent value="templates" className="flex-1 m-0 h-0">
-              <ScrollArea className="h-full">
+            <TabsContent value="templates" className="flex-1 m-0 min-h-0">
+              <div className="pane">
                 <TemplateLibrary />
-              </ScrollArea>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
@@ -265,13 +265,13 @@ const NewsletterBuilder = () => {
               <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
               <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
             </TabsList>
-            <TabsContent value="properties" className="flex-1 m-0 h-0">
+            <TabsContent value="properties" className="flex-1 m-0 min-h-0">
               <PropertiesPanel selectedBlockId={selectedBlockId} />
             </TabsContent>
-            <TabsContent value="global" className="flex-1 m-0 h-0">
+            <TabsContent value="global" className="flex-1 m-0 min-h-0">
               <GlobalStylesPanel />
             </TabsContent>
-            <TabsContent value="personalization" className="flex-1 m-0 h-0">
+            <TabsContent value="personalization" className="flex-1 m-0 min-h-0">
               <PersonalizationPanel />
             </TabsContent>
           </Tabs>
