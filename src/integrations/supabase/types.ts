@@ -100,13 +100,18 @@ export type Database = {
       calls: {
         Row: {
           agent_phone: string | null
+          availability_status: string | null
           created_at: string
           customer_phone: string | null
           direction: Database["public"]["Enums"]["call_direction"]
           duration_seconds: number | null
+          end_reason: string | null
           ended_at: string | null
+          enriched_details: Json | null
           external_id: string
+          hangup_cause: string | null
           id: string
+          ivr_interaction: Json | null
           metadata: Json | null
           organization_id: string
           provider: string
@@ -114,16 +119,22 @@ export type Database = {
           started_at: string
           status: Database["public"]["Enums"]["call_status"]
           updated_at: string
+          webhook_event_type: string | null
         }
         Insert: {
           agent_phone?: string | null
+          availability_status?: string | null
           created_at?: string
           customer_phone?: string | null
           direction: Database["public"]["Enums"]["call_direction"]
           duration_seconds?: number | null
+          end_reason?: string | null
           ended_at?: string | null
+          enriched_details?: Json | null
           external_id: string
+          hangup_cause?: string | null
           id?: string
+          ivr_interaction?: Json | null
           metadata?: Json | null
           organization_id: string
           provider?: string
@@ -131,16 +142,22 @@ export type Database = {
           started_at?: string
           status?: Database["public"]["Enums"]["call_status"]
           updated_at?: string
+          webhook_event_type?: string | null
         }
         Update: {
           agent_phone?: string | null
+          availability_status?: string | null
           created_at?: string
           customer_phone?: string | null
           direction?: Database["public"]["Enums"]["call_direction"]
           duration_seconds?: number | null
+          end_reason?: string | null
           ended_at?: string | null
+          enriched_details?: Json | null
           external_id?: string
+          hangup_cause?: string | null
           id?: string
+          ivr_interaction?: Json | null
           metadata?: Json | null
           organization_id?: string
           provider?: string
@@ -148,6 +165,7 @@ export type Database = {
           started_at?: string
           status?: Database["public"]["Enums"]["call_status"]
           updated_at?: string
+          webhook_event_type?: string | null
         }
         Relationships: []
       }

@@ -81,72 +81,134 @@ export const CallsList = () => {
   };
 
   const getStatusDetails = (call: any) => {
-    const metadata = call.metadata || {};
-    const status = call.status;
+    const endReason = call.end_reason;
+    const availability = call.availability_status;
+    const ivrInteraction = call.ivr_interaction || [];
+    const enrichedDetails = call.enriched_details || {};
     
-    switch (status) {
-      case 'missed':
-        const missReason = metadata.missReason || metadata.miss_reason || metadata.originalPayload?.reason;
+    // Check for IVR interactions
+    const hasCallbackRequest = Array.isArray(ivrInteraction) && 
+      ivrInteraction.some((option: any) => option.branch === 'callback_requested');
+    
+    // Determine status based on enriched data
+    switch (endReason) {
+      case 'abandoned_in_ivr':
+        if (hasCallbackRequest) {
+          return {
+            label: 'Callback Requested',
+            description: 'Customer requested callback via IVR',
+            icon: '📞➡️'
+          };
+        }
         return {
-          label: 'Missed',
-          description: missReason ? `Reason: ${missReason}` : 'Customer did not answer',
+          label: 'Abandoned in IVR',
+          description: 'Customer hung up during IVR menu',
           icon: '📞❌'
         };
-      case 'busy':
+      
+      case 'hung_up':
         return {
-          label: 'Busy',
-          description: 'Line was busy',
-          icon: '📞🔴'
+          label: 'Hung Up',
+          description: 'Call was terminated by customer',
+          icon: '📞⬇️'
         };
-      case 'failed':
-        const failReason = metadata.failReason || metadata.error || 'Technical issue';
-        return {
-          label: 'Failed',
-          description: `Failed: ${failReason}`,
-          icon: '❌'
-        };
-      case 'voicemail':
-        const vmDuration = metadata.voicemailDuration || metadata.duration;
-        return {
-          label: 'Voicemail',
-          description: vmDuration ? `Voicemail left (${vmDuration}s)` : 'Voicemail left',
-          icon: '📧'
-        };
-      case 'transferred':
-        const transferTo = metadata.transferredTo || metadata.transfer_to;
-        return {
-          label: 'Transferred',
-          description: transferTo ? `Transferred to ${transferTo}` : 'Call transferred',
-          icon: '↗️'
-        };
-      case 'answered':
-        return {
-          label: 'Answered',
-          description: 'Call was answered',
-          icon: '✅'
-        };
-      case 'completed':
+      
+      case 'completed_normally':
+        const agentName = enrichedDetails.user_name;
         return {
           label: 'Completed',
-          description: 'Call completed successfully',
+          description: agentName ? `Handled by ${agentName}` : 'Call completed successfully',
           icon: '✅'
         };
-      case 'on_hold':
+      
+      case 'not_answered':
+        if (availability === 'closed') {
+          return {
+            label: 'Outside Hours',
+            description: 'Call received outside business hours',
+            icon: '🕐❌'
+          };
+        }
         return {
-          label: 'On Hold',
-          description: 'Call is on hold',
-          icon: '⏸️'
+          label: 'Not Answered',
+          description: 'No agent available to answer',
+          icon: '📞❌'
         };
-      case 'ringing':
-        return {
-          label: 'Ringing',
-          description: 'Currently ringing',
-          icon: '📞'
-        };
+      
+      // Fallback to original logic for older records
+      case null:
+      case undefined:
+        switch (call.status) {
+          case 'missed':
+            const missReason = call.metadata?.missReason || call.metadata?.miss_reason;
+            return {
+              label: 'Missed',
+              description: missReason || 'Customer did not answer',
+              icon: '📞❌'
+            };
+          case 'busy':
+            return {
+              label: 'Busy',
+              description: 'Line was busy',
+              icon: '📞🔴'
+            };
+          case 'failed':
+            const failReason = call.metadata?.failReason || call.metadata?.error || 'Technical issue';
+            return {
+              label: 'Failed',
+              description: `Failed: ${failReason}`,
+              icon: '❌'
+            };
+          case 'voicemail':
+            const vmDuration = call.metadata?.voicemailDuration || call.metadata?.duration;
+            return {
+              label: 'Voicemail',
+              description: vmDuration ? `Voicemail left (${vmDuration}s)` : 'Voicemail left',
+              icon: '📧'
+            };
+          case 'transferred':
+            const transferTo = call.metadata?.transferredTo || call.metadata?.transfer_to;
+            return {
+              label: 'Transferred',
+              description: transferTo ? `Transferred to ${transferTo}` : 'Call transferred',
+              icon: '↗️'
+            };
+          case 'answered':
+            return {
+              label: 'Answered',
+              description: 'Call was answered',
+              icon: '✅'
+            };
+          case 'completed':
+            return {
+              label: 'Completed',
+              description: 'Call completed successfully',
+              icon: '✅'
+            };
+          case 'on_hold':
+            return {
+              label: 'On Hold',
+              description: 'Call is on hold',
+              icon: '⏸️'
+            };
+          case 'ringing':
+            return {
+              label: 'Ringing',
+              description: 'Currently ringing',
+              icon: '📞'
+            };
+          default:
+            return {
+              label: call.status?.charAt(0).toUpperCase() + call.status?.slice(1) || 'Unknown',
+              description: `Status: ${call.status}`,
+              icon: '📞'
+            };
+        }
+      
       default:
         return {
-          label: status.charAt(0).toUpperCase() + status.slice(1),
-          description: `Status: ${status}`,
+          label: endReason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description: `Call ended: ${endReason.replace(/_/g, ' ')}`,
           icon: '📞'
         };
     }
@@ -262,17 +324,41 @@ export const CallsList = () => {
                         })()}
                       </div>
                       
-                      {/* Status Description */}
+                      {/* Status Description & Additional Info */}
                       {(() => {
                         const statusDetails = getStatusDetails(call);
-                        if (statusDetails.description && statusDetails.description !== `Status: ${call.status}`) {
-                          return (
-                            <div className="text-xs text-muted-foreground mb-1 italic">
-                              {statusDetails.description}
-                            </div>
-                          );
-                        }
-                        return null;
+                        const hasAdditionalInfo = statusDetails.description && statusDetails.description !== `Status: ${call.status}`;
+                        const availability = call.availability_status;
+                        const enrichedDetails = call.enriched_details || {};
+                        
+                        return (
+                          <div className="space-y-1">
+                            {hasAdditionalInfo && (
+                              <div className="text-xs text-muted-foreground italic">
+                                {statusDetails.description}
+                              </div>
+                            )}
+                            
+                            {/* Business Hours Indicator */}
+                            {availability && (
+                              <div className="flex items-center gap-1 text-xs">
+                                <span className={`w-2 h-2 rounded-full ${
+                                  availability === 'open' ? 'bg-green-500' : 'bg-red-500'
+                                }`} />
+                                <span className="text-muted-foreground">
+                                  {availability === 'open' ? 'During business hours' : 'Outside business hours'}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Agent Information */}
+                            {enrichedDetails.user_name && (
+                              <div className="text-xs text-muted-foreground">
+                                Agent: {enrichedDetails.user_name}
+                              </div>
+                            )}
+                          </div>
+                        );
                       })()}
                       
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -56,63 +56,119 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
   };
 
   const getStatusDetails = () => {
-    const metadata = call.metadata || {};
-    const status = call.status;
+    const endReason = call.end_reason;
+    const availability = call.availability_status;
+    const ivrInteraction = call.ivr_interaction || [];
+    const enrichedDetails = call.enriched_details || {};
     
-    switch (status) {
-      case 'missed':
-        const missReason = metadata.missReason || metadata.miss_reason || metadata.originalPayload?.reason;
+    // Check for IVR interactions
+    const hasCallbackRequest = Array.isArray(ivrInteraction) && 
+      ivrInteraction.some((option: any) => option.branch === 'callback_requested');
+    
+    // Determine status based on enriched data
+    switch (endReason) {
+      case 'abandoned_in_ivr':
+        if (hasCallbackRequest) {
+          return {
+            label: 'CALLBACK REQUESTED',
+            description: 'Customer requested callback via IVR'
+          };
+        }
         return {
-          label: 'MISSED',
-          description: missReason || 'Customer did not answer'
+          label: 'ABANDONED IN IVR',
+          description: 'Customer hung up during IVR menu'
         };
-      case 'busy':
+      
+      case 'hung_up':
         return {
-          label: 'BUSY',
-          description: 'Line was busy'
+          label: 'HUNG UP',
+          description: 'Call terminated by customer'
         };
-      case 'failed':
-        const failReason = metadata.failReason || metadata.error || 'Technical issue';
-        return {
-          label: 'FAILED',
-          description: failReason
-        };
-      case 'voicemail':
-        const vmDuration = metadata.voicemailDuration || metadata.duration;
-        return {
-          label: 'VOICEMAIL',
-          description: vmDuration ? `Voicemail left (${vmDuration}s)` : 'Voicemail left'
-        };
-      case 'transferred':
-        const transferTo = metadata.transferredTo || metadata.transfer_to;
-        return {
-          label: 'TRANSFERRED',
-          description: transferTo || 'Call transferred'
-        };
-      case 'answered':
-        return {
-          label: 'ANSWERED',
-          description: 'Call was answered'
-        };
-      case 'completed':
+      
+      case 'completed_normally':
+        const agentName = enrichedDetails.user_name;
         return {
           label: 'COMPLETED',
-          description: 'Call completed successfully'
+          description: agentName ? `Handled by ${agentName}` : 'Call completed successfully'
         };
-      case 'on_hold':
+      
+      case 'not_answered':
+        if (availability === 'closed') {
+          return {
+            label: 'OUTSIDE HOURS',
+            description: 'Call received outside business hours'
+          };
+        }
         return {
-          label: 'ON HOLD',
-          description: 'Call is on hold'
+          label: 'NOT ANSWERED',
+          description: 'No agent available'
         };
-      case 'ringing':
-        return {
-          label: 'RINGING',
-          description: 'Currently ringing'
-        };
+      
+      // Fallback for older records
+      case null:
+      case undefined:
+        const metadata = call.metadata || {};
+        switch (call.status) {
+          case 'missed':
+            const missReason = metadata.missReason || metadata.miss_reason;
+            return {
+              label: 'MISSED',
+              description: missReason || 'Customer did not answer'
+            };
+          case 'busy':
+            return {
+              label: 'BUSY',
+              description: 'Line was busy'
+            };
+          case 'failed':
+            const failReason = metadata.failReason || metadata.error || 'Technical issue';
+            return {
+              label: 'FAILED',
+              description: failReason
+            };
+          case 'voicemail':
+            const vmDuration = metadata.voicemailDuration || metadata.duration;
+            return {
+              label: 'VOICEMAIL',
+              description: vmDuration ? `Voicemail left (${vmDuration}s)` : 'Voicemail left'
+            };
+          case 'transferred':
+            const transferTo = metadata.transferredTo || metadata.transfer_to;
+            return {
+              label: 'TRANSFERRED',
+              description: transferTo || 'Call transferred'
+            };
+          case 'answered':
+            return {
+              label: 'ANSWERED',
+              description: 'Call was answered'
+            };
+          case 'completed':
+            return {
+              label: 'COMPLETED',
+              description: 'Call completed successfully'
+            };
+          case 'on_hold':
+            return {
+              label: 'ON HOLD',
+              description: 'Call is on hold'
+            };
+          case 'ringing':
+            return {
+              label: 'RINGING',
+              description: 'Currently ringing'
+            };
+          default:
+            return {
+              label: (call.status as string).toUpperCase(),
+              description: `Status: ${call.status}`
+            };
+        }
+      
       default:
         return {
-          label: (status as string).toUpperCase(),
-          description: `Status: ${status}`
+          label: endReason.replace(/_/g, ' ').toUpperCase(),
+          description: `Call ended: ${endReason.replace(/_/g, ' ')}`
         };
     }
   };
@@ -162,6 +218,15 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
               <span className="text-sm font-medium">{call.agent_phone}</span>
             </div>
           )}
+          
+          {/* Enhanced agent info from enriched details */}
+          {call.enriched_details?.user_name && (
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Handled by:</span>
+              <span className="text-sm font-medium">{call.enriched_details.user_name}</span>
+            </div>
+          )}
+          
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Started:</span>
             <span className="text-sm">
@@ -172,6 +237,21 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Duration:</span>
               <span className="text-sm font-medium">{formatDuration(call.duration_seconds)}</span>
+            </div>
+          )}
+          
+          {/* Business hours indicator */}
+          {call.availability_status && (
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Business hours:</span>
+              <div className="flex items-center gap-1">
+                <span className={`w-2 h-2 rounded-full ${
+                  call.availability_status === 'open' ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+                <span className="text-sm">
+                  {call.availability_status === 'open' ? 'Open' : 'Closed'}
+                </span>
+              </div>
             </div>
           )}
           

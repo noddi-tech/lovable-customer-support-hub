@@ -20,6 +20,13 @@ export interface Call {
   metadata: any;
   created_at: string;
   updated_at: string;
+  // Enriched fields from call events
+  end_reason?: string;
+  webhook_event_type?: string;
+  ivr_interaction?: any;
+  availability_status?: string;
+  hangup_cause?: string;
+  enriched_details?: any;
 }
 
 export interface CallEvent {
