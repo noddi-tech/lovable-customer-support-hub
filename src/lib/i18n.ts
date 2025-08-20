@@ -27,30 +27,78 @@ const resources = {
   da: { common: da },
 };
 
-i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    resources,
-    fallbackLng: 'en',
-    defaultNS: 'common',
-    debug: process.env.NODE_ENV === 'development',
+// Enhanced i18n initialization with robust error handling
+const initializeI18n = async () => {
+  try {
+    console.log('🌐 Starting i18n initialization...');
     
-    interpolation: {
-      escapeValue: false,
-    },
+    await i18n
+      .use(LanguageDetector)
+      .use(initReactI18next)
+      .init({
+        resources,
+        fallbackLng: 'en',
+        defaultNS: 'common',
+        debug: process.env.NODE_ENV === 'development',
+        
+        interpolation: {
+          escapeValue: false,
+        },
+        
+        detection: {
+          order: ['localStorage', 'navigator'],
+          lookupLocalStorage: 'i18nextLng',
+          caches: ['localStorage'],
+        },
+        
+        // Robust fallback configuration
+        returnNull: false,
+        returnEmptyString: false,
+        returnObjects: false,
+        keySeparator: '.',
+        nsSeparator: ':',
+        
+        // Immediate initialization without waiting
+        initImmediate: false,
+        
+        // Handle missing translations gracefully
+        saveMissing: process.env.NODE_ENV === 'development',
+        missingKeyHandler: (lng, ns, key, fallbackValue) => {
+          console.warn(`🚨 Missing translation: ${lng}.${ns}.${key}`);
+          return fallbackValue || key;
+        },
+      });
     
-    detection: {
-      order: ['localStorage', 'navigator'],
-      lookupLocalStorage: 'i18nextLng',
-      caches: ['localStorage'],
-    },
+    console.log('✅ i18n initialized successfully:', {
+      language: i18n.language,
+      isInitialized: i18n.isInitialized,
+      loadedNamespaces: Object.keys(i18n.services.resourceStore.data)
+    });
     
-    // Add better error handling and faster initialization
-    returnNull: false,
-    returnEmptyString: false,
-    keySeparator: '.',
-    nsSeparator: ':',
-  });
+    return true;
+  } catch (error) {
+    console.error('❌ i18n initialization failed:', error);
+    
+    // Fallback to basic English-only setup
+    try {
+      await i18n.init({
+        resources: { en: { common: en } },
+        lng: 'en',
+        fallbackLng: 'en',
+        defaultNS: 'common',
+        returnNull: false,
+        returnEmptyString: false,
+      });
+      console.log('⚠️ i18n fallback initialization successful');
+      return true;
+    } catch (fallbackError) {
+      console.error('💥 Even fallback i18n initialization failed:', fallbackError);
+      return false;
+    }
+  }
+};
+
+// Initialize immediately
+initializeI18n();
 
 export default i18n;

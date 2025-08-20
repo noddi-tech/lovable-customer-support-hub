@@ -15,16 +15,23 @@ export const TranslationTest: React.FC = () => {
         <CardTitle className="text-sm">Translation Debug</CardTitle>
       </CardHeader>
       <CardContent className="text-xs space-y-2">
-        <div>i18n Ready: {i18n.isInitialized ? 'Yes' : 'No'}</div>
-        <div>Current Language: {i18n.language}</div>
-        <div>Without Fallback: "{t('dashboard.conversationView.noConversationSelected')}"</div>
-        <div>With Fallback: "{t('dashboard.conversationView.noConversationSelected', 'No conversation selected')}"</div>
+        <div>i18n Status: {i18n.isInitialized ? '✅ Ready' : '❌ Not Ready'}</div>
+        <div>Language: {i18n.language}</div>
         <div>Resources: {Object.keys(i18n.services.resourceStore.data).join(', ')}</div>
-        <div className="text-yellow-300">Translation Status: {
-          t('dashboard.conversationView.noConversationSelected') === 'dashboard.conversationView.noConversationSelected' 
-            ? 'FAILING - showing keys instead of text' 
-            : 'Working'
-        }</div>
+        <div className="border-t border-white/20 pt-2">
+          <div>Translation Tests:</div>
+          <div className="text-green-300">✓ With Fallback: "{t('dashboard.conversationView.noConversationSelected', 'No conversation selected')}"</div>
+          <div className={t('dashboard.conversationView.noConversationSelected') === 'dashboard.conversationView.noConversationSelected' ? 'text-red-300' : 'text-green-300'}>
+            {t('dashboard.conversationView.noConversationSelected') === 'dashboard.conversationView.noConversationSelected' ? '❌' : '✓'} Without Fallback: "{t('dashboard.conversationView.noConversationSelected')}"
+          </div>
+        </div>
+        <div className="border-t border-white/20 pt-2">
+          <div>Status: {
+            t('dashboard.conversationView.noConversationSelected') === 'dashboard.conversationView.noConversationSelected' 
+              ? '🚨 FAILING - showing keys' 
+              : '✅ Working properly'
+          }</div>
+        </div>
       </CardContent>
     </Card>
   );
