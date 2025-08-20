@@ -285,30 +285,21 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               })}
             </div>
 
-            {/* Sub Tab Dropdown */}
+            {/* Sub Tab Navigation */}
             {currentMainConfig && (
-              <div className="w-full">
-                <Button variant="outline" className="w-full justify-between h-9" asChild>
-                  <div className="flex items-center cursor-pointer">
-                    {currentSubTab && <currentSubTab.icon className="h-4 w-4 mr-2" />}
-                    <span className="flex-1 text-left">{currentSubTab?.label || 'Select'}</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                </Button>
-                <div className="mt-1 space-y-1">
-                  {currentMainConfig.subTabs.map((subTab) => (
-                    <Button
-                      key={subTab.key}
-                      variant={activeSubTab === subTab.key ? "secondary" : "ghost"}
-                      size="sm"
-                      className="w-full justify-start h-8 pl-6"
-                      onClick={() => onMainTabChange(activeMainTab, subTab.key)}
-                    >
-                      <subTab.icon className="h-3 w-3 mr-2" />
-                      {subTab.label}
-                    </Button>
-                  ))}
-                </div>
+              <div className="w-full space-y-1">
+                {currentMainConfig.subTabs.map((subTab) => (
+                  <Button
+                    key={subTab.key}
+                    variant={activeSubTab === subTab.key ? "secondary" : "ghost"}
+                    size="sm"
+                    className="w-full justify-start h-8"
+                    onClick={() => onMainTabChange(activeMainTab, subTab.key)}
+                  >
+                    <subTab.icon className="h-3 w-3 mr-2" />
+                    {subTab.label}
+                  </Button>
+                ))}
               </div>
             )}
           </div>
