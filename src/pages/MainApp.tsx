@@ -8,8 +8,9 @@ import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterf
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-responsive';
+import { cn } from '@/lib/utils';
 
 interface MainAppProps {
   activeTab: string;
@@ -75,7 +76,7 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange 
 
   return (
     <SidebarProvider>
-      <div className="app-root">
+      <div className="min-h-screen flex flex-col w-full">
         {/* App Header - Always visible */}
         <AppHeader
           activeTab={activeTab}
@@ -86,7 +87,7 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange 
         />
 
         {/* Main Content Area with Sidebar */}
-        <div className="app-main flex">
+        <div className="flex flex-1 min-h-0">
           {/* Sidebar - Only show for interactions */}
           {activeTab === 'interactions' && (
             <AppSidebar 
@@ -95,10 +96,13 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange 
             />
           )}
           
-          {/* Main Content */}
-          <SidebarInset className={activeTab === 'interactions' ? 'flex-1' : 'w-full'}>
+          {/* Main Content - Full width when no sidebar */}
+          <div className={cn(
+            "flex-1 min-h-0",
+            activeTab === 'interactions' ? '' : 'w-full'
+          )}>
             {renderActiveContent()}
-          </SidebarInset>
+          </div>
         </div>
       </div>
     </SidebarProvider>
