@@ -235,8 +235,8 @@ export const CallsList = ({ showTimeFilter = true, onNavigateToEvents }: CallsLi
 
   const getDirectionIcon = (direction: string) => {
     return direction === 'inbound' ? 
-      <ArrowDownLeft className="h-4 w-4 text-blue-600" /> : 
-      <ArrowUpRight className="h-4 w-4 text-green-600" />;
+      <ArrowDownLeft className="h-6 w-6 text-blue-600" /> : 
+      <ArrowUpRight className="h-6 w-6 text-green-600" />;
   };
 
   const openCallDetails = (call: any) => {
@@ -326,7 +326,7 @@ export const CallsList = ({ showTimeFilter = true, onNavigateToEvents }: CallsLi
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-1.5 flex-1">
                     {/* Direction Icon */}
-                    <div className="flex-shrink-0 mt-0.5">
+                    <div className="flex-shrink-0 flex items-center">
                       {getDirectionIcon(call.direction)}
                     </div>
                     
