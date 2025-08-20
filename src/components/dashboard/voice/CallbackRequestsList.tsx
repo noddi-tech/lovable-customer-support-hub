@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCallbackRequests, CallbackRequest } from '@/hooks/useCallbackRequests';
 import { AgentAssignmentSelect } from './AgentAssignmentSelect';
+import { CallActionButton } from './CallActionButton';
 import { formatDistanceToNow } from 'date-fns';
 
 const statusConfig = {
@@ -125,6 +126,14 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
               onAssign={(agentId) => onAssign(request.id, agentId)}
               isAssigning={isAssigning}
               placeholder="Assign to agent"
+            />
+          </div>
+
+          {/* Call Action */}
+          <div className="flex gap-2 pt-2">
+            <CallActionButton
+              phoneNumber={request.customer_phone}
+              size="sm"
             />
           </div>
 

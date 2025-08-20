@@ -9,6 +9,7 @@ import { useCalls } from '@/hooks/useCalls';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { formatDistanceToNow, format } from 'date-fns';
 import { CallDetailsDialog } from './CallDetailsDialog';
+import { CallActionButton } from './CallActionButton';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 
 export const CallsList = () => {
@@ -215,7 +216,12 @@ export const CallsList = () => {
                   </div>
                   
                   {/* Actions */}
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-2">
+                    <CallActionButton
+                      phoneNumber={call.customer_phone}
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                    />
                     <Button
                       variant="outline"
                       size="sm"

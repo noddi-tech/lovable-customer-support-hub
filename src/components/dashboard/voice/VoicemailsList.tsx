@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useVoicemails, Voicemail } from '@/hooks/useVoicemails';
 import { AgentAssignmentSelect } from './AgentAssignmentSelect';
+import { CallActionButton } from './CallActionButton';
 import { formatDistanceToNow } from 'date-fns';
 
 const AudioPlayerSimple = ({ src, duration }: { src: string; duration?: number }) => {
@@ -163,8 +164,12 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
         </div>
 
         {/* Actions */}
-        {hasRecording && voicemail.event_data?.recording_url && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          <CallActionButton
+            phoneNumber={voicemail.customer_phone || voicemail.calls?.customer_phone}
+            size="sm"
+          />
+          {hasRecording && voicemail.event_data?.recording_url && (
             <Button
               type="button"
               variant="outline"
@@ -194,8 +199,8 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
               <Download className="h-3 w-3" />
               Download
             </Button>
-          </div>
-        )}
+          )}
+        </div>
 
         {!hasRecording && !hasTranscription && (
           <div className="text-center py-4 text-muted-foreground">
