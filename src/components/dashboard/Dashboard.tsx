@@ -306,9 +306,10 @@ useEffect(() => {
       className={`bg-gradient-surface ${!isMobile ? (showConversationListDesktop ? 'list-expanded' : 'list-collapsed') : ''}`}
       sidebar={!isMobile ? (
         <InboxSidebar 
-          selectedTab={selectedTab} 
+          selectedTab={selectedTab}
           onTabChange={handleTabChange}
           selectedInboxId={selectedInboxId}
+          context="text"
         />
       ) : undefined}
       leftDrawer={

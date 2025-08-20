@@ -27,6 +27,7 @@ interface InboxSidebarProps {
   selectedTab: string;
   onTabChange: (tab: string) => void;
   selectedInboxId?: string;
+  context?: 'text' | 'voice' | 'all';
 }
 
 interface InboxData {
@@ -40,7 +41,7 @@ interface InboxData {
 }
 
 
-export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabChange, selectedInboxId }) => {
+export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabChange, selectedInboxId, context = 'all' }) => {
   const [expandedChannels, setExpandedChannels] = useState(true);
   const [expandedInboxes, setExpandedInboxes] = useState(true);
   const { t } = useTranslation();
@@ -92,13 +93,13 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
   refetchInterval: 30000, // Refetch every 30 seconds
 });
 
-  // Fetch unread notifications count
+  // Fetch context-aware notifications count for current user
   const { data: unreadNotifications = 0 } = useQuery({
-    queryKey: ['unread-notifications'],
+    queryKey: ['unread-notifications', context],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('id')
+        .select('*')
         .eq('is_read', false);
       
       if (error) {
@@ -106,7 +107,26 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
         return 0;
       }
       
-      return data?.length || 0;
+      // Filter notifications based on context
+      const filteredNotifications = data?.filter(notification => {
+        if (context === 'all') return true;
+        
+        const notificationData = typeof notification.data === 'object' && notification.data !== null ? notification.data as any : {};
+        const hasCallId = notificationData.call_id;
+        const isVoiceRelated = hasCallId || 
+          notification.title?.includes('📞') || 
+          notification.title?.includes('🎙️') ||
+          notification.title?.toLowerCase().includes('call') ||
+          notification.title?.toLowerCase().includes('voicemail') ||
+          notification.title?.toLowerCase().includes('callback');
+        
+        if (context === 'voice') return isVoiceRelated;
+        if (context === 'text') return !isVoiceRelated;
+        
+        return true;
+      }) || [];
+      
+      return filteredNotifications.length;
     },
     refetchInterval: 30000, // Refetch every 30 seconds
   });

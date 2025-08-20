@@ -111,11 +111,30 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
+      console.log('Fetching conversations...');
+      
+      // Debug authentication
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user:', user?.id);
+      
+      if (!user) {
+        console.error('No authenticated user found');
+        return [];
+      }
+      
       const { data, error } = await supabase.rpc('get_conversations');
       if (error) {
         console.error('Error fetching conversations:', error);
+        console.error('Error details:', { 
+          message: error.message, 
+          details: error.details, 
+          hint: error.hint,
+          code: error.code 
+        });
         return [];
       }
+      
+      console.log('Raw conversations data:', data);
       // Transform the data to match our interface and filter out voice/call conversations
       return (data as any[])?.filter(conv => 
         // Only include text/email conversations, exclude call-based conversations
