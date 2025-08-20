@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CallActionButton } from './CallActionButton';
 import { CallEvent } from '@/hooks/useCalls';
 import { formatDistanceToNow, format } from 'date-fns';
 
@@ -140,34 +139,23 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
           </div>
 
           {/* Quick Info */}
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex flex-wrap gap-3">
-              {customerPhone && (
-                <div className="flex items-center gap-1">
-                  <Phone className="h-3 w-3 text-muted-foreground" />
-                  <span className="font-medium">{formatPhoneNumber(customerPhone)}</span>
-                </div>
-              )}
-              {duration && (
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-muted-foreground" />
-                  <span>{formatDuration(duration)}</span>
-                </div>
-              )}
-              {dtmfKey && (
-                <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">
-                  DTMF: {dtmfKey}
-                </span>
-              )}
-            </div>
-            
-            {/* Call Action Button */}
+          <div className="flex flex-wrap gap-3 text-xs">
             {customerPhone && (
-              <CallActionButton
-                phoneNumber={customerPhone}
-                size="sm"
-                className="h-5 px-1.5 text-xs"
-              />
+              <div className="flex items-center gap-1">
+                <Phone className="h-3 w-3 text-muted-foreground" />
+                <span className="font-medium">{formatPhoneNumber(customerPhone)}</span>
+              </div>
+            )}
+            {duration && (
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                <span>{formatDuration(duration)}</span>
+              </div>
+            )}
+            {dtmfKey && (
+              <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">
+                DTMF: {dtmfKey}
+              </span>
             )}
           </div>
 
