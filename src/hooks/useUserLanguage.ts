@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import i18n from '@/lib/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useUserLanguage() {
-  const { i18n } = useTranslation();
   const { user } = useAuth();
   const [isReady, setIsReady] = useState(false);
 
@@ -48,7 +47,7 @@ export function useUserLanguage() {
     };
 
     initializeLanguage();
-  }, [user, i18n]);
+  }, [user]);
 
   return { i18n, isReady };
 }
