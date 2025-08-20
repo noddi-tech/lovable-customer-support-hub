@@ -176,10 +176,11 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
         event: e
       });
       
+      console.log('🔧 Resetting all loading states due to audio error');
       setHasError(true);
       setIsLoading(false);
       setIsLoadingAudio(false);
-      setIsGettingFreshUrl(false); // Reset this state too
+      setIsGettingFreshUrl(false);
     };
 
     const handleLoadStart = () => {
@@ -224,6 +225,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
 
   // Reset state when src changes
   useEffect(() => {
+    console.log('🔧 Source changed, resetting states:', { src: src?.substring(0, 50) + '...', isLoading, hasError });
     setIsPlaying(false);
     setCurrentTime(0);
     setIsLoading(true);
@@ -336,9 +338,13 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
           ) : (
             <Play className="h-4 w-4" />
           )}
-          {isLoading ? 'Loading...' : 
-           isGettingFreshUrl ? 'Refreshing...' :
-           isPlaying ? 'Pause' : 'Play'}
+          {(() => {
+            const buttonText = isLoading ? 'Loading...' : 
+                              isGettingFreshUrl ? 'Refreshing...' :
+                              isPlaying ? 'Pause' : 'Play';
+            console.log('🔧 Button state:', { isLoading, isGettingFreshUrl, isPlaying, hasError, buttonText });
+            return buttonText;
+          })()}
         </Button>
 
         {/* Volume control */}
