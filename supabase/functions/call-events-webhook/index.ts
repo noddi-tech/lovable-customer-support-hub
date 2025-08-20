@@ -91,6 +91,7 @@ class AircallAdapter {
       'call.answered': 'call_answered', 
       'call.hungup': 'call_ended',
       'call.ended': 'call_ended',  // Add missing call.ended
+      'call.ended-manual': 'call_ended',  // Add support for manual termination
       'call.missed': 'call_missed',
       'call.transferred': 'call_transferred',
       'call.hold': 'call_on_hold',

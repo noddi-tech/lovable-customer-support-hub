@@ -61,6 +61,9 @@ verify_jwt = false
 [functions.download-voicemail]
 verify_jwt = false
 
+[functions.manual-end-call]
+verify_jwt = true
+
 [functions.test-basic]
 verify_jwt = false
 

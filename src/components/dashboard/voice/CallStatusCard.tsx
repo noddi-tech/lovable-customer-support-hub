@@ -1,5 +1,5 @@
-import React from 'react';
-import { Phone, PhoneCall, PhoneIncoming, PhoneOff, Building2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Phone, PhoneCall, PhoneIncoming, PhoneOff, Building2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { CallActionButton } from './CallActionButton';
 import { formatDistanceToNow } from 'date-fns';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
+import { ManualEndCallDialog } from './ManualEndCallDialog';
 
 interface CallStatusCardProps {
   call: Call;
@@ -17,6 +18,7 @@ interface CallStatusCardProps {
 export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDetails }) => {
   const { getIntegrationByProvider } = useVoiceIntegrations();
   const aircallIntegration = getIntegrationByProvider('aircall');
+  const [isManualEndDialogOpen, setIsManualEndDialogOpen] = useState(false);
   const getStatusIcon = () => {
     switch (call.status) {
       case 'ringing':
@@ -180,6 +182,18 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Check if call can be manually ended (ongoing status)
+  const canBeManuallyEnded = ['ringing', 'answered', 'on_hold', 'transferred'].includes(call.status);
+
+  const handleManualEndCall = () => {
+    setIsManualEndDialogOpen(true);
+  };
+
+  const handleCallEnded = () => {
+    // The parent component should refresh the data
+    // This callback can be used to trigger a refresh
+  };
+
   return (
     <Card className="mb-4">
       <CardHeader className="pb-3">
@@ -300,6 +314,19 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
               </a>
             </Button>
           )}
+          
+          {/* Manual End Call Button - Only show for ongoing calls */}
+          {canBeManuallyEnded && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleManualEndCall}
+              className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              End Manually
+            </Button>
+          )}
         </div>
         
         {/* System ID */}
@@ -309,6 +336,14 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
           </p>
         </div>
       </CardContent>
+      
+      {/* Manual End Call Dialog */}
+      <ManualEndCallDialog
+        isOpen={isManualEndDialogOpen}
+        onClose={() => setIsManualEndDialogOpen(false)}
+        call={call}
+        onCallEnded={handleCallEnded}
+      />
     </Card>
   );
 };
