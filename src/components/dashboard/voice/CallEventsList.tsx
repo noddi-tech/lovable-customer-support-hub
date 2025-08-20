@@ -90,13 +90,13 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
   };
 
   return (
-    <Card className="mb-2">
-      <CardContent className="p-2">
-        <div className="space-y-2">
+    <Card className="mb-1">
+      <CardContent className="px-2 py-1">
+        <div className="space-y-1">
           {/* Event Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <div className={`p-1 rounded-full text-white ${getEventColor(event.event_type)}`}>
+              <div className={`p-0.5 rounded-full text-white ${getEventColor(event.event_type)}`}>
                 {getEventIcon(event.event_type)}
               </div>
               <div>
@@ -161,11 +161,11 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
 
           {/* Expanded Details */}
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <CollapsibleContent className="space-y-2">
+            <CollapsibleContent className="space-y-1">
               {/* Customer Information */}
               {customerPhone && (
-                <div className="border-l-2 border-blue-500 pl-2">
-                  <h4 className="text-xs font-medium text-blue-700 mb-0.5">Customer</h4>
+                <div className="border-l-2 border-blue-500 pl-1.5">
+                  <h4 className="text-xs font-medium text-blue-700">Customer</h4>
                   <div className="text-xs">
                     Phone: {formatPhoneNumber(customerPhone)}
                   </div>
@@ -174,12 +174,12 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
 
               {/* Agent Information */}
               {(agentName || agentEmail) && (
-                <div className="border-l-2 border-green-500 pl-2">
-                  <h4 className="text-xs font-medium text-green-700 mb-0.5 flex items-center gap-1">
+                <div className="border-l-2 border-green-500 pl-1.5">
+                  <h4 className="text-xs font-medium text-green-700 flex items-center gap-1">
                     <User className="h-3 w-3" />
                     Agent
                   </h4>
-                  <div className="text-xs space-y-0.5">
+                  <div className="text-xs">
                     {agentName && <div>{agentName}</div>}
                     {agentEmail && <div className="text-muted-foreground">{agentEmail}</div>}
                   </div>
@@ -188,12 +188,12 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
 
               {/* Phone Line Information */}
               {(lineName || lineNumber) && (
-                <div className="border-l-2 border-purple-500 pl-2">
-                  <h4 className="text-xs font-medium text-purple-700 mb-0.5 flex items-center gap-1">
+                <div className="border-l-2 border-purple-500 pl-1.5">
+                  <h4 className="text-xs font-medium text-purple-700 flex items-center gap-1">
                     <Building2 className="h-3 w-3" />
                     Line
                   </h4>
-                  <div className="text-xs space-y-0.5">
+                  <div className="text-xs">
                     {lineName && <div>{lineName}</div>}
                     {lineNumber && <div className="text-muted-foreground">{formatPhoneNumber(lineNumber)}</div>}
                   </div>
@@ -202,9 +202,9 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
 
               {/* Call Timing */}
               {(answeredAt || endedAt) && (
-                <div className="border-l-2 border-orange-500 pl-2">
-                  <h4 className="text-xs font-medium text-orange-700 mb-0.5">Timing</h4>
-                  <div className="text-xs space-y-0.5">
+                <div className="border-l-2 border-orange-500 pl-1.5">
+                  <h4 className="text-xs font-medium text-orange-700">Timing</h4>
+                  <div className="text-xs">
                     {answeredAt && (
                       <div>Answered: {format(new Date(answeredAt * 1000), 'HH:mm:ss')}</div>
                     )}
@@ -217,11 +217,11 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
 
               {/* IVR Interactions */}
               {ivrOptions.length > 0 && (
-                <div className="border-l-2 border-indigo-500 pl-2">
-                  <h4 className="text-xs font-medium text-indigo-700 mb-0.5">IVR</h4>
-                  <div className="text-xs space-y-0.5">
+                <div className="border-l-2 border-indigo-500 pl-1.5">
+                  <h4 className="text-xs font-medium text-indigo-700">IVR</h4>
+                  <div className="text-xs">
                     {ivrOptions.map((option: any, index: number) => (
-                      <div key={index} className="bg-indigo-50 p-1 rounded text-xs">
+                      <div key={index} className="bg-indigo-50 p-0.5 rounded text-xs">
                         {option.branch} {option.key && `(Key: ${option.key})`}
                       </div>
                     ))}
@@ -234,7 +234,7 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
           {/* JSON Viewer */}
           <Collapsible open={isJsonOpen} onOpenChange={setIsJsonOpen}>
             <CollapsibleContent>
-              <div className="bg-gray-900 text-green-400 p-2 rounded text-xs font-mono max-h-64 overflow-auto">
+              <div className="bg-gray-900 text-green-400 p-1.5 rounded text-xs font-mono max-h-64 overflow-auto">
                 <pre>{JSON.stringify(event.event_data, null, 2)}</pre>
               </div>
             </CollapsibleContent>
@@ -279,7 +279,7 @@ export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
         </Badge>
       </div>
       
-      <div className="space-y-2 max-h-[800px] overflow-y-auto">
+      <div className="space-y-1 max-h-[800px] overflow-y-auto">
         {events.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}
