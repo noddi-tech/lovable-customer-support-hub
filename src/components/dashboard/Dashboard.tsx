@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { InboxSidebar } from './InboxSidebar';
 import { ConversationList } from './ConversationList';
@@ -42,8 +42,22 @@ interface Conversation {
 }
 
 export const Dashboard: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  // Safely access search params - handle case where router context might not be ready
+  let searchParams: URLSearchParams;
+  let navigate: (path: string, options?: any) => void;
+  
+  try {
+    const [params] = useSearchParams();
+    searchParams = params;
+    navigate = useNavigate();
+  } catch (error) {
+    // Fallback when router context is not available
+    console.warn('Router context not available, using fallback');
+    searchParams = new URLSearchParams(window.location.search);
+    navigate = (path: string) => {
+      window.history.pushState({}, '', path);
+    };
+  }
   const [selectedTab, setSelectedTab] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
