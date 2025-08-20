@@ -11,7 +11,7 @@ interface DynamicAudioPlayerProps {
   className?: string;
   onDownload?: () => void;
   autoPlay?: boolean;
-  onGetFreshUrl?: () => Promise<{ localUrl: string }>;
+  onGetFreshUrl?: () => Promise<{ localUrl?: string; error?: string; success?: boolean }>;
 }
 
 export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
@@ -94,10 +94,23 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
         console.log('✅ Got fresh URL:', result.localUrl);
         setSrc(result.localUrl);
         setIsLoading(true);
+      } else if (result?.error) {
+        console.error('❌ Edge function returned error:', result.error);
+        throw new Error(result.error || 'Failed to get playback URL');
       }
     } catch (error) {
       console.error('❌ Failed to get fresh URL:', error);
+      let errorMessage = 'Failed to get fresh URL';
+      
+      // Handle specific error messages from the edge function
+      if (error.message?.includes('Recording not accessible')) {
+        errorMessage = 'Recording URL has expired and cannot be accessed';
+      } else if (error.message?.includes('FunctionsHttpError')) {
+        errorMessage = 'Server error while processing the recording';
+      }
+      
       setHasError(true);
+      // You might want to show a toast notification here
     } finally {
       setIsGettingFreshUrl(false);
     }
