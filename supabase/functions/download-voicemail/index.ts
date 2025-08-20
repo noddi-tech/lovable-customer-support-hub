@@ -21,6 +21,7 @@ serve(async (req) => {
     console.log('🎵 Processing voicemail:', voicemailId, 'URL:', recordingUrl);
 
     if (!recordingUrl) {
+      console.error('❌ No recording URL provided');
       throw new Error('No recording URL provided');
     }
 
@@ -28,14 +29,22 @@ serve(async (req) => {
     console.log('🌐 Fetching audio from URL...');
     const audioResponse = await fetch(recordingUrl);
     
+    console.log('📊 Audio response status:', audioResponse.status, audioResponse.statusText);
+    
     if (!audioResponse.ok) {
-      throw new Error(`Failed to fetch audio: ${audioResponse.status} ${audioResponse.statusText}`);
+      console.error('❌ Failed to fetch audio:', audioResponse.status, audioResponse.statusText);
+      const errorText = await audioResponse.text();
+      console.error('❌ Error response body:', errorText);
+      throw new Error(`Failed to fetch audio: ${audioResponse.status} ${audioResponse.statusText} - ${errorText}`);
     }
 
     // Convert to array buffer then base64
-    console.log('🔄 Converting to base64...');
+    console.log('🔄 Converting to array buffer...');
     const audioBuffer = await audioResponse.arrayBuffer();
+    console.log('📏 Audio buffer size:', audioBuffer.byteLength);
+    
     const audioBytes = new Uint8Array(audioBuffer);
+    console.log('🔄 Converting to base64...');
     
     // Convert to base64 in chunks to avoid call stack issues
     let base64 = '';
