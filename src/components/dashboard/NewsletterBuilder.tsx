@@ -231,7 +231,7 @@ const NewsletterBuilder = () => {
         </div>
 
         {/* Center Canvas */}
-        <div className="list-pane flex flex-col">
+        <div className="list-pane flex flex-col min-h-0">
           <DndContext
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}

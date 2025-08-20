@@ -591,12 +591,13 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  </div>
-                ))}
-             </div>
-           )}
-         </div>
-       </ScrollArea>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        </div>
+      </ScrollArea>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
