@@ -17,10 +17,41 @@ serve(async (req) => {
   try {
     console.log('📞 Starting download-voicemail function...');
     
+    const { voicemailId, recordingUrl } = await req.json();
+    console.log('🎵 Processing voicemail:', voicemailId, 'URL:', recordingUrl);
+
+    if (!recordingUrl) {
+      throw new Error('No recording URL provided');
+    }
+
+    // Fetch the audio file from the recording URL
+    console.log('🌐 Fetching audio from URL...');
+    const audioResponse = await fetch(recordingUrl);
+    
+    if (!audioResponse.ok) {
+      throw new Error(`Failed to fetch audio: ${audioResponse.status} ${audioResponse.statusText}`);
+    }
+
+    // Convert to array buffer then base64
+    console.log('🔄 Converting to base64...');
+    const audioBuffer = await audioResponse.arrayBuffer();
+    const audioBytes = new Uint8Array(audioBuffer);
+    
+    // Convert to base64 in chunks to avoid call stack issues
+    let base64 = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < audioBytes.length; i += chunkSize) {
+      const chunk = audioBytes.slice(i, i + chunkSize);
+      base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+    }
+
+    console.log('✅ Successfully converted audio to base64, length:', base64.length);
+
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: 'Edge function is working!',
+        base64Data: base64,
+        mimeType: 'audio/mpeg',
         timestamp: new Date().toISOString()
       }),
       { 
