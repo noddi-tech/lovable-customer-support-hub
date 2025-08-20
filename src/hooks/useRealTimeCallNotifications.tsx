@@ -40,7 +40,11 @@ export const useRealTimeCallNotifications = () => {
   const aircallIntegration = getIntegrationByProvider('aircall');
   const processedEventsRef = useRef(new Set<string>());
 
+  console.log('🔍 useRealTimeCallNotifications hook initialized', { aircallIntegration });
+
   useEffect(() => {
+    console.log('📡 useRealTimeCallNotifications: Setting up subscriptions...');
+    
     // Create managed subscription for call events
     const unsubscribeCallEvents = createManagedSubscription(
       'call-events-notifications',

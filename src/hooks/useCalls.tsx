@@ -43,6 +43,8 @@ export function useCalls() {
   const { toast } = useToast();
   const { createManagedSubscription } = useRealtimeConnectionManager();
 
+  console.log('🔍 useCalls hook initialized');
+
   const { data: calls = [], isLoading, error } = useQuery({
     queryKey: ['calls'],
     queryFn: async () => {
@@ -72,6 +74,8 @@ export function useCalls() {
 
   // Set up managed real-time subscriptions
   useEffect(() => {
+    console.log('📡 useCalls: Setting up realtime subscriptions...');
+    
     const unsubscribeCalls = createManagedSubscription(
       'calls-changes',
       (channel) => channel.on('postgres_changes', {
