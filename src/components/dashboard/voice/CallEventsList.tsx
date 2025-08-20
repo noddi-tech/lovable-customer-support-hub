@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Phone, PhoneCall, PhoneOff, AlertCircle, User, Building2, ArrowUpRight, ArrowDownLeft, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, Phone, PhoneCall, PhoneOff, AlertCircle, User, Building2, ArrowUpRight, ArrowDownLeft, Eye, EyeOff, ChevronDown, ChevronUp, Filter, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ interface CallEventsListProps {
   events: CallEvent[];
 }
 
-const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
+const EventCard: React.FC<{ event: CallEvent; onFilter: (callId: string) => void }> = ({ event, onFilter }) => {
   const [isJsonOpen, setIsJsonOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -117,6 +117,15 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onFilter(event.call_id)}
+                className="h-5 px-1.5 text-xs"
+                title="Filter by this call"
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -246,6 +255,20 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
 };
 
 export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
+  const [filteredCallId, setFilteredCallId] = useState<string | null>(null);
+
+  const handleFilter = (callId: string) => {
+    setFilteredCallId(callId);
+  };
+
+  const handleClearFilter = () => {
+    setFilteredCallId(null);
+  };
+
+  const filteredEvents = filteredCallId 
+    ? events.filter(event => event.call_id === filteredCallId)
+    : events;
+
   if (events.length === 0) {
     return (
       <Card>
@@ -267,6 +290,27 @@ export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
 
   return (
     <div className="space-y-4">
+      {/* Filter indicator */}
+      {filteredCallId && (
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-900">
+              Filtered by Call ID: {filteredCallId}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearFilter}
+            className="h-6 px-2 text-blue-600 hover:text-blue-800"
+          >
+            <X className="h-3 w-3" />
+            Clear Filter
+          </Button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Call Events Log</h3>
@@ -275,13 +319,13 @@ export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
           </p>
         </div>
         <Badge variant="secondary" className="text-xs">
-          {events.length} events
+          {filteredEvents.length} events
         </Badge>
       </div>
       
       <div className="space-y-1 max-h-[800px] overflow-y-auto">
-        {events.map((event) => (
-          <EventCard key={event.id} event={event} />
+        {filteredEvents.map((event) => (
+          <EventCard key={event.id} event={event} onFilter={handleFilter} />
         ))}
       </div>
     </div>
