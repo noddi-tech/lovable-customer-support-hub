@@ -104,7 +104,7 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   }
 
   return (
-    <div className="flex flex-1 min-h-0 bg-background">
+    <div className="flex flex-1 min-h-0">
       {/* Conversation List Pane */}
       {shouldShowConversationList && (
         <div className={cn(
