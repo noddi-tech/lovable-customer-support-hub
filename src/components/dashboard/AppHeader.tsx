@@ -170,12 +170,54 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 
+                // If tab has subtabs, render as dropdown
+                if (tab.subTabs && tab.subTabs.length > 0) {
+                  return (
+                    <DropdownMenu key={tab.id}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant={isActive ? "default" : "ghost"}
+                          size="sm"
+                          className={cn(
+                            "flex items-center gap-2",
+                            isActive && "bg-primary text-primary-foreground"
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{tab.label}</span>
+                          {tab.id === 'interactions' && unreadCount > 0 && (
+                            <Badge variant="destructive" className="h-4 px-1 text-xs ml-1">
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </Badge>
+                          )}
+                          <ChevronDown className="h-3 w-3 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {tab.subTabs.map((subTab) => (
+                          <DropdownMenuItem
+                            key={subTab.id}
+                            onClick={() => onTabChange(tab.id, subTab.id)}
+                            className={cn(
+                              "cursor-pointer",
+                              activeTab === tab.id && activeSubTab === subTab.id && "bg-accent font-medium"
+                            )}
+                          >
+                            {subTab.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+                }
+                
+                // Regular tab without subtabs
                 return (
                   <Button
                     key={tab.id}
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
-                    onClick={() => onTabChange(tab.id, tab.subTabs[0]?.id || '')}
+                    onClick={() => onTabChange(tab.id, '')}
                     className={cn(
                       "flex items-center gap-2",
                       isActive && "bg-primary text-primary-foreground"
@@ -183,30 +225,77 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   >
                     <Icon className="h-4 w-4" />
                     <span>{tab.label}</span>
-                    {tab.id === 'interactions' && unreadCount > 0 && (
-                      <Badge variant="destructive" className="h-4 px-1 text-xs ml-1">
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </Badge>
-                    )}
                   </Button>
                 );
               })}
             </nav>
           )}
 
-          {/* Current Tab/Sub-tab Display - Mobile */}
-          {isMobile && (
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="font-semibold text-sm truncate">
-                {activeMainTab?.label}
-              </span>
-              {activeMainTab?.subTabs.length > 0 && (
-                <span className="text-xs text-muted-foreground truncate">
-                  {activeMainTab.subTabs.find(st => st.id === activeSubTab)?.label}
-                </span>
-              )}
-            </div>
-          )}
+      {/* Mobile Navigation - Show current tab and subtab */}
+      {isMobile && (
+        <div className="flex flex-col min-w-0 flex-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="justify-start text-left h-auto py-1">
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sm truncate">
+                    {activeMainTab?.label}
+                  </span>
+                  {activeMainTab?.subTabs.length > 0 && (
+                    <span className="text-xs text-muted-foreground truncate">
+                      {activeMainTab.subTabs.find(st => st.id === activeSubTab)?.label}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {mainTabs.map((tab) => {
+                const Icon = tab.icon;
+                
+                if (tab.subTabs && tab.subTabs.length > 0) {
+                  return (
+                    <div key={tab.id}>
+                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                        <Icon className="h-4 w-4 inline mr-2" />
+                        {tab.label}
+                      </div>
+                      {tab.subTabs.map((subTab) => (
+                        <DropdownMenuItem
+                          key={`${tab.id}-${subTab.id}`}
+                          onClick={() => onTabChange(tab.id, subTab.id)}
+                          className={cn(
+                            "pl-8 cursor-pointer",
+                            activeTab === tab.id && activeSubTab === subTab.id && "bg-accent font-medium"
+                          )}
+                        >
+                          {subTab.label}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                    </div>
+                  );
+                }
+                
+                return (
+                  <DropdownMenuItem
+                    key={tab.id}
+                    onClick={() => onTabChange(tab.id, '')}
+                    className={cn(
+                      "cursor-pointer",
+                      activeTab === tab.id && "bg-accent font-medium"
+                    )}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {tab.label}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
         </div>
 
         {/* Right Section - Actions, User Menu */}
@@ -270,61 +359,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </header>
 
-      {/* Mobile Subtabs Dropdown - Only show when needed */}
-      {isMobile && activeMainTab?.subTabs.length > 0 && (
-        <div className="border-t border-border/50 bg-muted/30">
-          <div className="px-4 py-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full justify-between">
-                  {activeMainTab.subTabs.find(tab => tab.id === activeSubTab)?.label || 'Select Section'}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-full" align="start">
-                {activeMainTab.subTabs.map((subTab) => (
-                  <DropdownMenuItem
-                    key={subTab.id}
-                    onClick={() => onTabChange(activeTab, subTab.id)}
-                    className={cn(
-                      activeSubTab === subTab.id && "bg-accent"
-                    )}
-                  >
-                    {subTab.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop Subtabs Menubar - Only show when needed */}
-      {!isMobile && activeMainTab?.subTabs.length > 0 && (
-        <div className="px-4 py-2 bg-muted/20">
-          <Menubar className="border-none bg-transparent h-8">
-            <MenubarMenu>
-              <MenubarTrigger className="data-[state=open]:bg-muted px-3 py-1 text-sm">
-                {activeMainTab.subTabs.find(tab => tab.id === activeSubTab)?.label || 'Sections'}
-              </MenubarTrigger>
-              <MenubarContent>
-                {activeMainTab.subTabs.map((subTab) => (
-                  <MenubarItem
-                    key={subTab.id}
-                    onClick={() => onTabChange(activeTab, subTab.id)}
-                    className={cn(
-                      "cursor-pointer",
-                      activeSubTab === subTab.id && "bg-accent font-medium"
-                    )}
-                  >
-                    {subTab.label}
-                  </MenubarItem>
-                ))}
-              </MenubarContent>
-            </MenubarMenu>
-          </Menubar>
-        </div>
-      )}
     </div>
   );
 };
