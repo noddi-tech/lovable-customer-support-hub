@@ -332,7 +332,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
   return (
-    <div className="flex flex-col bg-gradient-surface h-full">
+    <div className="flex flex-col bg-gradient-surface min-h-0 h-full">
       {/* Header - Fixed with better responsive layout */}
       <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -404,7 +404,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       </div>
       
       {/* Conversation List - Scrollable with responsive layout */}
-      <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch" aria-label="Conversations list">
+      <ScrollArea className="flex-1 h-0 min-h-0" aria-label="Conversations list">
         {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">
               <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
@@ -595,7 +595,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
             </div>
           </div>
         )}
-      </div>
+      </ScrollArea>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

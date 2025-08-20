@@ -114,7 +114,7 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
       
       {/* Conversation View Pane */}
       <div className={cn(
-        "flex flex-col bg-background",
+        "flex flex-col bg-background min-h-0",
         isMobile ? "w-full" : "flex-1 min-w-0"
       )}>
         {/* Show/Hide Conversation List Button - Desktop only */}

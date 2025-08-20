@@ -552,18 +552,18 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         {/* Messages and Reply Area */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Messages Area - Scrollable */}
-          <div 
-            ref={messagesContainerRef}
-            className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch p-3 md:p-6" 
-            aria-label="Conversation messages"
-          >
-            <div className="space-y-4 max-w-4xl mx-auto w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
-              {messages.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>{t('conversation.noMessages')}</p>
-                </div>
-              ) : (
+          <ScrollArea className="flex-1 h-0 min-h-0" aria-label="Conversation messages">
+            <div 
+              ref={messagesContainerRef}
+              className="p-3 md:p-6"
+            >
+              <div className="space-y-4 max-w-4xl mx-auto w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
+                {messages.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>{t('conversation.noMessages')}</p>
+                  </div>
+                ) : (
                 messages.map((message, index) => {
                   const isFromCustomer = message.sender_type === 'customer';
                   
@@ -727,13 +727,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   </div>
                 </div>
               )}
+              </div>
             </div>
-          </div>
+          </ScrollArea>
         </div>
 
         {/* Customer Info Sidebar - Desktop Only */}
         <div className="hidden lg:block w-80 border-l border-border bg-card/50 backdrop-blur-sm">
-          <div className="h-full overflow-y-auto p-4 space-y-6">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-6">
             {/* Reply Actions - Top Priority */}
             {conversation.status === 'open' && !conversation.is_archived && (
               <div>
@@ -872,7 +874,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <div>Last updated: {conversation.updated_at ? dateTime(conversation.updated_at) : 'N/A'}</div>
               </div>
             </div>
-          </div>
+            </div>
+          </ScrollArea>
         </div>
         
         {/* Mobile-optimized floating reply button */}
