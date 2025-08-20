@@ -124,8 +124,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       console.log('Raw conversations data:', data);
       // Transform the data to match our interface and filter out voice/call conversations
       return (data as any[])?.filter(conv => 
-        // Only include text/email conversations, exclude call-based conversations
-        conv.call_id === null && 
+        // Only include text/email conversations, exclude call-based conversations by channel
         ['email', 'chat', 'social', 'facebook', 'instagram', 'whatsapp'].includes(conv.channel)
       ).map(conv => ({
         ...conv,
