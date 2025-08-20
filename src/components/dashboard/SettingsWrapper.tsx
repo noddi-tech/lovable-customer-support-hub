@@ -14,8 +14,11 @@ import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import { NotificationsList } from '@/components/notifications/NotificationsList';
 import { useTranslation } from 'react-i18next';
 
-const SettingsWrapper = () => {
-  const [activeSubSection, setActiveSubSection] = useState('general');
+interface SettingsWrapperProps {
+  activeSubSection?: string;
+}
+
+const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'general' }) => {
   const { loading } = useAuth();
   const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const { t } = useTranslation();
@@ -145,43 +148,12 @@ const SettingsWrapper = () => {
   };
 
   return (
-    <div className="h-full">
-      <Tabs value={activeSubSection} onValueChange={setActiveSubSection} className="h-full flex flex-col">
-        <TabsList className="grid w-full grid-cols-6 mb-4">
-          <TabsTrigger value="general">
-            <Settings className="h-4 w-4 mr-2" />
-            General
-          </TabsTrigger>
-          <TabsTrigger value="profile">
-            <User className="h-4 w-4 mr-2" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="notifications">
-            <Bell className="h-4 w-4 mr-2" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="email-templates">
-            <Mail className="h-4 w-4 mr-2" />
-            Email Templates
-          </TabsTrigger>
-          <TabsTrigger value="users">
-            <Users className="h-4 w-4 mr-2" />
-            Users
-          </TabsTrigger>
-          <TabsTrigger value="admin">
-            <Shield className="h-4 w-4 mr-2" />
-            Admin
-          </TabsTrigger>
-        </TabsList>
-
-        <div className="flex-1 overflow-auto">
-          <div className="container mx-auto py-8 px-4">
-            <div className="max-w-6xl mx-auto">
-              {renderContent()}
-            </div>
-          </div>
+    <div className="h-full overflow-auto">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          {renderContent()}
         </div>
-      </Tabs>
+      </div>
     </div>
   );
 };
