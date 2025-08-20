@@ -339,7 +339,7 @@ export function NotificationsList({ context = 'all' }: NotificationsListProps = 
       </div>
 
       {/* Notifications List */}
-      <ScrollArea className="flex-1">
+      <div className="pane flex-1">
         <div className="p-6 space-y-4">
           {notifications.length === 0 ? (
             <Card>
@@ -482,7 +482,7 @@ export function NotificationsList({ context = 'all' }: NotificationsListProps = 
             ))
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

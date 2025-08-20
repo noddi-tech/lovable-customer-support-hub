@@ -161,7 +161,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
       </div>
 
       {/* Inbox Categories - Scrollable Content */}
-      <ScrollArea className="flex-1 h-0 min-h-0">
+      <div className="pane flex-1 min-h-0">
         <div className="px-2">
           <div className="flex items-center justify-between px-2 py-2">
             <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inbox')}</h3>
@@ -340,7 +340,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
