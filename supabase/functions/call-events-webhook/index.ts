@@ -96,6 +96,7 @@ class AircallAdapter {
       'call.hold': 'call_on_hold',
       'call.unhold': 'call_resumed',
       'call.voicemail': 'voicemail_left',
+      'call.voicemail_left': 'voicemail_left',  // Fix: Add mapping for call.voicemail_left
       'call.ivr_option_selected': 'dtmf_pressed'  // Map to appropriate event type
     };
 
