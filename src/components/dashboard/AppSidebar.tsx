@@ -41,6 +41,7 @@ interface InboxData {
   name: string;
   color: string;
   conversation_count: number;
+  is_active: boolean;
 }
 
 interface AppSidebarProps {

@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { AppHeader } from '@/components/dashboard/AppHeader';
 import { AppSidebar } from '@/components/dashboard/AppSidebar';
 import { InteractionsLayout } from '@/components/dashboard/InteractionsLayout';
-import { NewsletterBuilder } from '@/components/dashboard/NewsletterBuilder';
+import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
 import { SMSInterface } from '@/components/dashboard/SMSInterface';
-import { ServiceTicketsInterface } from '@/components/dashboard/ServiceTicketsInterface';
-import { DoormanInterface } from '@/components/dashboard/DoormanInterface';
+import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
+import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
-import { SettingsWrapper } from '@/components/dashboard/SettingsWrapper';
+import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-responsive';
 
@@ -60,7 +60,7 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange 
             return <ServiceTicketsInterface />;
         }
       case 'settings':
-        return <SettingsWrapper />;
+        return <SettingsWrapper activeSubSection={activeSubTab} />;
       default:
         return (
           <InteractionsLayout
