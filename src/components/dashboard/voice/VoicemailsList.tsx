@@ -123,12 +123,18 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
             title="Voicemail Recording"
             duration={voicemail.event_data.duration}
             onGetFreshUrl={async () => {
-              console.log('🔄 Getting fresh URL for playback...');
-              const result = await getPlaybackUrl({ 
-                voicemailId: voicemail.id, 
-                recordingUrl: voicemail.event_data?.recording_url || '' 
-              });
-              return result;
+              console.log('🔄 DynamicAudioPlayer requesting fresh URL...');
+              try {
+                const result = await getPlaybackUrl({ 
+                  voicemailId: voicemail.id, 
+                  recordingUrl: voicemail.event_data?.recording_url || '' 
+                });
+                console.log('🔄 getPlaybackUrl result:', result);
+                return result;
+              } catch (error) {
+                console.error('🔄 getPlaybackUrl failed:', error);
+                throw error;
+              }
             }}
             onDownload={() => {
               console.log('Download clicked for voicemail:', recordingUrl);

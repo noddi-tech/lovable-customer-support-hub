@@ -82,21 +82,29 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
 
   // Get fresh URL when needed
   const getFreshUrlAndRetry = async () => {
-    if (!onGetFreshUrl) return;
+    if (!onGetFreshUrl) {
+      console.log('❌ No onGetFreshUrl function provided');
+      return;
+    }
     
     try {
       setIsGettingFreshUrl(true);
       setHasError(false);
-      console.log('🔄 Getting fresh URL for playback...');
+      console.log('🔄 Starting fresh URL request...');
       
       const result = await onGetFreshUrl();
+      console.log('🔄 Fresh URL result received:', result);
+      
       if (result?.localUrl) {
-        console.log('✅ Got fresh URL:', result.localUrl);
+        console.log('✅ Setting new source URL:', result.localUrl.substring(0, 100) + '...');
         setSrc(result.localUrl);
         setIsLoading(true);
       } else if (result?.error) {
         console.error('❌ Edge function returned error:', result.error);
         throw new Error(result.error || 'Failed to get playback URL');
+      } else {
+        console.error('❌ No valid response from server:', result);
+        throw new Error('No valid URL returned from server'); 
       }
     } catch (error) {
       console.error('❌ Failed to get fresh URL:', error);
