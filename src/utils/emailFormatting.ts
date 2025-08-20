@@ -3,6 +3,7 @@
 import DOMPurify from 'dompurify';
 import { convertShortcodesToEmojis } from './emojiUtils';
 import { formatPlainTextEmail } from './plainTextEmailFormatter';
+import { createPlaceholder, rewriteImageSources } from './imageAssetHandler';
 
 export interface EmailAttachment {
   filename: string;
@@ -10,9 +11,52 @@ export interface EmailAttachment {
   attachmentId: string;
   size: number;
   contentId?: string;
+  contentLocation?: string;
   isInline?: boolean;
   contentDisposition?: string;
 }
+
+// Asset indexes for efficient image resolution
+interface AssetInfo {
+  attachment: EmailAttachment;
+  signedUrl?: string;
+  blobUrl?: string;
+}
+
+// Normalize CID for consistent lookups
+const normalizeCid = (cid: string): string => {
+  return cid.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase();
+};
+
+// Normalize Content-Location for consistent lookups
+const normalizeContentLocation = (location: string): string => {
+  if (location.startsWith('http://') || location.startsWith('https://')) {
+    return location.toLowerCase();
+  }
+  return location.split('/').pop()?.toLowerCase() || location.toLowerCase();
+};
+
+// Build asset indexes from attachments
+const buildAssetIndexes = (attachments: EmailAttachment[]) => {
+  const byContentId = new Map<string, AssetInfo>();
+  const byContentLocation = new Map<string, AssetInfo>();
+  
+  attachments.forEach(attachment => {
+    const assetInfo: AssetInfo = { attachment };
+    
+    if (attachment.contentId) {
+      const normalizedCid = normalizeCid(attachment.contentId);
+      byContentId.set(normalizedCid, assetInfo);
+    }
+    
+    if (attachment.contentLocation) {
+      const normalizedLocation = normalizeContentLocation(attachment.contentLocation);
+      byContentLocation.set(normalizedLocation, assetInfo);
+    }
+  });
+  
+  return { byContentId, byContentLocation };
+};
 
 /**
  * Enhanced email HTML sanitization with strict security and formatting controls
@@ -34,7 +78,7 @@ export const sanitizeEmailHTML = (
       'href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan', 
       'align', 'cellpadding', 'cellspacing', 'style'
     ],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|blob|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link', 'style'],
     FORBID_ATTR: ['javascript:', 'vbscript:', 'on*'],
     // Enhanced data URL filtering - only allow safe image data URLs
@@ -63,12 +107,16 @@ export const sanitizeEmailHTML = (
         if (node.tagName === 'IMG') {
           const src = node.getAttribute('src');
           
-          // Handle data URLs with strict filtering
+          // Handle data URLs with strict filtering and size limit
           if (src?.startsWith('data:')) {
             const safeDataPattern = /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i;
-            if (!safeDataPattern.test(src)) {
-              node.setAttribute('src', '');
-              node.setAttribute('alt', node.getAttribute('alt') || 'Unsafe image blocked');
+            const dataSizeInBytes = src.length * 0.75; // Approximate base64 to bytes conversion
+            const maxSizeInBytes = 1024 * 1024; // 1MB limit
+            
+            if (!safeDataPattern.test(src) || dataSizeInBytes > maxSizeInBytes) {
+              node.setAttribute('src', createPlaceholder('data-rejected'));
+              node.setAttribute('alt', node.getAttribute('alt') || 'Data image rejected');
+              node.setAttribute('data-error', 'data-rejected');
             }
           }
           
@@ -78,7 +126,7 @@ export const sanitizeEmailHTML = (
           node.setAttribute('referrerpolicy', 'no-referrer');
           
           // Block external images by default for privacy
-          if (src && !src.startsWith('cid:') && !src.startsWith('/') && !src.startsWith('data:')) {
+          if (src && !src.startsWith('cid:') && !src.startsWith('/') && !src.startsWith('data:') && !src.startsWith('blob:')) {
             node.setAttribute('data-original-src', src);
             node.setAttribute('src', '');
             node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
@@ -112,39 +160,45 @@ export const sanitizeEmailHTML = (
     }
   };
 
+  // Build asset indexes for efficient lookups
+  const { byContentId, byContentLocation } = buildAssetIndexes(attachments);
+  
   let processedContent = htmlContent;
-
-  // Handle inline images with CID references
-  if (attachments && attachments.length > 0) {
-    attachments.forEach(attachment => {
-      if (attachment.isInline && attachment.contentId) {
-        const cidPattern = new RegExp(`cid:${attachment.contentId.replace(/[<>]/g, '')}`, 'gi');
-        const srcCidPattern = new RegExp(`src=["']cid:${attachment.contentId.replace(/[<>]/g, '')}["']`, 'gi');
-        
-        // Use Supabase edge function to fetch attachment data
-        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}`;
-        
-        processedContent = processedContent.replace(cidPattern, attachmentUrl);
-        processedContent = processedContent.replace(srcCidPattern, `src="${attachmentUrl}"`);
-      }
-    });
-  }
-
-  // Also handle CID references that might not have attachments data but are in content
+  
+  // Initial CID rewriting for immediate resolution
   processedContent = processedContent.replace(
     /src=["']cid:([^"']+)["']/gi,
     (match, cidId) => {
-      // Try to find attachment by CID
-      const attachment = attachments?.find(att => 
-        att.contentId && att.contentId.replace(/[<>]/g, '') === cidId
-      );
+      const normalizedCid = normalizeCid(cidId);
+      const assetInfo = byContentId.get(normalizedCid);
       
-      if (attachment) {
-        return `src="${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}"`;
+      if (assetInfo) {
+        // Use edge function URL for immediate loading
+        return `src="${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}"`;
       }
       
-      // Fallback to a placeholder for missing attachments
-      return `src="data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="#f3f4f6"/><text x="100" y="55" text-anchor="middle" fill="#9ca3af" font-size="12">Image unavailable</text></svg>')}"`;
+      // Placeholder for missing CID
+      return `src="${createPlaceholder('cid-miss')}"`;
+    }
+  );
+  
+  // Handle Content-Location references
+  processedContent = processedContent.replace(
+    /src=["']([^"']+)["']/gi,
+    (match, src) => {
+      // Skip if already processed or is absolute URL
+      if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('blob:') || src.includes('get-attachment')) {
+        return match;
+      }
+      
+      const normalizedLocation = normalizeContentLocation(src);
+      const assetInfo = byContentLocation.get(normalizedLocation);
+      
+      if (assetInfo) {
+        return `src="${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}"`;
+      }
+      
+      return match; // Keep original if no match found
     }
   );
 
@@ -179,77 +233,76 @@ export const sanitizeEmailHTML = (
 
   // Apply minimal styling that preserves original email design
   return `
-    <div class="email-html-content" style="
-      max-width: 100%;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
-      margin: 0;
-      padding: 0;
+    <div class="email-render" style="
+      max-width: 700px;
+      margin: 0 auto;
+      overflow-wrap: anywhere;
       background-color: transparent;
     ">
       <style>
-        .email-html-content {
-          /* Only essential variables for responsive behavior */
-          --email-max-width: 100%;
+        /* CSP-compliant email rendering styles */
+        .email-render {
+          --email-max-width: 700px;
         }
         
         /* Force readable colors for elements without explicit color */
-        .email-html-content :not([style*="color"]):not([color]) {
+        .email-render :not([style*="color"]):not([color]) {
           color: inherit !important;
         }
         
         /* Minimal reset to preserve original email styling */
-        .email-html-content * {
+        .email-render * {
           box-sizing: border-box;
         }
         
         /* Preserve original table layouts and spacing */
-        .email-html-content table {
+        .email-render table {
           border-collapse: collapse;
           mso-table-lspace: 0pt !important;
           mso-table-rspace: 0pt !important;
         }
         
-        /* Ensure images are responsive */
-        .email-html-content img {
+        /* Enhanced image rendering with proper scaling */
+        .email-render img {
           max-width: 100% !important;
           height: auto !important;
+          display: block;
           border: 0;
         }
         
         /* Preserve link styling but keep contrast */
-        .email-html-content a {
+        .email-render a {
           word-break: break-word;
           color: inherit !important;
           text-decoration: underline;
         }
         
         /* Subtle hr to match current text color */
-        .email-html-content hr {
+        .email-render hr {
           border: none;
           border-top: 1px solid currentColor;
           opacity: 0.2;
           margin: 20px 0;
         }
         
-        /* Mobile responsive adjustments only */
+        /* Mobile responsive adjustments */
         @media (max-width: 600px) {
-          .email-html-content table[width="600"] {
+          .email-render table[width="600"] {
             width: 100% !important;
           }
           
-          .email-html-content .structure__table {
+          .email-render .structure__table {
             width: 100% !important;
           }
           
           /* Ensure mobile padding on containers */
-          .email-html-content [style*="padding:15px 60px"] {
+          .email-render [style*="padding:15px 60px"] {
             padding: 15px 20px !important;
           }
         }
         
         /* Preserve email-specific MSO styles for Outlook compatibility */
-        .email-html-content [style*="mso-line-height-rule"] {
+        .email-render [style*="mso-line-height-rule"] {
           line-height: inherit;
         }
       </style>

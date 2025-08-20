@@ -403,31 +403,57 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         let contentType = 'text';
         let attachments: any[] = [];
 
-        // Function to extract attachments and inline images
+        // Enhanced function to extract attachments, inline images, and Content-Location assets
         const extractAttachments = (parts: any[]) => {
           const attachmentList: any[] = [];
           
           for (const part of parts) {
-            if (part.filename && part.body?.attachmentId) {
-              // Regular attachment
-              attachmentList.push({
-                filename: part.filename,
+            const headers = part.headers || [];
+            const contentDisposition = headers.find((h: any) => h.name === 'Content-Disposition')?.value;
+            const contentId = headers.find((h: any) => h.name === 'Content-ID')?.value;
+            const contentLocation = headers.find((h: any) => h.name === 'Content-Location')?.value;
+            
+            // Normalize Content-ID (remove angle brackets, lowercase)
+            const normalizedContentId = contentId ? 
+              contentId.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase() : undefined;
+            
+            // Normalize Content-Location (extract filename or keep as URL)
+            const normalizedContentLocation = contentLocation ? 
+              (contentLocation.includes('/') ? contentLocation.split('/').pop() : contentLocation).toLowerCase() : undefined;
+            
+            // Include any part with attachmentId (regular attachments, inline images, or Content-Location assets)
+            // This includes parts marked as "attachment" that might actually be inline (Outlook compatibility)
+            if (part.body?.attachmentId) {
+              const baseAttachment = {
+                filename: part.filename || (normalizedContentId ? `image_${normalizedContentId}` : `asset_${Date.now()}`),
                 mimeType: part.mimeType,
                 attachmentId: part.body.attachmentId,
                 size: part.body.size || 0,
-                contentDisposition: part.headers?.find((h: any) => h.name === 'Content-Disposition')?.value
-              });
-            } else if (part.headers?.find((h: any) => h.name === 'Content-ID') && part.body?.attachmentId) {
-              // Inline image
-              const contentId = part.headers.find((h: any) => h.name === 'Content-ID')?.value?.replace(/[<>]/g, '');
-              attachmentList.push({
-                filename: part.filename || `image_${contentId}`,
-                mimeType: part.mimeType,
-                attachmentId: part.body.attachmentId,
-                size: part.body.size || 0,
-                contentId: contentId,
-                isInline: true
-              });
+                contentDisposition: contentDisposition
+              };
+              
+              // Add Content-ID information if present
+              if (normalizedContentId) {
+                attachmentList.push({
+                  ...baseAttachment,
+                  contentId: normalizedContentId,
+                  isInline: true
+                });
+              }
+              
+              // Add Content-Location information if present (separate entry for lookup)
+              if (normalizedContentLocation) {
+                attachmentList.push({
+                  ...baseAttachment,
+                  contentLocation: normalizedContentLocation,
+                  isInline: contentDisposition !== 'attachment'
+                });
+              }
+              
+              // If neither Content-ID nor Content-Location, it's a regular attachment
+              if (!normalizedContentId && !normalizedContentLocation) {
+                attachmentList.push(baseAttachment);
+              }
             }
             
             // Recursively process nested parts

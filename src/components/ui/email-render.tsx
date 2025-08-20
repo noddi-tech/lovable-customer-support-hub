@@ -1,8 +1,9 @@
-import React, { useState, useCallback, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useCallback, useMemo, Suspense, lazy, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Download, Eye, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment } from '@/utils/emailFormatting';
+import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
 
 interface EmailRenderProps {
   content: string;
@@ -86,6 +87,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   const { toast } = useToast();
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [imageProcessingComplete, setImageProcessingComplete] = useState(false);
   const isHTML = useMemo(() => 
     contentType.toLowerCase().includes('html') || /<[^>]+>/.test(content),
     [content, contentType]
@@ -285,6 +287,64 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   const hasBlockedImages = useMemo(() => {
     return isHTML && content.includes('Image blocked for privacy');
   }, [isHTML, content]);
+
+  // Enhanced image processing effect
+  useEffect(() => {
+    if (!isHTML || !attachments.length) {
+      setImageProcessingComplete(true);
+      return;
+    }
+
+    const processImages = async () => {
+      try {
+        const container = document.querySelector('.email-render__html-content') as HTMLElement;
+        if (!container) return;
+
+        // Build asset indexes
+        const byContentId = new Map();
+        const byContentLocation = new Map();
+        
+        attachments.forEach(attachment => {
+          if (attachment.contentId) {
+            const normalizedCid = attachment.contentId.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase();
+            byContentId.set(normalizedCid, { attachment });
+          }
+          
+          if (attachment.contentLocation) {
+            const normalizedLocation = attachment.contentLocation.includes('/') 
+              ? attachment.contentLocation.split('/').pop()?.toLowerCase() 
+              : attachment.contentLocation.toLowerCase();
+            if (normalizedLocation) {
+              byContentLocation.set(normalizedLocation, { attachment });
+            }
+          }
+        });
+
+        // Process images with enhanced error handling
+        await rewriteImageSources(container, byContentId, byContentLocation, messageId);
+        setImageProcessingComplete(true);
+        
+        // Log processing stats for debugging
+        const errorStats = getImageErrorStats();
+        if (Object.values(errorStats).some(count => count > 0)) {
+          console.log('[EmailRender] Image processing stats:', errorStats);
+        }
+      } catch (error) {
+        console.error('[EmailRender] Image processing failed:', error);
+        setImageProcessingComplete(true);
+      }
+    };
+
+    const timer = setTimeout(processImages, 100); // Small delay to ensure DOM is ready
+    return () => clearTimeout(timer);
+  }, [isHTML, attachments, messageId]);
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      cleanupObjectUrls();
+    };
+  }, []);
 
   return (
     <article 
