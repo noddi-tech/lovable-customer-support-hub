@@ -95,11 +95,11 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   const shouldShowConversationList = isMobile ? showConversationList : showConversationListDesktop;
   
   return (
-    <div className="h-full w-full flex bg-background">
+    <div className="flex-1 min-h-0 w-full flex bg-background">
       {/* Conversation List Pane */}
       {shouldShowConversationList && (
         <div className={cn(
-          "flex flex-col bg-card border-r border-border",
+          "flex flex-col bg-card border-r border-border min-h-0",
           isMobile ? "w-full" : "w-[400px] flex-shrink-0"
         )}>
           <ConversationList 

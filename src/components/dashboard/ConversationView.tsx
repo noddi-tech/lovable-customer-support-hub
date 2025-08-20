@@ -439,7 +439,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   }
 
   return (
-    <div className="h-full w-full flex flex-col bg-gradient-surface">
+    <div className="flex-1 min-h-0 w-full flex flex-col bg-gradient-surface">
       {/* Conversation Header - Responsive */}
       <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between">
