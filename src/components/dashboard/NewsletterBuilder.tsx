@@ -31,6 +31,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { NewsletterCanvas } from './newsletter/NewsletterCanvas';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { BlocksPalette } from './newsletter/BlocksPalette';
 import { PropertiesPanel } from './newsletter/PropertiesPanel';
 import { PreviewDialog } from './newsletter/PreviewDialog';
@@ -216,11 +217,15 @@ const NewsletterBuilder = () => {
               <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
               <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
             </TabsList>
-            <TabsContent value="blocks" className="flex-1 m-0 h-0 overflow-y-auto">
-              <BlocksPalette onAddBlock={addBlock} />
+            <TabsContent value="blocks" className="flex-1 m-0 h-0">
+              <ScrollArea className="h-full">
+                <BlocksPalette onAddBlock={addBlock} />
+              </ScrollArea>
             </TabsContent>
-            <TabsContent value="templates" className="flex-1 m-0 h-0 overflow-y-auto">
-              <TemplateLibrary />
+            <TabsContent value="templates" className="flex-1 m-0 h-0">
+              <ScrollArea className="h-full">
+                <TemplateLibrary />
+              </ScrollArea>
             </TabsContent>
           </Tabs>
         </div>

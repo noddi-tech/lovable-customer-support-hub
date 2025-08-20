@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Inbox, 
   Archive, 
@@ -21,7 +22,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { NewConversationDialog } from './NewConversationDialog';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface InboxSidebarProps {
   selectedTab: string;
@@ -161,7 +161,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
       </div>
 
       {/* Inbox Categories - Scrollable Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
+      <ScrollArea className="flex-1 h-0 min-h-0">
         <div className="px-2">
           <div className="flex items-center justify-between px-2 py-2">
             <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inbox')}</h3>
@@ -340,7 +340,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
             </div>
           )}
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 };

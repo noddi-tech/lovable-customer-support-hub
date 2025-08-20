@@ -12,6 +12,7 @@ import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettin
 import { LanguageSettings } from '@/components/settings/LanguageSettings';
 import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import { NotificationsList } from '@/components/notifications/NotificationsList';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranslation } from 'react-i18next';
 
 interface SettingsWrapperProps {
@@ -148,12 +149,14 @@ const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'g
   };
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full">
+      <ScrollArea className="h-full">
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
           {renderContent()}
         </div>
       </div>
+      </ScrollArea>
     </div>
   );
 };

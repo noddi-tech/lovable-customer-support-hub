@@ -13,6 +13,7 @@ import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
 import { CallsList } from './voice/CallsList';
 import { VoiceSidebar } from './voice/VoiceSidebar';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { RealTimeIndicator } from './voice/RealTimeIndicator';
 import { CallNotificationCenter } from './voice/CallNotificationCenter';
 import { CallDetailsDialog } from './voice/CallDetailsDialog';
@@ -389,9 +390,11 @@ export const VoiceInterface = () => {
 
         {/* Content Area */}
         <div className="detail-pane flex flex-col bg-gradient-surface">
-          <div className="flex-1 min-h-0 overflow-y-auto p-6">
+          <ScrollArea className="flex-1 h-0 min-h-0">
+            <div className="p-6">
             {renderMainContent()}
-          </div>
+            </div>
+          </ScrollArea>
         </div>
       </div>
       

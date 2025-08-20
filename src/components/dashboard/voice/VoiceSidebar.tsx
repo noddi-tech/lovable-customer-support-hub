@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from '@/components/ui/separator';
 import { 
   Phone,
@@ -183,7 +184,8 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
 
   return (
     <div className="pane flex flex-col bg-card/90 backdrop-blur-sm shadow-surface">
-      <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
+      <ScrollArea className="flex-1 h-0 min-h-0">
+        <div>
         {/* Ongoing Calls */}
         <div className="px-2 pt-4">
           <div className="flex items-center justify-between px-2 py-2">
@@ -290,7 +292,8 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
             Configuration moved to Settings → Admin → Integrations → Voice
           </div>
         </div>
-      </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };
