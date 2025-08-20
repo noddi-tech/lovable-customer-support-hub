@@ -5,7 +5,15 @@
 /* Full-screen layout: Disable page-level scrolling */
 html, body, #root {
   height: 100%;
-  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow: hidden; /* page never scrolls */
+  font-family: var(--font-body);
+  font-size: var(--font-body);
+  line-height: 1.5;
 }
 
 /* Professional Customer Support Hub Design System 
@@ -110,8 +118,13 @@ All colors MUST be HSL.
     --transition-normal: 0.2s ease-out;
     --transition-slow: 0.3s ease-out;
 
-    /* layout heights */
-    --app-header-height: 64px;
+    /* Responsive typography and spacing */
+    --font-body: clamp(14px, 1.8vw, 16px);
+    --row-h: clamp(40px, 5.2vw, 48px);
+    --space-3: clamp(8px, 1.2vw, 12px);
+    
+    /* App shell dimensions */
+    --app-header-h: 64px;
 
     --radius: 0.75rem;
 
@@ -258,33 +271,129 @@ All colors MUST be HSL.
     background: var(--gradient-background);
   }
 
-  /* App shell layout - HelpScout style */
+  /* App shell layout with responsive panes */
   .app-root {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+    /* iOS safe viewport with fallbacks */
+    height: 100dvh;
+    height: 100svh;
+    min-height: 100vh;
+    
+    /* iOS safe areas */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    
+    display: grid;
+    grid-template-rows: var(--app-header-h, 64px) 1fr;
     overflow: hidden;
   }
 
   .app-header {
-    height: var(--app-header-height);
-    flex: 0 0 auto;
+    position: relative;
+    z-index: 40;
+    background: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
   }
 
   .app-main {
-    height: calc(100vh - var(--app-header-height));
-    display: flex;
-    overflow: hidden;
-  }
-
-  /* Scrollable panes */
-  .pane {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    display: grid;
   }
 
+  /* Desktop ≥1280px: 3 panes (Nav | List | Message/Inspector) */
+  @media (min-width: 1280px) {
+    .app-main {
+      height: 100%;
+      grid-template-columns: 240px minmax(380px, 1fr) minmax(320px, 420px);
+      gap: 0;
+    }
+    .nav-pane, .list-pane, .detail-pane { 
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+  }
+
+  /* 1024–1279px: collapse inspector; nav becomes icon rail */
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .app-main { 
+      grid-template-columns: 72px 1fr; 
+    }
+    .inspector-pane { 
+      display: none; /* use drawer instead */
+    }
+    .nav-pane {
+      width: 72px;
+    }
+  }
+
+  /* ≤1023px (iPad portrait & iPhone): 1 pane; nav/inspector as drawers */
+  @media (max-width: 1023px) {
+    .app-main { 
+      grid-template-columns: 1fr; 
+    }
+    .nav-pane, .inspector-pane { 
+      display: none; /* replaced by drawers */
+    }
+  }
+
+  /* Scrollable containers and content sizing */
+  .pane, .card, .card__body, .toolbar, .table, .table__row, .table__cell {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .pane, .card__body {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Inbox fit @100% - text overflow handling */
+  .ellipsis { 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+  }
+
+  .wrap { 
+    overflow-wrap: anywhere; 
+    word-break: break-word; 
+  }
+
+  /* List headers stick; rows compact but readable */
+  .list-pane .toolbar, 
+  .list-pane thead { 
+    position: sticky; 
+    top: 0; 
+    z-index: 1; 
+  }
+
+  .row { 
+    display: flex; 
+    gap: 12px; 
+    align-items: center; 
+    height: var(--row-h, 40px); 
+  }
+
+  /* Typical list columns - responsive flex layout */
+  .col--from   { flex: 0 0 160px; min-width: 140px; }
+  .col--status { flex: 0 0 90px; text-align: center; }
+  .col--date   { flex: 0 0 96px; text-align: right; }
+  .col--subject { flex: 1 1 auto; min-width: 0; } /* shrinks with ellipsis */
+  .col--subject > span { composes: ellipsis; }
+
+  /* Action bars must not grow the layout */
+  .actions { 
+    display: flex; 
+    gap: 8px; 
+    flex-wrap: wrap; 
+  }
+  .actions > .primary { white-space: nowrap; }
+  .actions > .secondary { white-space: nowrap; }
+
+  /* Legacy responsive panes - keep for backward compatibility */
   .nav-pane { 
     flex: 0 0 240px; 
   }
@@ -306,7 +415,69 @@ All colors MUST be HSL.
     min-width: 400px;
   }
 
-/* Responsive panel management */
+  /* Drawer system for mobile/tablet */
+  .drawer {
+    position: fixed; 
+    top: 0; 
+    bottom: 0; 
+    width: min(88vw, 360px);
+    background: hsl(var(--card)); 
+    box-shadow: 0 10px 30px hsl(var(--shadow) / 0.2);
+    transition: transform 0.22s ease; 
+    z-index: 50; 
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .drawer--left { 
+    left: 0; 
+    transform: translateX(-100%); 
+  }
+
+  .drawer--right { 
+    right: 0; 
+    transform: translateX(100%); 
+  }
+
+  .drawer[aria-hidden="false"] { 
+    transform: translateX(0); 
+  }
+
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+  }
+
+  .drawer-overlay[aria-hidden="false"] {
+    opacity: 1;
+  }
+
+  /* iPhone bottom tab bar */
+  .bottom-tabs {
+    position: fixed; 
+    left: 0; 
+    right: 0; 
+    bottom: 0;
+    display: grid; 
+    grid-auto-flow: column; 
+    gap: 8px; 
+    padding: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    background: hsl(var(--card)); 
+    border-top: 1px solid hsl(var(--border));
+    z-index: 30;
+  }
+
+  .bottom-tabs button { 
+    min-height: 44px; 
+    font-size: 16px; /* avoid iOS zoom on focus */
+  }
+
+/* Responsive panel management - legacy compatibility */
 @media (max-width: 1400px) {
   .list-pane {
     flex: 0 0 260px;
@@ -326,9 +497,18 @@ All colors MUST be HSL.
 .email-render {
   max-width: 700px;
   margin: 0 auto;
+  padding-inline: 12px;
   word-break: break-word;
   font-family: inherit;
   line-height: 1.6;
+  overflow-wrap: anywhere; 
+  font-size: clamp(14px, 1.8vw, 16px);
+}
+
+.email-render img { 
+  max-width: 100%; 
+  height: auto; 
+  display: block; 
 }
 
 .email-render__controls {
@@ -498,6 +678,70 @@ All colors MUST be HSL.
   opacity: 0.7;
 }
 
+/* Touch and accessibility */
+button, input, a { 
+  font-size: 16px; /* avoid iOS zoom on focus */
+}
+
+/* Minimum touch targets */
+button, [role="button"], [role="tab"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Dashboard/cards pattern for responsive layout */
+.dashboard { 
+  height: 100%; 
+  display: grid; 
+  grid-template-rows: auto 1fr; 
+  gap: 12px; 
+  overflow: hidden; 
+}
+
+.kpi-strip { 
+  display: grid; 
+  grid-auto-flow: column; 
+  grid-auto-columns: minmax(180px, 1fr); 
+  gap: 12px; 
+  overflow: hidden; 
+}
+
+.dashboard-grid {
+  display: grid; 
+  gap: 12px; 
+  min-height: 0; 
+  overflow: auto;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.card { 
+  display: grid; 
+  grid-template-rows: auto 1fr; 
+  min-height: 0; 
+  max-height: clamp(300px, 40vh, 520px); 
+}
+
+.card__header { 
+  position: sticky; 
+  top: 0; 
+  z-index: 1; 
+  padding: 12px; 
+  background: hsl(var(--card)); 
+}
+
+.card__body { 
+  overflow: auto; 
+  padding: 12px; 
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .drawer, .modal, * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
 /* Mobile Responsive */
 @media (max-width: 600px) {
   .email-render {
@@ -533,13 +777,9 @@ All colors MUST be HSL.
 
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
-  .email-render__collapsible-content {
-    animation: none;
-  }
-  
-  .email-render__attachment-item,
-  .email-render__collapsible-toggle {
-    transition: none;
+  .drawer, .modal, .email-render__collapsible-content, .email-render__attachment-item, .email-render__collapsible-toggle {
+    transition: none !important;
+    animation: none !important;
   }
 }
 

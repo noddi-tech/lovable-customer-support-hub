@@ -6,12 +6,16 @@ import { ConversationList } from './ConversationList';
 import { NotificationsList } from '@/components/notifications/NotificationsList';
 import { ConversationView } from './ConversationView';
 import { Button } from '@/components/ui/button';
+import { ResponsiveLayout } from '@/components/ui/responsive-layout';
+import { MobileDrawer } from '@/components/ui/mobile-drawer';
+import { BottomTabs, type BottomTabItem } from '@/components/ui/bottom-tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
+import { MessageCircle, Megaphone, Settings, Wrench, Menu, Info } from 'lucide-react';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -48,6 +52,8 @@ export const Dashboard: React.FC = () => {
     const saved = localStorage.getItem('showConversationListDesktop');
     return saved ? JSON.parse(saved) : true;
   });
+  const [showRightDrawer, setShowRightDrawer] = useState(false);
+  const [activeBottomTab, setActiveBottomTab] = useState('interactions');
   const [selectedInboxId, setSelectedInboxId] = useState<string>(() => localStorage.getItem('selectedInboxId') || 'all');
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const isMobile = useIsMobile();
@@ -261,12 +267,36 @@ useEffect(() => {
     console.log('setSelectedTab called, new tab should be:', tab);
   };
 
+  // Bottom tab items for mobile
+  const bottomTabItems: BottomTabItem[] = [
+    {
+      id: 'interactions',
+      label: t('dashboard.bottomTabs.interactions'),
+      icon: MessageCircle,
+    },
+    {
+      id: 'marketing',
+      label: t('dashboard.bottomTabs.marketing'),
+      icon: Megaphone,
+    },
+    {
+      id: 'ops',
+      label: t('dashboard.bottomTabs.ops'),
+      icon: Wrench,
+    },
+    {
+      id: 'settings',
+      label: t('dashboard.bottomTabs.settings'),
+      icon: Settings,
+    },
+  ];
+
   // Debug logging
   console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!hasTimestamp);
+  
   return (
-    <div className="app-root bg-gradient-surface">
-      {/* Header */}
-      <div className="app-header">
+    <ResponsiveLayout
+      header={
         <Header 
           organizationName={selectedInboxName}
           showMenuButton={isMobile}
@@ -290,79 +320,101 @@ useEffect(() => {
           }}
           selectedConversation={selectedConversation}
         />
-      </div>
-      
-      {/* Main Content */}
-      <div className="app-main bg-gradient-surface">
-        {/* Sidebar */}
-      <div className={`
-        ${isMobile ? 'fixed left-0 top-0 bottom-0 z-50 transform transition-transform' : 'nav-pane'}
-        ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}
-        ${isMobile ? 'w-64' : ''} border-r border-border bg-card/80 backdrop-blur-sm shadow-surface
-      `}>
+      }
+      sidebar={!isMobile ? (
         <InboxSidebar 
           selectedTab={selectedTab} 
           onTabChange={handleTabChange}
           selectedInboxId={selectedInboxId}
         />
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && showSidebar && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setShowSidebar(false)}
+      ) : undefined}
+      leftDrawer={
+        <MobileDrawer
+          isOpen={showSidebar}
+          onClose={() => setShowSidebar(false)}
+          side="left"
+          title={t('dashboard.navigation.menu')}
+        >
+          <InboxSidebar 
+            selectedTab={selectedTab} 
+            onTabChange={(tab) => {
+              handleTabChange(tab);
+              setShowSidebar(false);
+            }}
+            selectedInboxId={selectedInboxId}
+          />
+        </MobileDrawer>
+      }
+      rightDrawer={
+        <MobileDrawer
+          isOpen={showRightDrawer}
+          onClose={() => setShowRightDrawer(false)}
+          side="right"
+          title={t('dashboard.customerInfo.title', 'Customer Info')}
+        >
+          <div className="p-4">
+            <p className="text-muted-foreground">
+              {t('dashboard.customerInfo.placeholder', 'Customer details and actions will appear here.')}
+            </p>
+          </div>
+        </MobileDrawer>
+      }
+      bottomTabs={
+        <BottomTabs
+          items={bottomTabItems}
+          activeTab={activeBottomTab}
+          onTabChange={setActiveBottomTab}
         />
-      )}
-
-        {/* Content Area */}
-        <div className="flex flex-1 min-h-0">
-        {/* Show Notifications List if notifications tab is selected */}
-        {selectedTab === 'notifications' ? (
-          <div className="detail-pane flex flex-col bg-gradient-surface">
+      }
+      className="bg-gradient-surface"
+    >
+      {/* Show Notifications List if notifications tab is selected */}
+      {selectedTab === 'notifications' ? (
+        <div className="detail-pane flex flex-col bg-gradient-surface">
+          {/* Mobile Header */}
+          {isMobile && (
+            <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSelectedTab('all')}
+                className="mr-2"
+              >
+                {t('dashboard.navigation.back')}
+              </Button>
+              <h1 className="font-semibold">{t('dashboard.navigation.notifications')}</h1>
+            </div>
+          )}
+          <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
+            <NotificationsList />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Conversation List */}
+          <div className={`
+            ${isMobile ? (showConversationList ? 'flex' : 'hidden') : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'}
+            ${isMobile ? 'w-full' : ''} flex flex-col bg-gradient-surface transition-all duration-300 ease-in-out
+          `}>
+            <ConversationList 
+              selectedTab={selectedTab}
+              selectedConversation={selectedConversation}
+              onSelectConversation={handleSelectConversation}
+              selectedInboxId={selectedInboxId}
+              isCollapsed={!isMobile && !showConversationListDesktop}
+              onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
+            />
+          </div>
+          
+          {/* Conversation View */}
+          <div className={`
+            ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'detail-pane'}
+            flex flex-col bg-gradient-surface
+          `}>
             {/* Mobile Header */}
             {isMobile && (
-              <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSelectedTab('all')}
-                  className="mr-2"
-                >
-                  {t('dashboard.navigation.back')}
-                </Button>
-                <h1 className="font-semibold">{t('dashboard.navigation.notifications')}</h1>
-              </div>
-            )}
-            <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
-              <NotificationsList />
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Conversation List */}
-            <div className={`
-              ${isMobile ? (showConversationList ? 'flex' : 'hidden') : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'}
-              ${isMobile ? 'w-full' : ''} flex flex-col bg-gradient-surface transition-all duration-300 ease-in-out
-            `}>
-              <ConversationList 
-                selectedTab={selectedTab}
-                selectedConversation={selectedConversation}
-                onSelectConversation={handleSelectConversation}
-                selectedInboxId={selectedInboxId}
-                isCollapsed={!isMobile && !showConversationListDesktop}
-                onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
-              />
-            </div>
-            
-            {/* Conversation View */}
-            <div className={`
-              ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'detail-pane'}
-              flex flex-col bg-gradient-surface
-            `}>
-              {/* Mobile Header */}
-              {isMobile && (
-                <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
+              <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center justify-between">
+                <div className="flex items-center">
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -371,18 +423,25 @@ useEffect(() => {
                   >
                     {t('dashboard.navigation.back')}
                   </Button>
-                  <h1 className="font-semibold">{selectedInboxName}</h1>
+                  <h1 className="font-semibold ellipsis">{selectedInboxName}</h1>
                 </div>
-              )}
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowRightDrawer(true)}
+                  className="p-2"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
 
-              <ConversationView 
-                conversationId={selectedConversation?.id || null}
-              />
-            </div>
-          </>
-        )}
-        </div>
-      </div>
-    </div>
+            <ConversationView 
+              conversationId={selectedConversation?.id || null}
+            />
+          </div>
+        </>
+      )}
+    </ResponsiveLayout>
   );
 };

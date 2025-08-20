@@ -172,7 +172,18 @@
     "navigation": {
       "back": "← Back",
       "notifications": "Notifications",
-      "backToInbox": "Back to Inbox"
+      "backToInbox": "Back to Inbox",
+      "menu": "Menu"
+    },
+    "bottomTabs": {
+      "interactions": "Inbox",
+      "marketing": "Marketing", 
+      "ops": "Operations",
+      "settings": "Settings"
+    },
+    "customerInfo": {
+      "title": "Customer Info",
+      "placeholder": "Customer details and actions will appear here."
     },
     "notifications": {
       "title": "Notifications",
