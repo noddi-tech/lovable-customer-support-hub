@@ -31,7 +31,15 @@ import {
   Palette,
   Menu,
   ArrowLeft,
-  ChevronDown
+  ChevronDown,
+  MessageSquare,
+  Phone,
+  Mail,
+  Zap,
+  LifeBuoy,
+  DoorOpen,
+  Users,
+  Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -81,8 +89,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       label: t('header.interactions', 'Interactions'),
       icon: MessageCircle,
       subTabs: [
-        { id: 'text', label: t('header.text', 'Text') },
-        { id: 'voice', label: t('header.voice', 'Voice') }
+        { id: 'text', label: t('header.text', 'Text'), icon: MessageSquare },
+        { id: 'voice', label: t('header.voice', 'Voice'), icon: Phone }
       ]
     },
     {
@@ -90,8 +98,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       label: t('header.marketing', 'Marketing'),
       icon: Megaphone,
       subTabs: [
-        { id: 'newsletters', label: t('header.newsletters', 'Newsletters') },
-        { id: 'campaigns', label: t('header.campaigns', 'Campaigns') }
+        { id: 'newsletters', label: t('header.newsletters', 'Newsletters'), icon: Mail },
+        { id: 'campaigns', label: t('header.campaigns', 'Campaigns'), icon: Zap }
       ]
     },
     {
@@ -99,9 +107,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       label: t('header.operations', 'Operations'),
       icon: Wrench,
       subTabs: [
-        { id: 'tickets', label: t('header.tickets', 'Tickets') },
-        { id: 'doorman', label: t('header.doorman', 'Doorman') },
-        { id: 'recruitment', label: t('header.recruitment', 'Recruitment') }
+        { id: 'tickets', label: t('header.tickets', 'Tickets'), icon: LifeBuoy },
+        { id: 'doorman', label: t('header.doorman', 'Doorman'), icon: DoorOpen },
+        { id: 'recruitment', label: t('header.recruitment', 'Recruitment'), icon: Users }
       ]
     },
     {
@@ -109,13 +117,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       label: t('header.settings', 'Settings'),
       icon: Settings,
       subTabs: [
-        { id: 'general', label: t('settings.general', 'General') },
-        { id: 'profile', label: t('settings.profile', 'Profile') },
-        { id: 'notifications', label: t('settings.notifications', 'Notifications') },
-        { id: 'email-templates', label: t('settings.emailTemplates', 'Email Templates') },
-        { id: 'departments', label: t('settings.departments', 'Departments') },
-        { id: 'users', label: t('settings.users', 'Users') },
-        { id: 'admin', label: t('settings.admin', 'Admin') }
+        { id: 'general', label: t('settings.general', 'General'), icon: Settings },
+        { id: 'profile', label: t('settings.profile', 'Profile'), icon: User },
+        { id: 'notifications', label: t('settings.notifications', 'Notifications'), icon: Bell },
+        { id: 'email-templates', label: t('settings.emailTemplates', 'Email Templates'), icon: Mail },
+        { id: 'departments', label: t('settings.departments', 'Departments'), icon: Users },
+        { id: 'users', label: t('settings.users', 'Users'), icon: Users },
+        { id: 'admin', label: t('settings.admin', 'Admin'), icon: Settings }
       ]
     }
   ];
@@ -193,7 +201,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                           <ChevronDown className="h-3 w-3 ml-1" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
+                      <DropdownMenuContent align="start" className="z-50">
                         {tab.subTabs.map((subTab) => (
                           <DropdownMenuItem
                             key={subTab.id}
@@ -203,6 +211,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                               activeTab === tab.id && activeSubTab === subTab.id && "bg-accent font-medium"
                             )}
                           >
+                            {subTab.icon && <subTab.icon className="h-4 w-4 mr-2" />}
                             {subTab.label}
                           </DropdownMenuItem>
                         ))}
@@ -250,7 +259,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuContent align="start" className="w-48 z-50">
               {mainTabs.map((tab) => {
                 const Icon = tab.icon;
                 
@@ -270,6 +279,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                             activeTab === tab.id && activeSubTab === subTab.id && "bg-accent font-medium"
                           )}
                         >
+                          {subTab.icon && <subTab.icon className="h-4 w-4 mr-2" />}
                           {subTab.label}
                         </DropdownMenuItem>
                       ))}
