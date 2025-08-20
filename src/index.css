@@ -315,39 +315,26 @@ Optimized for accessibility with WCAG AA compliance.
     display: grid;
   }
 
-  /* Desktop ≥1280px: 3 panes (Nav | List | Message/Inspector) */
+  /* Desktop ≥1280px: 2 panes (List | Message/Inspector) - Nav handled by Shadcn Sidebar */
   @media (min-width: 1280px) {
     .app-main {
       height: 100%;
-      grid-template-columns: var(--grid-template-desktop, 240px minmax(380px, 420px) 1fr);
+      grid-template-columns: var(--grid-template-desktop, minmax(380px, 420px) 1fr);
       gap: 0;
       transition: grid-template-columns 0.3s ease-in-out;
     }
     
-    /* Collapsed sidebar */
-    .app-main.sidebar-collapsed {
-      grid-template-columns: 64px minmax(380px, 420px) 1fr;
-    }
-    
-    /* List collapsed - remove list pane completely */
+    /* List collapsed - single pane only */
     .app-main.list-collapsed {
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: 1fr;
     }
     
-    .app-main.list-collapsed.sidebar-collapsed {
-      grid-template-columns: 64px 1fr;
-    }
-    
-    /* List expanded - explicit definition for clarity */
+    /* List expanded - 2 column layout */
     .app-main.list-expanded {
-      grid-template-columns: 240px minmax(380px, 420px) 1fr;
+      grid-template-columns: minmax(380px, 420px) 1fr;
     }
     
-    .app-main.list-expanded.sidebar-collapsed {
-      grid-template-columns: 64px minmax(380px, 420px) 1fr;
-    }
-    
-    .nav-pane, .list-pane, .detail-pane { 
+    .list-pane, .detail-pane { 
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
@@ -369,18 +356,18 @@ Optimized for accessibility with WCAG AA compliance.
     }
   }
 
-  /* Desktop Medium (1024-1279px): 2-3 pane with icon sidebar */
+  /* Desktop Medium (1024-1279px): 2 pane layout - Nav handled by Shadcn Sidebar */
   @media (min-width: 1024px) and (max-width: 1279px) {
     .app-main { 
-      grid-template-columns: 64px minmax(350px, 400px) 1fr; 
+      grid-template-columns: minmax(350px, 400px) 1fr; 
     }
     
     .app-main.list-collapsed {
-      grid-template-columns: 64px 1fr;
+      grid-template-columns: 1fr;
     }
     
     .app-main.list-expanded {
-      grid-template-columns: 64px minmax(360px, 420px) 1fr;
+      grid-template-columns: minmax(360px, 420px) 1fr;
     }
     
     .inspector-pane { 

@@ -10,7 +10,7 @@ import { ResponsiveLayout } from '@/components/ui/responsive-layout';
 import { MobileDrawer } from '@/components/ui/mobile-drawer';
 import { BottomTabs, type BottomTabItem } from '@/components/ui/bottom-tabs';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
@@ -198,10 +198,27 @@ export const Dashboard = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <ResponsiveLayout
-          header={
-            <div className="flex items-center">
-              {!isMobile && <SidebarTrigger className="mr-4" />}
+        {/* Sidebar - positioned by Shadcn */}
+        {!isMobile && (
+          <AppSidebar 
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+            selectedInboxId={selectedInboxId}
+            context="text"
+          />
+        )}
+        
+        {/* Main content area - inside SidebarInset */}
+        <SidebarInset className="flex-1">
+          {/* Sidebar trigger at top level */}
+          {!isMobile && (
+            <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+              <SidebarTrigger className="-ml-1" />
+            </div>
+          )}
+          
+          <ResponsiveLayout
+            header={
               <Header 
                 organizationName={selectedInboxName}
                 showMenuButton={isMobile}
@@ -223,17 +240,8 @@ export const Dashboard = () => {
                 }}
                 selectedConversation={selectedConversation}
               />
-            </div>
-          }
-          className={layoutClassName}
-          sidebar={!isMobile ? (
-            <AppSidebar 
-              selectedTab={selectedTab}
-              onTabChange={handleTabChange}
-              selectedInboxId={selectedInboxId}
-              context="text"
-            />
-          ) : undefined}
+            }
+            className={layoutClassName}
           leftDrawer={
             <MobileDrawer
               isOpen={showSidebar}
@@ -351,7 +359,8 @@ export const Dashboard = () => {
               )}
             </div>
           )}
-        </ResponsiveLayout>
+          </ResponsiveLayout>
+        </SidebarInset>
         
         {/* Debug components in development */}
         <TranslationTest />

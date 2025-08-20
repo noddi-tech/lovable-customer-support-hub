@@ -46,14 +46,7 @@ const ResponsiveLayout = React.forwardRef<HTMLDivElement, ResponsiveLayoutProps>
         
         {/* Main Content Area - Apply grid state classes here */}
         <div className={cn("app-main", ...mainClasses, isMobile && bottomTabs && "pb-16")}>
-          {/* Desktop/Tablet Sidebar */}
-          {sidebar && !isMobile && (
-            <div className="nav-pane">
-              {sidebar}
-            </div>
-          )}
-          
-          {/* Main Content - children will be direct grid items */}
+          {/* Main Content - children will be direct grid items (no nav-pane, handled by Shadcn Sidebar) */}
           {children}
         </div>
 
