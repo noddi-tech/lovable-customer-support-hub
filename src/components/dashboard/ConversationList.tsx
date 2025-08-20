@@ -122,11 +122,18 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         return [];
       }
       console.log('Raw conversations data:', data);
+      console.log('Raw conversations count:', data?.length);
+      
       // Transform the data to match our interface and filter out voice/call conversations
-      return (data as any[])?.filter(conv => 
-        // Only include text/email conversations, exclude call-based conversations by channel
-        ['email', 'chat', 'social', 'facebook', 'instagram', 'whatsapp'].includes(conv.channel)
-      ).map(conv => ({
+      const filtered = (data as any[])?.filter(conv => {
+        const includeChannel = ['email', 'chat', 'social', 'facebook', 'instagram', 'whatsapp'].includes(conv.channel);
+        console.log('Conversation channel check:', conv.id, conv.channel, includeChannel);
+        return includeChannel;
+      });
+      
+      console.log('Filtered conversations count:', filtered?.length);
+      
+      const transformed = filtered?.map(conv => ({
         ...conv,
         customer: conv.customer ? {
           id: conv.customer.id,
@@ -138,7 +145,11 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
           full_name: conv.assigned_to.full_name,
           avatar_url: conv.assigned_to.avatar_url,
         } : undefined,
-      })) as Conversation[] || [];
+      }));
+      
+      console.log('Transformed conversations:', transformed);
+      console.log('Final conversations count:', transformed?.length);
+      return transformed as Conversation[] || [];
     },
   });
 
@@ -267,6 +278,9 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
     ? selectedTab.replace('inbox-', '')
     : (selectedInboxId !== 'all' ? selectedInboxId : null);
 
+  console.log('Conversations before filtering:', conversations?.length);
+  console.log('Selected tab:', selectedTab);
+  
   const filteredConversations = conversations.filter((conversation) => {
     const matchesSearch = conversation.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conversation.customer?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -312,6 +326,9 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
 
     return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
   });
+  
+  console.log('Filtered conversations count:', filteredConversations?.length);
+  console.log('First few filtered conversations:', filteredConversations?.slice(0, 3));
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
