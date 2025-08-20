@@ -291,7 +291,7 @@ async function processInternalEvents(
         if (mapping.internal_event_type === 'voicemail_left' && eventData.recording_url) {
           try {
             console.log('📞 Processing voicemail for storage...');
-            const callUuid = standardEvent.eventData.callData?.call_uuid || `call-${Date.now()}`;
+            const callUuid = standardEvent.eventData?.callData?.call_uuid || `call-${Date.now()}`;
             const storagePath = await downloadAndStoreVoicemail(supabase, eventData.recording_url, callUuid);
             
             // Update the internal event with the local storage path
