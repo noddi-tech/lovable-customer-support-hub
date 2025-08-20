@@ -56,8 +56,9 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, onAssign, isDownloading, 
           const now = new Date();
           
           if (now > expirationTime) {
-            console.log('⚠️ Signed URL has expired, falling back to download function');
-            return null; // Force fallback to download function
+            console.log('⚠️ Signed URL has expired, using unsigned URL for playback');
+            // Fall back to unsigned URL for playback, even if it might not work
+            return voicemail.event_data?.recording_url || null;
           }
         }
       } catch (error) {
@@ -124,22 +125,9 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, onAssign, isDownloading, 
               console.log('Download clicked for voicemail:', recordingUrl);
               
               try {
-                // If we don't have a valid URL or it might be expired, use the download function
-                if (!recordingUrl || recordingUrl.includes('X-Amz-Date')) {
-                  console.log('Using download function for fresh signed URL...');
-                  downloadVoicemail({ voicemailId: voicemail.id, recordingUrl: voicemail.event_data?.recording_url || '' });
-                  return;
-                }
-
-                // Direct download for non-signed URLs
-                const link = document.createElement('a');
-                link.href = recordingUrl;
-                link.download = `voicemail-${voicemail.customer_phone || 'unknown'}-${new Date(voicemail.created_at).toISOString().split('T')[0]}.mp3`;
-                link.target = '_blank';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                console.log('Successfully initiated download');
+                // Always use the download function to get a fresh signed URL
+                console.log('Using download function for fresh signed URL...');
+                downloadVoicemail({ voicemailId: voicemail.id, recordingUrl: voicemail.event_data?.recording_url || '' });
               } catch (error) {
                 console.error('Failed to download recording:', error);
                 // Final fallback to opening in new tab
