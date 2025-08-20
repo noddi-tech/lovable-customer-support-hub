@@ -231,12 +231,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
         <div className="flex-1">
           <p className="text-sm font-medium text-destructive">Failed to load audio</p>
           <p className="text-xs text-muted-foreground">
-            {audioRef.current?.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED 
-              ? 'Audio format not supported or URL expired'
-              : audioRef.current?.error?.code === MediaError.MEDIA_ERR_NETWORK
-              ? 'Network error - URL may be expired or inaccessible'
-              : 'The recording may be unavailable or corrupted'
-            }
+            The recording URL has expired or is no longer accessible. Try refreshing to get a new URL.
           </p>
         </div>
         {onGetFreshUrl && (
@@ -252,7 +247,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
             ) : (
               <RefreshCcw className="h-3 w-3" />
             )}
-            Retry
+            {isGettingFreshUrl ? 'Refreshing...' : 'Refresh'}
           </Button>
         )}
         {onDownload && (
