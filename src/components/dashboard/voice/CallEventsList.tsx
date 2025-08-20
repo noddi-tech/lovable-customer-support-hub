@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, Phone, PhoneCall, PhoneOff, AlertCircle, User, Building2, ArrowUpRight, ArrowDownLeft, Eye, EyeOff, ChevronDown, ChevronUp, Filter, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { formatDistanceToNow, format, isAfter } from 'date-fns';
 
 interface CallEventsListProps {
   events: CallEvent[];
+  callFilter?: string | null;
 }
 
 const EventCard: React.FC<{ event: CallEvent; onFilter: (callId: string) => void }> = ({ event, onFilter }) => {
@@ -255,12 +256,17 @@ const EventCard: React.FC<{ event: CallEvent; onFilter: (callId: string) => void
   );
 };
 
-export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
-  const [filteredCallId, setFilteredCallId] = useState<string | null>(null);
+export const CallEventsList: React.FC<CallEventsListProps> = ({ events, callFilter }) => {
+  const [filteredCallId, setFilteredCallId] = useState<string | null>(callFilter || null);
   const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(() => {
     // Default to last hour
     return new Date(Date.now() - 60 * 60 * 1000);
   });
+
+  // Update filteredCallId when callFilter prop changes
+  useEffect(() => {
+    setFilteredCallId(callFilter || null);
+  }, [callFilter]);
 
   const handleFilter = (callId: string) => {
     setFilteredCallId(callId);

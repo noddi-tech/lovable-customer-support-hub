@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2 } from 'lucide-react';
+import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,12 @@ import { CallDetailsDialog } from './CallDetailsDialog';
 import { CallActionButton } from './CallActionButton';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 
-export const CallsList = ({ showTimeFilter = true }: { showTimeFilter?: boolean }) => {
+interface CallsListProps {
+  showTimeFilter?: boolean;
+  onNavigateToEvents?: (callId: string) => void;
+}
+
+export const CallsList = ({ showTimeFilter = true, onNavigateToEvents }: CallsListProps) => {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<string>('all');
@@ -437,6 +442,18 @@ export const CallsList = ({ showTimeFilter = true }: { showTimeFilter?: boolean 
                       size="sm"
                       className="h-6 px-2 text-xs"
                     />
+                    {onNavigateToEvents && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onNavigateToEvents(call.id)}
+                        className="flex items-center gap-1 h-6 px-2 text-xs"
+                        title="View call events history"
+                      >
+                        <History className="h-3 w-3" />
+                        History
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"

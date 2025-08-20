@@ -39,6 +39,7 @@ export const VoiceInterface = () => {
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [selectedSection, setSelectedSection] = useState('ongoing-calls');
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [eventsCallFilter, setEventsCallFilter] = useState<string | null>(null);
 
   const handleRefreshAll = () => {
     queryClient.invalidateQueries({ queryKey: ['calls'] });
@@ -52,6 +53,11 @@ export const VoiceInterface = () => {
     // Navigate to specific call - you can expand this based on your needs
     setSelectedSection('calls-today');
     setSelectedCall(calls.find(call => call.id === callId));
+  };
+
+  const navigateToCallEvents = (callId: string) => {
+    setEventsCallFilter(callId);
+    setSelectedSection('events-log');
   };
 
   if (error) {
@@ -327,7 +333,7 @@ export const VoiceInterface = () => {
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
             </div>
-            <CallsList showTimeFilter={selectedSection === 'calls-all'} />
+            <CallsList showTimeFilter={selectedSection === 'calls-all'} onNavigateToEvents={navigateToCallEvents} />
           </div>
         );
 
@@ -338,7 +344,7 @@ export const VoiceInterface = () => {
               <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
               <RealTimeIndicator onRefresh={handleRefreshAll} />
             </div>
-            <CallEventsList events={callEvents} />
+            <CallEventsList events={callEvents} callFilter={eventsCallFilter} />
           </div>
         );
 
