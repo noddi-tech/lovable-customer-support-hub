@@ -5,62 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { AudioPlayer } from '@/components/ui/audio-player';
 import { useVoicemails, Voicemail } from '@/hooks/useVoicemails';
 import { AgentAssignmentSelect } from './AgentAssignmentSelect';
 import { CallActionButton } from './CallActionButton';
 import { formatDistanceToNow } from 'date-fns';
 
-const AudioPlayerSimple = ({ src, duration }: { src: string; duration?: number }) => {
-  const handleOpenRecording = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Opening recording:', src);
-    
-    if (!src) {
-      console.error('No recording URL provided');
-      alert('No recording URL available');
-      return;
-    }
-
-    try {
-      window.open(src, '_blank', 'noopener,noreferrer');
-      console.log('Successfully opened URL in new tab');
-    } catch (error) {
-      console.error('Failed to open URL:', error);
-      alert('Failed to open recording');
-    }
-  };
-
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'Unknown duration';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-      <FileAudio className="h-4 w-4 text-muted-foreground" />
-      <div className="flex-1">
-        <p className="text-sm font-medium">Voicemail Recording</p>
-        <p className="text-xs text-muted-foreground">
-          Duration: {formatDuration(duration)}
-        </p>
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleOpenRecording}
-        className="flex items-center gap-2"
-        title="Download/Play recording"
-      >
-        <Download className="h-3 w-3" />
-        Open Recording
-      </Button>
-    </div>
-  );
-};
 
 interface VoicemailCardProps {
   voicemail: any;
@@ -124,9 +74,35 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
       <CardContent className="pt-0 space-y-4">
         {/* Audio Player */}
         {hasRecording && voicemail.event_data?.recording_url && (
-          <AudioPlayerSimple 
+          <AudioPlayer 
             src={voicemail.event_data.recording_url} 
+            title="Voicemail Recording"
             duration={voicemail.event_data.duration}
+            onDownload={() => {
+              console.log('Download clicked for voicemail:', voicemail.event_data.recording_url);
+              
+              if (!voicemail.event_data.recording_url) {
+                console.error('No recording URL available');
+                alert('No recording URL available');
+                return;
+              }
+
+              try {
+                // Create a download link
+                const link = document.createElement('a');
+                link.href = voicemail.event_data.recording_url;
+                link.download = `voicemail-${voicemail.customer_phone || 'unknown'}-${new Date(voicemail.created_at).toISOString().split('T')[0]}.mp3`;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                console.log('Successfully initiated download');
+              } catch (error) {
+                console.error('Failed to download recording:', error);
+                // Fallback to opening in new tab
+                window.open(voicemail.event_data.recording_url, '_blank', 'noopener,noreferrer');
+              }
+            }}
           />
         )}
 
@@ -169,37 +145,6 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
             phoneNumber={voicemail.customer_phone || voicemail.calls?.customer_phone}
             size="sm"
           />
-          {hasRecording && voicemail.event_data?.recording_url && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Download clicked for voicemail:', voicemail.event_data.recording_url);
-                
-                if (!voicemail.event_data.recording_url) {
-                  console.error('No recording URL available');
-                  alert('No recording URL available');
-                  return;
-                }
-
-                try {
-                  window.open(voicemail.event_data.recording_url, '_blank', 'noopener,noreferrer');
-                  console.log('Successfully opened recording URL');
-                } catch (error) {
-                  console.error('Failed to open recording:', error);
-                  alert('Failed to open recording');
-                }
-              }}
-              className="flex items-center gap-2"
-              title="Download recording"
-            >
-              <Download className="h-3 w-3" />
-              Download
-            </Button>
-          )}
         </div>
 
         {!hasRecording && !hasTranscription && (
