@@ -36,14 +36,84 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
         return 'bg-yellow-500';
       case 'answered':
         return 'bg-green-500';
+      case 'completed':
+        return 'bg-green-600';
       case 'on_hold':
         return 'bg-blue-500';
       case 'missed':
         return 'bg-red-500';
-      case 'completed':
-        return 'bg-gray-500';
+      case 'busy':
+        return 'bg-red-400';
+      case 'failed':
+        return 'bg-red-600';
+      case 'voicemail':
+        return 'bg-purple-500';
+      case 'transferred':
+        return 'bg-indigo-500';
       default:
         return 'bg-gray-400';
+    }
+  };
+
+  const getStatusDetails = () => {
+    const metadata = call.metadata || {};
+    const status = call.status;
+    
+    switch (status) {
+      case 'missed':
+        const missReason = metadata.missReason || metadata.miss_reason || metadata.originalPayload?.reason;
+        return {
+          label: 'MISSED',
+          description: missReason || 'Customer did not answer'
+        };
+      case 'busy':
+        return {
+          label: 'BUSY',
+          description: 'Line was busy'
+        };
+      case 'failed':
+        const failReason = metadata.failReason || metadata.error || 'Technical issue';
+        return {
+          label: 'FAILED',
+          description: failReason
+        };
+      case 'voicemail':
+        const vmDuration = metadata.voicemailDuration || metadata.duration;
+        return {
+          label: 'VOICEMAIL',
+          description: vmDuration ? `Voicemail left (${vmDuration}s)` : 'Voicemail left'
+        };
+      case 'transferred':
+        const transferTo = metadata.transferredTo || metadata.transfer_to;
+        return {
+          label: 'TRANSFERRED',
+          description: transferTo || 'Call transferred'
+        };
+      case 'answered':
+        return {
+          label: 'ANSWERED',
+          description: 'Call was answered'
+        };
+      case 'completed':
+        return {
+          label: 'COMPLETED',
+          description: 'Call completed successfully'
+        };
+      case 'on_hold':
+        return {
+          label: 'ON HOLD',
+          description: 'Call is on hold'
+        };
+      case 'ringing':
+        return {
+          label: 'RINGING',
+          description: 'Currently ringing'
+        };
+      default:
+        return {
+          label: (status as string).toUpperCase(),
+          description: `Status: ${status}`
+        };
     }
   };
 
@@ -62,12 +132,20 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
             {getStatusIcon()}
             {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'} Call
           </CardTitle>
-          <Badge 
-            variant="secondary" 
-            className={`text-white ${getStatusColor()}`}
-          >
-            {call.status.replace('_', ' ').toUpperCase()}
-          </Badge>
+          <div className="flex flex-col items-end gap-1">
+            <Badge 
+              variant="secondary" 
+              className={`text-white ${getStatusColor()}`}
+              title={getStatusDetails().description}
+            >
+              {getStatusDetails().label}
+            </Badge>
+            {getStatusDetails().description !== `Status: ${call.status}` && (
+              <span className="text-xs text-muted-foreground text-right">
+                {getStatusDetails().description}
+              </span>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

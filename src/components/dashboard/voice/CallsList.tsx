@@ -59,12 +59,96 @@ export const CallsList = () => {
     switch (status) {
       case 'completed':
         return 'success';
+      case 'answered':
+        return 'success';
       case 'ringing':
         return 'warning';
-      case 'answered':
-        return 'info';
+      case 'missed':
+        return 'destructive';
+      case 'busy':
+        return 'destructive';
+      case 'failed':
+        return 'destructive';
+      case 'voicemail':
+        return 'secondary';
+      case 'transferred':
+        return 'default';
+      case 'on_hold':
+        return 'warning';
       default:
         return 'secondary';
+    }
+  };
+
+  const getStatusDetails = (call: any) => {
+    const metadata = call.metadata || {};
+    const status = call.status;
+    
+    switch (status) {
+      case 'missed':
+        const missReason = metadata.missReason || metadata.miss_reason || metadata.originalPayload?.reason;
+        return {
+          label: 'Missed',
+          description: missReason ? `Reason: ${missReason}` : 'Customer did not answer',
+          icon: '📞❌'
+        };
+      case 'busy':
+        return {
+          label: 'Busy',
+          description: 'Line was busy',
+          icon: '📞🔴'
+        };
+      case 'failed':
+        const failReason = metadata.failReason || metadata.error || 'Technical issue';
+        return {
+          label: 'Failed',
+          description: `Failed: ${failReason}`,
+          icon: '❌'
+        };
+      case 'voicemail':
+        const vmDuration = metadata.voicemailDuration || metadata.duration;
+        return {
+          label: 'Voicemail',
+          description: vmDuration ? `Voicemail left (${vmDuration}s)` : 'Voicemail left',
+          icon: '📧'
+        };
+      case 'transferred':
+        const transferTo = metadata.transferredTo || metadata.transfer_to;
+        return {
+          label: 'Transferred',
+          description: transferTo ? `Transferred to ${transferTo}` : 'Call transferred',
+          icon: '↗️'
+        };
+      case 'answered':
+        return {
+          label: 'Answered',
+          description: 'Call was answered',
+          icon: '✅'
+        };
+      case 'completed':
+        return {
+          label: 'Completed',
+          description: 'Call completed successfully',
+          icon: '✅'
+        };
+      case 'on_hold':
+        return {
+          label: 'On Hold',
+          description: 'Call is on hold',
+          icon: '⏸️'
+        };
+      case 'ringing':
+        return {
+          label: 'Ringing',
+          description: 'Currently ringing',
+          icon: '📞'
+        };
+      default:
+        return {
+          label: status.charAt(0).toUpperCase() + status.slice(1),
+          description: `Status: ${status}`,
+          icon: '📞'
+        };
     }
   };
 
@@ -163,10 +247,33 @@ export const CallsList = () => {
                         <span className="font-medium text-sm">
                           {formatPhoneNumber(call.customer_phone)}
                         </span>
-                        <Badge variant={getStatusColor(call.status) as any} className="text-xs px-1 py-0 h-4">
-                          {call.status}
-                        </Badge>
+                        {(() => {
+                          const statusDetails = getStatusDetails(call);
+                          return (
+                            <Badge 
+                              variant={getStatusColor(call.status) as any} 
+                              className="text-xs px-1 py-0 h-4"
+                              title={statusDetails.description}
+                            >
+                              <span className="mr-1">{statusDetails.icon}</span>
+                              {statusDetails.label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
+                      
+                      {/* Status Description */}
+                      {(() => {
+                        const statusDetails = getStatusDetails(call);
+                        if (statusDetails.description && statusDetails.description !== `Status: ${call.status}`) {
+                          return (
+                            <div className="text-xs text-muted-foreground mb-1 italic">
+                              {statusDetails.description}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <div className="flex items-center gap-0.5">

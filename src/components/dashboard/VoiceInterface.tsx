@@ -202,9 +202,42 @@ export const VoiceInterface = () => {
                                   <span className="font-medium text-sm">
                                     {formatPhoneNumber(call.customer_phone)}
                                   </span>
-                                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4">
-                                    completed
-                                  </Badge>
+                                  {(() => {
+                                    const getRecentCallStatusDetails = (call: any) => {
+                                      const metadata = call.metadata || {};
+                                      if (metadata.missReason || metadata.miss_reason) {
+                                        return {
+                                          variant: 'destructive' as const,
+                                          label: 'Missed',
+                                          reason: metadata.missReason || metadata.miss_reason
+                                        };
+                                      }
+                                      if (metadata.voicemailDuration || metadata.duration) {
+                                        return {
+                                          variant: 'secondary' as const,
+                                          label: 'Voicemail Left',
+                                          reason: `${metadata.voicemailDuration || metadata.duration}s`
+                                        };
+                                      }
+                                      return {
+                                        variant: 'default' as const,
+                                        label: 'Completed',
+                                        reason: null
+                                      };
+                                    };
+                                    
+                                    const statusDetails = getRecentCallStatusDetails(call);
+                                    return (
+                                      <Badge 
+                                        variant={statusDetails.variant} 
+                                        className="text-xs px-1 py-0 h-4"
+                                        title={statusDetails.reason || undefined}
+                                      >
+                                        {statusDetails.label}
+                                        {statusDetails.reason && <span className="ml-1">({statusDetails.reason})</span>}
+                                      </Badge>
+                                    );
+                                  })()}
                                 </div>
                                 
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
