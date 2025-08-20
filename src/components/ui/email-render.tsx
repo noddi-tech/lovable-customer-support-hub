@@ -94,6 +94,10 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   );
 
   const processedContent = useMemo(() => {
+    console.log('[EmailRender] Processing content for message:', messageId);
+    console.log('[EmailRender] Content type:', contentType, 'isHTML:', isHTML);
+    console.log('[EmailRender] Attachments available:', attachments);
+    
     if (isHTML) {
       return sanitizeEmailHTML(content, attachments, true, messageId);
     } else {
@@ -290,7 +294,20 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
 
   // Enhanced image processing effect
   useEffect(() => {
+    console.log('[EmailRender] Image processing effect triggered:', {
+      isHTML,
+      attachmentsLength: attachments.length,
+      messageId,
+      attachments: attachments.map(a => ({ 
+        filename: a.filename, 
+        contentId: a.contentId, 
+        contentLocation: a.contentLocation,
+        isInline: a.isInline 
+      }))
+    });
+
     if (!isHTML || !attachments.length) {
+      console.log('[EmailRender] Skipping image processing - not HTML or no attachments');
       setImageProcessingComplete(true);
       return;
     }
@@ -298,15 +315,23 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
     const processImages = async () => {
       try {
         const container = document.querySelector('.email-render__html-content') as HTMLElement;
-        if (!container) return;
+        if (!container) {
+          console.log('[EmailRender] No container found for image processing');
+          return;
+        }
+
+        console.log('[EmailRender] Found container, processing images...');
 
         // Build asset indexes
         const byContentId = new Map();
         const byContentLocation = new Map();
         
-        attachments.forEach(attachment => {
+        attachments.forEach((attachment, index) => {
+          console.log(`[EmailRender] Processing attachment ${index}:`, attachment);
+          
           if (attachment.contentId) {
             const normalizedCid = attachment.contentId.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase();
+            console.log(`[EmailRender] Adding to byContentId: "${normalizedCid}"`);
             byContentId.set(normalizedCid, { attachment });
           }
           
@@ -315,9 +340,15 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
               ? attachment.contentLocation.split('/').pop()?.toLowerCase() 
               : attachment.contentLocation.toLowerCase();
             if (normalizedLocation) {
+              console.log(`[EmailRender] Adding to byContentLocation: "${normalizedLocation}"`);
               byContentLocation.set(normalizedLocation, { attachment });
             }
           }
+        });
+
+        console.log('[EmailRender] Asset indexes built:', {
+          byContentId: Array.from(byContentId.entries()),
+          byContentLocation: Array.from(byContentLocation.entries())
         });
 
         // Process images with enhanced error handling
@@ -326,9 +357,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
         
         // Log processing stats for debugging
         const errorStats = getImageErrorStats();
-        if (Object.values(errorStats).some(count => count > 0)) {
-          console.log('[EmailRender] Image processing stats:', errorStats);
-        }
+        console.log('[EmailRender] Image processing complete. Stats:', errorStats);
       } catch (error) {
         console.error('[EmailRender] Image processing failed:', error);
         setImageProcessingComplete(true);

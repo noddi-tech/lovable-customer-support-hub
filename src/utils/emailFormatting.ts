@@ -41,18 +41,35 @@ const buildAssetIndexes = (attachments: EmailAttachment[]) => {
   const byContentId = new Map<string, AssetInfo>();
   const byContentLocation = new Map<string, AssetInfo>();
   
-  attachments.forEach(attachment => {
+  console.log('[EmailFormatting] Building asset indexes from attachments:', attachments);
+  
+  attachments.forEach((attachment, index) => {
     const assetInfo: AssetInfo = { attachment };
+    
+    console.log(`[EmailFormatting] Processing attachment ${index}:`, {
+      filename: attachment.filename,
+      contentId: attachment.contentId,
+      contentLocation: attachment.contentLocation,
+      isInline: attachment.isInline,
+      mimeType: attachment.mimeType
+    });
     
     if (attachment.contentId) {
       const normalizedCid = normalizeCid(attachment.contentId);
+      console.log(`[EmailFormatting] Adding to byContentId: "${normalizedCid}" ->`, attachment.filename);
       byContentId.set(normalizedCid, assetInfo);
     }
     
     if (attachment.contentLocation) {
       const normalizedLocation = normalizeContentLocation(attachment.contentLocation);
+      console.log(`[EmailFormatting] Adding to byContentLocation: "${normalizedLocation}" ->`, attachment.filename);
       byContentLocation.set(normalizedLocation, assetInfo);
     }
+  });
+  
+  console.log('[EmailFormatting] Final asset indexes:', {
+    byContentId: Array.from(byContentId.entries()),
+    byContentLocation: Array.from(byContentLocation.entries())
   });
   
   return { byContentId, byContentLocation };
@@ -169,15 +186,18 @@ export const sanitizeEmailHTML = (
   processedContent = processedContent.replace(
     /src=["']cid:([^"']+)["']/gi,
     (match, cidId) => {
+      console.log(`[EmailFormatting] Processing CID reference: "${cidId}"`);
       const normalizedCid = normalizeCid(cidId);
+      console.log(`[EmailFormatting] Normalized CID: "${normalizedCid}"`);
       const assetInfo = byContentId.get(normalizedCid);
       
       if (assetInfo) {
-        // Use edge function URL for immediate loading
-        return `src="${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}"`;
+        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}`;
+        console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
+        return `src="${attachmentUrl}"`;
       }
       
-      // Placeholder for missing CID
+      console.log(`[EmailFormatting] CID miss for: "${normalizedCid}"`);
       return `src="${createPlaceholder('cid-miss')}"`;
     }
   );
@@ -191,13 +211,18 @@ export const sanitizeEmailHTML = (
         return match;
       }
       
+      console.log(`[EmailFormatting] Processing potential Content-Location: "${src}"`);
       const normalizedLocation = normalizeContentLocation(src);
+      console.log(`[EmailFormatting] Normalized location: "${normalizedLocation}"`);
       const assetInfo = byContentLocation.get(normalizedLocation);
       
       if (assetInfo) {
-        return `src="${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}"`;
+        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}`;
+        console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`);
+        return `src="${attachmentUrl}"`;
       }
       
+      console.log(`[EmailFormatting] Content-Location miss for: "${normalizedLocation}"`);
       return match; // Keep original if no match found
     }
   );

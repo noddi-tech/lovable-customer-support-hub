@@ -115,10 +115,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     queryKey: ['conversation', conversationId],
     queryFn: async () => {
       if (!conversationId) return null;
-      const { data, error } = await supabase.rpc('get_conversations');
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*, customer:customers(*)')
+        .eq('id', conversationId)
+        .single();
       if (error) throw error;
-      const foundConversation = data?.find((conv: any) => conv.id === conversationId);
-      return foundConversation || null;
+      return data;
     },
     enabled: !!conversationId,
   });
@@ -295,6 +298,41 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     },
   });
 
+  // Gmail sync mutation for refreshing message data
+  const gmailSyncMutation = useMutation({
+    mutationFn: async () => {
+      if (!conversation?.email_account_id) throw new Error('No email account associated with conversation');
+      
+      const response = await fetch('/supabase/functions/v1/trigger-gmail-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          emailAccountId: conversation.email_account_id
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Sync failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh conversation and messages data
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success('Gmail sync completed - signatures should now display correctly');
+    },
+    onError: (error) => {
+      console.error('Gmail sync error:', error);
+      toast.error('Gmail sync failed: ' + error.message);
+    },
+  });
+
   // AI Suggestions
   const getAiSuggestions = async () => {
     if (!conversationId || messages.length === 0) return;
@@ -412,15 +450,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               <ChevronLeft className="h-4 w-4" />
               <span className="hidden sm:inline">{t('conversation.backToInbox')}</span>
             </Button>
-             <Avatar className="h-10 w-10">
-               <AvatarFallback>{(conversation.customer as any)?.full_name?.[0] || 'C'}</AvatarFallback>
-             </Avatar>
+              <Avatar className="h-10 w-10">
+                <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
+              </Avatar>
              <div>
                <h2 className="font-semibold text-foreground text-sm md:text-base line-clamp-1">{conversation.subject}</h2>
                <div className="flex items-center space-x-2 text-xs md:text-sm text-muted-foreground">
-                 <span className="truncate">{(conversation.customer as any)?.full_name || t('conversation.unknownCustomer')}</span>
-                 <span className="hidden sm:inline">•</span>
-                 <span className="hidden sm:inline truncate">{(conversation.customer as any)?.email}</span>
+                        <span className="truncate">{conversation.customer?.full_name || t('conversation.unknownCustomer')}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="hidden sm:inline truncate">{conversation.customer?.email}</span>
                 <span className="hidden sm:inline">•</span>
                 <Badge variant="outline" className="text-xs">
                   {conversation.channel}
@@ -488,6 +526,21 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <Clock className="h-4 w-4 mr-2" />
                 {t('conversation.snooze')}
               </Button>
+              {conversation.channel === 'email' && conversation.email_account_id && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => gmailSyncMutation.mutate()}
+                  disabled={gmailSyncMutation.isPending}
+                >
+                  {gmailSyncMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Sync Gmail
+                </Button>
+              )}
             </div>
             
             <Button variant="ghost" size="sm">
@@ -527,9 +580,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                                </AvatarFallback>
                              </Avatar>
                              <div>
-                               <div className="font-medium text-sm">
-                                 {isFromCustomer ? (conversation.customer as any)?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
-                               </div>
+                              <div className="font-medium text-sm">
+                                {isFromCustomer ? conversation.customer?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
+                              </div>
                                <div className="text-xs text-muted-foreground">
                                  {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
                                </div>
@@ -732,11 +785,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback>{(conversation.customer as any)?.full_name?.[0] || 'C'}</AvatarFallback>
+                    <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium text-sm">{(conversation.customer as any)?.full_name || t('conversation.unknownCustomer')}</div>
-                    <div className="text-xs text-muted-foreground">{(conversation.customer as any)?.email}</div>
+                    <div className="font-medium text-sm">{conversation.customer?.full_name || t('conversation.unknownCustomer')}</div>
+                    <div className="text-xs text-muted-foreground">{conversation.customer?.email}</div>
                   </div>
                 </div>
               </div>

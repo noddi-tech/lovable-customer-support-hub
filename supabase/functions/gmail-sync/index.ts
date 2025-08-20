@@ -407,53 +407,41 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         const extractAttachments = (parts: any[]) => {
           const attachmentList: any[] = [];
           
+          console.log(`[Gmail-Sync] Processing ${parts.length} parts for attachments`);
+          
           for (const part of parts) {
             const headers = part.headers || [];
             const contentDisposition = headers.find((h: any) => h.name === 'Content-Disposition')?.value;
             const contentId = headers.find((h: any) => h.name === 'Content-ID')?.value;
             const contentLocation = headers.find((h: any) => h.name === 'Content-Location')?.value;
             
-            // Normalize Content-ID (remove angle brackets, lowercase)
-            const normalizedContentId = contentId ? 
-              contentId.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase() : undefined;
-            
-            // Normalize Content-Location (extract filename or keep as URL)
-            const normalizedContentLocation = contentLocation ? 
-              (contentLocation.includes('/') ? contentLocation.split('/').pop() : contentLocation).toLowerCase() : undefined;
+            console.log(`[Gmail-Sync] Part analysis:`, {
+              filename: part.filename,
+              mimeType: part.mimeType,
+              hasAttachmentId: !!part.body?.attachmentId,
+              contentId,
+              contentLocation,
+              contentDisposition,
+              headers: headers.map((h: any) => `${h.name}: ${h.value}`)
+            });
             
             // Include any part with attachmentId (regular attachments, inline images, or Content-Location assets)
             // This includes parts marked as "attachment" that might actually be inline (Outlook compatibility)
             if (part.body?.attachmentId) {
-              const baseAttachment = {
-                filename: part.filename || (normalizedContentId ? `image_${normalizedContentId}` : `asset_${Date.now()}`),
+              // Create a single attachment entry with all relevant metadata
+              const attachment = {
+                filename: part.filename || `asset_${Date.now()}`,
                 mimeType: part.mimeType,
                 attachmentId: part.body.attachmentId,
                 size: part.body.size || 0,
-                contentDisposition: contentDisposition
+                contentDisposition: contentDisposition,
+                contentId: contentId ? contentId.replace(/^cid:/i, '').replace(/[<>]/g, '') : undefined,
+                contentLocation: contentLocation,
+                isInline: !!contentId || contentDisposition !== 'attachment'
               };
               
-              // Add Content-ID information if present
-              if (normalizedContentId) {
-                attachmentList.push({
-                  ...baseAttachment,
-                  contentId: normalizedContentId,
-                  isInline: true
-                });
-              }
-              
-              // Add Content-Location information if present (separate entry for lookup)
-              if (normalizedContentLocation) {
-                attachmentList.push({
-                  ...baseAttachment,
-                  contentLocation: normalizedContentLocation,
-                  isInline: contentDisposition !== 'attachment'
-                });
-              }
-              
-              // If neither Content-ID nor Content-Location, it's a regular attachment
-              if (!normalizedContentId && !normalizedContentLocation) {
-                attachmentList.push(baseAttachment);
-              }
+              console.log(`[Gmail-Sync] Adding attachment:`, attachment);
+              attachmentList.push(attachment);
             }
             
             // Recursively process nested parts
@@ -462,6 +450,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
             }
           }
           
+          console.log(`[Gmail-Sync] Extracted ${attachmentList.length} attachments total`);
           return attachmentList;
         };
 
