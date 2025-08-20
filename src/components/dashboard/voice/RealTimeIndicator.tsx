@@ -1,43 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeConnectionManager } from '@/hooks/useRealtimeConnectionManager';
 
 interface RealTimeIndicatorProps {
   onRefresh?: () => void;
 }
 
 export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Monitor Supabase real-time connection status
-    const channel = supabase.channel('connection-monitor');
-    
-    channel.subscribe((status) => {
-      setIsConnected(status === 'SUBSCRIBED');
-      if (status === 'SUBSCRIBED') {
-        setLastUpdate(new Date());
-      } else if (status === 'CLOSED') {
-        toast({
-          title: "Connection Lost",
-          description: "Real-time updates have been disconnected",
-          variant: "destructive"
-        });
-      }
-    });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [toast]);
+  const { isConnected, lastConnected, forceReconnect } = useRealtimeConnectionManager();
 
   const handleRefresh = () => {
     onRefresh?.();
+    forceReconnect(); // Also force reconnection
     toast({
       title: "Refreshing",
       description: "Updating voice interface data...",
@@ -63,9 +41,9 @@ export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh 
         )}
       </Badge>
       
-      {lastUpdate && (
+      {lastConnected && isConnected && (
         <span className="text-xs text-muted-foreground">
-          Last update: {lastUpdate.toLocaleTimeString()}
+          Last update: {lastConnected.toLocaleTimeString()}
         </span>
       )}
       
@@ -74,7 +52,7 @@ export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh 
         size="sm"
         onClick={handleRefresh}
         className="h-6 w-6 p-0"
-        title="Refresh data"
+        title="Refresh data and reconnect"
       >
         <RefreshCw className="h-3 w-3" />
       </Button>

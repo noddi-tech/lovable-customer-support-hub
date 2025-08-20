@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useVoiceIntegrations } from './useVoiceIntegrations';
+import { useRealtimeConnectionManager } from './useRealtimeConnectionManager';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { Phone, PhoneCall, PhoneOff, Voicemail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,14 +36,15 @@ export const useRealTimeCallNotifications = () => {
   const { toast } = useToast();
   const { getIntegrationByProvider } = useVoiceIntegrations();
   const queryClient = useQueryClient();
+  const { createManagedSubscription } = useRealtimeConnectionManager();
   const aircallIntegration = getIntegrationByProvider('aircall');
   const processedEventsRef = useRef(new Set<string>());
 
   useEffect(() => {
-    // Subscribe to new call events
-    const callEventsChannel = supabase
-      .channel('call-events-notifications')
-      .on(
+    // Create managed subscription for call events
+    const unsubscribeCallEvents = createManagedSubscription(
+      'call-events-notifications',
+      (channel) => channel.on(
         'postgres_changes',
         {
           event: 'INSERT',
@@ -77,13 +79,14 @@ export const useRealTimeCallNotifications = () => {
             console.error('Error processing call event:', error);
           }
         }
-      )
-      .subscribe();
+      ),
+      [aircallIntegration]
+    );
 
-    // Subscribe to call status changes
-    const callsChannel = supabase
-      .channel('calls-notifications')
-      .on(
+    // Create managed subscription for call status changes
+    const unsubscribeCallStatus = createManagedSubscription(
+      'calls-notifications',
+      (channel) => channel.on(
         'postgres_changes',
         {
           event: '*',
@@ -109,14 +112,15 @@ export const useRealTimeCallNotifications = () => {
           queryClient.invalidateQueries({ queryKey: ['calls'] });
           queryClient.invalidateQueries({ queryKey: ['call-events'] });
         }
-      )
-      .subscribe();
+      ),
+      [aircallIntegration, queryClient]
+    );
 
     return () => {
-      supabase.removeChannel(callEventsChannel);
-      supabase.removeChannel(callsChannel);
+      unsubscribeCallEvents();
+      unsubscribeCallStatus();
     };
-  }, [aircallIntegration]);
+  }, [aircallIntegration, createManagedSubscription, queryClient]);
 
   const handleCallEventNotification = async (callEvent: CallEvent, call: Call) => {
     const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);

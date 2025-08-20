@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useRealtimeConnectionManager } from "./useRealtimeConnectionManager";
 
 export interface Call {
   id: string;
@@ -33,6 +34,7 @@ export interface CallEvent {
 export function useCalls() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { createManagedSubscription } = useRealtimeConnectionManager();
 
   const { data: calls = [], isLoading, error } = useQuery({
     queryKey: ['calls'],
@@ -61,67 +63,56 @@ export function useCalls() {
     },
   });
 
-  // Set up real-time subscriptions
+  // Set up managed real-time subscriptions
   useEffect(() => {
-    const callsChannel = supabase
-      .channel('calls-changes')
-      .on('postgres_changes', {
+    const unsubscribeCalls = createManagedSubscription(
+      'calls-changes',
+      (channel) => channel.on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'calls'
       }, (payload) => {
         console.log('Call change received:', payload);
         
-        // Show toast notification for new calls
+        // Show toast notification for new calls (only if not handled by main notifications)
         if (payload.eventType === 'INSERT') {
           const newCall = payload.new as Call;
           if (newCall.direction === 'inbound') {
-            toast({
-              title: "Incoming Call",
-              description: `New call from ${newCall.customer_phone || 'Unknown'}`,
-            });
+            // This is now handled by useRealTimeCallNotifications
+            console.log('New incoming call detected in useCalls');
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedCall = payload.new as Call;
           if (payload.old?.status !== updatedCall.status) {
-            toast({
-              title: "Call Status Updated",
-              description: `Call ${updatedCall.status}`,
-            });
+            console.log(`Call status updated: ${updatedCall.status}`);
           }
         }
         
         queryClient.invalidateQueries({ queryKey: ['calls'] });
-      })
-      .subscribe();
+      }),
+      [queryClient]
+    );
 
-    const eventsChannel = supabase
-      .channel('call-events-changes')
-      .on('postgres_changes', {
+    const unsubscribeEvents = createManagedSubscription(
+      'call-events-changes',
+      (channel) => channel.on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'call_events'
       }, (payload) => {
         console.log('Call event received:', payload);
         
-        // Show toast for significant call events
-        const newEvent = payload.new as CallEvent;
-        if (['voicemail_left', 'callback_requested'].includes(newEvent.event_type)) {
-          toast({
-            title: "New Voice Event",
-            description: `${newEvent.event_type.replace('_', ' ')} received`,
-          });
-        }
-        
+        // Let useRealTimeCallNotifications handle the main notifications
         queryClient.invalidateQueries({ queryKey: ['call-events'] });
-      })
-      .subscribe();
+      }),
+      [queryClient]
+    );
 
     return () => {
-      supabase.removeChannel(callsChannel);
-      supabase.removeChannel(eventsChannel);
+      unsubscribeCalls();
+      unsubscribeEvents();
     };
-  }, [queryClient]);
+  }, [createManagedSubscription, queryClient]);
 
   // Derived data
   const activeCalls = calls.filter(call => 
