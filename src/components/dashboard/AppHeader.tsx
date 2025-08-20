@@ -173,37 +173,29 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
           {/* Main Navigation - Desktop */}
           {!isMobile && (
-            <nav className="flex items-center gap-1">
+            <Menubar className="border-none bg-transparent">
               {mainTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 
-                // If tab has subtabs, render as dropdown
-                if (tab.subTabs && tab.subTabs.length > 0) {
-                  return (
-                    <DropdownMenu key={tab.id}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant={isActive ? "default" : "ghost"}
-                          size="sm"
-                          className={cn(
-                            "flex items-center gap-2",
-                            isActive && "bg-primary text-primary-foreground"
-                          )}
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span>{tab.label}</span>
-                          {tab.id === 'interactions' && unreadCount > 0 && (
-                            <Badge variant="destructive" className="h-4 px-1 text-xs ml-1">
-                              {unreadCount > 99 ? '99+' : unreadCount}
-                            </Badge>
-                          )}
-                          <ChevronDown className="h-3 w-3 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="z-50">
+                return (
+                  <MenubarMenu key={tab.id}>
+                    <MenubarTrigger className={cn(
+                      "flex items-center gap-2 data-[state=open]:bg-accent",
+                      isActive && "bg-primary text-primary-foreground data-[state=open]:bg-primary/90"
+                    )}>
+                      <Icon className="h-4 w-4" />
+                      <span>{tab.label}</span>
+                      {tab.id === 'interactions' && unreadCount > 0 && (
+                        <Badge variant="destructive" className="h-4 px-1 text-xs ml-1">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Badge>
+                      )}
+                    </MenubarTrigger>
+                    {tab.subTabs && tab.subTabs.length > 0 && (
+                      <MenubarContent>
                         {tab.subTabs.map((subTab) => (
-                          <DropdownMenuItem
+                          <MenubarItem
                             key={subTab.id}
                             onClick={() => onTabChange(tab.id, subTab.id)}
                             className={cn(
@@ -213,31 +205,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                           >
                             {subTab.icon && <subTab.icon className="h-4 w-4 mr-2" />}
                             {subTab.label}
-                          </DropdownMenuItem>
+                          </MenubarItem>
                         ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  );
-                }
-                
-                // Regular tab without subtabs
-                return (
-                  <Button
-                    key={tab.id}
-                    variant={isActive ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => onTabChange(tab.id, '')}
-                    className={cn(
-                      "flex items-center gap-2",
-                      isActive && "bg-primary text-primary-foreground"
+                      </MenubarContent>
                     )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{tab.label}</span>
-                  </Button>
+                  </MenubarMenu>
                 );
               })}
-            </nav>
+            </Menubar>
           )}
 
       {/* Mobile Navigation - Show current tab and subtab */}
