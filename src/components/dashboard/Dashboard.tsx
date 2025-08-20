@@ -12,12 +12,13 @@ import { BottomTabs, type BottomTabItem } from '@/components/ui/bottom-tabs';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useTranslation } from 'react-i18next';
-import { MessageCircle, Megaphone, Settings, Wrench, Menu, Info } from 'lucide-react';
+import { MessageCircle as MessageCircleIcon, Megaphone, Settings, Wrench, Menu, Info } from 'lucide-react';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -253,7 +254,7 @@ useEffect(() => {
     {
       id: 'interactions',
       label: t('dashboard.bottomTabs.interactions'),
-      icon: MessageCircle,
+      icon: MessageCircleIcon,
     },
     {
       id: 'marketing',
@@ -304,7 +305,8 @@ useEffect(() => {
           }
           className={cn(
             "bg-gradient-surface",
-            !isMobile && (showConversationListDesktop ? 'list-expanded' : 'list-collapsed')
+            !isMobile && (showConversationListDesktop ? 'list-expanded' : 'list-collapsed'),
+            isMobile && "has-bottom-tabs"
           )}
           sidebar={!isMobile ? (
             <AppSidebar 
@@ -353,8 +355,21 @@ useEffect(() => {
             />
           }
         >
-          {/* Conversation List - as direct grid item */}
-          {showConversationListDesktop && (
+          {/* Mobile Conversation List - shown as full screen on mobile */}
+          {isMobile && showConversationList && (
+            <div className="flex flex-col bg-gradient-surface h-full">
+              <ConversationList 
+                selectedTab={selectedTab}
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+                selectedInboxId={selectedInboxId}
+                onToggleCollapse={() => setShowConversationList(false)}
+              />
+            </div>
+          )}
+          
+          {/* Conversation List - Desktop/Tablet grid item */}
+          {!isMobile && showConversationListDesktop && (
             <div className="list-pane">
               <ConversationList 
                 selectedTab={selectedTab}
@@ -366,40 +381,49 @@ useEffect(() => {
             </div>
           )}
           
-          {/* Conversation View - as direct grid item */}
-          <div className={`
-            ${isMobile ? (showConversationList ? 'hidden' : 'flex w-full') : 'detail-pane'}
-            flex flex-col bg-gradient-surface
-          `}>
-            {/* Mobile Header */}
-            {isMobile && (
-              <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center justify-between">
-                <div className="flex items-center">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleBackToList}
-                    className="mr-2"
-                  >
-                    {t('dashboard.navigation.back')}
-                  </Button>
-                  <h1 className="font-semibold ellipsis">{selectedInboxName}</h1>
+          {/* Conversation View - Main content area */}
+          {(!isMobile || !showConversationList) && (
+            <div className={cn(
+              "flex flex-col bg-gradient-surface",
+              isMobile ? "w-full" : "detail-pane"
+            )}>
+              {/* Mobile Back Button */}
+              {isMobile && selectedConversation && (
+                <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedConversation(null);
+                        navigate('/', { replace: true });
+                        setShowConversationList(true);
+                      }}
+                      className="mr-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <h2 className="font-semibold text-lg ellipsis">
+                      {selectedConversation.subject}
+                    </h2>
+                  </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowRightDrawer(true)}
-                  className="p-2"
-                >
-                  <Info className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            <ConversationView 
-              conversationId={selectedConversation?.id || null}
-            />
-          </div>
+              )}
+              
+              {/* Conversation Content */}
+              {selectedConversation ? (
+                <ConversationView conversationId={selectedConversation.id} />
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-center p-8">
+                  <div className="max-w-md">
+                    <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-semibold text-lg mb-2">{t('dashboard.conversationView.noConversationSelected')}</h3>
+                    <p className="text-muted-foreground">{t('dashboard.conversationView.selectConversationToStart')}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </ResponsiveLayout>
       </div>
     </SidebarProvider>

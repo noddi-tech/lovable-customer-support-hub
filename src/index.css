@@ -355,7 +355,7 @@ All colors MUST be HSL.
     }
   }
 
-  /* 1024–1279px: tablet layout - 2 panes + inspector drawer */
+  /* Desktop Medium (1024-1279px): 2-3 pane with icon sidebar */
   @media (min-width: 1024px) and (max-width: 1279px) {
     .app-main { 
       grid-template-columns: 64px minmax(350px, 400px) 1fr; 
@@ -366,26 +366,36 @@ All colors MUST be HSL.
     }
     
     .app-main.list-expanded {
-      grid-template-columns: 64px minmax(350px, 400px) 1fr;
+      grid-template-columns: 64px minmax(360px, 420px) 1fr;
     }
     
     .inspector-pane { 
-      display: none; /* use drawer instead */
+      display: none; /* use drawer for inspector */
     }
   }
 
-  /* ≤767px (Mobile): 1 pane; nav/inspector as drawers */
+  /* Mobile (≤767px): Single pane with safe areas */
   @media (max-width: 767px) {
     .app-main { 
       grid-template-columns: 1fr; 
     }
     
-    .nav-pane, .inspector-pane { 
-      display: none; /* replaced by drawers */
+    .nav-pane, .inspector-pane, .list-pane { 
+      display: none; /* replaced by mobile UI patterns */
+    }
+    
+    /* Safe area for bottom tabs */
+    .app-main {
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    
+    /* When bottom tabs are present, add extra padding */
+    .has-bottom-tabs .app-main {
+      padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0));
     }
   }
   
-  /* 768-1023px (Tablet): 2 panes when list expanded, 1 pane when collapsed */
+  /* Tablet (768-1023px): Flexible 1-2 pane layout */
   @media (min-width: 768px) and (max-width: 1023px) {
     .app-main { 
       grid-template-columns: minmax(320px, 380px) 1fr; 
@@ -395,8 +405,12 @@ All colors MUST be HSL.
       grid-template-columns: 1fr;
     }
     
+    .app-main.list-expanded {
+      grid-template-columns: minmax(350px, 400px) 1fr;
+    }
+    
     .nav-pane, .inspector-pane { 
-      display: none; /* replaced by drawers */
+      display: none; /* use drawers on tablet */
     }
   }
 
