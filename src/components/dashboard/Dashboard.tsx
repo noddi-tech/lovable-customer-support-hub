@@ -308,19 +308,15 @@ useEffect(() => {
             if (isMobile) {
               setShowConversationList(!showConversationList);
             } else {
-              // When expanding conversation list on smaller screens, 
-              // ensure we have space by managing panel visibility intelligently
-              if (viewportWidth < 1400 && selectedConversation && !showConversationListDesktop) {
-                // Expanding on smaller screen - good to go
-                setShowConversationListDesktop(true);
-              } else {
-                setShowConversationListDesktop(!showConversationListDesktop);
-              }
+              const newValue = !showConversationListDesktop;
+              setShowConversationListDesktop(newValue);
+              localStorage.setItem('showConversationListDesktop', JSON.stringify(newValue));
             }
           }}
           selectedConversation={selectedConversation}
         />
       }
+      className={`bg-gradient-surface ${!isMobile ? (showConversationListDesktop ? 'list-expanded' : 'list-collapsed') : ''}`}
       sidebar={!isMobile ? (
         <InboxSidebar 
           selectedTab={selectedTab} 
@@ -366,7 +362,6 @@ useEffect(() => {
           onTabChange={setActiveBottomTab}
         />
       }
-      className="bg-gradient-surface"
     >
       {/* Show Notifications List if notifications tab is selected */}
       {selectedTab === 'notifications' ? (
@@ -393,8 +388,11 @@ useEffect(() => {
         <>
           {/* Conversation List - as direct grid item */}
           <div className={`
-            ${isMobile ? (showConversationList ? 'flex w-full' : 'hidden') : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'}
-            flex flex-col bg-gradient-surface transition-all duration-300 ease-in-out
+            ${isMobile 
+              ? (showConversationList ? 'flex w-full' : 'hidden') 
+              : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'
+            }
+            flex flex-col bg-gradient-surface
           `}>
             <ConversationList 
               selectedTab={selectedTab}

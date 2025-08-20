@@ -305,13 +305,40 @@ All colors MUST be HSL.
   @media (min-width: 1280px) {
     .app-main {
       height: 100%;
-      grid-template-columns: 240px minmax(380px, 1fr) minmax(320px, 420px);
+      grid-template-columns: var(--grid-template-desktop, 240px minmax(380px, 1fr) minmax(320px, 420px));
       gap: 0;
+      transition: grid-template-columns 0.3s ease-in-out;
     }
+    
+    /* Collapsed state - hide list pane */
+    .app-main.list-collapsed {
+      --grid-template-desktop: 240px 0 1fr;
+    }
+    
+    /* Expanded state - show all 3 panes */
+    .app-main.list-expanded {
+      --grid-template-desktop: 240px minmax(380px, 1fr) minmax(320px, 420px);
+    }
+    
     .nav-pane, .list-pane, .detail-pane { 
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+    }
+    
+    /* List pane visibility controls */
+    .list-pane-collapsed {
+      width: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: all 0.3s ease-in-out;
+    }
+    
+    .list-pane {
+      width: auto;
+      overflow: auto;
+      opacity: 1;
+      transition: all 0.3s ease-in-out;
     }
   }
 
