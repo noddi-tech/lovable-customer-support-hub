@@ -17,7 +17,7 @@ import { useFocusManagement, useAriaLiveRegion } from '@/hooks/use-focus-managem
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { LayoutDebugger } from '@/components/debug/LayoutDebugger';
-import { TranslationTest } from '@/components/i18n/TranslationTest';
+
 import { MessageCircle as MessageCircleIcon, Megaphone, Settings, Wrench } from 'lucide-react';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -341,7 +341,6 @@ export const Dashboard = () => {
       </ResponsiveLayout>
       
       {/* Debug components in development */}
-      <TranslationTest />
       <LayoutDebugger 
         showConversationList={isMobile ? showConversationList : showConversationListDesktop}
         showSidebar={showSidebar}
