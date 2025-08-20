@@ -1,73 +1,35 @@
-import React, { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronRight, MessageCircle, Megaphone, Wrench, Settings } from 'lucide-react';
+import React from 'react';
 import InteractionsWrapper from '@/components/dashboard/InteractionsWrapper';
 import MarketingWrapper from '@/components/dashboard/MarketingWrapper';
 import OpsWrapper from '@/components/dashboard/OpsWrapper';
 import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
 
-const MainApp = () => {
-  const [activeTab, setActiveTab] = useState('interactions');
+interface MainAppProps {
+  activeTab: string;
+}
 
-  const getCurrentTabName = (tab: string) => {
-    switch (tab) {
+const MainApp: React.FC<MainAppProps> = ({ activeTab }) => {
+
+  const renderActiveContent = () => {
+    switch (activeTab) {
       case 'interactions':
-        return 'Interactions';
+        return <InteractionsWrapper />;
       case 'marketing':
-        return 'Marketing';
+        return <MarketingWrapper />;
       case 'ops':
-        return 'Ops';
-      case 'services':
-        return 'Services';
+        return <OpsWrapper />;
+      case 'settings':
+        return <SettingsWrapper />;
       default:
-        return 'Interactions';
+        return <InteractionsWrapper />;
     }
   };
 
-
   return (
     <div className="min-h-screen flex w-full">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <div className="flex h-14 items-center border-b px-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-muted-foreground">{getCurrentTabName(activeTab)}</span>
-          </div>
-        </div>
-        
-        <TabsList className="grid w-full grid-cols-4 mx-4 mt-4">
-          <TabsTrigger value="interactions">
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Interactions
-          </TabsTrigger>
-          <TabsTrigger value="marketing">
-            <Megaphone className="h-4 w-4 mr-2" />
-            Marketing
-          </TabsTrigger>
-          <TabsTrigger value="ops">
-            <Wrench className="h-4 w-4 mr-2" />
-            Ops
-          </TabsTrigger>
-          <TabsTrigger value="settings">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </TabsTrigger>
-        </TabsList>
-
-        <div className="flex-1 p-4">
-          <TabsContent value="interactions" className="m-0 h-full">
-            <InteractionsWrapper />
-          </TabsContent>
-          <TabsContent value="marketing" className="m-0 h-full">
-            <MarketingWrapper />
-          </TabsContent>
-          <TabsContent value="ops" className="m-0 h-full">
-            <OpsWrapper />
-          </TabsContent>
-          <TabsContent value="settings" className="m-0 h-full">
-            <SettingsWrapper />
-          </TabsContent>
-        </div>
-      </Tabs>
+      <div className="flex-1 p-4">
+        {renderActiveContent()}
+      </div>
     </div>
   );
 };
