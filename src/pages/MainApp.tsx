@@ -8,7 +8,6 @@ import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterf
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { ResponsiveLayout } from '@/components/ui/responsive-layout';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { cn } from '@/lib/utils';
@@ -76,33 +75,34 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange 
   };
 
   return (
-    <SidebarProvider>
-      <ResponsiveLayout
-        header={
-          <AppHeader
-            activeTab={activeTab}
-            activeSubTab={activeSubTab}
-            onTabChange={onTabChange}
-            onMenuClick={() => setShowMobileSidebar(true)}
-            showMenuButton={isMobile && activeTab === 'interactions'}
-          />
-        }
-        sidebar={activeTab === 'interactions' ? (
-          <AppSidebar 
-            selectedTab={selectedTab}
-            onTabChange={handleTabChange}
-          />
-        ) : undefined}
-      >
-        {/* Main Content */}
-        <div className={cn(
-          "flex-1 min-h-0",
-          activeTab === 'interactions' ? '' : 'w-full'
-        )}>
-          {renderActiveContent()}
-        </div>
-      </ResponsiveLayout>
-    </SidebarProvider>
+    <ResponsiveLayout
+      header={
+        <AppHeader
+          activeTab={activeTab}
+          activeSubTab={activeSubTab}
+          onTabChange={onTabChange}
+          onMenuClick={() => setShowMobileSidebar(true)}
+          showMenuButton={isMobile && activeTab === 'interactions'}
+        />
+      }
+      sidebar={activeTab === 'interactions' ? (
+        <AppSidebar 
+          selectedTab={selectedTab}
+          onTabChange={handleTabChange}
+        />
+      ) : undefined}
+      className={cn(
+        activeTab === 'interactions' ? 'list-open sidebar-open' : ''
+      )}
+    >
+      {/* Main Content */}
+      <div className={cn(
+        "flex-1 min-h-0 overflow-hidden",
+        activeTab === 'interactions' ? '' : 'w-full'
+      )}>
+        {renderActiveContent()}
+      </div>
+    </ResponsiveLayout>
   );
 };
 

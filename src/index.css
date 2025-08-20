@@ -10,8 +10,7 @@ html, body, #root {
 }
 
 body {
-  overflow-y: auto; /* Allow controlled page scrolling */
-  overflow-x: hidden; /* Prevent horizontal page scrolling */
+  overflow: hidden; /* Locked web app - no page scrolling */
   font-family: var(--font-body);
   font-size: var(--font-body);
   line-height: 1.5;
@@ -299,8 +298,7 @@ Optimized for accessibility with WCAG AA compliance.
     
     display: grid;
     grid-template-rows: var(--app-header-h, 64px) 1fr;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden; /* Locked screen layout */
   }
 
   .app-header {
@@ -313,8 +311,7 @@ Optimized for accessibility with WCAG AA compliance.
   .app-main {
     min-height: 0;
     min-width: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden; /* Individual panes handle their own scrolling */
     display: grid;
   }
 

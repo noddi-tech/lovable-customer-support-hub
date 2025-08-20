@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-responsive"
+import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode
@@ -30,7 +31,52 @@ const ResponsiveLayout = React.forwardRef<HTMLDivElement, ResponsiveLayoutProps>
         }
       })
     }
+
+    // If sidebar is provided, use Shadcn Sidebar layout
+    if (sidebar) {
+      return (
+        <SidebarProvider>
+          <div
+            ref={ref}
+            className={cn("app-root", ...rootClasses)}
+            {...props}
+          >
+            {/* Header */}
+            {header && (
+              <div className="app-header">
+                {header}
+              </div>
+            )}
+            
+            {/* Main Content Area with Sidebar */}
+            <div className={cn("app-main flex min-h-0", ...mainClasses, isMobile && bottomTabs && "pb-16")}>
+              {/* Sidebar */}
+              <Sidebar className="border-r">
+                {sidebar}
+              </Sidebar>
+              
+              {/* Main Content */}
+              <SidebarInset className="flex-1 min-h-0">
+                {children}
+              </SidebarInset>
+            </div>
+
+            {/* Mobile Drawers */}
+            {leftDrawer}
+            {rightDrawer}
+            
+            {/* iPhone Bottom Tabs */}
+            {bottomTabs && isMobile && (
+              <div className="bottom-tabs">
+                {bottomTabs}
+              </div>
+            )}
+          </div>
+        </SidebarProvider>
+      )
+    }
     
+    // Standard layout without sidebar
     return (
       <div
         ref={ref}
@@ -46,7 +92,7 @@ const ResponsiveLayout = React.forwardRef<HTMLDivElement, ResponsiveLayoutProps>
         
         {/* Main Content Area - Apply grid state classes here */}
         <div className={cn("app-main", ...mainClasses, isMobile && bottomTabs && "pb-16")}>
-          {/* Main Content - children will be direct grid items (no nav-pane, handled by Shadcn Sidebar) */}
+          {/* Main Content - children will be direct grid items */}
           {children}
         </div>
 
