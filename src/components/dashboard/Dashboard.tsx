@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { InboxSidebar } from './InboxSidebar';
@@ -18,9 +18,8 @@ import { useFocusManagement, useAriaLiveRegion } from '@/hooks/use-focus-managem
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { LayoutDebugger } from '@/components/debug/LayoutDebugger';
-import { useToast } from '@/hooks/use-toast';
-import { usePermissions } from '@/hooks/usePermissions';
-import { MessageCircle as MessageCircleIcon, Megaphone, Settings, Wrench, Menu, Info } from 'lucide-react';
+import { TranslationTest } from '@/components/i18n/TranslationTest';
+import { MessageCircle as MessageCircleIcon, Megaphone, Settings, Wrench } from 'lucide-react';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -46,35 +45,25 @@ interface Conversation {
   };
 }
 
-export const Dashboard: React.FC = () => {
-  // Safely access search params - handle case where router context might not be ready
-  let searchParams: URLSearchParams;
-  let navigate: (path: string, options?: any) => void;
+export const Dashboard = () => {
+  // Use hooks properly - no try-catch around hooks
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   
-  try {
-    const [params] = useSearchParams();
-    searchParams = params;
-    navigate = useNavigate();
-  } catch (error) {
-    // Fallback when router context is not available
-    console.warn('Router context not available, using fallback');
-    searchParams = new URLSearchParams(window.location.search);
-    navigate = (path: string) => {
-      window.history.pushState({}, '', path);
-    };
-  }
+  // Get conversation ID from URL
+  const conversationIdFromUrl = searchParams.get('conversation');
+  
+  // State management
   const [selectedTab, setSelectedTab] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
-  const [showConversationListDesktop, setShowConversationListDesktop] = useState<boolean>(() => {
-    const saved = localStorage.getItem('showConversationListDesktop');
-    return saved ? JSON.parse(saved) : true;
-  });
+  const [showConversationListDesktop, setShowConversationListDesktop] = useState(true); // Default to true
   const [showRightDrawer, setShowRightDrawer] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState('interactions');
-  const [selectedInboxId, setSelectedInboxId] = useState<string>(() => localStorage.getItem('selectedInboxId') || 'all');
-  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
+  const [selectedInboxId, setSelectedInboxId] = useState('all');
+  
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const isDesktop = useIsDesktop();
@@ -82,6 +71,19 @@ export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const { saveFocus, restoreFocus, focusFirstFocusableElement } = useFocusManagement();
   const { announce } = useAriaLiveRegion();
+
+  // Load saved preferences once on mount
+  useEffect(() => {
+    const savedConversationListDesktop = localStorage.getItem('showConversationListDesktop');
+    const savedInboxId = localStorage.getItem('selectedInboxId');
+    
+    if (savedConversationListDesktop !== null) {
+      setShowConversationListDesktop(JSON.parse(savedConversationListDesktop));
+    }
+    if (savedInboxId) {
+      setSelectedInboxId(savedInboxId);
+    }
+  }, []);
 
   // Fetch inboxes to resolve selected inbox name
   const { data: inboxes = [] } = useQuery({
@@ -97,189 +99,74 @@ export const Dashboard: React.FC = () => {
     ? 'All Inboxes'
     : (inboxes.find((i: any) => i.id === selectedInboxId)?.name || 'Inbox');
 
-// Sync header inbox selector with sidebar inbox selection
-useEffect(() => {
-  if (selectedTab.startsWith('inbox-')) {
-    setSelectedInboxId(selectedTab.replace('inbox-', ''));
-  } else if (selectedTab === 'all') {
-    setSelectedInboxId('all');
-  }
-}, [selectedTab]);
-
-// Persist inbox selection
-useEffect(() => {
-  if (selectedInboxId) {
-    localStorage.setItem('selectedInboxId', selectedInboxId);
-  }
-}, [selectedInboxId]);
-
-// Persist desktop conversation list state
-useEffect(() => {
-  localStorage.setItem('showConversationListDesktop', JSON.stringify(showConversationListDesktop));
-}, [showConversationListDesktop]);
-
-// Track viewport width for responsive panel management
-useEffect(() => {
-  const handleResize = () => {
-    setViewportWidth(window.innerWidth);
-  };
-  
-  window.addEventListener('resize', handleResize);
-  return () => window.removeEventListener('resize', handleResize);
-}, []);
-
-  const markConversationRead = async (id: string) => {
-    try {
-      await supabase.from('conversations').update({ is_read: true }).eq('id', id);
-    } catch (e) {
-      console.error('Failed to mark conversation read:', e);
-    } finally {
-      queryClient.setQueryData(['conversations'], (old: any) =>
-        Array.isArray(old) ? old.map((c: any) => (c.id === id ? { ...c, is_read: true } : c)) : old
-      );
-      queryClient.setQueryData(['conversation', id], (old: any) => (old ? { ...old, is_read: true } : old));
-      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+  // Handle tab changes
+  const handleTabChange = useCallback((tab: string) => {
+    console.log('Changing tab to:', tab);
+    setSelectedTab(tab);
+    
+    // Save inbox selection to localStorage when switching to inbox tabs
+    if (tab.startsWith('inbox-')) {
+      const inboxId = tab.replace('inbox-', '');
+      setSelectedInboxId(inboxId);
+      localStorage.setItem('selectedInboxId', inboxId);
+    } else if (tab === 'all') {
+      setSelectedInboxId('all');
+      localStorage.setItem('selectedInboxId', 'all');
     }
-  };
-
-  const handleBackToList = () => {
-    if (selectedConversation && !selectedConversation.is_read) {
-      void markConversationRead(selectedConversation.id);
-      setSelectedConversation({ ...selectedConversation, is_read: true });
-    }
+    
+    // Clear conversation selection when changing tabs
+    setSelectedConversation(null);
+    
+    // Update URL to remove conversation parameter
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('conversation');
+    setSearchParams(newParams, { replace: true });
+    
+    // Show conversation list on mobile when changing tabs
     if (isMobile) {
       setShowConversationList(true);
     }
-    // Clear selected conversation and navigate to clean URL
-    setSelectedConversation(null);
-    navigate('/', { replace: true });
-  };
+  }, [searchParams, setSearchParams, isMobile]);
 
-// Keyboard shortcut for toggling conversation list and back navigation
-useEffect(() => {
-  const handleKeyDown = (event: KeyboardEvent) => {
-    // Toggle conversation list with Ctrl+Shift+L
-    if (event.ctrlKey && event.shiftKey && event.key === 'L' && !isMobile) {
-      event.preventDefault();
-      setShowConversationListDesktop(prev => !prev);
-    }
-    // Back to inbox with Escape key
-    if (event.key === 'Escape' && selectedConversation) {
-      event.preventDefault();
-      handleBackToList();
-    }
-  };
-  
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [isMobile, selectedConversation, handleBackToList]);
-
-  // Get conversation ID from URL parameters
-  const conversationIdFromUrl = searchParams.get('conversation');
-  const messageIdFromUrl = searchParams.get('message');
-  const hasTimestamp = searchParams.get('t');
-
-  // Fetch specific conversation if conversation ID is in URL
-  const { data: urlConversation } = useQuery({
-    queryKey: ['conversation', conversationIdFromUrl],
-    queryFn: async () => {
-      if (!conversationIdFromUrl) return null;
-      
-      const { data, error } = await supabase.rpc('get_conversations');
-      if (error) throw error;
-      
-      const foundConversation = data?.find((conv: any) => conv.id === conversationIdFromUrl);
-      
-      if (!foundConversation) return null;
-      
-      // Transform the API response to match our Conversation interface
-      return {
-        id: foundConversation.id,
-        subject: foundConversation.subject || 'Untitled Conversation',
-        status: foundConversation.status as ConversationStatus,
-        priority: foundConversation.priority as ConversationPriority,
-        is_read: foundConversation.is_read,
-        channel: foundConversation.channel as ConversationChannel,
-        updated_at: foundConversation.updated_at,
-        customer: foundConversation.customer ? {
-          id: (foundConversation.customer as any).id,
-          full_name: (foundConversation.customer as any).full_name,
-          email: (foundConversation.customer as any).email,
-        } : undefined,
-        assigned_to: foundConversation.assigned_to ? {
-          id: (foundConversation.assigned_to as any).id,
-          full_name: (foundConversation.assigned_to as any).full_name,
-          avatar_url: (foundConversation.assigned_to as any).avatar_url,
-        } : undefined,
-      } as Conversation;
-    },
-    enabled: !!conversationIdFromUrl,
-  });
-
-  // Effect to auto-select conversation from URL  
-  useEffect(() => {
-    if (conversationIdFromUrl && urlConversation) {
-      // Set the conversation
-      if (!selectedConversation || selectedConversation.id !== urlConversation.id) {
-        setSelectedConversation(urlConversation);
-        if (isMobile) {
-          setShowConversationList(false);
-        } else {
-          setShowConversationListDesktop(false);
-        }
-      }
-    }
-  }, [conversationIdFromUrl, urlConversation?.id, selectedConversation?.id, isMobile]);
-
-  const handleSelectConversation = (conversation: Conversation) => {
-    console.log('Selected conversation:', conversation.id);
-    
-    // Save focus for potential restoration
-    saveFocus();
-    
-    // Mark previous conversation as read when selecting a new one
-    if (selectedConversation && selectedConversation.id !== conversation.id) {
-      markConversationRead(selectedConversation.id);
-    }
-    
+  // Handle conversation selection
+  const handleSelectConversation = useCallback((conversation: Conversation) => {
+    console.log('Selecting conversation:', conversation.id);
     setSelectedConversation(conversation);
-    navigate(`?conversation=${conversation.id}`, { replace: true });
     
-    // Announce to screen readers
-    announce(`Selected conversation: ${conversation.subject}`);
+    // Update URL with conversation ID
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('conversation', conversation.id);
+    setSearchParams(newParams, { replace: true });
     
-    // Hide conversation list when selecting on mobile or tablet
+    // On mobile, hide conversation list when selecting a conversation
     if (isMobile) {
       setShowConversationList(false);
-    } else if (isTablet) {
-      setShowConversationListDesktop(false);
     }
-  };
-
-  const handleTabChange = (tab: string) => {
-    setSelectedTab(tab);
-  };
+    
+    // Mark conversation as read (simplified for now)
+    // This should ideally be handled by the ConversationView component
+  }, [searchParams, setSearchParams, isMobile]);
 
   // Bottom tab items for mobile
   const bottomTabItems: BottomTabItem[] = [
     {
       id: 'interactions',
-      label: t('dashboard.bottomTabs.interactions'),
+      label: 'Interactions',
       icon: MessageCircleIcon,
     },
     {
       id: 'marketing',
-      label: t('dashboard.bottomTabs.marketing'),
+      label: 'Marketing',
       icon: Megaphone,
     },
     {
       id: 'ops',
-      label: t('dashboard.bottomTabs.ops'),
+      label: 'Ops',
       icon: Wrench,
     },
     {
       id: 'settings',
-      label: t('dashboard.bottomTabs.settings'),
+      label: 'Settings',
       icon: Settings,
     },
   ];
@@ -340,7 +227,7 @@ useEffect(() => {
               isOpen={showSidebar}
               onClose={() => setShowSidebar(false)}
               side="left"
-              title={t('dashboard.navigation.menu')}
+              title="Menu"
             >
               <InboxSidebar 
                 selectedTab={selectedTab} 
@@ -357,11 +244,11 @@ useEffect(() => {
               isOpen={showRightDrawer}
               onClose={() => setShowRightDrawer(false)}
               side="right"
-              title={t('dashboard.customerInfo.title', 'Customer Info')}
+              title="Customer Info"
             >
               <div className="p-4">
                 <p className="text-muted-foreground">
-                  {t('dashboard.customerInfo.placeholder', 'Customer details and actions will appear here.')}
+                  Customer details and actions will appear here.
                 </p>
               </div>
             </MobileDrawer>
@@ -445,8 +332,8 @@ useEffect(() => {
                 <div className="flex-1 flex items-center justify-center text-center p-8">
                   <div className="max-w-md">
                     <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold text-lg mb-2">{t('dashboard.conversationView.noConversationSelected')}</h3>
-                    <p className="text-muted-foreground">{t('dashboard.conversationView.selectConversationToStart')}</p>
+                    <h3 className="font-semibold text-lg mb-2">No conversation selected</h3>
+                    <p className="text-muted-foreground">Select a conversation from the list to start viewing messages.</p>
                   </div>
                 </div>
               )}
@@ -454,7 +341,8 @@ useEffect(() => {
           )}
         </ResponsiveLayout>
         
-        {/* Debug info in development */}
+        {/* Debug components in development */}
+        <TranslationTest />
         <LayoutDebugger 
           showConversationList={isMobile ? showConversationList : showConversationListDesktop}
           showSidebar={showSidebar}

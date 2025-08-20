@@ -338,7 +338,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         <div className="flex items-center justify-between mb-3 md:mb-4">
           <div className="flex items-center gap-2">
             <Inbox className="h-4 w-4 md:h-5 md:w-5" />
-            <h2 className="font-semibold text-base md:text-lg ellipsis">{t('dashboard.conversationList.inbox')}</h2>
+            <h2 className="font-semibold text-base md:text-lg ellipsis">{t('dashboard.conversationList.inbox', 'Inbox')}</h2>
             {unreadCount > 0 && (
               <Badge variant="destructive" className="h-4 md:h-5 px-1 md:px-2 text-xs">
                 {unreadCount > 99 ? '99+' : unreadCount}
@@ -359,7 +359,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
             )}
             <Button variant="outline" size="sm" className="h-8">
               <Filter className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-              <span className="hidden sm:inline">{t('dashboard.conversationList.filter')}</span>
+              <span className="hidden sm:inline">{t('dashboard.conversationList.filter', 'Filter')}</span>
             </Button>
           </div>
         </div>
@@ -367,7 +367,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         <div className="relative mb-3 md:mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder={t('dashboard.conversationList.searchPlaceholder')}
+            placeholder={t('dashboard.conversationList.searchPlaceholder', 'Search conversations...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-9"
@@ -377,27 +377,27 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         <div className="flex gap-2 overflow-x-auto pb-1">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32 h-9 text-xs md:text-sm">
-              <SelectValue placeholder={t('dashboard.conversationList.allStatus')} />
+              <SelectValue placeholder={t('dashboard.conversationList.allStatus', 'All Status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('dashboard.conversationList.allStatus')}</SelectItem>
-              <SelectItem value="open">{t('dashboard.conversationList.open')}</SelectItem>
-              <SelectItem value="pending">{t('dashboard.conversationList.pending')}</SelectItem>
-              <SelectItem value="resolved">{t('dashboard.conversationList.resolved')}</SelectItem>
-              <SelectItem value="closed">{t('dashboard.conversationList.closed')}</SelectItem>
+              <SelectItem value="all">{t('dashboard.conversationList.allStatus', 'All Status')}</SelectItem>
+              <SelectItem value="open">{t('dashboard.conversationList.open', 'Open')}</SelectItem>
+              <SelectItem value="pending">{t('dashboard.conversationList.pending', 'Pending')}</SelectItem>
+              <SelectItem value="resolved">{t('dashboard.conversationList.resolved', 'Resolved')}</SelectItem>
+              <SelectItem value="closed">{t('dashboard.conversationList.closed', 'Closed')}</SelectItem>
             </SelectContent>
           </Select>
           
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-32 h-9 text-xs md:text-sm">
-              <SelectValue placeholder={t('dashboard.conversationList.allPriority')} />
+              <SelectValue placeholder={t('dashboard.conversationList.allPriority', 'All Priority')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('dashboard.conversationList.allPriority')}</SelectItem>
-              <SelectItem value="low">{t('dashboard.conversationList.low')}</SelectItem>
-              <SelectItem value="normal">{t('dashboard.conversationList.normal')}</SelectItem>
-              <SelectItem value="high">{t('dashboard.conversationList.high')}</SelectItem>
-              <SelectItem value="urgent">{t('dashboard.conversationList.urgent')}</SelectItem>
+              <SelectItem value="all">{t('dashboard.conversationList.allPriority', 'All Priority')}</SelectItem>
+              <SelectItem value="low">{t('dashboard.conversationList.low', 'Low')}</SelectItem>
+              <SelectItem value="normal">{t('dashboard.conversationList.normal', 'Normal')}</SelectItem>
+              <SelectItem value="high">{t('dashboard.conversationList.high', 'High')}</SelectItem>
+              <SelectItem value="urgent">{t('dashboard.conversationList.urgent', 'Urgent')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -406,15 +406,15 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       {/* Conversation List - Scrollable with responsive layout */}
       <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch" aria-label="Conversations list">
         {isLoading ? (
-          <div className="p-8 text-center text-muted-foreground">
-            <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
-            <p>{t('dashboard.conversationList.loadingConversations')}</p>
-          </div>
+            <div className="p-8 text-center text-muted-foreground">
+              <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
+              <p>{t('dashboard.conversationList.loadingConversations', 'Loading conversations...')}</p>
+            </div>
         ) : filteredConversations.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">{t('dashboard.conversationList.noConversations')}</p>
-            <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription')}</p>
+            <p className="text-lg mb-2">{t('dashboard.conversationList.noConversations', 'No conversations found')}</p>
+            <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
           </div>
         ) : (
           <div className="space-y-0">
@@ -452,7 +452,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                   {/* Status */}
                   <div className="col--status">
                     <Badge variant="outline" className={cn("text-xs", statusColors[conversation.status])}>
-                      {t(`dashboard.conversationList.${conversation.status}`)}
+                      {conversation.status.charAt(0).toUpperCase() + conversation.status.slice(1)}
                     </Badge>
                   </div>
                   
@@ -494,7 +494,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                           handleArchiveConversation(conversation.id);
                         }}>
                           <Archive className="mr-2 h-4 w-4" />
-                          {t('dashboard.conversationList.archive')}
+                          Archive
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={(e) => {
@@ -504,7 +504,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                           className="text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          {t('dashboard.conversationList.delete')}
+                          Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -533,10 +533,10 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant="outline" className={cn("text-xs", statusColors[conversation.status])}>
-                          {t(`dashboard.conversationList.${conversation.status}`)}
+                          {conversation.status.charAt(0).toUpperCase() + conversation.status.slice(1)}
                         </Badge>
                         <Badge variant="outline" className={cn("text-xs", priorityColors[conversation.priority])}>
-                          {t(`dashboard.conversationList.${conversation.priority}`)}
+                          {conversation.priority.charAt(0).toUpperCase() + conversation.priority.slice(1)}
                         </Badge>
                         {!conversation.is_read && (
                           <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
@@ -575,7 +575,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                           handleArchiveConversation(conversation.id);
                         }}>
                           <Archive className="mr-2 h-4 w-4" />
-                          {t('dashboard.conversationList.archive')}
+                          Archive
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={(e) => {
@@ -585,7 +585,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                           className="text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          {t('dashboard.conversationList.delete')}
+                          Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -601,21 +601,21 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('dashboard.conversationList.deleteConfirmation')}</AlertDialogTitle>
+            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('dashboard.conversationList.deleteDescription')}
+              Are you sure you want to delete this conversation? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
-              {t('dashboard.conversationList.cancel')}
+              Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteConversationMutation.isPending}
             >
-              {deleteConversationMutation.isPending ? t('dashboard.conversationList.deleting') : t('dashboard.conversationList.deleteButton')}
+              {deleteConversationMutation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
