@@ -34,7 +34,7 @@ i18n
     resources,
     fallbackLng: 'en',
     defaultNS: 'common',
-    debug: false,
+    debug: process.env.NODE_ENV === 'development',
     
     interpolation: {
       escapeValue: false,
@@ -45,6 +45,12 @@ i18n
       lookupLocalStorage: 'i18nextLng',
       caches: ['localStorage'],
     },
+    
+    // Add better error handling and faster initialization
+    returnNull: false,
+    returnEmptyString: false,
+    keySeparator: '.',
+    nsSeparator: ':',
   });
 
 export default i18n;

@@ -10,16 +10,28 @@ export function useUserLanguage() {
   useEffect(() => {
     const initializeLanguage = async () => {
       try {
-        // Wait for i18n to be initialized
+        console.log('Initializing i18n, current status:', i18n.isInitialized);
+        
+        // Wait for i18n to be initialized with timeout
         if (!i18n.isInitialized) {
-          await new Promise((resolve) => {
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('i18n initialization timeout'));
+            }, 5000);
+            
             if (i18n.isInitialized) {
+              clearTimeout(timeout);
               resolve(void 0);
             } else {
-              i18n.on('initialized', resolve);
+              i18n.on('initialized', () => {
+                clearTimeout(timeout);
+                resolve(void 0);
+              });
             }
           });
         }
+
+        console.log('i18n initialized, current language:', i18n.language);
 
         // For authenticated users, try to load their language preference
         if (user) {
@@ -31,6 +43,7 @@ export function useUserLanguage() {
               .single();
 
             if (profile?.preferred_language && profile.preferred_language !== i18n.language) {
+              console.log('Changing language to:', profile.preferred_language);
               await i18n.changeLanguage(profile.preferred_language);
             }
           } catch (error) {
@@ -39,6 +52,7 @@ export function useUserLanguage() {
           }
         }
         
+        console.log('Language initialization complete');
         setIsReady(true);
       } catch (error) {
         console.error('Failed to initialize language:', error);

@@ -17,6 +17,7 @@ import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { useFocusManagement, useAriaLiveRegion } from '@/hooks/use-focus-management';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { LayoutDebugger } from '@/components/debug/LayoutDebugger';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { MessageCircle as MessageCircleIcon, Megaphone, Settings, Wrench, Menu, Info } from 'lucide-react';
@@ -285,6 +286,15 @@ useEffect(() => {
 
   // Debug logging
   console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl);
+  console.log('Layout state - showConversationListDesktop:', showConversationListDesktop, 'isMobile:', isMobile);
+  
+  const layoutClassName = cn(
+    "bg-gradient-surface",
+    !isMobile && (showConversationListDesktop ? 'list-expanded' : 'list-collapsed'),
+    isMobile && "has-bottom-tabs"
+  );
+  
+  console.log('Layout className:', layoutClassName);
   
   return (
     <SidebarProvider>
@@ -316,11 +326,7 @@ useEffect(() => {
               />
             </div>
           }
-          className={cn(
-            "bg-gradient-surface",
-            !isMobile && (showConversationListDesktop ? 'list-expanded' : 'list-collapsed'),
-            isMobile && "has-bottom-tabs"
-          )}
+          className={layoutClassName}
           sidebar={!isMobile ? (
             <AppSidebar 
               selectedTab={selectedTab}
@@ -447,6 +453,13 @@ useEffect(() => {
             </div>
           )}
         </ResponsiveLayout>
+        
+        {/* Debug info in development */}
+        <LayoutDebugger 
+          showConversationList={isMobile ? showConversationList : showConversationListDesktop}
+          showSidebar={showSidebar}
+          className={layoutClassName}
+        />
       </div>
     </SidebarProvider>
   );

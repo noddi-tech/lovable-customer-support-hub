@@ -303,7 +303,7 @@ Optimized for accessibility with WCAG AA compliance.
 
   .app-header {
     position: relative;
-    z-index: 40;
+    z-index: 100; /* Increased to prevent overlap with sidebars */
     background: hsl(var(--background));
     border-bottom: 1px solid hsl(var(--border));
   }

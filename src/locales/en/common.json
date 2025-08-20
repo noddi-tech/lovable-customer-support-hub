@@ -45,6 +45,42 @@
     "includeAgentName": "Include Agent Name",
     "signatureContent": "Signature Content"
   },
+  "dashboard": {
+    "conversationList": {
+      "inbox": "Inbox",
+      "filter": "Filter",
+      "searchPlaceholder": "Search conversations...",
+      "allStatus": "All Status",
+      "open": "Open",
+      "pending": "Pending", 
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "allPriority": "All Priority",
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent",
+      "loadingConversations": "Loading conversations...",
+      "noConversations": "No conversations found",
+      "noConversationsDescription": "There are no conversations matching your current filters.",
+      "markAsRead": "Mark as read",
+      "markAsUnread": "Mark as unread",
+      "archive": "Archive",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete Conversation",
+      "deleteConfirmMessage": "Are you sure you want to delete this conversation? This action cannot be undone.",
+      "cancel": "Cancel",
+      "deleteConfirm": "Delete"
+    },
+    "conversationView": {
+      "noConversationSelected": "No conversation selected",
+      "selectConversationToStart": "Select a conversation from the list to start viewing messages."
+    },
+    "navigation": {
+      "menu": "Menu",
+      "backToConversations": "Back to conversations"
+    }
+  },
   "admin": {
     "title": "Admin Portal",
     "description": "Manage system settings and configurations",
