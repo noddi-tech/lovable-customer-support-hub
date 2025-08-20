@@ -75,55 +75,60 @@ export const useRealtimeConnectionManager = () => {
     }
 
     const config = reconnectionConfigRef.current;
-    const currentAttempts = connectionState.connectionAttempts;
+    
+    setConnectionState(prev => {
+      const currentAttempts = prev.connectionAttempts;
+      
+      if (currentAttempts >= config.maxRetries) {
+        console.error('🔴 Max reconnection attempts reached');
+        toast({
+          title: "Connection Failed",
+          description: "Unable to restore real-time connection. Please refresh the page.",
+          variant: "destructive",
+        });
+        return prev;
+      }
 
-    if (currentAttempts >= config.maxRetries) {
-      console.error('🔴 Max reconnection attempts reached');
-      toast({
-        title: "Connection Failed",
-        description: "Unable to restore real-time connection. Please refresh the page.",
-        variant: "destructive",
-      });
-      return;
-    }
+      const delay = calculateBackoffDelay(currentAttempts + 1);
+      console.log(`🔄 Attempting reconnection in ${delay}ms (attempt ${currentAttempts + 1}/${config.maxRetries})`);
 
-    const delay = calculateBackoffDelay(currentAttempts + 1);
-    console.log(`🔄 Attempting reconnection in ${delay}ms (attempt ${currentAttempts + 1}/${config.maxRetries})`);
+      reconnectionTimeoutRef.current = setTimeout(() => {
+        console.log('🔄 Executing reconnection attempt...');
+        reconnectAllSubscriptions();
+      }, delay);
 
-    setConnectionState(prev => ({
-      ...prev,
-      connectionAttempts: prev.connectionAttempts + 1
-    }));
-
-    reconnectionTimeoutRef.current = setTimeout(() => {
-      console.log('🔄 Executing reconnection attempt...');
-      reconnectAllSubscriptions();
-    }, delay);
-  }, [connectionState.connectionAttempts]);
+      return {
+        ...prev,
+        connectionAttempts: prev.connectionAttempts + 1
+      };
+    });
+  }, [toast]);
 
   const reconnectAllSubscriptions = useCallback(() => {
     console.log('🔄 Reconnecting all subscriptions...');
     
-    // Clear existing subscriptions
-    connectionState.subscriptions.forEach((channel, channelName) => {
-      console.log(`🧹 Cleaning up channel: ${channelName}`);
-      supabase.removeChannel(channel);
-    });
+    setConnectionState(prev => {
+      // Clear existing subscriptions
+      prev.subscriptions.forEach((channel, channelName) => {
+        console.log(`🧹 Cleaning up channel: ${channelName}`);
+        supabase.removeChannel(channel);
+      });
 
-    setConnectionState(prev => ({
-      ...prev,
-      subscriptions: new Map()
-    }));
+      // Recreate all pending subscriptions
+      pendingSubscriptions.current.forEach(createSubscription => {
+        try {
+          createSubscription();
+        } catch (error) {
+          console.error('Error recreating subscription:', error);
+        }
+      });
 
-    // Recreate all pending subscriptions
-    pendingSubscriptions.current.forEach(createSubscription => {
-      try {
-        createSubscription();
-      } catch (error) {
-        console.error('Error recreating subscription:', error);
-      }
+      return {
+        ...prev,
+        subscriptions: new Map()
+      };
     });
-  }, [connectionState.subscriptions]);
+  }, []);
 
   const handleConnectionStatus = useCallback((status: string, channelName: string) => {
     console.log(`📡 Channel ${channelName} status: ${status}`);
@@ -200,7 +205,7 @@ export const useRealtimeConnectionManager = () => {
         }, config.statusDebounceMs);
       }
     }
-  }, [attemptReconnection, toast]);
+  }, [toast, attemptReconnection]);
 
   const createManagedSubscription = useCallback((
     channelName: string,
@@ -262,9 +267,13 @@ export const useRealtimeConnectionManager = () => {
         clearTimeout(statusDebounceTimeoutRef.current);
       }
       
-      connectionState.subscriptions.forEach((channel, channelName) => {
-        console.log(`🧹 Final cleanup of channel: ${channelName}`);
-        supabase.removeChannel(channel);
+      // Use the current state via ref to avoid stale closure
+      setConnectionState(current => {
+        current.subscriptions.forEach((channel, channelName) => {
+          console.log(`🧹 Final cleanup of channel: ${channelName}`);
+          supabase.removeChannel(channel);
+        });
+        return current;
       });
     };
   }, []);
