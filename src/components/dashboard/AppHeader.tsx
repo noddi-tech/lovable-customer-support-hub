@@ -124,45 +124,47 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   return (
-    <header className="app-header flex items-center justify-between px-4 py-3 bg-card/80 backdrop-blur-sm border-b border-border shadow-sm">
-      {/* Left Section - Logo, Navigation */}
-      <div className="flex items-center gap-4 flex-1 min-w-0">
-        {/* Mobile Menu/Back Button */}
-        {isMobile && (showMenuButton || showBackButton) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={showBackButton ? onBackClick : onMenuClick}
-            className="flex-shrink-0"
-          >
-            {showBackButton ? (
-              <ArrowLeft className="h-4 w-4" />
-            ) : (
-              <Menu className="h-4 w-4" />
-            )}
-          </Button>
-        )}
-
-        {/* Logo/Brand */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">CS</span>
-          </div>
-          {!isMobile && (
-            <span className="font-semibold text-lg">Customer Support</span>
+    <div className="app-header-container bg-card/80 backdrop-blur-sm border-b border-border shadow-sm">
+      {/* Main Header */}
+      <header className="flex items-center justify-between px-4 py-3">
+        {/* Left Section - Logo, Navigation */}
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          {/* Mobile Menu/Back Button */}
+          {isMobile && (showMenuButton || showBackButton) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={showBackButton ? onBackClick : onMenuClick}
+              className="flex-shrink-0"
+            >
+              {showBackButton ? (
+                <ArrowLeft className="h-4 w-4" />
+              ) : (
+                <Menu className="h-4 w-4" />
+              )}
+            </Button>
           )}
-        </div>
 
-        {/* Main Navigation - Desktop */}
-        {!isMobile && (
-          <nav className="flex items-center gap-1">
-            {mainTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              
-              return (
-                <div key={tab.id} className="relative">
+          {/* Logo/Brand */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">CS</span>
+            </div>
+            {!isMobile && (
+              <span className="font-semibold text-lg">Customer Support</span>
+            )}
+          </div>
+
+          {/* Main Navigation - Desktop */}
+          {!isMobile && (
+            <nav className="flex items-center gap-1">
+              {mainTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                
+                return (
                   <Button
+                    key={tab.id}
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
                     onClick={() => onTabChange(tab.id, tab.subTabs[0]?.id || '')}
@@ -179,104 +181,110 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                       </Badge>
                     )}
                   </Button>
-                  
-                  {/* Sub-tabs */}
-                  {isActive && tab.subTabs.length > 0 && (
-                    <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-md shadow-lg py-1 z-50 min-w-[120px]">
-                      {tab.subTabs.map((subTab) => (
-                        <button
-                          key={subTab.id}
-                          onClick={() => onTabChange(tab.id, subTab.id)}
-                          className={cn(
-                            "w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground",
-                            activeSubTab === subTab.id && "bg-accent text-accent-foreground font-medium"
-                          )}
-                        >
-                          {subTab.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        )}
+                );
+              })}
+            </nav>
+          )}
 
-        {/* Current Tab/Sub-tab Display - Mobile */}
-        {isMobile && (
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="font-semibold text-sm truncate">
-              {activeMainTab?.label}
-            </span>
-            {activeMainTab?.subTabs.length > 0 && (
-              <span className="text-xs text-muted-foreground truncate">
-                {activeMainTab.subTabs.find(st => st.id === activeSubTab)?.label}
+          {/* Current Tab/Sub-tab Display - Mobile */}
+          {isMobile && (
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="font-semibold text-sm truncate">
+                {activeMainTab?.label}
               </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Right Section - Actions, User Menu */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {/* Timezone Display - Desktop only */}
-        {!isMobile && (
-          <div className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
-            {timezone} • {dateTime(new Date()).split(' ')[1] || 'Now'}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-1">
-          <SyncButton />
-          <DeleteAllButton />
-          
-          <Button variant="ghost" size="sm" className="hidden sm:flex">
-            <Search className="h-4 w-4" />
-          </Button>
-          
-          <NotificationDropdown />
+              {activeMainTab?.subTabs.length > 0 && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {activeMainTab.subTabs.find(st => st.id === activeSubTab)?.label}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.user_metadata?.avatar_url} />
-                <AvatarFallback>
-                  {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <div className="flex flex-col space-y-1 p-2">
-              <p className="text-sm font-medium leading-none">
-                {user?.user_metadata?.full_name || 'User'}
-              </p>
-              <p className="text-xs leading-none text-muted-foreground">
-                {user?.email}
-              </p>
+        {/* Right Section - Actions, User Menu */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Timezone Display - Desktop only */}
+          {!isMobile && (
+            <div className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+              {timezone} • {dateTime(new Date()).split(' ')[1] || 'Now'}
             </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>{t('header.settings', 'Settings')}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/admin/design-library')}>
-              <Palette className="mr-2 h-4 w-4" />
-              <span>{t('header.designLibrary', 'Design Library')}</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{t('header.signOut', 'Sign out')}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1">
+            <SyncButton />
+            <DeleteAllButton />
+            
+            <Button variant="ghost" size="sm" className="hidden sm:flex">
+              <Search className="h-4 w-4" />
+            </Button>
+            
+            <NotificationDropdown />
+          </div>
+
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.user_metadata?.avatar_url} />
+                  <AvatarFallback>
+                    {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <div className="flex flex-col space-y-1 p-2">
+                <p className="text-sm font-medium leading-none">
+                  {user?.user_metadata?.full_name || 'User'}
+                </p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user?.email}
+                </p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>{t('header.settings', 'Settings')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/admin/design-library')}>
+                <Palette className="mr-2 h-4 w-4" />
+                <span>{t('header.designLibrary', 'Design Library')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>{t('header.signOut', 'Sign out')}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* Persistent Subtabs Row - Desktop */}
+      {!isMobile && activeMainTab?.subTabs.length > 0 && (
+        <div className="border-t border-border/50 bg-muted/30">
+          <div className="px-4 py-2">
+            <nav className="flex items-center gap-1">
+              {activeMainTab.subTabs.map((subTab) => (
+                <Button
+                  key={subTab.id}
+                  variant={activeSubTab === subTab.id ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => onTabChange(activeTab, subTab.id)}
+                  className={cn(
+                    "text-sm",
+                    activeSubTab === subTab.id && "bg-background text-foreground shadow-sm font-medium"
+                  )}
+                >
+                  {subTab.label}
+                </Button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
