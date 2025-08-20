@@ -61,7 +61,6 @@ interface ConversationListProps {
   onSelectConversation: (conversation: Conversation) => void;
   selectedConversation?: Conversation;
   selectedInboxId: string;
-  isCollapsed?: boolean;
   onToggleCollapse?: () => void;
 }
 
@@ -81,7 +80,7 @@ const statusColors = {
 
 // All date formatting now handled by timezone-aware useDateFormatting hook
 
-export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation, selectedInboxId, isCollapsed = false, onToggleCollapse }: ConversationListProps) => {
+export const ConversationList = ({ selectedTab, onSelectConversation, selectedConversation, selectedInboxId, onToggleCollapse }: ConversationListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -332,14 +331,8 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
-  // Don't render collapsed view for conversation lists - that's for navigation only
-  // Instead, when collapsed, we'll be hidden via CSS grid
-  if (isCollapsed) {
-    return null; // Component is hidden via CSS grid when collapsed
-  }
-
   return (
-    <div className="pane flex flex-col bg-gradient-surface">
+    <div className="flex flex-col bg-gradient-surface h-full">
       {/* Header - Fixed with better responsive layout */}
       <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between mb-3 md:mb-4">

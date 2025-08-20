@@ -354,14 +354,13 @@ useEffect(() => {
           }
         >
           {/* Conversation List - as direct grid item */}
-          {(!isMobile || showConversationList) && showConversationListDesktop && (
-            <div className="list-pane flex flex-col bg-gradient-surface">
+          {showConversationListDesktop && (
+            <div className="list-pane">
               <ConversationList 
                 selectedTab={selectedTab}
                 selectedConversation={selectedConversation}
                 onSelectConversation={handleSelectConversation}
                 selectedInboxId={selectedInboxId}
-                isCollapsed={false} // Never use collapsed view for conversation lists
                 onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
               />
             </div>
