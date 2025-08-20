@@ -91,59 +91,57 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
   };
 
   return (
-    <Card className="mb-3">
-      <CardContent className="p-4">
-        <div className="space-y-3">
+    <Card className="mb-2">
+      <CardContent className="p-2">
+        <div className="space-y-2">
           {/* Event Header */}
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-full text-white ${getEventColor(event.event_type)}`}>
+            <div className="flex items-center gap-2">
+              <div className={`p-1 rounded-full text-white ${getEventColor(event.event_type)}`}>
                 {getEventIcon(event.event_type)}
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium">
                     {formatEventType(event.event_type)}
                   </span>
                   {direction && getDirectionIcon(direction)}
                   {webhookEvent && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs px-1 py-0 h-4">
                       {webhookEvent.replace(/"/g, '')}
                     </Badge>
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {format(new Date(event.timestamp), 'MMM d, HH:mm:ss')} • {formatDistanceToNow(new Date(event.timestamp), { addSuffix: true })}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsJsonOpen(!isJsonOpen)}
-                className="h-6 px-2 text-xs"
+                className="h-5 px-1.5 text-xs"
               >
                 {isJsonOpen ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                JSON
               </Button>
               {(customerPhone || agentName || lineName) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="h-6 px-2 text-xs"
+                  className="h-5 px-1.5 text-xs"
                 >
                   {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  Details
                 </Button>
               )}
             </div>
           </div>
 
           {/* Quick Info */}
-          <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
-            <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex flex-wrap gap-3">
               {customerPhone && (
                 <div className="flex items-center gap-1">
                   <Phone className="h-3 w-3 text-muted-foreground" />
@@ -157,11 +155,9 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
                 </div>
               )}
               {dtmfKey && (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                    DTMF: {dtmfKey}
-                  </span>
-                </div>
+                <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">
+                  DTMF: {dtmfKey}
+                </span>
               )}
             </div>
             
@@ -170,62 +166,62 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
               <CallActionButton
                 phoneNumber={customerPhone}
                 size="sm"
-                className="h-6 px-2 text-xs"
+                className="h-5 px-1.5 text-xs"
               />
             )}
           </div>
 
           {/* Expanded Details */}
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <CollapsibleContent className="space-y-3">
+            <CollapsibleContent className="space-y-2">
               {/* Customer Information */}
               {customerPhone && (
-                <div className="border-l-4 border-blue-500 pl-3">
-                  <h4 className="text-sm font-medium text-blue-700 mb-1">Customer</h4>
-                  <div className="text-sm space-y-1">
-                    <div>Phone: {formatPhoneNumber(customerPhone)}</div>
+                <div className="border-l-2 border-blue-500 pl-2">
+                  <h4 className="text-xs font-medium text-blue-700 mb-0.5">Customer</h4>
+                  <div className="text-xs">
+                    Phone: {formatPhoneNumber(customerPhone)}
                   </div>
                 </div>
               )}
 
               {/* Agent Information */}
               {(agentName || agentEmail) && (
-                <div className="border-l-4 border-green-500 pl-3">
-                  <h4 className="text-sm font-medium text-green-700 mb-1 flex items-center gap-1">
+                <div className="border-l-2 border-green-500 pl-2">
+                  <h4 className="text-xs font-medium text-green-700 mb-0.5 flex items-center gap-1">
                     <User className="h-3 w-3" />
                     Agent
                   </h4>
-                  <div className="text-sm space-y-1">
-                    {agentName && <div>Name: {agentName}</div>}
-                    {agentEmail && <div>Email: {agentEmail}</div>}
+                  <div className="text-xs space-y-0.5">
+                    {agentName && <div>{agentName}</div>}
+                    {agentEmail && <div className="text-muted-foreground">{agentEmail}</div>}
                   </div>
                 </div>
               )}
 
               {/* Phone Line Information */}
               {(lineName || lineNumber) && (
-                <div className="border-l-4 border-purple-500 pl-3">
-                  <h4 className="text-sm font-medium text-purple-700 mb-1 flex items-center gap-1">
+                <div className="border-l-2 border-purple-500 pl-2">
+                  <h4 className="text-xs font-medium text-purple-700 mb-0.5 flex items-center gap-1">
                     <Building2 className="h-3 w-3" />
-                    Phone Line
+                    Line
                   </h4>
-                  <div className="text-sm space-y-1">
-                    {lineName && <div>Name: {lineName}</div>}
-                    {lineNumber && <div>Number: {formatPhoneNumber(lineNumber)}</div>}
+                  <div className="text-xs space-y-0.5">
+                    {lineName && <div>{lineName}</div>}
+                    {lineNumber && <div className="text-muted-foreground">{formatPhoneNumber(lineNumber)}</div>}
                   </div>
                 </div>
               )}
 
               {/* Call Timing */}
               {(answeredAt || endedAt) && (
-                <div className="border-l-4 border-orange-500 pl-3">
-                  <h4 className="text-sm font-medium text-orange-700 mb-1">Call Timing</h4>
-                  <div className="text-sm space-y-1">
+                <div className="border-l-2 border-orange-500 pl-2">
+                  <h4 className="text-xs font-medium text-orange-700 mb-0.5">Timing</h4>
+                  <div className="text-xs space-y-0.5">
                     {answeredAt && (
-                      <div>Answered: {format(new Date(answeredAt * 1000), 'MMM d, HH:mm:ss')}</div>
+                      <div>Answered: {format(new Date(answeredAt * 1000), 'HH:mm:ss')}</div>
                     )}
                     {endedAt && (
-                      <div>Ended: {format(new Date(endedAt * 1000), 'MMM d, HH:mm:ss')}</div>
+                      <div>Ended: {format(new Date(endedAt * 1000), 'HH:mm:ss')}</div>
                     )}
                   </div>
                 </div>
@@ -233,14 +229,12 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
 
               {/* IVR Interactions */}
               {ivrOptions.length > 0 && (
-                <div className="border-l-4 border-indigo-500 pl-3">
-                  <h4 className="text-sm font-medium text-indigo-700 mb-1">IVR Interactions</h4>
-                  <div className="text-sm space-y-1">
+                <div className="border-l-2 border-indigo-500 pl-2">
+                  <h4 className="text-xs font-medium text-indigo-700 mb-0.5">IVR</h4>
+                  <div className="text-xs space-y-0.5">
                     {ivrOptions.map((option: any, index: number) => (
-                      <div key={index} className="bg-indigo-50 p-2 rounded">
-                        <div>Branch: {option.branch}</div>
-                        {option.key && <div>Key Pressed: {option.key}</div>}
-                        {option.title && <div>Option: {option.title}</div>}
+                      <div key={index} className="bg-indigo-50 p-1 rounded text-xs">
+                        {option.branch} {option.key && `(Key: ${option.key})`}
                       </div>
                     ))}
                   </div>
@@ -252,7 +246,7 @@ const EventCard: React.FC<{ event: CallEvent }> = ({ event }) => {
           {/* JSON Viewer */}
           <Collapsible open={isJsonOpen} onOpenChange={setIsJsonOpen}>
             <CollapsibleContent>
-              <div className="bg-gray-900 text-green-400 p-3 rounded-lg text-xs font-mono max-h-96 overflow-auto">
+              <div className="bg-gray-900 text-green-400 p-2 rounded text-xs font-mono max-h-64 overflow-auto">
                 <pre>{JSON.stringify(event.event_data, null, 2)}</pre>
               </div>
             </CollapsibleContent>
@@ -297,7 +291,7 @@ export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
         </Badge>
       </div>
       
-      <div className="space-y-3 max-h-[800px] overflow-y-auto">
+      <div className="space-y-2 max-h-[800px] overflow-y-auto">
         {events.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}
