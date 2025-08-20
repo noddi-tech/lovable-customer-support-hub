@@ -100,7 +100,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       id: 'settings',
       label: t('header.settings', 'Settings'),
       icon: Settings,
-      subTabs: []
+      subTabs: [
+        { id: 'general', label: t('settings.general', 'General') },
+        { id: 'profile', label: t('settings.profile', 'Profile') },
+        { id: 'notifications', label: t('settings.notifications', 'Notifications') },
+        { id: 'email-templates', label: t('settings.emailTemplates', 'Email Templates') },
+        { id: 'departments', label: t('settings.departments', 'Departments') },
+        { id: 'users', label: t('settings.users', 'Users') },
+        { id: 'admin', label: t('settings.admin', 'Admin') }
+      ]
     }
   ];
 

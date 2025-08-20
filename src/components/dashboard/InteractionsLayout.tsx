@@ -95,15 +95,29 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   // Text interface layout
   const shouldShowConversationList = isMobile ? showConversationList : showConversationListDesktop;
   
+  // Debug logging
+  console.log('=== InteractionsLayout Debug ===');
+  console.log('activeSubTab:', activeSubTab);
+  console.log('shouldShowConversationList:', shouldShowConversationList);
+  console.log('selectedConversation:', selectedConversation);
+  console.log('isMobile:', isMobile, 'isTablet:', isTablet, 'isDesktop:', isDesktop);
+  
   return (
-    <div className="h-full w-full flex bg-gradient-surface">
-      <ResponsiveLayout className="flex-1">
+    <div className="h-full w-full flex bg-background" style={{ border: '2px solid red' }}>
+      {/* Debug: Add visible border to container */}
+      <ResponsiveLayout className="flex-1 min-h-0">
         {/* Conversation List */}
         {shouldShowConversationList && (
-          <div className={cn(
-            "flex flex-col bg-gradient-surface border-r border-border",
-            isMobile ? "w-full" : "list-pane min-w-[380px] max-w-[420px]"
-          )}>
+          <div 
+            className={cn(
+              "flex flex-col bg-card border-r border-border",
+              isMobile ? "w-full" : "list-pane min-w-[380px] max-w-[420px]"
+            )}
+            style={{ border: '2px solid blue', minHeight: '400px' }}
+          >
+            <div className="p-2 bg-accent text-accent-foreground text-xs">
+              DEBUG: ConversationList Container
+            </div>
             <ConversationList 
               selectedConversation={selectedConversation}
               onSelectConversation={handleSelectConversation}
@@ -115,10 +129,17 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
         )}
         
         {/* Conversation View */}
-        <div className={cn(
-          "flex flex-col bg-gradient-surface",
-          isMobile ? "w-full" : "detail-pane flex-1"
-        )}>
+        <div 
+          className={cn(
+            "flex flex-col bg-card",
+            isMobile ? "w-full" : "detail-pane flex-1"
+          )}
+          style={{ border: '2px solid green', minHeight: '400px' }}
+        >
+          <div className="p-2 bg-accent text-accent-foreground text-xs">
+            DEBUG: ConversationView Container - Selected: {selectedConversation?.id || 'None'}
+          </div>
+          
           {/* Show/Hide Conversation List Button - Desktop only */}
           {isDesktop && !shouldShowConversationList && (
             <div className="p-2 border-b border-border">
@@ -137,7 +158,7 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
           {selectedConversation ? (
             <ConversationView conversationId={selectedConversation.id} />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <div className="flex flex-col items-center justify-center flex-1 text-center p-8">
               <div className="max-w-md">
                 <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h2 className="text-2xl font-semibold mb-4">
