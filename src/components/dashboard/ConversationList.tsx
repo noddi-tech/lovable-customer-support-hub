@@ -406,196 +406,196 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       {/* Conversation List - Scrollable with responsive layout */}
       <ScrollArea className="flex-1">
         <div className="px-3 md:px-4 pb-4 space-y-2">
-        {isLoading ? (
+          {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">
               <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
               <p>{t('dashboard.conversationList.loadingConversations', 'Loading conversations...')}</p>
             </div>
-        ) : filteredConversations.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">{t('dashboard.conversationList.noConversations', 'No conversations found')}</p>
-            <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
-          </div>
-        ) : (
-          <div className="space-y-0">
-            {/* Desktop: Table header */}
-            <div className="hidden md:block sticky top-0 z-10 bg-card/90 backdrop-blur-sm border-b border-border">
-              <div className="row px-4 py-2 text-sm font-medium text-muted-foreground">
-                <div className="col--status">Status</div>
-                <div className="col--from">From</div>
-                <div className="col--subject">Subject</div>
-                <div className="col--date">Date</div>
-                <div className="flex-shrink-0 w-10"></div>
-              </div>
+          ) : filteredConversations.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg mb-2">{t('dashboard.conversationList.noConversations', 'No conversations found')}</p>
+              <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
             </div>
-            
-            {/* Conversation List */}
-            {filteredConversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onSelectConversation(conversation);
-                }}
-                className={cn(
-                  // Base styles
-                  "cursor-pointer transition-all duration-200 border-b border-border hover:bg-inbox-hover",
-                  // Desktop: Table row layout
-                  "hidden md:block",
-                  // Selection and read states
-                  selectedConversation?.id === conversation.id && "bg-inbox-selected border-l-4 border-l-primary",
-                  !conversation.is_read && selectedConversation?.id !== conversation.id && "border-l-4 border-l-inbox-unread bg-primary-muted/30"
-                )}
-              >
-                <div className="row px-4 py-3 items-center">
-                  {/* Status */}
-                  <div className="col--status">
-                    <Badge variant="outline" className={cn("text-xs", statusColors[conversation.status])}>
-                      {conversation.status.charAt(0).toUpperCase() + conversation.status.slice(1)}
-                    </Badge>
-                  </div>
-                  
-                  {/* From */}
-                  <div className="col--from">
-                    <div className="font-medium text-sm ellipsis">
-                      {conversation.customer?.full_name || conversation.customer?.email}
-                    </div>
-                    <div className="text-xs text-muted-foreground ellipsis">
-                      {conversation.customer?.email}
-                    </div>
-                  </div>
-                  
-                  {/* Subject */}
-                  <div className="col--subject min-w-0">
-                    <div className="font-medium text-sm ellipsis">
-                      {conversation.subject}
-                    </div>
-                  </div>
-                  
-                  {/* Date */}
-                  <div className="col--date text-right">
-                    <div className="text-sm">
-                      {formatConversationTime(conversation.received_at || conversation.updated_at)}
-                    </div>
-                  </div>
-                  
-                  {/* Actions */}
-                  <div className="flex-shrink-0 w-10">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleArchiveConversation(conversation.id);
-                        }}>
-                          <Archive className="mr-2 h-4 w-4" />
-                          Archive
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(conversation.id);
-                          }}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+          ) : (
+            <div className="space-y-0">
+              {/* Desktop: Table header */}
+              <div className="hidden md:block sticky top-0 z-10 bg-card/90 backdrop-blur-sm border-b border-border">
+                <div className="row px-4 py-2 text-sm font-medium text-muted-foreground">
+                  <div className="col--status">Status</div>
+                  <div className="col--from">From</div>
+                  <div className="col--subject">Subject</div>
+                  <div className="col--date">Date</div>
+                  <div className="flex-shrink-0 w-10"></div>
                 </div>
               </div>
-            ))}
-            
-            {/* Mobile: Card layout */}
-            <div className="md:hidden">
+              
+              {/* Conversation List */}
               {filteredConversations.map((conversation) => (
                 <div
-                  key={`mobile-${conversation.id}`}
+                  key={conversation.id}
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     onSelectConversation(conversation);
                   }}
                   className={cn(
-                    "p-4 border-b border-border hover:bg-inbox-hover cursor-pointer transition-colors",
+                    // Base styles
+                    "cursor-pointer transition-all duration-200 border-b border-border hover:bg-inbox-hover",
+                    // Desktop: Table row layout
+                    "hidden md:block",
+                    // Selection and read states
                     selectedConversation?.id === conversation.id && "bg-inbox-selected border-l-4 border-l-primary",
                     !conversation.is_read && selectedConversation?.id !== conversation.id && "border-l-4 border-l-inbox-unread bg-primary-muted/30"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className={cn("text-xs", statusColors[conversation.status])}>
-                          {conversation.status.charAt(0).toUpperCase() + conversation.status.slice(1)}
-                        </Badge>
-                        <Badge variant="outline" className={cn("text-xs", priorityColors[conversation.priority])}>
-                          {conversation.priority.charAt(0).toUpperCase() + conversation.priority.slice(1)}
-                        </Badge>
-                        {!conversation.is_read && (
-                          <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
-                        )}
+                  <div className="row px-4 py-3 items-center">
+                    {/* Status */}
+                    <div className="col--status">
+                      <Badge variant="outline" className={cn("text-xs", statusColors[conversation.status])}>
+                        {conversation.status.charAt(0).toUpperCase() + conversation.status.slice(1)}
+                      </Badge>
+                    </div>
+                    
+                    {/* From */}
+                    <div className="col--from">
+                      <div className="font-medium text-sm ellipsis">
+                        {conversation.customer?.full_name || conversation.customer?.email}
                       </div>
-                      
-                      <h3 className="font-medium text-sm mb-1 ellipsis">
+                      <div className="text-xs text-muted-foreground ellipsis">
+                        {conversation.customer?.email}
+                      </div>
+                    </div>
+                    
+                    {/* Subject */}
+                    <div className="col--subject min-w-0">
+                      <div className="font-medium text-sm ellipsis">
                         {conversation.subject}
-                      </h3>
-                      
-                      <div className="text-xs text-muted-foreground mb-2">
-                        <div className="ellipsis">
-                          {conversation.customer?.full_name || conversation.customer?.email}
-                        </div>
-                        {conversation.customer?.full_name && (
-                          <div className="ellipsis opacity-75">
-                            {conversation.customer.email}
-                          </div>
-                        )}
                       </div>
-                      
-                      <div className="text-xs text-muted-foreground">
+                    </div>
+                    
+                    {/* Date */}
+                    <div className="col--date text-right">
+                      <div className="text-sm">
                         {formatConversationTime(conversation.received_at || conversation.updated_at)}
                       </div>
                     </div>
                     
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleArchiveConversation(conversation.id);
-                        }}>
-                          <Archive className="mr-2 h-4 w-4" />
-                          Archive
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => {
+                    {/* Actions */}
+                    <div className="flex-shrink-0 w-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteClick(conversation.id);
-                          }}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            handleArchiveConversation(conversation.id);
+                          }}>
+                            <Archive className="mr-2 h-4 w-4" />
+                            Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(conversation.id);
+                            }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </div>
               ))}
+              
+              {/* Mobile: Card layout */}
+              <div className="md:hidden">
+                {filteredConversations.map((conversation) => (
+                  <div
+                    key={`mobile-${conversation.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      onSelectConversation(conversation);
+                    }}
+                    className={cn(
+                      "p-4 border-b border-border hover:bg-inbox-hover cursor-pointer transition-colors",
+                      selectedConversation?.id === conversation.id && "bg-inbox-selected border-l-4 border-l-primary",
+                      !conversation.is_read && selectedConversation?.id !== conversation.id && "border-l-4 border-l-inbox-unread bg-primary-muted/30"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className={cn("text-xs", statusColors[conversation.status])}>
+                            {conversation.status.charAt(0).toUpperCase() + conversation.status.slice(1)}
+                          </Badge>
+                          <Badge variant="outline" className={cn("text-xs", priorityColors[conversation.priority])}>
+                            {conversation.priority.charAt(0).toUpperCase() + conversation.priority.slice(1)}
+                          </Badge>
+                          {!conversation.is_read && (
+                            <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
+                          )}
+                        </div>
+                        
+                        <h3 className="font-medium text-sm mb-1 ellipsis">
+                          {conversation.subject}
+                        </h3>
+                        
+                        <div className="text-xs text-muted-foreground mb-2">
+                          <div className="ellipsis">
+                            {conversation.customer?.full_name || conversation.customer?.email}
+                          </div>
+                          {conversation.customer?.full_name && (
+                            <div className="ellipsis opacity-75">
+                              {conversation.customer.email}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground">
+                          {formatConversationTime(conversation.received_at || conversation.updated_at)}
+                        </div>
+                      </div>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleArchiveConversation(conversation.id);
+                          }}>
+                            <Archive className="mr-2 h-4 w-4" />
+                            Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(conversation.id);
+                            }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
       </ScrollArea>
 
