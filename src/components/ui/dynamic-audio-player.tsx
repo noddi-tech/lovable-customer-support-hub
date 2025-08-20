@@ -11,7 +11,13 @@ interface DynamicAudioPlayerProps {
   className?: string;
   onDownload?: () => void;
   autoPlay?: boolean;
-  onGetFreshUrl?: () => Promise<{ localUrl?: string; error?: string; success?: boolean }>;
+  onGetFreshUrl?: () => Promise<{ 
+    localUrl?: string; 
+    audioData?: string; 
+    contentType?: string; 
+    error?: string; 
+    success?: boolean; 
+  }>;
 }
 
 export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
@@ -33,6 +39,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [src, setSrc] = useState(initialSrc);
   const [isGettingFreshUrl, setIsGettingFreshUrl] = useState(false);
+  const [currentBlobUrl, setCurrentBlobUrl] = useState<string | null>(null);
 
   // Format time in MM:SS
   const formatTime = (seconds: number) => {
@@ -95,7 +102,36 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
       const result = await onGetFreshUrl();
       console.log('🔄 Fresh URL result received:', result);
       
-      if (result?.localUrl) {
+      if (result?.audioData && result?.contentType) {
+        console.log('✅ Received audio data, creating local blob URL...');
+        
+        // Convert base64 to blob
+        const binaryString = atob(result.audioData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([bytes], { type: result.contentType });
+        const localUrl = URL.createObjectURL(blob);
+        
+        // Clean up previous blob URL if it exists
+        if (currentBlobUrl) {
+          URL.revokeObjectURL(currentBlobUrl);
+        }
+        setCurrentBlobUrl(localUrl);
+        
+        console.log('✅ Created local blob URL:', localUrl.substring(0, 50) + '...');
+        
+        // Reset states before changing src to avoid race condition
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setIsLoading(true);
+        setHasError(false);
+        setIsLoadingAudio(false);
+        setSrc(localUrl);
+        
+      } else if (result?.localUrl) {
         console.log('✅ Setting new source URL:', result.localUrl.substring(0, 100) + '...');
         // Reset states before changing src to avoid race condition
         setIsPlaying(false);
@@ -104,6 +140,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
         setHasError(false);
         setIsLoadingAudio(false);
         setSrc(result.localUrl);
+        
       } else if (result?.error) {
         console.error('❌ Edge function returned error:', result.error);
         throw new Error(result.error || 'Failed to get playback URL');
@@ -234,6 +271,15 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
       setDuration(expectedDuration);
     }
   }, [expectedDuration]);
+
+  // Clean up blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+      }
+    };
+  }, [currentBlobUrl]);
 
   if (hasError) {
     return (

@@ -35,12 +35,57 @@ serve(async (req) => {
     const { voicemailId, recordingUrl } = requestBody;
     console.log('📞 Processing request:', { voicemailId, recordingUrl: recordingUrl?.substring(0, 100) + '...' });
 
-    // For testing, return a success response first 
+    if (!recordingUrl) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'No recording URL provided' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
+
+    console.log('📞 Fetching audio file from S3...');
+    
+    // Fetch the audio file from S3
+    const audioResponse = await fetch(recordingUrl);
+    
+    if (!audioResponse.ok) {
+      console.error('❌ Failed to fetch audio:', audioResponse.status, audioResponse.statusText);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Failed to fetch recording: ${audioResponse.status} ${audioResponse.statusText}` 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        }
+      );
+    }
+
+    // Get the audio data as array buffer
+    const audioBuffer = await audioResponse.arrayBuffer();
+    const contentType = audioResponse.headers.get('content-type') || 'audio/mpeg';
+    
+    console.log('📞 Successfully fetched audio file:', {
+      size: audioBuffer.byteLength,
+      contentType
+    });
+
+    // Convert to base64 for transport
+    const audioBytes = new Uint8Array(audioBuffer);
+    const base64Audio = btoa(String.fromCharCode(...audioBytes));
+
     return new Response(
       JSON.stringify({ 
         success: true,
-        localUrl: recordingUrl, // Return the original URL for now
-        message: 'Download function is working - returning original URL for testing',
+        audioData: base64Audio,
+        contentType: contentType,
+        message: 'Audio file successfully downloaded and encoded',
         voicemailId,
         timestamp: new Date().toISOString()
       }),
