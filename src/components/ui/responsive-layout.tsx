@@ -38,10 +38,8 @@ const ResponsiveLayout = React.forwardRef<HTMLDivElement, ResponsiveLayoutProps>
             </div>
           )}
           
-          {/* Main Content */}
-          <div className="flex flex-1 min-h-0">
-            {children}
-          </div>
+          {/* Main Content - allow children to be direct grid items */}
+          {children}
         </div>
 
         {/* Mobile Drawers */}

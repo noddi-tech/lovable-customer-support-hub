@@ -391,10 +391,10 @@ useEffect(() => {
         </div>
       ) : (
         <>
-          {/* Conversation List */}
+          {/* Conversation List - as direct grid item */}
           <div className={`
-            ${isMobile ? (showConversationList ? 'flex' : 'hidden') : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'}
-            ${isMobile ? 'w-full' : ''} flex flex-col bg-gradient-surface transition-all duration-300 ease-in-out
+            ${isMobile ? (showConversationList ? 'flex w-full' : 'hidden') : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'}
+            flex flex-col bg-gradient-surface transition-all duration-300 ease-in-out
           `}>
             <ConversationList 
               selectedTab={selectedTab}
@@ -406,9 +406,9 @@ useEffect(() => {
             />
           </div>
           
-          {/* Conversation View */}
+          {/* Conversation View - as direct grid item */}
           <div className={`
-            ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'detail-pane'}
+            ${isMobile ? (showConversationList ? 'hidden' : 'flex w-full') : 'detail-pane'}
             flex flex-col bg-gradient-surface
           `}>
             {/* Mobile Header */}
