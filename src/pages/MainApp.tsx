@@ -1,14 +1,15 @@
-import React from 'react';
-import { Dashboard } from '@/components/dashboard/Dashboard';
-import { VoiceInterface } from '@/components/dashboard/VoiceInterface';
-import { SMSInterface } from '@/components/dashboard/SMSInterface';
-import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
-import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
-import DoormanInterface from '@/components/dashboard/DoormanInterface';
-import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
-import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
+import React, { useState } from 'react';
+import { AppHeader } from '@/components/dashboard/AppHeader';
 import { AppSidebar } from '@/components/dashboard/AppSidebar';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { InteractionsLayout } from '@/components/dashboard/InteractionsLayout';
+import { NewsletterBuilder } from '@/components/dashboard/NewsletterBuilder';
+import { SMSInterface } from '@/components/dashboard/SMSInterface';
+import { ServiceTicketsInterface } from '@/components/dashboard/ServiceTicketsInterface';
+import { DoormanInterface } from '@/components/dashboard/DoormanInterface';
+import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
+import { SettingsWrapper } from '@/components/dashboard/SettingsWrapper';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 interface MainAppProps {
   activeTab: string;
@@ -17,75 +18,88 @@ interface MainAppProps {
 }
 
 const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange }) => {
+  const [selectedTab, setSelectedTab] = useState('all');
+  const [selectedInboxId, setSelectedInboxId] = useState('all');
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const isMobile = useIsMobile();
+
+  const handleTabChange = (tab: string) => {
+    setSelectedTab(tab);
+    if (isMobile) {
+      setShowMobileSidebar(false);
+    }
+  };
+
   const renderActiveContent = () => {
-    // Interactions
-    if (activeTab === 'interactions') {
-      switch (activeSubTab) {
-        case 'text':
-          return <Dashboard activeMainTab={activeTab} activeSubTab={activeSubTab} onMainTabChange={onTabChange} />;
-        case 'voice':
-          return <VoiceInterface />;
-        default:
-          return <Dashboard activeMainTab={activeTab} activeSubTab={activeSubTab} onMainTabChange={onTabChange} />;
-      }
+    switch (activeTab) {
+      case 'interactions':
+        return (
+          <InteractionsLayout
+            activeSubTab={activeSubTab}
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+            selectedInboxId={selectedInboxId}
+          />
+        );
+      case 'marketing':
+        switch (activeSubTab) {
+          case 'newsletters':
+            return <NewsletterBuilder />;
+          default:
+            return <NewsletterBuilder />;
+        }
+      case 'ops':
+        switch (activeSubTab) {
+          case 'tickets':
+            return <ServiceTicketsInterface />;
+          case 'doorman':
+            return <DoormanInterface />;
+          case 'recruitment':
+            return <RecruitmentInterface />;
+          default:
+            return <ServiceTicketsInterface />;
+        }
+      case 'settings':
+        return <SettingsWrapper />;
+      default:
+        return (
+          <InteractionsLayout
+            activeSubTab="text"
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+            selectedInboxId={selectedInboxId}
+          />
+        );
     }
-
-    // Marketing
-    if (activeTab === 'marketing') {
-      switch (activeSubTab) {
-        case 'email':
-          return <NewsletterBuilder />;
-        case 'sms':
-          return <SMSInterface />;
-        default:
-          return <NewsletterBuilder />;
-      }
-    }
-
-    // Ops
-    if (activeTab === 'ops') {
-      switch (activeSubTab) {
-        case 'serviceTickets':
-          return <ServiceTicketsInterface />;
-        case 'doorman':
-          return <DoormanInterface />;
-        case 'recruitment':
-          return <RecruitmentInterface />;
-        default:
-          return <ServiceTicketsInterface />;
-      }
-    }
-
-    // Settings - Keep wrapper for complex logic
-    if (activeTab === 'settings') {
-      return <SettingsWrapper activeSubSection={activeSubTab} />;
-    }
-
-    // Default fallback
-    return <Dashboard activeMainTab={activeTab} activeSubTab={activeSubTab} onMainTabChange={onTabChange} />;
   };
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <AppSidebar 
-          selectedTab="all"
-          onTabChange={() => {}}
-          activeMainTab={activeTab}
+      <div className="app-root">
+        {/* App Header - Always visible */}
+        <AppHeader
+          activeTab={activeTab}
           activeSubTab={activeSubTab}
-          onMainTabChange={onTabChange}
+          onTabChange={onTabChange}
+          onMenuClick={() => setShowMobileSidebar(true)}
+          showMenuButton={isMobile && activeTab === 'interactions'}
         />
-        
-        <SidebarInset className="flex-1">
-          <div className="flex h-14 items-center border-b px-4">
-            <SidebarTrigger className="mr-4" />
-            <span className="font-medium capitalize">{activeSubTab}</span>
-          </div>
+
+        {/* Main Content Area with Sidebar */}
+        <div className="app-main flex">
+          {/* Sidebar - Only show for interactions */}
+          {activeTab === 'interactions' && (
+            <AppSidebar 
+              selectedTab={selectedTab}
+              onTabChange={handleTabChange}
+            />
+          )}
           
-          <div className="flex-1">
+          {/* Main Content */}
+          <SidebarInset className={activeTab === 'interactions' ? 'flex-1' : 'w-full'}>
             {renderActiveContent()}
-          </div>
-        </SidebarInset>
+          </SidebarInset>
+        </div>
       </div>
     </SidebarProvider>
   );
