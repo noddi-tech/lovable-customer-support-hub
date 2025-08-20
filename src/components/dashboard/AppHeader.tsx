@@ -270,31 +270,59 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </header>
 
-      {/* Desktop Subtabs Menubar - Only show when needed */}
-      {!isMobile && activeMainTab?.subTabs.length > 0 && (
+      {/* Mobile Subtabs Dropdown - Only show when needed */}
+      {isMobile && activeMainTab?.subTabs.length > 0 && (
         <div className="border-t border-border/50 bg-muted/30">
           <div className="px-4 py-2">
-            <Menubar className="border-none bg-transparent">
-              <MenubarMenu>
-                <MenubarTrigger className="data-[state=open]:bg-muted">
-                  {activeMainTab.subTabs.find(tab => tab.id === activeSubTab)?.label || 'Sections'}
-                </MenubarTrigger>
-                <MenubarContent>
-                  {activeMainTab.subTabs.map((subTab) => (
-                    <MenubarItem
-                      key={subTab.id}
-                      onClick={() => onTabChange(activeTab, subTab.id)}
-                      className={cn(
-                        activeSubTab === subTab.id && "bg-accent"
-                      )}
-                    >
-                      {subTab.label}
-                    </MenubarItem>
-                  ))}
-                </MenubarContent>
-              </MenubarMenu>
-            </Menubar>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-between">
+                  {activeMainTab.subTabs.find(tab => tab.id === activeSubTab)?.label || 'Select Section'}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full" align="start">
+                {activeMainTab.subTabs.map((subTab) => (
+                  <DropdownMenuItem
+                    key={subTab.id}
+                    onClick={() => onTabChange(activeTab, subTab.id)}
+                    className={cn(
+                      activeSubTab === subTab.id && "bg-accent"
+                    )}
+                  >
+                    {subTab.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+        </div>
+      )}
+
+      {/* Desktop Subtabs Menubar - Only show when needed */}
+      {!isMobile && activeMainTab?.subTabs.length > 0 && (
+        <div className="px-4 py-2 bg-muted/20">
+          <Menubar className="border-none bg-transparent h-8">
+            <MenubarMenu>
+              <MenubarTrigger className="data-[state=open]:bg-muted px-3 py-1 text-sm">
+                {activeMainTab.subTabs.find(tab => tab.id === activeSubTab)?.label || 'Sections'}
+              </MenubarTrigger>
+              <MenubarContent>
+                {activeMainTab.subTabs.map((subTab) => (
+                  <MenubarItem
+                    key={subTab.id}
+                    onClick={() => onTabChange(activeTab, subTab.id)}
+                    className={cn(
+                      "cursor-pointer",
+                      activeSubTab === subTab.id && "bg-accent font-medium"
+                    )}
+                  >
+                    {subTab.label}
+                  </MenubarItem>
+                ))}
+              </MenubarContent>
+            </MenubarMenu>
+          </Menubar>
         </div>
       )}
     </div>
