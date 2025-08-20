@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TimeRangeFilter } from '@/components/ui/timerange-filter';
 import { useCalls } from '@/hooks/useCalls';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow, format, isAfter } from 'date-fns';
 import { CallDetailsDialog } from './CallDetailsDialog';
 import { CallActionButton } from './CallActionButton';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
@@ -16,6 +17,7 @@ export const CallsList = () => {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<string>('all');
+  const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(null);
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
@@ -36,12 +38,24 @@ export const CallsList = () => {
     );
   }
 
-  // Filter calls based on status and direction
+  // Filter calls based on status, direction, and time range
   const filteredCalls = calls.filter(call => {
     if (statusFilter !== 'all' && call.status !== statusFilter) return false;
     if (directionFilter !== 'all' && call.direction !== directionFilter) return false;
+    
+    // Time range filter
+    if (timeRangeStart) {
+      const callDate = new Date(call.started_at);
+      if (!isAfter(callDate, timeRangeStart)) return false;
+    }
+    
     return true;
   });
+
+  const callsTimeRangePresets = [
+    { id: '24h', label: 'Last 24 Hours', hours: 24 },
+    { id: '1w', label: 'Last Week', weeks: 1 }
+  ];
 
   const formatPhoneNumber = (phone?: string) => {
     if (!phone) return 'Unknown';
@@ -238,6 +252,12 @@ export const CallsList = () => {
         {/* Filters */}
         <div className="flex items-center gap-3">
           <Filter className="h-4 w-4 text-muted-foreground" />
+          
+          <TimeRangeFilter
+            onTimeRangeChange={setTimeRangeStart}
+            presets={callsTimeRangePresets}
+          />
+          
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Status" />
@@ -284,7 +304,7 @@ export const CallsList = () => {
             <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">No calls found</p>
             <p className="text-sm text-muted-foreground">
-              {statusFilter !== 'all' || directionFilter !== 'all' 
+              {statusFilter !== 'all' || directionFilter !== 'all' || timeRangeStart
                 ? 'Try adjusting your filters to see more calls'
                 : 'Call history will appear here'
               }

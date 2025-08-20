@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { TimeRangeFilter } from '@/components/ui/timerange-filter';
 import { CallEvent } from '@/hooks/useCalls';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow, format, isAfter } from 'date-fns';
 
 interface CallEventsListProps {
   events: CallEvent[];
@@ -256,6 +257,7 @@ const EventCard: React.FC<{ event: CallEvent; onFilter: (callId: string) => void
 
 export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
   const [filteredCallId, setFilteredCallId] = useState<string | null>(null);
+  const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(null);
 
   const handleFilter = (callId: string) => {
     setFilteredCallId(callId);
@@ -265,9 +267,28 @@ export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
     setFilteredCallId(null);
   };
 
-  const filteredEvents = filteredCallId 
-    ? events.filter(event => event.call_id === filteredCallId)
-    : events;
+  // Apply both call ID and time range filters
+  let filteredEvents = events;
+  
+  // Filter by call ID if selected
+  if (filteredCallId) {
+    filteredEvents = filteredEvents.filter(event => event.call_id === filteredCallId);
+  }
+  
+  // Filter by time range if selected
+  if (timeRangeStart) {
+    filteredEvents = filteredEvents.filter(event => {
+      const eventDate = new Date(event.timestamp);
+      return isAfter(eventDate, timeRangeStart);
+    });
+  }
+
+  const eventsTimeRangePresets = [
+    { id: '1h', label: 'Last Hour', hours: 1 },
+    { id: '12h', label: 'Last 12 Hours', hours: 12 },
+    { id: '24h', label: 'Last 24 Hours', hours: 24 },
+    { id: '1w', label: 'Last Week', weeks: 1 }
+  ];
 
   if (events.length === 0) {
     return (
@@ -318,9 +339,15 @@ export const CallEventsList: React.FC<CallEventsListProps> = ({ events }) => {
             Detailed timeline of call events with customer and agent information
           </p>
         </div>
-        <Badge variant="secondary" className="text-xs">
-          {filteredEvents.length} events
-        </Badge>
+        <div className="flex items-center gap-3">
+          <TimeRangeFilter
+            onTimeRangeChange={setTimeRangeStart}
+            presets={eventsTimeRangePresets}
+          />
+          <Badge variant="secondary" className="text-xs">
+            {filteredEvents.length} events
+          </Badge>
+        </div>
       </div>
       
       <div className="space-y-1 max-h-[800px] overflow-y-auto">
