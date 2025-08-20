@@ -197,7 +197,7 @@ export const Dashboard = () => {
   
   return (
     <SidebarProvider>
-      <div className={cn("flex h-[calc(100vh-3.5rem)] w-full", layoutClassName)}>  
+      <div className={cn("flex h-full w-full", layoutClassName)}>
         <AppSidebar 
           selectedTab={selectedTab}
           onTabChange={handleTabChange}

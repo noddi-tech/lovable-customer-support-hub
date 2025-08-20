@@ -62,7 +62,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ activeTab, activeSubTab, onTabCha
   const currentSubTab = currentConfig?.subTabs.find(sub => sub.key === activeSubTab);
 
   return (
-    <header className="h-14 border-b bg-background border-border sticky top-0 z-50">
+    <header className="h-14 border-b bg-background border-border fixed top-0 left-0 right-0 z-50">
       <div className="flex h-full items-center px-4 gap-4">
         {/* Main Tab Navigation */}
         <div className="flex gap-2">
