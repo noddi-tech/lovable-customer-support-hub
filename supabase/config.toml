@@ -57,3 +57,6 @@ enabled = true
 
 [functions.download-voicemail]
 verify_jwt = false
+
+[functions.test-basic]
+verify_jwt = false

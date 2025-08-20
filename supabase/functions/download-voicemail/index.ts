@@ -35,18 +35,18 @@ serve(async (req) => {
     const { voicemailId, recordingUrl } = requestBody;
     console.log('📞 Processing request:', { voicemailId, recordingUrl: recordingUrl?.substring(0, 100) + '...' });
 
-    // Return an error indicating the recording is no longer accessible
+    // For testing, return a success response first 
     return new Response(
       JSON.stringify({ 
-        success: false,
-        error: 'Recording not accessible',
-        details: 'The recording URL has expired and cannot be accessed. The voicemail may need to be re-downloaded from the original source.',
+        success: true,
+        localUrl: recordingUrl, // Return the original URL for now
+        message: 'Download function is working - returning original URL for testing',
         voicemailId,
         timestamp: new Date().toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 404
+        status: 200
       }
     );
 
