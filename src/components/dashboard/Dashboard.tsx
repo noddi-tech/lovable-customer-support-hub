@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ResponsiveLayout } from '@/components/ui/responsive-layout';
 import { MobileDrawer } from '@/components/ui/mobile-drawer';
 import { BottomTabs, type BottomTabItem } from '@/components/ui/bottom-tabs';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -195,157 +196,61 @@ export const Dashboard = () => {
   console.log('Layout className:', layoutClassName);
   
   return (
-    <div className="h-full">
-      <ResponsiveLayout
-        header={
-          <Header 
-            organizationName={selectedInboxName}
-            showMenuButton={isMobile}
-            onMenuClick={() => setShowSidebar(!showSidebar)}
-            selectedInboxId={selectedInboxId}
-            onInboxChange={(id) => setSelectedInboxId(id)}
-            showConversationList={isMobile ? showConversationList : showConversationListDesktop}
-            onToggleConversationList={() => {
-              if (isMobile) {
-                const newValue = !showConversationList;
-                setShowConversationList(newValue);
-                announce(newValue ? 'Conversation list opened' : 'Conversation list closed');
-              } else {
-                const newValue = !showConversationListDesktop;
-                setShowConversationListDesktop(newValue);
-                localStorage.setItem('showConversationListDesktop', JSON.stringify(newValue));
-                announce(newValue ? 'Conversation list expanded' : 'Conversation list collapsed');
-              }
-            }}
-            selectedConversation={selectedConversation}
-          />
-        }
-        className={layoutClassName}
-        leftDrawer={
-          <MobileDrawer
-            isOpen={showSidebar}
-            onClose={() => setShowSidebar(false)}
-            side="left"
-            title="Menu"
+    <SidebarProvider>
+      <div className={cn("flex h-full w-full", layoutClassName)}>  
+        <AppSidebar 
+          selectedTab={selectedTab}
+          onTabChange={handleTabChange}
+          selectedInboxId={selectedInboxId}
+          context="text"
+        />
+        
+        <SidebarInset className="flex-1">
+          <div className="flex h-14 items-center border-b px-4">
+            <SidebarTrigger className="mr-4" />
+            <span className="font-medium">Text</span>
+          </div>
+          
+          <ResponsiveLayout 
+            className="flex-1"
           >
-            <InboxSidebar 
-              selectedTab={selectedTab} 
-              onTabChange={(tab) => {
-                handleTabChange(tab);
-                setShowSidebar(false);
-              }}
-              selectedInboxId={selectedInboxId}
-            />
-          </MobileDrawer>
-        }
-        rightDrawer={
-          <MobileDrawer
-            isOpen={showRightDrawer}
-            onClose={() => setShowRightDrawer(false)}
-            side="right"
-            title="Customer Info"
-          >
-            <div className="p-4">
-              <p className="text-muted-foreground">
-                Customer details and actions will appear here.
-              </p>
+            <div className={cn(
+              "flex flex-col bg-gradient-surface",
+              isMobile ? "w-full" : "list-pane"
+            )}>
+              <ConversationList 
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+                selectedInboxId={selectedInboxId}
+                selectedTab={selectedTab}
+              />
             </div>
-          </MobileDrawer>
-        }
-        bottomTabs={
-          <BottomTabs
-            items={bottomTabItems}
-            activeTab={activeBottomTab}
-            onTabChange={setActiveBottomTab}
-          />
-        }
-      >
-        {/* Mobile Conversation List - shown as full screen on mobile */}
-        {isMobile && showConversationList && (
-          <div className="flex flex-col bg-gradient-surface h-full">
-            <ConversationList 
-              selectedTab={selectedTab}
-              selectedConversation={selectedConversation}
-              onSelectConversation={handleSelectConversation}
-              selectedInboxId={selectedInboxId}
-              onToggleCollapse={() => setShowConversationList(false)}
-            />
-          </div>
-        )}
-        
-        {/* Conversation List - Desktop/Tablet grid item */}
-        {!isMobile && showConversationListDesktop && (
-          <div className="list-pane">
-            <ConversationList 
-              selectedTab={selectedTab}
-              selectedConversation={selectedConversation}
-              onSelectConversation={handleSelectConversation}
-              selectedInboxId={selectedInboxId}
-              onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
-            />
-          </div>
-        )}
-        
-        {/* Conversation View - Main content area */}
-        {(!isMobile || !showConversationList) && (
-          <div className={cn(
-            "flex flex-col bg-gradient-surface",
-            isMobile ? "w-full" : "detail-pane"
-          )}>
-            {/* Mobile Back Button */}
-            {isMobile && selectedConversation && (
-              <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center justify-between">
-                <div className="flex items-center">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      setSelectedConversation(null);
-                      navigate('/', { replace: true });
-                      setShowConversationList(true);
-                      announce('Returned to conversation list');
-                      
-                      // Focus the first conversation after returning
-                      setTimeout(() => {
-                        const firstConversation = document.querySelector('.conversation-item');
-                        if (firstConversation) {
-                          (firstConversation as HTMLElement).focus();
-                        }
-                      }, 100);
-                    }}
-                    className="mr-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <h2 className="font-semibold text-lg ellipsis">
-                    {selectedConversation.subject}
-                  </h2>
-                </div>
-              </div>
-            )}
             
-            {/* Conversation Content */}
-            {selectedConversation ? (
-              <ConversationView conversationId={selectedConversation.id} />
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-center p-8">
-                <div className="max-w-md">
-                  <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="font-semibold text-lg mb-2">{t('dashboard.conversationView.noConversationSelected', 'No conversation selected')}</h3>
-                  <p className="text-muted-foreground">{t('dashboard.conversationView.selectConversation', 'Select a conversation from the list to start viewing messages.')}</p>
+            <div className={cn(
+              "flex flex-col bg-gradient-surface",
+              isMobile ? "w-full" : "detail-pane"
+            )}>
+              {selectedConversation ? (
+                <ConversationView conversationId={selectedConversation.id} />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                  <div className="max-w-md">
+                    <h2 className="text-2xl font-semibold mb-4">{t('dashboard.conversationView.noConversationSelected', 'No conversation selected')}</h2>
+                    <p className="text-muted-foreground">{t('dashboard.conversationView.selectConversation', 'Select a conversation from the list to start viewing messages.')}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </ResponsiveLayout>
-      
-      {/* Debug components in development */}
-      <LayoutDebugger 
-        showConversationList={isMobile ? showConversationList : showConversationListDesktop}
-        showSidebar={showSidebar}
-        className={layoutClassName}
-      />
-    </div>
+              )}
+            </div>
+          </ResponsiveLayout>
+
+          {/* Debug components in development */}
+          <LayoutDebugger 
+            showConversationList={isMobile ? showConversationList : showConversationListDesktop}
+            showSidebar={showSidebar}
+            className={layoutClassName}
+          />
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 };
