@@ -63,8 +63,8 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab }) => {
   };
 
   return (
-    <div className="min-h-screen flex w-full">
-      <div className="flex-1 p-4">
+    <div className="h-screen flex w-full pt-14">
+      <div className="flex-1 p-4 overflow-auto">
         {renderActiveContent()}
       </div>
     </div>
