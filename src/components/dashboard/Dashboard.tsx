@@ -45,7 +45,13 @@ interface Conversation {
   };
 }
 
-export const Dashboard = () => {
+interface DashboardProps {
+  activeMainTab: string;
+  activeSubTab: string;
+  onMainTabChange: (tab: string, subTab: string) => void;
+}
+
+export const Dashboard = ({ activeMainTab, activeSubTab, onMainTabChange }: DashboardProps) => {
   // Use hooks properly - no try-catch around hooks
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -203,6 +209,9 @@ export const Dashboard = () => {
           onTabChange={handleTabChange}
           selectedInboxId={selectedInboxId}
           context="text"
+          activeMainTab={activeMainTab}
+          activeSubTab={activeSubTab}
+          onMainTabChange={onMainTabChange}
         />
         
         <SidebarInset className="flex-1">

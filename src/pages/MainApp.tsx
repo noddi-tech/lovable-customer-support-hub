@@ -11,19 +11,20 @@ import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
 interface MainAppProps {
   activeTab: string;
   activeSubTab: string;
+  onTabChange: (tab: string, subTab: string) => void;
 }
 
-const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab }) => {
+const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange }) => {
   const renderActiveContent = () => {
     // Interactions
     if (activeTab === 'interactions') {
       switch (activeSubTab) {
         case 'text':
-          return <Dashboard />;
+          return <Dashboard activeMainTab={activeTab} activeSubTab={activeSubTab} onMainTabChange={onTabChange} />;
         case 'voice':
           return <VoiceInterface />;
         default:
-          return <Dashboard />;
+          return <Dashboard activeMainTab={activeTab} activeSubTab={activeSubTab} onMainTabChange={onTabChange} />;
       }
     }
 
@@ -59,14 +60,12 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab }) => {
     }
 
     // Default fallback
-    return <Dashboard />;
+    return <Dashboard activeMainTab={activeTab} activeSubTab={activeSubTab} onMainTabChange={onTabChange} />;
   };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex w-full mt-14">
-      <div className="flex-1 p-4 overflow-auto">
-        {renderActiveContent()}
-      </div>
+    <div className="h-screen w-full">
+      {renderActiveContent()}
     </div>
   );
 };

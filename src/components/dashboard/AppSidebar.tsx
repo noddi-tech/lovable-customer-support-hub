@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   Inbox, 
   Archive, 
@@ -16,7 +17,15 @@ import {
   Bell,
   CheckCircle,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Megaphone,
+  Wrench,
+  Settings,
+  MessageSquare,
+  Ticket,
+  DoorOpen,
+  User,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -41,6 +50,9 @@ interface AppSidebarProps {
   onTabChange: (tab: string) => void;
   selectedInboxId?: string;
   context?: 'text' | 'voice' | 'all';
+  activeMainTab: string;
+  activeSubTab: string;
+  onMainTabChange: (tab: string, subTab: string) => void;
 }
 
 interface InboxData {
@@ -57,7 +69,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   selectedTab, 
   onTabChange, 
   selectedInboxId, 
-  context = 'all' 
+  context = 'all',
+  activeMainTab,
+  activeSubTab,
+  onMainTabChange
 }) => {
   const [expandedChannels, setExpandedChannels] = useState(true);
   const [expandedInboxes, setExpandedInboxes] = useState(true);
@@ -168,6 +183,57 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     { id: 'whatsapp', label: t('dashboard.sidebar.whatsapp'), icon: Phone, count: conversationCounts.whatsapp || 0, color: 'channel-whatsapp' },
   ];
 
+  const getMainTabConfig = () => {
+    switch (activeMainTab) {
+      case 'interactions':
+        return {
+          icon: MessageCircle,
+          label: 'Interactions',
+          subTabs: [
+            { key: 'text', label: 'Text', icon: MessageCircle },
+            { key: 'voice', label: 'Voice', icon: Phone }
+          ]
+        };
+      case 'marketing':
+        return {
+          icon: Megaphone,
+          label: 'Marketing',
+          subTabs: [
+            { key: 'email', label: 'Email', icon: Mail },
+            { key: 'sms', label: 'SMS', icon: MessageSquare }
+          ]
+        };
+      case 'ops':
+        return {
+          icon: Wrench,
+          label: 'Ops',
+          subTabs: [
+            { key: 'serviceTickets', label: 'Service Tickets', icon: Ticket },
+            { key: 'doorman', label: 'Doorman', icon: DoorOpen },
+            { key: 'recruitment', label: 'Recruitment', icon: Users }
+          ]
+        };
+      case 'settings':
+        return {
+          icon: Settings,
+          label: 'Settings',
+          subTabs: [
+            { key: 'general', label: 'General', icon: Settings },
+            { key: 'profile', label: 'Profile', icon: User },
+            { key: 'notifications', label: 'Notifications', icon: Bell },
+            { key: 'email-templates', label: 'Email Templates', icon: Mail },
+            { key: 'users', label: 'Users', icon: Users },
+            { key: 'admin', label: 'Admin', icon: Shield }
+          ]
+        };
+      default:
+        return null;
+    }
+  };
+
+  const currentMainConfig = getMainTabConfig();
+  const currentSubTab = currentMainConfig?.subTabs.find(sub => sub.key === activeSubTab);
+
   return (
     <Sidebar 
       className={cn(
@@ -176,7 +242,79 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       )}
       collapsible="icon"
     >
-      <SidebarHeader className="p-4">
+      <SidebarHeader className="p-4 space-y-4">
+        {/* Main Navigation Tabs */}
+        {!isCollapsed && (
+          <div className="space-y-2">
+            <div className="flex flex-col gap-1">
+              {['interactions', 'marketing', 'ops', 'settings'].map((tab) => {
+                const config = (() => {
+                  switch (tab) {
+                    case 'interactions': return { icon: MessageCircle, label: 'Interactions' };
+                    case 'marketing': return { icon: Megaphone, label: 'Marketing' };
+                    case 'ops': return { icon: Wrench, label: 'Ops' };
+                    case 'settings': return { icon: Settings, label: 'Settings' };
+                    default: return null;
+                  }
+                })();
+                
+                if (!config) return null;
+                
+                const Icon = config.icon;
+                const isActive = activeMainTab === tab;
+                
+                return (
+                  <Button
+                    key={tab}
+                    variant={isActive ? "default" : "ghost"}
+                    className="w-full justify-start h-9"
+                    onClick={() => {
+                      const defaultSubTabs = {
+                        interactions: 'text',
+                        marketing: 'email', 
+                        ops: 'serviceTickets',
+                        settings: 'general'
+                      };
+                      onMainTabChange(tab, defaultSubTabs[tab as keyof typeof defaultSubTabs]);
+                    }}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {config.label}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Sub Tab Dropdown */}
+            {currentMainConfig && (
+              <div className="w-full">
+                <Button variant="outline" className="w-full justify-between h-9" asChild>
+                  <div className="flex items-center cursor-pointer">
+                    {currentSubTab && <currentSubTab.icon className="h-4 w-4 mr-2" />}
+                    <span className="flex-1 text-left">{currentSubTab?.label || 'Select'}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                </Button>
+                <div className="mt-1 space-y-1">
+                  {currentMainConfig.subTabs.map((subTab) => (
+                    <Button
+                      key={subTab.key}
+                      variant={activeSubTab === subTab.key ? "secondary" : "ghost"}
+                      size="sm"
+                      className="w-full justify-start h-8 pl-6"
+                      onClick={() => onMainTabChange(activeMainTab, subTab.key)}
+                    >
+                      <subTab.icon className="h-3 w-3 mr-2" />
+                      {subTab.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* New Conversation Button */}
         {!isCollapsed && (
           <NewConversationDialog>
             <Button className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">

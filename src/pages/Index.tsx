@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import AppHeader from '@/components/AppHeader';
 import MainApp from './MainApp';
 
 const Index = () => {
@@ -13,12 +12,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      <AppHeader 
-        activeTab={activeTab} 
-        activeSubTab={activeSubTab}
-        onTabChange={handleTabChange} 
-      />
-      <MainApp activeTab={activeTab} activeSubTab={activeSubTab} />
+      <MainApp activeTab={activeTab} activeSubTab={activeSubTab} onTabChange={handleTabChange} />
     </div>
   );
 };
