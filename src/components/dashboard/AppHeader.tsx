@@ -23,7 +23,8 @@ import {
   LogOut,
   Palette,
   Menu,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -262,28 +263,31 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </header>
 
-      {/* Persistent Subtabs Row - Desktop */}
-      {!isMobile && activeMainTab?.subTabs.length > 0 && (
+      {/* Mobile Subtabs Dropdown - Only show when needed */}
+      {isMobile && activeMainTab?.subTabs.length > 0 && (
         <div className="border-t border-border/50 bg-muted/30">
           <div className="px-4 py-2">
-            <div className="overflow-x-auto scrollbar-none">
-              <nav className="flex items-center gap-1 whitespace-nowrap">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-between">
+                  {activeMainTab.subTabs.find(tab => tab.id === activeSubTab)?.label || 'Select Section'}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full" align="start">
                 {activeMainTab.subTabs.map((subTab) => (
-                  <Button
+                  <DropdownMenuItem
                     key={subTab.id}
-                    variant={activeSubTab === subTab.id ? "secondary" : "ghost"}
-                    size="sm"
                     onClick={() => onTabChange(activeTab, subTab.id)}
                     className={cn(
-                      "text-sm flex-shrink-0",
-                      activeSubTab === subTab.id && "bg-background text-foreground shadow-sm font-medium"
+                      activeSubTab === subTab.id && "bg-accent"
                     )}
                   >
                     {subTab.label}
-                  </Button>
+                  </DropdownMenuItem>
                 ))}
-              </nav>
-            </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       )}

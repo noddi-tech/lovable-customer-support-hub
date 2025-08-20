@@ -552,7 +552,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         {/* Messages and Reply Area */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Messages Area - Scrollable */}
-          <div className="pane flex-1 min-h-0" aria-label="Conversation messages">
+          <div className="pane flex-1 min-h-0 overflow-y-auto" aria-label="Conversation messages">
             <div 
               ref={messagesContainerRef}
               className="p-3 md:p-6"
@@ -734,7 +734,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
         {/* Customer Info Sidebar - Desktop Only */}
         <div className="hidden lg:block w-80 border-l border-border bg-card/50 backdrop-blur-sm">
-          <div className="pane h-full">
+          <div className="pane h-full overflow-y-auto">
             <div className="p-4 space-y-6">
             {/* Reply Actions - Top Priority */}
             {conversation.status === 'open' && !conversation.is_archived && (

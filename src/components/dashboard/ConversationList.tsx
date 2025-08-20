@@ -404,7 +404,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       </div>
       
       {/* Conversation List - Scrollable with responsive layout */}
-      <div className="pane flex-1">
+      <div className="pane flex-1 overflow-y-auto">
         <div className="px-3 md:px-4 pb-4 space-y-2">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">
