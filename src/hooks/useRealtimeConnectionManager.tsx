@@ -120,53 +120,56 @@ export const useRealtimeConnectionManager = () => {
   const handleConnectionStatus = useCallback((status: string, channelName: string) => {
     console.log(`📡 Channel ${channelName} status: ${status}`);
     
-    // Clear any pending debounce timeout
-    if (statusDebounceTimeoutRef.current) {
-      clearTimeout(statusDebounceTimeoutRef.current);
-    }
+    const config = reconnectionConfigRef.current;
+    const now = Date.now();
     
-    // Debounce rapid status changes
-    statusDebounceTimeoutRef.current = setTimeout(() => {
-      const config = reconnectionConfigRef.current;
-      const now = Date.now();
-      
-      if (status === 'SUBSCRIBED') {
-        // Only act if we're actually disconnected or recovering from a disconnect
-        if (!currentConnectionStateRef.current || hasShownDisconnectToast.current) {
-          console.log('✅ Real-time connection restored');
-          
-          currentConnectionStateRef.current = true;
-          setConnectionState(prev => ({
-            ...prev,
-            isConnected: true,
-            lastConnected: new Date(),
-            connectionAttempts: 0
-          }));
+    if (status === 'SUBSCRIBED') {
+      // For initial connections or successful reconnections, act immediately
+      if (!currentConnectionStateRef.current) {
+        console.log('✅ Real-time connection established');
+        
+        currentConnectionStateRef.current = true;
+        setConnectionState(prev => ({
+          ...prev,
+          isConnected: true,
+          lastConnected: new Date(),
+          connectionAttempts: 0
+        }));
 
-          // Clear reconnection timeout
-          if (reconnectionTimeoutRef.current) {
-            clearTimeout(reconnectionTimeoutRef.current);
-            reconnectionTimeoutRef.current = undefined;
-          }
-
-          // Show restoration toast only if we previously showed a disconnect toast
-          // and enough time has passed since the last toast
-          if (hasShownDisconnectToast.current && 
-              now - lastToastTimeRef.current.reconnect > config.toastRateLimitMs) {
-            toast({
-              title: "Connection Restored",
-              description: "Real-time updates are now working",
-            });
-            hasShownDisconnectToast.current = false;
-            lastToastTimeRef.current.reconnect = now;
-          }
+        // Clear reconnection timeout
+        if (reconnectionTimeoutRef.current) {
+          clearTimeout(reconnectionTimeoutRef.current);
+          reconnectionTimeoutRef.current = undefined;
         }
-      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-        // Only act if we're actually connected
-        if (currentConnectionStateRef.current) {
+
+        // Show restoration toast only if we previously showed a disconnect toast
+        // and enough time has passed since the last toast
+        if (hasShownDisconnectToast.current && 
+            now - lastToastTimeRef.current.reconnect > config.toastRateLimitMs) {
+          toast({
+            title: "Connection Restored",
+            description: "Real-time updates are now working",
+          });
+          hasShownDisconnectToast.current = false;
+          lastToastTimeRef.current.reconnect = now;
+        }
+      }
+    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+      // Only debounce disconnection events to prevent flapping
+      if (currentConnectionStateRef.current) {
+        // Clear any pending debounce timeout for disconnections
+        if (statusDebounceTimeoutRef.current) {
+          clearTimeout(statusDebounceTimeoutRef.current);
+        }
+        
+          // Update connection state immediately (before the timeout check)
+          currentConnectionStateRef.current = false;
+        statusDebounceTimeoutRef.current = setTimeout(() => {
+          // Double-check we're still disconnected after the debounce period
+          if (currentConnectionStateRef.current) return; // If we reconnected, don't process disconnect
+          
           console.log('🔴 Real-time connection lost');
           
-          currentConnectionStateRef.current = false;
           setConnectionState(prev => ({
             ...prev,
             isConnected: false
@@ -186,9 +189,9 @@ export const useRealtimeConnectionManager = () => {
 
           // Start reconnection process
           attemptReconnection();
-        }
+        }, config.statusDebounceMs);
       }
-    }, reconnectionConfigRef.current.statusDebounceMs);
+    }
   }, [attemptReconnection, toast]);
 
   const createManagedSubscription = useCallback((
