@@ -96,10 +96,7 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange 
       )}
     >
       {/* Main Content */}
-      <div className={cn(
-        "flex-1 min-h-0 overflow-hidden",
-        activeTab === 'interactions' ? '' : 'w-full'
-      )}>
+      <div className="flex-1 min-h-0 flex flex-col">
         {renderActiveContent()}
       </div>
     </ResponsiveLayout>

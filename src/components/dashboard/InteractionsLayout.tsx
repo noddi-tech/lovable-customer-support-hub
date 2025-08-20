@@ -1,17 +1,24 @@
 import React, { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { MessageCircle, Sidebar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
 import { VoiceInterface } from './VoiceInterface';
-import { Button } from '@/components/ui/button';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
+import { useTranslation } from "react-i18next";
 import { cn } from '@/lib/utils';
-import { useTranslation } from 'react-i18next';
-import { MessageCircle, Sidebar } from 'lucide-react';
 
+// Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
-type ConversationChannel = "email" | "chat" | "social";
+type ConversationChannel = "email" | "chat" | "social" | "facebook" | "instagram" | "whatsapp";
+
+interface Customer {
+  id: string;
+  full_name: string;
+  email: string;
+}
 
 interface Conversation {
   id: string;
@@ -19,13 +26,12 @@ interface Conversation {
   status: ConversationStatus;
   priority: ConversationPriority;
   is_read: boolean;
+  is_archived?: boolean;
   channel: ConversationChannel;
   updated_at: string;
-  customer?: {
-    id: string;
-    full_name: string;
-    email: string;
-  };
+  received_at?: string;
+  inbox_id?: string;
+  customer?: Customer;
   assigned_to?: {
     id: string;
     full_name: string;
@@ -78,24 +84,27 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   // Handle conversation list toggle
   const handleToggleConversationList = useCallback(() => {
     if (isDesktop) {
-      const newValue = !showConversationListDesktop;
-      setShowConversationListDesktop(newValue);
-      localStorage.setItem('showConversationListDesktop', JSON.stringify(newValue));
+      setShowConversationListDesktop(!showConversationListDesktop);
     } else {
       setShowConversationList(!showConversationList);
     }
   }, [isDesktop, showConversationList, showConversationListDesktop]);
 
-  // If voice interface is active, render it
+  // Determine visibility logic
+  const shouldShowConversationList = (() => {
+    if (isMobile) {
+      return !selectedConversation || showConversationList;
+    }
+    return showConversationListDesktop;
+  })();
+
+  // Render VoiceInterface if active sub-tab is 'voice'
   if (activeSubTab === 'voice') {
     return <VoiceInterface />;
   }
 
-  // Text interface layout
-  const shouldShowConversationList = isMobile ? showConversationList : showConversationListDesktop;
-  
   return (
-    <div className="flex-1 min-h-0 w-full flex bg-background">
+    <div className="flex flex-1 min-h-0 bg-background">
       {/* Conversation List Pane */}
       {shouldShowConversationList && (
         <div className={cn(
@@ -138,15 +147,13 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center flex-1 text-center p-8 bg-card m-4 rounded-lg">
-            <div className="max-w-md">
-              <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h2 className="text-2xl font-semibold mb-4">
-                {t('interactions.noConversationSelected', 'No conversation selected')}
-              </h2>
-              <p className="text-muted-foreground">
-                {t('interactions.selectConversation', 'Select a conversation from the list to start viewing messages.')}
-              </p>
-            </div>
+            <MessageCircle className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              {t('interactions.noConversationSelected')}
+            </h3>
+            <p className="text-muted-foreground max-w-md">
+              {t('interactions.selectConversationToStart')}
+            </p>
           </div>
         )}
       </div>

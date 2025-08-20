@@ -332,7 +332,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
   return (
-    <div className="flex flex-col bg-gradient-surface flex-1 min-h-0">
+    <div className="flex flex-col bg-gradient-surface h-full min-h-0">
       {/* Header - Fixed with better responsive layout */}
       <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -404,7 +404,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       </div>
       
       {/* Conversation List - Scrollable with responsive layout */}
-      <div className="pane flex-1 overflow-y-auto">
+      <div className="pane flex-1">
         <div className="px-3 md:px-4 pb-4 space-y-2">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">

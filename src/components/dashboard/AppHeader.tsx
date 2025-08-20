@@ -8,8 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { SyncButton } from './SyncButton';
 import { DeleteAllButton } from './DeleteAllButton';
@@ -263,31 +263,28 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </header>
 
-      {/* Mobile Subtabs Dropdown - Only show when needed */}
-      {isMobile && activeMainTab?.subTabs.length > 0 && (
+      {/* Desktop Subtabs Row - Only show when needed */}
+      {!isMobile && activeMainTab?.subTabs.length > 0 && (
         <div className="border-t border-border/50 bg-muted/30">
           <div className="px-4 py-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full justify-between">
-                  {activeMainTab.subTabs.find(tab => tab.id === activeSubTab)?.label || 'Select Section'}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-full" align="start">
+            <div className="overflow-x-auto scrollbar-none">
+              <nav className="flex items-center gap-1 whitespace-nowrap">
                 {activeMainTab.subTabs.map((subTab) => (
-                  <DropdownMenuItem
+                  <Button
                     key={subTab.id}
+                    variant={activeSubTab === subTab.id ? "secondary" : "ghost"}
+                    size="sm"
                     onClick={() => onTabChange(activeTab, subTab.id)}
                     className={cn(
-                      activeSubTab === subTab.id && "bg-accent"
+                      "text-sm flex-shrink-0",
+                      activeSubTab === subTab.id && "bg-background text-foreground shadow-sm font-medium"
                     )}
                   >
                     {subTab.label}
-                  </DropdownMenuItem>
+                  </Button>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </nav>
+            </div>
           </div>
         </div>
       )}
