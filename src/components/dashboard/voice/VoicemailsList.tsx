@@ -14,8 +14,8 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface VoicemailCardProps {
   voicemail: any;
-  downloadVoicemail: (params: { voicemailId: string; recordingUrl: string }) => void;
-  getPlaybackUrl: (params: { voicemailId: string; recordingUrl: string }) => Promise<any>;
+  downloadVoicemail: (voicemailId: string) => void;
+  getPlaybackUrl: (voicemailId: string) => Promise<any>;
   onAssign: (id: string, agentId: string) => void;
   isDownloading: boolean;
   isAssigning: boolean;
@@ -83,20 +83,14 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
             duration={voicemail.event_data.duration}
             onGetFreshUrl={async () => {
               try {
-                return await getPlaybackUrl({ 
-                  voicemailId: voicemail.id, 
-                  recordingUrl: voicemail.event_data?.recording_url || '' 
-                });
+                return await getPlaybackUrl(voicemail.id);
               } catch (error) {
                 console.error('Failed to get playback URL:', error);
                 throw error;
               }
             }}
             onDownload={() => {
-              downloadVoicemail({ 
-                voicemailId: voicemail.id, 
-                recordingUrl: voicemail.event_data?.recording_url || '' 
-              });
+              downloadVoicemail(voicemail.id);
             }}
           />
         )}

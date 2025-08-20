@@ -7,6 +7,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Function to download and store voicemail in Supabase storage
+async function downloadAndStoreVoicemail(supabase: any, voicemailUrl: string, callUuid: string) {
+  try {
+    console.log('📥 Downloading voicemail from:', voicemailUrl);
+    
+    // Fetch the voicemail file
+    const response = await fetch(voicemailUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download voicemail: ${response.status}`);
+    }
+    
+    const audioBuffer = await response.arrayBuffer();
+    const audioFile = new Uint8Array(audioBuffer);
+    
+    // Generate a storage path
+    const fileName = `${callUuid}-${Date.now()}.mp3`;
+    const filePath = `voicemails/${fileName}`;
+    
+    console.log('💾 Storing voicemail in Supabase storage:', filePath);
+    
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('voicemails')
+      .upload(filePath, audioFile, {
+        contentType: 'audio/mpeg',
+        upsert: false
+      });
+    
+    if (error) {
+      console.error('❌ Error uploading voicemail:', error);
+      throw error;
+    }
+    
+    console.log('✅ Voicemail stored successfully:', data);
+    return filePath;
+    
+  } catch (error) {
+    console.error('❌ Error downloading/storing voicemail:', error);
+    throw error;
+  }
+}
+
 // Provider-specific adapters
 interface StandardCallEvent {
   externalId: string;
@@ -244,6 +286,36 @@ async function processInternalEvents(
         console.error('Error creating internal event:', internalError);
       } else {
         console.log('Internal event created successfully:', internalEvent);
+        
+        // If this is a voicemail event, download and store the audio file
+        if (mapping.internal_event_type === 'voicemail_left' && eventData.recording_url) {
+          try {
+            console.log('📞 Processing voicemail for storage...');
+            const callUuid = standardEvent.eventData.callData?.call_uuid || `call-${Date.now()}`;
+            const storagePath = await downloadAndStoreVoicemail(supabase, eventData.recording_url, callUuid);
+            
+            // Update the internal event with the local storage path
+            const { error: updateError } = await supabase
+              .from('internal_events')
+              .update({
+                event_data: {
+                  ...eventData,
+                  storage_path: storagePath,
+                  original_recording_url: eventData.recording_url
+                }
+              })
+              .eq('id', internalEvent.id);
+              
+            if (updateError) {
+              console.error('❌ Error updating internal event with storage path:', updateError);
+            } else {
+              console.log('✅ Updated internal event with storage path:', storagePath);
+            }
+          } catch (error) {
+            console.error('❌ Error processing voicemail storage:', error);
+            // Don't fail the entire webhook - just log the error
+          }
+        }
       }
     }
   } catch (error) {

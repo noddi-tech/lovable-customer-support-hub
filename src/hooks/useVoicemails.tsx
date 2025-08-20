@@ -62,9 +62,9 @@ export function useVoicemails() {
 
   // Unified mutation for both download and playback
   const audioMutation = useMutation({
-    mutationFn: async ({ voicemailId, recordingUrl }: { voicemailId: string; recordingUrl: string }) => {
+    mutationFn: async ({ voicemailId }: { voicemailId: string }) => {
       const { data, error } = await supabase.functions.invoke('download-voicemail', {
-        body: { voicemailId, recordingUrl }
+        body: { voicemailId }
       });
 
       if (error) throw error;
@@ -152,14 +152,14 @@ export function useVoicemails() {
     isLoading,
     error,
     // Unified audio operations
-    downloadVoicemail: (params: { voicemailId: string; recordingUrl: string }) => {
-      audioMutation.mutate(params);
+    downloadVoicemail: (voicemailId: string) => {
+      audioMutation.mutate({ voicemailId });
       toast({
         title: "Downloading...",
         description: "Preparing voicemail for download",
       });
     },
-    getPlaybackUrl: audioMutation.mutateAsync,
+    getPlaybackUrl: (voicemailId: string) => audioMutation.mutateAsync({ voicemailId }),
     isAudioLoading: audioMutation.isPending,
     assignVoicemail: assignVoicemailMutation.mutate,
     isAssigning: assignVoicemailMutation.isPending

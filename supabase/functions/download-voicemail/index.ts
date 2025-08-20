@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,37 +18,63 @@ serve(async (req) => {
   try {
     console.log('📞 Starting download-voicemail function...');
     
-    const { voicemailId, recordingUrl } = await req.json();
-    console.log('🎵 Processing voicemail:', voicemailId, 'URL:', recordingUrl);
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { voicemailId } = await req.json();
+    console.log('🎵 Processing voicemail ID:', voicemailId);
 
-    if (!recordingUrl) {
-      console.error('❌ No recording URL provided');
-      throw new Error('No recording URL provided');
+    if (!voicemailId) {
+      console.error('❌ No voicemail ID provided');
+      throw new Error('No voicemail ID provided');
     }
 
-    // Fetch the audio file from the recording URL
-    console.log('🌐 Fetching audio from URL...');
-    const audioResponse = await fetch(recordingUrl);
-    
-    console.log('📊 Audio response status:', audioResponse.status, audioResponse.statusText);
-    
-    if (!audioResponse.ok) {
-      console.error('❌ Failed to fetch audio:', audioResponse.status, audioResponse.statusText);
-      const errorText = await audioResponse.text();
-      console.error('❌ Error response body:', errorText);
-      throw new Error(`Failed to fetch audio: ${audioResponse.status} ${audioResponse.statusText} - ${errorText}`);
+    // Get the voicemail event with storage path
+    const { data: voicemailEvent, error: eventError } = await supabase
+      .from('internal_events')
+      .select('event_data')
+      .eq('id', voicemailId)
+      .eq('event_type', 'voicemail_left')
+      .single();
+
+    if (eventError || !voicemailEvent) {
+      console.error('❌ Voicemail event not found:', eventError);
+      throw new Error('Voicemail event not found');
     }
 
-    // Convert to array buffer then base64 using Deno's native base64 encoder
-    console.log('🔄 Converting to array buffer...');
-    const audioBuffer = await audioResponse.arrayBuffer();
-    console.log('📏 Audio buffer size:', audioBuffer.byteLength);
-    
-    console.log('🔄 Converting to base64 using Deno encoder...');
-    const audioBytes = new Uint8Array(audioBuffer);
-    const base64Data = encode(audioBytes);
+    const storagePath = voicemailEvent.event_data?.storage_path;
+    if (!storagePath) {
+      console.error('❌ No storage path found for voicemail');
+      throw new Error('No storage path found for voicemail');
+    }
 
-    console.log('✅ Successfully converted audio to base64, length:', base64Data.length);
+    console.log('📁 Retrieving voicemail from storage:', storagePath);
+
+    // Get the file from Supabase storage
+    const { data: fileData, error: storageError } = await supabase.storage
+      .from('voicemails')
+      .download(storagePath);
+
+    if (storageError || !fileData) {
+      console.error('❌ Error retrieving file from storage:', storageError);
+      throw new Error(`Error retrieving file from storage: ${storageError?.message}`);
+    }
+
+    console.log('🔄 Converting file to base64...');
+    const arrayBuffer = await fileData.arrayBuffer();
+    const audioBytes = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 using chunks to handle large files
+    let base64Data = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < audioBytes.length; i += chunkSize) {
+      const chunk = audioBytes.slice(i, i + chunkSize);
+      base64Data += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+    }
+
+    console.log('✅ Successfully converted voicemail to base64, length:', base64Data.length);
 
     return new Response(
       JSON.stringify({ 
