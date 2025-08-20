@@ -118,6 +118,8 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
       }
       
       setHasError(true);
+      setIsLoading(false);
+      setIsLoadingAudio(false);
       // You might want to show a toast notification here
     } finally {
       setIsGettingFreshUrl(false);
@@ -324,17 +326,19 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
           variant="outline"
           size="sm"
           onClick={togglePlayPause}
-          disabled={isLoading || hasError}
+          disabled={isLoading || hasError || isGettingFreshUrl}
           className="flex items-center gap-2"
         >
-          {isLoadingAudio ? (
+          {isLoadingAudio || isGettingFreshUrl ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isPlaying ? (
             <Pause className="h-4 w-4" />
           ) : (
             <Play className="h-4 w-4" />
           )}
-          {isLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play'}
+          {isLoading ? 'Loading...' : 
+           isGettingFreshUrl ? 'Refreshing...' :
+           isPlaying ? 'Pause' : 'Play'}
         </Button>
 
         {/* Volume control */}
