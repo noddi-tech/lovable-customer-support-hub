@@ -14,6 +14,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { useFocusManagement, useAriaLiveRegion } from '@/hooks/use-focus-management';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -78,6 +79,8 @@ export const Dashboard: React.FC = () => {
   const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { saveFocus, restoreFocus, focusFirstFocusableElement } = useFocusManagement();
+  const { announce } = useAriaLiveRegion();
 
   // Fetch inboxes to resolve selected inbox name
   const { data: inboxes = [] } = useQuery({
@@ -229,6 +232,10 @@ useEffect(() => {
 
   const handleSelectConversation = (conversation: Conversation) => {
     console.log('Selected conversation:', conversation.id);
+    
+    // Save focus for potential restoration
+    saveFocus();
+    
     // Mark previous conversation as read when selecting a new one
     if (selectedConversation && selectedConversation.id !== conversation.id) {
       markConversationRead(selectedConversation.id);
@@ -236,6 +243,9 @@ useEffect(() => {
     
     setSelectedConversation(conversation);
     navigate(`?conversation=${conversation.id}`, { replace: true });
+    
+    // Announce to screen readers
+    announce(`Selected conversation: ${conversation.subject}`);
     
     // Hide conversation list when selecting on mobile or tablet
     if (isMobile) {
@@ -292,11 +302,14 @@ useEffect(() => {
                 showConversationList={isMobile ? showConversationList : showConversationListDesktop}
                 onToggleConversationList={() => {
                   if (isMobile) {
-                    setShowConversationList(!showConversationList);
+                    const newValue = !showConversationList;
+                    setShowConversationList(newValue);
+                    announce(newValue ? 'Conversation list opened' : 'Conversation list closed');
                   } else {
                     const newValue = !showConversationListDesktop;
                     setShowConversationListDesktop(newValue);
                     localStorage.setItem('showConversationListDesktop', JSON.stringify(newValue));
+                    announce(newValue ? 'Conversation list expanded' : 'Conversation list collapsed');
                   }
                 }}
                 selectedConversation={selectedConversation}
@@ -398,6 +411,15 @@ useEffect(() => {
                         setSelectedConversation(null);
                         navigate('/', { replace: true });
                         setShowConversationList(true);
+                        announce('Returned to conversation list');
+                        
+                        // Focus the first conversation after returning
+                        setTimeout(() => {
+                          const firstConversation = document.querySelector('.conversation-item');
+                          if (firstConversation) {
+                            (firstConversation as HTMLElement).focus();
+                          }
+                        }, 100);
                       }}
                       className="mr-2"
                     >

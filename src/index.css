@@ -19,7 +19,21 @@ body {
 /* Professional Customer Support Hub Design System 
 Inspired by modern support platforms like Intercom, Zendesk
 All colors MUST be HSL.
+Optimized for accessibility with WCAG AA compliance.
 */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 @layer base {
   :root {
@@ -414,15 +428,34 @@ All colors MUST be HSL.
     }
   }
 
-  /* Touch targets and transitions */
+  /* Performance optimized transitions */
   .app-main {
-    transition: grid-template-columns var(--transition-normal);
+    transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: grid-template-columns;
   }
   
-  /* Minimum touch targets for mobile */
+  /* Prevent layout thrashing during transitions */
+  .app-main.transitioning {
+    contain: layout style;
+  }
+  
+  /* Smooth drawer animations */
+  .drawer {
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+  
+  /* Optimized sidebar transitions */
+  .sidebar {
+    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width;
+  }
+  
+  /* Accessibility and touch targets */
   @media (max-width: 767px) {
     .bottom-tabs button,
-    .mobile-drawer button {
+    .mobile-drawer button,
+    .conversation-item {
       min-height: 44px;
       min-width: 44px;
     }
@@ -431,19 +464,47 @@ All colors MUST be HSL.
     .conversation-item {
       min-height: 56px;
       padding: 12px 16px;
+      touch-action: manipulation; /* Prevent double-tap zoom */
+    }
+    
+    /* Focus indicators for touch devices */
+    .conversation-item:focus-visible {
+      outline: 2px solid hsl(var(--primary));
+      outline-offset: 2px;
     }
   }
   
-  /* Hover states for desktop */
+  /* Enhanced interactions for desktop */
   @media (min-width: 768px) {
+    .conversation-item {
+      transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    
     .conversation-item:hover {
       background-color: hsl(var(--inbox-hover));
-      transition: background-color var(--transition-fast);
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px hsl(var(--primary) / 0.1);
+    }
+    
+    .conversation-item:focus-visible {
+      outline: 2px solid hsl(var(--primary));
+      outline-offset: -2px;
+      background-color: hsl(var(--inbox-selected));
+    }
+    
+    .nav-pane .sidebar-menu-button {
+      transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .nav-pane .sidebar-menu-button:hover {
       background-color: hsl(var(--sidebar-accent));
-      transition: background-color var(--transition-fast);
+      transform: translateX(4px);
+    }
+    
+    .nav-pane .sidebar-menu-button:focus-visible {
+      outline: 2px solid hsl(var(--sidebar-ring));
+      outline-offset: 2px;
     }
   }
 
@@ -451,6 +512,31 @@ All colors MUST be HSL.
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+  
+  /* Custom scrollbars for webkit browsers */
+  .pane::-webkit-scrollbar,
+  .card__body::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .pane::-webkit-scrollbar-track,
+  .card__body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .pane::-webkit-scrollbar-thumb,
+  .card__body::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+  
+  .pane::-webkit-scrollbar-thumb:hover,
+  .card__body::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
   }
 
   /* Inbox fit @100% - text overflow handling */
@@ -559,7 +645,7 @@ All colors MUST be HSL.
     opacity: 1;
   }
 
-  /* iPhone bottom tab bar */
+  /* Accessible bottom tab bar */
   .bottom-tabs {
     position: fixed; 
     left: 0; 
@@ -569,6 +655,40 @@ All colors MUST be HSL.
     grid-auto-flow: column; 
     gap: 8px; 
     padding: 8px;
+    background: hsl(var(--card));
+    border-top: 1px solid hsl(var(--border));
+    backdrop-filter: blur(8px);
+    z-index: 50;
+  }
+  
+  /* Bottom tab accessibility */
+  .bottom-tabs button {
+    position: relative;
+    border-radius: 8px;
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .bottom-tabs button:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+  
+  .bottom-tabs button[aria-selected="true"] {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+  
+  .bottom-tabs button[aria-selected="true"]::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 2px;
+    background: hsl(var(--primary));
+    border-radius: 1px;
+  }
     padding-bottom: max(8px, env(safe-area-inset-bottom));
     background: hsl(var(--card)); 
     border-top: 1px solid hsl(var(--border));
