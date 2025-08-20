@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,28 +39,21 @@ serve(async (req) => {
       throw new Error(`Failed to fetch audio: ${audioResponse.status} ${audioResponse.statusText} - ${errorText}`);
     }
 
-    // Convert to array buffer then base64
+    // Convert to array buffer then base64 using Deno's native base64 encoder
     console.log('🔄 Converting to array buffer...');
     const audioBuffer = await audioResponse.arrayBuffer();
     console.log('📏 Audio buffer size:', audioBuffer.byteLength);
     
+    console.log('🔄 Converting to base64 using Deno encoder...');
     const audioBytes = new Uint8Array(audioBuffer);
-    console.log('🔄 Converting to base64...');
-    
-    // Convert to base64 in chunks to avoid call stack issues
-    let base64 = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < audioBytes.length; i += chunkSize) {
-      const chunk = audioBytes.slice(i, i + chunkSize);
-      base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
-    }
+    const base64Data = encode(audioBytes);
 
-    console.log('✅ Successfully converted audio to base64, length:', base64.length);
+    console.log('✅ Successfully converted audio to base64, length:', base64Data.length);
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        base64Data: base64,
+        base64Data: base64Data,
         mimeType: 'audio/mpeg',
         timestamp: new Date().toISOString()
       }),
