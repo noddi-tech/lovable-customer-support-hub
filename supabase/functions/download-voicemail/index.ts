@@ -76,9 +76,18 @@ serve(async (req) => {
       contentType
     });
 
-    // Convert to base64 for transport
+    // Convert to base64 for transport (handle large files properly)
     const audioBytes = new Uint8Array(audioBuffer);
-    const base64Audio = btoa(String.fromCharCode(...audioBytes));
+    
+    // Convert to base64 in chunks to avoid call stack overflow
+    let base64Audio = '';
+    const chunkSize = 8192; // Process in 8KB chunks
+    
+    for (let i = 0; i < audioBytes.length; i += chunkSize) {
+      const chunk = audioBytes.slice(i, i + chunkSize);
+      const chunkString = String.fromCharCode.apply(null, Array.from(chunk));
+      base64Audio += btoa(chunkString);
+    }
 
     return new Response(
       JSON.stringify({ 
