@@ -1,9 +1,8 @@
 import React from 'react';
-import MainApp from './MainApp';
+import ResponsiveInbox from '@/components/layout/ResponsiveInbox';
 
 const Index = () => {
-  // Show main app for authenticated users (auth is handled by ProtectedRoute)
-  return <MainApp />;
+  return <ResponsiveInbox />;
 };
 
 export default Index;

@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -261,8 +263,13 @@ useEffect(() => {
     console.log('setSelectedTab called, new tab should be:', tab);
   };
 
+  // State for drawers (mobile/tablet)
+  const [showNavDrawer, setShowNavDrawer] = useState(false);
+  const [showInspectorDrawer, setShowInspectorDrawer] = useState(false);
+
   // Debug logging
   console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!hasTimestamp);
+  
   return (
     <div className="app-root bg-gradient-surface">
       {/* Header */}
@@ -270,7 +277,7 @@ useEffect(() => {
         <Header 
           organizationName={selectedInboxName}
           showMenuButton={isMobile}
-          onMenuClick={() => setShowSidebar(!showSidebar)}
+          onMenuClick={() => isMobile ? setShowNavDrawer(true) : setShowSidebar(!showSidebar)}
           selectedInboxId={selectedInboxId}
           onInboxChange={(id) => setSelectedInboxId(id)}
           showConversationList={isMobile ? showConversationList : showConversationListDesktop}
@@ -293,96 +300,125 @@ useEffect(() => {
       </div>
       
       {/* Main Content */}
-      <div className="app-main bg-gradient-surface">
-        {/* Sidebar */}
-      <div className={`
-        ${isMobile ? 'fixed left-0 top-0 bottom-0 z-50 transform transition-transform' : 'nav-pane'}
-        ${isMobile && !showSidebar ? '-translate-x-full' : 'translate-x-0'}
-        ${isMobile ? 'w-64' : ''} border-r border-border bg-card/80 backdrop-blur-sm shadow-surface
-      `}>
-        <InboxSidebar 
-          selectedTab={selectedTab} 
-          onTabChange={handleTabChange}
-          selectedInboxId={selectedInboxId}
-        />
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && showSidebar && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setShowSidebar(false)}
-        />
-      )}
-
+      <div className="app-main bg-gradient-surface responsive-layout">
+        {/* Desktop/Tablet Navigation Pane */}
+        {!isMobile && (
+          <div className="nav-pane border-r border-border bg-card/80 backdrop-blur-sm shadow-surface">
+            <InboxSidebar 
+              selectedTab={selectedTab} 
+              onTabChange={handleTabChange}
+              selectedInboxId={selectedInboxId}
+            />
+          </div>
+        )}
+        
         {/* Content Area */}
         <div className="flex flex-1 min-h-0">
-        {/* Show Notifications List if notifications tab is selected */}
-        {selectedTab === 'notifications' ? (
-          <div className="detail-pane flex flex-col bg-gradient-surface">
-            {/* Mobile Header */}
-            {isMobile && (
-              <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSelectedTab('all')}
-                  className="mr-2"
-                >
-                  {t('dashboard.navigation.back')}
-                </Button>
-                <h1 className="font-semibold">{t('dashboard.navigation.notifications')}</h1>
-              </div>
-            )}
-            <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
-              <NotificationsList />
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Conversation List */}
-            <div className={`
-              ${isMobile ? (showConversationList ? 'flex' : 'hidden') : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'}
-              ${isMobile ? 'w-full' : ''} flex flex-col bg-gradient-surface transition-all duration-300 ease-in-out
-            `}>
-              <ConversationList 
-                selectedTab={selectedTab}
-                selectedConversation={selectedConversation}
-                onSelectConversation={handleSelectConversation}
-                selectedInboxId={selectedInboxId}
-                isCollapsed={!isMobile && !showConversationListDesktop}
-                onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
-              />
-            </div>
-            
-            {/* Conversation View */}
-            <div className={`
-              ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'detail-pane'}
-              flex flex-col bg-gradient-surface
-            `}>
+          {/* Show Notifications List if notifications tab is selected */}
+          {selectedTab === 'notifications' ? (
+            <div className="detail-pane flex flex-col bg-gradient-surface">
               {/* Mobile Header */}
               {isMobile && (
                 <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={handleBackToList}
+                    onClick={() => setSelectedTab('all')}
                     className="mr-2"
                   >
                     {t('dashboard.navigation.back')}
                   </Button>
-                  <h1 className="font-semibold">{selectedInboxName}</h1>
+                  <h1 className="font-semibold">{t('dashboard.navigation.notifications')}</h1>
                 </div>
               )}
-
-              <ConversationView 
-                conversationId={selectedConversation?.id || null}
-              />
+              <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
+                <NotificationsList />
+              </div>
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              {/* Conversation List */}
+              <div className={`
+                ${isMobile ? (showConversationList ? 'flex' : 'hidden') : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'}
+                ${isMobile ? 'w-full' : ''} flex flex-col bg-gradient-surface transition-all duration-300 ease-in-out
+              `}>
+                <ConversationList 
+                  selectedTab={selectedTab}
+                  selectedConversation={selectedConversation}
+                  onSelectConversation={handleSelectConversation}
+                  selectedInboxId={selectedInboxId}
+                  isCollapsed={!isMobile && !showConversationListDesktop}
+                  onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
+                />
+              </div>
+              
+              {/* Conversation View */}
+              <div className={`
+                ${isMobile ? (showConversationList ? 'hidden' : 'flex') : 'detail-pane'}
+                flex flex-col bg-gradient-surface
+              `}>
+                {/* Mobile Header */}
+                {isMobile && (
+                  <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleBackToList}
+                      className="mr-2"
+                    >
+                      {t('dashboard.navigation.back')}
+                    </Button>
+                    <h1 className="font-semibold ellipsis">{selectedInboxName}</h1>
+                  </div>
+                )}
+
+                <ConversationView 
+                  conversationId={selectedConversation?.id || null}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {isMobile && (
+        <div
+          className={cn(
+            "drawer drawer--left",
+            showNavDrawer ? "translate-x-0" : "-translate-x-full"
+          )}
+          aria-hidden={!showNavDrawer}
+        >
+          <div className="p-4 border-b border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowNavDrawer(false)}
+              className="mb-2"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Close
+            </Button>
+          </div>
+          <InboxSidebar 
+            selectedTab={selectedTab} 
+            onTabChange={(tab) => {
+              handleTabChange(tab);
+              setShowNavDrawer(false);
+            }}
+            selectedInboxId={selectedInboxId}
+          />
+        </div>
+      )}
+
+      {/* Mobile Drawer Overlay */}
+      {isMobile && showNavDrawer && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setShowNavDrawer(false)}
+        />
+      )}
     </div>
   );
 };
