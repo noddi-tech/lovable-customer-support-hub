@@ -58,6 +58,8 @@ import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useUserTimezone } from '@/hooks/useUserTimezone';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
+import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import DOMPurify from 'dompurify';
 
 interface ConversationViewProps {
@@ -434,10 +436,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   return (
     <div className="h-full w-full flex flex-col bg-gradient-surface">
-      {/* Conversation Header */}
-      <div className="h-16 flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+      {/* Conversation Header - Responsive */}
+      <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
             {/* Back to Inbox Button */}
             <Button 
               variant="ghost" 
@@ -445,37 +447,47 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               onClick={() => {
                 navigate('/', { replace: true });
               }}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-1 md:gap-2 text-muted-foreground hover:text-foreground flex-shrink-0"
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('conversation.backToInbox')}</span>
+              <span className="hidden sm:inline text-sm">{t('conversation.backToInbox')}</span>
             </Button>
-              <Avatar className="h-10 w-10">
+            
+            <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
+              <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
                 <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
               </Avatar>
-             <div>
-               <h2 className="font-semibold text-foreground text-sm md:text-base line-clamp-1">{conversation.subject}</h2>
-               <div className="flex items-center space-x-2 text-xs md:text-sm text-muted-foreground">
-                        <span className="truncate">{conversation.customer?.full_name || t('conversation.unknownCustomer')}</span>
-                        <span className="hidden sm:inline">•</span>
-                        <span className="hidden sm:inline truncate">{conversation.customer?.email}</span>
-                <span className="hidden sm:inline">•</span>
-                <Badge variant="outline" className="text-xs">
-                  {conversation.channel}
-                </Badge>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold text-sm md:text-base line-clamp-1 mb-1">
+                  {conversation.subject}
+                </h2>
+                <div className="flex items-center space-x-2 text-xs md:text-sm text-muted-foreground">
+                  <span className="ellipsis max-w-[120px] md:max-w-none">
+                    {conversation.customer?.full_name || t('conversation.unknownCustomer')}
+                  </span>
+                  <span className="hidden sm:inline">•</span>
+                  <span className="hidden sm:inline ellipsis max-w-[150px]">
+                    {conversation.customer?.email}
+                  </span>
+                  <span className="hidden md:inline">•</span>
+                  <Badge variant="outline" className="text-xs flex-shrink-0">
+                    {conversation.channel}
+                  </Badge>
+                </div>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center space-x-1 md:space-x-2">
-            <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'}>
+          <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
+            <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'} className="text-xs">
               {t(`conversation.${conversation.status}`)}
             </Badge>
-            <Badge variant={conversation.priority === 'high' || conversation.priority === 'urgent' ? 'destructive' : 'secondary'}>
+            <Badge variant={conversation.priority === 'high' || conversation.priority === 'urgent' ? 'destructive' : 'secondary'} className="text-xs">
               {t(`conversation.${conversation.priority}`)}
             </Badge>
             
-            <div className="hidden sm:flex items-center space-x-2">
+            {/* Desktop Actions */}
+            <div className="hidden lg:flex items-center space-x-2">
               <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 {t('conversation.assign')}
@@ -484,76 +496,58 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 <Move className="h-4 w-4 mr-2" />
                 {t('conversation.move')}
               </Button>
-              {conversation.status === 'open' ? (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => updateStatusMutation.mutate({ status: 'closed' })}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {t('conversation.markAsClosed')}
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => updateStatusMutation.mutate({ status: 'open' })}
-                >
-                  <Archive className="h-4 w-4 mr-2" />
-                  {t('conversation.reopen')}
-                </Button>
-              )}
-              {conversation.is_archived ? (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => updateStatusMutation.mutate({ isArchived: false })}
-                >
-                  <ArchiveRestore className="h-4 w-4 mr-2" />
-                  {t('conversation.unarchive')}
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => updateStatusMutation.mutate({ isArchived: true })}
-                >
-                  <Archive className="h-4 w-4 mr-2" />
-                  {t('conversation.archive')}
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => setSnoozeDialogOpen(true)}>
-                <Clock className="h-4 w-4 mr-2" />
-                {t('conversation.snooze')}
-              </Button>
-              {conversation.channel === 'email' && conversation.email_account_id && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => gmailSyncMutation.mutate()}
-                  disabled={gmailSyncMutation.isPending}
-                >
-                  {gmailSyncMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Sync Gmail
-                </Button>
-              )}
             </div>
             
-            <Button variant="ghost" size="sm">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            {/* More Actions Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {/* Mobile-specific actions */}
+                <div className="lg:hidden">
+                  <DropdownMenuItem onClick={() => setAssignDialogOpen(true)}>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    {t('conversation.assign')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
+                    <Move className="mr-2 h-4 w-4" />
+                    {t('conversation.move')}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </div>
+                
+                <DropdownMenuItem onClick={() => setSnoozeDialogOpen(true)}>
+                  <Clock className="mr-2 h-4 w-4" />
+                  {t('conversation.snoozeForLater')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ status: 'resolved' })}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {t('conversation.markResolved')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ isArchived: !conversation.is_archived })}>
+                  {conversation.is_archived ? <ArchiveRestore className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
+                  {conversation.is_archived ? t('conversation.unarchiveConversation') : t('conversation.archiveConversation')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => gmailSyncMutation.mutate()} disabled={gmailSyncMutation.isPending}>
+                  <RefreshCw className={cn("mr-2 h-4 w-4", gmailSyncMutation.isPending && "animate-spin")} />
+                  {t('conversation.syncGmail')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
 
+      {/* Main Content Area */}
       <div className="flex-1 min-h-0 flex">
-        {/* Main Content Area */}
+        {/* Messages and Reply Area */}
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Messages Area - Only Messages, Scrollable */}
+          {/* Messages Area - Scrollable */}
           <div 
             ref={messagesContainerRef}
             className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch p-3 md:p-6" 
@@ -733,12 +727,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
 
-        {/* Customer Info Sidebar */}
+        {/* Customer Info Sidebar - Desktop Only */}
         <div className="hidden lg:block w-80 border-l border-border bg-card/50 backdrop-blur-sm">
-          <div 
-            style={{ height: 'calc(100vh - 180px)', overflow: 'auto' }}
-            className="p-4 space-y-6"
-          >
+          <div className="h-full overflow-y-auto p-4 space-y-6">
             {/* Reply Actions - Top Priority */}
             {conversation.status === 'open' && !conversation.is_archived && (
               <div>
@@ -878,6 +869,22 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* Mobile-optimized floating reply button */}
+        <div className="lg:hidden fixed bottom-4 right-4 z-40">
+          {conversation.status === 'open' && !conversation.is_archived && (
+            <Button 
+              onClick={() => {
+                setIsInternalNote(false);
+                setShowReplyArea(true);
+              }}
+              size="lg"
+              className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+            >
+              <Reply className="h-6 w-6" />
+            </Button>
+          )}
         </div>
       </div>
 
