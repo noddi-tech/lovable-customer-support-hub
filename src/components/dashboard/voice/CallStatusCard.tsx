@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Call } from '@/hooks/useCalls';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
+import { CallActionButton } from './CallActionButton';
 import { formatDistanceToNow } from 'date-fns';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 
@@ -117,6 +118,10 @@ export const CallStatusCard: React.FC<CallStatusCardProps> = ({ call, onViewDeta
         </div>
         
         <div className="flex gap-2 pt-2">
+          <CallActionButton
+            phoneNumber={call.customer_phone}
+            size="sm"
+          />
           {onViewDetails && (
             <Button 
               variant="outline" 

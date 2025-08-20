@@ -16,6 +16,7 @@ import { VoiceSidebar } from './voice/VoiceSidebar';
 import { RealTimeIndicator } from './voice/RealTimeIndicator';
 import { CallNotificationCenter } from './voice/CallNotificationCenter';
 import { CallDetailsDialog } from './voice/CallDetailsDialog';
+import { CallActionButton } from './voice/CallActionButton';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
 
@@ -229,7 +230,12 @@ export const VoiceInterface = () => {
                               </div>
                             </div>
                             
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-2">
+                              <CallActionButton
+                                phoneNumber={call.customer_phone}
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                              />
                               <Button
                                 variant="default"
                                 size="sm"
