@@ -404,7 +404,8 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
       </div>
       
       {/* Conversation List - Scrollable with responsive layout */}
-      <ScrollArea className="flex-1 h-0 min-h-0" aria-label="Conversations list">
+      <ScrollArea className="flex-1">
+        <div className="px-3 md:px-4 pb-4 space-y-2">
         {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">
               <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
@@ -590,12 +591,12 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </ScrollArea>
+                  </div>
+                ))}
+             </div>
+           )}
+         </div>
+       </ScrollArea>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -727,7 +727,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   </div>
                 </div>
               )}
-              </div>
+            </div>
             </div>
           </ScrollArea>
         </div>
