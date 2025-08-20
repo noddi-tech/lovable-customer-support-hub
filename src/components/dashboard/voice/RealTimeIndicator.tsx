@@ -11,7 +11,21 @@ interface RealTimeIndicatorProps {
 
 export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh }) => {
   const { toast } = useToast();
-  const { isConnected, lastConnected, forceReconnect } = useRealtimeConnectionManager();
+  const { 
+    isConnected, 
+    lastConnected, 
+    forceReconnect,
+    subscriptionCount,
+    subscriptionNames 
+  } = useRealtimeConnectionManager();
+
+  // Debug logging
+  console.log('🔍 RealTimeIndicator status:', { 
+    isConnected, 
+    subscriptionCount, 
+    subscriptionNames,
+    lastConnected 
+  });
 
   const handleRefresh = () => {
     onRefresh?.();

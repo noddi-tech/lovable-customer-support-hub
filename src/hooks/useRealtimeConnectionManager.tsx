@@ -49,6 +49,14 @@ export const useRealtimeConnectionManager = () => {
     reconnect: 0
   });
 
+  // Debug: Log when the connection manager initializes
+  useEffect(() => {
+    console.log('🔧 Realtime Connection Manager initialized');
+    return () => {
+      console.log('🔧 Realtime Connection Manager destroyed');
+    };
+  }, []);
+
   const calculateBackoffDelay = (attempt: number): number => {
     const config = reconnectionConfigRef.current;
     const delay = Math.min(
@@ -210,7 +218,9 @@ export const useRealtimeConnectionManager = () => {
       );
       pendingSubscriptions.current.push(createSubscription);
 
+      console.log(`📡 Subscribing to channel: ${channelName}`);
       channel.subscribe((status: string) => {
+        console.log(`📡 Channel ${channelName} subscription status: ${status}`);
         handleConnectionStatus(status, channelName);
       });
 
@@ -264,6 +274,9 @@ export const useRealtimeConnectionManager = () => {
     lastConnected: connectionState.lastConnected,
     connectionAttempts: connectionState.connectionAttempts,
     createManagedSubscription,
-    forceReconnect: reconnectAllSubscriptions
+    forceReconnect: reconnectAllSubscriptions,
+    // Debug info
+    subscriptionCount: connectionState.subscriptions.size,
+    subscriptionNames: Array.from(connectionState.subscriptions.keys())
   };
 };
