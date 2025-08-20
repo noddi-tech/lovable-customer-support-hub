@@ -84,7 +84,7 @@ export const useRealTimeCallNotifications = () => {
           }
         }
       ),
-      [aircallIntegration]
+      [createManagedSubscription, queryClient]
     );
 
     // Create managed subscription for call status changes
@@ -117,7 +117,7 @@ export const useRealTimeCallNotifications = () => {
           queryClient.invalidateQueries({ queryKey: ['call-events'] });
         }
       ),
-      [aircallIntegration, queryClient]
+      [aircallIntegration, createManagedSubscription, queryClient]
     );
 
     return () => {

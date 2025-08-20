@@ -101,7 +101,7 @@ export function useCalls() {
         
         queryClient.invalidateQueries({ queryKey: ['calls'] });
       }),
-      [queryClient]
+      [createManagedSubscription, queryClient]
     );
 
     const unsubscribeEvents = createManagedSubscription(
@@ -116,7 +116,7 @@ export function useCalls() {
         // Let useRealTimeCallNotifications handle the main notifications
         queryClient.invalidateQueries({ queryKey: ['call-events'] });
       }),
-      [queryClient]
+      [createManagedSubscription, queryClient]
     );
 
     return () => {
