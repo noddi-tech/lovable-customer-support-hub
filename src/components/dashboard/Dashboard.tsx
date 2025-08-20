@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { InboxSidebar } from './InboxSidebar';
+import { AppSidebar } from './AppSidebar';
 import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,8 @@ import { ResponsiveLayout } from '@/components/ui/responsive-layout';
 import { MobileDrawer } from '@/components/ui/mobile-drawer';
 import { BottomTabs, type BottomTabItem } from '@/components/ui/bottom-tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -281,37 +284,48 @@ useEffect(() => {
   // Debug logging
   console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl);
   
-  return (
-    <ResponsiveLayout
-      header={
-        <Header 
-          organizationName={selectedInboxName}
-          showMenuButton={isMobile}
-          onMenuClick={() => setShowSidebar(!showSidebar)}
-          selectedInboxId={selectedInboxId}
-          onInboxChange={(id) => setSelectedInboxId(id)}
-          showConversationList={isMobile ? showConversationList : showConversationListDesktop}
-          onToggleConversationList={() => {
-            if (isMobile) {
-              setShowConversationList(!showConversationList);
-            } else {
-              const newValue = !showConversationListDesktop;
-              setShowConversationListDesktop(newValue);
-              localStorage.setItem('showConversationListDesktop', JSON.stringify(newValue));
-            }
-          }}
-          selectedConversation={selectedConversation}
-        />
-      }
-      className={`bg-gradient-surface ${!isMobile ? (showConversationListDesktop ? 'list-expanded' : 'list-collapsed') : ''}`}
-      sidebar={!isMobile ? (
-        <InboxSidebar 
-          selectedTab={selectedTab}
-          onTabChange={handleTabChange}
-          selectedInboxId={selectedInboxId}
-          context="text"
-        />
-      ) : undefined}
+  const DashboardContent = () => {
+    const { state } = useSidebar();
+    const isCollapsed = state === 'collapsed';
+    
+    return (
+      <ResponsiveLayout
+        header={
+          <div className="flex items-center">
+            {!isMobile && <SidebarTrigger className="mr-4" />}
+            <Header 
+              organizationName={selectedInboxName}
+              showMenuButton={isMobile}
+              onMenuClick={() => setShowSidebar(!showSidebar)}
+              selectedInboxId={selectedInboxId}
+              onInboxChange={(id) => setSelectedInboxId(id)}
+              showConversationList={isMobile ? showConversationList : showConversationListDesktop}
+              onToggleConversationList={() => {
+                if (isMobile) {
+                  setShowConversationList(!showConversationList);
+                } else {
+                  const newValue = !showConversationListDesktop;
+                  setShowConversationListDesktop(newValue);
+                  localStorage.setItem('showConversationListDesktop', JSON.stringify(newValue));
+                }
+              }}
+              selectedConversation={selectedConversation}
+            />
+          </div>
+        }
+        className={cn(
+          "bg-gradient-surface",
+          !isMobile && (showConversationListDesktop ? 'list-expanded' : 'list-collapsed'),
+          !isMobile && (isCollapsed ? 'sidebar-collapsed' : '')
+        )}
+        sidebar={!isMobile ? (
+          <AppSidebar 
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+            selectedInboxId={selectedInboxId}
+            context="text"
+          />
+        ) : undefined}
       leftDrawer={
         <MobileDrawer
           isOpen={showSidebar}
@@ -407,5 +421,18 @@ useEffect(() => {
         </div>
       </>
     </ResponsiveLayout>
+    );
+  };
+
+  if (isMobile) {
+    return <DashboardContent />;
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <DashboardContent />
+      </div>
+    </SidebarProvider>
   );
 };

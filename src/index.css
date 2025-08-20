@@ -305,19 +305,24 @@ All colors MUST be HSL.
   @media (min-width: 1280px) {
     .app-main {
       height: 100%;
-      grid-template-columns: var(--grid-template-desktop, 240px minmax(380px, 1fr) minmax(320px, 420px));
+      grid-template-columns: var(--grid-template-desktop, var(--sidebar-width, 240px) minmax(320px, 400px) 1fr);
       gap: 0;
       transition: grid-template-columns 0.3s ease-in-out;
     }
     
-    /* Collapsed state - hide list pane */
-    .app-main.list-collapsed {
-      --grid-template-desktop: 240px 0 1fr;
+    /* Collapsed sidebar */
+    .app-main.sidebar-collapsed {
+      --sidebar-width: 64px;
     }
     
-    /* Expanded state - show all 3 panes */
+    /* Collapsed state - hide list pane */
+    .app-main.list-collapsed {
+      --grid-template-desktop: var(--sidebar-width, 240px) 0 1fr;
+    }
+    
+    /* Expanded state - show all 3 panes with capped list width */
     .app-main.list-expanded {
-      --grid-template-desktop: 240px minmax(380px, 1fr) minmax(320px, 420px);
+      --grid-template-desktop: var(--sidebar-width, 240px) minmax(320px, 400px) 1fr;
     }
     
     .nav-pane, .list-pane, .detail-pane { 
@@ -345,13 +350,13 @@ All colors MUST be HSL.
   /* 1024–1279px: collapse inspector; nav becomes icon rail */
   @media (min-width: 1024px) and (max-width: 1279px) {
     .app-main { 
-      grid-template-columns: 72px 1fr; 
+      grid-template-columns: var(--sidebar-width, 64px) minmax(320px, 400px) 1fr; 
     }
     .inspector-pane { 
       display: none; /* use drawer instead */
     }
     .nav-pane {
-      width: 72px;
+      width: var(--sidebar-width, 64px);
     }
   }
 
