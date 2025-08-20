@@ -1,11 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { FullScreenLayout } from '@/components/ui/full-screen-layout';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { 
   MessageSquare, 
   Mail, 
@@ -25,7 +20,7 @@ import MarketingWrapper from '@/components/dashboard/MarketingWrapper';
 import OpsWrapper from '@/components/dashboard/OpsWrapper';
 import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
+import { AppNavSidebar } from '@/components/navigation/AppNavSidebar';
 
 type MainSection = 'interactions' | 'marketing' | 'ops' | 'settings';
 type SubSection = string;
@@ -72,29 +67,12 @@ const MainApp = () => {
     { key: 'admin', label: t('settings.tabs.admin'), icon: Shield },
   ];
 
-  const renderDropdownContent = (items: any[], mainSection: MainSection) => (
-    <DropdownMenuContent 
-      className="bg-card border border-border shadow-lg rounded-md rounded-t-none border-t-0 p-1 min-w-[200px] z-50"
-      side="bottom" 
-      align="start"
-    >
-      {items.map((item) => (
-        <DropdownMenuItem
-          key={item.key}
-          onClick={() => handleNavigation(mainSection, item.key)}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 text-sm cursor-pointer",
-            navigationState.mainSection === mainSection && navigationState.subSection === item.key
-              ? "bg-accent text-accent-foreground"
-              : "text-foreground"
-          )}
-        >
-          <item.icon className="h-4 w-4" />
-          {item.label}
-        </DropdownMenuItem>
-      ))}
-    </DropdownMenuContent>
-  );
+  const getTabValue = () => `${navigationState.mainSection}-${navigationState.subSection}`;
+  
+  const handleTabChange = (value: string) => {
+    const [mainSection, subSection] = value.split('-');
+    handleNavigation(mainSection as MainSection, subSection);
+  };
 
   const renderContent = () => {
     switch (navigationState.mainSection) {
@@ -142,80 +120,134 @@ const MainApp = () => {
 
   const breadcrumb = getCurrentBreadcrumb();
 
-  const navigationHeader = (
-    <div className="border-b bg-background px-6 py-3 space-y-3">
-      <div className="flex gap-0">
-        <DropdownMenu>
-          <DropdownMenuTrigger 
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
-              navigationState.mainSection === 'interactions' && "bg-accent text-accent-foreground"
-            )}
-          >
-            <MessageSquare className="h-4 w-4" />
-            {t('interactions')}
-          </DropdownMenuTrigger>
-          {renderDropdownContent(interactionsItems, 'interactions')}
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger 
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
-              navigationState.mainSection === 'marketing' && "bg-accent text-accent-foreground"
-            )}
-          >
-            <Mail className="h-4 w-4" />
-            {t('marketing')}
-          </DropdownMenuTrigger>
-          {renderDropdownContent(marketingItems, 'marketing')}
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger 
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
-              navigationState.mainSection === 'ops' && "bg-accent text-accent-foreground"
-            )}
-          >
-            <Wrench className="h-4 w-4" />
-            {t('ops')}
-          </DropdownMenuTrigger>
-          {renderDropdownContent(opsItems, 'ops')}
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger 
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md rounded-b-none border-b-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground",
-              navigationState.mainSection === 'settings' && "bg-accent text-accent-foreground"
-            )}
-          >
-            <SettingsIcon className="h-4 w-4" />
-            {t('settings.title')}
-          </DropdownMenuTrigger>
-          {renderDropdownContent(settingsItems, 'settings')}
-        </DropdownMenu>
-      </div>
-
-      {/* Breadcrumb */}
-      <div className="text-sm text-muted-foreground flex items-center gap-2">
-        <span className="font-medium text-foreground">{breadcrumb.main}</span>
-        {breadcrumb.sub && (
-          <>
-            <span>›</span>
-            <span>{breadcrumb.sub}</span>
-          </>
-        )}
-      </div>
-    </div>
-  );
-
   return (
-    <FullScreenLayout header={navigationHeader}>
-      {renderContent()}
-    </FullScreenLayout>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        {/* Main navigation sidebar */}
+        <AppNavSidebar 
+          navigationState={navigationState}
+          onNavigate={handleNavigation}
+        />
+        
+        <SidebarInset className="flex-1">
+          {/* Sidebar trigger and main navigation header */}
+          <div className="border-b bg-background">
+            <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+              <SidebarTrigger className="-ml-1" />
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <span className="font-medium text-foreground">{breadcrumb.main}</span>
+                {breadcrumb.sub && (
+                  <>
+                    <span>›</span>
+                    <span>{breadcrumb.sub}</span>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <Tabs value={getTabValue()} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="h-12 w-full justify-start rounded-none border-b bg-transparent p-0">
+                {/* Interactions tabs */}
+                {interactionsItems.map((item) => (
+                  <TabsTrigger
+                    key={`interactions-${item.key}`}
+                    value={`interactions-${item.key}`}
+                    className="flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </TabsTrigger>
+                ))}
+                
+                {/* Marketing tabs */}
+                {marketingItems.map((item) => (
+                  <TabsTrigger
+                    key={`marketing-${item.key}`}
+                    value={`marketing-${item.key}`}
+                    className="flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </TabsTrigger>
+                ))}
+                
+                {/* Ops tabs */}
+                {opsItems.map((item) => (
+                  <TabsTrigger
+                    key={`ops-${item.key}`}
+                    value={`ops-${item.key}`}
+                    className="flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </TabsTrigger>
+                ))}
+                
+                {/* Settings tabs */}
+                {settingsItems.map((item) => (
+                  <TabsTrigger
+                    key={`settings-${item.key}`}
+                    value={`settings-${item.key}`}
+                    className="flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              
+              <div className="flex-1 overflow-hidden">
+                {/* Interactions content */}
+                {interactionsItems.map((item) => (
+                  <TabsContent 
+                    key={`interactions-${item.key}`}
+                    value={`interactions-${item.key}`}
+                    className="h-full m-0 p-0"
+                  >
+                    <InteractionsWrapper activeSubSection={item.key} />
+                  </TabsContent>
+                ))}
+                
+                {/* Marketing content */}
+                {marketingItems.map((item) => (
+                  <TabsContent 
+                    key={`marketing-${item.key}`}
+                    value={`marketing-${item.key}`}
+                    className="h-full m-0 p-0"
+                  >
+                    <MarketingWrapper activeSubSection={item.key} />
+                  </TabsContent>
+                ))}
+                
+                {/* Ops content */}
+                {opsItems.map((item) => (
+                  <TabsContent 
+                    key={`ops-${item.key}`}
+                    value={`ops-${item.key}`}
+                    className="h-full m-0 p-0"
+                  >
+                    <OpsWrapper activeSubSection={item.key} />
+                  </TabsContent>
+                ))}
+                
+                {/* Settings content */}
+                {settingsItems.map((item) => (
+                  <TabsContent 
+                    key={`settings-${item.key}`}
+                    value={`settings-${item.key}`}
+                    className="h-full m-0 p-0"
+                  >
+                    <SettingsWrapper activeSubSection={item.key} />
+                  </TabsContent>
+                ))}
+              </div>
+            </Tabs>
+          </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
+
 };
 
 export default MainApp;
