@@ -97,7 +97,35 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     const handleError = (e: any) => {
-      console.error('Audio error:', e);
+      const audio = audioRef.current;
+      let errorMessage = 'Unknown audio error';
+      
+      if (audio && audio.error) {
+        switch (audio.error.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            errorMessage = 'Audio playback was aborted';
+            break;
+          case MediaError.MEDIA_ERR_NETWORK:
+            errorMessage = 'Network error occurred while loading audio';
+            break;
+          case MediaError.MEDIA_ERR_DECODE:
+            errorMessage = 'Audio file format is not supported or corrupted';
+            break;
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = 'Audio format not supported or URL is invalid';
+            break;
+          default:
+            errorMessage = `Audio error code: ${audio.error.code}`;
+        }
+      }
+      
+      console.error('🚨 Audio playback error:', {
+        errorMessage,
+        errorCode: audio?.error?.code,
+        audioSrc: src,
+        event: e
+      });
+      
       setHasError(true);
       setIsLoading(false);
       setIsLoadingAudio(false);
@@ -162,7 +190,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-medium text-destructive">Failed to load audio</p>
-          <p className="text-xs text-muted-foreground">The recording may be unavailable or corrupted</p>
+          <p className="text-xs text-muted-foreground">
+            {audioRef.current?.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED 
+              ? 'Audio format not supported or URL expired'
+              : audioRef.current?.error?.code === MediaError.MEDIA_ERR_NETWORK
+              ? 'Network error - URL may be expired or inaccessible'
+              : 'The recording may be unavailable or corrupted'
+            }
+          </p>
         </div>
         {onDownload && (
           <Button

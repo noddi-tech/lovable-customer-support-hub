@@ -14,13 +14,13 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface VoicemailCardProps {
   voicemail: any;
-  onDownload: (id: string, url: string) => void;
+  downloadVoicemail: (params: { voicemailId: string; recordingUrl: string }) => void;
   onAssign: (id: string, agentId: string) => void;
   isDownloading: boolean;
   isAssigning: boolean;
 }
 
-const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssigning }: VoicemailCardProps) => {
+const VoicemailCard = ({ voicemail, downloadVoicemail, onAssign, isDownloading, isAssigning }: VoicemailCardProps) => {
   const { t } = useTranslation();
 
   const formatPhoneNumber = (phone?: string) => {
@@ -41,8 +41,30 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
   const getRecordingUrl = () => {
     // First try the signed URL from calls metadata (Aircall provides this)
     if (voicemail.calls?.metadata?.originalPayload?.voicemail) {
-      console.log('🎵 Using signed URL from calls metadata:', voicemail.calls.metadata.originalPayload.voicemail.substring(0, 100) + '...');
-      return voicemail.calls.metadata.originalPayload.voicemail;
+      const signedUrl = voicemail.calls.metadata.originalPayload.voicemail;
+      console.log('🎵 Using signed URL from calls metadata:', signedUrl.substring(0, 100) + '...');
+      
+      // Check if URL has expired by looking for X-Amz-Date parameter
+      try {
+        const url = new URL(signedUrl);
+        const amzDate = url.searchParams.get('X-Amz-Date');
+        const expires = url.searchParams.get('X-Amz-Expires');
+        
+        if (amzDate && expires) {
+          const signedTime = new Date(amzDate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z'));
+          const expirationTime = new Date(signedTime.getTime() + parseInt(expires) * 1000);
+          const now = new Date();
+          
+          if (now > expirationTime) {
+            console.log('⚠️ Signed URL has expired, falling back to download function');
+            return null; // Force fallback to download function
+          }
+        }
+      } catch (error) {
+        console.log('Could not parse URL expiration, proceeding with URL');
+      }
+      
+      return signedUrl;
     }
     
     // Fallback to the unsigned URL from event_data (may not work without authentication)
@@ -101,14 +123,15 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
             onDownload={() => {
               console.log('Download clicked for voicemail:', recordingUrl);
               
-              if (!recordingUrl) {
-                console.error('No recording URL available');
-                alert('No recording URL available');
-                return;
-              }
-
               try {
-                // Create a download link
+                // If we don't have a valid URL or it might be expired, use the download function
+                if (!recordingUrl || recordingUrl.includes('X-Amz-Date')) {
+                  console.log('Using download function for fresh signed URL...');
+                  downloadVoicemail({ voicemailId: voicemail.id, recordingUrl: voicemail.event_data?.recording_url || '' });
+                  return;
+                }
+
+                // Direct download for non-signed URLs
                 const link = document.createElement('a');
                 link.href = recordingUrl;
                 link.download = `voicemail-${voicemail.customer_phone || 'unknown'}-${new Date(voicemail.created_at).toISOString().split('T')[0]}.mp3`;
@@ -119,8 +142,10 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
                 console.log('Successfully initiated download');
               } catch (error) {
                 console.error('Failed to download recording:', error);
-                // Fallback to opening in new tab
-                window.open(recordingUrl, '_blank', 'noopener,noreferrer');
+                // Final fallback to opening in new tab
+                if (recordingUrl) {
+                  window.open(recordingUrl, '_blank', 'noopener,noreferrer');
+                }
               }
             }}
           />
@@ -267,7 +292,7 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
             <VoicemailCard
               key={voicemail.id}
               voicemail={voicemail}
-              onDownload={() => {}} // Not needed with direct download
+              downloadVoicemail={downloadVoicemail}
               onAssign={(id, agentId) => assignVoicemail({ voicemailId: id, agentId })}
               isDownloading={isDownloading}
               isAssigning={isAssigning}
