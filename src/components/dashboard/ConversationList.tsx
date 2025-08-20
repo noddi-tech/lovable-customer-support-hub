@@ -332,77 +332,10 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
 
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
 
-  // If collapsed, show minimal view
+  // Don't render collapsed view for conversation lists - that's for navigation only
+  // Instead, when collapsed, we'll be hidden via CSS grid
   if (isCollapsed) {
-    return (
-      <div className="pane flex flex-col bg-gradient-surface">
-        {/* Collapsed Header */}
-        <div className="flex-shrink-0 p-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
-          <div className="flex flex-col items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={onToggleCollapse}
-                  className="h-8 w-8 p-0"
-                >
-                  <Sidebar className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Expand conversation list</p>
-              </TooltipContent>
-            </Tooltip>
-            
-            <div className="flex flex-col items-center gap-1">
-              <MessageCircle className="h-4 w-4 text-muted-foreground" />
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="h-4 px-1 text-xs min-w-[16px] flex items-center justify-center">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Collapsed Conversation List */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {filteredConversations.map((conversation) => (
-            <Tooltip key={conversation.id}>
-              <TooltipTrigger asChild>
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onSelectConversation(conversation);
-                  }}
-                  className={cn(
-                    "p-2 border-b border-border hover:bg-inbox-hover cursor-pointer transition-colors flex flex-col items-center gap-1",
-                    selectedConversation?.id === conversation.id && "bg-inbox-selected border-l-4 border-l-primary",
-                    !conversation.is_read && selectedConversation?.id !== conversation.id && "border-l-4 border-l-inbox-unread bg-primary-muted/30"
-                  )}
-                >
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                    {conversation.customer?.full_name?.[0]?.toUpperCase() || conversation.customer?.email?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                  {!conversation.is_read && (
-                    <div className="w-2 h-2 bg-primary rounded-full" />
-                  )}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-xs">
-                <div className="flex flex-col gap-1">
-                  <p className="font-medium text-sm">{conversation.subject}</p>
-                  <p className="text-xs text-muted-foreground">{conversation.customer?.full_name || conversation.customer?.email}</p>
-                  <p className="text-xs text-muted-foreground">{formatConversationTime(conversation.received_at || conversation.updated_at)}</p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-      </div>
-    );
+    return null; // Component is hidden via CSS grid when collapsed
   }
 
   return (

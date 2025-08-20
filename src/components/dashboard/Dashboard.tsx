@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ResponsiveLayout } from '@/components/ui/responsive-layout';
 import { MobileDrawer } from '@/components/ui/mobile-drawer';
 import { BottomTabs, type BottomTabItem } from '@/components/ui/bottom-tabs';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -73,6 +73,8 @@ export const Dashboard: React.FC = () => {
   const [selectedInboxId, setSelectedInboxId] = useState<string>(() => localStorage.getItem('selectedInboxId') || 'all');
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const isDesktop = useIsDesktop();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
@@ -225,31 +227,20 @@ useEffect(() => {
   }, [conversationIdFromUrl, urlConversation?.id, selectedConversation?.id, isMobile]);
 
   const handleSelectConversation = (conversation: Conversation) => {
-    console.log('handleSelectConversation called with:', conversation.id);
-
-    // If a different conversation was open and unread, mark it as read on exit
-    if (
-      selectedConversation &&
-      !selectedConversation.is_read &&
-      selectedConversation.id !== conversation.id
-    ) {
-      void markConversationRead(selectedConversation.id);
+    console.log('Selected conversation:', conversation.id);
+    // Mark previous conversation as read when selecting a new one
+    if (selectedConversation && selectedConversation.id !== conversation.id) {
+      markConversationRead(selectedConversation.id);
     }
-
-    // Now select the new conversation without marking it read yet
-    setSelectedConversation(conversation);
-
-    // Update URL to reflect the selected conversation
-    navigate(`/?conversation=${conversation.id}`, { replace: true });
     
+    setSelectedConversation(conversation);
+    navigate(`?conversation=${conversation.id}`, { replace: true });
+    
+    // Hide conversation list when selecting on mobile or tablet
     if (isMobile) {
       setShowConversationList(false);
-    } else {
-      // Auto-collapse conversation list on desktop when selecting a conversation
-      // But only on smaller screens to prevent content overflow
-      if (viewportWidth < 1400) {
-        setShowConversationListDesktop(false);
-      }
+    } else if (isTablet) {
+      setShowConversationListDesktop(false);
     }
   };
 
@@ -363,22 +354,18 @@ useEffect(() => {
           }
         >
           {/* Conversation List - as direct grid item */}
-          <div className={`
-            ${isMobile 
-              ? (showConversationList ? 'flex w-full' : 'hidden') 
-              : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'
-            }
-            flex flex-col bg-gradient-surface
-          `}>
-            <ConversationList 
-              selectedTab={selectedTab}
-              selectedConversation={selectedConversation}
-              onSelectConversation={handleSelectConversation}
-              selectedInboxId={selectedInboxId}
-              isCollapsed={!isMobile && !showConversationListDesktop}
-              onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
-            />
-          </div>
+          {(!isMobile || showConversationList) && showConversationListDesktop && (
+            <div className="list-pane flex flex-col bg-gradient-surface">
+              <ConversationList 
+                selectedTab={selectedTab}
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+                selectedInboxId={selectedInboxId}
+                isCollapsed={false} // Never use collapsed view for conversation lists
+                onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
+              />
+            </div>
+          )}
           
           {/* Conversation View - as direct grid item */}
           <div className={`

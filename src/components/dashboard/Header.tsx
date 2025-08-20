@@ -21,7 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-responsive';
 
 interface HeaderProps {
   organizationName?: string;

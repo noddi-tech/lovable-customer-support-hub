@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsMobile } from "@/hooks/use-responsive"
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode
@@ -16,10 +16,25 @@ const ResponsiveLayout = React.forwardRef<HTMLDivElement, ResponsiveLayoutProps>
   ({ className, children, header, sidebar, bottomTabs, leftDrawer, rightDrawer, ...props }, ref) => {
     const isMobile = useIsMobile()
     
+    // Extract grid state classes from className and apply them to app-main
+    const rootClasses: string[] = []
+    const mainClasses: string[] = []
+    
+    if (className) {
+      const classes = className.split(' ')
+      classes.forEach(cls => {
+        if (cls.includes('list-') || cls.includes('sidebar-')) {
+          mainClasses.push(cls)
+        } else {
+          rootClasses.push(cls)
+        }
+      })
+    }
+    
     return (
       <div
         ref={ref}
-        className={cn("app-root", className)}
+        className={cn("app-root", ...rootClasses)}
         {...props}
       >
         {/* Header */}
@@ -29,8 +44,8 @@ const ResponsiveLayout = React.forwardRef<HTMLDivElement, ResponsiveLayoutProps>
           </div>
         )}
         
-        {/* Main Content Area */}
-        <div className="app-main">
+        {/* Main Content Area - Apply grid state classes here */}
+        <div className={cn("app-main", ...mainClasses, isMobile && bottomTabs && "pb-16")}>
           {/* Desktop/Tablet Sidebar */}
           {sidebar && !isMobile && (
             <div className="nav-pane">

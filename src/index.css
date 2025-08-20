@@ -305,24 +305,32 @@ All colors MUST be HSL.
   @media (min-width: 1280px) {
     .app-main {
       height: 100%;
-      grid-template-columns: var(--grid-template-desktop, var(--sidebar-width, 240px) minmax(320px, 400px) 1fr);
+      grid-template-columns: var(--grid-template-desktop, 240px minmax(380px, 420px) 1fr);
       gap: 0;
       transition: grid-template-columns 0.3s ease-in-out;
     }
     
     /* Collapsed sidebar */
     .app-main.sidebar-collapsed {
-      --sidebar-width: 64px;
+      grid-template-columns: 64px minmax(380px, 420px) 1fr;
     }
     
-    /* Collapsed state - hide list pane */
+    /* List collapsed - remove list pane completely */
     .app-main.list-collapsed {
-      --grid-template-desktop: var(--sidebar-width, 240px) 0 1fr;
+      grid-template-columns: 240px 1fr;
     }
     
-    /* Expanded state - show all 3 panes with capped list width */
+    .app-main.list-collapsed.sidebar-collapsed {
+      grid-template-columns: 64px 1fr;
+    }
+    
+    /* List expanded - explicit definition for clarity */
     .app-main.list-expanded {
-      --grid-template-desktop: var(--sidebar-width, 240px) minmax(320px, 400px) 1fr;
+      grid-template-columns: 240px minmax(380px, 420px) 1fr;
+    }
+    
+    .app-main.list-expanded.sidebar-collapsed {
+      grid-template-columns: 64px minmax(380px, 420px) 1fr;
     }
     
     .nav-pane, .list-pane, .detail-pane { 
@@ -347,24 +355,46 @@ All colors MUST be HSL.
     }
   }
 
-  /* 1024–1279px: collapse inspector; nav becomes icon rail */
+  /* 1024–1279px: tablet layout - 2 panes + inspector drawer */
   @media (min-width: 1024px) and (max-width: 1279px) {
     .app-main { 
-      grid-template-columns: var(--sidebar-width, 64px) minmax(320px, 400px) 1fr; 
+      grid-template-columns: 64px minmax(350px, 400px) 1fr; 
     }
+    
+    .app-main.list-collapsed {
+      grid-template-columns: 64px 1fr;
+    }
+    
+    .app-main.list-expanded {
+      grid-template-columns: 64px minmax(350px, 400px) 1fr;
+    }
+    
     .inspector-pane { 
       display: none; /* use drawer instead */
     }
-    .nav-pane {
-      width: var(--sidebar-width, 64px);
-    }
   }
 
-  /* ≤1023px (iPad portrait & iPhone): 1 pane; nav/inspector as drawers */
-  @media (max-width: 1023px) {
+  /* ≤767px (Mobile): 1 pane; nav/inspector as drawers */
+  @media (max-width: 767px) {
     .app-main { 
       grid-template-columns: 1fr; 
     }
+    
+    .nav-pane, .inspector-pane { 
+      display: none; /* replaced by drawers */
+    }
+  }
+  
+  /* 768-1023px (Tablet): 2 panes when list expanded, 1 pane when collapsed */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .app-main { 
+      grid-template-columns: minmax(320px, 380px) 1fr; 
+    }
+    
+    .app-main.list-collapsed {
+      grid-template-columns: 1fr;
+    }
+    
     .nav-pane, .inspector-pane { 
       display: none; /* replaced by drawers */
     }
