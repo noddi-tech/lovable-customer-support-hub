@@ -33,8 +33,6 @@ export function useVoicemails() {
   const { data: voicemails = [], isLoading, error } = useQuery({
     queryKey: ['voicemails'],
     queryFn: async () => {
-      console.log('🔍 Fetching voicemails from internal_events...');
-      
       const { data, error } = await supabase
         .from('internal_events')
         .select(`
@@ -53,8 +51,6 @@ export function useVoicemails() {
         .eq('event_type', 'voicemail_left')
         .order('created_at', { ascending: false });
 
-      console.log('📧 Voicemails query result:', { data, error, count: data?.length });
-
       if (error) {
         console.error('❌ Error fetching voicemails:', error);
         throw error;
@@ -64,31 +60,8 @@ export function useVoicemails() {
     },
   });
 
-  // Download voicemail recording
-  // Add a mutation for getting playback URL
-  const getPlaybackUrlMutation = useMutation({
-    mutationFn: async ({ voicemailId, recordingUrl }: { voicemailId: string; recordingUrl: string }) => {
-      console.log('📞 Calling download-voicemail function for playback...', { voicemailId, recordingUrl: recordingUrl.substring(0, 100) + '...' });
-      
-      const { data, error } = await supabase.functions.invoke('download-voicemail', {
-        body: { voicemailId, recordingUrl }
-      });
-
-      console.log('📞 download-voicemail response:', { data, error });
-
-      if (error) {
-        console.error('📞 download-voicemail error:', error);
-        throw error;
-      }
-      
-      return data;
-    },
-    onError: (error) => {
-      console.error('📞 getPlaybackUrlMutation error:', error);
-    }
-  });
-
-  const downloadVoicemailMutation = useMutation({
+  // Unified mutation for both download and playback
+  const audioMutation = useMutation({
     mutationFn: async ({ voicemailId, recordingUrl }: { voicemailId: string; recordingUrl: string }) => {
       const { data, error } = await supabase.functions.invoke('download-voicemail', {
         body: { voicemailId, recordingUrl }
@@ -97,20 +70,8 @@ export function useVoicemails() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      toast({
-        title: "Voicemail downloaded",
-        description: "Recording is now available locally",
-      });
-      queryClient.invalidateQueries({ queryKey: ['voicemails'] });
-    },
     onError: (error) => {
-      toast({
-        title: "Download failed",
-        description: "Could not download voicemail recording",
-        variant: "destructive"
-      });
-      console.error('Error downloading voicemail:', error);
+      console.error('Audio operation failed:', error);
     }
   });
 
@@ -190,11 +151,17 @@ export function useVoicemails() {
     transcribedVoicemails,
     isLoading,
     error,
-    downloadVoicemail: downloadVoicemailMutation.mutate,
-    isDownloading: downloadVoicemailMutation.isPending,
+    // Unified audio operations
+    downloadVoicemail: (params: { voicemailId: string; recordingUrl: string }) => {
+      audioMutation.mutate(params);
+      toast({
+        title: "Downloading...",
+        description: "Preparing voicemail for download",
+      });
+    },
+    getPlaybackUrl: audioMutation.mutateAsync,
+    isAudioLoading: audioMutation.isPending,
     assignVoicemail: assignVoicemailMutation.mutate,
-    isAssigning: assignVoicemailMutation.isPending,
-    getPlaybackUrl: getPlaybackUrlMutation.mutateAsync,
-    isGettingPlaybackUrl: getPlaybackUrlMutation.isPending
+    isAssigning: assignVoicemailMutation.isPending
   };
 }

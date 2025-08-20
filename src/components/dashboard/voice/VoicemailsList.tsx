@@ -36,51 +36,10 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Get recording URL from event data
+  const recordingUrl = voicemail.event_data?.recording_url;
+  const hasValidRecordingUrl = recordingUrl && recordingUrl.length > 0;
   const hasTranscription = !!voicemail.event_data?.transcription;
-
-  // Get the proper signed recording URL
-  const getRecordingUrl = () => {
-    // First try the signed URL from calls metadata (Aircall provides this)
-    if (voicemail.calls?.metadata?.originalPayload?.voicemail) {
-      const signedUrl = voicemail.calls.metadata.originalPayload.voicemail;
-      console.log('🎵 Using signed URL from calls metadata:', signedUrl.substring(0, 100) + '...');
-      
-      // Check if URL has expired by looking for X-Amz-Date parameter
-      try {
-        const url = new URL(signedUrl);
-        const amzDate = url.searchParams.get('X-Amz-Date');
-        const expires = url.searchParams.get('X-Amz-Expires');
-        
-        if (amzDate && expires) {
-          const signedTime = new Date(amzDate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z'));
-          const expirationTime = new Date(signedTime.getTime() + parseInt(expires) * 1000);
-          const now = new Date();
-          
-          if (now > expirationTime) {
-            console.log('⚠️ Signed URL has expired, using unsigned URL for playback');
-            // Fall back to unsigned URL for playback, even if it might not work
-            return voicemail.event_data?.recording_url || null;
-          }
-        }
-      } catch (error) {
-        console.log('Could not parse URL expiration, proceeding with URL');
-      }
-      
-      return signedUrl;
-    }
-    
-    // Fallback to the unsigned URL from event_data (may not work without authentication)
-    if (voicemail.event_data?.recording_url) {
-      console.log('⚠️ Using unsigned URL from event_data (may fail):', voicemail.event_data.recording_url);
-      return voicemail.event_data.recording_url;
-    }
-    
-    console.log('❌ No recording URL available in voicemail data');
-    return null;
-  };
-
-  const recordingUrl = getRecordingUrl();
-  const hasValidRecordingUrl = !!recordingUrl;
 
   return (
     <Card className="transition-all duration-200 hover:shadow-md">
@@ -123,31 +82,21 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
             title="Voicemail Recording"
             duration={voicemail.event_data.duration}
             onGetFreshUrl={async () => {
-              console.log('🔄 DynamicAudioPlayer requesting fresh URL...');
               try {
-                const result = await getPlaybackUrl({ 
+                return await getPlaybackUrl({ 
                   voicemailId: voicemail.id, 
                   recordingUrl: voicemail.event_data?.recording_url || '' 
                 });
-                console.log('🔄 getPlaybackUrl result:', result);
-                return result;
               } catch (error) {
-                console.error('🔄 getPlaybackUrl failed:', error);
+                console.error('Failed to get playback URL:', error);
                 throw error;
               }
             }}
             onDownload={() => {
-              console.log('Download clicked for voicemail:', recordingUrl);
-              
-              try {
-                console.log('Using download function for fresh signed URL...');
-                downloadVoicemail({ voicemailId: voicemail.id, recordingUrl: voicemail.event_data?.recording_url || '' });
-              } catch (error) {
-                console.error('Failed to download recording:', error);
-                if (recordingUrl) {
-                  window.open(recordingUrl, '_blank', 'noopener,noreferrer');
-                }
-              }
+              downloadVoicemail({ 
+                voicemailId: voicemail.id, 
+                recordingUrl: voicemail.event_data?.recording_url || '' 
+              });
             }}
           />
         )}
@@ -219,7 +168,7 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
     isLoading,
     error,
     downloadVoicemail,
-    isDownloading,
+    isAudioLoading,
     assignVoicemail,
     isAssigning,
     getPlaybackUrl
@@ -297,7 +246,7 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
               downloadVoicemail={downloadVoicemail}
               getPlaybackUrl={getPlaybackUrl}
               onAssign={(id, agentId) => assignVoicemail({ voicemailId: id, agentId })}
-              isDownloading={isDownloading}
+              isDownloading={isAudioLoading}
               isAssigning={isAssigning}
             />
           ))}

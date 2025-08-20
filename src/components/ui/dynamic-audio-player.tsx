@@ -89,22 +89,15 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
 
   // Get fresh URL when needed
   const getFreshUrlAndRetry = async () => {
-    if (!onGetFreshUrl) {
-      console.log('❌ No onGetFreshUrl function provided');
-      return;
-    }
+    if (!onGetFreshUrl) return;
     
     try {
       setIsGettingFreshUrl(true);
       setHasError(false);
-      console.log('🔄 Starting fresh URL request...');
       
       const result = await onGetFreshUrl();
-      console.log('🔄 Fresh URL result received:', result);
       
       if (result?.audioData && result?.contentType) {
-        console.log('✅ Received audio data, creating local blob URL...');
-        
         // Convert base64 to blob
         const binaryString = atob(result.audioData);
         const bytes = new Uint8Array(binaryString.length);
@@ -121,9 +114,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
         }
         setCurrentBlobUrl(localUrl);
         
-        console.log('✅ Created local blob URL:', localUrl.substring(0, 50) + '...');
-        
-        // Reset states before changing src to avoid race condition
+        // Reset states before changing src
         setIsPlaying(false);
         setCurrentTime(0);
         setIsLoading(true);
@@ -132,8 +123,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
         setSrc(localUrl);
         
       } else if (result?.localUrl) {
-        console.log('✅ Setting new source URL:', result.localUrl.substring(0, 100) + '...');
-        // Reset states before changing src to avoid race condition
+        // Fallback to direct URL
         setIsPlaying(false);
         setCurrentTime(0);
         setIsLoading(true);
@@ -142,27 +132,15 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
         setSrc(result.localUrl);
         
       } else if (result?.error) {
-        console.error('❌ Edge function returned error:', result.error);
         throw new Error(result.error || 'Failed to get playback URL');
       } else {
-        console.error('❌ No valid response from server:', result);
         throw new Error('No valid URL returned from server'); 
       }
     } catch (error) {
-      console.error('❌ Failed to get fresh URL:', error);
-      let errorMessage = 'Failed to get fresh URL';
-      
-      // Handle specific error messages from the edge function
-      if (error.message?.includes('Recording not accessible')) {
-        errorMessage = 'Recording URL has expired and cannot be accessed';
-      } else if (error.message?.includes('FunctionsHttpError')) {
-        errorMessage = 'Server error while processing the recording';
-      }
-      
+      console.error('Failed to get fresh URL:', error);
       setHasError(true);
       setIsLoading(false);
       setIsLoadingAudio(false);
-      // You might want to show a toast notification here
     } finally {
       setIsGettingFreshUrl(false);
     }
@@ -189,36 +167,14 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
     };
 
     const handleError = (e: any) => {
-      const audio = audioRef.current;
-      let errorMessage = 'Unknown audio error';
-      
-      if (audio && audio.error) {
-        switch (audio.error.code) {
-          case MediaError.MEDIA_ERR_ABORTED:
-            errorMessage = 'Audio playback was aborted';
-            break;
-          case MediaError.MEDIA_ERR_NETWORK:
-            errorMessage = 'Network error occurred while loading audio';
-            break;
-          case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = 'Audio file format is not supported or corrupted';
-            break;
-          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = 'Audio format not supported or URL is invalid';
-            break;
-          default:
-            errorMessage = `Audio error code: ${audio.error.code}`;
-        }
-      }
-      
+      const audio = audioRef.current;      
       console.error('🚨 Audio playback error:', {
-        errorMessage,
+        errorMessage: 'Audio format not supported or URL is invalid',
         errorCode: audio?.error?.code,
         audioSrc: src,
         event: e
       });
       
-      console.log('🔧 Resetting all loading states due to audio error');
       setHasError(true);
       setIsLoading(false);
       setIsLoadingAudio(false);
@@ -386,7 +342,6 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
             const buttonText = isLoading ? 'Loading...' : 
                               isGettingFreshUrl ? 'Refreshing...' :
                               isPlaying ? 'Pause' : 'Play';
-            console.log('🔧 Button state:', { isLoading, isGettingFreshUrl, isPlaying, hasError, buttonText });
             return buttonText;
           })()}
         </Button>
