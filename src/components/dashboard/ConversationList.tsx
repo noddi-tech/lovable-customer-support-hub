@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from '@/hooks/useAuth';
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -108,32 +109,18 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
   // Sync dropdown with sidebar when a specific inbox tab is selected
 
   // Fetch real conversations from database (excluding voice/call conversations)
+  const { user, loading: authLoading } = useAuth();
   const { data: conversations = [], isLoading } = useQuery({
-    queryKey: ['conversations'],
+    queryKey: ['conversations', user?.id],
+    enabled: !!user,
     queryFn: async () => {
-      console.log('Fetching conversations...');
-      
-      // Debug authentication
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current user:', user?.id);
-      
-      if (!user) {
-        console.error('No authenticated user found');
-        return [];
-      }
-      
+      console.log('Fetching conversations for user:', user?.id);
       const { data, error } = await supabase.rpc('get_conversations');
       if (error) {
         console.error('Error fetching conversations:', error);
-        console.error('Error details:', { 
-          message: error.message, 
-          details: error.details, 
-          hint: error.hint,
-          code: error.code 
-        });
+        console.error('Error details:', { message: error.message, details: error.details, hint: error.hint, code: error.code });
         return [];
       }
-      
       console.log('Raw conversations data:', data);
       // Transform the data to match our interface and filter out voice/call conversations
       return (data as any[])?.filter(conv => 

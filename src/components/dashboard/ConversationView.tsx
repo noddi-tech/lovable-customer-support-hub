@@ -59,6 +59,7 @@ import { useUserTimezone } from '@/hooks/useUserTimezone';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
 import { cn } from "@/lib/utils";
+import { useAuth } from '@/hooks/useAuth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import DOMPurify from 'dompurify';
 
@@ -75,6 +76,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const { dateTime } = useDateFormatting();
   const { timezone } = useUserTimezone();
   const { hasPermission } = usePermissions();
+  const { user } = useAuth();
 
   // State management
   const [replyText, setReplyText] = useState('');
@@ -114,7 +116,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   // Fetch conversation
   const { data: conversation, isLoading: conversationLoading } = useQuery({
-    queryKey: ['conversation', conversationId],
+    queryKey: ['conversation', conversationId, user?.id],
     queryFn: async () => {
       if (!conversationId) return null;
       const { data, error } = await supabase
@@ -125,12 +127,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       if (error) throw error;
       return data;
     },
-    enabled: !!conversationId,
+    enabled: !!conversationId && !!user,
   });
 
   // Fetch messages
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
-    queryKey: ['messages', conversationId],
+    queryKey: ['messages', conversationId, user?.id],
     queryFn: async () => {
       if (!conversationId) return [];
       const { data, error } = await supabase
@@ -141,7 +143,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       if (error) throw error;
       return data || [];
     },
-    enabled: !!conversationId,
+    enabled: !!conversationId && !!user,
   });
 
   // Fetch users for assignment
@@ -152,6 +154,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       if (error) throw error;
       return data || [];
     },
+    enabled: !!user,
   });
 
   // Fetch inboxes for moving
@@ -162,6 +165,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       if (error) throw error;
       return data || [];
     },
+    enabled: !!user,
   });
 
   // Mutations
