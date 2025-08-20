@@ -14,13 +14,17 @@ interface ReconnectionConfig {
   baseDelay: number;
   maxDelay: number;
   backoffMultiplier: number;
+  statusDebounceMs: number;
+  toastRateLimitMs: number;
 }
 
 const DEFAULT_CONFIG: ReconnectionConfig = {
   maxRetries: 5,
   baseDelay: 1000, // 1 second
   maxDelay: 30000, // 30 seconds
-  backoffMultiplier: 2
+  backoffMultiplier: 2,
+  statusDebounceMs: 2000, // 2 seconds debounce for status changes
+  toastRateLimitMs: 5000, // Minimum 5 seconds between toasts
 };
 
 export const useRealtimeConnectionManager = () => {
@@ -36,6 +40,14 @@ export const useRealtimeConnectionManager = () => {
   const reconnectionConfigRef = useRef<ReconnectionConfig>(DEFAULT_CONFIG);
   const hasShownDisconnectToast = useRef(false);
   const pendingSubscriptions = useRef<Array<() => any>>([]);
+  
+  // Add debouncing and rate limiting refs
+  const statusDebounceTimeoutRef = useRef<NodeJS.Timeout>();
+  const currentConnectionStateRef = useRef(false);
+  const lastToastTimeRef = useRef<{ disconnect: number; reconnect: number }>({
+    disconnect: 0,
+    reconnect: 0
+  });
 
   const calculateBackoffDelay = (attempt: number): number => {
     const config = reconnectionConfigRef.current;
@@ -108,56 +120,76 @@ export const useRealtimeConnectionManager = () => {
   const handleConnectionStatus = useCallback((status: string, channelName: string) => {
     console.log(`📡 Channel ${channelName} status: ${status}`);
     
-    if (status === 'SUBSCRIBED') {
-      if (!connectionState.isConnected || hasShownDisconnectToast.current) {
-        console.log('✅ Real-time connection restored');
-        
-        setConnectionState(prev => ({
-          ...prev,
-          isConnected: true,
-          lastConnected: new Date(),
-          connectionAttempts: 0
-        }));
-
-        // Clear reconnection timeout
-        if (reconnectionTimeoutRef.current) {
-          clearTimeout(reconnectionTimeoutRef.current);
-          reconnectionTimeoutRef.current = undefined;
-        }
-
-        // Show restoration toast only if we previously showed a disconnect toast
-        if (hasShownDisconnectToast.current) {
-          toast({
-            title: "Connection Restored",
-            description: "Real-time updates are now working",
-          });
-          hasShownDisconnectToast.current = false;
-        }
-      }
-    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-      if (connectionState.isConnected) {
-        console.log('🔴 Real-time connection lost');
-        
-        setConnectionState(prev => ({
-          ...prev,
-          isConnected: false
-        }));
-
-        // Show disconnect toast only once
-        if (!hasShownDisconnectToast.current) {
-          toast({
-            title: "Connection Lost",
-            description: "Real-time updates have been disconnected. Attempting to reconnect...",
-            variant: "destructive",
-          });
-          hasShownDisconnectToast.current = true;
-        }
-
-        // Start reconnection process
-        attemptReconnection();
-      }
+    // Clear any pending debounce timeout
+    if (statusDebounceTimeoutRef.current) {
+      clearTimeout(statusDebounceTimeoutRef.current);
     }
-  }, [connectionState.isConnected, attemptReconnection, toast]);
+    
+    // Debounce rapid status changes
+    statusDebounceTimeoutRef.current = setTimeout(() => {
+      const config = reconnectionConfigRef.current;
+      const now = Date.now();
+      
+      if (status === 'SUBSCRIBED') {
+        // Only act if we're actually disconnected or recovering from a disconnect
+        if (!currentConnectionStateRef.current || hasShownDisconnectToast.current) {
+          console.log('✅ Real-time connection restored');
+          
+          currentConnectionStateRef.current = true;
+          setConnectionState(prev => ({
+            ...prev,
+            isConnected: true,
+            lastConnected: new Date(),
+            connectionAttempts: 0
+          }));
+
+          // Clear reconnection timeout
+          if (reconnectionTimeoutRef.current) {
+            clearTimeout(reconnectionTimeoutRef.current);
+            reconnectionTimeoutRef.current = undefined;
+          }
+
+          // Show restoration toast only if we previously showed a disconnect toast
+          // and enough time has passed since the last toast
+          if (hasShownDisconnectToast.current && 
+              now - lastToastTimeRef.current.reconnect > config.toastRateLimitMs) {
+            toast({
+              title: "Connection Restored",
+              description: "Real-time updates are now working",
+            });
+            hasShownDisconnectToast.current = false;
+            lastToastTimeRef.current.reconnect = now;
+          }
+        }
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        // Only act if we're actually connected
+        if (currentConnectionStateRef.current) {
+          console.log('🔴 Real-time connection lost');
+          
+          currentConnectionStateRef.current = false;
+          setConnectionState(prev => ({
+            ...prev,
+            isConnected: false
+          }));
+
+          // Show disconnect toast only if enough time has passed since the last one
+          if (!hasShownDisconnectToast.current && 
+              now - lastToastTimeRef.current.disconnect > config.toastRateLimitMs) {
+            toast({
+              title: "Connection Lost",
+              description: "Real-time updates have been disconnected. Attempting to reconnect...",
+              variant: "destructive",
+            });
+            hasShownDisconnectToast.current = true;
+            lastToastTimeRef.current.disconnect = now;
+          }
+
+          // Start reconnection process
+          attemptReconnection();
+        }
+      }
+    }, reconnectionConfigRef.current.statusDebounceMs);
+  }, [attemptReconnection, toast]);
 
   const createManagedSubscription = useCallback((
     channelName: string,
@@ -211,6 +243,10 @@ export const useRealtimeConnectionManager = () => {
     return () => {
       if (reconnectionTimeoutRef.current) {
         clearTimeout(reconnectionTimeoutRef.current);
+      }
+      
+      if (statusDebounceTimeoutRef.current) {
+        clearTimeout(statusDebounceTimeoutRef.current);
       }
       
       connectionState.subscriptions.forEach((channel, channelName) => {
