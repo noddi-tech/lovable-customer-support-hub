@@ -72,15 +72,27 @@ export const Dashboard = () => {
   const { saveFocus, restoreFocus, focusFirstFocusableElement } = useFocusManagement();
   const { announce } = useAriaLiveRegion();
 
-  // Load saved preferences once on mount
+  // Load saved preferences once on mount - with debugging and reset bad values
   useEffect(() => {
+    console.log('Loading localStorage preferences...');
     const savedConversationListDesktop = localStorage.getItem('showConversationListDesktop');
     const savedInboxId = localStorage.getItem('selectedInboxId');
     
-    if (savedConversationListDesktop !== null) {
-      setShowConversationListDesktop(JSON.parse(savedConversationListDesktop));
+    console.log('Raw localStorage values:', { savedConversationListDesktop, savedInboxId });
+    
+    // Clear any false values that hide conversation list on desktop - this is likely the bug
+    if (savedConversationListDesktop === 'false') {
+      console.log('Clearing problematic localStorage value that hides conversation list');
+      localStorage.removeItem('showConversationListDesktop');
+      setShowConversationListDesktop(true); // Force to true on desktop
+    } else if (savedConversationListDesktop !== null) {
+      const parsed = JSON.parse(savedConversationListDesktop);
+      console.log('Setting showConversationListDesktop to:', parsed);
+      setShowConversationListDesktop(parsed);
     }
+    
     if (savedInboxId) {
+      console.log('Setting selectedInboxId to:', savedInboxId);
       setSelectedInboxId(savedInboxId);
     }
   }, []);
@@ -332,8 +344,8 @@ export const Dashboard = () => {
                 <div className="flex-1 flex items-center justify-center text-center p-8">
                   <div className="max-w-md">
                     <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold text-lg mb-2">No conversation selected</h3>
-                    <p className="text-muted-foreground">Select a conversation from the list to start viewing messages.</p>
+                    <h3 className="font-semibold text-lg mb-2">{t('dashboard.conversationView.noConversationSelected', 'No conversation selected')}</h3>
+                    <p className="text-muted-foreground">{t('dashboard.conversationView.selectConversation', 'Select a conversation from the list to start viewing messages.')}</p>
                   </div>
                 </div>
               )}

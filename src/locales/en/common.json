@@ -46,6 +46,10 @@
     "signatureContent": "Signature Content"
   },
   "dashboard": {
+    "conversationView": {
+      "noConversationSelected": "No conversation selected",
+      "selectConversation": "Select a conversation from the list to start viewing messages."
+    },
     "conversationList": {
       "inbox": "Inbox",
       "filter": "Filter",
@@ -72,13 +76,80 @@
       "cancel": "Cancel",
       "deleteConfirm": "Delete"
     },
-    "conversationView": {
-      "noConversationSelected": "No conversation selected",
-      "selectConversationToStart": "Select a conversation from the list to start viewing messages."
-    },
     "navigation": {
       "menu": "Menu",
       "backToConversations": "Back to conversations"
+    },
+    "header": {
+      "allInboxes": "All Inboxes",
+      "supportAgent": "Support Agent",
+      "profile": "Profile",
+      "designLibrary": "Design Library",
+      "logOut": "Log Out",
+      "sync": "Sync",
+      "syncing": "Syncing...",
+      "deleteAll": "Delete All",
+      "deleting": "Deleting..."
+    },
+    "sidebar": {
+      "newConversation": "New Conversation",
+      "inbox": "Inbox",
+      "notifications": "Notifications",
+      "channels": "CHANNELS",
+      "inboxes": "INBOXES",
+      "unread": "Unread",
+      "pending": "Pending",
+      "closed": "Closed",
+      "assignedToMe": "Assigned to me",
+      "archived": "Archived",
+      "snoozed": "Snoozed",
+      "email": "Email",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
+    "bottomTabs": {
+      "interactions": "Inbox",
+      "marketing": "Marketing", 
+      "ops": "Operations",
+      "settings": "Settings"
+    },
+    "customerInfo": {
+      "title": "Customer Info",
+      "placeholder": "Customer details and actions will appear here."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "markAllRead": "Mark all as read",
+      "loadingNotifications": "Loading notifications...",
+      "noNotifications": "No notifications",
+      "noNotificationsDescription": "You'll see notifications here when internal notes are assigned to you.",
+      "allCaughtUp": "All caught up!",
+      "unreadNotification": "{{count}} unread notification",
+      "unreadNotifications": "{{count}} unread notifications",
+      "deleteNotification": "Delete notification",
+      "deleteNotificationConfirmation": "Are you sure you want to delete this notification? This action cannot be undone.",
+      "view": "View",
+      "unread": "Unread",
+      "read": "Read",
+      "close": "Close",
+      "success": "Success",
+      "notificationDeleted": "Notification deleted",
+      "error": "Error",
+      "failedToDeleteNotification": "Failed to delete notification"
+    },
+    "deleteAll": {
+      "title": "Delete All Conversations",
+      "description": "This will permanently delete all conversations and messages. This action cannot be undone. You can re-sync emails afterwards to import them again with the latest formatting.",
+      "confirm": "Delete All",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "success": "All conversations and messages deleted successfully",
+      "error": "Failed to delete all conversations"
+    },
+    "sync": {
+      "success": "Gmail sync started successfully",
+      "error": "Failed to start sync"
     }
   },
   "admin": {
@@ -146,114 +217,6 @@
     "no": "Norwegian",
     "sv": "Swedish",
     "da": "Danish"
-  },
-  "dashboard": {
-    "header": {
-      "allInboxes": "All Inboxes",
-      "supportAgent": "Support Agent",
-      "profile": "Profile",
-      "designLibrary": "Design Library",
-      "logOut": "Log Out",
-      "sync": "Sync",
-      "syncing": "Syncing...",
-      "deleteAll": "Delete All",
-      "deleting": "Deleting..."
-    },
-    "sidebar": {
-      "newConversation": "New Conversation",
-      "inbox": "Inbox",
-      "notifications": "Notifications",
-      "channels": "CHANNELS",
-      "inboxes": "INBOXES",
-      "unread": "Unread",
-      "pending": "Pending",
-      "closed": "Closed",
-      "assignedToMe": "Assigned to me",
-      "archived": "Archived",
-      "snoozed": "Snoozed",
-      "email": "Email",
-      "facebook": "Facebook",
-      "instagram": "Instagram",
-      "whatsapp": "WhatsApp"
-    },
-    "conversationList": {
-      "inbox": "Inbox",
-      "filter": "Filter",
-      "searchPlaceholder": "Search conversations...",
-      "allStatus": "All Status",
-      "allPriority": "All Priority",
-      "open": "Open",
-      "pending": "Pending",
-      "resolved": "Resolved",
-      "closed": "Closed",
-      "low": "Low",
-      "normal": "Normal",
-      "high": "High",
-      "urgent": "Urgent",
-      "loadingConversations": "Loading conversations...",
-      "noConversations": "No conversations found",
-      "sendEmailToCreateFirst": "Send an email to {{address}} to create your first conversation",
-      "connectInboundEmail": "Connect an inbound email in Admin → Integrations, then send an email to create your first conversation",
-      "archive": "Archive",
-      "delete": "Delete",
-      "deleteConfirmation": "Are you sure you want to delete this conversation?",
-      "deleteDescription": "This action cannot be undone. This will permanently delete the conversation and all its messages.",
-      "cancel": "Cancel",
-      "deleteButton": "Delete",
-      "archiveSuccess": "Conversation archived successfully",
-      "archiveError": "Failed to archive conversation",
-      "deleteSuccess": "Conversation deleted successfully",
-      "deleteError": "Failed to delete conversation"
-    },
-    "navigation": {
-      "back": "← Back",
-      "notifications": "Notifications",
-      "backToInbox": "Back to Inbox",
-      "menu": "Menu"
-    },
-    "bottomTabs": {
-      "interactions": "Inbox",
-      "marketing": "Marketing", 
-      "ops": "Operations",
-      "settings": "Settings"
-    },
-    "customerInfo": {
-      "title": "Customer Info",
-      "placeholder": "Customer details and actions will appear here."
-    },
-    "notifications": {
-      "title": "Notifications",
-      "markAllRead": "Mark all as read",
-      "loadingNotifications": "Loading notifications...",
-      "noNotifications": "No notifications",
-      "noNotificationsDescription": "You'll see notifications here when internal notes are assigned to you.",
-      "allCaughtUp": "All caught up!",
-      "unreadNotification": "{{count}} unread notification",
-      "unreadNotifications": "{{count}} unread notifications",
-      "deleteNotification": "Delete notification",
-      "deleteNotificationConfirmation": "Are you sure you want to delete this notification? This action cannot be undone.",
-      "view": "View",
-      "unread": "Unread",
-      "read": "Read",
-      "close": "Close",
-      "success": "Success",
-      "notificationDeleted": "Notification deleted",
-      "error": "Error",
-      "failedToDeleteNotification": "Failed to delete notification"
-    },
-    "deleteAll": {
-      "title": "Delete All Conversations",
-      "description": "This will permanently delete all conversations and messages. This action cannot be undone. You can re-sync emails afterwards to import them again with the latest formatting.",
-      "confirm": "Delete All",
-      "cancel": "Cancel",
-      "deleting": "Deleting...",
-      "success": "All conversations and messages deleted successfully",
-      "error": "Failed to delete all conversations"
-    },
-    "sync": {
-      "success": "Gmail sync started successfully",
-      "error": "Failed to start sync"
-    }
   },
   "conversation": {
     "customer": "Customer",
