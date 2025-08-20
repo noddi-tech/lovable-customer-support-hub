@@ -55,38 +55,5 @@ enable_confirmations = false
 [edge_functions]
 enabled = true
 
-[functions.gmail-oauth]
-verify_jwt = false
-
-[functions.gmail-sync]
-verify_jwt = true
-
-[functions.email-webhook]
-verify_jwt = false
-
-[functions.email-sync-scheduler]
-verify_jwt = false
-
-[functions.snooze-notifier]
-verify_jwt = false
-
-[functions.sendgrid-inbound]
-verify_jwt = false
-
-[functions.sendgrid-setup]
-verify_jwt = true
-
-[functions.backfill-sender-fix]
-verify_jwt = true
-
-[functions.suggest-replies]
-verify_jwt = false
-
-[functions.call-events-webhook]
-verify_jwt = false
-
-[functions.test-download-voicemail]
-verify_jwt = false
-
 [functions.download-voicemail]
 verify_jwt = false
