@@ -10,6 +10,7 @@ import { Shield } from 'lucide-react';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { LanguageSettings } from '@/components/settings/LanguageSettings';
 import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
+import { NotificationsList } from '@/components/notifications/NotificationsList';
 import { useTranslation } from 'react-i18next';
 
 interface SettingsWrapperProps {
@@ -91,12 +92,8 @@ const SettingsWrapper = ({ activeSubSection }: SettingsWrapperProps) => {
                   {t('settings.description')}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.description')}
-                </p>
-              </CardContent>
             </Card>
+            <NotificationsList context="text" />
           </div>
         );
 

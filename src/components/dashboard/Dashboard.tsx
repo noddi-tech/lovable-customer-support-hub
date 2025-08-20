@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { InboxSidebar } from './InboxSidebar';
 import { ConversationList } from './ConversationList';
-import { NotificationsList } from '@/components/notifications/NotificationsList';
 import { ConversationView } from './ConversationView';
 import { Button } from '@/components/ui/button';
 import { ResponsiveLayout } from '@/components/ui/responsive-layout';
@@ -207,26 +206,10 @@ useEffect(() => {
     enabled: !!conversationIdFromUrl,
   });
 
-  // Effect to auto-select conversation from URL and switch away from notifications
+  // Effect to auto-select conversation from URL  
   useEffect(() => {
-    if (conversationIdFromUrl && hasTimestamp) {
-      // This indicates we just clicked "View" from notifications, so switch to conversation view
-      if (selectedTab === 'notifications') {
-        console.log('Auto-switching from notifications to conversation view due to View button click');
-        setSelectedTab('all');
-      }
-      
-      // Set the conversation if we have it loaded
-      if (urlConversation && (!selectedConversation || selectedConversation.id !== urlConversation.id)) {
-        setSelectedConversation(urlConversation);
-        if (isMobile) {
-          setShowConversationList(false);
-        } else {
-          setShowConversationListDesktop(false);
-        }
-      }
-    } else if (conversationIdFromUrl && urlConversation) {
-      // Just set the conversation without forcing tab change (manual navigation)
+    if (conversationIdFromUrl && urlConversation) {
+      // Set the conversation
       if (!selectedConversation || selectedConversation.id !== urlConversation.id) {
         setSelectedConversation(urlConversation);
         if (isMobile) {
@@ -236,7 +219,7 @@ useEffect(() => {
         }
       }
     }
-  }, [conversationIdFromUrl, urlConversation?.id, selectedConversation?.id, selectedTab, isMobile, hasTimestamp]);
+  }, [conversationIdFromUrl, urlConversation?.id, selectedConversation?.id, isMobile]);
 
   const handleSelectConversation = (conversation: Conversation) => {
     console.log('handleSelectConversation called with:', conversation.id);
@@ -268,17 +251,7 @@ useEffect(() => {
   };
 
   const handleTabChange = (tab: string) => {
-    console.log('Dashboard handleTabChange called with:', tab);
-    console.log('Current selectedTab before change:', selectedTab);
-    
-    // If manually switching to notifications, clear URL parameters to avoid conflicts
-    if (tab === 'notifications') {
-      console.log('Manually switching to notifications, clearing URL parameters');
-      navigate('/', { replace: true });
-    }
-    
     setSelectedTab(tab);
-    console.log('setSelectedTab called, new tab should be:', tab);
   };
 
   // Bottom tab items for mobile
@@ -306,7 +279,7 @@ useEffect(() => {
   ];
 
   // Debug logging
-  console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl, 'hasTimestamp:', !!hasTimestamp);
+  console.log('Dashboard render - selectedTab:', selectedTab, 'conversationIdFromUrl:', conversationIdFromUrl);
   
   return (
     <ResponsiveLayout
@@ -377,83 +350,61 @@ useEffect(() => {
         />
       }
     >
-      {/* Show Notifications List if notifications tab is selected */}
-      {selectedTab === 'notifications' ? (
-        <div className="detail-pane flex flex-col bg-gradient-surface">
+      {/* Show conversations only - no notifications in text dashboard */}
+      <>
+        {/* Conversation List - as direct grid item */}
+        <div className={`
+          ${isMobile 
+            ? (showConversationList ? 'flex w-full' : 'hidden') 
+            : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'
+          }
+          flex flex-col bg-gradient-surface
+        `}>
+          <ConversationList 
+            selectedTab={selectedTab}
+            selectedConversation={selectedConversation}
+            onSelectConversation={handleSelectConversation}
+            selectedInboxId={selectedInboxId}
+            isCollapsed={!isMobile && !showConversationListDesktop}
+            onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
+          />
+        </div>
+        
+        {/* Conversation View - as direct grid item */}
+        <div className={`
+          ${isMobile ? (showConversationList ? 'hidden' : 'flex w-full') : 'detail-pane'}
+          flex flex-col bg-gradient-surface
+        `}>
           {/* Mobile Header */}
           {isMobile && (
-            <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setSelectedTab('all')}
-                className="mr-2"
-              >
-                {t('dashboard.navigation.back')}
-              </Button>
-              <h1 className="font-semibold">{t('dashboard.navigation.notifications')}</h1>
-            </div>
-          )}
-          <div className="flex-1 min-h-0 overflow-y-auto -webkit-overflow-scrolling-touch">
-            <NotificationsList />
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Conversation List - as direct grid item */}
-          <div className={`
-            ${isMobile 
-              ? (showConversationList ? 'flex w-full' : 'hidden') 
-              : showConversationListDesktop ? 'list-pane' : 'list-pane-collapsed'
-            }
-            flex flex-col bg-gradient-surface
-          `}>
-            <ConversationList 
-              selectedTab={selectedTab}
-              selectedConversation={selectedConversation}
-              onSelectConversation={handleSelectConversation}
-              selectedInboxId={selectedInboxId}
-              isCollapsed={!isMobile && !showConversationListDesktop}
-              onToggleCollapse={() => setShowConversationListDesktop(!showConversationListDesktop)}
-            />
-          </div>
-          
-          {/* Conversation View - as direct grid item */}
-          <div className={`
-            ${isMobile ? (showConversationList ? 'hidden' : 'flex w-full') : 'detail-pane'}
-            flex flex-col bg-gradient-surface
-          `}>
-            {/* Mobile Header */}
-            {isMobile && (
-              <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center justify-between">
-                <div className="flex items-center">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleBackToList}
-                    className="mr-2"
-                  >
-                    {t('dashboard.navigation.back')}
-                  </Button>
-                  <h1 className="font-semibold ellipsis">{selectedInboxName}</h1>
-                </div>
+            <div className="flex-shrink-0 p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex items-center justify-between">
+              <div className="flex items-center">
                 <Button 
                   variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowRightDrawer(true)}
-                  className="p-2"
+                  size="sm" 
+                  onClick={handleBackToList}
+                  className="mr-2"
                 >
-                  <Info className="h-4 w-4" />
+                  {t('dashboard.navigation.back')}
                 </Button>
+                <h1 className="font-semibold ellipsis">{selectedInboxName}</h1>
               </div>
-            )}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowRightDrawer(true)}
+                className="p-2"
+              >
+                <Info className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
 
-            <ConversationView 
-              conversationId={selectedConversation?.id || null}
-            />
-          </div>
-        </>
-      )}
+          <ConversationView 
+            conversationId={selectedConversation?.id || null}
+          />
+        </div>
+      </>
     </ResponsiveLayout>
   );
 };

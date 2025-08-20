@@ -31,7 +31,11 @@ interface Notification {
   created_at: string;
 }
 
-export function NotificationsList() {
+interface NotificationsListProps {
+  context?: 'text' | 'voice' | 'all';
+}
+
+export function NotificationsList({ context = 'all' }: NotificationsListProps = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -41,8 +45,8 @@ export function NotificationsList() {
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
 
   // Fetch notifications with real-time updates
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications'],
+  const { data: notifications = [], isLoading, error } = useQuery({
+    queryKey: ['notifications', context],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notifications')
@@ -50,8 +54,36 @@ export function NotificationsList() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Notification[];
+      
+      const allNotifications = data as Notification[];
+      
+      // Filter notifications based on context
+      if (context === 'text') {
+        // Exclude voice/call-related notifications
+        return allNotifications.filter(notification => {
+          const hasCallId = notification.data?.call_id;
+          const isVoiceTitle = notification.title?.includes('📞') || 
+                              notification.title?.includes('🎙️') ||
+                              notification.title?.toLowerCase().includes('call') ||
+                              notification.title?.toLowerCase().includes('voicemail');
+          return !hasCallId && !isVoiceTitle;
+        });
+      } else if (context === 'voice') {
+        // Only include voice/call-related notifications  
+        return allNotifications.filter(notification => {
+          const hasCallId = notification.data?.call_id;
+          const isVoiceTitle = notification.title?.includes('📞') || 
+                              notification.title?.includes('🎙️') ||
+                              notification.title?.toLowerCase().includes('call') ||
+                              notification.title?.toLowerCase().includes('voicemail');
+          return hasCallId || isVoiceTitle;
+        });
+      }
+      
+      // Return all notifications for 'all' context
+      return allNotifications;
     },
+    enabled: true, // Always enabled since auth is handled by ProtectedRoute
   });
 
   // Set up real-time subscription for notifications
@@ -267,6 +299,17 @@ export function NotificationsList() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-muted-foreground">{t('dashboard.notifications.loadingNotifications')}</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-destructive mb-2">Failed to load notifications</div>
+          <div className="text-sm text-muted-foreground">Please check your authentication and try again</div>
+        </div>
       </div>
     );
   }
