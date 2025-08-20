@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
-type ConversationChannel = "email" | "chat" | "phone" | "social" | "facebook" | "instagram" | "whatsapp";
+type ConversationChannel = "email" | "chat" | "social" | "facebook" | "instagram" | "whatsapp";
 
 interface Customer {
   id: string;
@@ -107,7 +107,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
 
   // Sync dropdown with sidebar when a specific inbox tab is selected
 
-  // Fetch real conversations from database
+  // Fetch real conversations from database (excluding voice/call conversations)
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
@@ -116,8 +116,12 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         console.error('Error fetching conversations:', error);
         return [];
       }
-      // Transform the data to match our interface
-      return (data as any[])?.map(conv => ({
+      // Transform the data to match our interface and filter out voice/call conversations
+      return (data as any[])?.filter(conv => 
+        // Only include text/email conversations, exclude call-based conversations
+        conv.call_id === null && 
+        ['email', 'chat', 'social', 'facebook', 'instagram', 'whatsapp'].includes(conv.channel)
+      ).map(conv => ({
         ...conv,
         customer: conv.customer ? {
           id: conv.customer.id,

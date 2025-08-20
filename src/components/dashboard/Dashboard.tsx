@@ -19,7 +19,7 @@ import { MessageCircle, Megaphone, Settings, Wrench, Menu, Info } from 'lucide-r
 
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
-type ConversationChannel = "email" | "chat" | "phone" | "social";
+type ConversationChannel = "email" | "chat" | "social";
 
 interface Conversation {
   id: string;
