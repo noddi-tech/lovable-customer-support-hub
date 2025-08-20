@@ -35,8 +35,28 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const hasRecording = !!voicemail.event_data?.recording_url;
   const hasTranscription = !!voicemail.event_data?.transcription;
+
+  // Get the proper signed recording URL
+  const getRecordingUrl = () => {
+    // First try the signed URL from calls metadata (Aircall provides this)
+    if (voicemail.calls?.metadata?.originalPayload?.voicemail) {
+      console.log('🎵 Using signed URL from calls metadata:', voicemail.calls.metadata.originalPayload.voicemail.substring(0, 100) + '...');
+      return voicemail.calls.metadata.originalPayload.voicemail;
+    }
+    
+    // Fallback to the unsigned URL from event_data (may not work without authentication)
+    if (voicemail.event_data?.recording_url) {
+      console.log('⚠️ Using unsigned URL from event_data (may fail):', voicemail.event_data.recording_url);
+      return voicemail.event_data.recording_url;
+    }
+    
+    console.log('❌ No recording URL available in voicemail data');
+    return null;
+  };
+
+  const recordingUrl = getRecordingUrl();
+  const hasValidRecordingUrl = !!recordingUrl;
 
   return (
     <Card className="transition-all duration-200 hover:shadow-md">
@@ -49,7 +69,7 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
             </CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            {hasRecording && (
+            {hasValidRecordingUrl && (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Play className="h-3 w-3" />
                 Audio
@@ -73,15 +93,15 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
       
       <CardContent className="pt-0 space-y-4">
         {/* Audio Player */}
-        {hasRecording && voicemail.event_data?.recording_url && (
+        {hasValidRecordingUrl && recordingUrl && (
           <AudioPlayer 
-            src={voicemail.event_data.recording_url} 
+            src={recordingUrl} 
             title="Voicemail Recording"
             duration={voicemail.event_data.duration}
             onDownload={() => {
-              console.log('Download clicked for voicemail:', voicemail.event_data.recording_url);
+              console.log('Download clicked for voicemail:', recordingUrl);
               
-              if (!voicemail.event_data.recording_url) {
+              if (!recordingUrl) {
                 console.error('No recording URL available');
                 alert('No recording URL available');
                 return;
@@ -90,7 +110,7 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
               try {
                 // Create a download link
                 const link = document.createElement('a');
-                link.href = voicemail.event_data.recording_url;
+                link.href = recordingUrl;
                 link.download = `voicemail-${voicemail.customer_phone || 'unknown'}-${new Date(voicemail.created_at).toISOString().split('T')[0]}.mp3`;
                 link.target = '_blank';
                 document.body.appendChild(link);
@@ -100,7 +120,7 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
               } catch (error) {
                 console.error('Failed to download recording:', error);
                 // Fallback to opening in new tab
-                window.open(voicemail.event_data.recording_url, '_blank', 'noopener,noreferrer');
+                window.open(recordingUrl, '_blank', 'noopener,noreferrer');
               }
             }}
           />
@@ -147,7 +167,7 @@ const VoicemailCard = ({ voicemail, onDownload, onAssign, isDownloading, isAssig
           />
         </div>
 
-        {!hasRecording && !hasTranscription && (
+        {!hasValidRecordingUrl && !hasTranscription && (
           <div className="text-center py-4 text-muted-foreground">
             <FileAudio className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No recording or transcription available</p>
