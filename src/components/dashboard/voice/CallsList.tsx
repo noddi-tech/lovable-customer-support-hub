@@ -432,6 +432,11 @@ export const CallsList = ({ showTimeFilter = true, onNavigateToEvents }: CallsLi
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
                       </p>
+                      
+                      {/* System ID */}
+                      <p className="text-[10px] text-muted-foreground/60 mt-1 font-mono">
+                        ID: {call.id}
+                      </p>
                     </div>
                   </div>
                   
