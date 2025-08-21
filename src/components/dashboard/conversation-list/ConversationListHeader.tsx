@@ -43,14 +43,9 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
           <h1 className="font-semibold text-lg md:text-xl">
             {t('dashboard.conversationList.conversations', 'Conversations')}
           </h1>
-          <Badge variant="secondary" className="h-5 px-2 text-xs font-medium">
-            {totalCount}
+          <Badge variant="destructive" className="h-5 px-2 text-xs">
+            {unreadCount}
           </Badge>
-          {unreadCount > 0 && (
-            <Badge variant="destructive" className="h-5 px-2 text-xs">
-              {unreadCount} {t('dashboard.conversationList.unread', 'unread')}
-            </Badge>
-          )}
         </div>
         
         <div className="flex items-center gap-2">
