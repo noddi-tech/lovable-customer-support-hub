@@ -572,13 +572,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 min-h-0">
+      {/* Main Content Area - Simplified Layout */}
+      <div className="flex-1 min-h-0 w-full flex bg-background">
         {isMobile ? (
-          /* Mobile: Single panel layout */
-          <div className="flex flex-col flex-1 min-h-0">
-            {/* Messages Area - Mobile */}
-            <ScrollArea className="flex-1 min-h-0">
+          /* Mobile: Single column with drawer for customer info */
+          <div className="flex flex-col flex-1 min-h-0 w-full">
+            <ScrollArea className="flex-1 pane">
               <div 
                 ref={messagesContainerRef}
                 className="p-3 md:p-6"
@@ -632,7 +631,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     })
                   )}
 
-                  {/* Reply Area - Mobile */}
+                  {/* Mobile Reply Area */}
                   {conversation.status === 'open' && !conversation.is_archived && showReplyArea && (
                     <div className="mt-8 p-4 space-y-4 w-full border-t border-border bg-card/50 rounded-lg">
                       <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg shadow-sm">
@@ -686,35 +685,24 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                             variant={isInternalNote ? "default" : "outline"}
                             size="sm"
                             onClick={() => setIsInternalNote(true)}
-                            className="flex-1 max-w-[140px]"
+                            className="flex-1 max-w-[120px]"
                           >
-                            <Lock className="h-4 w-4 mr-2" />
-                            Internal Note
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Note
                           </Button>
                         </div>
-
-                        <div className="relative">
-                          <Textarea
-                            ref={replyRef}
-                            value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
-                            onKeyDown={handleKeyPress}
-                            placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
-                            className="min-h-[100px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg resize-none"
-                          />
-                          
-                          <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                              <Paperclip className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                              <Smile className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
+                        
+                        <EmojiAutocompleteInput
+                          value={replyText}
+                          onChange={setReplyText}
+                          onKeyDown={handleKeyPress}
+                          placeholder={isInternalNote ? t('conversation.addInternalNote') : t('conversation.typeReply')}
+                          className="min-h-[120px] resize-none"
+                          disabled={sendLoading}
+                        />
+                        
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                          <div className="text-xs text-muted-foreground">
                             <div className="flex items-center space-x-1">
                               <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
                               <span>+</span>
@@ -750,22 +738,22 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             </ScrollArea>
           </div>
         ) : (
-          /* Desktop/Tablet: Resizable panel layout */
-          <ResizablePanelGroup direction="horizontal" className="flex-1">
+          /* Desktop/Tablet: Resizable panels with proper ScrollArea */
+          <ResizablePanelGroup direction="horizontal" className="flex-1 w-full">
             {/* Messages Panel */}
             <ResizablePanel 
-              defaultSize={getPanelSize('messages')}
-              minSize={getPanelSize('messages') < 100 ? 50 : 100}
-              maxSize={getPanelSize('messages') < 100 ? 80 : 100}
+              defaultSize={showCustomerInfo ? getPanelSize('messages') : 100}
+              minSize={showCustomerInfo ? 50 : 100}
+              maxSize={showCustomerInfo ? 80 : 100}
               onResize={(size) => updatePanelSize('messages', size)}
               className="flex flex-col min-h-0"
             >
-              <ScrollArea className="flex-1 min-h-0">
+              <ScrollArea className="flex-1 pane">
                 <div 
                   ref={messagesContainerRef}
-                  className="p-3 md:p-6"
+                  className="p-6"
                 >
-                  <div className="space-y-4 max-w-4xl mx-auto w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
+                  <div className="space-y-4 w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
                     {messages.length === 0 ? (
                       <div className="text-center text-muted-foreground py-8">
                         <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -814,9 +802,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       })
                     )}
 
-                    {/* Reply Area - Desktop */}
+                    {/* Desktop Reply Area */}
                     {conversation.status === 'open' && !conversation.is_archived && showReplyArea && (
-                      <div className="mt-8 p-4 space-y-4 max-w-4xl mx-auto w-full border-t border-border bg-card/50 rounded-lg">
+                      <div className="mt-8 p-4 space-y-4 w-full border-t border-border bg-card/50 rounded-lg">
                         <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg shadow-sm">
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8">
@@ -868,35 +856,24 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                               variant={isInternalNote ? "default" : "outline"}
                               size="sm"
                               onClick={() => setIsInternalNote(true)}
-                              className="flex-1 max-w-[140px]"
+                              className="flex-1 max-w-[120px]"
                             >
-                              <Lock className="h-4 w-4 mr-2" />
-                              Internal Note
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Note
                             </Button>
                           </div>
-
-                          <div className="relative">
-                            <Textarea
-                              ref={replyRef}
-                              value={replyText}
-                              onChange={(e) => setReplyText(e.target.value)}
-                              onKeyDown={handleKeyPress}
-                              placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
-                              className="min-h-[100px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg resize-none"
-                            />
-                            
-                            <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-                              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                                <Paperclip className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                                <Smile className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-
+                          
+                          <EmojiAutocompleteInput
+                            value={replyText}
+                            onChange={setReplyText}
+                            onKeyDown={handleKeyPress}
+                            placeholder={isInternalNote ? t('conversation.addInternalNote') : t('conversation.typeReply')}
+                            className="min-h-[120px] resize-none"
+                            disabled={sendLoading}
+                          />
+                          
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                               <div className="flex items-center space-x-1">
                                 <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
                                 <span>+</span>
@@ -932,12 +909,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               </ScrollArea>
             </ResizablePanel>
             
-            {/* Resizable Handle - Only show on desktop/tablet and when sidebar is visible */}
+            {/* Sidebar - Only show when enabled */}
             {showCustomerInfo && (
               <>
                 <ResizableHandle withHandle />
                 
-                {/* Customer Info Sidebar Panel */}
+                {/* Customer Info Sidebar */}
                 <ResizablePanel 
                   defaultSize={getPanelSize('sidebar')}
                   minSize={20}
@@ -945,9 +922,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   onResize={(size) => updatePanelSize('sidebar', size)}
                   className="border-l border-border bg-card/50 backdrop-blur-sm"
                 >
-                  <div className="flex flex-col h-full">
+                  <div className="flex flex-col h-full w-full">
                     {/* Sidebar Header with collapse button */}
-                    <div className="flex items-center justify-between p-4 border-b border-border">
+                    <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
                       <h3 className="font-semibold text-sm">Customer Info</h3>
                       <Button 
                         variant="ghost" 
@@ -959,7 +936,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                       </Button>
                     </div>
                     
-                    <ScrollArea className="flex-1">
+                    <ScrollArea className="flex-1 pane">
                       <div className="p-4 space-y-6">
                         {/* Reply Actions - Top Priority */}
                         {conversation.status === 'open' && !conversation.is_archived && (
@@ -1108,7 +1085,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </ResizablePanelGroup>
         )}
 
-        {/* Show Sidebar Button - When sidebar is hidden on desktop/tablet */}
+        {/* Toggle Sidebar Button - Desktop/Tablet Only */}
         {!isMobile && !showCustomerInfo && (
           <div className="fixed bottom-4 right-4 z-40">
             <Button 
@@ -1117,7 +1094,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               variant="outline"
               className="h-12 px-4 bg-card/90 backdrop-blur-sm border shadow-lg"
             >
-              <UserCheck className="h-5 w-5 mr-2" />
+              <ChevronRight className="h-5 w-5 mr-2" />
               <span>Show Customer Info</span>
             </Button>
           </div>
