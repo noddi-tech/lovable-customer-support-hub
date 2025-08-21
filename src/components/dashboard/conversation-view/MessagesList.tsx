@@ -135,7 +135,7 @@ export const MessagesList = () => {
                       : "bg-primary text-primary-foreground ml-auto",
                     message.is_internal && "bg-orange-50 border border-orange-200"
                   )}>
-                    {shouldRenderAsHTML(message.content) ? (
+                    {shouldRenderAsHTML(message.content, message.content_type || 'text/plain') ? (
                       <EmailRender 
                         content={sanitizeEmailHTML(message.content)} 
                         attachments={message.attachments ? JSON.parse(message.attachments) as EmailAttachment[] : []}
