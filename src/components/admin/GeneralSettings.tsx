@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { logger } from '@/utils/logger';
 
 interface OrganizationWithMetadata {
   id: string;
@@ -26,6 +28,7 @@ export const GeneralSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { handleError } = useErrorHandler();
 const [orgName, setOrgName] = useState('');
 const [orgDescription, setOrgDescription] = useState('');
 const [isBackfillOpen, setIsBackfillOpen] = useState(false);
@@ -80,12 +83,11 @@ const { isAdmin } = usePermissions();
       });
     },
     onError: (error) => {
-      toast({
+      handleError(error, {
         title: "Error",
-        description: "Failed to save branding settings. Please try again.",
-        variant: "destructive",
+        fallbackMessage: "Failed to save branding settings. Please try again.",
+        component: 'GeneralSettings'
       });
-      console.error('Error updating branding:', error);
     },
   });
 
@@ -114,11 +116,10 @@ const { isAdmin } = usePermissions();
         description: `Processed ${processed}, updated ${updated}, skipped ${skipped}.`
       });
     } catch (error: any) {
-      console.error('Backfill failed', error);
-      toast({
+      handleError(error, {
         title: 'Backfill failed',
-        description: error?.message || 'Please check edge function logs.',
-        variant: 'destructive',
+        fallbackMessage: error?.message || 'Please check edge function logs.',
+        component: 'GeneralSettings'
       });
     } finally {
       setRunningBackfill(false);
@@ -127,7 +128,8 @@ const { isAdmin } = usePermissions();
   };
 
   return (
-    <div className="space-y-6">
+    <div className="pane">
+      <div className="space-y-6">
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
@@ -252,6 +254,7 @@ const { isAdmin } = usePermissions();
         </Card>
       )}
 
+      </div>
     </div>
   );
 };

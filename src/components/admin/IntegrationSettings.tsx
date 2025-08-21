@@ -13,7 +13,8 @@ export const IntegrationSettings = () => {
   const { t } = useTranslation();
   
   return (
-    <div className="space-y-6">
+    <div className="pane">
+      <div className="space-y-6">
       <Tabs defaultValue="email" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 bg-card/50 backdrop-blur-sm shadow-surface">
           <TabsTrigger value="email" className="flex items-center gap-2">
@@ -140,5 +141,6 @@ export const IntegrationSettings = () => {
         </TabsContent>
       </Tabs>
     </div>
+  </div>
   );
 };

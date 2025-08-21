@@ -279,7 +279,8 @@ export function UserManagement() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="pane">
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <Heading level={2}>User Management</Heading>
@@ -580,5 +581,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  </div>
+);
 }

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/auth/AuthContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { I18nWrapper } from "@/components/i18n/I18nWrapper";
+import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -33,17 +34,19 @@ const AppContent = () => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <DesignSystemProvider>
-        <TooltipProvider>
-          <I18nWrapper>
-            <AppContent />
-          </I18nWrapper>
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </DesignSystemProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <DesignSystemProvider>
+          <TooltipProvider>
+            <I18nWrapper>
+              <AppContent />
+            </I18nWrapper>
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </DesignSystemProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 

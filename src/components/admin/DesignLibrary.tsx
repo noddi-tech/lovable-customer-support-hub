@@ -20,6 +20,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { DesignLibraryComponents } from './DesignLibraryComponents';
 import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
+import { logger } from '@/utils/logger';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 // Proper WCAG contrast calculation
 const getOptimalTextColor = (hslBackground: string, opacity: number = 1): string => {
@@ -78,7 +80,12 @@ const getOptimalTextColor = (hslBackground: string, opacity: number = 1): string
   
   const alphaValue = opacity < 1 ? ` / ${opacity}` : '';
   
-  console.log(`Background: hsl(${h} ${s}% ${l}%), RGB: (${r}, ${g}, ${b}), Luminance: ${luminance}, Using ${useWhiteText ? 'white' : 'black'} text`);
+  logger.debug('Background color analysis', { 
+    hsl: `${h} ${s}% ${l}%`, 
+    rgb: `(${r}, ${g}, ${b})`, 
+    luminance, 
+    textColor: useWhiteText ? 'white' : 'black' 
+  }, 'DesignLibrary');
   
   return useWhiteText 
     ? `hsl(0 0% 100%${alphaValue})` // Pure white
@@ -116,6 +123,7 @@ import {
 export const DesignLibrary = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
   const { designSystem, updateDesignSystem, saveDesignSystem, isLoading } = useDesignSystem();
   
   // Demo state for interactive examples
@@ -139,11 +147,10 @@ export const DesignLibrary = () => {
       });
     },
     onError: (error) => {
-      console.error('Save error:', error);
-      toast({
+      handleError(error, {
         title: "Error saving design system",
-        description: "There was an error saving your design system. Please try again.",
-        variant: "destructive",
+        fallbackMessage: "There was an error saving your design system. Please try again.",
+        component: 'DesignLibrary'
       });
     },
   });
@@ -395,7 +402,8 @@ export const DesignLibrary = () => {
 
 
   return (
-    <div className="space-y-6">
+    <div className="pane">
+      <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-primary">Design Library</h3>
         <p className="text-muted-foreground">
@@ -874,6 +882,7 @@ export const DesignLibrary = () => {
         </Button>
       </div>
     </div>
+  </div>
   );
 };
 
