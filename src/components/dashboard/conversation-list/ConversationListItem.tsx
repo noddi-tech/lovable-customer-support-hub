@@ -117,16 +117,30 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           <div className="flex-shrink-0 w-10 flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => {
+                    console.log('Desktop dropdown trigger clicked');
+                    e.stopPropagation();
+                  }}
+                >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleArchive}>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  handleArchive(e);
+                }}>
                   <Archive className="w-4 h-4 mr-2" />
                   {t('dashboard.conversationList.archive', 'Archive')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive">
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(e);
+                }} className="text-destructive">
                   <Trash2 className="w-4 h-4 mr-2" />
                   {t('dashboard.conversationList.delete', 'Delete')}
                 </DropdownMenuItem>
@@ -170,16 +184,30 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => {
+                    console.log('Mobile dropdown trigger clicked');
+                    e.stopPropagation();
+                  }}
+                >
                   <MoreVertical className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleArchive}>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  handleArchive(e);
+                }}>
                   <Archive className="w-4 h-4 mr-2" />
                   Archive
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive">
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(e);
+                }} className="text-destructive">
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
