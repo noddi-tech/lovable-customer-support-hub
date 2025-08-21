@@ -136,19 +136,15 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           
           {/* Row 3: Preview Text */}
           <div className="text-xs text-muted-foreground truncate">
-            {conversation.preview_text || 'No preview available'}
+            No preview available
           </div>
           
           {/* Row 4: Receiving Email + Channel + Tags */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {conversation.email_account?.email_address ? (
-                <span className="text-xs text-muted-foreground">
-                  To: {conversation.email_account.email_address}
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground">No email account</span>
-              )}
+              <span className="text-xs text-muted-foreground">
+                {conversation.customer?.email ? `From: ${conversation.customer.email}` : 'No email'}
+              </span>
             </div>
             
             <div className="flex items-center gap-2">
@@ -248,19 +244,15 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           
           {/* Row 3: Preview Text */}
           <div className="text-xs text-muted-foreground truncate pl-7">
-            {conversation.preview_text || 'No preview available'}
+            No preview available
           </div>
           
           {/* Row 4: Receiving Email + Channel + Tags */}
           <div className="flex items-center justify-between pl-7">
             <div className="flex items-center gap-2">
-              {conversation.email_account?.email_address ? (
-                <span className="text-xs text-muted-foreground">
-                  To: {conversation.email_account.email_address}
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground">No email account</span>
-              )}
+              <span className="text-xs text-muted-foreground">
+                {conversation.customer?.email ? `From: ${conversation.customer.email}` : 'No email'}
+              </span>
             </div>
             
             <div className="flex items-center gap-2">

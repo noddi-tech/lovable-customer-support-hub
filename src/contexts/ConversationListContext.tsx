@@ -114,40 +114,19 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     queryFn: async () => {
       logger.info('Fetching conversations for user', { userId: user?.id }, 'ConversationListProvider');
       
-      const { data, error } = await supabase
-        .from('conversations')
-        .select(`
-          *,
-          customer:customers(id, full_name, email),
-          assigned_to:profiles(id, full_name, avatar_url),
-          email_account:email_accounts(id, email_address),
-          messages(content, created_at)
-        `)
-        .in('channel', ['email', 'facebook', 'instagram', 'whatsapp'])
-        .eq('is_archived', false)
-        .order('updated_at', { ascending: false });
-
-      // Add preview text from the latest message
-      const conversationsWithPreview = data?.map(conv => {
-        const latestMessage = conv.messages?.[0];
-        const previewText = latestMessage?.content 
-          ? latestMessage.content.substring(0, 100).replace(/\n/g, ' ') + (latestMessage.content.length > 100 ? '...' : '')
-          : '';
-        
-        return {
-          ...conv,
-          preview_text: previewText,
-          messages: undefined // Remove messages from final object to keep it clean
-        };
-      }) || [];
+      const { data, error } = await supabase.rpc('get_conversations');
 
       if (error) {
         logger.error('Error fetching conversations', error, 'ConversationListProvider');
         return [];
       }
       
-      logger.info('Conversations fetched successfully', { count: conversationsWithPreview?.length }, 'ConversationListProvider');
-      return conversationsWithPreview as Conversation[];
+      logger.info('Conversations fetched successfully', { count: data?.length }, 'ConversationListProvider');
+      return (data || []).map((conv: any) => ({
+        ...conv,
+        customer: conv.customer as Customer,
+        assigned_to: conv.assigned_to as AssignedTo,
+      })) as Conversation[];
     },
   });
 
