@@ -22,6 +22,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
+import { useResizablePanels } from '@/hooks/useResizablePanels';
 
 export const VoiceInterface = () => {
   const { t } = useTranslation();
@@ -29,6 +30,23 @@ export const VoiceInterface = () => {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const isDesktop = useIsDesktop();
+  
+  // Panel persistence
+  const { getPanelSize, updatePanelSize } = useResizablePanels({
+    storageKey: 'voice-interface',
+    defaultSizes: {
+      sidebar: isMobile ? 100 : isTablet ? 30 : 25,
+      content: isMobile ? 100 : isTablet ? 70 : 75
+    },
+    minSizes: {
+      sidebar: isMobile ? 100 : 20,
+      content: isMobile ? 100 : 50
+    },
+    maxSizes: {
+      sidebar: isMobile ? 100 : 50,
+      content: isMobile ? 100 : 80
+    }
+  });
   const { 
     calls, 
     callEvents, 
@@ -377,9 +395,6 @@ export const VoiceInterface = () => {
 
   // Responsive resizing settings
   const enableResizing = isDesktop || isTablet;
-  const sidebarSize = isMobile ? 100 : isTablet ? 30 : 25;
-  const minSidebarSize = isMobile ? 100 : 20;
-  const maxSidebarSize = isMobile ? 100 : 50;
 
   if (isMobile) {
     // Mobile: Show only sidebar initially, then content
@@ -462,9 +477,10 @@ export const VoiceInterface = () => {
         <ResizablePanelGroup direction="horizontal" className="h-full">
           {/* Sidebar Panel */}
           <ResizablePanel 
-            defaultSize={sidebarSize}
-            minSize={minSidebarSize}
-            maxSize={maxSidebarSize}
+            defaultSize={getPanelSize('sidebar')}
+            minSize={getPanelSize('sidebar') < 100 ? 20 : 100}
+            maxSize={getPanelSize('sidebar') < 100 ? 50 : 100}
+            onResize={(size) => updatePanelSize('sidebar', size)}
             className="border-r border-border bg-card/80 backdrop-blur-sm shadow-surface"
           >
             <VoiceSidebar 

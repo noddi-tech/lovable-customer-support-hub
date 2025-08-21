@@ -32,6 +32,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
+import { useResizablePanels } from '@/hooks/useResizablePanels';
 import { NewsletterCanvas } from './newsletter/NewsletterCanvas';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BlocksPalette } from './newsletter/BlocksPalette';
@@ -57,6 +58,26 @@ const NewsletterBuilder = () => {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const isDesktop = useIsDesktop();
+  
+  // Panel persistence
+  const { getPanelSize, updatePanelSize, resetPanelSizes } = useResizablePanels({
+    storageKey: 'newsletter-builder',
+    defaultSizes: {
+      leftSidebar: isTablet ? 30 : 25,
+      canvas: isTablet ? 45 : 50,
+      rightSidebar: isTablet ? 25 : 25
+    },
+    minSizes: {
+      leftSidebar: 20,
+      canvas: 30,
+      rightSidebar: 20
+    },
+    maxSizes: {
+      leftSidebar: 40,
+      canvas: 70,
+      rightSidebar: 40
+    }
+  });
   
   const {
     blocks,
@@ -165,6 +186,16 @@ const NewsletterBuilder = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={resetPanelSizes}
+            className="h-8 gap-2"
+            title="Reset panel layout"
+          >
+            Reset Layout
+          </Button>
+          <Separator orientation="vertical" className="h-6" />
           <Button
             variant="outline"
             size="sm"
@@ -288,9 +319,10 @@ const NewsletterBuilder = () => {
           <ResizablePanelGroup direction="horizontal" className="flex-1">
             {/* Left Sidebar - Blocks */}
             <ResizablePanel 
-              defaultSize={isTablet ? 30 : 25}
+              defaultSize={getPanelSize('leftSidebar')}
               minSize={20}
               maxSize={40}
+              onResize={(size) => updatePanelSize('leftSidebar', size)}
               className="border-r bg-card"
             >
               <Tabs defaultValue="blocks" className="h-full flex flex-col">
@@ -315,8 +347,9 @@ const NewsletterBuilder = () => {
 
             {/* Center Canvas */}
             <ResizablePanel 
-              defaultSize={isTablet ? 45 : 50}
+              defaultSize={getPanelSize('canvas')}
               minSize={30}
+              onResize={(size) => updatePanelSize('canvas', size)}
               className="flex flex-col min-h-0"
             >
               <DndContext
@@ -348,9 +381,10 @@ const NewsletterBuilder = () => {
 
             {/* Right Sidebar - Properties */}
             <ResizablePanel 
-              defaultSize={isTablet ? 25 : 25}
+              defaultSize={getPanelSize('rightSidebar')}
               minSize={20}
               maxSize={40}
+              onResize={(size) => updatePanelSize('rightSidebar', size)}
               className="border-l bg-card"
             >
               <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full flex flex-col">

@@ -9,6 +9,7 @@ import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
 import { cn } from '@/lib/utils';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { useResizablePanels } from '@/hooks/useResizablePanels';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -63,6 +64,23 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   const isDesktop = useIsDesktop();
   const { t } = useTranslation();
   
+  // Panel persistence
+  const { getPanelSize, updatePanelSize } = useResizablePanels({
+    storageKey: 'interactions-layout',
+    defaultSizes: {
+      conversationList: isMobile ? 100 : isTablet ? 35 : 30,
+      conversationView: isMobile ? 100 : isTablet ? 65 : 70
+    },
+    minSizes: {
+      conversationList: isMobile ? 100 : 25,
+      conversationView: isMobile ? 100 : 25
+    },
+    maxSizes: {
+      conversationList: isMobile ? 100 : 75,
+      conversationView: isMobile ? 100 : 75
+    }
+  });
+  
   // Get conversation ID from URL
   const conversationIdFromUrl = searchParams.get('conversation');
 
@@ -106,9 +124,6 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
 
   // Responsive resizing settings
   const enableResizing = isDesktop || isTablet;
-  const conversationListSize = isMobile ? 100 : isTablet ? 35 : 30;
-  const minConversationListSize = isMobile ? 100 : 25;
-  const maxConversationListSize = isMobile ? 100 : 75;
 
   if (isMobile) {
     // Mobile: Stack layout without resizing
@@ -154,9 +169,10 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
         {shouldShowConversationList && (
           <>
             <ResizablePanel 
-              defaultSize={conversationListSize}
-              minSize={minConversationListSize}
-              maxSize={maxConversationListSize}
+              defaultSize={getPanelSize('conversationList')}
+              minSize={getPanelSize('conversationList') < 100 ? 25 : 100}
+              maxSize={getPanelSize('conversationList') < 100 ? 75 : 100}
+              onResize={(size) => updatePanelSize('conversationList', size)}
               className="flex flex-col bg-card border-r border-border min-h-0"
             >
               <ConversationList 
