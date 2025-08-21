@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useIsMobile, useIsTablet, useIsDesktop } from './use-responsive';
 
 interface PanelSizes {
@@ -11,9 +11,6 @@ interface UseResizablePanelsOptions {
   minSizes?: PanelSizes;
   maxSizes?: PanelSizes;
   viewportAware?: boolean;
-  enableSnapPositions?: boolean;
-  snapPositions?: number[];
-  debounceMs?: number;
 }
 
 export const useResizablePanels = ({
@@ -21,10 +18,7 @@ export const useResizablePanels = ({
   defaultSizes,
   minSizes = {},
   maxSizes = {},
-  viewportAware = false,
-  enableSnapPositions = true,
-  snapPositions = [25, 33, 50, 67, 75],
-  debounceMs = 100
+  viewportAware = false
 }: UseResizablePanelsOptions) => {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -33,8 +27,6 @@ export const useResizablePanels = ({
   const [viewportWidth, setViewportWidth] = useState(() => 
     typeof window !== 'undefined' ? window.innerWidth : 1024
   );
-  const [isResizing, setIsResizing] = useState(false);
-  const debounceTimer = useRef<NodeJS.Timeout>();
   
   // Get device-specific storage key
   const getDeviceStorageKey = useCallback(() => {
@@ -139,54 +131,18 @@ export const useResizablePanels = ({
     }
   }, [viewportWidth, viewportAware, getViewportAwareConstraints, panelSizes]);
 
-  // Debounced save function
-  const debouncedSave = useCallback((sizes: PanelSizes) => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-    
-    debounceTimer.current = setTimeout(() => {
-      savePanelSizes(sizes);
-    }, debounceMs);
-  }, [savePanelSizes, debounceMs]);
-
-  // Snap to position helper
-  const snapToPosition = useCallback((size: number, panelId: string): number => {
-    if (!enableSnapPositions) return size;
-    
-    const snapThreshold = 3; // 3% threshold for snapping
-    const nearestSnap = snapPositions.find(snap => 
-      Math.abs(size - snap) <= snapThreshold
-    );
-    
-    return nearestSnap || size;
-  }, [enableSnapPositions, snapPositions]);
-
   // Update individual panel size
-  const updatePanelSize = useCallback((panelId: string, size: number, immediate = false) => {
+  const updatePanelSize = useCallback((panelId: string, size: number) => {
     const { minSizes: dynamicMin, maxSizes: dynamicMax } = getViewportAwareConstraints();
     const minSize = dynamicMin[panelId] || 0;
     const maxSize = dynamicMax[panelId] || 100;
-    let clampedSize = Math.max(minSize, Math.min(maxSize, size));
+    const clampedSize = Math.max(minSize, Math.min(maxSize, size));
     
-    // Apply snap-to behavior
-    clampedSize = snapToPosition(clampedSize, panelId);
-    
-    const newSizes = {
+    savePanelSizes({
       ...panelSizes,
       [panelId]: clampedSize
-    };
-    
-    // Update state immediately for smooth UI
-    setPanelSizes(newSizes);
-    
-    // Save to localStorage with debouncing (unless immediate save is requested)
-    if (immediate) {
-      savePanelSizes(newSizes);
-    } else {
-      debouncedSave(newSizes);
-    }
-  }, [panelSizes, getViewportAwareConstraints, snapToPosition, debouncedSave, savePanelSizes]);
+    });
+  }, [panelSizes, getViewportAwareConstraints, savePanelSizes]);
 
   // Reset to default sizes
   const resetPanelSizes = useCallback(() => {
@@ -209,28 +165,6 @@ export const useResizablePanels = ({
     setPanelSizes(newSizes);
   }, [loadSavedSizes]);
 
-  // Handle resize start/end for visual indicators
-  const handleResizeStart = useCallback(() => {
-    setIsResizing(true);
-  }, []);
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-    // Force immediate save on resize end
-    Object.keys(panelSizes).forEach(panelId => {
-      updatePanelSize(panelId, panelSizes[panelId], true);
-    });
-  }, [panelSizes, updatePanelSize]);
-
-  // Cleanup debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, []);
-
   return {
     panelSizes,
     getPanelSize,
@@ -238,11 +172,6 @@ export const useResizablePanels = ({
     resetPanelSizes,
     savePanelSizes,
     viewportConstraints: getViewportAwareConstraints(),
-    viewportWidth,
-    isResizing,
-    handleResizeStart,
-    handleResizeEnd,
-    snapPositions: enableSnapPositions ? snapPositions : [],
-    enableSnapPositions
+    viewportWidth
   };
 };
