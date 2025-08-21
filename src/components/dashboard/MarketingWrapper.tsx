@@ -1,6 +1,6 @@
 import React from 'react';
 import { SMSInterface } from '@/components/dashboard/SMSInterface';
-import NewsletterBuilder from './NewsletterBuilder';
+import { NewsletterInterface } from './newsletter/NewsletterInterface';
 
 interface MarketingWrapperProps {
   activeSubSection?: string;
@@ -10,11 +10,11 @@ const MarketingWrapper: React.FC<MarketingWrapperProps> = ({ activeSubSection = 
   const renderContent = () => {
     switch (activeSubSection) {
       case 'email':
-        return <NewsletterBuilder />;
+        return <NewsletterInterface />;
       case 'sms':
         return <SMSInterface />;
       default:
-        return <NewsletterBuilder />;
+        return <NewsletterInterface />;
     }
   };
 
