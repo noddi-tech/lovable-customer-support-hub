@@ -55,7 +55,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-1 text-xs"
+                className="h-7 px-2 gap-1 text-xs"
               >
                 <Filter className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
@@ -80,7 +80,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
             size="sm"
             onClick={markAllAsRead}
             disabled={isMarkingAllAsRead || unreadCount === 0}
-            className="gap-1 text-xs"
+            className="h-7 px-2 gap-1 text-xs"
           >
             <CheckCheck className="!w-3 !h-3" />
             <span className="hidden sm:inline">
@@ -99,7 +99,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
             placeholder={t('dashboard.conversationList.searchPlaceholder', 'Search conversations... (Ctrl+K)')}
             value={state.searchQuery}
             onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
-            className="pl-9 h-8 bg-background text-sm"
+            className="pl-9 h-7 bg-background text-xs"
           />
         </div>
         
@@ -108,7 +108,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
           value={state.sortBy} 
           onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
         >
-          <SelectTrigger className="w-28 h-8 text-xs">
+          <SelectTrigger className="w-28 h-7 text-xs">
             <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
           </SelectTrigger>
           <SelectContent align="end">
