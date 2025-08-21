@@ -134,10 +134,10 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
     >
       <SidebarContent className="p-0">
         {/* New Conversation Button */}
-        <div className="p-3 pt-4">
+        <div className="p-1">
           <NewConversationDialog>
-            <Button className="w-full gap-2" size="sm">
-              <Plus className="h-4 w-4" />
+            <Button className="w-full gap-1 h-6 text-xs" size="sm">
+              <Plus className="h-2.5 w-2.5" />
               {t('sidebar.newConversation', 'New Conversation')}
             </Button>
           </NewConversationDialog>
