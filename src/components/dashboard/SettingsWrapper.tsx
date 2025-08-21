@@ -6,6 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AdminPortal } from '@/components/admin/AdminPortal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { DepartmentManagement } from '@/components/admin/DepartmentManagement';
+import { IntegrationSettings } from '@/components/admin/IntegrationSettings';
+import { AircallSettings } from '@/components/admin/AircallSettings';
+import { SendgridSetupWizard } from '@/components/admin/SendgridSetupWizard';
+import { GoogleGroupSetup } from '@/components/admin/GoogleGroupSetup';
+import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
+import { InboundRoutesList } from '@/components/admin/InboundRoutesList';
+import { DesignLibrary } from '@/components/admin/DesignLibrary';
+import { ComponentConfigurationPanel } from '@/components/admin/ComponentConfigurationPanel';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Settings, User, Bell, Mail, Users, Shield, Building } from 'lucide-react';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
@@ -37,6 +45,20 @@ const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'g
 
   const renderContent = () => {
     switch (activeSubSection) {
+      case 'language':
+        return (
+          <div className="space-y-6">
+            <LanguageSettings />
+          </div>
+        );
+
+      case 'timezone':
+        return (
+          <div className="space-y-6">
+            <TimezoneSettings />
+          </div>
+        );
+
       case 'departments':
         return (
           <div className="space-y-6">
@@ -127,6 +149,149 @@ const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'g
           <div className="space-y-6">
             {canManageSettings ? (
               <AdminPortal />
+            ) : (
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  {t('settings.permissions.denied')}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
+      case 'integrations':
+        return (
+          <div className="space-y-6">
+            {canManageSettings ? (
+              <IntegrationSettings />
+            ) : (
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  {t('settings.permissions.denied')}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
+      case 'aircall':
+        return (
+          <div className="space-y-6">
+            {canManageSettings ? (
+              <AircallSettings />
+            ) : (
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  {t('settings.permissions.denied')}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
+      case 'sendgrid':
+        return (
+          <div className="space-y-6">
+            {canManageSettings ? (
+              <SendgridSetupWizard />
+            ) : (
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  {t('settings.permissions.denied')}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
+      case 'google-groups':
+        return (
+          <div className="space-y-6">
+            {canManageSettings ? (
+              <Card className="bg-gradient-surface border-border/50 shadow-surface">
+                <CardHeader>
+                  <CardTitle className="text-primary">Google Groups Setup</CardTitle>
+                  <CardDescription>
+                    Configure Google Groups for email routing
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <GoogleGroupSetup 
+                    alias="support" 
+                    domain="yourdomain.com" 
+                    parseSubdomain="inbound"
+                    inboxName="Support"
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  {t('settings.permissions.denied')}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
+      case 'voice-integrations':
+        return (
+          <div className="space-y-6">
+            {canManageSettings ? (
+              <VoiceIntegrationsList />
+            ) : (
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  {t('settings.permissions.denied')}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
+      case 'inbound-routes':
+        return (
+          <div className="space-y-6">
+            {canManageSettings ? (
+              <InboundRoutesList />
+            ) : (
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  {t('settings.permissions.denied')}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
+      case 'design-library':
+        return (
+          <div className="space-y-6">
+            {canManageSettings ? (
+              <DesignLibrary />
+            ) : (
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  {t('settings.permissions.denied')}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        );
+
+      case 'components':
+        return (
+          <div className="space-y-6">
+            {canManageSettings ? (
+              <ComponentConfigurationPanel />
             ) : (
               <Alert>
                 <Shield className="h-4 w-4" />

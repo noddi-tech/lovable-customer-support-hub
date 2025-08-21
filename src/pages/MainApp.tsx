@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ModernLayout } from '@/components/layout/ModernLayout';
 import { EnhancedInteractionsLayout } from '@/components/dashboard/EnhancedInteractionsLayout';
+import { VoiceInterface } from '@/components/dashboard/VoiceInterface';
 import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
 import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
@@ -38,7 +39,7 @@ export const MainApp: React.FC<MainAppProps> = ({
           );
         }
         if (activeSubTab === 'voice') {
-          return <div className="p-8 text-center text-muted-foreground">Voice Interface</div>;
+          return <VoiceInterface />;
         }
         return (
           <EnhancedInteractionsLayout
@@ -53,7 +54,7 @@ export const MainApp: React.FC<MainAppProps> = ({
           return <NewsletterBuilder />;
         }
         return <div className="p-8 text-center text-muted-foreground">Marketing Dashboard</div>;
-      case 'ops':
+      case 'operations':
         switch (activeSubTab) {
           case 'tickets':
             return <ServiceTicketsInterface />;
