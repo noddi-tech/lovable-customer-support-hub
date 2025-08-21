@@ -6,6 +6,8 @@ import { ContentPane } from '@/components/ui/content-pane';
 import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
 import { VoiceInterface } from './VoiceInterface';
+import { OptimizedInteractionsSidebar } from './OptimizedInteractionsSidebar';
+import { MobileSidebarDrawer } from './MobileSidebarDrawer';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
 import { cn } from '@/lib/utils';
@@ -126,10 +128,16 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Mobile layout: Single pane with stacking
   if (isMobile) {
     return (
-      <ContentPane className="h-full">
+      <ContentPane className="h-full p-0">
+        <div className="flex items-center gap-2 p-2 border-b border-border">
+          <MobileSidebarDrawer selectedTab={selectedTab} onTabChange={onTabChange} />
+          <h2 className="text-sm font-medium">
+            {t('sidebar.inbox', 'Inbox')}
+          </h2>
+        </div>
         {shouldShowConversationList ? (
           <ContentPane variant="card" className="flex-1">
-            <ConversationList 
+            <ConversationList
               selectedConversation={selectedConversation}
               onSelectConversation={handleSelectConversation}
               selectedInboxId={selectedInboxId}
@@ -152,66 +160,75 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     );
   }
 
-  // Desktop & Tablet: Resizable two-panel layout
+  // Desktop & Tablet: Sidebar + resizable panels layout
   return (
-    <ContentPane className="h-full p-0">
-      <ResizablePanelGroup direction="horizontal" className="h-full">
-        {/* Conversation List Panel */}
-        {shouldShowConversationList && (
-          <>
-            <ResizablePanel 
-              defaultSize={getPanelSize('conversationList')}
-              minSize={25}
-              maxSize={65}
-              onResize={(size) => updatePanelSize('conversationList', size)}
-            >
-              <ContentPane variant="bordered" className="h-full">
-                <ConversationList 
-                  selectedConversation={selectedConversation}
-                  onSelectConversation={handleSelectConversation}
-                  selectedInboxId={selectedInboxId}
-                  selectedTab={selectedTab}
-                  onToggleCollapse={isDesktop ? handleToggleConversationList : undefined}
-                />
-              </ContentPane>
-            </ResizablePanel>
-            
-            <ResizableHandle withHandle />
-          </>
-        )}
-        
-        {/* Conversation View Panel */}
-        <ResizablePanel 
-          className="h-full"
-          minSize={shouldShowConversationList ? 35 : 100}
-        >
-          <ContentPane className="h-full relative">
-            {/* Show/Hide Conversation List Button - Desktop only */}
-            {isDesktop && !shouldShowConversationList && (
-              <div className="absolute top-4 left-4 z-10">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleToggleConversationList}
-                  className="flex items-center gap-2 bg-background/95 backdrop-blur-sm"
-                >
-                  <Sidebar className="h-4 w-4" />
-                  <span>Show Conversations</span>
-                </Button>
-              </div>
-            )}
-            
-            {selectedConversation ? (
-              <div className="h-full">
-                <ConversationView conversationId={selectedConversation.id} />
-              </div>
-            ) : (
-              <EmptyConversationState />
-            )}
-          </ContentPane>
-        </ResizablePanel>
-      </ResizablePanelGroup>
-    </ContentPane>
+    <div className="flex h-full">
+      <div className="hidden md:flex h-full">
+        <OptimizedInteractionsSidebar
+          selectedTab={selectedTab}
+          onTabChange={onTabChange}
+          selectedInboxId={selectedInboxId}
+        />
+      </div>
+      <ContentPane className="h-full p-0 flex-1">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Conversation List Panel */}
+          {shouldShowConversationList && (
+            <>
+              <ResizablePanel
+                defaultSize={getPanelSize('conversationList')}
+                minSize={25}
+                maxSize={65}
+                onResize={(size) => updatePanelSize('conversationList', size)}
+              >
+                <ContentPane variant="bordered" className="h-full">
+                  <ConversationList
+                    selectedConversation={selectedConversation}
+                    onSelectConversation={handleSelectConversation}
+                    selectedInboxId={selectedInboxId}
+                    selectedTab={selectedTab}
+                    onToggleCollapse={isDesktop ? handleToggleConversationList : undefined}
+                  />
+                </ContentPane>
+              </ResizablePanel>
+
+              <ResizableHandle withHandle />
+            </>
+          )}
+
+          {/* Conversation View Panel */}
+          <ResizablePanel
+            className="h-full"
+            minSize={shouldShowConversationList ? 35 : 100}
+          >
+            <ContentPane className="h-full relative">
+              {/* Show/Hide Conversation List Button - Desktop only */}
+              {isDesktop && !shouldShowConversationList && (
+                <div className="absolute top-4 left-4 z-10">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleToggleConversationList}
+                    className="flex items-center gap-2 bg-background/95 backdrop-blur-sm"
+                  >
+                    <Sidebar className="h-4 w-4" />
+                    <span>Show Conversations</span>
+                  </Button>
+                </div>
+              )}
+
+              {selectedConversation ? (
+                <div className="h-full">
+                  <ConversationView conversationId={selectedConversation.id} />
+                </div>
+              ) : (
+                <EmptyConversationState />
+              )}
+            </ContentPane>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </ContentPane>
+    </div>
   );
 };
 
