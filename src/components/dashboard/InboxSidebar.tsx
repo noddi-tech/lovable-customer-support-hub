@@ -151,10 +151,10 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
   return (
     <div className="pane flex flex-col bg-card/90 backdrop-blur-sm shadow-surface">
       {/* Create Button */}
-      <div className="flex-shrink-0 p-2">
+      <div className="flex-shrink-0 p-1.5">
         <NewConversationDialog>
-          <Button className="w-full h-8 bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow text-sm">
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
+          <Button className="w-full h-7 bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow text-xs">
+            <Plus className="mr-1 h-3 w-3" />
             {t('dashboard.sidebar.newConversation')}
           </Button>
         </NewConversationDialog>
@@ -162,10 +162,10 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
 
       {/* Inbox Categories - Scrollable Content */}
       <div className="pane flex-1 min-h-0">
-        <div className="px-1">
-          <div className="flex items-center justify-between px-2 py-1.5">
+        <div className="px-0.5">
+          <div className="flex items-center justify-between px-1.5 py-1">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.sidebar.inbox')}</h3>
-            <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+            <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
               <Filter className="h-2.5 w-2.5" />
             </Button>
           </div>
@@ -180,17 +180,17 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                   key={item.id}
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start px-2 py-1.5 h-7 font-normal text-sm",
+                    "w-full justify-start px-1.5 py-0.5 h-6 font-normal text-xs",
                     isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
                   )}
                   onClick={() => onTabChange(item.id)}
                 >
-                  <Icon className="mr-2.5 h-3.5 w-3.5" />
+                  <Icon className="mr-2 h-3 w-3" />
                   <span className="flex-1 text-left">{item.label}</span>
                   {item.count > 0 && (
                     <Badge 
                       variant={isSelected ? "default" : "secondary"} 
-                      className="ml-auto h-4 text-xs px-1.5 min-w-0"
+                      className="ml-auto h-3.5 text-xs px-1 min-w-0"
                     >
                       {item.count}
                     </Badge>
@@ -201,11 +201,11 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
           </div>
         </div>
 
-        <Separator className="my-3" />
+        <Separator className="my-2" />
 
         {/* Notifications */}
-        <div className="px-1">
-          <div className="flex items-center justify-between px-2 py-1.5">
+        <div className="px-0.5">
+          <div className="flex items-center justify-between px-1.5 py-1">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.sidebar.notifications')}</h3>
           </div>
           
@@ -213,7 +213,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start px-2 py-1.5 h-7 font-normal text-sm",
+                "w-full justify-start px-1.5 py-0.5 h-6 font-normal text-xs",
                 selectedTab === 'notifications' ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
               )}
               onClick={() => {
@@ -222,12 +222,12 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                 console.log('onTabChange called with notifications');
               }}
             >
-              <Bell className="mr-2.5 h-3.5 w-3.5" />
+              <Bell className="mr-2 h-3 w-3" />
               <span className="flex-1 text-left">{t('dashboard.sidebar.notifications')}</span>
               {unreadNotifications > 0 && (
                 <Badge 
                   variant={selectedTab === 'notifications' ? "default" : "secondary"} 
-                  className="ml-auto h-4 text-xs px-1.5 min-w-0"
+                  className="ml-auto h-3.5 text-xs px-1 min-w-0"
                 >
                   {unreadNotifications}
                 </Badge>
@@ -236,16 +236,16 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
           </div>
         </div>
 
-        <Separator className="my-3" />
+        <Separator className="my-2" />
 
         {/* Channels */}
-        <div className="px-1">
-          <div className="flex items-center justify-between px-2 py-1.5">
+        <div className="px-0.5">
+          <div className="flex items-center justify-between px-1.5 py-1">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.sidebar.channels')}</h3>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-5 w-5 p-0"
+              className="h-4 w-4 p-0"
               onClick={() => setExpandedChannels(!expandedChannels)}
             >
               <Filter className="h-2.5 w-2.5" />
@@ -263,14 +263,14 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                     key={item.id}
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start px-2 py-1.5 h-7 font-normal text-sm",
+                      "w-full justify-start px-1.5 py-0.5 h-6 font-normal text-xs",
                       isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
                     )}
                     onClick={() => onTabChange(item.id)}
                   >
                     <Icon 
                       className={cn(
-                        "mr-2.5 h-3.5 w-3.5",
+                        "mr-2 h-3 w-3",
                         `text-${item.color}`
                       )} 
                     />
@@ -278,7 +278,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                     {item.count > 0 && (
                       <Badge 
                         variant={isSelected ? "default" : "secondary"} 
-                        className="ml-auto h-4 text-xs px-1.5 min-w-0"
+                        className="ml-auto h-3.5 text-xs px-1 min-w-0"
                       >
                         {item.count}
                       </Badge>
@@ -290,16 +290,16 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
           )}
         </div>
 
-        <Separator className="my-3" />
+        <Separator className="my-2" />
 
         {/* Inboxes */}
-        <div className="px-1">
-          <div className="flex items-center justify-between px-2 py-1.5">
+        <div className="px-0.5">
+          <div className="flex items-center justify-between px-1.5 py-1">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.sidebar.inboxes')}</h3>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-5 w-5 p-0"
+              className="h-4 w-4 p-0"
               onClick={() => setExpandedInboxes(!expandedInboxes)}
             >
               <Filter className="h-2.5 w-2.5" />
@@ -316,20 +316,20 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                     key={inbox.id}
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start px-2 py-1.5 h-7 font-normal text-sm",
+                      "w-full justify-start px-1.5 py-0.5 h-6 font-normal text-xs",
                       isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
                     )}
                     onClick={() => onTabChange(`inbox-${inbox.id}`)}
                   >
                     <div 
-                      className="mr-2.5 w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                      className="mr-2 w-2 h-2 rounded-full flex-shrink-0" 
                       style={{ backgroundColor: inbox.color }}
                     />
                     <span className="flex-1 text-left truncate">{inbox.name}</span>
                     {inbox.conversation_count > 0 && (
                       <Badge 
                         variant={isSelected ? "default" : "secondary"} 
-                        className="ml-auto h-4 text-xs px-1.5 min-w-0"
+                        className="ml-auto h-3.5 text-xs px-1 min-w-0"
                       >
                         {inbox.conversation_count}
                       </Badge>
