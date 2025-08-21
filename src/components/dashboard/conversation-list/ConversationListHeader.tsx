@@ -55,7 +55,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-4 gap-0.5 text-xs px-1.5"
+                className="gap-1 text-xs"
               >
                 <Filter className="w-3 h-3" />
                 <span className="hidden sm:inline">
@@ -80,7 +80,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
             size="sm"
             onClick={markAllAsRead}
             disabled={isMarkingAllAsRead || unreadCount === 0}
-            className="h-4 gap-0.5 text-xs px-1.5"
+            className="gap-1 text-xs"
           >
             <CheckCheck className="w-3 h-3" />
             <span className="hidden sm:inline">
