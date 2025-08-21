@@ -112,8 +112,28 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
       icon: Settings,
       items: [
         { id: 'general', title: t('header.general', 'General'), icon: Settings },
+        { id: 'language', title: t('header.language', 'Language'), icon: Settings },
+        { id: 'timezone', title: t('header.timezone', 'Timezone'), icon: Clock },
+        { id: 'email-templates', title: t('header.emailTemplates', 'Email Templates'), icon: Mail },
+      ]
+    },
+    {
+      id: 'admin',
+      title: t('header.admin', 'Admin'),
+      icon: ShieldCheck,
+      items: [
+        { id: 'portal', title: t('header.adminPortal', 'Admin Portal'), icon: ShieldCheck },
+        { id: 'users', title: t('header.userManagement', 'User Management'), icon: Users },
+        { id: 'departments', title: t('header.departments', 'Departments'), icon: Users },
+        { id: 'inboxes', title: t('header.inboxManagement', 'Inbox Management'), icon: Mail },
         { id: 'integrations', title: t('header.integrations', 'Integrations'), icon: Settings },
-        { id: 'users', title: t('header.users', 'Users'), icon: Users },
+        { id: 'aircall', title: t('header.aircall', 'Aircall Settings'), icon: Phone },
+        { id: 'sendgrid', title: t('header.sendgrid', 'Sendgrid Setup'), icon: Mail },
+        { id: 'google-groups', title: t('header.googleGroups', 'Google Groups'), icon: Users },
+        { id: 'voice-integrations', title: t('header.voiceIntegrations', 'Voice Integrations'), icon: Headphones },
+        { id: 'inbound-routes', title: t('header.inboundRoutes', 'Inbound Routes'), icon: Phone },
+        { id: 'design-library', title: t('header.designLibrary', 'Design Library'), icon: Palette },
+        { id: 'components', title: t('header.components', 'Components'), icon: Settings },
       ]
     }
   ];
