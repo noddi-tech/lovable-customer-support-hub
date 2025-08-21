@@ -371,7 +371,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       toast.success(t('conversation.messageDeleted'));
       setDeleteDialogOpen(false);
       setMessageToDelete(null);
-      queryClient.invalidateQueries(['messages', conversationId]);
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
     },
     onError: (error: any) => {
       toast.error(t('conversation.messageDeleteError'));
@@ -406,7 +406,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       setReplyText('');
       setIsInternalNote(false);
       setShowReplyArea(false);
-      queryClient.invalidateQueries(['messages', conversationId]);
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
     },
     onError: (error: any) => {
       toast.error(t('conversation.replyError'));
@@ -435,7 +435,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       toast.success(t('conversation.messageEdited'));
       setEditingMessageId(null);
       setEditText('');
-      queryClient.invalidateQueries(['messages', conversationId]);
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
     },
     onError: (error: any) => {
       toast.error(t('conversation.messageEditError'));
@@ -561,12 +561,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                               {t('conversation.internalNote')}
                             </Button>
                             <EmojiPicker
-                              onSelect={(emoji) => setReplyText((prev) => prev + emoji.native)}
-                            >
-                              <Button variant="outline" size="sm">
-                                <Smile className="h-4 w-4" />
-                              </Button>
-                            </EmojiPicker>
+                              onEmojiSelect={(emoji) => setReplyText((prev) => prev + emoji)}
+                              trigger={
+                                <Button variant="outline" size="sm">
+                                  <Smile className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
                           </div>
                           <Button
                             onClick={handleSendReply}
@@ -586,21 +587,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           ) : (
             <CustomerNotes 
               customerId={conversation?.customer.id}
-              className="h-full"
             />
           )}
         </div>
         
         {/* Enhanced Mobile Drawer for Customer Info */}
         <MobileDrawerSidebar
-          isOpen={sidebarVisible && conversation?.customer?.id}
+          isOpen={sidebarVisible && !!conversation?.customer?.id}
           onClose={() => setSidebarVisible(false)}
           onToggle={() => setSidebarVisible(!sidebarVisible)}
           title="Customer Information"
         >
           <CustomerNotes 
             customerId={conversation?.customer.id}
-            className="h-full"
           />
         </MobileDrawerSidebar>
       </div>
@@ -760,13 +759,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                           >
                             {t('conversation.internalNote')}
                           </Button>
-                          <EmojiPicker
-                            onSelect={(emoji) => setReplyText((prev) => prev + emoji.native)}
-                          >
-                            <Button variant="outline" size="sm">
-                              <Smile className="h-4 w-4" />
-                            </Button>
-                          </EmojiPicker>
+                            <EmojiPicker
+                              onEmojiSelect={(emoji) => setReplyText((prev) => prev + emoji)}
+                              trigger={
+                                <Button variant="outline" size="sm">
+                                  <Smile className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
                         </div>
                         <Button
                           onClick={handleSendReply}
@@ -803,7 +803,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             >
               <CustomerNotes 
                 customerId={conversation?.customer.id}
-                className="h-full"
               />
             </ResizablePanel>
           )}
@@ -928,9 +927,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             <div>
               <label className="text-sm font-medium">Snooze until:</label>
               <TimezoneAwareDateTimePicker
-                value={snoozeDate}
-                onChange={setSnoozeDate}
-                timeValue={snoozeTime}
+                date={snoozeDate}
+                time={snoozeTime}
+                onDateChange={setSnoozeDate}
                 onTimeChange={setSnoozeTime}
               />
             </div>
