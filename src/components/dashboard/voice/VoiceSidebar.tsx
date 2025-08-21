@@ -190,6 +190,7 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
     return items.map((item) => {
       const Icon = item.icon;
       const isSelected = selectedSection === item.id;
+      const showCount = item.count > 0 && !item.id.includes('-all');
       
       return (
         <Button
@@ -203,7 +204,7 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
         >
           <Icon className={cn("mr-3 h-4 w-4", item.color)} />
           <span className="flex-1 text-left">{item.label}</span>
-          {item.count > 0 && (
+          {showCount && (
             <Badge 
               variant={isSelected ? "default" : "secondary"} 
               className="ml-auto h-5 text-xs"
