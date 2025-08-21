@@ -57,11 +57,11 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
                 size="sm" 
                 className="gap-1 text-xs"
               >
-                <Filter className="w-3 h-3" />
+                <Filter className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
                   {t('dashboard.conversationList.filters', 'Filters')}
                 </span>
-                <ChevronDown className="w-3 h-3" />
+                <ChevronDown className="!w-3 !h-3" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80" align="end">
@@ -82,7 +82,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
             disabled={isMarkingAllAsRead || unreadCount === 0}
             className="gap-1 text-xs"
           >
-            <CheckCheck className="w-3 h-3" />
+            <CheckCheck className="!w-3 !h-3" />
             <span className="hidden sm:inline">
               {t('dashboard.conversationList.markAllRead', 'Mark all read')}
             </span>
