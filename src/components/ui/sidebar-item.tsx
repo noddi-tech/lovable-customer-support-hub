@@ -43,7 +43,7 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
         disabled={disabled}
         onMouseEnter={onMouseEnter}
         className={cn(
-          "w-full justify-start gap-3 px-3 py-2.5 text-sm transition-colors",
+          "w-full justify-start gap-2 px-2 py-1 text-xs transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-1",
           getVariantStyles(),
           disabled && "opacity-50 cursor-not-allowed",
@@ -53,11 +53,11 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
         {/* Icon with optional color for inbox variant */}
         {variant === 'inbox' && color ? (
           <div 
-            className="w-3 h-3 rounded-full flex-shrink-0"
+            className="w-2 h-2 rounded-full flex-shrink-0"
             style={{ backgroundColor: color }}
           />
         ) : (
-          <Icon className="h-4 w-4 flex-shrink-0" />
+          <Icon className="h-3 w-3 flex-shrink-0" />
         )}
         
         {/* Label */}

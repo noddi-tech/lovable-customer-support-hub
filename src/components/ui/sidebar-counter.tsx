@@ -40,7 +40,7 @@ export const SidebarCounter: React.FC<SidebarCounterProps> = ({
     <Badge 
       variant="secondary"
       className={cn(
-        "h-5 min-w-5 px-1.5 text-xs font-medium rounded-full flex items-center justify-center shrink-0",
+        "h-4 min-w-4 px-1 text-xs font-medium rounded-full flex items-center justify-center shrink-0",
         "transition-colors duration-fast",
         getVariantStyles(),
         className
