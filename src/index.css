@@ -435,10 +435,28 @@ Optimized for accessibility with WCAG AA compliance.
   }
   
   /* Optimized sidebar transitions */
-  .sidebar {
-    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: width;
+/* Smooth resize transitions */
+@layer components {
+  .resize-panel {
+    @apply transition-all duration-200 ease-out;
   }
+  
+  .resize-panel-smooth {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  
+  .resize-handle {
+    @apply transition-colors duration-200 hover:bg-primary/10;
+  }
+  
+  .resize-handle:hover {
+    @apply bg-primary/20;
+  }
+  
+  .resize-handle-active {
+    @apply bg-primary/30;
+  }
+}
   
   /* Accessibility and touch targets */
   @media (max-width: 767px) {
