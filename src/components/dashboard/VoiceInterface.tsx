@@ -120,6 +120,7 @@ export const VoiceInterface = () => {
       'voicemails-closed': 'Completed Voicemails', 
       'voicemails-all': 'All Voicemails',
       'calls-today': 'Today\'s Calls',
+      'calls-yesterday': 'Yesterday\'s Calls',
       'calls-all': 'All Calls',
       'events-log': 'Call Events Log'
     };
@@ -328,13 +329,22 @@ export const VoiceInterface = () => {
         );
 
       case 'calls-today':
+      case 'calls-yesterday':
       case 'calls-all':
+        const dateFilter = selectedSection === 'calls-today' ? 'today' : 
+                          selectedSection === 'calls-yesterday' ? 'yesterday' : 
+                          undefined;
+        
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
             </div>
-            <CallsList showTimeFilter={selectedSection === 'calls-all'} onNavigateToEvents={navigateToCallEvents} />
+            <CallsList 
+              showTimeFilter={selectedSection === 'calls-all'} 
+              dateFilter={dateFilter}
+              onNavigateToEvents={navigateToCallEvents} 
+            />
           </div>
         );
 

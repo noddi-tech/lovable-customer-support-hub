@@ -15,10 +15,11 @@ import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 
 interface CallsListProps {
   showTimeFilter?: boolean;
+  dateFilter?: 'today' | 'yesterday';
   onNavigateToEvents?: (callId: string) => void;
 }
 
-export const CallsList = ({ showTimeFilter = true, onNavigateToEvents }: CallsListProps) => {
+export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvents }: CallsListProps) => {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<string>('all');
@@ -48,8 +49,27 @@ export const CallsList = ({ showTimeFilter = true, onNavigateToEvents }: CallsLi
     if (statusFilter !== 'all' && call.status !== statusFilter) return false;
     if (directionFilter !== 'all' && call.direction !== directionFilter) return false;
     
-    // Filter calls based on status, direction, and time range
-    if (showTimeFilter && timeRangeStart) {
+    // Handle specific date filters (today/yesterday)
+    if (dateFilter) {
+      const callDate = new Date(call.started_at);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Set times to start of day for accurate comparison
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+      const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
+      
+      if (dateFilter === 'today') {
+        if (callDate < todayStart || callDate >= todayEnd) return false;
+      } else if (dateFilter === 'yesterday') {
+        if (callDate < yesterdayStart || callDate >= yesterdayEnd) return false;
+      }
+    }
+    // Filter calls based on time range filter (for "All Calls" section)
+    else if (showTimeFilter && timeRangeStart) {
       const callDate = new Date(call.started_at);
       if (!isAfter(callDate, timeRangeStart)) return false;
     }
