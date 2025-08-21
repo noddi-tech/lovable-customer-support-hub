@@ -56,7 +56,7 @@ const ResponsiveLayout = React.forwardRef<HTMLDivElement, ResponsiveLayoutProps>
               </Sidebar>
               
               {/* Main Content */}
-              <SidebarInset className="flex-1 min-h-0">
+              <SidebarInset className="flex-1 min-h-0 m-0">
                 {children}
               </SidebarInset>
             </div>
