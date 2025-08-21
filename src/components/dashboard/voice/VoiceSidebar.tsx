@@ -16,12 +16,17 @@ import {
   Settings,
   Filter,
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  Search,
+  MoreVertical
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCalls } from '@/hooks/useCalls';
 import { useCallbackRequests } from '@/hooks/useCallbackRequests';
 import { useVoicemails } from '@/hooks/useVoicemails';
+import { useVoice } from '@/contexts/VoiceContext';
+import { CallListView } from './CallListView';
 
 interface VoiceSidebarProps {
   selectedSection: string;
@@ -32,14 +37,16 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
   selectedSection, 
   onSectionChange 
 }) => {
+  const { state, setFilters } = useVoice();
   const [expandedSections, setExpandedSections] = useState({
     callbacks: true,
     voicemails: true,
     calls: true,
     events: true
   });
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const { activeCalls, calls } = useCalls();
+  const { activeCalls, calls, isLoading } = useCalls();
   const { 
     pendingRequests, 
     processedRequests, 
@@ -52,7 +59,57 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
     transcribedVoicemails 
   } = useVoicemails();
 
-  // Calculate call counts with proper date filtering
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setFilters({ searchQuery: query });
+  };
+
+  const getFilteredCalls = () => {
+    if (!calls) return [];
+    
+    let filtered = calls;
+    
+    // Apply section filter
+    switch (selectedSection) {
+      case 'ongoing-calls':
+        filtered = activeCalls || [];
+        break;
+      case 'calls-today':
+        const today = new Date();
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        filtered = calls.filter(call => {
+          const callDate = new Date(call.started_at);
+          return callDate >= todayStart && callDate < todayEnd;
+        });
+        break;
+      case 'calls-yesterday':
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
+        filtered = calls.filter(call => {
+          const callDate = new Date(call.started_at);
+          return callDate >= yesterdayStart && callDate < yesterdayEnd;
+        });
+        break;
+      case 'calls-all':
+      default:
+        filtered = calls;
+        break;
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(call => 
+        call.customer_phone?.includes(searchQuery) ||
+        call.agent_phone?.includes(searchQuery) ||
+        call.external_id?.includes(searchQuery)
+      );
+    }
+    
+    return filtered;
+  };
   const getCallsCountByDate = (dateFilter: 'today' | 'yesterday' | 'all') => {
     if (dateFilter === 'all') return calls?.length || 0;
     
@@ -217,118 +274,148 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
     });
   };
 
+  // Show call list for call-related sections
+  const shouldShowCallList = selectedSection.startsWith('calls-') || selectedSection === 'ongoing-calls';
+  
   return (
-    <div className="pane flex flex-col bg-card/90 backdrop-blur-sm shadow-surface">
-      <div className="pane flex-1 min-h-0">
-        <div>
-        {/* Ongoing Calls */}
-        <div className="px-2 pt-4">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Ongoing Calls</h3>
-          </div>
-          
-          <div className="space-y-1">
-            {renderSidebarItems(ongoingCallsItems, 'ongoing')}
-          </div>
-        </div>
-
-        <Separator className="my-4" />
-
-        {/* Callback Requests */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Callback Requests</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('callbacks')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          {expandedSections.callbacks && (
-            <div className="space-y-1">
-              {renderSidebarItems(callbackItems, 'callbacks')}
+    <div className="pane flex flex-col bg-card/90 backdrop-blur-sm shadow-surface h-full">
+      {shouldShowCallList ? (
+        // Call List View
+        <div className="flex flex-col h-full">
+          {/* Search Header */}
+          <div className="p-3 border-b border-border">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search calls..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 h-9"
+              />
             </div>
-          )}
-        </div>
-
-        <Separator className="my-4" />
-
-        {/* Voicemails */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Voicemails</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('voicemails')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
           </div>
           
-          {expandedSections.voicemails && (
-            <div className="space-y-1">
-              {renderSidebarItems(voicemailItems, 'voicemails')}
+          {/* Call List */}
+          <div className="flex-1 min-h-0">
+            <CallListView 
+              calls={getFilteredCalls()} 
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
+      ) : (
+        // Navigation Sidebar
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-2">
+          {/* Ongoing Calls */}
+          <div className="px-2 pt-4">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Ongoing Calls</h3>
             </div>
-          )}
-        </div>
-
-        <Separator className="my-4" />
-
-        {/* Calls */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Calls</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('calls')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          {expandedSections.calls && (
+            
             <div className="space-y-1">
-              {renderSidebarItems(callsItems, 'calls')}
+              {renderSidebarItems(ongoingCallsItems, 'ongoing')}
             </div>
-          )}
-        </div>
-
-        <Separator className="my-4" />
-
-        {/* Events */}
-        <div className="px-2 pb-4">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Events</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('events')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
           </div>
-          
-          {expandedSections.events && (
-            <div className="space-y-1">
-              {renderSidebarItems(eventsItems, 'events')}
+
+          <Separator className="my-4" />
+
+          {/* Callback Requests */}
+          <div className="px-2">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Callback Requests</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0"
+                onClick={() => toggleSection('callbacks')}
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
             </div>
-          )}
-          
-          <div className="px-2 py-2 text-xs text-muted-foreground italic">
-            Configuration moved to Settings → Admin → Integrations → Voice
+            
+            {expandedSections.callbacks && (
+              <div className="space-y-1">
+                {renderSidebarItems(callbackItems, 'callbacks')}
+              </div>
+            )}
           </div>
-        </div>
-        </div>
-      </div>
+
+          <Separator className="my-4" />
+
+          {/* Voicemails */}
+          <div className="px-2">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Voicemails</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0"
+                onClick={() => toggleSection('voicemails')}
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
+            </div>
+            
+            {expandedSections.voicemails && (
+              <div className="space-y-1">
+                {renderSidebarItems(voicemailItems, 'voicemails')}
+              </div>
+            )}
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Calls */}
+          <div className="px-2">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Calls</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0"
+                onClick={() => toggleSection('calls')}
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
+            </div>
+            
+            {expandedSections.calls && (
+              <div className="space-y-1">
+                {renderSidebarItems(callsItems, 'calls')}
+              </div>
+            )}
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Events */}
+          <div className="px-2 pb-4">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Events</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0"
+                onClick={() => toggleSection('events')}
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
+            </div>
+            
+            {expandedSections.events && (
+              <div className="space-y-1">
+                {renderSidebarItems(eventsItems, 'events')}
+              </div>
+            )}
+            
+            <div className="px-2 py-2 text-xs text-muted-foreground italic">
+              Configuration moved to Settings → Admin → Integrations → Voice
+            </div>
+          </div>
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 };

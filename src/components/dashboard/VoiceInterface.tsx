@@ -13,6 +13,9 @@ import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
 import { CallsList } from './voice/CallsList';
 import { VoiceSidebar } from './voice/VoiceSidebar';
+import { VoiceHeader } from './voice/VoiceHeader';
+import { CallListView } from './voice/CallListView';
+import { CallDetailView } from './voice/CallDetailView';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RealTimeIndicator } from './voice/RealTimeIndicator';
 import { CallNotificationCenter } from './voice/CallNotificationCenter';
@@ -23,30 +26,38 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { useResizablePanels } from '@/hooks/useResizablePanels';
+import { VoiceProvider, useVoice } from '@/contexts/VoiceContext';
 
-export const VoiceInterface = () => {
+const VoiceInterfaceContent = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const isDesktop = useIsDesktop();
   
+  // Voice context
+  const { state, selectCall, selectSection } = useVoice();
+  
   // Panel persistence
   const { getPanelSize, updatePanelSize } = useResizablePanels({
     storageKey: 'voice-interface',
     defaultSizes: {
       sidebar: isMobile ? 100 : isTablet ? 30 : 25,
-      content: isMobile ? 100 : isTablet ? 70 : 75
+      content: isMobile ? 100 : isTablet ? 35 : 40,
+      details: isMobile ? 100 : isTablet ? 35 : 35
     },
     minSizes: {
       sidebar: isMobile ? 100 : 20,
-      content: isMobile ? 100 : 50
+      content: isMobile ? 100 : 30,
+      details: isMobile ? 100 : 25
     },
     maxSizes: {
       sidebar: isMobile ? 100 : 50,
-      content: isMobile ? 100 : 80
+      content: isMobile ? 100 : 60,
+      details: isMobile ? 100 : 50
     }
   });
+  
   const { 
     calls, 
     callEvents, 
@@ -60,8 +71,6 @@ export const VoiceInterface = () => {
   // Initialize real-time notifications
   useRealTimeCallNotifications();
   
-  const [selectedCall, setSelectedCall] = useState<any>(null);
-  const [selectedSection, setSelectedSection] = useState('ongoing-calls');
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [eventsCallFilter, setEventsCallFilter] = useState<string | null>(null);
 
@@ -74,14 +83,14 @@ export const VoiceInterface = () => {
   };
 
   const navigateToCall = (callId: string) => {
-    // Navigate to specific call - you can expand this based on your needs
-    setSelectedSection('calls-today');
-    setSelectedCall(calls.find(call => call.id === callId));
+    // Navigate to specific call
+    selectSection('calls-today');
+    selectCall(callId);
   };
 
   const navigateToCallEvents = (callId: string) => {
     setEventsCallFilter(callId);
-    setSelectedSection('events-log');
+    selectSection('events-log');
   };
 
   if (error) {
@@ -151,10 +160,10 @@ export const VoiceInterface = () => {
   };
 
   const renderMainContent = () => {
-    const sectionTitle = getSectionTitle(selectedSection);
-    const filter = getFilterFromSection(selectedSection);
+    const sectionTitle = getSectionTitle(state.selectedSection);
+    const filter = getFilterFromSection(state.selectedSection);
 
-    switch (selectedSection) {
+    switch (state.selectedSection) {
       case 'ongoing-calls':
         const recentlyEndedCalls = calls.filter(call => {
           if (call.status !== 'completed' || !call.ended_at || !call.agent_phone) return false;
@@ -183,7 +192,7 @@ export const VoiceInterface = () => {
                     <CallStatusCard
                       key={call.id}
                       call={call}
-                      onViewDetails={setSelectedCall}
+                      onViewDetails={(call) => selectCall(call.id)}
                     />
                   ))}
                 </div>
@@ -304,7 +313,7 @@ export const VoiceInterface = () => {
                                 variant="default"
                                 size="sm"
                                 onClick={() => {
-                                  setSelectedCall(call);
+                                  selectCall(call.id);
                                   setIsDetailsOpen(true);
                                 }}
                                 className="flex items-center gap-1 h-6 px-2 text-xs"
@@ -354,8 +363,8 @@ export const VoiceInterface = () => {
       case 'calls-today':
       case 'calls-yesterday':
       case 'calls-all':
-        const dateFilter = selectedSection === 'calls-today' ? 'today' : 
-                          selectedSection === 'calls-yesterday' ? 'yesterday' : 
+        const dateFilter = state.selectedSection === 'calls-today' ? 'today' : 
+                          state.selectedSection === 'calls-yesterday' ? 'yesterday' : 
                           undefined;
         
         return (
@@ -364,7 +373,7 @@ export const VoiceInterface = () => {
               <h1 className="text-2xl font-semibold">{sectionTitle}</h1>
             </div>
             <CallsList 
-              showTimeFilter={selectedSection === 'calls-all'} 
+              showTimeFilter={state.selectedSection === 'calls-all'} 
               dateFilter={dateFilter}
               onNavigateToEvents={navigateToCallEvents} 
             />
@@ -401,44 +410,33 @@ export const VoiceInterface = () => {
     return (
       <div className="app-root bg-gradient-surface flex flex-col h-screen">
         {/* Header */}
-        <div className="app-header flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex-shrink-0">
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <Phone className="h-6 w-6" />
-              Call Monitor
-            </h2>
-            <p className="text-muted-foreground">
-              Real-time call events and monitoring
-            </p>
-          </div>
-          
-          {/* Notification Center */}
-          <CallNotificationCenter onNavigateToCall={navigateToCall} />
-        </div>
+        <VoiceHeader onRefresh={handleRefreshAll} />
         
         {/* Main Content */}
         <div className="app-main bg-gradient-surface flex-1 min-h-0">
-          {selectedSection === 'nav' ? (
+          {state.selectedSection === 'nav' ? (
             <div className="nav-pane border-r border-border bg-card/80 backdrop-blur-sm shadow-surface h-full">
               <VoiceSidebar 
-                selectedSection={selectedSection}
-                onSectionChange={setSelectedSection}
+                selectedSection={state.selectedSection}
+                onSectionChange={selectSection}
               />
+            </div>
+          ) : state.selectedCallId ? (
+            <div className="detail-pane flex flex-col bg-gradient-surface h-full">
+              <CallDetailView callId={state.selectedCallId} />
             </div>
           ) : (
             <div className="detail-pane flex flex-col bg-gradient-surface h-full">
-              <div className="pane flex-1 min-h-0">
-                <div className="p-6">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setSelectedSection('nav')}
-                    className="mb-4"
-                  >
-                    ← Back to Navigation
-                  </Button>
-                  {renderMainContent()}
-                </div>
+              <div className="p-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => selectSection('nav')}
+                  className="mb-4"
+                >
+                  ← Back to Navigation
+                </Button>
+                {renderMainContent()}
               </div>
             </div>
           )}
@@ -446,7 +444,7 @@ export const VoiceInterface = () => {
         
         {/* Call Details Dialog */}
         <CallDetailsDialog
-          call={selectedCall}
+          call={state.selectedCallId ? calls?.find(c => c.id === state.selectedCallId) : null}
           isOpen={isDetailsOpen}
           onClose={() => setIsDetailsOpen(false)}
         />
@@ -454,23 +452,11 @@ export const VoiceInterface = () => {
     );
   }
 
+  // Desktop & Tablet: Three-panel layout
   return (
     <div className="app-root bg-gradient-surface flex flex-col h-screen">
       {/* Header */}
-      <div className="app-header flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex-shrink-0">
-        <div>
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Phone className="h-6 w-6" />
-            Call Monitor
-          </h2>
-          <p className="text-muted-foreground">
-            Real-time call events and monitoring
-          </p>
-        </div>
-        
-        {/* Notification Center */}
-        <CallNotificationCenter onNavigateToCall={navigateToCall} />
-      </div>
+      <VoiceHeader onRefresh={handleRefreshAll} />
       
       {/* Main Content */}
       <div className="app-main bg-gradient-surface flex-1 min-h-0">
@@ -478,36 +464,60 @@ export const VoiceInterface = () => {
           {/* Sidebar Panel */}
           <ResizablePanel 
             defaultSize={getPanelSize('sidebar')}
-            minSize={getPanelSize('sidebar') < 100 ? 20 : 100}
-            maxSize={getPanelSize('sidebar') < 100 ? 50 : 100}
+            minSize={20}
+            maxSize={50}
             onResize={(size) => updatePanelSize('sidebar', size)}
             className="border-r border-border bg-card/80 backdrop-blur-sm shadow-surface"
           >
             <VoiceSidebar 
-              selectedSection={selectedSection}
-              onSectionChange={setSelectedSection}
+              selectedSection={state.selectedSection}
+              onSectionChange={selectSection}
             />
           </ResizablePanel>
 
           {enableResizing && <ResizableHandle withHandle />}
 
           {/* Content Panel */}
-          <ResizablePanel className="flex flex-col bg-gradient-surface" minSize={50}>
-            <div className="pane flex-1 min-h-0">
-              <div className="p-6">
+          <ResizablePanel 
+            defaultSize={getPanelSize('content')}
+            minSize={30}
+            maxSize={70}
+            onResize={(size) => updatePanelSize('content', size)}
+            className="flex flex-col bg-gradient-surface border-r border-border"
+          >
+            <ScrollArea className="flex-1">
+              <div className="p-4">
                 {renderMainContent()}
               </div>
-            </div>
+            </ScrollArea>
           </ResizablePanel>
+
+          {/* Details Panel - Only show when call is selected */}
+          {state.selectedCallId && (
+            <>
+              {enableResizing && <ResizableHandle withHandle />}
+              <ResizablePanel 
+                defaultSize={getPanelSize('details')}
+                minSize={25}
+                maxSize={50}
+                onResize={(size) => updatePanelSize('details', size)}
+                className="bg-gradient-surface"
+              >
+                <CallDetailView callId={state.selectedCallId} />
+              </ResizablePanel>
+            </>
+          )}
         </ResizablePanelGroup>
       </div>
-      
-      {/* Call Details Dialog */}
-      <CallDetailsDialog
-        call={selectedCall}
-        isOpen={isDetailsOpen}
-        onClose={() => setIsDetailsOpen(false)}
-      />
     </div>
+  );
+};
+
+// Main VoiceInterface component with provider wrapper
+export const VoiceInterface = () => {
+  return (
+    <VoiceProvider>
+      <VoiceInterfaceContent />
+    </VoiceProvider>
   );
 };
