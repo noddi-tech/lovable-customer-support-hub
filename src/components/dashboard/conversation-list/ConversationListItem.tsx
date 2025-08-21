@@ -69,8 +69,69 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           onSelect(conversation);
         }}
       >
-        <div className="row px-4 py-3">
-          <div className="col--status flex items-center space-x-2">
+        <div className="px-4 py-3">
+          {/* Row 1: From, Subject, Date */}
+          <div className="grid grid-cols-12 gap-4 items-center mb-2">
+            <div className="col-span-3 min-w-0">
+              <div className="font-medium text-sm truncate">
+                {conversation.customer?.full_name || 'Unknown'}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                {conversation.customer?.email}
+              </div>
+            </div>
+            <div className="col-span-6 min-w-0">
+              <div className="font-medium text-sm truncate mb-1">{conversation.subject}</div>
+              <div className="flex items-center space-x-1">
+                <ChannelIcon className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground capitalize">{conversation.channel}</span>
+              </div>
+            </div>
+            <div className="col-span-2 text-right">
+              <div className="text-xs text-muted-foreground">
+                {formatConversationTime(conversation.updated_at)}
+              </div>
+              {!conversation.is_read && (
+                <div className="w-2 h-2 bg-primary rounded-full mt-1 ml-auto"></div>
+              )}
+            </div>
+            <div className="col-span-1 flex justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={(e) => {
+                      console.log('Desktop dropdown trigger clicked');
+                      e.stopPropagation();
+                    }}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    handleArchive(e);
+                  }}>
+                    <Archive className="w-4 h-4 mr-2" />
+                    {t('dashboard.conversationList.archive', 'Archive')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteClick(e);
+                  }} className="text-destructive">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {t('dashboard.conversationList.delete', 'Delete')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          
+          {/* Row 2: Badges */}
+          <div className="flex items-center space-x-2">
             <Badge className={cn("text-xs", statusColors[conversation.status])}>
               {conversation.status}
             </Badge>
@@ -83,69 +144,6 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
                 Snoozed
               </Badge>
             )}
-          </div>
-          <div className="col--from flex items-center space-x-2 min-w-0">
-            <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarFallback className="text-xs">
-                {conversation.customer?.full_name?.[0] || 'C'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-sm truncate">
-                {conversation.customer?.full_name || 'Unknown'}
-              </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {conversation.customer?.email}
-              </div>
-            </div>
-          </div>
-          <div className="col--subject min-w-0">
-            <div className="font-medium text-sm truncate mb-1">{conversation.subject}</div>
-            <div className="flex items-center space-x-1">
-              <ChannelIcon className="w-3 h-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground capitalize">{conversation.channel}</span>
-            </div>
-          </div>
-          <div className="col--date text-right">
-            <div className="text-xs text-muted-foreground">
-              {formatConversationTime(conversation.updated_at)}
-            </div>
-            {!conversation.is_read && (
-              <div className="w-2 h-2 bg-primary rounded-full mt-1 ml-auto"></div>
-            )}
-          </div>
-          <div className="flex-shrink-0 w-10 flex justify-end">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0"
-                  onClick={(e) => {
-                    console.log('Desktop dropdown trigger clicked');
-                    e.stopPropagation();
-                  }}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => {
-                  e.stopPropagation();
-                  handleArchive(e);
-                }}>
-                  <Archive className="w-4 h-4 mr-2" />
-                  {t('dashboard.conversationList.archive', 'Archive')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteClick(e);
-                }} className="text-destructive">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  {t('dashboard.conversationList.delete', 'Delete')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </div>
