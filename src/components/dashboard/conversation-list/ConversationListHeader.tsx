@@ -80,7 +80,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
             size="sm"
             onClick={markAllAsRead}
             disabled={isMarkingAllAsRead || unreadCount === 0}
-            className="h-7 gap-1 text-xs px-2"
+            className="h-6 gap-0.5 text-xs px-1.5"
           >
             <CheckCheck className="w-3 h-3" />
             <span className="hidden sm:inline">
