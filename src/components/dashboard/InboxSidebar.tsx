@@ -151,10 +151,10 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
   return (
     <div className="pane flex flex-col bg-card/90 backdrop-blur-sm shadow-surface">
       {/* Create Button */}
-      <div className="flex-shrink-0 p-4">
+      <div className="flex-shrink-0 p-2">
         <NewConversationDialog>
-          <Button className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow">
-            <Plus className="mr-2 h-4 w-4" />
+          <Button className="w-full h-8 bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow text-sm">
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
             {t('dashboard.sidebar.newConversation')}
           </Button>
         </NewConversationDialog>
@@ -162,15 +162,15 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
 
       {/* Inbox Categories - Scrollable Content */}
       <div className="pane flex-1 min-h-0">
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inbox')}</h3>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <Filter className="h-3 w-3" />
+        <div className="px-1">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.sidebar.inbox')}</h3>
+            <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+              <Filter className="h-2.5 w-2.5" />
             </Button>
           </div>
           
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isSelected = selectedTab === item.id;
@@ -180,17 +180,17 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                   key={item.id}
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start px-2 py-2 h-auto font-normal",
+                    "w-full justify-start px-2 py-1.5 h-7 font-normal text-sm",
                     isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
                   )}
                   onClick={() => onTabChange(item.id)}
                 >
-                  <Icon className="mr-3 h-4 w-4" />
+                  <Icon className="mr-2.5 h-3.5 w-3.5" />
                   <span className="flex-1 text-left">{item.label}</span>
                   {item.count > 0 && (
                     <Badge 
                       variant={isSelected ? "default" : "secondary"} 
-                      className="ml-auto h-5 text-xs"
+                      className="ml-auto h-4 text-xs px-1.5 min-w-0"
                     >
                       {item.count}
                     </Badge>
@@ -201,19 +201,19 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
           </div>
         </div>
 
-        <Separator className="my-4" />
+        <Separator className="my-3" />
 
         {/* Notifications */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.notifications')}</h3>
+        <div className="px-1">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.sidebar.notifications')}</h3>
           </div>
           
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start px-2 py-2 h-auto font-normal",
+                "w-full justify-start px-2 py-1.5 h-7 font-normal text-sm",
                 selectedTab === 'notifications' ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
               )}
               onClick={() => {
@@ -222,12 +222,12 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                 console.log('onTabChange called with notifications');
               }}
             >
-              <Bell className="mr-3 h-4 w-4" />
+              <Bell className="mr-2.5 h-3.5 w-3.5" />
               <span className="flex-1 text-left">{t('dashboard.sidebar.notifications')}</span>
               {unreadNotifications > 0 && (
                 <Badge 
                   variant={selectedTab === 'notifications' ? "default" : "secondary"} 
-                  className="ml-auto h-5 text-xs"
+                  className="ml-auto h-4 text-xs px-1.5 min-w-0"
                 >
                   {unreadNotifications}
                 </Badge>
@@ -236,24 +236,24 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
           </div>
         </div>
 
-        <Separator className="my-4" />
+        <Separator className="my-3" />
 
         {/* Channels */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.channels')}</h3>
+        <div className="px-1">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.sidebar.channels')}</h3>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-6 w-6 p-0"
+              className="h-5 w-5 p-0"
               onClick={() => setExpandedChannels(!expandedChannels)}
             >
-              <Filter className="h-3 w-3" />
+              <Filter className="h-2.5 w-2.5" />
             </Button>
           </div>
           
           {expandedChannels && (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {channelItems.map((item) => {
                 const Icon = item.icon;
                 const isSelected = selectedTab === item.id;
@@ -263,14 +263,14 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                     key={item.id}
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start px-2 py-2 h-auto font-normal",
+                      "w-full justify-start px-2 py-1.5 h-7 font-normal text-sm",
                       isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
                     )}
                     onClick={() => onTabChange(item.id)}
                   >
                     <Icon 
                       className={cn(
-                        "mr-3 h-4 w-4",
+                        "mr-2.5 h-3.5 w-3.5",
                         `text-${item.color}`
                       )} 
                     />
@@ -278,7 +278,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                     {item.count > 0 && (
                       <Badge 
                         variant={isSelected ? "default" : "secondary"} 
-                        className="ml-auto h-5 text-xs"
+                        className="ml-auto h-4 text-xs px-1.5 min-w-0"
                       >
                         {item.count}
                       </Badge>
@@ -290,24 +290,24 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
           )}
         </div>
 
-        <Separator className="my-4" />
+        <Separator className="my-3" />
 
         {/* Inboxes */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.sidebar.inboxes')}</h3>
+        <div className="px-1">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.sidebar.inboxes')}</h3>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-6 w-6 p-0"
+              className="h-5 w-5 p-0"
               onClick={() => setExpandedInboxes(!expandedInboxes)}
             >
-              <Filter className="h-3 w-3" />
+              <Filter className="h-2.5 w-2.5" />
             </Button>
           </div>
           
           {expandedInboxes && (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {inboxes.filter(inbox => inbox.is_active).map((inbox) => {
                 const isSelected = selectedTab === `inbox-${inbox.id}`;
                 
@@ -316,20 +316,20 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
                     key={inbox.id}
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start px-2 py-2 h-auto font-normal",
+                      "w-full justify-start px-2 py-1.5 h-7 font-normal text-sm",
                       isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
                     )}
                     onClick={() => onTabChange(`inbox-${inbox.id}`)}
                   >
                     <div 
-                      className="mr-3 w-3 h-3 rounded-full flex-shrink-0" 
+                      className="mr-2.5 w-2.5 h-2.5 rounded-full flex-shrink-0" 
                       style={{ backgroundColor: inbox.color }}
                     />
                     <span className="flex-1 text-left truncate">{inbox.name}</span>
                     {inbox.conversation_count > 0 && (
                       <Badge 
                         variant={isSelected ? "default" : "secondary"} 
-                        className="ml-auto h-5 text-xs"
+                        className="ml-auto h-4 text-xs px-1.5 min-w-0"
                       >
                         {inbox.conversation_count}
                       </Badge>

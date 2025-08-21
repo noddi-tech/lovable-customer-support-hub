@@ -60,7 +60,7 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
       {/* Desktop Layout */}
       <div
         className={cn(
-          "hidden md:block cursor-pointer hover:bg-accent/50 transition-colors border-b border-border/50",
+          "hidden md:block cursor-pointer hover:bg-accent/50 transition-colors border-b border-border/30",
           isSelected && "bg-accent border-primary/20",
           !conversation.is_read && "bg-accent/30"
         )}
@@ -69,45 +69,38 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           onSelect(conversation);
         }}
       >
-        <div className="px-4 py-3">
+        <div className="px-3 py-2">
           {/* Row 1: From, Subject, Date */}
-          <div className="grid grid-cols-12 gap-4 items-center mb-2">
-            <div className="col-span-3 min-w-0">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="flex-2 min-w-0">
               <div className="font-medium text-sm truncate">
                 {conversation.customer?.full_name || 'Unknown'}
               </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {conversation.customer?.email}
+            </div>
+            <div className="flex-3 min-w-0">
+              <div className="text-sm text-muted-foreground truncate">
+                {conversation.subject || t('dashboard.conversation.noSubject')}
               </div>
             </div>
-            <div className="col-span-6 min-w-0">
-              <div className="font-medium text-sm truncate mb-1">{conversation.subject}</div>
-              <div className="flex items-center space-x-1">
-                <ChannelIcon className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground capitalize">{conversation.channel}</span>
-              </div>
-            </div>
-            <div className="col-span-2 text-right">
-              <div className="text-xs text-muted-foreground">
-                {formatConversationTime(conversation.updated_at)}
-              </div>
+            <div className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+              {formatConversationTime(conversation.updated_at)}
               {!conversation.is_read && (
-                <div className="w-2 h-2 bg-primary rounded-full mt-1 ml-auto"></div>
+                <div className="w-1.5 h-1.5 bg-primary rounded-full ml-2 inline-block"></div>
               )}
             </div>
-            <div className="col-span-1 flex justify-end">
+            <div className="flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-8 w-8 p-0"
+                    className="h-6 w-6 p-0"
                     onClick={(e) => {
                       console.log('Desktop dropdown trigger clicked');
                       e.stopPropagation();
                     }}
                   >
-                    <MoreHorizontal className="h-4 w-4" />
+                    <MoreHorizontal className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -130,16 +123,27 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
             </div>
           </div>
           
-          {/* Row 2: Badges */}
-          <div className="flex items-center space-x-2">
-            <Badge className={cn("text-xs", statusColors[conversation.status])}>
-              {conversation.status}
+          {/* Row 2: Status, Priority, Channel badges */}
+          <div className="flex items-center gap-1.5 text-xs">
+            <Badge 
+              className={cn("text-xs px-1.5 py-0 h-4", statusColors[conversation.status])}
+            >
+              {t(`dashboard.conversation.status.${conversation.status}`)}
             </Badge>
-            <Badge className={cn("text-xs", priorityColors[conversation.priority])}>
-              {conversation.priority}
+            
+            <Badge 
+              className={cn("text-xs px-1.5 py-0 h-4", priorityColors[conversation.priority])}
+            >
+              {t(`dashboard.conversation.priority.${conversation.priority}`)}
             </Badge>
+            
+            <div className="flex items-center text-muted-foreground">
+              <ChannelIcon className="h-3 w-3 mr-1" />
+              <span className="text-xs capitalize">{conversation.channel}</span>
+            </div>
+
             {isSnoozed && (
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs px-1.5 py-0 h-4">
                 <Clock className="w-3 h-3 mr-1" />
                 Snoozed
               </Badge>
@@ -151,7 +155,7 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
       {/* Mobile Layout */}
       <div
         className={cn(
-          "block md:hidden cursor-pointer border border-border rounded-lg p-3 mb-2 bg-card hover:bg-accent/50 transition-colors",
+          "block md:hidden cursor-pointer border border-border/30 rounded-lg p-2 mb-1.5 bg-card hover:bg-accent/50 transition-colors",
           isSelected && "border-primary bg-accent",
           !conversation.is_read && "bg-accent/30"
         )}
@@ -160,9 +164,9 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           onSelect(conversation);
         }}
       >
-        <div className="flex items-start justify-between mb-2">
+        <div className="flex items-start justify-between mb-1.5">
           <div className="flex items-center space-x-2 flex-1 min-w-0">
-            <Avatar className="h-8 w-8 flex-shrink-0">
+            <Avatar className="h-7 w-7 flex-shrink-0">
               <AvatarFallback className="text-xs">
                 {conversation.customer?.full_name?.[0] || 'C'}
               </AvatarFallback>
@@ -178,14 +182,14 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           </div>
           <div className="flex items-center space-x-1 flex-shrink-0">
             {!conversation.is_read && (
-              <div className="w-2 h-2 bg-primary rounded-full"></div>
+              <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-6 w-6 p-0"
+                  className="h-5 w-5 p-0"
                   onClick={(e) => {
                     console.log('Mobile dropdown trigger clicked');
                     e.stopPropagation();
@@ -214,17 +218,17 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           </div>
         </div>
         
-        <div className="text-sm font-medium truncate mb-2">{conversation.subject}</div>
+        <div className="text-sm font-medium truncate mb-1.5">{conversation.subject}</div>
         
-        <div className="flex flex-wrap items-center gap-1 mb-2">
-          <Badge className={cn("text-xs", statusColors[conversation.status])}>
+        <div className="flex flex-wrap items-center gap-1 mb-1.5">
+          <Badge className={cn("text-xs px-1.5 py-0 h-4", statusColors[conversation.status])}>
             {conversation.status}
           </Badge>
-          <Badge className={cn("text-xs", priorityColors[conversation.priority])}>
+          <Badge className={cn("text-xs px-1.5 py-0 h-4", priorityColors[conversation.priority])}>
             {conversation.priority}
           </Badge>
           {isSnoozed && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs px-1.5 py-0 h-4">
               <Clock className="w-3 h-3 mr-1" />
               Snoozed
             </Badge>

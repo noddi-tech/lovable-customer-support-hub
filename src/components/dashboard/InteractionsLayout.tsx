@@ -64,20 +64,20 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
   const isDesktop = useIsDesktop();
   const { t } = useTranslation();
   
-  // Panel persistence
+  // Panel persistence with optimized proportions
   const { getPanelSize, updatePanelSize } = useResizablePanels({
     storageKey: 'interactions-layout',
     defaultSizes: {
-      conversationList: isMobile ? 100 : isTablet ? 35 : 30,
-      conversationView: isMobile ? 100 : isTablet ? 65 : 70
+      conversationList: isMobile ? 100 : isTablet ? 32 : 28,
+      conversationView: isMobile ? 100 : isTablet ? 68 : 72
     },
     minSizes: {
-      conversationList: isMobile ? 100 : 25,
-      conversationView: isMobile ? 100 : 25
+      conversationList: isMobile ? 100 : 20,
+      conversationView: isMobile ? 100 : 30
     },
     maxSizes: {
-      conversationList: isMobile ? 100 : 75,
-      conversationView: isMobile ? 100 : 75
+      conversationList: isMobile ? 100 : 60,
+      conversationView: isMobile ? 100 : 80
     }
   });
   
@@ -170,10 +170,10 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
           <>
             <ResizablePanel 
               defaultSize={getPanelSize('conversationList')}
-              minSize={getPanelSize('conversationList') < 100 ? 25 : 100}
-              maxSize={getPanelSize('conversationList') < 100 ? 75 : 100}
+              minSize={getPanelSize('conversationList') < 100 ? 20 : 100}
+              maxSize={getPanelSize('conversationList') < 100 ? 60 : 100}
               onResize={(size) => updatePanelSize('conversationList', size)}
-              className="flex flex-col bg-card border-r border-border min-h-0"
+              className="flex flex-col bg-card border-r border-border/30 min-h-0"
             >
               <ConversationList 
                 selectedConversation={selectedConversation}
