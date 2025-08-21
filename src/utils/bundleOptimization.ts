@@ -10,8 +10,11 @@ export const dynamicImport = async <T = any>(
   componentName?: string
 ): Promise<T> => {
   try {
-    const module = await importFn();
-    return 'default' in module ? module.default : module;
+    const mod = await importFn();
+    if (mod && typeof mod === 'object' && 'default' in mod) {
+      return (mod as { default: T }).default;
+    }
+    return mod as T;
   } catch (error) {
     console.error(`Failed to dynamically import ${componentName || 'module'}:`, error);
     throw error;

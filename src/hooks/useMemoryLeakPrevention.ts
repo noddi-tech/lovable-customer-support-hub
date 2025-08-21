@@ -17,8 +17,8 @@ export const useMemoryLeakPrevention = (
     checkIntervalMs = 30000, // 30 seconds
   } = options;
 
-  const timeoutsRef = useRef<Set<number>>(new Set());
-  const intervalsRef = useRef<Set<number>>(new Set());
+  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const intervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set());
   const eventListenersRef = useRef<Array<{
     element: EventTarget;
     type: string;
@@ -29,13 +29,13 @@ export const useMemoryLeakPrevention = (
   const subscriptionsRef = useRef<Set<{ unsubscribe: () => void }>>(new Set());
 
   // Memory check interval
-  const memoryCheckRef = useRef<number | null>(null);
+  const memoryCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Enhanced setTimeout with tracking
   const safeSetTimeout = useCallback((
     callback: () => void,
     delay: number
-  ): number => {
+  ): ReturnType<typeof setTimeout> => {
     const timeout = setTimeout(() => {
       timeoutsRef.current.delete(timeout);
       callback();
@@ -58,7 +58,7 @@ export const useMemoryLeakPrevention = (
   const safeSetInterval = useCallback((
     callback: () => void,
     delay: number
-  ): number => {
+  ): ReturnType<typeof setInterval> => {
     const interval = setInterval(callback, delay);
     intervalsRef.current.add(interval);
     
@@ -132,13 +132,13 @@ export const useMemoryLeakPrevention = (
   }, [componentName, enableLogging]);
 
   // Clear timeout with tracking
-  const safeClearTimeout = useCallback((timeout: number) => {
+  const safeClearTimeout = useCallback((timeout: ReturnType<typeof setTimeout>) => {
     clearTimeout(timeout);
     timeoutsRef.current.delete(timeout);
   }, []);
 
   // Clear interval with tracking
-  const safeClearInterval = useCallback((interval: number) => {
+  const safeClearInterval = useCallback((interval: ReturnType<typeof setInterval>) => {
     clearInterval(interval);
     intervalsRef.current.delete(interval);
   }, []);
