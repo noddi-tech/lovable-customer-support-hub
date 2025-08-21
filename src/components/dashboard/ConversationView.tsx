@@ -61,6 +61,9 @@ import { useTranslation } from 'react-i18next';
 import { cn } from "@/lib/utils";
 import { useAuth } from '@/hooks/useAuth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { useResizablePanels } from '@/hooks/useResizablePanels';
+import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import DOMPurify from 'dompurify';
 
 interface ConversationViewProps {
@@ -101,6 +104,28 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const [sendLoading, setSendLoading] = useState(false);
   const [showReplyArea, setShowReplyArea] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Responsive hooks
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const isDesktop = useIsDesktop();
+  
+  // Panel persistence for conversation view
+  const { getPanelSize, updatePanelSize } = useResizablePanels({
+    storageKey: 'conversation-layout',
+    defaultSizes: {
+      messages: isMobile ? 100 : isTablet ? 75 : 70,
+      sidebar: isMobile ? 0 : isTablet ? 25 : 30
+    },
+    minSizes: {
+      messages: isMobile ? 100 : 50,
+      sidebar: isMobile ? 0 : 20
+    },
+    maxSizes: {
+      messages: isMobile ? 100 : 80,
+      sidebar: isMobile ? 0 : 50
+    }
+  });
 
   // Auto-scroll when reply area is opened
   useEffect(() => {
@@ -548,351 +573,571 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-h-0 flex">
-        {/* Messages and Reply Area */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Messages Area - Scrollable */}
-          <div className="flex-1 min-h-0 overflow-y-auto" aria-label="Conversation messages">
-            <div 
-              ref={messagesContainerRef}
-              className="p-3 md:p-6 h-full"
-            >
-              <div className="space-y-4 max-w-4xl mx-auto w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
-                {messages.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">
-                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>{t('conversation.noMessages')}</p>
-                  </div>
-                ) : (
-                messages.map((message, index) => {
-                  const isFromCustomer = message.sender_type === 'customer';
-                  
-                  return (
-                    <Card key={message.id} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center space-x-3">
-                             <Avatar className="h-8 w-8">
-                               <AvatarFallback className={isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                                 {message.sender_id?.[0] || (isFromCustomer ? 'C' : 'A')}
-                               </AvatarFallback>
-                             </Avatar>
-                             <div>
-                              <div className="font-medium text-sm">
-                                {isFromCustomer ? conversation.customer?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
-                              </div>
-                               <div className="text-xs text-muted-foreground">
-                                 {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
+      <div className="flex-1 min-h-0">
+        {isMobile ? (
+          /* Mobile: Single panel layout */
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Messages Area - Mobile */}
+            <ScrollArea className="flex-1 min-h-0">
+              <div 
+                ref={messagesContainerRef}
+                className="p-3 md:p-6"
+              >
+                <div className="space-y-4 w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
+                  {messages.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>{t('conversation.noMessages')}</p>
+                    </div>
+                  ) : (
+                    messages.map((message, index) => {
+                      const isFromCustomer = message.sender_type === 'customer';
+                      
+                      return (
+                        <Card key={message.id} className="overflow-hidden">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-3">
+                                 <Avatar className="h-8 w-8">
+                                   <AvatarFallback className={isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"}>
+                                     {message.sender_id?.[0] || (isFromCustomer ? 'C' : 'A')}
+                                   </AvatarFallback>
+                                 </Avatar>
+                                 <div>
+                                  <div className="font-medium text-sm">
+                                    {isFromCustomer ? conversation.customer?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
+                                  </div>
+                                   <div className="text-xs text-muted-foreground">
+                                     {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
+                                   </div>
+                                 </div>
                                </div>
-                             </div>
-                           </div>
-                           {message.is_internal && (
-                            <Badge variant="outline" className="text-xs">
-                              {t('conversation.internalNote')}
-                            </Badge>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <EmailRender
-                          content={message.content}
-                          contentType={message.content_type || 'text/plain'}
-                          attachments={((message.attachments as unknown) as EmailAttachment[]) || []}
-                          messageId={message.id}
-                        />
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
+                               {message.is_internal && (
+                                <Badge variant="outline" className="text-xs">
+                                  {t('conversation.internalNote')}
+                                </Badge>
+                              )}
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <EmailRender
+                              content={message.content}
+                              contentType={message.content_type || 'text/plain'}
+                              attachments={((message.attachments as unknown) as EmailAttachment[]) || []}
+                              messageId={message.id}
+                            />
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  )}
 
-              {/* Reply Area - Inside scrollable content */}
-              {conversation.status === 'open' && !conversation.is_archived && showReplyArea && (
-                <div className="mt-8 p-4 space-y-4 max-w-4xl mx-auto w-full border-t border-border bg-card/50 rounded-lg">
-                  {/* Quick Reply Header */}
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg shadow-sm">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          A
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium text-sm">Reply to this conversation</div>
-                        <div className="text-xs text-muted-foreground">Type your response or use AI suggestions</div>
+                  {/* Reply Area - Mobile */}
+                  {conversation.status === 'open' && !conversation.is_archived && showReplyArea && (
+                    <div className="mt-8 p-4 space-y-4 w-full border-t border-border bg-card/50 rounded-lg">
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg shadow-sm">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-primary text-primary-foreground">A</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium text-sm">Reply to this conversation</div>
+                            <div className="text-xs text-muted-foreground">Type your response or use AI suggestions</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={getAiSuggestions}
+                            disabled={aiLoading}
+                            className="text-primary hover:text-primary/80"
+                          >
+                            {aiLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Sparkles className="h-4 w-4 mr-2" />
+                            )}
+                            AI Suggest
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setShowReplyArea(false)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant={isInternalNote ? "outline" : "default"}
+                            size="sm"
+                            onClick={() => setIsInternalNote(false)}
+                            className="flex-1 max-w-[120px]"
+                          >
+                            <Reply className="h-4 w-4 mr-2" />
+                            Reply
+                          </Button>
+                          <Button
+                            variant={isInternalNote ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setIsInternalNote(true)}
+                            className="flex-1 max-w-[140px]"
+                          >
+                            <Lock className="h-4 w-4 mr-2" />
+                            Internal Note
+                          </Button>
+                        </div>
+
+                        <div className="relative">
+                          <Textarea
+                            ref={replyRef}
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            onKeyDown={handleKeyPress}
+                            placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
+                            className="min-h-[100px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg resize-none"
+                          />
+                          
+                          <div className="absolute bottom-3 right-3 flex items-center space-x-2">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                              <Paperclip className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                              <Smile className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                            <div className="flex items-center space-x-1">
+                              <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
+                              <span>+</span>
+                              <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Enter</kbd>
+                              <span>to send</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <Button variant="outline" size="sm" onClick={() => setReplyText('')} disabled={sendLoading}>
+                              Cancel
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              disabled={!replyText.trim() || sendLoading}
+                              onClick={handleSendReply}
+                              className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                            >
+                              {sendLoading ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4 mr-2" />
+                              )}
+                              {isInternalNote ? 'Add Note' : 'Send Reply'}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                  )}
+                </div>
+              </div>
+            </ScrollArea>
+          </div>
+        ) : (
+          /* Desktop/Tablet: Resizable panel layout */
+          <ResizablePanelGroup direction="horizontal" className="flex-1">
+            {/* Messages Panel */}
+            <ResizablePanel 
+              defaultSize={getPanelSize('messages')}
+              minSize={getPanelSize('messages') < 100 ? 50 : 100}
+              maxSize={getPanelSize('messages') < 100 ? 80 : 100}
+              onResize={(size) => updatePanelSize('messages', size)}
+              className="flex flex-col min-h-0"
+            >
+              <ScrollArea className="flex-1 min-h-0">
+                <div 
+                  ref={messagesContainerRef}
+                  className="p-3 md:p-6"
+                >
+                  <div className="space-y-4 max-w-4xl mx-auto w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
+                    {messages.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-8">
+                        <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>{t('conversation.noMessages')}</p>
+                      </div>
+                    ) : (
+                      messages.map((message, index) => {
+                        const isFromCustomer = message.sender_type === 'customer';
+                        
+                        return (
+                          <Card key={message.id} className="overflow-hidden">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center space-x-3">
+                                   <Avatar className="h-8 w-8">
+                                     <AvatarFallback className={isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"}>
+                                       {message.sender_id?.[0] || (isFromCustomer ? 'C' : 'A')}
+                                     </AvatarFallback>
+                                   </Avatar>
+                                   <div>
+                                    <div className="font-medium text-sm">
+                                      {isFromCustomer ? conversation.customer?.full_name || t('conversation.customer') : message.sender_id || t('conversation.agent')}
+                                    </div>
+                                     <div className="text-xs text-muted-foreground">
+                                       {message.created_at ? dateTime(message.created_at) : t('conversation.unknownTime')}
+                                     </div>
+                                   </div>
+                                 </div>
+                                 {message.is_internal && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {t('conversation.internalNote')}
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <EmailRender
+                                content={message.content}
+                                contentType={message.content_type || 'text/plain'}
+                                attachments={((message.attachments as unknown) as EmailAttachment[]) || []}
+                                messageId={message.id}
+                              />
+                            </CardContent>
+                          </Card>
+                        );
+                      })
+                    )}
+
+                    {/* Reply Area - Desktop */}
+                    {conversation.status === 'open' && !conversation.is_archived && showReplyArea && (
+                      <div className="mt-8 p-4 space-y-4 max-w-4xl mx-auto w-full border-t border-border bg-card/50 rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg shadow-sm">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-primary text-primary-foreground">A</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium text-sm">Reply to this conversation</div>
+                              <div className="text-xs text-muted-foreground">Type your response or use AI suggestions</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={getAiSuggestions}
+                              disabled={aiLoading}
+                              className="text-primary hover:text-primary/80"
+                            >
+                              {aiLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Sparkles className="h-4 w-4 mr-2" />
+                              )}
+                              AI Suggest
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setShowReplyArea(false)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant={isInternalNote ? "outline" : "default"}
+                              size="sm"
+                              onClick={() => setIsInternalNote(false)}
+                              className="flex-1 max-w-[120px]"
+                            >
+                              <Reply className="h-4 w-4 mr-2" />
+                              Reply
+                            </Button>
+                            <Button
+                              variant={isInternalNote ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setIsInternalNote(true)}
+                              className="flex-1 max-w-[140px]"
+                            >
+                              <Lock className="h-4 w-4 mr-2" />
+                              Internal Note
+                            </Button>
+                          </div>
+
+                          <div className="relative">
+                            <Textarea
+                              ref={replyRef}
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              onKeyDown={handleKeyPress}
+                              placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
+                              className="min-h-[100px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg resize-none"
+                            />
+                            
+                            <div className="absolute bottom-3 right-3 flex items-center space-x-2">
+                              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                                <Paperclip className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                                <Smile className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                              <div className="flex items-center space-x-1">
+                                <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
+                                <span>+</span>
+                                <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Enter</kbd>
+                                <span>to send</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                              <Button variant="outline" size="sm" onClick={() => setReplyText('')} disabled={sendLoading}>
+                                Cancel
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                disabled={!replyText.trim() || sendLoading}
+                                onClick={handleSendReply}
+                                className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                              >
+                                {sendLoading ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4 mr-2" />
+                                )}
+                                {isInternalNote ? 'Add Note' : 'Send Reply'}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </ScrollArea>
+            </ResizablePanel>
+            
+            {/* Resizable Handle - Only show on desktop/tablet and when sidebar is visible */}
+            {showCustomerInfo && (
+              <>
+                <ResizableHandle withHandle />
+                
+                {/* Customer Info Sidebar Panel */}
+                <ResizablePanel 
+                  defaultSize={getPanelSize('sidebar')}
+                  minSize={20}
+                  maxSize={50}
+                  onResize={(size) => updatePanelSize('sidebar', size)}
+                  className="border-l border-border bg-card/50 backdrop-blur-sm"
+                >
+                  <div className="flex flex-col h-full">
+                    {/* Sidebar Header with collapse button */}
+                    <div className="flex items-center justify-between p-4 border-b border-border">
+                      <h3 className="font-semibold text-sm">Customer Info</h3>
                       <Button 
                         variant="ghost" 
-                        size="sm" 
-                        onClick={getAiSuggestions}
-                        disabled={aiLoading}
-                        className="text-primary hover:text-primary/80"
-                      >
-                        {aiLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <Sparkles className="h-4 w-4 mr-2" />
-                        )}
-                        AI Suggest
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setShowReplyArea(false)}
-                        className="text-muted-foreground hover:text-foreground"
+                        size="sm"
+                        onClick={() => setShowCustomerInfo(false)}
+                        className="h-8 w-8 p-0"
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
+                    
+                    <ScrollArea className="flex-1">
+                      <div className="p-4 space-y-6">
+                        {/* Reply Actions - Top Priority */}
+                        {conversation.status === 'open' && !conversation.is_archived && (
+                          <div>
+                            <h3 className="font-semibold text-sm mb-3 flex items-center">
+                              <Reply className="h-4 w-4 mr-2" />
+                              Actions
+                            </h3>
+                            <div className="space-y-2">
+                              <Button 
+                                onClick={() => {
+                                  setIsInternalNote(false);
+                                  setShowReplyArea(true);
+                                }}
+                                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                                size="sm"
+                              >
+                                <Reply className="h-4 w-4 mr-2" />
+                                Reply
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                onClick={() => {
+                                  setIsInternalNote(true);
+                                  setShowReplyArea(true);
+                                }}
+                                className="w-full"
+                                size="sm"
+                              >
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Add Note
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {(conversation.status === 'open' && !conversation.is_archived) && <Separator />}
 
-                  {/* Reply Form */}
-                  <div className="space-y-3">
-                    {/* Reply Type Toggle */}
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant={isInternalNote ? "outline" : "default"}
-                        size="sm"
-                        onClick={() => setIsInternalNote(false)}
-                        className="flex-1 max-w-[120px]"
-                      >
-                        <Reply className="h-4 w-4 mr-2" />
-                        Reply
-                      </Button>
-                      <Button
-                        variant={isInternalNote ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setIsInternalNote(true)}
-                        className="flex-1 max-w-[140px]"
-                      >
-                        <Lock className="h-4 w-4 mr-2" />
-                        Internal Note
-                      </Button>
-                    </div>
+                        {/* Customer Details */}
+                        <div>
+                          <h3 className="font-semibold text-sm mb-3 flex items-center">
+                            <UserCheck className="h-4 w-4 mr-2" />
+                            {t('conversation.customerDetails')}
+                          </h3>
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium text-sm">{conversation.customer?.full_name || t('conversation.unknownCustomer')}</div>
+                                <div className="text-xs text-muted-foreground">{conversation.customer?.email}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                    {/* Text Area */}
-                    <div className="relative">
-                      <Textarea
-                        ref={replyRef}
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder={isInternalNote ? "Write an internal note..." : "Type your reply here..."}
-                        className="min-h-[100px] pr-32 text-base border-2 border-border focus:border-primary/50 rounded-lg resize-none"
-                      />
-                      
-                      {/* Action Buttons - Right Side */}
-                      <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                          <Paperclip className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                          <Smile className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                        <Separator />
 
-                    {/* Send Actions Row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3 text-sm text-muted-foreground">
-                        <div className="flex items-center space-x-1">
-                          <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Ctrl</kbd>
-                          <span>+</span>
-                          <kbd className="px-2 py-1 text-xs font-mono bg-muted rounded border">Enter</kbd>
-                          <span>to send</span>
+                        {/* Quick Actions */}
+                        <div>
+                          <h3 className="font-semibold text-sm mb-3 flex items-center">
+                            <Star className="h-4 w-4 mr-2" />
+                            {t('conversation.quickActions')}
+                          </h3>
+                          <div className="space-y-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => setAssignDialogOpen(true)}
+                            >
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              {t('conversation.assignTo')}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => updateStatusMutation.mutate({ isArchived: !conversation.is_archived })}
+                            >
+                              <Archive className="h-4 w-4 mr-2" />
+                              {conversation.is_archived ? t('conversation.unarchive') : t('conversation.archive')}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => setSnoozeDialogOpen(true)}
+                            >
+                              <Clock className="h-4 w-4 mr-2" />
+                              {t('conversation.snooze')}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => updateStatusMutation.mutate({ status: conversation.status === 'open' ? 'closed' : 'open' })}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              {conversation.status === 'open' ? t('conversation.markAsClosed') : t('conversation.reopen')}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Customer Notes */}
+                        <div>
+                          <h3 className="font-semibold text-sm mb-3 flex items-center">
+                            <Edit3 className="h-4 w-4 mr-2" />
+                            {t('conversation.customerNotes')}
+                          </h3>
+                          <div className="space-y-2">
+                            <Textarea 
+                              placeholder={t('conversation.addNote')}
+                              className="text-xs min-h-[80px]"
+                            />
+                            <Button size="sm" className="w-full">
+                              <Save className="h-4 w-4 mr-2" />
+                              {t('conversation.saveNote')}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Conversation History */}
+                        <div>
+                          <h3 className="font-semibold text-sm mb-3 flex items-center">
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            {t('conversation.conversationHistory')}
+                          </h3>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div>Messages: {messages.length}</div>
+                            <div>Received: {conversation.received_at ? dateTime(conversation.received_at) : 'N/A'}</div>
+                            <div>Last updated: {conversation.updated_at ? dateTime(conversation.updated_at) : 'N/A'}</div>
+                          </div>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center space-x-3">
-                        <Button variant="outline" size="sm" onClick={() => setReplyText('')} disabled={sendLoading}>
-                          Cancel
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          disabled={!replyText.trim() || sendLoading}
-                          onClick={handleSendReply}
-                          className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-                        >
-                          {sendLoading ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Send className="h-4 w-4 mr-2" />
-                          )}
-                          {isInternalNote ? 'Add Note' : 'Send Reply'}
-                        </Button>
-                      </div>
-                    </div>
+                    </ScrollArea>
                   </div>
-                </div>
-              )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Customer Info Sidebar - Desktop Only */}
-        <div className="hidden lg:block w-80 border-l border-border bg-card/50 backdrop-blur-sm">
-          <div className="h-full overflow-y-auto">
-            <div className="p-4 space-y-6">
-            {/* Reply Actions - Top Priority */}
-            {conversation.status === 'open' && !conversation.is_archived && (
-              <div>
-                <h3 className="font-semibold text-sm mb-3 flex items-center">
-                  <Reply className="h-4 w-4 mr-2" />
-                  Actions
-                </h3>
-                <div className="space-y-2">
-                  <Button 
-                    onClick={() => {
-                      setIsInternalNote(false);
-                      setShowReplyArea(true);
-                    }}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-                    size="sm"
-                  >
-                    <Reply className="h-4 w-4 mr-2" />
-                    Reply
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setIsInternalNote(true);
-                      setShowReplyArea(true);
-                    }}
-                    className="w-full"
-                    size="sm"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Add Note
-                  </Button>
-                </div>
-              </div>
+                </ResizablePanel>
+              </>
             )}
-            
-            {(conversation.status === 'open' && !conversation.is_archived) && <Separator />}
+          </ResizablePanelGroup>
+        )}
 
-            {/* Customer Details */}
-            <div>
-              <h3 className="font-semibold text-sm mb-3 flex items-center">
-                <UserCheck className="h-4 w-4 mr-2" />
-                {t('conversation.customerDetails')}
-              </h3>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>{conversation.customer?.full_name?.[0] || 'C'}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium text-sm">{conversation.customer?.full_name || t('conversation.unknownCustomer')}</div>
-                    <div className="text-xs text-muted-foreground">{conversation.customer?.email}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Quick Actions */}
-            <div>
-              <h3 className="font-semibold text-sm mb-3 flex items-center">
-                <Star className="h-4 w-4 mr-2" />
-                {t('conversation.quickActions')}
-              </h3>
-              <div className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
-                  onClick={() => setAssignDialogOpen(true)}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  {t('conversation.assignTo')}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
-                  onClick={() => updateStatusMutation.mutate({ isArchived: !conversation.is_archived })}
-                >
-                  <Archive className="h-4 w-4 mr-2" />
-                  {conversation.is_archived ? t('conversation.unarchive') : t('conversation.archive')}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
-                  onClick={() => setSnoozeDialogOpen(true)}
-                >
-                  <Clock className="h-4 w-4 mr-2" />
-                  {t('conversation.snooze')}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
-                  onClick={() => updateStatusMutation.mutate({ status: conversation.status === 'open' ? 'closed' : 'open' })}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {conversation.status === 'open' ? t('conversation.markAsClosed') : t('conversation.reopen')}
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Customer Notes */}
-            <div>
-              <h3 className="font-semibold text-sm mb-3 flex items-center">
-                <Edit3 className="h-4 w-4 mr-2" />
-                {t('conversation.customerNotes')}
-              </h3>
-              <div className="space-y-2">
-                <Textarea 
-                  placeholder={t('conversation.addNote')}
-                  className="text-xs min-h-[80px]"
-                />
-                <Button size="sm" className="w-full">
-                  <Save className="h-4 w-4 mr-2" />
-                  {t('conversation.saveNote')}
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Conversation History */}
-            <div>
-              <h3 className="font-semibold text-sm mb-3 flex items-center">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                {t('conversation.conversationHistory')}
-              </h3>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <div>Messages: {messages.length}</div>
-                <div>Received: {conversation.received_at ? dateTime(conversation.received_at) : 'N/A'}</div>
-                <div>Last updated: {conversation.updated_at ? dateTime(conversation.updated_at) : 'N/A'}</div>
-              </div>
-            </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Mobile-optimized floating reply button */}
-        <div className="lg:hidden fixed bottom-4 right-4 z-40">
-          {conversation.status === 'open' && !conversation.is_archived && (
+        {/* Show Sidebar Button - When sidebar is hidden on desktop/tablet */}
+        {!isMobile && !showCustomerInfo && (
+          <div className="fixed bottom-4 right-4 z-40">
             <Button 
-              onClick={() => {
-                setIsInternalNote(false);
-                setShowReplyArea(true);
-              }}
+              onClick={() => setShowCustomerInfo(true)}
               size="lg"
-              className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+              variant="outline"
+              className="h-12 px-4 bg-card/90 backdrop-blur-sm border shadow-lg"
             >
-              <Reply className="h-6 w-6" />
+              <UserCheck className="h-5 w-5 mr-2" />
+              <span>Show Customer Info</span>
             </Button>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
+        
+      {/* Mobile-optimized floating reply button */}
+      <div className="lg:hidden fixed bottom-4 right-4 z-40">
+        {conversation.status === 'open' && !conversation.is_archived && (
+          <Button 
+            onClick={() => {
+              setIsInternalNote(false);
+              setShowReplyArea(true);
+            }}
+            size="lg"
+            className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+          >
+            <Reply className="h-6 w-6" />
+          </Button>
+        )}
       </div>
 
       {/* Assign Dialog */}
