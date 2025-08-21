@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { 
   Type, 
   Image, 
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { NewsletterCanvas } from './newsletter/NewsletterCanvas';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BlocksPalette } from './newsletter/BlocksPalette';
@@ -52,6 +54,9 @@ export interface NewsletterBlock {
 const NewsletterBuilder = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const isDesktop = useIsDesktop();
   
   const {
     blocks,
@@ -210,72 +215,163 @@ const NewsletterBuilder = () => {
 
       {/* Main Content */}
       <div className="app-main flex">
-        {/* Left Sidebar - Blocks */}
-        <div className="nav-pane border-r bg-card">
-          <Tabs defaultValue="blocks" className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
+        {isMobile ? (
+          // Mobile: Tabs-based layout without resizing
+          <Tabs defaultValue="canvas" className="flex-1 flex flex-col">
+            <TabsList className="grid w-full grid-cols-3 rounded-none border-b bg-card">
               <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
-              <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
+              <TabsTrigger value="canvas">{t('canvas')}</TabsTrigger>
+              <TabsTrigger value="properties">{t('properties')}</TabsTrigger>
             </TabsList>
             <TabsContent value="blocks" className="flex-1 m-0 min-h-0">
               <div className="pane">
-                <BlocksPalette onAddBlock={addBlock} />
+                <Tabs defaultValue="blocks" className="h-full flex flex-col">
+                  <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
+                    <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
+                    <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="blocks" className="flex-1 m-0 min-h-0">
+                    <BlocksPalette onAddBlock={addBlock} />
+                  </TabsContent>
+                  <TabsContent value="templates" className="flex-1 m-0 min-h-0">
+                    <TemplateLibrary />
+                  </TabsContent>
+                </Tabs>
               </div>
             </TabsContent>
-            <TabsContent value="templates" className="flex-1 m-0 min-h-0">
-              <div className="pane">
-                <TemplateLibrary />
-              </div>
+            <TabsContent value="canvas" className="flex-1 m-0 min-h-0">
+              <DndContext
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+                  <NewsletterCanvas
+                    blocks={blocks}
+                    selectedBlockId={selectedBlockId}
+                    onSelectBlock={selectBlock}
+                    previewDevice={previewDevice}
+                    isDarkMode={isDarkMode}
+                    globalStyles={globalStyles}
+                  />
+                </SortableContext>
+                <DragOverlay>
+                  {activeId ? (
+                    <div className="bg-card border rounded-lg p-4 shadow-lg">
+                      {t('dragging')}...
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
             </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Center Canvas */}
-        <div className="list-pane flex flex-col min-h-0">
-          <DndContext
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
-              <NewsletterCanvas
-                blocks={blocks}
-                selectedBlockId={selectedBlockId}
-                onSelectBlock={selectBlock}
-                previewDevice={previewDevice}
-                isDarkMode={isDarkMode}
-                globalStyles={globalStyles}
-              />
-            </SortableContext>
-            <DragOverlay>
-              {activeId ? (
-                <div className="bg-card border rounded-lg p-4 shadow-lg">
-                  {t('dragging')}...
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        </div>
-
-        {/* Right Sidebar - Properties */}
-        <div className="detail-pane border-l bg-card">
-          <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
-              <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
-              <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
-              <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
-            </TabsList>
             <TabsContent value="properties" className="flex-1 m-0 min-h-0">
-              <PropertiesPanel selectedBlockId={selectedBlockId} />
-            </TabsContent>
-            <TabsContent value="global" className="flex-1 m-0 min-h-0">
-              <GlobalStylesPanel />
-            </TabsContent>
-            <TabsContent value="personalization" className="flex-1 m-0 min-h-0">
-              <PersonalizationPanel />
+              <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full flex flex-col">
+                <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
+                  <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
+                  <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
+                  <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
+                </TabsList>
+                <TabsContent value="properties" className="flex-1 m-0 min-h-0">
+                  <PropertiesPanel selectedBlockId={selectedBlockId} />
+                </TabsContent>
+                <TabsContent value="global" className="flex-1 m-0 min-h-0">
+                  <GlobalStylesPanel />
+                </TabsContent>
+                <TabsContent value="personalization" className="flex-1 m-0 min-h-0">
+                  <PersonalizationPanel />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           </Tabs>
-        </div>
+        ) : (
+          // Desktop/Tablet: Resizable panels
+          <ResizablePanelGroup direction="horizontal" className="flex-1">
+            {/* Left Sidebar - Blocks */}
+            <ResizablePanel 
+              defaultSize={isTablet ? 30 : 25}
+              minSize={20}
+              maxSize={40}
+              className="border-r bg-card"
+            >
+              <Tabs defaultValue="blocks" className="h-full flex flex-col">
+                <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
+                  <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
+                  <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
+                </TabsList>
+                <TabsContent value="blocks" className="flex-1 m-0 min-h-0">
+                  <div className="pane">
+                    <BlocksPalette onAddBlock={addBlock} />
+                  </div>
+                </TabsContent>
+                <TabsContent value="templates" className="flex-1 m-0 min-h-0">
+                  <div className="pane">
+                    <TemplateLibrary />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            {/* Center Canvas */}
+            <ResizablePanel 
+              defaultSize={isTablet ? 45 : 50}
+              minSize={30}
+              className="flex flex-col min-h-0"
+            >
+              <DndContext
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+                  <NewsletterCanvas
+                    blocks={blocks}
+                    selectedBlockId={selectedBlockId}
+                    onSelectBlock={selectBlock}
+                    previewDevice={previewDevice}
+                    isDarkMode={isDarkMode}
+                    globalStyles={globalStyles}
+                  />
+                </SortableContext>
+                <DragOverlay>
+                  {activeId ? (
+                    <div className="bg-card border rounded-lg p-4 shadow-lg">
+                      {t('dragging')}...
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            {/* Right Sidebar - Properties */}
+            <ResizablePanel 
+              defaultSize={isTablet ? 25 : 25}
+              minSize={20}
+              maxSize={40}
+              className="border-l bg-card"
+            >
+              <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full flex flex-col">
+                <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
+                  <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
+                  <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
+                  <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
+                </TabsList>
+                <TabsContent value="properties" className="flex-1 m-0 min-h-0">
+                  <PropertiesPanel selectedBlockId={selectedBlockId} />
+                </TabsContent>
+                <TabsContent value="global" className="flex-1 m-0 min-h-0">
+                  <GlobalStylesPanel />
+                </TabsContent>
+                <TabsContent value="personalization" className="flex-1 m-0 min-h-0">
+                  <PersonalizationPanel />
+                </TabsContent>
+              </Tabs>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
       </div>
 
       {/* Dialogs */}

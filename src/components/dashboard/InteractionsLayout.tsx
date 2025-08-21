@@ -8,6 +8,7 @@ import { VoiceInterface } from './VoiceInterface';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
 import { cn } from '@/lib/utils';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -103,60 +104,111 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
     return <VoiceInterface />;
   }
 
-  return (
-    <div className="flex flex-1 min-h-0">
-      {/* Conversation List Pane */}
-      {shouldShowConversationList && (
-        <div className={cn(
-          "flex flex-col bg-card border-r border-border min-h-0",
-          isMobile ? "w-full" : "w-[400px] flex-shrink-0"
-        )}>
-          <ConversationList 
-            selectedConversation={selectedConversation}
-            onSelectConversation={handleSelectConversation}
-            selectedInboxId={selectedInboxId}
-            selectedTab={selectedTab}
-            onToggleCollapse={isDesktop ? handleToggleConversationList : undefined}
-          />
-        </div>
-      )}
-      
-      {/* Conversation View Pane */}
-      <div className={cn(
-        "flex flex-col bg-background min-h-0",
-        isMobile ? "w-full" : "flex-1 min-w-0"
-      )}>
-        {/* Show/Hide Conversation List Button - Desktop only */}
-        {isDesktop && !shouldShowConversationList && (
-          <div className="p-4 border-b border-border bg-card">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleToggleConversationList}
-              className="flex items-center gap-2"
-            >
-              <Sidebar className="h-4 w-4" />
-              <span>Show Conversations</span>
-            </Button>
-          </div>
-        )}
-        
-        {selectedConversation ? (
-          <div className="flex-1 min-h-0">
-            <ConversationView conversationId={selectedConversation.id} />
+  // Responsive resizing settings
+  const enableResizing = isDesktop || isTablet;
+  const conversationListSize = isMobile ? 100 : isTablet ? 35 : 30;
+  const minConversationListSize = isMobile ? 100 : 25;
+  const maxConversationListSize = isMobile ? 100 : 75;
+
+  if (isMobile) {
+    // Mobile: Stack layout without resizing
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        {shouldShowConversationList ? (
+          <div className="flex flex-col bg-card border-b border-border min-h-0 flex-1">
+            <ConversationList 
+              selectedConversation={selectedConversation}
+              onSelectConversation={handleSelectConversation}
+              selectedInboxId={selectedInboxId}
+              selectedTab={selectedTab}
+              onToggleCollapse={undefined}
+            />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center flex-1 text-center p-8 bg-card m-4 rounded-lg">
-            <MessageCircle className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {t('interactions.noConversationSelected')}
-            </h3>
-            <p className="text-muted-foreground max-w-md">
-              {t('interactions.selectConversationToStart')}
-            </p>
+          <div className="flex flex-col bg-background min-h-0 flex-1">
+            {selectedConversation ? (
+              <div className="flex-1 min-h-0">
+                <ConversationView conversationId={selectedConversation.id} />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-1 text-center p-8 bg-card m-4 rounded-lg">
+                <MessageCircle className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {t('interactions.noConversationSelected')}
+                </h3>
+                <p className="text-muted-foreground max-w-md">
+                  {t('interactions.selectConversationToStart')}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 min-h-0">
+      <ResizablePanelGroup direction="horizontal" className="flex-1">
+        {/* Conversation List Panel */}
+        {shouldShowConversationList && (
+          <>
+            <ResizablePanel 
+              defaultSize={conversationListSize}
+              minSize={minConversationListSize}
+              maxSize={maxConversationListSize}
+              className="flex flex-col bg-card border-r border-border min-h-0"
+            >
+              <ConversationList 
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+                selectedInboxId={selectedInboxId}
+                selectedTab={selectedTab}
+                onToggleCollapse={isDesktop ? handleToggleConversationList : undefined}
+              />
+            </ResizablePanel>
+            
+            {enableResizing && <ResizableHandle withHandle />}
+          </>
+        )}
+        
+        {/* Conversation View Panel */}
+        <ResizablePanel 
+          className="flex flex-col bg-background min-h-0"
+          minSize={shouldShowConversationList ? 25 : 100}
+        >
+          {/* Show/Hide Conversation List Button - Desktop only */}
+          {isDesktop && !shouldShowConversationList && (
+            <div className="p-4 border-b border-border bg-card">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleToggleConversationList}
+                className="flex items-center gap-2"
+              >
+                <Sidebar className="h-4 w-4" />
+                <span>Show Conversations</span>
+              </Button>
+            </div>
+          )}
+          
+          {selectedConversation ? (
+            <div className="flex-1 min-h-0">
+              <ConversationView conversationId={selectedConversation.id} />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center flex-1 text-center p-8 bg-card m-4 rounded-lg">
+              <MessageCircle className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {t('interactions.noConversationSelected')}
+              </h3>
+              <p className="text-muted-foreground max-w-md">
+                {t('interactions.selectConversationToStart')}
+              </p>
+            </div>
+          )}
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 };

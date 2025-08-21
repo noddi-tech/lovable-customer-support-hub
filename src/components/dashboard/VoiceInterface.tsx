@@ -20,10 +20,15 @@ import { CallDetailsDialog } from './voice/CallDetailsDialog';
 import { CallActionButton } from './voice/CallActionButton';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 
 export const VoiceInterface = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const isDesktop = useIsDesktop();
   const { 
     calls, 
     callEvents, 
@@ -370,10 +375,74 @@ export const VoiceInterface = () => {
     }
   };
 
+  // Responsive resizing settings
+  const enableResizing = isDesktop || isTablet;
+  const sidebarSize = isMobile ? 100 : isTablet ? 30 : 25;
+  const minSidebarSize = isMobile ? 100 : 20;
+  const maxSidebarSize = isMobile ? 100 : 50;
+
+  if (isMobile) {
+    // Mobile: Show only sidebar initially, then content
+    return (
+      <div className="app-root bg-gradient-surface flex flex-col h-screen">
+        {/* Header */}
+        <div className="app-header flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex-shrink-0">
+          <div>
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
+              <Phone className="h-6 w-6" />
+              Call Monitor
+            </h2>
+            <p className="text-muted-foreground">
+              Real-time call events and monitoring
+            </p>
+          </div>
+          
+          {/* Notification Center */}
+          <CallNotificationCenter onNavigateToCall={navigateToCall} />
+        </div>
+        
+        {/* Main Content */}
+        <div className="app-main bg-gradient-surface flex-1 min-h-0">
+          {selectedSection === 'nav' ? (
+            <div className="nav-pane border-r border-border bg-card/80 backdrop-blur-sm shadow-surface h-full">
+              <VoiceSidebar 
+                selectedSection={selectedSection}
+                onSectionChange={setSelectedSection}
+              />
+            </div>
+          ) : (
+            <div className="detail-pane flex flex-col bg-gradient-surface h-full">
+              <div className="pane flex-1 min-h-0">
+                <div className="p-6">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setSelectedSection('nav')}
+                    className="mb-4"
+                  >
+                    ← Back to Navigation
+                  </Button>
+                  {renderMainContent()}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Call Details Dialog */}
+        <CallDetailsDialog
+          call={selectedCall}
+          isOpen={isDetailsOpen}
+          onClose={() => setIsDetailsOpen(false)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="app-root bg-gradient-surface">
+    <div className="app-root bg-gradient-surface flex flex-col h-screen">
       {/* Header */}
-      <div className="app-header flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+      <div className="app-header flex items-center justify-between p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface flex-shrink-0">
         <div>
           <h2 className="text-2xl font-semibold flex items-center gap-2">
             <Phone className="h-6 w-6" />
@@ -389,23 +458,32 @@ export const VoiceInterface = () => {
       </div>
       
       {/* Main Content */}
-      <div className="app-main bg-gradient-surface">
-        {/* Sidebar */}
-        <div className="nav-pane border-r border-border bg-card/80 backdrop-blur-sm shadow-surface">
-          <VoiceSidebar 
-            selectedSection={selectedSection}
-            onSectionChange={setSelectedSection}
-          />
-        </div>
+      <div className="app-main bg-gradient-surface flex-1 min-h-0">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Sidebar Panel */}
+          <ResizablePanel 
+            defaultSize={sidebarSize}
+            minSize={minSidebarSize}
+            maxSize={maxSidebarSize}
+            className="border-r border-border bg-card/80 backdrop-blur-sm shadow-surface"
+          >
+            <VoiceSidebar 
+              selectedSection={selectedSection}
+              onSectionChange={setSelectedSection}
+            />
+          </ResizablePanel>
 
-        {/* Content Area */}
-        <div className="detail-pane flex flex-col bg-gradient-surface">
-          <div className="pane flex-1 min-h-0">
-            <div className="p-6">
-            {renderMainContent()}
+          {enableResizing && <ResizableHandle withHandle />}
+
+          {/* Content Panel */}
+          <ResizablePanel className="flex flex-col bg-gradient-surface" minSize={50}>
+            <div className="pane flex-1 min-h-0">
+              <div className="p-6">
+                {renderMainContent()}
+              </div>
             </div>
-          </div>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
       
       {/* Call Details Dialog */}
