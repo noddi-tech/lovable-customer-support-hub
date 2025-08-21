@@ -39,7 +39,7 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
     events: true
   });
 
-  const { activeCalls, recentCalls } = useCalls();
+  const { activeCalls, calls } = useCalls();
   const { 
     pendingRequests, 
     processedRequests, 
@@ -51,6 +51,34 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
     voicemailsWithRecordings,
     transcribedVoicemails 
   } = useVoicemails();
+
+  // Calculate call counts with proper date filtering
+  const getCallsCountByDate = (dateFilter: 'today' | 'yesterday' | 'all') => {
+    if (dateFilter === 'all') return calls?.length || 0;
+    
+    if (!calls) return 0;
+    
+    return calls.filter(call => {
+      const callDate = new Date(call.started_at);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Set times to start of day for accurate comparison
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+      const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
+      
+      if (dateFilter === 'today') {
+        return callDate >= todayStart && callDate < todayEnd;
+      } else if (dateFilter === 'yesterday') {
+        return callDate >= yesterdayStart && callDate < yesterdayEnd;
+      }
+      
+      return false;
+    }).length;
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -133,19 +161,19 @@ export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({
       id: 'calls-today', 
       label: 'Today\'s Calls', 
       icon: Calendar, 
-      count: recentCalls?.length || 0 
+      count: getCallsCountByDate('today')
     },
     { 
       id: 'calls-yesterday', 
       label: 'Yesterday\'s Calls', 
       icon: Clock, 
-      count: 0 // Will be populated from yesterday's calls data
+      count: getCallsCountByDate('yesterday')
     },
     { 
       id: 'calls-all', 
       label: 'All Calls', 
       icon: Phone, 
-      count: 0 // Will be populated from all calls data
+      count: getCallsCountByDate('all')
     }
   ];
 
