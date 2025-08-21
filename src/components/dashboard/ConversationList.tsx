@@ -74,18 +74,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
                 <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
               </div>
             ) : (
-              <div className="space-y-0">
-                {/* Desktop: Table header */}
-                <div className="hidden md:block sticky top-0 z-10 bg-card/90 backdrop-blur-sm border-b border-border">
-                  <div className="row px-4 py-2 text-sm font-medium text-muted-foreground">
-                    <div className="col--status">Status</div>
-                    <div className="col--from">From</div>
-                    <div className="col--subject">Subject</div>
-                    <div className="col--date">Date</div>
-                    <div className="flex-shrink-0 w-10"></div>
-                  </div>
-                </div>
-                
+              <div className="space-y-2">
                 {/* Conversation List */}
                 {filteredConversations.map((conversation) => (
                   <ConversationListItem 

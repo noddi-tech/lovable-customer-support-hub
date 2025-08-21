@@ -36,26 +36,26 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
   };
 
   return (
-    <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
-      {/* Row 1: Title + Total Count + Actions */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <h1 className="font-semibold text-lg md:text-xl">
+    <div className="flex-shrink-0 p-2 md:p-3 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+      {/* Row 1: Title + Unread Count + Actions */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <h1 className="font-semibold text-sm md:text-base">
             {t('dashboard.conversationList.conversations', 'Conversations')}
           </h1>
-          <Badge variant="destructive" className="h-5 px-2 text-xs">
+          <Badge variant="destructive" className="h-4 px-1.5 text-xs">
             {unreadCount}
           </Badge>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Filters Popover */}
           <Popover>
             <PopoverTrigger asChild>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-8 gap-1"
+                className="h-7 gap-1 text-xs"
               >
                 <Filter className="w-3 h-3" />
                 <span className="hidden sm:inline">
@@ -80,7 +80,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
             size="sm"
             onClick={markAllAsRead}
             disabled={isMarkingAllAsRead || unreadCount === 0}
-            className="h-8 gap-1"
+            className="h-7 gap-1 text-xs"
           >
             <CheckCheck className="w-3 h-3" />
             <span className="hidden sm:inline">
@@ -91,15 +91,15 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
       </div>
       
       {/* Row 2: Search + Sort */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Search Bar */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3.5 h-3.5" />
           <Input
             placeholder={t('dashboard.conversationList.searchPlaceholder', 'Search conversations... (Ctrl+K)')}
             value={state.searchQuery}
             onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
-            className="pl-10 h-9 bg-background"
+            className="pl-9 h-8 bg-background text-sm"
           />
         </div>
         
@@ -108,7 +108,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
           value={state.sortBy} 
           onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
         >
-          <SelectTrigger className="w-32 h-9">
+          <SelectTrigger className="w-28 h-8 text-xs">
             <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
           </SelectTrigger>
           <SelectContent align="end">
