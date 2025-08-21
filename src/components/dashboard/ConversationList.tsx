@@ -1,7 +1,6 @@
 import { Clock, Inbox } from "lucide-react";
 import { ConversationListProvider, useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { ConversationListHeader } from "./conversation-list/ConversationListHeader";
-import { ConversationListFilters } from "./conversation-list/ConversationListFilters";
 import { ConversationListItem } from "./conversation-list/ConversationListItem";
 import { ConversationListDeleteDialog } from "./conversation-list/ConversationListDeleteDialog";
 import { VirtualizedConversationList } from "./conversation-list/VirtualizedConversationList";
@@ -53,9 +52,6 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
   return (
     <div className="flex flex-col bg-gradient-surface h-full min-h-0">
       <ConversationListHeader onToggleCollapse={onToggleCollapse} />
-      <div className="px-3 md:px-4">
-        <ConversationListFilters />
-      </div>
       
       {/* Conversation List - Optimized rendering */}
       <div className="pane flex-1">

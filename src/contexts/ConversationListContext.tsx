@@ -8,6 +8,7 @@ import { logger } from '@/utils/logger';
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type ConversationPriority = "low" | "normal" | "high" | "urgent";
 export type ConversationChannel = "email" | "chat" | "social" | "facebook" | "instagram" | "whatsapp";
+export type SortBy = "latest" | "oldest" | "priority" | "unread";
 
 export interface Customer {
   id: string;
@@ -48,14 +49,18 @@ interface ConversationListState {
   searchQuery: string;
   statusFilter: string;
   priorityFilter: string;
+  sortBy: SortBy;
   deleteDialogOpen: boolean;
   conversationToDelete: string | null;
+  showFilters: boolean;
 }
 
 type ConversationListAction =
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'SET_STATUS_FILTER'; payload: string }
   | { type: 'SET_PRIORITY_FILTER'; payload: string }
+  | { type: 'SET_SORT_BY'; payload: SortBy }
+  | { type: 'TOGGLE_FILTERS' }
   | { type: 'OPEN_DELETE_DIALOG'; payload: string }
   | { type: 'CLOSE_DELETE_DIALOG' };
 
@@ -63,8 +68,10 @@ const initialState: ConversationListState = {
   searchQuery: '',
   statusFilter: 'all',
   priorityFilter: 'all',
+  sortBy: 'latest',
   deleteDialogOpen: false,
   conversationToDelete: null,
+  showFilters: false,
 };
 
 function conversationListReducer(state: ConversationListState, action: ConversationListAction): ConversationListState {
@@ -75,6 +82,10 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, statusFilter: action.payload };
     case 'SET_PRIORITY_FILTER':
       return { ...state, priorityFilter: action.payload };
+    case 'SET_SORT_BY':
+      return { ...state, sortBy: action.payload };
+    case 'TOGGLE_FILTERS':
+      return { ...state, showFilters: !state.showFilters };
     case 'OPEN_DELETE_DIALOG':
       return { ...state, deleteDialogOpen: true, conversationToDelete: action.payload };
     case 'CLOSE_DELETE_DIALOG':
@@ -91,6 +102,8 @@ interface ConversationListContextType {
   isLoading: boolean;
   archiveConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
+  markAllAsRead: () => void;
+  isMarkingAllAsRead: boolean;
   filteredConversations: Conversation[];
 }
 
@@ -185,6 +198,93 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     }
   });
 
+  // Mark all as read mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      // Get filtered conversations based on current state
+      const effectiveInboxId = selectedTab.startsWith('inbox-')
+        ? selectedTab.replace('inbox-', '')
+        : (selectedInboxId !== 'all' ? selectedInboxId : null);
+
+      const filteredConversations = conversations
+        .filter((conversation) => {
+          const matchesSearch = conversation.subject.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+            conversation.customer?.full_name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+            conversation.customer?.email.toLowerCase().includes(state.searchQuery.toLowerCase());
+          
+          const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
+          const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
+          const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
+          
+          const matchesTab = (() => {
+            const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
+            switch (selectedTab) {
+              case "snoozed":
+                return isSnoozedActive;
+              case "all":
+                return conversation.status !== 'closed' && !isSnoozedActive;
+              case "unread":
+                return !conversation.is_read && !isSnoozedActive;
+              case "assigned":
+                return !!conversation.assigned_to && !isSnoozedActive;
+              case "pending":
+                return conversation.status === 'pending' && !isSnoozedActive;
+              case "closed":
+                return conversation.status === 'closed' && !isSnoozedActive;
+              case "archived":
+                return conversation.is_archived === true;
+              case "email":
+                return conversation.channel === "email" && !isSnoozedActive;
+              case "facebook":
+                return conversation.channel === "facebook" && !isSnoozedActive;
+              case "instagram":
+                return conversation.channel === "instagram" && !isSnoozedActive;
+              case "whatsapp":
+                return conversation.channel === "whatsapp" && !isSnoozedActive;
+              default:
+                if (selectedTab.startsWith('inbox-')) {
+                  const inboxId = selectedTab.replace('inbox-', '');
+                  return conversation.inbox_id === inboxId && !isSnoozedActive;
+                }
+                return !isSnoozedActive;
+            }
+          })();
+
+          return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
+        });
+
+      const unreadConversationIds = filteredConversations
+        .filter(conv => !conv.is_read)
+        .map(conv => conv.id);
+      
+      if (unreadConversationIds.length === 0) {
+        throw new Error('No unread conversations to mark as read');
+      }
+
+      const { error } = await supabase
+        .from('conversations')
+        .update({ is_read: true })
+        .in('id', unreadConversationIds);
+      
+      if (error) throw error;
+      
+      return unreadConversationIds.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success(`Marked ${count} conversations as read`);
+    },
+    onError: (error: any) => {
+      logger.error('Error marking conversations as read', error, 'ConversationListProvider');
+      if (error.message === 'No unread conversations to mark as read') {
+        toast.info('No unread conversations to mark as read');
+      } else {
+        toast.error('Failed to mark conversations as read');
+      }
+    }
+  });
+
   const archiveConversation = (id: string) => {
     archiveConversationMutation.mutate(id);
   };
@@ -195,56 +295,79 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     }
   };
 
-  // Filter conversations based on current filters
+  const markAllAsRead = () => {
+    markAllAsReadMutation.mutate();
+  };
+
+  // Filter and sort conversations
   const effectiveInboxId = selectedTab.startsWith('inbox-')
     ? selectedTab.replace('inbox-', '')
     : (selectedInboxId !== 'all' ? selectedInboxId : null);
 
-  const filteredConversations = conversations.filter((conversation) => {
-    const matchesSearch = conversation.subject.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-      conversation.customer?.full_name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-      conversation.customer?.email.toLowerCase().includes(state.searchQuery.toLowerCase());
-    
-    const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
-    const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
-    const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
-    
-    const matchesTab = (() => {
-      const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
-      switch (selectedTab) {
-        case "snoozed":
-          return isSnoozedActive;
-        case "all":
-          return conversation.status !== 'closed' && !isSnoozedActive;
-        case "unread":
-          return !conversation.is_read && !isSnoozedActive;
-        case "assigned":
-          return !!conversation.assigned_to && !isSnoozedActive;
-        case "pending":
-          return conversation.status === 'pending' && !isSnoozedActive;
-        case "closed":
-          return conversation.status === 'closed' && !isSnoozedActive;
-        case "archived":
-          return conversation.is_archived === true;
-        case "email":
-          return conversation.channel === "email" && !isSnoozedActive;
-        case "facebook":
-          return conversation.channel === "facebook" && !isSnoozedActive;
-        case "instagram":
-          return conversation.channel === "instagram" && !isSnoozedActive;
-        case "whatsapp":
-          return conversation.channel === "whatsapp" && !isSnoozedActive;
-        default:
-          if (selectedTab.startsWith('inbox-')) {
-            const inboxId = selectedTab.replace('inbox-', '');
-            return conversation.inbox_id === inboxId && !isSnoozedActive;
-          }
-          return !isSnoozedActive;
-      }
-    })();
+  const filteredAndSortedConversations = conversations
+    .filter((conversation) => {
+      const matchesSearch = conversation.subject.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+        conversation.customer?.full_name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+        conversation.customer?.email.toLowerCase().includes(state.searchQuery.toLowerCase());
+      
+      const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
+      const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
+      const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
+      
+      const matchesTab = (() => {
+        const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
+        switch (selectedTab) {
+          case "snoozed":
+            return isSnoozedActive;
+          case "all":
+            return conversation.status !== 'closed' && !isSnoozedActive;
+          case "unread":
+            return !conversation.is_read && !isSnoozedActive;
+          case "assigned":
+            return !!conversation.assigned_to && !isSnoozedActive;
+          case "pending":
+            return conversation.status === 'pending' && !isSnoozedActive;
+          case "closed":
+            return conversation.status === 'closed' && !isSnoozedActive;
+          case "archived":
+            return conversation.is_archived === true;
+          case "email":
+            return conversation.channel === "email" && !isSnoozedActive;
+          case "facebook":
+            return conversation.channel === "facebook" && !isSnoozedActive;
+          case "instagram":
+            return conversation.channel === "instagram" && !isSnoozedActive;
+          case "whatsapp":
+            return conversation.channel === "whatsapp" && !isSnoozedActive;
+          default:
+            if (selectedTab.startsWith('inbox-')) {
+              const inboxId = selectedTab.replace('inbox-', '');
+              return conversation.inbox_id === inboxId && !isSnoozedActive;
+            }
+            return !isSnoozedActive;
+        }
+      })();
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
-  });
+      return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
+    })
+    .sort((a, b) => {
+      switch (state.sortBy) {
+        case 'oldest':
+          return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+        case 'priority':
+          const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 };
+          const aPriority = priorityOrder[a.priority] || 2;
+          const bPriority = priorityOrder[b.priority] || 2;
+          if (aPriority !== bPriority) return bPriority - aPriority;
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        case 'unread':
+          if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        case 'latest':
+        default:
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      }
+    });
 
   const value = {
     state,
@@ -253,7 +376,9 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     isLoading,
     archiveConversation,
     deleteConversation,
-    filteredConversations,
+    markAllAsRead,
+    isMarkingAllAsRead: markAllAsReadMutation.isPending,
+    filteredConversations: filteredAndSortedConversations,
   };
 
   return (
