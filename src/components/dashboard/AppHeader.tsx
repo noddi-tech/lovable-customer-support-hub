@@ -51,6 +51,7 @@ interface AppHeaderProps {
   onBackClick?: () => void;
   showBackButton?: boolean;
   showMenuButton?: boolean;
+  sidebarTrigger?: React.ReactNode;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -60,7 +61,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onMenuClick,
   onBackClick,
   showBackButton = false,
-  showMenuButton = false
+  showMenuButton = false,
+  sidebarTrigger
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -146,19 +148,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         {/* Left Section - Logo, Navigation */}
         <div className="flex items-center gap-4 flex-1 min-w-0">
           {/* Mobile Menu/Back Button */}
-          {isMobile && (showMenuButton || showBackButton) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={showBackButton ? onBackClick : onMenuClick}
-              className="flex-shrink-0"
-            >
-              {showBackButton ? (
-                <ArrowLeft className="h-4 w-4" />
-              ) : (
-                <Menu className="h-4 w-4" />
+          {isMobile && (
+            <>
+              {sidebarTrigger || (showMenuButton || showBackButton) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={showBackButton ? onBackClick : onMenuClick}
+                  className="flex-shrink-0"
+                >
+                  {showBackButton ? (
+                    <ArrowLeft className="h-4 w-4" />
+                  ) : (
+                    <Menu className="h-4 w-4" />
+                  )}
+                </Button>
               )}
-            </Button>
+              {sidebarTrigger}
+            </>
           )}
 
           {/* Logo/Brand */}

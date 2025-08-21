@@ -14,6 +14,7 @@ interface SidebarItemProps {
   variant?: 'default' | 'channel' | 'inbox';
   color?: string;
   disabled?: boolean;
+  onMouseEnter?: () => void;
 }
 
 export const SidebarItem: React.FC<SidebarItemProps> = ({
@@ -25,7 +26,8 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
   className,
   variant = 'default',
   color,
-  disabled = false
+  disabled = false,
+  onMouseEnter
 }) => {
   const getVariantStyles = () => {
     if (active) {
@@ -39,6 +41,7 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
       <SidebarMenuButton
         onClick={onClick}
         disabled={disabled}
+        onMouseEnter={onMouseEnter}
         className={cn(
           "w-full justify-start gap-3 px-3 py-2.5 text-sm transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-1",

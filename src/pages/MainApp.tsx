@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { AppHeader } from '@/components/dashboard/AppHeader';
 import { AppSidebar } from '@/components/dashboard/AppSidebar';
-import { InteractionsLayout } from '@/components/dashboard/InteractionsLayout';
+import { AppShell } from '@/components/ui/app-shell';
+import { EnhancedInteractionsLayout } from '@/components/dashboard/EnhancedInteractionsLayout';
 import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
-import { SMSInterface } from '@/components/dashboard/SMSInterface';
 import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
-import { ResponsiveLayout } from '@/components/ui/responsive-layout';
-import { useIsMobile } from '@/hooks/use-responsive';
-import { cn } from '@/lib/utils';
+import { MobileSidebarDrawer } from '@/components/dashboard/MobileSidebarDrawer';
+import { TabletSidebarCollapsed } from '@/components/dashboard/TabletSidebarCollapsed';
+import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 
 interface MainAppProps {
   activeTab: string;
@@ -18,37 +18,39 @@ interface MainAppProps {
   onTabChange: (tab: string, subTab: string) => void;
 }
 
-const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange }) => {
+export const MainApp: React.FC<MainAppProps> = ({ 
+  activeTab, 
+  activeSubTab, 
+  onTabChange 
+}) => {
   const [selectedTab, setSelectedTab] = useState('all');
-  const [selectedInboxId, setSelectedInboxId] = useState('all');
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const isDesktop = useIsDesktop();
 
   const handleTabChange = (tab: string) => {
     setSelectedTab(tab);
-    if (isMobile) {
-      setShowMobileSidebar(false);
-    }
+    setMobileNavOpen(false);
   };
 
   const renderActiveContent = () => {
     switch (activeTab) {
       case 'interactions':
         return (
-          <InteractionsLayout
+          <EnhancedInteractionsLayout
             activeSubTab={activeSubTab}
             selectedTab={selectedTab}
             onTabChange={handleTabChange}
-            selectedInboxId={selectedInboxId}
+            selectedInboxId=""
           />
         );
       case 'marketing':
-        switch (activeSubTab) {
-          case 'newsletters':
-            return <NewsletterBuilder />;
-          default:
-            return <NewsletterBuilder />;
+        if (activeSubTab === 'newsletters') {
+          return <NewsletterBuilder />;
         }
+        return <div className="p-8 text-center text-muted-foreground">Marketing Dashboard</div>;
       case 'ops':
         switch (activeSubTab) {
           case 'tickets':
@@ -64,42 +66,70 @@ const MainApp: React.FC<MainAppProps> = ({ activeTab, activeSubTab, onTabChange 
         return <SettingsWrapper activeSubSection={activeSubTab} />;
       default:
         return (
-          <InteractionsLayout
-            activeSubTab="text"
+          <EnhancedInteractionsLayout
+            activeSubTab={activeSubTab}
             selectedTab={selectedTab}
             onTabChange={handleTabChange}
-            selectedInboxId={selectedInboxId}
+            selectedInboxId=""
           />
         );
     }
   };
 
+  const renderSidebar = () => {
+    // Mobile: No persistent sidebar (use drawer)
+    if (isMobile) {
+      return null;
+    }
+    
+    // Tablet: Collapsed icon sidebar for interactions, hidden for others
+    if (isTablet) {
+      if (activeTab === 'interactions') {
+        return (
+          <TabletSidebarCollapsed
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+          />
+        );
+      }
+      return null;
+    }
+
+    // Desktop: Full sidebar for interactions, hidden for others
+    if (activeTab === 'interactions') {
+      return (
+        <AppSidebar
+          selectedTab={selectedTab}
+          onTabChange={handleTabChange}
+          activeTab={activeTab}
+        />
+      );
+    }
+    return null;
+  };
+
   return (
-    <ResponsiveLayout
+    <AppShell
       header={
         <AppHeader
           activeTab={activeTab}
           activeSubTab={activeSubTab}
           onTabChange={onTabChange}
-          onMenuClick={() => setShowMobileSidebar(true)}
+          onMenuClick={() => setMobileNavOpen(true)}
           showMenuButton={isMobile && activeTab === 'interactions'}
+          sidebarTrigger={isMobile && activeTab === 'interactions' ? (
+            <MobileSidebarDrawer
+              selectedTab={selectedTab}
+              onTabChange={handleTabChange}
+              activeTab={activeTab}
+            />
+          ) : null}
         />
       }
-      sidebar={activeTab === 'interactions' ? (
-        <AppSidebar 
-          selectedTab={selectedTab}
-          onTabChange={handleTabChange}
-        />
-      ) : undefined}
-      className={cn(
-        activeTab === 'interactions' ? 'list-open sidebar-open' : ''
-      )}
+      sidebar={renderSidebar()}
     >
-      {/* Main Content */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        {renderActiveContent()}
-      </div>
-    </ResponsiveLayout>
+      {renderActiveContent()}
+    </AppShell>
   );
 };
 

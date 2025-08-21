@@ -16,9 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { cn } from '@/lib/utils';
-import { useConversationCounts } from '@/hooks/useConversationCounts';
-import { useChannelCounts } from '@/hooks/useChannelCounts';
-import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from 'react-i18next';
 
 interface TabletSidebarCollapsedProps {
@@ -31,27 +29,25 @@ export const TabletSidebarCollapsed: React.FC<TabletSidebarCollapsedProps> = ({
   onTabChange
 }) => {
   const { t } = useTranslation();
-  const { data: conversationCounts } = useConversationCounts();
-  const { data: channelCounts } = useChannelCounts();
-  const { data: notificationCount } = useNotificationCounts();
+  const { conversations, channels, notifications } = useOptimizedCounts();
 
   const iconItems = [
     // Inbox items
-    { id: 'all', icon: Inbox, label: t('sidebar.allConversations', 'All'), count: conversationCounts?.all },
-    { id: 'unread', icon: MessageCircle, label: t('sidebar.unread', 'Unread'), count: conversationCounts?.unread },
-    { id: 'assigned', icon: Users, label: t('sidebar.assigned', 'Assigned'), count: conversationCounts?.assigned },
-    { id: 'pending', icon: Clock, label: t('sidebar.pending', 'Pending'), count: conversationCounts?.pending },
-    { id: 'closed', icon: CheckCircle, label: t('sidebar.closed', 'Closed'), count: conversationCounts?.closed },
-    { id: 'archived', icon: Archive, label: t('sidebar.archived', 'Archived'), count: conversationCounts?.archived },
+    { id: 'all', icon: Inbox, label: t('sidebar.allConversations', 'All'), count: conversations.all },
+    { id: 'unread', icon: MessageCircle, label: t('sidebar.unread', 'Unread'), count: conversations.unread },
+    { id: 'assigned', icon: Users, label: t('sidebar.assigned', 'Assigned'), count: conversations.assigned },
+    { id: 'pending', icon: Clock, label: t('sidebar.pending', 'Pending'), count: conversations.pending },
+    { id: 'closed', icon: CheckCircle, label: t('sidebar.closed', 'Closed'), count: conversations.closed },
+    { id: 'archived', icon: Archive, label: t('sidebar.archived', 'Archived'), count: conversations.archived },
     
     // Notifications
-    { id: 'notifications', icon: Bell, label: t('sidebar.notifications', 'Notifications'), count: notificationCount },
+    { id: 'notifications', icon: Bell, label: t('sidebar.notifications', 'Notifications'), count: notifications },
     
     // Channels
-    { id: 'email', icon: Mail, label: t('sidebar.email', 'Email'), count: channelCounts?.email },
-    { id: 'facebook', icon: Facebook, label: t('sidebar.facebook', 'Facebook'), count: channelCounts?.facebook },
-    { id: 'instagram', icon: Instagram, label: t('sidebar.instagram', 'Instagram'), count: channelCounts?.instagram },
-    { id: 'whatsapp', icon: WhatsApp, label: t('sidebar.whatsapp', 'WhatsApp'), count: channelCounts?.whatsapp },
+    { id: 'email', icon: Mail, label: t('sidebar.email', 'Email'), count: channels.email },
+    { id: 'facebook', icon: Facebook, label: t('sidebar.facebook', 'Facebook'), count: channels.facebook },
+    { id: 'instagram', icon: Instagram, label: t('sidebar.instagram', 'Instagram'), count: channels.instagram },
+    { id: 'whatsapp', icon: WhatsApp, label: t('sidebar.whatsapp', 'WhatsApp'), count: channels.whatsapp },
   ];
 
   return (

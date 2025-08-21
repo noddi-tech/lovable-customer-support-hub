@@ -1,6 +1,7 @@
 import React from 'react';
-import { InteractionsSidebar } from './InteractionsSidebar';
+import { OptimizedInteractionsSidebar } from './OptimizedInteractionsSidebar';
 import { SidebarProvider } from '@/contexts/SidebarContext';
+import { SidebarStateManager } from '@/components/ui/sidebar-state-manager';
 
 interface AppSidebarProps {
   selectedTab: string;
@@ -13,26 +14,30 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onTabChange,
   activeTab = 'interactions'
 }) => {
-  // For now, we'll focus on Interactions tab
+  // For now, we'll focus on Interactions tab with optimized performance
   // Later this can be extended to handle different tab contexts
   if (activeTab === 'interactions') {
     return (
+      <SidebarStateManager initialTab={selectedTab}>
+        <SidebarProvider initialTab={selectedTab}>
+          <OptimizedInteractionsSidebar 
+            selectedTab={selectedTab}
+            onTabChange={onTabChange}
+          />
+        </SidebarProvider>
+      </SidebarStateManager>
+    );
+  }
+
+  // Placeholder for other tabs (Marketing, Ops, Settings) - use basic version
+  return (
+    <SidebarStateManager initialTab={selectedTab}>
       <SidebarProvider initialTab={selectedTab}>
-        <InteractionsSidebar 
+        <OptimizedInteractionsSidebar 
           selectedTab={selectedTab}
           onTabChange={onTabChange}
         />
       </SidebarProvider>
-    );
-  }
-
-  // Placeholder for other tabs (Marketing, Ops, Settings)
-  return (
-    <SidebarProvider initialTab={selectedTab}>
-      <InteractionsSidebar 
-        selectedTab={selectedTab}
-        onTabChange={onTabChange}
-      />
-    </SidebarProvider>
+    </SidebarStateManager>
   );
 };

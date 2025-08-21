@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { InteractionsSidebar } from './InteractionsSidebar';
+import { OptimizedInteractionsSidebar } from './OptimizedInteractionsSidebar';
 import { SidebarProvider } from '@/contexts/SidebarContext';
+import { SidebarStateManager } from '@/components/ui/sidebar-state-manager';
 
 interface MobileSidebarDrawerProps {
   selectedTab: string;
@@ -37,12 +38,14 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
         </SheetHeader>
         
         <div className="h-full overflow-hidden">
-          <SidebarProvider initialTab={selectedTab}>
-            <InteractionsSidebar 
-              selectedTab={selectedTab}
-              onTabChange={handleTabChange}
-            />
-          </SidebarProvider>
+          <SidebarStateManager initialTab={selectedTab}>
+            <SidebarProvider initialTab={selectedTab}>
+              <OptimizedInteractionsSidebar 
+                selectedTab={selectedTab}
+                onTabChange={handleTabChange}
+              />
+            </SidebarProvider>
+          </SidebarStateManager>
         </div>
       </SheetContent>
     </Sheet>
