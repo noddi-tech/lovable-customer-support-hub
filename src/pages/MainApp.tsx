@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
-import { AppHeader } from '@/components/dashboard/AppHeader';
-import { AppSidebar } from '@/components/dashboard/AppSidebar';
-import { AppShell } from '@/components/ui/app-shell';
+import { ModernLayout } from '@/components/layout/ModernLayout';
 import { EnhancedInteractionsLayout } from '@/components/dashboard/EnhancedInteractionsLayout';
 import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
 import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
-import { MobileSidebarDrawer } from '@/components/dashboard/MobileSidebarDrawer';
-import { TabletSidebarCollapsed } from '@/components/dashboard/TabletSidebarCollapsed';
-import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
-import { SidebarProvider } from '@/components/ui/sidebar';
 
 interface MainAppProps {
   activeTab: string;
@@ -25,20 +19,27 @@ export const MainApp: React.FC<MainAppProps> = ({
   onTabChange 
 }) => {
   const [selectedTab, setSelectedTab] = useState('all');
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
-  const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
-  const isDesktop = useIsDesktop();
 
   const handleTabChange = (tab: string) => {
     setSelectedTab(tab);
-    setMobileNavOpen(false);
   };
 
   const renderActiveContent = () => {
     switch (activeTab) {
       case 'interactions':
+        if (activeSubTab === 'text') {
+          return (
+            <EnhancedInteractionsLayout
+              activeSubTab={activeSubTab}
+              selectedTab={selectedTab}
+              onTabChange={handleTabChange}
+              selectedInboxId=""
+            />
+          );
+        }
+        if (activeSubTab === 'voice') {
+          return <div className="p-8 text-center text-muted-foreground">Voice Interface</div>;
+        }
         return (
           <EnhancedInteractionsLayout
             activeSubTab={activeSubTab}
@@ -67,72 +68,28 @@ export const MainApp: React.FC<MainAppProps> = ({
         return <SettingsWrapper activeSubSection={activeSubTab} />;
       default:
         return (
-          <EnhancedInteractionsLayout
-            activeSubTab={activeSubTab}
-            selectedTab={selectedTab}
-            onTabChange={handleTabChange}
-            selectedInboxId=""
-          />
+          <div className="flex items-center justify-center h-full p-8 text-center">
+            <div className="max-w-md">
+              <h2 className="text-2xl font-semibold mb-4 text-foreground">
+                Welcome to Customer Support Hub
+              </h2>
+              <p className="text-muted-foreground">
+                Select a section from the sidebar to get started with managing your customer interactions.
+              </p>
+            </div>
+          </div>
         );
     }
-  };
-
-  const renderSidebar = () => {
-    // Mobile: No persistent sidebar (use drawer)
-    if (isMobile) {
-      return null;
-    }
-    
-    // Tablet: Collapsed icon sidebar for interactions, hidden for others
-    if (isTablet) {
-      if (activeTab === 'interactions') {
-        return (
-          <TabletSidebarCollapsed
-            selectedTab={selectedTab}
-            onTabChange={handleTabChange}
-          />
-        );
-      }
-      return null;
-    }
-
-    // Desktop: Full sidebar for interactions, hidden for others
-    if (activeTab === 'interactions') {
-      return (
-        <AppSidebar
-          selectedTab={selectedTab}
-          onTabChange={handleTabChange}
-          activeTab={activeTab}
-        />
-      );
-    }
-    return null;
   };
 
   return (
-    <SidebarProvider>
-      <AppShell
-        header={
-          <AppHeader
-            activeTab={activeTab}
-            activeSubTab={activeSubTab}
-            onTabChange={onTabChange}
-            onMenuClick={() => setMobileNavOpen(true)}
-            showMenuButton={isMobile && activeTab === 'interactions'}
-            sidebarTrigger={isMobile && activeTab === 'interactions' ? (
-              <MobileSidebarDrawer
-                selectedTab={selectedTab}
-                onTabChange={handleTabChange}
-                activeTab={activeTab}
-              />
-            ) : null}
-          />
-        }
-        sidebar={renderSidebar()}
-      >
-        {renderActiveContent()}
-      </AppShell>
-    </SidebarProvider>
+    <ModernLayout
+      activeTab={activeTab}
+      activeSubTab={activeSubTab}
+      onTabChange={onTabChange}
+    >
+      {renderActiveContent()}
+    </ModernLayout>
   );
 };
 

@@ -285,6 +285,29 @@ Optimized for accessibility with WCAG AA compliance.
     background: var(--gradient-background);
   }
 
+  /* Modern app shell layout */
+  .modern-app-shell {
+    height: 100dvh;
+    height: 100svh;
+    min-height: 100vh;
+    
+    /* iOS safe areas */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Modern header styling */
+  .modern-header {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Modern main content area */
+  .modern-main-content {
+    /* Handle overflow properly */
+    contain: layout style;
+  }
+
   /* App shell layout with responsive panes */
   .app-root {
     /* iOS safe viewport with fallbacks */
