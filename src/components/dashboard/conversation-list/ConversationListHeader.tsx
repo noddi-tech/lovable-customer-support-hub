@@ -55,7 +55,7 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-7 gap-1 text-xs px-2"
+                className="h-4 gap-0.5 text-xs px-1.5"
               >
                 <Filter className="w-3 h-3" />
                 <span className="hidden sm:inline">
