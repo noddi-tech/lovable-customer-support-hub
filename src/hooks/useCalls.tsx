@@ -127,7 +127,7 @@ export function useCalls() {
 
   // Derived data
   const activeCalls = calls.filter(call => 
-    ['ringing', 'answered', 'on_hold', 'transferred'].includes(call.status)
+    ['ringing', 'answered', 'on_hold', 'transferred'].includes(call.status) && !call.ended_at
   );
 
   const recentCalls = calls.slice(0, 10);
