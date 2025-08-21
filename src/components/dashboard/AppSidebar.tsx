@@ -1,6 +1,5 @@
 import React from 'react';
 import { OptimizedInteractionsSidebar } from './OptimizedInteractionsSidebar';
-import { SidebarProvider } from '@/contexts/SidebarContext';
 import { SidebarStateManager } from '@/components/ui/sidebar-state-manager';
 
 interface AppSidebarProps {
@@ -19,12 +18,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   if (activeTab === 'interactions') {
     return (
       <SidebarStateManager initialTab={selectedTab}>
-        <SidebarProvider initialTab={selectedTab}>
-          <OptimizedInteractionsSidebar 
-            selectedTab={selectedTab}
-            onTabChange={onTabChange}
-          />
-        </SidebarProvider>
+        <OptimizedInteractionsSidebar 
+          selectedTab={selectedTab}
+          onTabChange={onTabChange}
+        />
       </SidebarStateManager>
     );
   }
@@ -32,12 +29,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   // Placeholder for other tabs (Marketing, Ops, Settings) - use basic version
   return (
     <SidebarStateManager initialTab={selectedTab}>
-      <SidebarProvider initialTab={selectedTab}>
-        <OptimizedInteractionsSidebar 
-          selectedTab={selectedTab}
-          onTabChange={onTabChange}
-        />
-      </SidebarProvider>
+      <OptimizedInteractionsSidebar 
+        selectedTab={selectedTab}
+        onTabChange={onTabChange}
+      />
     </SidebarStateManager>
   );
 };

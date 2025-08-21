@@ -11,6 +11,7 @@ import SettingsWrapper from '@/components/dashboard/SettingsWrapper';
 import { MobileSidebarDrawer } from '@/components/dashboard/MobileSidebarDrawer';
 import { TabletSidebarCollapsed } from '@/components/dashboard/TabletSidebarCollapsed';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 interface MainAppProps {
   activeTab: string;
@@ -109,27 +110,29 @@ export const MainApp: React.FC<MainAppProps> = ({
   };
 
   return (
-    <AppShell
-      header={
-        <AppHeader
-          activeTab={activeTab}
-          activeSubTab={activeSubTab}
-          onTabChange={onTabChange}
-          onMenuClick={() => setMobileNavOpen(true)}
-          showMenuButton={isMobile && activeTab === 'interactions'}
-          sidebarTrigger={isMobile && activeTab === 'interactions' ? (
-            <MobileSidebarDrawer
-              selectedTab={selectedTab}
-              onTabChange={handleTabChange}
-              activeTab={activeTab}
-            />
-          ) : null}
-        />
-      }
-      sidebar={renderSidebar()}
-    >
-      {renderActiveContent()}
-    </AppShell>
+    <SidebarProvider>
+      <AppShell
+        header={
+          <AppHeader
+            activeTab={activeTab}
+            activeSubTab={activeSubTab}
+            onTabChange={onTabChange}
+            onMenuClick={() => setMobileNavOpen(true)}
+            showMenuButton={isMobile && activeTab === 'interactions'}
+            sidebarTrigger={isMobile && activeTab === 'interactions' ? (
+              <MobileSidebarDrawer
+                selectedTab={selectedTab}
+                onTabChange={handleTabChange}
+                activeTab={activeTab}
+              />
+            ) : null}
+          />
+        }
+        sidebar={renderSidebar()}
+      >
+        {renderActiveContent()}
+      </AppShell>
+    </SidebarProvider>
   );
 };
 

@@ -3,7 +3,6 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { OptimizedInteractionsSidebar } from './OptimizedInteractionsSidebar';
-import { SidebarProvider } from '@/contexts/SidebarContext';
 import { SidebarStateManager } from '@/components/ui/sidebar-state-manager';
 
 interface MobileSidebarDrawerProps {
@@ -39,12 +38,10 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
         
         <div className="h-full overflow-hidden">
           <SidebarStateManager initialTab={selectedTab}>
-            <SidebarProvider initialTab={selectedTab}>
-              <OptimizedInteractionsSidebar 
-                selectedTab={selectedTab}
-                onTabChange={handleTabChange}
-              />
-            </SidebarProvider>
+            <OptimizedInteractionsSidebar 
+              selectedTab={selectedTab}
+              onTabChange={handleTabChange}
+            />
           </SidebarStateManager>
         </div>
       </SheetContent>

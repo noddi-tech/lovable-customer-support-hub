@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Inbox, MessageCircle, Users, Clock, CheckCircle, Archive, Bell, Mail, Facebook, Instagram, MessageCircle as WhatsApp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Sidebar, SidebarContent } from '@/components/ui/sidebar';
 import { SidebarSection } from '@/components/ui/sidebar-section';
 import { SidebarItem } from '@/components/ui/sidebar-item';
+import { EnhancedLoadingSkeleton } from '@/components/ui/enhanced-loading-skeleton';
 import { NewConversationDialog } from './NewConversationDialog';
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
+import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 
 interface OptimizedInteractionsSidebarProps {
   selectedTab: string;
@@ -23,6 +24,13 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
 }) => {
   const { t } = useTranslation();
   const { conversations, channels, notifications, inboxes, loading, error, prefetchData } = useOptimizedCounts();
+  const { navigateToTab } = useInteractionsNavigation();
+
+  // Enhanced tab change with URL navigation
+  const handleTabChange = (tab: string) => {
+    navigateToTab(tab);
+    onTabChange(tab);
+  };
 
   // Sidebar items configuration with optimized counts
   const inboxItems = [
@@ -95,17 +103,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
 
   // Loading skeleton
   const LoadingSkeleton = () => (
-    <div className="space-y-2 px-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center justify-between py-2">
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-4 w-4" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-          <Skeleton className="h-4 w-6" />
-        </div>
-      ))}
-    </div>
+    <EnhancedLoadingSkeleton type="sidebar" count={6} />
   );
 
   // Error state
@@ -163,7 +161,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
                 label={item.label}
                 count={item.count}
                 active={selectedTab === item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => handleTabChange(item.id)}
                 onMouseEnter={() => prefetchData('conversations')}
               />
             ))
@@ -185,7 +183,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
               label={t('sidebar.notifications', 'Notifications')}
               count={notifications}
               active={selectedTab === 'notifications'}
-              onClick={() => onTabChange('notifications')}
+              onClick={() => handleTabChange('notifications')}
               onMouseEnter={() => prefetchData('notifications')}
             />
           )}
@@ -208,7 +206,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
                 label={item.label}
                 count={item.count}
                 active={selectedTab === item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => handleTabChange(item.id)}
                 variant="channel"
                 onMouseEnter={() => prefetchData('conversations')}
               />
@@ -235,7 +233,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
                   label={inbox.name}
                   count={inbox.conversation_count}
                   active={selectedTab === inboxTabId}
-                  onClick={() => onTabChange(inboxTabId)}
+                  onClick={() => handleTabChange(inboxTabId)}
                   variant="inbox"
                   color={inbox.color}
                 />
