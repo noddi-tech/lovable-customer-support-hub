@@ -52,11 +52,14 @@ const VirtualizedConversationList = memo(({ onSelectConversation, selectedConver
     }
 
     return (
-      <div style={style} onClick={() => onSelectConversation(conversation)} className="cursor-pointer">
+      <div style={style}>
         <ConversationListItem
           conversation={conversation}
           isSelected={selectedConversation?.id === conversation.id}
-          onSelect={onSelectConversation}
+          onSelect={(conv) => {
+            console.log('ConversationListItem onSelect called:', conv.id);
+            onSelectConversation(conv);
+          }}
         />
       </div>
     );

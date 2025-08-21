@@ -64,7 +64,10 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           isSelected && "bg-accent border-primary/20",
           !conversation.is_read && "bg-accent/30"
         )}
-        onClick={() => onSelect(conversation)}
+        onClick={(e) => {
+          console.log('Desktop click handler called:', conversation.id);
+          onSelect(conversation);
+        }}
       >
         <div className="row px-4 py-3">
           <div className="col--status flex items-center space-x-2">
@@ -140,7 +143,10 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           isSelected && "border-primary bg-accent",
           !conversation.is_read && "bg-accent/30"
         )}
-        onClick={() => onSelect(conversation)}
+        onClick={(e) => {
+          console.log('Mobile click handler called:', conversation.id);
+          onSelect(conversation);
+        }}
       >
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center space-x-2 flex-1 min-w-0">
