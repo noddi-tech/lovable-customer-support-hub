@@ -126,15 +126,15 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
           {/* Row 2: Status, Priority, Channel badges */}
           <div className="flex items-center gap-1.5 text-xs">
             <Badge 
-              className={cn("text-xs px-1.5 py-0 h-4", statusColors[conversation.status])}
+              className={cn("text-xs px-1 py-0 h-3.5 text-xs", statusColors[conversation.status])}
             >
-              {t(`dashboard.conversation.status.${conversation.status}`)}
+              {t(`conversation.${conversation.status}`)}
             </Badge>
             
             <Badge 
-              className={cn("text-xs px-1.5 py-0 h-4", priorityColors[conversation.priority])}
+              className={cn("text-xs px-1 py-0 h-3.5 text-xs", priorityColors[conversation.priority])}
             >
-              {t(`dashboard.conversation.priority.${conversation.priority}`)}
+              {t(`conversation.${conversation.priority}`)}
             </Badge>
             
             <div className="flex items-center text-muted-foreground">
@@ -143,9 +143,9 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
             </div>
 
             {isSnoozed && (
-              <Badge variant="outline" className="text-xs px-1.5 py-0 h-4">
-                <Clock className="w-3 h-3 mr-1" />
-                Snoozed
+              <Badge variant="outline" className="text-xs px-1 py-0 h-3.5">
+                <Clock className="w-2.5 h-2.5 mr-0.5" />
+                {t('conversation.snoozed')}
               </Badge>
             )}
           </div>
@@ -221,16 +221,16 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
         <div className="text-sm font-medium truncate mb-1.5">{conversation.subject}</div>
         
         <div className="flex flex-wrap items-center gap-1 mb-1.5">
-          <Badge className={cn("text-xs px-1.5 py-0 h-4", statusColors[conversation.status])}>
-            {conversation.status}
+          <Badge className={cn("text-xs px-1 py-0 h-3.5", statusColors[conversation.status])}>
+            {t(`conversation.${conversation.status}`)}
           </Badge>
-          <Badge className={cn("text-xs px-1.5 py-0 h-4", priorityColors[conversation.priority])}>
-            {conversation.priority}
+          <Badge className={cn("text-xs px-1 py-0 h-3.5", priorityColors[conversation.priority])}>
+            {t(`conversation.${conversation.priority}`)}
           </Badge>
           {isSnoozed && (
-            <Badge variant="outline" className="text-xs px-1.5 py-0 h-4">
-              <Clock className="w-3 h-3 mr-1" />
-              Snoozed
+            <Badge variant="outline" className="text-xs px-1 py-0 h-3.5">
+              <Clock className="w-2.5 h-2.5 mr-0.5" />
+              {t('conversation.snoozed')}
             </Badge>
           )}
         </div>
