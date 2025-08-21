@@ -106,34 +106,25 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     enabled: !!user,
     queryFn: async () => {
       logger.info('Fetching conversations for user', { userId: user?.id }, 'ConversationListProvider');
-      const { data, error } = await supabase.rpc('get_conversations');
+      
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          *,
+          customer:customers(id, full_name, email),
+          assigned_to:profiles(id, full_name, avatar_url)
+        `)
+        .in('channel', ['email', 'facebook', 'instagram', 'whatsapp'])
+        .eq('is_archived', false)
+        .order('updated_at', { ascending: false });
+
       if (error) {
         logger.error('Error fetching conversations', error, 'ConversationListProvider');
         return [];
       }
       
-      // Filter out voice/call conversations and transform data
-      const filtered = (data as any[])?.filter(conv => {
-        const includeChannel = ['email', 'chat', 'social', 'facebook', 'instagram', 'whatsapp'].includes(conv.channel);
-        return includeChannel;
-      });
-      
-      const transformed = filtered?.map(conv => ({
-        ...conv,
-        customer: conv.customer ? {
-          id: conv.customer.id,
-          full_name: conv.customer.full_name,
-          email: conv.customer.email,
-        } : undefined,
-        assigned_to: conv.assigned_to ? {
-          id: conv.assigned_to.id,
-          full_name: conv.assigned_to.full_name,
-          avatar_url: conv.assigned_to.avatar_url,
-        } : undefined,
-      }));
-      
-      logger.info('Conversations fetched successfully', { count: transformed?.length }, 'ConversationListProvider');
-      return transformed as Conversation[] || [];
+      logger.info('Conversations fetched successfully', { count: data?.length }, 'ConversationListProvider');
+      return (data as Conversation[]) || [];
     },
   });
 
