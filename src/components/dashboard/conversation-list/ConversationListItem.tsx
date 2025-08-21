@@ -139,22 +139,15 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
             {conversation.preview_text || 'No preview available'}
           </div>
           
-          {/* Row 4: Assignee + Channel + Tags */}
+          {/* Row 4: Receiving Email + Channel + Tags */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {conversation.assigned_to ? (
-                <div className="flex items-center gap-1">
-                  <Avatar className="h-4 w-4">
-                    <AvatarFallback className="text-xs text-muted-foreground">
-                      {conversation.assigned_to.full_name?.[0] || 'A'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-muted-foreground">
-                    {conversation.assigned_to.full_name}
-                  </span>
-                </div>
+              {conversation.email_account?.email_address ? (
+                <span className="text-xs text-muted-foreground">
+                  To: {conversation.email_account.email_address}
+                </span>
               ) : (
-                <span className="text-xs text-muted-foreground">Unassigned</span>
+                <span className="text-xs text-muted-foreground">No email account</span>
               )}
             </div>
             
@@ -258,22 +251,15 @@ export const ConversationListItem = ({ conversation, isSelected, onSelect }: Con
             {conversation.preview_text || 'No preview available'}
           </div>
           
-          {/* Row 4: Assignee + Channel + Tags */}
+          {/* Row 4: Receiving Email + Channel + Tags */}
           <div className="flex items-center justify-between pl-7">
             <div className="flex items-center gap-2">
-              {conversation.assigned_to ? (
-                <div className="flex items-center gap-1">
-                  <Avatar className="h-3 w-3">
-                    <AvatarFallback className="text-xs text-muted-foreground">
-                      {conversation.assigned_to.full_name?.[0] || 'A'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-muted-foreground">
-                    {conversation.assigned_to.full_name}
-                  </span>
-                </div>
+              {conversation.email_account?.email_address ? (
+                <span className="text-xs text-muted-foreground">
+                  To: {conversation.email_account.email_address}
+                </span>
               ) : (
-                <span className="text-xs text-muted-foreground">Unassigned</span>
+                <span className="text-xs text-muted-foreground">No email account</span>
               )}
             </div>
             

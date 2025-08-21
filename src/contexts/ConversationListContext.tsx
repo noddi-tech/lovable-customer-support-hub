@@ -21,6 +21,11 @@ export interface AssignedTo {
   avatar_url?: string;
 }
 
+export interface EmailAccount {
+  id: string;
+  email_address: string;
+}
+
 export interface Conversation {
   id: string;
   subject: string;
@@ -34,6 +39,7 @@ export interface Conversation {
   inbox_id?: string;
   customer?: Customer;
   assigned_to?: AssignedTo;
+  email_account?: EmailAccount;
   snooze_until?: string;
   preview_text?: string;
 }
@@ -114,6 +120,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           *,
           customer:customers(id, full_name, email),
           assigned_to:profiles(id, full_name, avatar_url),
+          email_account:email_accounts(id, email_address),
           messages(content, created_at)
         `)
         .in('channel', ['email', 'facebook', 'instagram', 'whatsapp'])
