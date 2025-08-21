@@ -121,10 +121,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       messages: isMobile ? 100 : 50,
       sidebar: isMobile ? 0 : 20
     },
-    maxSizes: {
-      messages: isMobile ? 100 : 80,
-      sidebar: isMobile ? 0 : 50
-    }
+    viewportAware: true
   });
 
   // Auto-scroll when reply area is opened
