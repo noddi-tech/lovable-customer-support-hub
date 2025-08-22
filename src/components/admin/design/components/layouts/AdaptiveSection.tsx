@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 
 type ResponsiveValue<T> = T | { sm?: T; md?: T; lg?: T; xl?: T };
 
@@ -17,7 +17,7 @@ interface AdaptiveSectionProps {
   as?: 'div' | 'section' | 'article' | 'aside' | 'main';
 }
 
-export const AdaptiveSection: React.FC<AdaptiveSectionProps> = ({
+export const AdaptiveSection: React.FC<AdaptiveSectionProps> = React.memo(({
   children,
   className,
   spacing = '4',
@@ -30,7 +30,7 @@ export const AdaptiveSection: React.FC<AdaptiveSectionProps> = ({
   shadow = 'none',
   as: Component = 'section',
 }) => {
-  const getSpacingClass = (value: ResponsiveValue<string>, prefix: string) => {
+  const getSpacingClass = useCallback((value: ResponsiveValue<string>, prefix: string) => {
     return typeof value === 'string' 
       ? `${prefix}-${value}`
       : cn(
@@ -39,9 +39,9 @@ export const AdaptiveSection: React.FC<AdaptiveSectionProps> = ({
           value.lg && `lg:${prefix}-${value.lg}`,
           value.xl && `xl:${prefix}-${value.xl}`
         );
-  };
+  }, []);
 
-  const spacingClass = (() => {
+  const spacingClass = useMemo(() => {
     switch (direction) {
       case 'x':
         return getSpacingClass(spacing, 'space-x');
@@ -55,12 +55,12 @@ export const AdaptiveSection: React.FC<AdaptiveSectionProps> = ({
       default:
         return getSpacingClass(spacing, 'space-y');
     }
-  })();
+  }, [direction, spacing, getSpacingClass]);
 
-  const paddingClass = padding ? getSpacingClass(padding, 'p') : '';
-  const marginClass = margin ? getSpacingClass(margin, 'm') : '';
+  const paddingClass = useMemo(() => padding ? getSpacingClass(padding, 'p') : '', [padding, getSpacingClass]);
+  const marginClass = useMemo(() => margin ? getSpacingClass(margin, 'm') : '', [margin, getSpacingClass]);
 
-  const backgroundClass = (() => {
+  const backgroundClass = useMemo(() => {
     switch (background) {
       case 'muted':
         return 'bg-muted';
@@ -71,12 +71,12 @@ export const AdaptiveSection: React.FC<AdaptiveSectionProps> = ({
       default:
         return '';
     }
-  })();
+  }, [background]);
 
-  const borderClass = border ? 'border border-border' : '';
-  const roundedClass = rounded ? 'rounded-lg' : '';
+  const borderClass = useMemo(() => border ? 'border border-border' : '', [border]);
+  const roundedClass = useMemo(() => rounded ? 'rounded-lg' : '', [rounded]);
   
-  const shadowClass = (() => {
+  const shadowClass = useMemo(() => {
     switch (shadow) {
       case 'sm':
         return 'shadow-sm';
@@ -87,22 +87,22 @@ export const AdaptiveSection: React.FC<AdaptiveSectionProps> = ({
       default:
         return '';
     }
-  })();
+  }, [shadow]);
+
+  const combinedClassName = useMemo(() => cn(
+    spacingClass,
+    paddingClass,
+    marginClass,
+    backgroundClass,
+    borderClass,
+    roundedClass,
+    shadowClass,
+    className
+  ), [spacingClass, paddingClass, marginClass, backgroundClass, borderClass, roundedClass, shadowClass, className]);
 
   return (
-    <Component 
-      className={cn(
-        spacingClass,
-        paddingClass,
-        marginClass,
-        backgroundClass,
-        borderClass,
-        roundedClass,
-        shadowClass,
-        className
-      )}
-    >
+    <Component className={combinedClassName}>
       {children}
     </Component>
   );
-};
+});

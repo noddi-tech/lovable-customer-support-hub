@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { useMemo } from 'react';
 
 type ResponsiveValue<T> = T | { sm?: T; md?: T; lg?: T; xl?: T };
 
@@ -17,7 +17,7 @@ interface LayoutItemProps {
   as?: 'div' | 'section' | 'article' | 'aside';
 }
 
-export const LayoutItem: React.FC<LayoutItemProps> = ({
+export const LayoutItem: React.FC<LayoutItemProps> = React.memo(({
   children,
   className,
   flex = '1',
@@ -30,12 +30,12 @@ export const LayoutItem: React.FC<LayoutItemProps> = ({
   align = 'auto',
   as: Component = 'div',
 }) => {
-  const flexClass = flex !== 'none' ? `flex-${flex}` : 'flex-none';
-  const growClass = grow ? 'flex-grow' : 'flex-grow-0';
-  const shrinkClass = shrink ? 'flex-shrink' : 'flex-shrink-0';
-  const basisClass = basis !== 'auto' ? `flex-basis-${basis}` : '';
+  const flexClass = useMemo(() => flex !== 'none' ? `flex-${flex}` : 'flex-none', [flex]);
+  const growClass = useMemo(() => grow ? 'flex-grow' : 'flex-grow-0', [grow]);
+  const shrinkClass = useMemo(() => shrink ? 'flex-shrink' : 'flex-shrink-0', [shrink]);
+  const basisClass = useMemo(() => basis !== 'auto' ? `flex-basis-${basis}` : '', [basis]);
 
-  const minWidthClass = minWidth ? (
+  const minWidthClass = useMemo(() => minWidth ? (
     typeof minWidth === 'string' 
       ? `min-w-[${minWidth}]`
       : cn(
@@ -44,9 +44,9 @@ export const LayoutItem: React.FC<LayoutItemProps> = ({
           minWidth.lg && `lg:min-w-[${minWidth.lg}]`,
           minWidth.xl && `xl:min-w-[${minWidth.xl}]`
         )
-  ) : '';
+  ) : '', [minWidth]);
 
-  const maxWidthClass = maxWidth ? (
+  const maxWidthClass = useMemo(() => maxWidth ? (
     typeof maxWidth === 'string' 
       ? `max-w-[${maxWidth}]`
       : cn(
@@ -55,9 +55,9 @@ export const LayoutItem: React.FC<LayoutItemProps> = ({
           maxWidth.lg && `lg:max-w-[${maxWidth.lg}]`,
           maxWidth.xl && `xl:max-w-[${maxWidth.xl}]`
         )
-  ) : '';
+  ) : '', [maxWidth]);
 
-  const orderClass = order ? (
+  const orderClass = useMemo(() => order ? (
     typeof order === 'string' 
       ? `order-${order}`
       : cn(
@@ -66,25 +66,25 @@ export const LayoutItem: React.FC<LayoutItemProps> = ({
           order.lg && `lg:order-${order.lg}`,
           order.xl && `xl:order-${order.xl}`
         )
-  ) : '';
+  ) : '', [order]);
 
-  const alignClass = align !== 'auto' ? `self-${align}` : '';
+  const alignClass = useMemo(() => align !== 'auto' ? `self-${align}` : '', [align]);
+
+  const combinedClassName = useMemo(() => cn(
+    flexClass,
+    grow && growClass,
+    shrink && shrinkClass,
+    basisClass,
+    minWidthClass,
+    maxWidthClass,
+    orderClass,
+    alignClass,
+    className
+  ), [flexClass, grow, growClass, shrink, shrinkClass, basisClass, minWidthClass, maxWidthClass, orderClass, alignClass, className]);
 
   return (
-    <Component 
-      className={cn(
-        flexClass,
-        grow && growClass,
-        shrink && shrinkClass,
-        basisClass,
-        minWidthClass,
-        maxWidthClass,
-        orderClass,
-        alignClass,
-        className
-      )}
-    >
+    <Component className={combinedClassName}>
       {children}
     </Component>
   );
-};
+});

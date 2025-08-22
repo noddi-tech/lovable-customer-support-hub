@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type ResponsiveValue<T> = T | { sm?: T; md?: T; lg?: T; xl?: T };
@@ -24,7 +24,7 @@ interface ResponsiveTabsProps {
   fullWidth?: boolean;
 }
 
-export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = ({
+export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo(({
   items,
   defaultValue,
   value,
@@ -36,43 +36,50 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = ({
   spacing = '4',
   fullWidth = false,
 }) => {
-  const orientationClass = orientation === 'responsive' 
+  const orientationClass = useMemo(() => orientation === 'responsive' 
     ? `flex-col ${breakpoint}:flex-row`
     : orientation === 'vertical' 
       ? 'flex-col' 
-      : 'flex-row';
+      : 'flex-row', [orientation, breakpoint]);
 
-  const spacingClass = typeof spacing === 'string' 
+  const spacingClass = useMemo(() => typeof spacing === 'string' 
     ? `gap-${spacing}` 
     : cn(
         spacing.sm && `sm:gap-${spacing.sm}`,
         spacing.md && `md:gap-${spacing.md}`,
         spacing.lg && `lg:gap-${spacing.lg}`,
         spacing.xl && `xl:gap-${spacing.xl}`
-      );
+      ), [spacing]);
 
-  const tabsListClass = cn(
+  const tabsListClass = useMemo(() => cn(
     'flex',
     orientationClass,
     spacingClass,
     fullWidth && 'w-full',
     variant === 'pills' && 'bg-muted p-1 rounded-lg',
     variant === 'underline' && 'border-b'
-  );
+  ), [orientationClass, spacingClass, fullWidth, variant]);
 
-  const tabsTriggerClass = cn(
+  const tabsTriggerClass = useMemo(() => cn(
     fullWidth && 'flex-1',
     variant === 'pills' && 'rounded-md',
     variant === 'underline' && 'border-b-2 border-transparent data-[state=active]:border-primary'
-  );
+  ), [fullWidth, variant]);
+
+  const tabsClassName = useMemo(() => cn('w-full', className), [className]);
+  const tabsOrientation = useMemo(() => orientation === 'vertical' ? 'vertical' : 'horizontal', [orientation]);
+
+  const memoizedOnValueChange = useCallback((newValue: string) => {
+    onValueChange?.(newValue);
+  }, [onValueChange]);
 
   return (
     <Tabs
       defaultValue={defaultValue}
       value={value}
-      onValueChange={onValueChange}
-      className={cn('w-full', className)}
-      orientation={orientation === 'vertical' ? 'vertical' : 'horizontal'}
+      onValueChange={memoizedOnValueChange}
+      className={tabsClassName}
+      orientation={tabsOrientation}
     >
       <TabsList className={tabsListClass}>
         {items.map((item) => (
@@ -100,4 +107,4 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = ({
       ))}
     </Tabs>
   );
-};
+});

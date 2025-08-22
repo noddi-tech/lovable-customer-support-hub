@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { useMemo } from 'react';
 
 type ResponsiveValue<T> = T | { sm?: T; md?: T; lg?: T; xl?: T };
 
@@ -12,7 +12,7 @@ interface ResponsiveContainerProps {
   as?: 'div' | 'section' | 'main' | 'article';
 }
 
-export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
+export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = React.memo(({
   children,
   className,
   padding = '4',
@@ -20,29 +20,29 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
   center = true,
   as: Component = 'div',
 }) => {
-  const paddingClass = typeof padding === 'string' 
+  const paddingClass = useMemo(() => typeof padding === 'string' 
     ? `p-${padding}` 
     : cn(
         padding.sm && `sm:p-${padding.sm}`,
         padding.md && `md:p-${padding.md}`,
         padding.lg && `lg:p-${padding.lg}`,
         padding.xl && `xl:p-${padding.xl}`
-      );
+      ), [padding]);
 
-  const maxWidthClass = maxWidth === 'full' ? 'w-full' : `max-w-${maxWidth}`;
-  const centerClass = center ? 'mx-auto' : '';
+  const maxWidthClass = useMemo(() => maxWidth === 'full' ? 'w-full' : `max-w-${maxWidth}`, [maxWidth]);
+  const centerClass = useMemo(() => center ? 'mx-auto' : '', [center]);
+
+  const combinedClassName = useMemo(() => cn(
+    'w-full',
+    maxWidthClass,
+    centerClass,
+    paddingClass,
+    className
+  ), [maxWidthClass, centerClass, paddingClass, className]);
 
   return (
-    <Component 
-      className={cn(
-        'w-full',
-        maxWidthClass,
-        centerClass,
-        paddingClass,
-        className
-      )}
-    >
+    <Component className={combinedClassName}>
       {children}
     </Component>
   );
-};
+});
