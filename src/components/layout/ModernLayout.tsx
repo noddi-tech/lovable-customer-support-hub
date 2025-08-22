@@ -5,6 +5,7 @@ import { ModernHeader } from './ModernHeader';
 import { ModernSidebar } from './ModernSidebar';
 import { ModernMainContent } from './ModernMainContent';
 import { useIsMobile } from '@/hooks/use-responsive';
+import { ResponsiveFlex } from '@/components/admin/design/components/layouts';
 
 interface ModernLayoutProps {
   children: React.ReactNode;
@@ -29,7 +30,7 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <ModernAppShell>
-        <div className="flex h-full">
+        <ResponsiveFlex className="h-full" wrap={false}>
           <ModernSidebar 
             activeTab={activeTab}
             activeSubTab={activeSubTab}
@@ -49,7 +50,7 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
               {children}
             </ModernMainContent>
           </SidebarInset>
-        </div>
+        </ResponsiveFlex>
       </ModernAppShell>
     </SidebarProvider>
   );

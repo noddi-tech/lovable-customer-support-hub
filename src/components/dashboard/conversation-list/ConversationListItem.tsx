@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
+import { ResponsiveFlex, AdaptiveSection } from '@/components/admin/design/components/layouts';
 
 const priorityColors = {
   low: "bg-muted text-muted-foreground",
@@ -108,10 +109,10 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
         className={desktopClasses}
         onClick={handleSelect}
       >
-        <div className="px-3 py-2.5 space-y-1">
+        <AdaptiveSection padding="3" spacing="1" className="py-2.5">
           {/* Row 1: Customer + Status/Priority badges + Time + Menu */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <ResponsiveFlex alignment="center" justify="between">
+            <ResponsiveFlex alignment="center" gap="2">
               <span className="font-medium text-sm">
                 {computedValues.customerName}
               </span>
@@ -125,9 +126,9 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
               >
                 {computedValues.priorityLabel}
               </Badge>
-            </div>
+            </ResponsiveFlex>
             
-            <div className="flex items-center gap-2">
+            <ResponsiveFlex alignment="center" gap="2">
               <span className="text-xs text-muted-foreground">
                 {computedValues.formattedTime}
               </span>
@@ -156,8 +157,8 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          </div>
+            </ResponsiveFlex>
+          </ResponsiveFlex>
           
           {/* Row 2: Subject */}
           <div className="font-semibold text-sm truncate">
@@ -170,18 +171,18 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
           </div>
           
           {/* Row 4: Receiving Email + Channel + Tags */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <ResponsiveFlex alignment="center" justify="between">
+            <ResponsiveFlex alignment="center" gap="2">
               <span className="text-xs text-muted-foreground">
                 {computedValues.customerEmail ? `From: ${computedValues.customerEmail}` : 'No email'}
               </span>
-            </div>
+            </ResponsiveFlex>
             
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
+            <ResponsiveFlex alignment="center" gap="2">
+              <ResponsiveFlex alignment="center" gap="1">
                 <computedValues.ChannelIcon className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground capitalize">{conversation.channel}</span>
-              </div>
+              </ResponsiveFlex>
               
               {computedValues.isSnoozed && (
                 <Badge variant="outline" className="text-xs px-1 py-0 h-3.5">
@@ -189,9 +190,9 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
                   {t('conversation.snoozed', 'Snoozed')}
                 </Badge>
               )}
-            </div>
-          </div>
-        </div>
+            </ResponsiveFlex>
+          </ResponsiveFlex>
+        </AdaptiveSection>
       </div>
 
       {/* Mobile Layout - Ticket Format */}
@@ -199,10 +200,10 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
         className={mobileClasses}
         onClick={handleSelect}
       >
-        <div className="space-y-1.5">
+        <AdaptiveSection spacing="1.5">
           {/* Row 1: Customer + Badges + Time + Menu */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+          <ResponsiveFlex alignment="center" justify="between">
+            <ResponsiveFlex alignment="center" gap="1.5">
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="text-xs">
                   {computedValues.customerInitial}
@@ -217,9 +218,9 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
               <Badge className={cn("text-xs px-1 py-0 h-3.5", priorityColors[conversation.priority])}>
                 {computedValues.priorityLabel}
               </Badge>
-            </div>
+            </ResponsiveFlex>
             
-            <div className="flex items-center gap-1">
+            <ResponsiveFlex alignment="center" gap="1">
               <span className="text-xs text-muted-foreground">
                 {computedValues.formattedTime}
               </span>
@@ -248,8 +249,8 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          </div>
+            </ResponsiveFlex>
+          </ResponsiveFlex>
           
           {/* Row 2: Subject */}
           <div className="font-semibold text-sm truncate pl-7">
@@ -262,18 +263,18 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
           </div>
           
           {/* Row 4: Receiving Email + Channel + Tags */}
-          <div className="flex items-center justify-between pl-7">
-            <div className="flex items-center gap-2">
+          <ResponsiveFlex alignment="center" justify="between" className="pl-7">
+            <ResponsiveFlex alignment="center" gap="2">
               <span className="text-xs text-muted-foreground">
                 {computedValues.customerEmail ? `From: ${computedValues.customerEmail}` : 'No email'}
               </span>
-            </div>
+            </ResponsiveFlex>
             
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
+            <ResponsiveFlex alignment="center" gap="2">
+              <ResponsiveFlex alignment="center" gap="1">
                 <computedValues.ChannelIcon className="w-3 h-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground capitalize">{conversation.channel}</span>
-              </div>
+              </ResponsiveFlex>
               
               {computedValues.isSnoozed && (
                 <Badge variant="outline" className="text-xs px-1 py-0 h-3.5">
@@ -281,9 +282,9 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
                   {t('conversation.snoozed', 'Snoozed')}
                 </Badge>
               )}
-            </div>
-          </div>
-        </div>
+            </ResponsiveFlex>
+          </ResponsiveFlex>
+        </AdaptiveSection>
       </div>
     </>
   );

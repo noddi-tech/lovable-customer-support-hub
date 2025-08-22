@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from '@/lib/utils';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useResizablePanels } from '@/hooks/useResizablePanels';
+import { ResponsiveFlex, ResponsiveContainer, AdaptiveSection } from '@/components/admin/design/components/layouts';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -128,13 +129,13 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Mobile layout: Single pane with stacking
   if (isMobile) {
     return (
-      <ContentPane className="h-full p-0">
-        <div className="flex items-center gap-2 p-2 border-b border-border">
+      <AdaptiveSection className="h-full flex flex-col" padding="0">
+        <ResponsiveFlex alignment="center" gap="2" className="p-2 border-b border-border">
           <MobileSidebarDrawer selectedTab={selectedTab} onTabChange={onTabChange} />
           <h2 className="text-sm font-medium">
             {t('sidebar.inbox', 'Inbox')}
           </h2>
-        </div>
+        </ResponsiveFlex>
         {shouldShowConversationList ? (
           <ContentPane variant="card" className="flex-1">
             <ConversationList
@@ -148,28 +149,28 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
         ) : (
           <ContentPane className="flex-1">
             {selectedConversation ? (
-              <div className="h-full">
+              <AdaptiveSection className="h-full">
                 <ConversationView conversationId={selectedConversation.id} />
-              </div>
+              </AdaptiveSection>
             ) : (
               <EmptyConversationState />
             )}
           </ContentPane>
         )}
-      </ContentPane>
+      </AdaptiveSection>
     );
   }
 
   // Desktop & Tablet: Sidebar + resizable panels layout
   return (
-    <div className="flex h-full">
-      <div className="hidden md:flex h-full">
+    <ResponsiveFlex className="h-full" wrap={false}>
+      <AdaptiveSection className="hidden md:flex h-full">
         <OptimizedInteractionsSidebar
           selectedTab={selectedTab}
           onTabChange={onTabChange}
           selectedInboxId={selectedInboxId}
         />
-      </div>
+      </AdaptiveSection>
       <ContentPane className="h-full p-0 flex-1">
         <ResizablePanelGroup direction="horizontal" className="h-full">
           {/* Conversation List Panel */}
@@ -204,7 +205,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
             <ContentPane className="h-full relative">
               {/* Show/Hide Conversation List Button - Desktop only */}
               {isDesktop && !shouldShowConversationList && (
-                <div className="absolute top-4 left-4 z-10">
+                <AdaptiveSection className="absolute top-4 left-4 z-10">
                   <Button
                     variant="outline"
                     size="sm"
@@ -214,13 +215,13 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
                     <Sidebar className="h-4 w-4" />
                     <span>Show Conversations</span>
                   </Button>
-                </div>
+                </AdaptiveSection>
               )}
 
               {selectedConversation ? (
-                <div className="h-full">
+                <AdaptiveSection className="h-full">
                   <ConversationView conversationId={selectedConversation.id} />
-                </div>
+                </AdaptiveSection>
               ) : (
                 <EmptyConversationState />
               )}
@@ -228,7 +229,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
           </ResizablePanel>
         </ResizablePanelGroup>
       </ContentPane>
-    </div>
+    </ResponsiveFlex>
   );
 };
 
@@ -237,14 +238,22 @@ const EmptyConversationState: React.FC = () => {
   const { t } = useTranslation();
   
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center p-8">
-      <MessageCircle className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
-      <h3 className="text-lg font-semibold text-foreground mb-2">
-        {t('interactions.noConversationSelected', 'No conversation selected')}
-      </h3>
-      <p className="text-muted-foreground max-w-md">
-        {t('interactions.selectConversationToStart', 'Select a conversation from the list to start viewing messages and details.')}
-      </p>
-    </div>
+    <ResponsiveFlex 
+      direction="col" 
+      alignment="center" 
+      justify="center" 
+      className="h-full text-center"
+      as="section"
+    >
+      <ResponsiveContainer padding="8" center>
+        <MessageCircle className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">
+          {t('interactions.noConversationSelected', 'No conversation selected')}
+        </h3>
+        <p className="text-muted-foreground max-w-md">
+          {t('interactions.selectConversationToStart', 'Select a conversation from the list to start viewing messages and details.')}
+        </p>
+      </ResponsiveContainer>
+    </ResponsiveFlex>
   );
 };
