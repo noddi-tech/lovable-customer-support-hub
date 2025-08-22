@@ -71,7 +71,7 @@ const customRender = (
 ) => render(ui, { wrapper: AllTheProviders, ...options });
 
 export * from '@testing-library/react';
-export { customRender as render, screen };
+export { customRender as render };
 
 // Utility to create test children
 export const createTestChildren = (count: number) => 

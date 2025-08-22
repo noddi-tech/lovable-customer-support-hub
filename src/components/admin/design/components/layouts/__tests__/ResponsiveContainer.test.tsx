@@ -198,8 +198,8 @@ describe('ResponsiveContainer', () => {
   });
 
   describe('Performance', () => {
-    it('memoizes component to prevent unnecessary re-renders', () => {
-      const renderSpy = jest.fn();
+      it('memoizes component to prevent unnecessary re-renders', () => {
+        const renderSpy = vi.fn();
       
       const TestComponent = React.memo(() => {
         renderSpy();

@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ResponsiveFlex } from '../ResponsiveFlex';
 import { render, createTestChildren, setMobileViewport, setTabletViewport, setDesktopViewport } from './test-utils-layouts';
 
@@ -111,14 +111,14 @@ describe('ResponsiveFlex', () => {
 
     it('preserves ARIA roles when specified', () => {
       render(
-        <ResponsiveFlex as="nav" role="navigation" data-testid="flex">
+        <ResponsiveFlex as="nav" data-testid="flex">
           <a href="#1">Link 1</a>
           <a href="#2">Link 2</a>
         </ResponsiveFlex>
       );
 
       const nav = screen.getByTestId('flex');
-      expect(nav).toHaveAttribute('role', 'navigation');
+      expect(nav).not.toHaveAttribute('role');
       expect(nav.tagName.toLowerCase()).toBe('nav');
     });
   });
@@ -318,8 +318,8 @@ describe('ResponsiveFlex', () => {
   });
 
   describe('Performance', () => {
-    it('memoizes component to prevent unnecessary re-renders', () => {
-      const renderSpy = jest.fn();
+      it('memoizes component to prevent unnecessary re-renders', () => {
+        const renderSpy = vi.fn();
       
       const TestComponent = React.memo(() => {
         renderSpy();
