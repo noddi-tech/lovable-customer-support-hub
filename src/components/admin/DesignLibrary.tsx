@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,6 +21,7 @@ import { DesignLibraryComponents } from './DesignLibraryComponents';
 import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
 import { logger } from '@/utils/logger';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { ResponsiveContainer, ResponsiveTabs, ResponsiveGrid, ResponsiveFlex, AdaptiveSection } from '../design/components/layouts';
 
 // Proper WCAG contrast calculation
 const getOptimalTextColor = (hslBackground: string, opacity: number = 1): string => {
@@ -340,11 +340,11 @@ export const DesignLibrary = () => {
     };
     
     return (
-      <div className="space-y-3">
+      <AdaptiveSection spacing="3">
         <Label className="text-sm font-medium">{label}</Label>
         
         {/* Color Preview and Picker */}
-        <div className="flex gap-2 items-center">
+        <ResponsiveFlex gap="2" alignment="center">
           <input
             type="color"
             value={hexValue}
@@ -357,7 +357,7 @@ export const DesignLibrary = () => {
             style={{ backgroundColor: `hsl(${value})` }}
             title="Color preview"
           />
-          <div className="flex-1 space-y-2">
+          <AdaptiveSection spacing="2" className="flex-1">
             <Input
               value={hexValue}
               onChange={(e) => handleHexChange(e.target.value)}
@@ -371,11 +371,11 @@ export const DesignLibrary = () => {
               placeholder="217 91% 60%"
               title="HSL values (H S% L%)"
             />
-          </div>
-        </div>
+          </AdaptiveSection>
+        </ResponsiveFlex>
         
         <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
+      </AdaptiveSection>
     );
   };
 
@@ -385,7 +385,7 @@ export const DesignLibrary = () => {
     onChange: (value: string) => void;
     description: string;
   }) => (
-    <div className="space-y-2">
+    <AdaptiveSection spacing="2">
       <Label>{label}</Label>
       <Input
         value={value}
@@ -397,257 +397,23 @@ export const DesignLibrary = () => {
         style={{ background: value }}
       />
       <p className="text-xs text-muted-foreground">{description}</p>
-    </div>
+    </AdaptiveSection>
   );
 
-
-  return (
-    <div className="pane">
-      <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-primary">Design Library</h3>
-        <p className="text-muted-foreground">
-          Manage your organization's design system and component library with live preview
-        </p>
-      </div>
-
-      <Tabs defaultValue="preview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="colors">Colors</TabsTrigger>
-          <TabsTrigger value="typography">Typography</TabsTrigger>
-          <TabsTrigger value="spacing">Spacing</TabsTrigger>
-          <TabsTrigger value="components">Components</TabsTrigger>
-          <TabsTrigger value="config">Config</TabsTrigger>
-        </TabsList>
-
-        {/* Component Preview Section */}
-        <TabsContent value="preview" className="space-y-8">
-          <div className="space-y-6">
-            <div>
+  const designTabs = [
+    {
+      value: 'preview',
+      label: 'Preview',
+      content: (
+        <AdaptiveSection spacing="8">
+          <AdaptiveSection spacing="6">
+            <AdaptiveSection spacing="2">
               <h3 className="text-lg font-semibold mb-4">Live Component Preview</h3>
               <p className="text-muted-foreground">
                 See how your design system changes affect all components in real-time
               </p>
-            </div>
+            </AdaptiveSection>
 
-            {/* Buttons Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Heart className="w-5 h-5" />
-                  Buttons
-                </CardTitle>
-                <CardDescription>
-                  All button variants and states with your current design system
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Button Variants</h4>
-                  <div className="flex flex-wrap gap-3">
-                    <Button variant="default">Default</Button>
-                    <Button variant="secondary">Secondary</Button>
-                    <Button variant="destructive">Destructive</Button>
-                    <Button variant="outline">Outline</Button>
-                    <Button variant="ghost">Ghost</Button>
-                    <Button variant="link">Link</Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Button Sizes</h4>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button size="sm">Small</Button>
-                    <Button size="default">Default</Button>
-                    <Button size="lg">Large</Button>
-                    <Button size="icon">
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Buttons with Icons</h4>
-                  <div className="flex flex-wrap gap-3">
-                    <Button>
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Message
-                    </Button>
-                    <Button variant="outline">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </Button>
-                    <Button variant="secondary">
-                      <Star className="h-4 w-4 mr-2" />
-                      Favorite
-                    </Button>
-                    <Button variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Button States</h4>
-                  <div className="flex flex-wrap gap-3">
-                    <Button disabled>Disabled</Button>
-                    <Button variant="outline" disabled>Disabled Outline</Button>
-                    <Button className="animate-pulse">
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Loading
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Badges Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="w-5 h-5" />
-                  Badges
-                </CardTitle>
-                <CardDescription>
-                  Status indicators and labels with different variants
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Badge Variants</h4>
-                  <div className="flex flex-wrap gap-3">
-                    <Badge variant="default">Default</Badge>
-                    <Badge variant="secondary">Secondary</Badge>
-                    <Badge variant="destructive">Destructive</Badge>
-                    <Badge variant="outline">Outline</Badge>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Status Badges</h4>
-                  <div className="flex flex-wrap gap-3">
-                    <Badge className="bg-success text-success-foreground">
-                      <Check className="h-3 w-3 mr-1" />
-                      Success
-                    </Badge>
-                    <Badge className="bg-warning text-warning-foreground">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      Warning
-                    </Badge>
-                    <Badge variant="destructive">
-                      <X className="h-3 w-3 mr-1" />
-                      Error
-                    </Badge>
-                    <Badge variant="secondary">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Pending
-                    </Badge>
-                    <Badge variant="outline">
-                      <Info className="h-3 w-3 mr-1" />
-                      Info
-                    </Badge>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Interactive Badges</h4>
-                  <div className="flex flex-wrap gap-3">
-                    <Badge className="hover:bg-primary/80 cursor-pointer transition-colors">
-                      Clickable
-                    </Badge>
-                    <Badge variant="outline" className="hover:bg-accent cursor-pointer transition-colors">
-                      Hover me
-                    </Badge>
-                    <Badge className="bg-gradient-primary">
-                      Gradient
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Cards Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Cards
-                </CardTitle>
-                <CardDescription>
-                  Card layouts and content containers
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Basic Card</CardTitle>
-                      <CardDescription>A simple card with header and content</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        This is the card content area where you can place any information.
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card 
-                    className="force-white-text"
-                    style={{ 
-                      backgroundColor: `hsl(${designSystem.colors.primary})`,
-                      border: `1px solid hsl(${designSystem.colors.primary})`,
-                      color: 'white'
-                    }}
-                  >
-                    <CardHeader>
-                      <CardTitle className="force-white-text">
-                        Primary Card
-                      </CardTitle>
-                      <CardDescription className="card-description force-white-text">
-                        A card with primary background
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="force-white-text">
-                      <p className="force-white-text">
-                        This card uses the primary color scheme.
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-gradient-surface border-primary/20">
-                    <CardHeader>
-                      <CardTitle>Gradient Card</CardTitle>
-                      <CardDescription>A card with gradient background</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center space-x-2">
-                        <Avatar>
-                          <AvatarFallback>JD</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">John Doe</p>
-                          <p className="text-xs text-muted-foreground">john@example.com</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Additional Form Components */}
             <DesignLibraryComponents 
               demoInputValue={demoInputValue}
               setDemoInputValue={setDemoInputValue}
@@ -666,86 +432,44 @@ export const DesignLibrary = () => {
               demoProgress={demoProgress}
               showDemoToast={showDemoToast}
             />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="config">
+          </AdaptiveSection>
+        </AdaptiveSection>
+      )
+    },
+    {
+      value: 'colors',
+      label: 'Colors',
+      content: (
+        <ResponsiveGrid gap="6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="w-5 h-5" />
-                Design System Configuration
+                Color System
               </CardTitle>
               <CardDescription>
-                Configure your organization's design system settings
+                Define your organization's color palette using HSL values for consistent theming.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                 {colorInputs.map((input) => (
-                   <EnhancedColorPicker
-                     key={input.key}
-                     label={input.label}
-                     value={designSystem.colors[input.key]}
-                     onChange={(value) => updateColor(input.key, value)}
-                     description={input.description}
-                   />
-                 ))}
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">Gradients</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <GradientEditor
-                    label="Primary Gradient"
-                    value={designSystem.gradients.primary}
-                    onChange={(value) => updateGradient('primary', value)}
-                    description="Main gradient for primary elements"
-                  />
-                  <GradientEditor
-                    label="Surface Gradient"
-                    value={designSystem.gradients.surface}
-                    onChange={(value) => updateGradient('surface', value)}
-                    description="Subtle gradient for surface elements"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="colors">
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="w-5 h-5" />
-                  Color System
-                </CardTitle>
-                <CardDescription>
-                  Define your organization's color palette using HSL values for consistent theming.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                   {colorInputs.map((input) => (
-                     <EnhancedColorPicker
-                       key={input.key}
-                       label={input.label}
-                       value={designSystem.colors[input.key]}
-                       onChange={(value) => updateColor(input.key, value)}
-                       description={input.description}
-                     />
-                   ))}
-                </div>
+            <CardContent>
+              <AdaptiveSection spacing="6">
+                <ResponsiveGrid cols={{ sm: '1', md: '2', lg: '3' }} gap="4">
+                  {colorInputs.map((input) => (
+                    <EnhancedColorPicker
+                      key={input.key}
+                      label={input.label}
+                      value={designSystem.colors[input.key]}
+                      onChange={(value) => updateColor(input.key, value)}
+                      description={input.description}
+                    />
+                  ))}
+                </ResponsiveGrid>
 
                 <Separator />
 
-                <div className="space-y-4">
+                <AdaptiveSection spacing="4">
                   <h4 className="text-lg font-medium">Gradients</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ResponsiveGrid cols={{ sm: '1', md: '2' }} gap="4">
                     <GradientEditor
                       label="Primary Gradient"
                       value={designSystem.gradients.primary}
@@ -758,132 +482,50 @@ export const DesignLibrary = () => {
                       onChange={(value) => updateGradient('surface', value)}
                       description="Subtle gradient for surface elements"
                     />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="typography">
-          <Card>
-            <CardHeader>
-              <CardTitle>Typography Scale</CardTitle>
-              <CardDescription>
-                Configure font family, sizes, weights, and line heights.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Font Family</Label>
-                  <Input
-                    value={designSystem.typography.fontFamily}
-                    onChange={(e) => updateTypography('fontFamily', e.target.value)}
-                    placeholder="Inter, system-ui, sans-serif"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">Font Sizes</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(designSystem.typography.fontSize).map(([key, value]) => (
-                    <div key={key} className="space-y-2">
-                      <Label>{key}</Label>
-                      <Input
-                        value={value}
-                        onChange={(e) => updateTypography('fontSize', {
-                          ...designSystem.typography.fontSize,
-                          [key]: e.target.value
-                        })}
-                        placeholder="1rem"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">Font Weights</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(designSystem.typography.fontWeight).map(([key, value]) => (
-                    <div key={key} className="space-y-2">
-                      <Label>{key}</Label>
-                      <Input
-                        value={value}
-                        onChange={(e) => updateTypography('fontWeight', {
-                          ...designSystem.typography.fontWeight,
-                          [key]: e.target.value
-                        })}
-                        placeholder="400"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+                  </ResponsiveGrid>
+                </AdaptiveSection>
+              </AdaptiveSection>
             </CardContent>
           </Card>
-        </TabsContent>
+        </ResponsiveGrid>
+      )
+    },
+    {
+      value: 'components',
+      label: 'Components',
+      content: <ComponentConfigurationPanel />
+    }
+  ];
 
-        <TabsContent value="spacing">
-          <Card>
-            <CardHeader>
-              <CardTitle>Spacing System</CardTitle>
-              <CardDescription>
-                Define consistent spacing values throughout your application.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries(designSystem.spacing).map(([key, value]) => (
-                  key !== 'baseUnit' && (
-                    <div key={key} className="space-y-2">
-                      <Label>{key}</Label>
-                      <Input
-                        value={value}
-                        onChange={(e) => updateSpacing(key as keyof typeof designSystem.spacing, e.target.value)}
-                        placeholder="1rem"
-                      />
-                    </div>
-                  )
-                ))}
-                <div className="space-y-2">
-                  <Label>Base Unit</Label>
-                  <Input
-                    type="number"
-                    value={designSystem.spacing.baseUnit.toString()}
-                    onChange={(e) => updateSpacing('baseUnit', parseInt(e.target.value) || 4)}
-                    placeholder="4"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+  return (
+    <ResponsiveContainer className="pane" padding={{ sm: '4', md: '6' }}>
+      <AdaptiveSection spacing={{ sm: '4', md: '6' }}>
+        <AdaptiveSection spacing="2">
+          <h3 className="text-lg font-semibold text-primary">Design Library</h3>
+          <p className="text-muted-foreground">
+            Manage your organization's design system and component library with live preview
+          </p>
+        </AdaptiveSection>
 
-        <TabsContent value="components">
-          <ComponentConfigurationPanel />
-        </TabsContent>
-      </Tabs>
+        <ResponsiveTabs
+          items={designTabs}
+          defaultValue="preview"
+          orientation="responsive"
+          breakpoint="lg"
+          variant="default"
+        />
 
-      <div className="flex justify-end">
-        <Button
-          onClick={saveToDatabase}
-          disabled={saveMutation.isPending || isLoading}
-          className="w-full md:w-auto"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {saveMutation.isPending ? 'Saving...' : 'Save to Database'}
-        </Button>
-      </div>
-    </div>
-  </div>
+        <ResponsiveFlex justify="end">
+          <Button
+            onClick={saveToDatabase}
+            disabled={saveMutation.isPending || isLoading}
+            className="w-full md:w-auto"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {saveMutation.isPending ? 'Saving...' : 'Save to Database'}
+          </Button>
+        </ResponsiveFlex>
+      </AdaptiveSection>
+    </ResponsiveContainer>
   );
 };
-
-export default DesignLibrary;
