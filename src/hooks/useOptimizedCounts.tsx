@@ -34,45 +34,55 @@ export interface OptimizedCounts {
 export const useOptimizedCounts = (): OptimizedCounts => {
   const queryClient = useQueryClient();
 
-  // Use single efficient query for all counts
-  const { data: allCounts, isLoading, error } = useQuery({
+  // Get all counts efficiently with single RPC call
+  const countsQuery = useQuery({
     queryKey: ['all-counts'],
     queryFn: async () => {
-      // Using raw query since the function isn't in the types yet
-      const { data, error } = await supabase.rpc('get_all_counts' as any);
+      const { data, error } = await supabase.rpc('get_all_counts');
       if (error) {
         console.error('Error fetching all counts:', error);
         throw error;
       }
-      return data as {
+      
+      // Transform the single-row result to our interface format
+      const result = data?.[0];
+      if (!result) {
+        throw new Error('No data returned from get_all_counts');
+      }
+      
+      return {
         conversations: {
-          all: number;
-          unread: number;
-          assigned: number;
-          pending: number;
-          closed: number;
-          archived: number;
-        };
+          all: Number(result.conversations_all) || 0,
+          unread: Number(result.conversations_unread) || 0,
+          assigned: Number(result.conversations_assigned) || 0,
+          pending: Number(result.conversations_pending) || 0,
+          closed: Number(result.conversations_closed) || 0,
+          archived: Number(result.conversations_archived) || 0,
+        },
         channels: {
-          email: number;
-          facebook: number;
-          instagram: number;
-          whatsapp: number;
-        };
-        notifications: number;
-        inboxes: Array<{
+          email: Number(result.channels_email) || 0,
+          facebook: Number(result.channels_facebook) || 0,
+          instagram: Number(result.channels_instagram) || 0,
+          whatsapp: Number(result.channels_whatsapp) || 0,
+        },
+        notifications: Number(result.notifications_unread) || 0,
+        inboxes: Array.isArray(result.inboxes_data) ? result.inboxes_data as Array<{
           id: string;
           name: string;
           color: string;
           conversation_count: number;
           is_active: boolean;
-        }>;
+        }> : []
       };
     },
-    refetchInterval: 120000, // Reduce to every 2 minutes instead of 30 seconds
+    refetchInterval: 120000, // Refetch every 2 minutes
     staleTime: 60000, // Consider data stale after 1 minute
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
+  // Add final step: set up variables properly
+  const { data: allCounts, isLoading, error } = countsQuery;
   // Set up optimized real-time subscriptions
   useOptimizedRealtimeSubscriptions([
     {
@@ -129,7 +139,7 @@ export const useOptimizedCounts = (): OptimizedCounts => {
   }, [queryClient]);
 
   return {
-    conversations: allCounts?.conversations || {
+    conversations: countsQuery.data?.conversations || {
       all: 0,
       unread: 0,
       assigned: 0,
@@ -137,16 +147,16 @@ export const useOptimizedCounts = (): OptimizedCounts => {
       closed: 0,
       archived: 0
     },
-    channels: allCounts?.channels || {
+    channels: countsQuery.data?.channels || {
       email: 0,
       facebook: 0,
       instagram: 0,
       whatsapp: 0
     },
-    notifications: allCounts?.notifications || 0,
-    inboxes: allCounts?.inboxes || [],
-    loading: isLoading,
-    error: error?.message || null,
+    notifications: countsQuery.data?.notifications || 0,
+    inboxes: countsQuery.data?.inboxes || [],
+    loading: countsQuery.isLoading,
+    error: countsQuery.error?.message || null,
     prefetchData
   };
 };

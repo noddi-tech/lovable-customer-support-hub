@@ -1353,6 +1353,23 @@ export type Database = {
         Args: { email_headers: Json }
         Returns: string
       }
+      get_all_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          channels_email: number
+          channels_facebook: number
+          channels_instagram: number
+          channels_whatsapp: number
+          conversations_all: number
+          conversations_archived: number
+          conversations_assigned: number
+          conversations_closed: number
+          conversations_pending: number
+          conversations_unread: number
+          inboxes_data: Json
+          notifications_unread: number
+        }[]
+      }
       get_conversations: {
         Args: Record<PropertyKey, never>
         Returns: {

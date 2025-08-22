@@ -34,7 +34,7 @@ export const PerformanceTestIndicator: React.FC = () => {
             {getStatusText()}
           </Badge>
           <div className="text-xs text-muted-foreground">
-            Now using efficient single-query counts with 2-minute polling vs 30-second individual queries
+            Consolidated from 5+ queries to 1 efficient RPC call. Reduced polling from 30s to 2min. Eliminated mixed content warnings.
           </div>
         </div>
       </CardContent>

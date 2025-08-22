@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import MainApp from './MainApp';
+import { PerformanceStatus } from '../components/dashboard/PerformanceStatus';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('interactions');
@@ -13,6 +14,7 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <MainApp activeTab={activeTab} activeSubTab={activeSubTab} onTabChange={handleTabChange} />
+      <PerformanceStatus />
     </div>
   );
 };

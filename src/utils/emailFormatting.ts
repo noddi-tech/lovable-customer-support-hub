@@ -95,7 +95,7 @@ export const sanitizeEmailHTML = (
       'href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan', 
       'align', 'cellpadding', 'cellspacing', 'style'
     ],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|blob|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOWED_URI_REGEXP: /^(?:https:|data:|mailto:|tel:|#)/i,
     FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link', 'style'],
     FORBID_ATTR: ['javascript:', 'vbscript:', 'on*'],
     // Enhanced data URL filtering - only allow safe image data URLs
@@ -142,8 +142,16 @@ export const sanitizeEmailHTML = (
           node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
           node.setAttribute('referrerpolicy', 'no-referrer');
           
-          // Block external images by default for privacy
-          if (src && !src.startsWith('cid:') && !src.startsWith('/') && !src.startsWith('data:') && !src.startsWith('blob:')) {
+          // Block external HTTP images to prevent mixed content warnings
+          if (src && src.startsWith('http:')) {
+            node.setAttribute('data-original-src', src);
+            node.setAttribute('src', createPlaceholder('mixed-content'));
+            node.setAttribute('alt', (node.getAttribute('alt') || 'Image') + ' (HTTP image blocked for security)');
+            node.setAttribute('data-blocked', 'http-blocked');
+            node.setAttribute('title', 'HTTP image blocked to prevent mixed content warnings');
+          }
+          // Block external images by default for privacy (HTTPS only)
+          else if (src && !src.startsWith('cid:') && !src.startsWith('/') && !src.startsWith('data:') && !src.startsWith('blob:')) {
             node.setAttribute('data-original-src', src);
             node.setAttribute('src', '');
             node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
