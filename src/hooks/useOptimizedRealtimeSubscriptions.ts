@@ -12,7 +12,10 @@ interface RealtimeSubscriptionConfig {
   throttleMs?: number;
   debounceMs?: number;
   batchUpdates?: boolean;
+  // Additional query keys to invalidate alongside the table
+  invalidateKeys?: string[];
 }
+
 
 export const useOptimizedRealtimeSubscriptions = (
   configs: RealtimeSubscriptionConfig[],
@@ -50,7 +53,7 @@ export const useOptimizedRealtimeSubscriptions = (
     event: any,
     config: RealtimeSubscriptionConfig
   ) => {
-    const { table, batchUpdates = true } = config;
+    const { table, batchUpdates = true, invalidateKeys } = config;
     
     logger.debug('Realtime event received', {
       table,
@@ -58,32 +61,37 @@ export const useOptimizedRealtimeSubscriptions = (
       recordId: event.new?.id || event.old?.id
     }, 'RealtimeSubscriptions');
 
+    const defaultExtraKeys = table === 'messages' ? ['conversations'] : [];
+    const extraKeys = invalidateKeys && invalidateKeys.length > 0 ? invalidateKeys : defaultExtraKeys;
+    const keysToInvalidate = [table, ...extraKeys];
+
     if (batchUpdates) {
-      pendingUpdatesRef.current.add(table);
-      pendingUpdatesRef.current.add('conversations'); // Always invalidate main conversations
+      keysToInvalidate.forEach((k) => pendingUpdatesRef.current.add(k));
       debouncedBatchUpdate();
     } else {
-      throttledInvalidate([table, 'conversations']);
+      throttledInvalidate(keysToInvalidate);
     }
 
     // Handle specific optimizations based on event type
     switch (event.eventType) {
       case 'INSERT':
-        // For new records, we might want to update counts immediately
-        queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+        if (table === 'conversations' || table === 'messages') {
+          queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+        }
         break;
       case 'UPDATE':
-        // For updates, we can be more selective about what to invalidate
-        if (event.new?.status !== event.old?.status) {
+        if (table === 'conversations' && event.new?.status !== event.old?.status) {
           queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
         }
         break;
       case 'DELETE':
-        // For deletes, remove from cache immediately
         queryClient.removeQueries({ queryKey: [table, event.old?.id] });
-        queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+        if (table === 'conversations' || table === 'messages') {
+          queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+        }
         break;
     }
+
   }, [queryClient, debouncedBatchUpdate, throttledInvalidate]);
 
   // Set up subscriptions

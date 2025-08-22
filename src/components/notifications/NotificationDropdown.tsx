@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useOptimizedRealtimeSubscriptions } from '@/hooks/useOptimizedRealtimeSubscriptions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -57,57 +58,13 @@ export function NotificationDropdown() {
     },
   });
 
-  // Set up real-time subscription for notifications
-  useEffect(() => {
-    console.log('Setting up dropdown notification real-time subscription...');
-    
-    const channel = supabase
-      .channel('notifications-dropdown-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('🔔 New notification received in dropdown via real-time:', payload);
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('🔔 Notification updated in dropdown via real-time:', payload);
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('🔔 Notification deleted in dropdown via real-time:', payload);
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Dropdown notification subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔌 Cleaning up dropdown notification subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Optimized real-time updates for notifications (single source of truth)
+  useOptimizedRealtimeSubscriptions(
+    [
+      { table: 'notifications', events: ['INSERT', 'UPDATE', 'DELETE'], batchUpdates: true }
+    ],
+    true
+  );
 
   // Mark notification as read
   const markAsReadMutation = useMutation({

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -85,58 +85,6 @@ export function NotificationsList({ context = 'all' }: NotificationsListProps = 
     },
     enabled: true, // Always enabled since auth is handled by ProtectedRoute
   });
-
-  // Set up real-time subscription for notifications
-  useEffect(() => {
-    console.log('Setting up notification real-time subscription...');
-    
-    const channel = supabase
-      .channel('notifications-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('🔔 New notification received via real-time:', payload);
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('🔔 Notification updated via real-time:', payload);
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('🔔 Notification deleted via real-time:', payload);
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Notification subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔌 Cleaning up notification subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   // Mark notification as read
   const markAsReadMutation = useMutation({
