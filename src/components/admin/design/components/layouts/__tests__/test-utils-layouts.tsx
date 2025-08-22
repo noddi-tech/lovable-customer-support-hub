@@ -70,6 +70,7 @@ const customRender = (
   options?: Omit<RenderOptions, 'wrapper'>
 ) => render(ui, { wrapper: AllTheProviders, ...options });
 
+// Re-export testing library utilities
 export * from '@testing-library/react';
 export { customRender as render, screen, fireEvent, waitFor };
 
