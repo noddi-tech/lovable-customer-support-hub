@@ -81,11 +81,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const { hasPermission } = usePermissions();
   const { user } = useAuth();
 
-  // Debug logs
-  console.log('ConversationView received conversationId:', conversationId);
-  console.log('User available:', !!user, user?.id);
-  console.log('Query enabled:', !!conversationId && !!user);
-
   // State management
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
@@ -115,17 +110,22 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const isTablet = useIsTablet();
   const isDesktop = useIsDesktop();
   
+  // Memoize panel configuration to prevent infinite re-renders
+  const defaultSizes = useMemo(() => ({
+    messages: isMobile ? 100 : isTablet ? 75 : 70,
+    sidebar: isMobile ? 0 : isTablet ? 25 : 30
+  }), [isMobile, isTablet]);
+
+  const minSizes = useMemo(() => ({
+    messages: isMobile ? 100 : 50,
+    sidebar: isMobile ? 0 : 20
+  }), [isMobile]);
+
   // Panel persistence for conversation view
   const { getPanelSize, updatePanelSize } = useResizablePanels({
     storageKey: 'conversation-layout',
-    defaultSizes: {
-      messages: isMobile ? 100 : isTablet ? 75 : 70,
-      sidebar: isMobile ? 0 : isTablet ? 25 : 30
-    },
-    minSizes: {
-      messages: isMobile ? 100 : 50,
-      sidebar: isMobile ? 0 : 20
-    },
+    defaultSizes,
+    minSizes,
     viewportAware: true
   });
 
@@ -145,18 +145,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const { data: conversation, isLoading: conversationLoading, error: conversationError } = useQuery({
     queryKey: ['conversation', conversationId, user?.id],
     queryFn: async () => {
-      console.log('Fetching conversation with ID:', conversationId);
       if (!conversationId) return null;
       const { data, error } = await supabase
         .from('conversations')
         .select('*, customer:customers(*)')
         .eq('id', conversationId)
         .single();
-      if (error) {
-        console.error('Conversation fetch error:', error);
-        throw error;
-      }
-      console.log('Conversation data:', data);
+      if (error) throw error;
       return data;
     },
     enabled: !!conversationId && !!user,
@@ -459,7 +454,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   }
 
   if (conversationError) {
-    console.error('Conversation error:', conversationError);
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <div className="text-center">
