@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useOptimizedRealtimeSubscriptions } from './useOptimizedRealtimeSubscriptions';
+import { useSimpleRealtimeSubscriptions } from './useSimpleRealtimeSubscriptions';
 
 export interface OptimizedCounts {
   conversations: {
@@ -81,32 +81,14 @@ export const useOptimizedCounts = (): OptimizedCounts => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Add final step: set up variables properly
+  // Set up variables properly  
   const { data: allCounts, isLoading, error } = countsQuery;
-  // Set up optimized real-time subscriptions
-  useOptimizedRealtimeSubscriptions([
-    {
-      table: 'conversations',
-      events: ['INSERT', 'UPDATE', 'DELETE'],
-      invalidateKeys: ['all-counts'],
-      throttleMs: 2000,
-      batchUpdates: true,
-    },
-    {
-      table: 'notifications',
-      events: ['INSERT', 'UPDATE', 'DELETE'],
-      filter: 'user_id=eq.auth.user_id',
-      invalidateKeys: ['all-counts'],
-      throttleMs: 1000,
-    },
-    {
-      table: 'inboxes',
-      events: ['INSERT', 'UPDATE', 'DELETE'],
-      invalidateKeys: ['all-counts'],
-      throttleMs: 3000,
-      batchUpdates: true,
-    },
-  ]);
+  
+  // Simple realtime subscriptions for essential updates only
+  useSimpleRealtimeSubscriptions([
+    { table: 'conversations', queryKey: 'all-counts' },
+    { table: 'notifications', queryKey: 'all-counts' },
+  ], !isLoading && !error);
 
   // Prefetch related data when user hovers over navigation items
   const prefetchData = useCallback((dataType: string) => {

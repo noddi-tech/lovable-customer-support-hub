@@ -242,7 +242,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       });
       
       // Only invalidate essential queries
-      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       toast.success(state.isInternalNote ? 'Internal note added' : 'Reply sent successfully');
     },
     onError: (error) => {
@@ -269,7 +269,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       });
       
       // Only invalidate counts
-      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: false, userId: '', loading: false } });
       toast.success('Conversation assigned successfully');
     },
@@ -297,7 +297,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       });
       
       // Only invalidate counts
-      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       dispatch({ type: 'SET_MOVE_DIALOG', payload: { open: false, inboxId: '', loading: false } });
       toast.success('Conversation moved successfully');
     },
@@ -333,7 +333,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       });
       
       // Only invalidate counts
-      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       toast.success('Status updated successfully');
     },
     onError: (error) => {
@@ -370,7 +370,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       });
       
       // Only invalidate counts
-      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: false, date: undefined, time: '09:00' } });
       toast.success('Conversation snoozed successfully');
     },
