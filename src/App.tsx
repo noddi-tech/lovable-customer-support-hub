@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -33,21 +34,23 @@ const AppContent = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ErrorBoundary>
-      <AuthProvider>
-        <DesignSystemProvider>
-          <TooltipProvider>
-            <I18nWrapper>
-              <AppContent />
-            </I18nWrapper>
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
-        </DesignSystemProvider>
-      </AuthProvider>
-    </ErrorBoundary>
-  </QueryClientProvider>
+  <GlobalErrorBoundary suppressAnalyticsErrors suppressIframeErrors>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
+        <AuthProvider>
+          <DesignSystemProvider>
+            <TooltipProvider>
+              <I18nWrapper>
+                <AppContent />
+              </I18nWrapper>
+              <Toaster />
+              <Sonner />
+            </TooltipProvider>
+          </DesignSystemProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </QueryClientProvider>
+  </GlobalErrorBoundary>
 );
 
 export default App;

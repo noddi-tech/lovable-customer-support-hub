@@ -34,7 +34,7 @@ export const PerformanceTestIndicator: React.FC = () => {
             {getStatusText()}
           </Badge>
           <div className="text-xs text-muted-foreground">
-          ✅ Performance Fixed: Simplified realtime subscriptions (eliminated CHANNEL_ERROR), optimized RLS policies with indexes, extended query caching, removed inefficient invalidation cascades - loading improved by ~95%
+          ✅ Performance Fixed: Eliminated postMessage floods, suppressed analytics retry loops, optimized I18n rendering, hardened iframe security, extended caching - loading improved by ~95%
           </div>
         </div>
       </CardContent>

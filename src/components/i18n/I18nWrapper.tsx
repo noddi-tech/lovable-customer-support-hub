@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { useUserLanguage } from '@/hooks/useUserLanguage';
 
 interface I18nWrapperProps {
@@ -6,33 +6,38 @@ interface I18nWrapperProps {
   fallback?: React.ReactNode;
 }
 
-export const I18nWrapper: React.FC<I18nWrapperProps> = ({ 
-  children, 
-  fallback = (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-muted-foreground">Loading translations...</p>
-      </div>
+const LoadingFallback = memo(() => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+      <p className="text-muted-foreground">Loading translations...</p>
     </div>
-  )
+  </div>
+));
+
+LoadingFallback.displayName = 'LoadingFallback';
+
+export const I18nWrapper: React.FC<I18nWrapperProps> = memo(({ 
+  children, 
+  fallback
 }) => {
   const { isReady, debug } = useUserLanguage();
 
-  // Show debug info in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔍 I18nWrapper status:', { isReady, debug });
-  }
+  // Memoize the loading decision to prevent re-renders
+  const shouldShowApp = useMemo(() => {
+    return isReady || debug.initialized || debug.hasResources;
+  }, [isReady, debug.initialized, debug.hasResources]);
 
-  // For better UX, reduce loading time - show app faster even if i18n isn't 100% ready
-  // The fallbacks in translation keys will handle missing translations
-  const shouldShowApp = isReady || debug.initialized || debug.hasResources;
+  // Memoize the fallback component
+  const memoizedFallback = useMemo(() => {
+    return fallback || <LoadingFallback />;
+  }, [fallback]);
 
   if (!shouldShowApp) {
-    console.log('⏳ I18nWrapper: Showing fallback while waiting for i18n...');
-    return <>{fallback}</>;
+    return <>{memoizedFallback}</>;
   }
 
-  console.log('✅ I18nWrapper: Rendering app with i18n ready');
   return <>{children}</>;
-};
+});
+
+I18nWrapper.displayName = 'I18nWrapper';

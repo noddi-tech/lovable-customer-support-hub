@@ -1,56 +1,71 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 export function useUserTimezone() {
   const { user } = useAuth();
-  const [timezone, setTimezone] = useState<string>('UTC');
-  const [timeFormat, setTimeFormat] = useState<string>('12h');
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Memoize browser timezone to prevent recalculation
+  const browserTimezone = useMemo(() => {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  }, []);
 
-  useEffect(() => {
-    const loadUserTimezone = async () => {
-      if (!user) {
-        // Fallback to browser timezone for non-authenticated users
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        setTimezone(browserTimezone);
-        setIsLoading(false);
-        return;
+  // Use React Query for optimized caching and deduplication
+  const { data: profile, isLoading, error } = useQuery({
+    queryKey: ['user-timezone', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('timezone, time_format')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes - timezone rarely changes
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors
+      if (error?.code === 'PGRST116') return false;
+      return failureCount < 2;
+    },
+    meta: {
+      errorHandler: (error: any) => {
+        console.error('Failed to load user timezone:', error);
       }
+    }
+  });
 
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('timezone, time_format')
-          .eq('user_id', user.id)
-          .single();
-
-        if (profile?.timezone) {
-          setTimezone(profile.timezone);
-          setTimeFormat(profile.time_format || '12h');
-        } else {
-          // Auto-detect and save browser timezone if not set
-          const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          setTimezone(browserTimezone);
-          
-          // Save the detected timezone to database
+  // Auto-update timezone if user exists but no timezone is set
+  useEffect(() => {
+    const autoUpdateTimezone = async () => {
+      if (user && profile === null && !isLoading && !error) {
+        try {
           await supabase
             .from('profiles')
-            .update({ timezone: browserTimezone, time_format: '12h' })
+            .update({ 
+              timezone: browserTimezone, 
+              time_format: '12h' 
+            })
             .eq('user_id', user.id);
+        } catch (error) {
+          console.error('Failed to auto-update timezone:', error);
         }
-      } catch (error) {
-        console.error('Failed to load user timezone:', error);
-        // Fallback to browser timezone
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        setTimezone(browserTimezone);
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    loadUserTimezone();
-  }, [user]);
+    autoUpdateTimezone();
+  }, [user, profile, isLoading, error, browserTimezone]);
 
-  return { timezone, timeFormat, isLoading };
+  // Memoized return values to prevent unnecessary re-renders
+  return useMemo(() => ({
+    timezone: profile?.timezone || browserTimezone,
+    timeFormat: profile?.time_format || '12h',
+    isLoading: isLoading && !!user
+  }), [profile, browserTimezone, isLoading, user]);
 }
