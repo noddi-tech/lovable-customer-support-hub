@@ -21,7 +21,7 @@ import { DesignLibraryComponents } from './DesignLibraryComponents';
 import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
 import { logger } from '@/utils/logger';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { ResponsiveContainer, ResponsiveTabs, ResponsiveGrid, ResponsiveFlex, AdaptiveSection } from '../design/components/layouts';
+import { ResponsiveContainer, ResponsiveTabs, ResponsiveGrid, ResponsiveFlex, AdaptiveSection } from '@/components/admin/design/components/layouts';
 
 // Proper WCAG contrast calculation
 const getOptimalTextColor = (hslBackground: string, opacity: number = 1): string => {

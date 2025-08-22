@@ -14,7 +14,7 @@ import { InboxManagement } from './InboxManagement';
 import { Users, Settings, Plug, Palette, Mail, Phone, Route, Building, Inbox } from 'lucide-react';
 import { Heading } from '@/components/ui/heading';
 import { useTranslation } from 'react-i18next';
-import { ResponsiveContainer, ResponsiveTabs, AdaptiveSection } from '../design/components/layouts';
+import { ResponsiveContainer, ResponsiveTabs, AdaptiveSection } from '@/components/admin/design/components/layouts';
 
 export const AdminPortal = () => {
   const { t } = useTranslation();

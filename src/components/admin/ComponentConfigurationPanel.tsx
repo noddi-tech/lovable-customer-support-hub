@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
-import { ResponsiveGrid, ResponsiveTabs, AdaptiveSection, ResponsiveFlex } from '../design/components/layouts';
+import { ResponsiveGrid, ResponsiveTabs, AdaptiveSection, ResponsiveFlex } from '@/components/admin/design/components/layouts';
 import { 
   Check, 
   AlertTriangle, 
