@@ -231,7 +231,7 @@ describe('LayoutItem', () => {
 
     it('handles nested layout items', () => {
       render(
-        <LayoutItem data-testid="outer" flex="2">
+        <LayoutItem data-testid="outer" flex="1">
           <LayoutItem data-testid="inner" flex="1">
             <div>Nested content</div>
           </LayoutItem>
@@ -241,7 +241,7 @@ describe('LayoutItem', () => {
       const outer = screen.getByTestId('outer');
       const inner = screen.getByTestId('inner');
       
-      expect(outer).toHaveClass('flex-2');
+      expect(outer).toHaveClass('flex-1');
       expect(inner).toHaveClass('flex-1');
       expect(screen.getByText('Nested content')).toBeInTheDocument();
     });

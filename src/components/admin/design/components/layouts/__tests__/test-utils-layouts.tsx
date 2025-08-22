@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, RenderOptions, screen } from '@testing-library/react';
+import { render, RenderOptions, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 
@@ -11,8 +11,8 @@ export const mockMatchMedia = (matches: boolean) => {
       matches: matches,
       media: query,
       onchange: null,
-      addListener: vi.fn(), // deprecated
-      removeListener: vi.fn(), // deprecated
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
@@ -22,7 +22,7 @@ export const mockMatchMedia = (matches: boolean) => {
 
 // Viewport simulation functions
 export const setMobileViewport = () => {
-  mockMatchMedia(false); // sm and up breakpoints don't match
+  mockMatchMedia(false);
   Object.defineProperty(window, 'innerWidth', {
     writable: true,
     configurable: true,
@@ -31,7 +31,7 @@ export const setMobileViewport = () => {
 };
 
 export const setTabletViewport = () => {
-  mockMatchMedia(true); // md breakpoint matches
+  mockMatchMedia(true);
   Object.defineProperty(window, 'innerWidth', {
     writable: true,
     configurable: true,
@@ -40,7 +40,7 @@ export const setTabletViewport = () => {
 };
 
 export const setDesktopViewport = () => {
-  mockMatchMedia(true); // lg breakpoint matches
+  mockMatchMedia(true);
   Object.defineProperty(window, 'innerWidth', {
     writable: true,
     configurable: true,
@@ -71,7 +71,7 @@ const customRender = (
 ) => render(ui, { wrapper: AllTheProviders, ...options });
 
 export * from '@testing-library/react';
-export { customRender as render };
+export { customRender as render, screen, fireEvent, waitFor };
 
 // Utility to create test children
 export const createTestChildren = (count: number) => 
