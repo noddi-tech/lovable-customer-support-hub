@@ -141,20 +141,42 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     enabled: !!conversationId && !!user,
   });
 
-  // Fetch messages
+  // Fetch messages with optimized query
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ['messages', conversationId, user?.id],
     queryFn: async () => {
       if (!conversationId) return [];
+      
+      console.log('Fetching messages for conversation:', conversationId);
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select(`
+          id,
+          content,
+          content_type,
+          sender_type,
+          sender_id,
+          is_internal,
+          attachments,
+          created_at,
+          assigned_to_id,
+          email_subject,
+          email_headers
+        `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
-      if (error) throw error;
+        
+      if (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
+      }
+      
+      console.log('Messages fetched:', data?.length || 0);
       return data || [];
     },
     enabled: !!conversationId && !!user,
+    staleTime: 10 * 60 * 1000, // 10 minutes - longer cache
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in memory longer
   });
 
   // Fetch users for assignment
@@ -211,11 +233,16 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
 
       return message;
     },
-    onSuccess: () => {
+    onSuccess: (newMessage) => {
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      
+      // Optimistically update messages cache instead of invalidating
+      queryClient.setQueryData(['messages', conversationId, user?.id], (old: any[]) => {
+        return old ? [...old, newMessage] : [newMessage];
+      });
+      
+      // Only invalidate essential queries
+      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
       toast.success(state.isInternalNote ? 'Internal note added' : 'Reply sent successfully');
     },
     onError: (error) => {
@@ -234,10 +261,15 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
         .eq('id', conversationId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+    onSuccess: (assignedUserId) => {
+      // Optimistically update conversation cache
+      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
+        if (old) return { ...old, assigned_to_id: assignedUserId };
+        return old;
+      });
+      
+      // Only invalidate counts
+      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
       dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: false, userId: '', loading: false } });
       toast.success('Conversation assigned successfully');
     },
@@ -257,9 +289,15 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
         .eq('id', conversationId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    onSuccess: (inboxId) => {
+      // Optimistically update conversation cache
+      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
+        if (old) return { ...old, inbox_id: inboxId };
+        return old;
+      });
+      
+      // Only invalidate counts
+      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
       dispatch({ type: 'SET_MOVE_DIALOG', payload: { open: false, inboxId: '', loading: false } });
       toast.success('Conversation moved successfully');
     },
@@ -284,8 +322,18 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // Optimistically update conversation cache using status and archived updates
+      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
+        if (old) {
+          const updates: any = {};
+          if (state.snoozeDate) updates.status = 'snoozed';
+          return { ...old, ...updates };
+        }
+        return old;
+      });
+      
+      // Only invalidate counts
+      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
       toast.success('Status updated successfully');
     },
     onError: (error) => {
@@ -310,8 +358,19 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // Optimistically update conversation cache
+      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
+        if (old) {
+          const [hours, minutes] = state.snoozeTime.split(':').map(Number);
+          const snoozeDateTime = new Date(state.snoozeDate!);
+          snoozeDateTime.setHours(hours, minutes, 0, 0);
+          return { ...old, snooze_until: snoozeDateTime.toISOString() };
+        }
+        return old;
+      });
+      
+      // Only invalidate counts
+      queryClient.invalidateQueries({ queryKey: ['optimized-counts'] });
       dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: false, date: undefined, time: '09:00' } });
       toast.success('Conversation snoozed successfully');
     },

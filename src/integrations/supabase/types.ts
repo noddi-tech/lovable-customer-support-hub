@@ -1427,6 +1427,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_org_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          dept_id: string
+          org_id: string
+        }[]
+      }
       get_user_organization_from_profile: {
         Args: { _user_id: string }
         Returns: string
