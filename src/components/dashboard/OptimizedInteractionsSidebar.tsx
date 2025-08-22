@@ -54,19 +54,19 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
     },
     { 
       id: 'pending', 
-      label: t('sidebar.pending', 'Pending'), 
+      label: t('common.sidebar.pending', 'Pending'), 
       icon: Clock, 
       count: conversations.pending 
     },
     { 
       id: 'closed', 
-      label: t('sidebar.closed', 'Closed'), 
+      label: t('common.sidebar.closed', 'Closed'), 
       icon: CheckCircle, 
       count: conversations.closed 
     },
     { 
       id: 'archived', 
-      label: t('sidebar.archived', 'Archived'), 
+      label: t('common.sidebar.archived', 'Archived'), 
       icon: Archive, 
       count: conversations.archived 
     },
@@ -75,19 +75,19 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
   const channelItems = [
     { 
       id: 'email', 
-      label: t('sidebar.email', 'Email'), 
+      label: t('common.sidebar.email', 'Email'), 
       icon: Mail, 
       count: channels.email 
     },
     { 
       id: 'facebook', 
-      label: t('sidebar.facebook', 'Facebook'), 
+      label: t('common.sidebar.facebook', 'Facebook'), 
       icon: Facebook, 
       count: channels.facebook 
     },
     { 
       id: 'instagram', 
-      label: t('sidebar.instagram', 'Instagram'), 
+      label: t('common.sidebar.instagram', 'Instagram'), 
       icon: Instagram, 
       count: channels.instagram 
     },

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useOptimizedRealtimeSubscriptions } from './useOptimizedRealtimeSubscriptions';
+// Using centralized realtime system - no longer needed
 
 export interface Notification {
   id: string;
@@ -15,13 +15,13 @@ export interface Notification {
 }
 
 export const useOptimizedNotifications = () => {
-  // Get notifications with optimized polling
+  // Get notifications with selective fields and optimized polling
   const notificationsQuery = useQuery({
     queryKey: ['notifications'],
     queryFn: async (): Promise<Notification[]> => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select('id, title, message, type, is_read, data, created_at, updated_at')
         .eq('is_read', false)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -33,12 +33,11 @@ export const useOptimizedNotifications = () => {
       
       return data || [];
     },
-    refetchInterval: 300000, // Refetch every 5 minutes
-    staleTime: 120000, // Consider data stale after 2 minutes
+    refetchInterval: 5 * 60 * 1000, // 5 minutes - less frequent polling
+    staleTime: 3 * 60 * 1000, // 3 minutes stale time
   });
 
-  // Note: Real-time subscriptions are now centralized in useOptimizedCounts
-  // to prevent duplicate subscriptions and 500 errors from invalid filters
+  // Real-time subscriptions handled centrally via useOptimizedCounts
 
   const markAsRead = async (notificationId: string) => {
     const { error } = await supabase

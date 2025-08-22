@@ -4,7 +4,7 @@ import { ConversationListHeader } from "./conversation-list/ConversationListHead
 import { ConversationListItem } from "./conversation-list/ConversationListItem";
 import { ConversationListDeleteDialog } from "./conversation-list/ConversationListDeleteDialog";
 import { VirtualizedConversationList } from "./conversation-list/VirtualizedConversationList";
-import { useOptimizedRealtimeSubscriptions } from "@/hooks/useOptimizedRealtimeSubscriptions";
+// Removed old realtime subscription hook - now using centralized system
 import { useMemoryLeakPrevention } from "@/hooks/useMemoryLeakPrevention";
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from "react-i18next";
