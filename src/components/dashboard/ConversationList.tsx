@@ -45,9 +45,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
   ], !!user);
 
   // Use virtualized list for large datasets (>50 conversations)
-  // TEMPORARILY DISABLED FOR DEBUGGING - Force non-virtualized list
-  const shouldUseVirtualization = false; // filteredConversations.length > 50;
-  console.log('ConversationList: shouldUseVirtualization =', shouldUseVirtualization, 'conversations count =', filteredConversations.length);
+  const shouldUseVirtualization = filteredConversations.length > 50;
 
   return (
     <div className="flex flex-col bg-gradient-surface h-full min-h-0">
@@ -81,10 +79,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
                     key={conversation.id}
                     conversation={conversation}
                     isSelected={selectedConversation?.id === conversation.id}
-                    onSelect={(conv) => {
-                      console.log('Non-virtualized ConversationListItem onSelect called:', conv.id);
-                      onSelectConversation(conv);
-                    }}
+                    onSelect={onSelectConversation}
                   />
                 ))}
               </div>
