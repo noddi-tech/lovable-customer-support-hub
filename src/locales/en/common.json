@@ -385,6 +385,16 @@
     "loading": "Loading...",
     "search": "Search",
     "settings": "Settings",
+    "sidebar": {
+      "assigned": "Assigned",
+      "pending": "Pending", 
+      "closed": "Closed",
+      "archived": "Archived",
+      "email": "Email",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp"
+    },
     "today": "Today",
     "yesterday": "Yesterday",
     "justNow": "Just now",

@@ -19,13 +19,7 @@ export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh 
     subscriptionNames 
   } = useRealtimeConnectionManager();
 
-  // Debug logging
-  console.log('🔍 RealTimeIndicator status:', { 
-    isConnected, 
-    subscriptionCount, 
-    subscriptionNames,
-    lastConnected 
-  });
+    // Debug logging is now consolidated and reduced
 
   const handleRefresh = () => {
     onRefresh?.();

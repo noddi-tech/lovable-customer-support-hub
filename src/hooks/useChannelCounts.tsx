@@ -32,7 +32,7 @@ export const useChannelCounts = () => {
         whatsapp: conversations.filter((conv: any) => conv.channel === 'whatsapp').length,
       };
     },
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
-    staleTime: 10000, // Consider data stale after 10 seconds
+    refetchInterval: 300000, // Refetch every 5 minutes (reduced from 30 seconds)
+    staleTime: 120000, // Consider data stale after 2 minutes
   });
 };

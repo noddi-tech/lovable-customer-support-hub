@@ -58,10 +58,15 @@ export function NotificationDropdown() {
     },
   });
 
-  // Optimized real-time updates for notifications (single source of truth)
+  // Optimized real-time updates for notifications (single source of truth) 
   useOptimizedRealtimeSubscriptions(
     [
-      { table: 'notifications', events: ['INSERT', 'UPDATE', 'DELETE'], batchUpdates: true }
+      { 
+        table: 'notifications', 
+        events: ['INSERT', 'UPDATE', 'DELETE'], 
+        batchUpdates: true,
+        invalidateKeys: ['all-counts'] // Also invalidate count cache
+      }
     ],
     true
   );

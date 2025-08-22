@@ -73,9 +73,9 @@ export const useRealtimeConnectionManager = () => {
 
   // Debug: Log when the connection manager initializes
   useEffect(() => {
-    console.log('🔧 Realtime Connection Manager initialized');
+    console.log('🔧 Realtime Connection Manager initialized - CONSOLIDATING');
     return () => {
-      console.log('🔧 Realtime Connection Manager destroyed');
+      console.log('🔧 Realtime Connection Manager destroyed - CONSOLIDATING');
     };
   }, []);
 

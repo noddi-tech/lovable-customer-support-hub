@@ -17,7 +17,7 @@ export const useNotificationCounts = () => {
       
       return data?.length || 0;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
-    staleTime: 10000, // Consider data stale after 10 seconds
+    refetchInterval: 300000, // Refetch every 5 minutes (reduced from 30 seconds)
+    staleTime: 120000, // Consider data stale after 2 minutes
   });
 };

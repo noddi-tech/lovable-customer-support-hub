@@ -43,7 +43,7 @@ export function useCalls() {
   const { toast } = useToast();
   const { createManagedSubscription } = useRealtimeConnectionManager();
 
-  console.log('🔍 useCalls hook initialized');
+  console.log('🔍 useCalls hook initialized - CONSOLIDATING SUBSCRIPTIONS');
 
   const { data: calls = [], isLoading, error } = useQuery({
     queryKey: ['calls'],

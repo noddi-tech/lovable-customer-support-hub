@@ -1,10 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useConversationCounts } from './useConversationCounts';
-import { useChannelCounts } from './useChannelCounts';
-import { useInboxCounts } from './useInboxCounts';
-import { useNotificationCounts } from './useNotificationCounts';
+import { useOptimizedRealtimeSubscriptions } from './useOptimizedRealtimeSubscriptions';
 
 export interface OptimizedCounts {
   conversations: {
@@ -37,78 +34,69 @@ export interface OptimizedCounts {
 export const useOptimizedCounts = (): OptimizedCounts => {
   const queryClient = useQueryClient();
 
-  // Use existing hooks but with shared cache
-  const conversationCounts = useConversationCounts();
-  const channelCounts = useChannelCounts();
-  const inboxData = useInboxCounts();
-  const notificationCount = useNotificationCounts();
+  // Use single efficient query for all counts
+  const { data: allCounts, isLoading, error } = useQuery({
+    queryKey: ['all-counts'],
+    queryFn: async () => {
+      // Using raw query since the function isn't in the types yet
+      const { data, error } = await supabase.rpc('get_all_counts' as any);
+      if (error) {
+        console.error('Error fetching all counts:', error);
+        throw error;
+      }
+      return data as {
+        conversations: {
+          all: number;
+          unread: number;
+          assigned: number;
+          pending: number;
+          closed: number;
+          archived: number;
+        };
+        channels: {
+          email: number;
+          facebook: number;
+          instagram: number;
+          whatsapp: number;
+        };
+        notifications: number;
+        inboxes: Array<{
+          id: string;
+          name: string;
+          color: string;
+          conversation_count: number;
+          is_active: boolean;
+        }>;
+      };
+    },
+    refetchInterval: 120000, // Reduce to every 2 minutes instead of 30 seconds
+    staleTime: 60000, // Consider data stale after 1 minute
+  });
 
-  // Set up real-time subscriptions for count updates
-  useEffect(() => {
-    console.log('Setting up real-time subscriptions for optimized counts');
-
-    // Subscribe to conversation changes
-    const conversationChannel = supabase
-      .channel('conversations-counts')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations'
-        },
-        (payload) => {
-          console.log('Conversation change detected:', payload);
-          // Invalidate and refetch conversation-related counts
-          queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-          queryClient.invalidateQueries({ queryKey: ['channel-counts'] });
-        }
-      )
-      .subscribe();
-
-    // Subscribe to notification changes
-    const notificationChannel = supabase
-      .channel('notifications-counts')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('Notification change detected:', payload);
-          // Invalidate and refetch notification counts
-          queryClient.invalidateQueries({ queryKey: ['notification-counts'] });
-        }
-      )
-      .subscribe();
-
-    // Subscribe to inbox changes
-    const inboxChannel = supabase
-      .channel('inboxes-counts')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'inboxes'
-        },
-        (payload) => {
-          console.log('Inbox change detected:', payload);
-          // Invalidate and refetch inbox counts
-          queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscriptions
-    return () => {
-      supabase.removeChannel(conversationChannel);
-      supabase.removeChannel(notificationChannel);
-      supabase.removeChannel(inboxChannel);
-    };
-  }, [queryClient]);
+  // Set up optimized real-time subscriptions
+  useOptimizedRealtimeSubscriptions([
+    {
+      table: 'conversations',
+      events: ['INSERT', 'UPDATE', 'DELETE'],
+      invalidateKeys: ['all-counts'],
+      throttleMs: 2000,
+      batchUpdates: true,
+    },
+    {
+      table: 'notifications',
+      events: ['INSERT', 'UPDATE', 'DELETE'],
+      filter: 'user_id=eq.auth.user_id',
+      invalidateKeys: ['all-counts'],
+      throttleMs: 1000,
+    },
+    {
+      table: 'inboxes',
+      events: ['INSERT', 'UPDATE', 'DELETE'],
+      invalidateKeys: ['all-counts'],
+      throttleMs: 3000,
+      batchUpdates: true,
+    },
+  ]);
 
   // Prefetch related data when user hovers over navigation items
   const prefetchData = useCallback((dataType: string) => {
@@ -140,21 +128,8 @@ export const useOptimizedCounts = (): OptimizedCounts => {
     }
   }, [queryClient]);
 
-  // Combine loading states
-  const loading = conversationCounts.isLoading || 
-                  channelCounts.isLoading || 
-                  inboxData.isLoading || 
-                  notificationCount.isLoading;
-
-  // Combine error states
-  const error = conversationCounts.error?.message || 
-                channelCounts.error?.message || 
-                inboxData.error?.message || 
-                notificationCount.error?.message || 
-                null;
-
   return {
-    conversations: conversationCounts.data || {
+    conversations: allCounts?.conversations || {
       all: 0,
       unread: 0,
       assigned: 0,
@@ -162,16 +137,16 @@ export const useOptimizedCounts = (): OptimizedCounts => {
       closed: 0,
       archived: 0
     },
-    channels: channelCounts.data || {
+    channels: allCounts?.channels || {
       email: 0,
       facebook: 0,
       instagram: 0,
       whatsapp: 0
     },
-    notifications: notificationCount.data || 0,
-    inboxes: inboxData.data || [],
-    loading,
-    error,
+    notifications: allCounts?.notifications || 0,
+    inboxes: allCounts?.inboxes || [],
+    loading: isLoading,
+    error: error?.message || null,
     prefetchData
   };
 };
