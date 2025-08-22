@@ -21,7 +21,7 @@ export const useOptimizedNotifications = () => {
     queryFn: async (): Promise<Notification[]> => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, title, message, type, is_read, data, created_at, updated_at')
+        .select('id, user_id, title, message, type, is_read, data, created_at, updated_at')
         .eq('is_read', false)
         .order('created_at', { ascending: false })
         .limit(50);
