@@ -81,6 +81,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const { hasPermission } = usePermissions();
   const { user } = useAuth();
 
+  // Debug logs
+  console.log('ConversationView received conversationId:', conversationId);
+  console.log('User available:', !!user, user?.id);
+  console.log('Query enabled:', !!conversationId && !!user);
+
   // State management
   const [replyText, setReplyText] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
@@ -137,16 +142,21 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   }, [showReplyArea]);
 
   // Fetch conversation
-  const { data: conversation, isLoading: conversationLoading } = useQuery({
+  const { data: conversation, isLoading: conversationLoading, error: conversationError } = useQuery({
     queryKey: ['conversation', conversationId, user?.id],
     queryFn: async () => {
+      console.log('Fetching conversation with ID:', conversationId);
       if (!conversationId) return null;
       const { data, error } = await supabase
         .from('conversations')
         .select('*, customer:customers(*)')
         .eq('id', conversationId)
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Conversation fetch error:', error);
+        throw error;
+      }
+      console.log('Conversation data:', data);
       return data;
     },
     enabled: !!conversationId && !!user,
@@ -444,6 +454,19 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (conversationError) {
+    console.error('Conversation error:', conversationError);
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+          <p className="text-lg mb-2">Error loading conversation</p>
+          <p className="text-sm">{conversationError.message}</p>
+        </div>
       </div>
     );
   }
