@@ -215,6 +215,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       toast.success(state.isInternalNote ? 'Internal note added' : 'Reply sent successfully');
     },
     onError: (error) => {
@@ -236,6 +237,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: false, userId: '', loading: false } });
       toast.success('Conversation assigned successfully');
     },

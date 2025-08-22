@@ -76,18 +76,18 @@ export const useOptimizedRealtimeSubscriptions = (
     switch (event.eventType) {
       case 'INSERT':
         if (table === 'conversations' || table === 'messages') {
-          queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+          queryClient.invalidateQueries({ queryKey: ['all-counts'] });
         }
         break;
       case 'UPDATE':
         if (table === 'conversations' && event.new?.status !== event.old?.status) {
-          queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+          queryClient.invalidateQueries({ queryKey: ['all-counts'] });
         }
         break;
       case 'DELETE':
         queryClient.removeQueries({ queryKey: [table, event.old?.id] });
         if (table === 'conversations' || table === 'messages') {
-          queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+          queryClient.invalidateQueries({ queryKey: ['all-counts'] });
         }
         break;
     }

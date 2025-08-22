@@ -28,21 +28,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
     maxEventListeners: 15,
   });
 
-  // Optimized realtime subscriptions
-  useOptimizedRealtimeSubscriptions([
-    {
-      table: 'conversations',
-      events: ['INSERT', 'UPDATE', 'DELETE'],
-      throttleMs: 1000,
-      batchUpdates: true,
-    },
-    {
-      table: 'messages',
-      events: ['INSERT'],
-      throttleMs: 2000,
-      batchUpdates: true,
-    }
-  ], !!user);
+  // Note: Real-time subscriptions are now centralized in useOptimizedCounts
+  // to prevent duplicate subscriptions and improve performance
 
   // Use virtualized list for large datasets (temporarily disabled - fixing design mismatch)
   const shouldUseVirtualization = filteredConversations.length > 500;

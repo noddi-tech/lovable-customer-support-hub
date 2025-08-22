@@ -58,18 +58,8 @@ export function NotificationDropdown() {
     },
   });
 
-  // Optimized real-time updates for notifications (single source of truth) 
-  useOptimizedRealtimeSubscriptions(
-    [
-      { 
-        table: 'notifications', 
-        events: ['INSERT', 'UPDATE', 'DELETE'], 
-        batchUpdates: true,
-        invalidateKeys: ['all-counts'] // Also invalidate count cache
-      }
-    ],
-    true
-  );
+  // Note: Real-time subscriptions are now centralized in useOptimizedCounts
+  // to prevent duplicate subscriptions and improve performance
 
   // Mark notification as read
   const markAsReadMutation = useMutation({
@@ -92,6 +82,8 @@ export function NotificationDropdown() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
     },
   });
 
@@ -121,6 +113,7 @@ export function NotificationDropdown() {
       
       // Also invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       
       toast({
         title: t('dashboard.notifications.success'),

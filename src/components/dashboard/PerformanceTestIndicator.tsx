@@ -34,7 +34,7 @@ export const PerformanceTestIndicator: React.FC = () => {
             {getStatusText()}
           </Badge>
           <div className="text-xs text-muted-foreground">
-            Consolidated from 5+ queries to 1 efficient RPC call. Reduced polling from 30s to 2min. Eliminated mixed content warnings.
+            Fixed: Invalid realtime filters (500 errors), consolidated duplicate subscriptions (~75% reduction), removed mixed content warnings, single RPC call for all counts.
           </div>
         </div>
       </CardContent>

@@ -37,16 +37,8 @@ export const useOptimizedNotifications = () => {
     staleTime: 120000, // Consider data stale after 2 minutes
   });
 
-  // Set up real-time subscriptions for immediate updates
-  useOptimizedRealtimeSubscriptions([
-    {
-      table: 'notifications',
-      events: ['INSERT', 'UPDATE', 'DELETE'],
-      filter: 'user_id=eq.auth.user_id',
-      invalidateKeys: ['notifications', 'all-counts'],
-      throttleMs: 500, // Fast updates for notifications
-    },
-  ]);
+  // Note: Real-time subscriptions are now centralized in useOptimizedCounts
+  // to prevent duplicate subscriptions and 500 errors from invalid filters
 
   const markAsRead = async (notificationId: string) => {
     const { error } = await supabase
