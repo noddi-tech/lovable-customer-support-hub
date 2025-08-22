@@ -1,7 +1,6 @@
 import React from 'react';
-import { screen } from '@testing-library/react';
 import { LayoutItem } from '../LayoutItem';
-import { render, createTestChildren, setMobileViewport, setTabletViewport, setDesktopViewport } from './test-utils-layouts';
+import { render, screen, createTestChildren, setMobileViewport, setTabletViewport, setDesktopViewport } from './test-utils-layouts';
 
 describe('LayoutItem', () => {
   beforeEach(() => {

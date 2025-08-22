@@ -1,20 +1,21 @@
 import React from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import { render, RenderOptions, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { vi } from 'vitest';
 
 // Mock window.matchMedia for responsive testing
 export const mockMatchMedia = (matches: boolean) => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: jest.fn().mockImplementation((query) => ({
+    value: vi.fn().mockImplementation((query) => ({
       matches: matches,
       media: query,
       onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
+      addListener: vi.fn(), // deprecated
+      removeListener: vi.fn(), // deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
     })),
   });
 };
@@ -70,7 +71,7 @@ const customRender = (
 ) => render(ui, { wrapper: AllTheProviders, ...options });
 
 export * from '@testing-library/react';
-export { customRender as render };
+export { customRender as render, screen };
 
 // Utility to create test children
 export const createTestChildren = (count: number) => 
@@ -95,9 +96,9 @@ expect.extend({
 });
 
 declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toHaveClass(expected: string): R;
+  namespace Vi {
+    interface JestAssertion<T = any> {
+      toHaveClass(expected: string): T;
     }
   }
 }

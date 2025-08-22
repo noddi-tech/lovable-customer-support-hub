@@ -1,11 +1,12 @@
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ResponsiveTabs } from '../ResponsiveTabs';
-import { render, setMobileViewport, setTabletViewport, setDesktopViewport } from './test-utils-layouts';
+import { render, screen, setMobileViewport, setTabletViewport, setDesktopViewport } from './test-utils-layouts';
+import { vi } from 'vitest';
 
 // Mock Radix UI Tabs components
-jest.mock('@/components/ui/tabs', () => ({
+vi.mock('@/components/ui/tabs', () => ({
   Tabs: ({ children, className, orientation, ...props }: any) => (
     <div data-testid="tabs" className={className} data-orientation={orientation} {...props}>
       {children}
@@ -97,7 +98,7 @@ describe('ResponsiveTabs', () => {
     });
 
     it('passes through Radix props correctly', () => {
-      const onValueChange = jest.fn();
+      const onValueChange = vi.fn();
       render(
         <ResponsiveTabs 
           items={mockTabItems}
@@ -135,7 +136,7 @@ describe('ResponsiveTabs', () => {
     });
 
     it('triggers onValueChange callback when tab is changed', async () => {
-      const onValueChange = jest.fn();
+      const onValueChange = vi.fn();
       render(
         <ResponsiveTabs 
           items={mockTabItems}
@@ -521,7 +522,7 @@ describe('ResponsiveTabs', () => {
 
   describe('Performance', () => {
     it('memoizes component to prevent unnecessary re-renders', () => {
-      const renderSpy = jest.fn();
+      const renderSpy = vi.fn();
       
       const TestComponent = React.memo(() => {
         renderSpy();
@@ -539,7 +540,7 @@ describe('ResponsiveTabs', () => {
     });
 
     it('memoizes callback to prevent unnecessary re-renders', () => {
-      const onValueChange = jest.fn();
+      const onValueChange = vi.fn();
       
       const { rerender } = render(
         <ResponsiveTabs 

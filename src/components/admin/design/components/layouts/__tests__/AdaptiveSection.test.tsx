@@ -1,7 +1,6 @@
 import React from 'react';
-import { screen } from '@testing-library/react';
 import { AdaptiveSection } from '../AdaptiveSection';
-import { render, createTestChildren, setMobileViewport, setTabletViewport, setDesktopViewport } from './test-utils-layouts';
+import { render, screen, createTestChildren, setMobileViewport, setTabletViewport, setDesktopViewport } from './test-utils-layouts';
 
 describe('AdaptiveSection', () => {
   beforeEach(() => {
@@ -473,7 +472,7 @@ describe('AdaptiveSection', () => {
 
   describe('Performance', () => {
     it('memoizes component to prevent unnecessary re-renders', () => {
-      const renderSpy = jest.fn();
+      const renderSpy = vi.fn();
       
       const TestComponent = React.memo(() => {
         renderSpy();
