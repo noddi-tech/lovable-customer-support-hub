@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ModernLayout } from '@/components/layout/ModernLayout';
-import { InteractionsInterface } from '@/components/dashboard/interactions/InteractionsInterface';
+import { EnhancedInteractionsLayout } from '@/components/dashboard/EnhancedInteractionsLayout';
 import { VoiceInterface } from '@/components/dashboard/VoiceInterface';
-import { NewsletterInterface } from '@/components/dashboard/newsletter/NewsletterInterface';
+import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
 import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
@@ -28,13 +28,30 @@ export const MainApp: React.FC<MainAppProps> = ({
   const renderActiveContent = () => {
     switch (activeTab) {
       case 'interactions':
+        if (activeSubTab === 'text') {
+          return (
+            <EnhancedInteractionsLayout
+              activeSubTab={activeSubTab}
+              selectedTab={selectedTab}
+              onTabChange={handleTabChange}
+              selectedInboxId=""
+            />
+          );
+        }
         if (activeSubTab === 'voice') {
           return <VoiceInterface />;
         }
-        return <InteractionsInterface />;
+        return (
+          <EnhancedInteractionsLayout
+            activeSubTab={activeSubTab}
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+            selectedInboxId=""
+          />
+        );
       case 'marketing':
         if (activeSubTab === 'newsletters') {
-          return <NewsletterInterface />;
+          return <NewsletterBuilder />;
         }
         return <div className="p-8 text-center text-muted-foreground">Marketing Dashboard</div>;
       case 'operations':
