@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Inbox, MessageCircle, Users, Clock, CheckCircle, Archive, Bell, Mail, Facebook, Instagram, MessageCircle as WhatsApp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ interface OptimizedInteractionsSidebarProps {
   selectedInboxId?: string;
 }
 
-export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebarProps> = ({
+export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarProps>(({
   selectedTab,
   onTabChange,
   selectedInboxId
@@ -26,80 +26,99 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
   const { conversations, channels, notifications, inboxes, loading, error, prefetchData } = useOptimizedCounts();
   const { navigateToTab } = useInteractionsNavigation();
 
-  // Enhanced tab change with URL navigation
-  const handleTabChange = (tab: string) => {
+  // Memoize the tab change handler to prevent unnecessary re-renders
+  const handleTabChange = useCallback((tab: string) => {
     navigateToTab(tab);
     onTabChange(tab);
-  };
+  }, [navigateToTab, onTabChange]);
 
-  // Sidebar items configuration with optimized counts
-  const inboxItems = [
-    { 
-      id: 'all', 
-      label: t('sidebar.allConversations', 'All'), 
-      icon: Inbox, 
-      count: conversations.all 
-    },
-    { 
-      id: 'unread', 
-      label: t('sidebar.unread', 'Unread'), 
-      icon: MessageCircle, 
-      count: conversations.unread 
-    },
-    { 
-      id: 'assigned', 
-      label: t('sidebar.assigned', 'Assigned'), 
-      icon: Users, 
-      count: conversations.assigned 
-    },
-    { 
-      id: 'pending', 
-      label: t('common.sidebar.pending', 'Pending'), 
-      icon: Clock, 
-      count: conversations.pending 
-    },
-    { 
-      id: 'closed', 
-      label: t('common.sidebar.closed', 'Closed'), 
-      icon: CheckCircle, 
-      count: conversations.closed 
-    },
-    { 
-      id: 'archived', 
-      label: t('common.sidebar.archived', 'Archived'), 
-      icon: Archive, 
-      count: conversations.archived 
-    },
-  ];
+  // Memoize sidebar configurations to prevent recreation on every render
+  const sidebarConfig = useMemo(() => ({
+    inboxItems: [
+      { 
+        id: 'all', 
+        label: t('sidebar.allConversations', 'All'), 
+        icon: Inbox, 
+        count: conversations.all 
+      },
+      { 
+        id: 'unread', 
+        label: t('sidebar.unread', 'Unread'), 
+        icon: MessageCircle, 
+        count: conversations.unread 
+      },
+      { 
+        id: 'assigned', 
+        label: t('sidebar.assigned', 'Assigned'), 
+        icon: Users, 
+        count: conversations.assigned 
+      },
+      { 
+        id: 'pending', 
+        label: t('common.sidebar.pending', 'Pending'), 
+        icon: Clock, 
+        count: conversations.pending 
+      },
+      { 
+        id: 'closed', 
+        label: t('common.sidebar.closed', 'Closed'), 
+        icon: CheckCircle, 
+        count: conversations.closed 
+      },
+      { 
+        id: 'archived', 
+        label: t('common.sidebar.archived', 'Archived'), 
+        icon: Archive, 
+        count: conversations.archived 
+      },
+    ],
+    channelItems: [
+      { 
+        id: 'email', 
+        label: t('common.sidebar.email', 'Email'), 
+        icon: Mail, 
+        count: channels.email 
+      },
+      { 
+        id: 'facebook', 
+        label: t('common.sidebar.facebook', 'Facebook'), 
+        icon: Facebook, 
+        count: channels.facebook 
+      },
+      { 
+        id: 'instagram', 
+        label: t('common.sidebar.instagram', 'Instagram'), 
+        icon: Instagram, 
+        count: channels.instagram 
+      },
+      { 
+        id: 'whatsapp', 
+        label: t('sidebar.whatsapp', 'WhatsApp'), 
+        icon: WhatsApp, 
+        count: channels.whatsapp 
+      },
+    ],
+    activeInboxes: inboxes.filter(inbox => inbox.is_active)
+  }), [
+    t,
+    conversations.all,
+    conversations.unread,
+    conversations.assigned,
+    conversations.pending,
+    conversations.closed,
+    conversations.archived,
+    channels.email,
+    channels.facebook,
+    channels.instagram,
+    channels.whatsapp,
+    inboxes
+  ]);
 
-  const channelItems = [
-    { 
-      id: 'email', 
-      label: t('common.sidebar.email', 'Email'), 
-      icon: Mail, 
-      count: channels.email 
-    },
-    { 
-      id: 'facebook', 
-      label: t('common.sidebar.facebook', 'Facebook'), 
-      icon: Facebook, 
-      count: channels.facebook 
-    },
-    { 
-      id: 'instagram', 
-      label: t('common.sidebar.instagram', 'Instagram'), 
-      icon: Instagram, 
-      count: channels.instagram 
-    },
-    { 
-      id: 'whatsapp', 
-      label: t('sidebar.whatsapp', 'WhatsApp'), 
-      icon: WhatsApp, 
-      count: channels.whatsapp 
-    },
-  ];
-
-  const activeInboxes = inboxes.filter(inbox => inbox.is_active);
+  // Memoize prefetch handlers
+  const prefetchHandlers = useMemo(() => ({
+    conversations: () => prefetchData('conversations'),
+    notifications: () => prefetchData('notifications')
+  }), [prefetchData]);
 
   // Loading skeleton
   const LoadingSkeleton = () => (
@@ -154,7 +173,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
           {loading ? (
             <LoadingSkeleton />
           ) : (
-            inboxItems.map((item) => (
+            sidebarConfig.inboxItems.map((item) => (
               <SidebarItem
                 key={item.id}
                 icon={item.icon}
@@ -162,7 +181,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
                 count={item.count}
                 active={selectedTab === item.id}
                 onClick={() => handleTabChange(item.id)}
-                onMouseEnter={() => prefetchData('conversations')}
+                onMouseEnter={prefetchHandlers.conversations}
               />
             ))
           )}
@@ -184,7 +203,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
               count={notifications}
               active={selectedTab === 'notifications'}
               onClick={() => handleTabChange('notifications')}
-              onMouseEnter={() => prefetchData('notifications')}
+              onMouseEnter={prefetchHandlers.notifications}
             />
           )}
         </SidebarSection>
@@ -199,7 +218,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
           {loading ? (
             <LoadingSkeleton />
           ) : (
-            channelItems.map((item) => (
+            sidebarConfig.channelItems.map((item) => (
               <SidebarItem
                 key={item.id}
                 icon={item.icon}
@@ -208,7 +227,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
                 active={selectedTab === item.id}
                 onClick={() => handleTabChange(item.id)}
                 variant="channel"
-                onMouseEnter={() => prefetchData('conversations')}
+                onMouseEnter={prefetchHandlers.conversations}
               />
             ))
           )}
@@ -224,7 +243,7 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
           {loading ? (
             <LoadingSkeleton />
           ) : (
-            activeInboxes.map((inbox) => {
+            sidebarConfig.activeInboxes.map((inbox) => {
               const inboxTabId = `inbox-${inbox.id}`;
               return (
                 <SidebarItem
@@ -244,4 +263,4 @@ export const OptimizedInteractionsSidebar: React.FC<OptimizedInteractionsSidebar
       </SidebarContent>
     </Sidebar>
   );
-};
+});
