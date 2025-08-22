@@ -12,7 +12,7 @@ interface VirtualizedConversationListProps {
   selectedConversation?: Conversation;
 }
 
-const ITEM_HEIGHT = 80; // Height of each conversation item in pixels
+const ITEM_HEIGHT = 120; // Height of each conversation item in pixels (updated to match actual ConversationListItem height)
 const OVERSCAN_COUNT = 5; // Number of items to render outside visible area for smoother scrolling
 
 const VirtualizedConversationList = memo(({ onSelectConversation, selectedConversation }: VirtualizedConversationListProps) => {
@@ -52,14 +52,11 @@ const VirtualizedConversationList = memo(({ onSelectConversation, selectedConver
     }
 
     return (
-      <div style={style}>
+      <div style={style} className="px-3 md:px-4">
         <ConversationListItem
           conversation={conversation}
           isSelected={selectedConversation?.id === conversation.id}
-          onSelect={(conv) => {
-            console.log('ConversationListItem onSelect called:', conv.id);
-            onSelectConversation(conv);
-          }}
+          onSelect={onSelectConversation}
         />
       </div>
     );
@@ -92,18 +89,7 @@ const VirtualizedConversationList = memo(({ onSelectConversation, selectedConver
 
   return (
     <div className="flex-1 min-h-0">
-      {/* Desktop: Table header */}
-      <div className="hidden md:block sticky top-0 z-10 bg-card/90 backdrop-blur-sm border-b border-border">
-        <div className="row px-4 py-2 text-sm font-medium text-muted-foreground">
-          <div className="col--status">Status</div>
-          <div className="col--from">From</div>
-          <div className="col--subject">Subject</div>
-          <div className="col--date">Date</div>
-          <div className="flex-shrink-0 w-10"></div>
-        </div>
-      </div>
-
-      {/* Virtualized List */}
+      {/* Virtualized List - No table headers, using card-based ConversationListItem */}
       <div className="flex-1" style={{ height: 'calc(100vh - 200px)' }}>
         <AutoSizer>
           {({ height, width }) => (

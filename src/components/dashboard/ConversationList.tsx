@@ -44,8 +44,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
     }
   ], !!user);
 
-  // Use virtualized list for large datasets (>50 conversations)
-  const shouldUseVirtualization = filteredConversations.length > 50;
+  // Use virtualized list for large datasets (temporarily disabled - fixing design mismatch)
+  const shouldUseVirtualization = filteredConversations.length > 500;
 
   return (
     <div className="flex flex-col bg-gradient-surface h-full min-h-0">
