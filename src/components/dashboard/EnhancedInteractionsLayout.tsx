@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MessageCircle, Sidebar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,6 @@ import { OptimizedInteractionsSidebar } from './OptimizedInteractionsSidebar';
 import { MobileSidebarDrawer } from './MobileSidebarDrawer';
 import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
-import { cn } from '@/lib/utils';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { useResizablePanels } from '@/hooks/useResizablePanels';
 import { ResponsiveFlex, ResponsiveContainer, AdaptiveSection } from '@/components/admin/design/components/layouts';
 
 // Define conversation types
@@ -60,33 +57,30 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [showConversationList, setShowConversationList] = useState(true);
   
   const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
-  const isDesktop = useIsDesktop();
   const { t } = useTranslation();
-  
-  // Enhanced panel persistence with viewport-aware sizing
-  const { getPanelSize, updatePanelSize } = useResizablePanels({
-    storageKey: 'enhanced-interactions-layout',
-    defaultSizes: {
-      conversationList: isMobile ? 100 : isTablet ? 35 : 30,
-      conversationView: isMobile ? 100 : isTablet ? 65 : 70
-    },
-    minSizes: {
-      conversationList: isMobile ? 100 : 25,
-      conversationView: isMobile ? 100 : 25
-    },
-    maxSizes: {
-      conversationList: isMobile ? 100 : 65,
-      conversationView: isMobile ? 100 : 75
-    },
-    viewportAware: true
-  });
   
   // Get conversation ID from URL
   const conversationIdFromUrl = searchParams.get('conversation');
+
+  // Load conversation from URL when available
+  useEffect(() => {
+    if (conversationIdFromUrl && !selectedConversation) {
+      // Create a mock conversation object from URL ID
+      // In a real app, you'd fetch the conversation data
+      const urlConversation: Conversation = {
+        id: conversationIdFromUrl,
+        subject: 'Conversation from URL',
+        status: 'open',
+        priority: 'normal',
+        is_read: false,
+        channel: 'email',
+        updated_at: new Date().toISOString()
+      };
+      setSelectedConversation(urlConversation);
+    }
+  }, [conversationIdFromUrl, selectedConversation]);
 
   // Handle conversation selection
   const handleSelectConversation = useCallback((conversation: Conversation) => {
@@ -97,25 +91,18 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     const newParams = new URLSearchParams(searchParams);
     newParams.set('conversation', conversation.id);
     setSearchParams(newParams, { replace: true });
-    
-    // On mobile, hide conversation list when selecting a conversation
-    if (isMobile) {
-      setShowConversationList(false);
-    }
-  }, [searchParams, setSearchParams, isMobile]);
+  }, [searchParams, setSearchParams]);
 
   // Handle conversation list toggle
   const handleToggleConversationList = useCallback(() => {
-    setShowConversationList(!showConversationList);
-  }, [showConversationList]);
+    setSelectedConversation(null);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('conversation');
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
-  // Determine visibility logic for responsive behavior
-  const shouldShowConversationList = (() => {
-    if (isMobile) {
-      return !selectedConversation || showConversationList;
-    }
-    return showConversationList;
-  })();
+  // Simple toggle logic: show conversation list only when no conversation is selected
+  const shouldShowConversationList = !selectedConversation;
 
   // Render VoiceInterface if active sub-tab is 'voice'
   if (activeSubTab === 'voice') {
@@ -161,7 +148,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     );
   }
 
-  // Desktop & Tablet: Sidebar + resizable panels layout
+  // Desktop & Tablet: Sidebar + full-screen toggle layout
   return (
     <ResponsiveFlex className="h-full" wrap={false}>
       <AdaptiveSection className="hidden md:flex h-full">
@@ -172,62 +159,46 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
         />
       </AdaptiveSection>
       <ContentPane className="h-full p-0 flex-1">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Conversation List Panel */}
-          {shouldShowConversationList && (
-            <>
-              <ResizablePanel
-                defaultSize={getPanelSize('conversationList')}
-                minSize={25}
-                maxSize={65}
-                onResize={(size) => updatePanelSize('conversationList', size)}
+        {shouldShowConversationList ? (
+          // Full screen conversation list
+          <ContentPane variant="bordered" className="h-full">
+            <ConversationList
+              selectedConversation={selectedConversation}
+              onSelectConversation={handleSelectConversation}
+              selectedInboxId={selectedInboxId}
+              selectedTab={selectedTab}
+              onToggleCollapse={undefined}
+            />
+          </ContentPane>
+        ) : (
+          // Full screen conversation view with back button
+          <ContentPane className="h-full relative">
+            <AdaptiveSection className="absolute top-4 left-4 z-10">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedConversation(null);
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.delete('conversation');
+                  setSearchParams(newParams, { replace: true });
+                }}
+                className="flex items-center gap-2 bg-background/95 backdrop-blur-sm"
               >
-                <ContentPane variant="bordered" className="h-full">
-                  <ConversationList
-                    selectedConversation={selectedConversation}
-                    onSelectConversation={handleSelectConversation}
-                    selectedInboxId={selectedInboxId}
-                    selectedTab={selectedTab}
-                    onToggleCollapse={isDesktop ? handleToggleConversationList : undefined}
-                  />
-                </ContentPane>
-              </ResizablePanel>
+                <Sidebar className="h-4 w-4" />
+                <span>Back to Inbox</span>
+              </Button>
+            </AdaptiveSection>
 
-              <ResizableHandle withHandle />
-            </>
-          )}
-
-          {/* Conversation View Panel */}
-          <ResizablePanel
-            className="h-full"
-            minSize={shouldShowConversationList ? 35 : 100}
-          >
-            <ContentPane className="h-full relative">
-              {/* Show/Hide Conversation List Button - Desktop only */}
-              {isDesktop && !shouldShowConversationList && (
-                <AdaptiveSection className="absolute top-4 left-4 z-10">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleToggleConversationList}
-                    className="flex items-center gap-2 bg-background/95 backdrop-blur-sm"
-                  >
-                    <Sidebar className="h-4 w-4" />
-                    <span>Show Conversations</span>
-                  </Button>
-                </AdaptiveSection>
-              )}
-
-              {selectedConversation ? (
-                <AdaptiveSection className="h-full">
-                  <ConversationView conversationId={selectedConversation.id} />
-                </AdaptiveSection>
-              ) : (
-                <EmptyConversationState />
-              )}
-            </ContentPane>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            {selectedConversation ? (
+              <AdaptiveSection className="h-full">
+                <ConversationView conversationId={selectedConversation.id} />
+              </AdaptiveSection>
+            ) : (
+              <EmptyConversationState />
+            )}
+          </ContentPane>
+        )}
       </ContentPane>
     </ResponsiveFlex>
   );
