@@ -42,38 +42,32 @@ const AdminSidebar = () => {
     {
       title: t('admin.userManagement'),
       url: '/admin/users',
-      icon: Users,
-      description: 'Manage users, roles, and permissions'
+      icon: Users
     },
     {
       title: t('admin.inboxes'),
       url: '/admin/inboxes',
-      icon: Inbox,
-      description: 'Configure email inboxes and routing'
+      icon: Inbox
     },
     {
       title: t('admin.integrations'),
       url: '/admin/integrations',
-      icon: Plug,
-      description: 'Connect external services and APIs'
+      icon: Plug
     },
     {
       title: t('admin.voice'),
       url: '/admin/voice',
-      icon: Phone,
-      description: 'Voice integrations and call routing'
+      icon: Phone
     },
     {
       title: t('admin.design'),
       url: '/admin/design',
-      icon: Palette,
-      description: 'Design system and component library'
+      icon: Palette
     },
     {
       title: t('admin.general'),
       url: '/admin/general',
-      icon: Settings,
-      description: 'General application settings'
+      icon: Settings
     }
   ];
 
@@ -101,30 +95,17 @@ const AdminSidebar = () => {
         </div>
         
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70 px-2 pb-2">
+          <SidebarGroupLabel className="text-sidebar-foreground/70">
             Administration
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActive(item.url)}
-                  >
-                    <a 
-                      href={item.url}
-                      className="flex items-center gap-3 px-3 py-3 rounded-md transition-colors min-h-[44px]"
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {state === 'expanded' && (
-                        <div className="flex-1 text-left min-w-0">
-                          <div className="text-sm font-medium leading-tight mb-0.5">{item.title}</div>
-                          <div className="text-xs text-sidebar-foreground/60 leading-tight">
-                            {item.description}
-                          </div>
-                        </div>
-                      )}
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
