@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, NavLink } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -41,46 +41,44 @@ const AdminSidebar = () => {
   const mainNavItems = [
     {
       title: t('admin.userManagement'),
-      url: '/settings?tab=users',
+      url: '/admin/users',
       icon: Users,
       description: 'Manage users, roles, and permissions'
     },
     {
       title: t('admin.inboxes'),
-      url: '/settings?tab=inboxes',
+      url: '/admin/inboxes',
       icon: Inbox,
       description: 'Configure email inboxes and routing'
     },
     {
       title: t('admin.integrations'),
-      url: '/settings?tab=integrations',
+      url: '/admin/integrations',
       icon: Plug,
       description: 'Connect external services and APIs'
     },
     {
       title: t('admin.voice'),
-      url: '/settings?tab=voice',
+      url: '/admin/voice',
       icon: Phone,
       description: 'Voice integrations and call routing'
     },
     {
       title: t('admin.design'),
-      url: '/settings?tab=design',
+      url: '/admin/design',
       icon: Palette,
       description: 'Design system and component library'
     },
     {
       title: t('admin.general'),
-      url: '/settings?tab=general',
+      url: '/admin/general',
       icon: Settings,
       description: 'General application settings'
     }
   ];
 
   const isActive = (url: string) => {
-    const urlParams = new URLSearchParams(url.split('?')[1]);
-    const currentParams = new URLSearchParams(location.search);
-    return urlParams.get('tab') === currentParams.get('tab');
+    return location.pathname === url || location.pathname.startsWith(url + '/');
   };
 
   return (
@@ -115,15 +113,13 @@ const AdminSidebar = () => {
                     isActive={isActive(item.url)}
                     className="w-full"
                   >
-                    <NavLink 
-                      to={item.url}
-                      className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                          isActive 
-                            ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-                            : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                        }`
-                      }
+                    <a 
+                      href={item.url}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                        isActive(item.url)
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
+                          : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                      }`}
                     >
                       <item.icon className="h-4 w-4" />
                       {state === 'expanded' && (
@@ -134,7 +130,7 @@ const AdminSidebar = () => {
                           </div>
                         </div>
                       )}
-                    </NavLink>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

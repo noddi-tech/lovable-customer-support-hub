@@ -1,6 +1,6 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLocation } from 'react-router-dom';
+import { ResponsiveContainer, ResponsiveGrid, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, LayoutItem, AdaptiveSection } from '@/components/admin/design/components/layouts';
 import { UserManagement } from './UserManagement';
 import { DepartmentManagement } from './DepartmentManagement';
 import { IntegrationSettings } from './IntegrationSettings';
@@ -13,18 +13,19 @@ import { GoogleGroupSetup } from './GoogleGroupSetup';
 import { VoiceIntegrationsList } from './VoiceIntegrationsList';
 import { InboundRoutesList } from './InboundRoutesList';
 import { InboxManagement } from './InboxManagement';
-import { Users, Settings, Plug, Palette, Mail, Phone, Route, Building, Inbox } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { useTranslation } from 'react-i18next';
-import { ResponsiveContainer, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, AdaptiveSection, ResponsiveGrid, LayoutItem } from '@/components/admin/design/components/layouts';
 
 export const AdminPortal = () => {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'users';
+  const location = useLocation();
+  
+  // Extract the admin path to determine which content to show
+  const adminPath = location.pathname.replace('/admin/', '') || 'general';
 
-  const renderTabContent = () => {
-    switch (activeTab) {
+  const renderContent = () => {
+    switch (adminPath) {
       case 'users':
         return (
           <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6" className="h-full">
@@ -142,7 +143,9 @@ export const AdminPortal = () => {
               <ResponsiveTabs defaultValue="library" variant="pills" size="md" equalWidth>
                 <ResponsiveTabsList className="w-full">
                   <ResponsiveTabsTrigger value="library">Design Library</ResponsiveTabsTrigger>
-                  <ResponsiveTabsTrigger value="components">Components</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="components">
+                    <a href="/admin/design/components" className="flex items-center">Components</a>
+                  </ResponsiveTabsTrigger>
                 </ResponsiveTabsList>
                 <ResponsiveTabsContent value="library">
                   <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
@@ -175,7 +178,7 @@ export const AdminPortal = () => {
 
   return (
     <div className="h-full">
-      {renderTabContent()}
+      {renderContent()}
     </div>
   );
 };

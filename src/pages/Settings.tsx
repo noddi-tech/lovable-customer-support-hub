@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,11 +24,15 @@ export default function Settings() {
   const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   
   const canManageUsers = hasPermission('manage_users');
   const canManageSettings = hasPermission('manage_settings');
-  const activeTab = searchParams.get('tab') || 'general';
+  
+  // Determine if we're in admin mode based on the URL path
+  const isAdminPath = location.pathname.startsWith('/admin/');
+  const adminPath = location.pathname.replace('/admin/', '');
+  const activeTab = isAdminPath ? adminPath : 'general';
 
   if (loading || permissionsLoading) {
     return (
@@ -39,14 +43,29 @@ export default function Settings() {
   }
 
   // Check if we're in admin mode
-  const isAdminMode = ['users', 'inboxes', 'integrations', 'voice', 'design', 'admin'].includes(activeTab);
+  const isAdminMode = ['users', 'inboxes', 'integrations', 'voice', 'design', 'general'].includes(activeTab) || isAdminPath;
 
   if (isAdminMode) {
     return (
       <AdminPortalLayout>
-        <AdminPortal />
+        {renderAdminContent()}
       </AdminPortalLayout>
     );
+  }
+
+  function renderAdminContent() {
+    // Handle specific admin routes
+    if (location.pathname === '/admin/design/components') {
+      const AdminDesignComponents = React.lazy(() => import('./AdminDesignComponents'));
+      return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <AdminDesignComponents />
+        </React.Suspense>
+      );
+    }
+    
+    // Default to AdminPortal for other admin routes
+    return <AdminPortal />;
   }
 
   const renderTabContent = () => {
