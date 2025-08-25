@@ -1,243 +1,208 @@
 # Layout Components Library
 
-A comprehensive, responsive layout component library built for React applications using Tailwind CSS, Radix UI, and shadcn/ui.
-
-## Overview
-
-This library provides 6 flexible, mobile-first layout components designed to eliminate repetitive CSS patterns and create consistent, responsive layouts across your application.
+A collection of flexible, responsive layout components built on top of Radix UI and shadcn/ui, designed for consistent admin interface layouts.
 
 ## Components
 
-### ResponsiveContainer
-
-A flexible container component with responsive padding and max-width controls.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `padding` | `ResponsiveValue<string>` | `'4'` | Responsive padding values |
-| `maxWidth` | `'sm' \| 'md' \| 'lg' \| 'xl' \| '2xl' \| '4xl' \| '7xl' \| 'full'` | `'7xl'` | Maximum width constraint |
-| `center` | `boolean` | `true` | Center the container horizontally |
-| `as` | `'div' \| 'section' \| 'main' \| 'article'` | `'div'` | HTML element to render |
-
-**Usage:**
-```tsx
-<ResponsiveContainer padding={{ sm: '4', md: '6' }} maxWidth="lg">
-  <YourContent />
-</ResponsiveContainer>
-```
-
-### ResponsiveFlex
-
-A flexible flexbox component with responsive direction, gap, and alignment options.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `direction` | `'row' \| 'col' \| 'responsive'` | `'responsive'` | Flex direction behavior |
-| `breakpoint` | `'sm' \| 'md' \| 'lg' \| 'xl'` | `'md'` | Breakpoint for responsive direction |
-| `gap` | `ResponsiveValue<string>` | `'4'` | Gap between flex items |
-| `wrap` | `boolean` | `true` | Allow flex wrapping |
-| `alignment` | `'start' \| 'center' \| 'end' \| 'stretch'` | `'start'` | Cross-axis alignment |
-| `justify` | `'start' \| 'center' \| 'end' \| 'between' \| 'around' \| 'evenly'` | `'start'` | Main-axis justification |
-
-**Usage:**
-```tsx
-<ResponsiveFlex gap={{ sm: '2', md: '4' }} justify="between">
-  <div>Item 1</div>
-  <div>Item 2</div>
-</ResponsiveFlex>
-```
-
-### ResponsiveGrid
-
-A CSS Grid component with responsive columns and auto-fit capabilities.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `cols` | `ResponsiveValue<string>` | `{ sm: '1', md: '2', lg: '3' }` | Number of grid columns |
-| `gap` | `ResponsiveValue<string>` | `'4'` | Gap between grid items |
-| `autoFit` | `boolean` | `false` | Enable auto-fit with minColWidth |
-| `minColWidth` | `string` | `'250px'` | Minimum column width for auto-fit |
-| `alignment` | `'start' \| 'center' \| 'end' \| 'stretch'` | `'start'` | Grid item alignment |
-
-**Usage:**
-```tsx
-<ResponsiveGrid cols={{ sm: '1', md: '2', lg: '3' }} gap="6">
-  <Card>Card 1</Card>
-  <Card>Card 2</Card>
-  <Card>Card 3</Card>
-</ResponsiveGrid>
-```
-
-### LayoutItem
-
-A flex item component with responsive sizing and ordering capabilities.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `flex` | `'none' \| 'auto' \| '1' \| 'initial'` | `'1'` | Flex grow/shrink behavior |
-| `minWidth` | `ResponsiveValue<string>` | `undefined` | Minimum width constraints |
-| `maxWidth` | `ResponsiveValue<string>` | `undefined` | Maximum width constraints |
-| `order` | `ResponsiveValue<string>` | `undefined` | Flex order property |
-| `align` | `'auto' \| 'start' \| 'center' \| 'end' \| 'stretch'` | `'auto'` | Self alignment |
-
-**Usage:**
-```tsx
-<ResponsiveFlex>
-  <LayoutItem flex="2" minWidth={{ sm: '200px', md: '300px' }}>
-    Main content
-  </LayoutItem>
-  <LayoutItem flex="1">
-    Sidebar
-  </LayoutItem>
-</ResponsiveFlex>
-```
-
 ### ResponsiveTabs
 
-A responsive tabs component built on Radix UI Tabs with orientation and variant support.
+A responsive tab component that adapts to different screen sizes and provides multiple styling variants.
+
+#### Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `items` | `TabItem[]` | `required` | Array of tab items with value, label, content |
+| `variant` | `'default' \| 'pills' \| 'underline' \| 'borderless' \| 'compact'` | `'default'` | Visual style variant |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Size of tabs (affects font-size, padding, height) |
+| `equalWidth` | `boolean` | `false` | Whether tabs should have equal width |
+| `justifyContent` | `'start' \| 'center' \| 'end' \| 'between'` | `'start'` | Alignment of tabs |
 | `orientation` | `'horizontal' \| 'vertical' \| 'responsive'` | `'responsive'` | Tab orientation |
-| `variant` | `'default' \| 'pills' \| 'underline'` | `'default'` | Visual variant |
-| `spacing` | `ResponsiveValue<string>` | `'4'` | Gap between tabs |
-| `fullWidth` | `boolean` | `false` | Make tabs fill full width |
+| `breakpoint` | `'sm' \| 'md' \| 'lg' \| 'xl'` | `'md'` | Breakpoint for responsive orientation |
 
-**Usage:**
+#### Variants
+
+- **default**: Standard border-bottom style
+- **pills**: Rounded background style with muted background
+- **underline**: Clean underline style for active tabs
+- **borderless**: Minimal style with accent background on hover
+- **compact**: Smaller size for tight spaces
+
+#### Sizes
+
+- **sm**: Small (text-xs, h-8, px-2)
+- **md**: Medium (text-sm, h-9, px-3)
+- **lg**: Large (text-base, h-10, px-4)
+
+#### Usage Examples
+
+##### New API (Recommended)
+
+```tsx
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
+
+// Basic usage
+<ResponsiveTabs defaultValue="tab1" variant="pills" size="md" equalWidth>
+  <ResponsiveTabsList>
+    <ResponsiveTabsTrigger value="tab1">General</ResponsiveTabsTrigger>
+    <ResponsiveTabsTrigger value="tab2">Security</ResponsiveTabsTrigger>
+    <ResponsiveTabsTrigger value="tab3">Integrations</ResponsiveTabsTrigger>
+  </ResponsiveTabsList>
+  <ResponsiveTabsContent value="tab1">
+    General settings content
+  </ResponsiveTabsContent>
+  <ResponsiveTabsContent value="tab2">
+    Security settings content
+  </ResponsiveTabsContent>
+  <ResponsiveTabsContent value="tab3">
+    Integrations settings content
+  </ResponsiveTabsContent>
+</ResponsiveTabs>
+
+// Responsive with equal width
+<ResponsiveTabs 
+  defaultValue="email" 
+  variant="underline" 
+  equalWidth 
+  justifyContent="center"
+  orientation="responsive"
+  breakpoint="md"
+>
+  <ResponsiveTabsList>
+    <ResponsiveTabsTrigger value="email">Email</ResponsiveTabsTrigger>
+    <ResponsiveTabsTrigger value="sms">SMS</ResponsiveTabsTrigger>
+    <ResponsiveTabsTrigger value="voice">Voice</ResponsiveTabsTrigger>
+  </ResponsiveTabsList>
+  <ResponsiveTabsContent value="email">Email content</ResponsiveTabsContent>
+  <ResponsiveTabsContent value="sms">SMS content</ResponsiveTabsContent>
+  <ResponsiveTabsContent value="voice">Voice content</ResponsiveTabsContent>
+</ResponsiveTabs>
+
+// Compact variant for limited space
+<ResponsiveTabs defaultValue="overview" variant="compact" size="sm">
+  <ResponsiveTabsList>
+    <ResponsiveTabsTrigger value="overview">Overview</ResponsiveTabsTrigger>
+    <ResponsiveTabsTrigger value="details">Details</ResponsiveTabsTrigger>
+  </ResponsiveTabsList>
+  <ResponsiveTabsContent value="overview">Overview content</ResponsiveTabsContent>
+  <ResponsiveTabsContent value="details">Details content</ResponsiveTabsContent>
+</ResponsiveTabs>
+```
+
+##### Legacy API (Backward Compatible)
+
 ```tsx
 const tabItems = [
   { value: 'tab1', label: 'Tab 1', content: <div>Content 1</div> },
-  { value: 'tab2', label: 'Tab 2', content: <div>Content 2</div> }
+  { value: 'tab2', label: 'Tab 2', content: <div>Content 2</div> },
 ];
 
 <ResponsiveTabs 
   items={tabItems} 
-  variant="pills" 
-  orientation="responsive"
-  breakpoint="md"
+  defaultValue="tab1" 
+  variant="pills"
+  fullWidth
 />
 ```
 
+### Design Tokens Used
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `bg-muted` | `hsl(var(--muted))` | Background for pills variant |
+| `bg-muted/50` | `hsl(var(--muted) / 0.5)` | Background for compact variant |
+| `bg-card` | `hsl(var(--card))` | Tab list background |
+| `bg-background` | `hsl(var(--background))` | Active tab background |
+| `text-foreground` | `hsl(var(--foreground))` | Active tab text |
+| `text-muted-foreground` | `hsl(var(--muted-foreground))` | Inactive tab text |
+| `border-primary` | `hsl(var(--primary))` | Active underline border |
+| `border-muted` | `hsl(var(--muted))` | Default borders |
+| `hover:bg-accent` | `hsl(var(--accent))` | Hover background |
+| `hover:text-accent-foreground` | `hsl(var(--accent-foreground))` | Hover text |
+
+### Migration Guide
+
+Replace existing shadcn tab implementations with ResponsiveTabs:
+
+#### Before
+```tsx
+<Tabs defaultValue="general" className="w-full">
+  <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-1 bg-card/50">
+    <TabsTrigger value="general">General</TabsTrigger>
+    <TabsTrigger value="security">Security</TabsTrigger>
+    <TabsTrigger value="integrations">Integrations</TabsTrigger>
+  </TabsList>
+  <TabsContent value="general">General content</TabsContent>
+  <TabsContent value="security">Security content</TabsContent>
+  <TabsContent value="integrations">Integrations content</TabsContent>
+</Tabs>
+```
+
+#### After
+```tsx
+<ResponsiveTabs defaultValue="general" variant="default" equalWidth>
+  <ResponsiveTabsList>
+    <ResponsiveTabsTrigger value="general">General</ResponsiveTabsTrigger>
+    <ResponsiveTabsTrigger value="security">Security</ResponsiveTabsTrigger>
+    <ResponsiveTabsTrigger value="integrations">Integrations</ResponsiveTabsTrigger>
+  </ResponsiveTabsList>
+  <ResponsiveTabsContent value="general">General content</ResponsiveTabsContent>
+  <ResponsiveTabsContent value="security">Security content</ResponsiveTabsContent>
+  <ResponsiveTabsContent value="integrations">Integrations content</ResponsiveTabsContent>
+</ResponsiveTabs>
+```
+
+### Responsive Behavior
+
+- **Mobile (<640px)**: Tabs stack vertically (`flex-col`) with full width
+- **Tablet (768px+)**: Tabs switch to horizontal layout (`flex-row`) 
+- **Desktop (1024px+)**: Maintains horizontal layout with flex-wrap for overflow
+- **EqualWidth**: When enabled, tabs take equal space using `flex-1`
+- **Overflow**: Uses `flex-wrap` to prevent horizontal overflow on smaller screens
+
+### Accessibility
+
+- Full keyboard navigation support (Tab, Arrow keys)
+- Proper ARIA attributes (`aria-selected`, `aria-controls`, `role="tabpanel"`)
+- Focus management and visual focus indicators
+- Screen reader support with proper labeling
+
+### Performance
+
+- Components are memoized to prevent unnecessary re-renders
+- Lazy loading support for tab content when needed
+- Optimized for large numbers of tabs (10+ tabs tested)
+
+## Other Components
+
+### ResponsiveContainer
+Flexible container with responsive padding and max-width constraints.
+
+### ResponsiveFlex  
+Flexbox container with responsive direction, alignment, and spacing.
+
+### ResponsiveGrid
+Grid container with responsive column counts and gap spacing.
+
+### LayoutItem
+Individual layout item with responsive sizing and positioning.
+
 ### AdaptiveSection
+Section component that adapts content layout based on screen size.
 
-A versatile section component with spacing, visual styling, and responsive properties.
+## Storybook
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `spacing` | `ResponsiveValue<string>` | `'4'` | Space between child elements |
-| `direction` | `'x' \| 'y' \| 'both'` | `'y'` | Spacing direction |
-| `padding` | `ResponsiveValue<string>` | `undefined` | Internal padding |
-| `margin` | `ResponsiveValue<string>` | `undefined` | External margin |
-| `background` | `'none' \| 'muted' \| 'card' \| 'accent'` | `'none'` | Background variant |
-| `border` | `boolean` | `false` | Add border |
-| `rounded` | `boolean` | `false` | Add rounded corners |
-| `shadow` | `'none' \| 'sm' \| 'md' \| 'lg'` | `'none'` | Shadow intensity |
-
-**Usage:**
-```tsx
-<AdaptiveSection 
-  background="card" 
-  padding={{ sm: '4', md: '6' }}
-  spacing="6"
-  rounded={true}
-  shadow="md"
->
-  <h2>Section Title</h2>
-  <p>Section content</p>
-</AdaptiveSection>
+View component examples and documentation:
+```bash
+npm run storybook
 ```
 
-## Mobile-First Best Practices
-
-1. **Start with Mobile**: All components default to mobile-friendly layouts (flex-col, grid-cols-1)
-2. **Progressive Enhancement**: Use responsive props to enhance layouts for larger screens
-3. **Flexible Wrapping**: Leverage `flex-wrap` and `autoFit` to prevent overflow
-4. **Consistent Breakpoints**: Use standard Tailwind breakpoints (sm: 640px, md: 768px, lg: 1024px, xl: 1280px)
-
-## Radix/shadcn Integration
-
-- **ResponsiveTabs** wraps Radix Tabs primitive, preserving all accessibility features
-- Use `cn()` utility for custom styling without losing base functionality  
-- All components support `className` prop for additional customization
-- Maintain Radix state management (controlled/uncontrolled patterns)
-
-## Performance Features
-
-- **React.memo**: All components are memoized to prevent unnecessary re-renders
-- **useMemo**: Class computations are memoized for expensive calculations
-- **useCallback**: Event handlers are memoized to maintain referential stability
-- **Bundle Optimization**: Consider dynamic imports for heavy components:
-
-```tsx
-const ResponsiveTabs = React.lazy(() => import('./ResponsiveTabs'));
-```
-
-## TypeScript Support
-
-### ResponsiveValue Type
-
-```tsx
-type ResponsiveValue<T> = T | { 
-  sm?: T; 
-  md?: T; 
-  lg?: T; 
-  xl?: T; 
-};
-```
-
-Use this type for any prop that supports responsive behavior:
-
-```tsx
-interface MyComponentProps {
-  spacing: ResponsiveValue<string>;
-  padding: ResponsiveValue<string>;
-}
-```
+Stories are located in `src/components/admin/design/stories/`
 
 ## Testing
 
-Comprehensive test suite covers:
-- ✅ Responsiveness (breakpoint transitions, viewport simulation)
-- ✅ Accessibility (ARIA roles, keyboard navigation)  
-- ✅ Edge cases (1-15+ children, long content, nested layouts)
-- ✅ Performance (render count optimization)
-
-Run tests: `npm test -- layouts`
-
-## Bundle Impact
-
-- **Base library**: ~8KB gzipped
-- **ResponsiveTabs**: Additional ~4KB (Radix UI Tabs)
-- **Tree-shakable**: Import only components you use
-- **Zero runtime CSS**: All styling via Tailwind utilities
-
-## Migration Guide
-
-Replace repetitive patterns with library components:
-
-```tsx
-// Before
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  {items.map(item => <Card key={item.id}>{item}</Card>)}
-</div>
-
-// After  
-<ResponsiveGrid>
-  {items.map(item => <Card key={item.id}>{item}</Card>)}
-</ResponsiveGrid>
+Run tests with coverage:
+```bash
+npm run test -- --coverage
 ```
 
-```tsx
-// Before
-<div className="flex flex-col md:flex-row gap-4 items-start justify-between">
-  <div className="flex-1">Main</div>
-  <div className="flex-none w-64">Sidebar</div>
-</div>
-
-// After
-<ResponsiveFlex justify="between">
-  <LayoutItem flex="1">Main</LayoutItem>
-  <LayoutItem flex="none" minWidth="16rem">Sidebar</LayoutItem>
-</ResponsiveFlex>
-```
+Test files are located in `src/components/admin/design/components/layouts/__tests__/`
