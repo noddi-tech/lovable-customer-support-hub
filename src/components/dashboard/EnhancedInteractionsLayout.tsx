@@ -117,12 +117,32 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     return showConversationList;
   })();
 
-  // Render VoiceInterface if active sub-tab is 'voice'
+  // Render specific interfaces based on sub-tab
   if (activeSubTab === 'voice') {
     return (
       <ContentPane className="h-full">
         <VoiceInterface />
       </ContentPane>
+    );
+  }
+
+  if (activeSubTab === 'text') {
+    const TextInboxPage = React.lazy(() => import('@/pages/TextInboxPage'));
+    return (
+      <ResponsiveFlex className="h-full" wrap={false}>
+        <AdaptiveSection className="hidden md:flex h-full">
+          <OptimizedInteractionsSidebar
+            selectedTab={selectedTab}
+            onTabChange={onTabChange}
+            selectedInboxId={selectedInboxId}
+          />
+        </AdaptiveSection>
+        <ContentPane className="h-full p-0 flex-1">
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <TextInboxPage />
+          </React.Suspense>
+        </ContentPane>
+      </ResponsiveFlex>
     );
   }
 

@@ -102,8 +102,8 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
 
           {/* Reply Sidebar */}
           {showReplyBox && (
-            <div className="w-80 border-l border-border bg-muted/20 flex flex-col">
-              <div className="p-4 border-b border-border bg-background">
+            <div className="w-80 border-l border-border bg-background flex flex-col">
+              <div className="p-4 border-b border-border">
                 <h3 className="font-semibold text-foreground">Reply</h3>
               </div>
               <div className="flex-1 p-4 flex flex-col gap-4">
@@ -111,7 +111,7 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
                   placeholder="Type your reply..."
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
-                  className="flex-1 min-h-[200px] resize-none"
+                  className="flex-1 min-h-[200px] resize-none border border-border"
                 />
                 <Button
                   onClick={handleSendReply}

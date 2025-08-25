@@ -38,17 +38,7 @@ const Index = () => {
 
     switch (section) {
       case 'interactions':
-        if (subSection === 'voice') {
-          return <VoiceInterface />;
-        }
-        if (subSection === 'text') {
-          const TextInboxPage = React.lazy(() => import('@/pages/TextInboxPage'));
-          return (
-            <React.Suspense fallback={<div>Loading...</div>}>
-              <TextInboxPage />
-            </React.Suspense>
-          );
-        }
+        // Always use EnhancedInteractionsLayout for interactions to preserve sidebar
         return (
           <EnhancedInteractionsLayout
             activeSubTab={subSection}
