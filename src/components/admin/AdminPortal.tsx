@@ -14,7 +14,7 @@ import { InboxManagement } from './InboxManagement';
 import { Users, Settings, Plug, Palette, Mail, Phone, Route, Building, Inbox } from 'lucide-react';
 import { Heading } from '@/components/ui/heading';
 import { useTranslation } from 'react-i18next';
-import { ResponsiveContainer, ResponsiveTabs, AdaptiveSection } from '@/components/admin/design/components/layouts';
+import { ResponsiveContainer, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, AdaptiveSection } from '@/components/admin/design/components/layouts';
 
 export const AdminPortal = () => {
   const { t } = useTranslation();
@@ -25,23 +25,18 @@ export const AdminPortal = () => {
       label: t('admin.userManagement'),
       icon: Users,
       content: (
-        <ResponsiveTabs
-          orientation="responsive"
-          breakpoint="md"
-          items={[
-            {
-              value: 'user-list',
-              label: 'Users',
-              content: <UserManagement />
-            },
-            {
-              value: 'departments',
-              label: 'Departments',
-              content: <DepartmentManagement />
-            }
-          ]}
-          defaultValue="user-list"
-        />
+        <ResponsiveTabs defaultValue="user-list" variant="pills" size="md" equalWidth>
+          <ResponsiveTabsList>
+            <ResponsiveTabsTrigger value="user-list">Users</ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="departments">Departments</ResponsiveTabsTrigger>
+          </ResponsiveTabsList>
+          <ResponsiveTabsContent value="user-list">
+            <UserManagement />
+          </ResponsiveTabsContent>
+          <ResponsiveTabsContent value="departments">
+            <DepartmentManagement />
+          </ResponsiveTabsContent>
+        </ResponsiveTabs>
       )
     },
     {
@@ -55,50 +50,41 @@ export const AdminPortal = () => {
       label: t('admin.integrations'),
       icon: Plug,
       content: (
-        <ResponsiveTabs
-          orientation="responsive"
-          breakpoint="md"
-          items={[
-            {
-              value: 'overview',
-              label: 'Overview',
-              content: <IntegrationSettings />
-            },
-            {
-              value: 'aircall',
-              label: 'Aircall',
-              content: <AircallSettings />
-            },
-            {
-              value: 'sendgrid',
-              label: 'SendGrid',
-              content: <SendgridSetupWizard />
-            },
-            {
-              value: 'google-groups',
-              label: 'Google Groups',
-              content: (
-                <Card className="bg-gradient-surface border-border/50 shadow-surface">
-                  <CardHeader>
-                    <CardTitle className="text-primary">Google Groups Setup</CardTitle>
-                    <CardDescription>
-                      Configure Google Groups for email routing
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <GoogleGroupSetup 
-                      alias="support" 
-                      domain="yourdomain.com" 
-                      parseSubdomain="inbound"
-                      inboxName="Support"
-                    />
-                  </CardContent>
-                </Card>
-              )
-            }
-          ]}
-          defaultValue="overview"
-        />
+        <ResponsiveTabs defaultValue="overview" variant="pills" size="md" equalWidth>
+          <ResponsiveTabsList>
+            <ResponsiveTabsTrigger value="overview">Overview</ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="aircall">Aircall</ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="sendgrid">SendGrid</ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="google-groups">Google Groups</ResponsiveTabsTrigger>
+          </ResponsiveTabsList>
+          <ResponsiveTabsContent value="overview">
+            <IntegrationSettings />
+          </ResponsiveTabsContent>
+          <ResponsiveTabsContent value="aircall">
+            <AircallSettings />
+          </ResponsiveTabsContent>
+          <ResponsiveTabsContent value="sendgrid">
+            <SendgridSetupWizard />
+          </ResponsiveTabsContent>
+          <ResponsiveTabsContent value="google-groups">
+            <Card className="bg-gradient-surface border-border/50 shadow-surface">
+              <CardHeader>
+                <CardTitle className="text-primary">Google Groups Setup</CardTitle>
+                <CardDescription>
+                  Configure Google Groups for email routing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GoogleGroupSetup 
+                  alias="support" 
+                  domain="yourdomain.com" 
+                  parseSubdomain="inbound"
+                  inboxName="Support"
+                />
+              </CardContent>
+            </Card>
+          </ResponsiveTabsContent>
+        </ResponsiveTabs>
       )
     },
     {
@@ -106,23 +92,18 @@ export const AdminPortal = () => {
       label: t('admin.voice'),
       icon: Phone,
       content: (
-        <ResponsiveTabs
-          orientation="responsive"
-          breakpoint="md"
-          items={[
-            {
-              value: 'integrations',
-              label: 'Voice Integrations',
-              content: <VoiceIntegrationsList />
-            },
-            {
-              value: 'routes',
-              label: 'Inbound Routes',
-              content: <InboundRoutesList />
-            }
-          ]}
-          defaultValue="integrations"
-        />
+        <ResponsiveTabs defaultValue="integrations" variant="pills" size="md" equalWidth>
+          <ResponsiveTabsList>
+            <ResponsiveTabsTrigger value="integrations">Voice Integrations</ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="routes">Inbound Routes</ResponsiveTabsTrigger>
+          </ResponsiveTabsList>
+          <ResponsiveTabsContent value="integrations">
+            <VoiceIntegrationsList />
+          </ResponsiveTabsContent>
+          <ResponsiveTabsContent value="routes">
+            <InboundRoutesList />
+          </ResponsiveTabsContent>
+        </ResponsiveTabs>
       )
     },
     {
@@ -130,23 +111,18 @@ export const AdminPortal = () => {
       label: t('admin.design'),
       icon: Palette,
       content: (
-        <ResponsiveTabs
-          orientation="responsive"
-          breakpoint="md"
-          items={[
-            {
-              value: 'library',
-              label: 'Design Library',
-              content: <DesignLibrary />
-            },
-            {
-              value: 'components',
-              label: 'Components',
-              content: <ComponentConfigurationPanel />
-            }
-          ]}
-          defaultValue="library"
-        />
+        <ResponsiveTabs defaultValue="library" variant="pills" size="md" equalWidth>
+          <ResponsiveTabsList>
+            <ResponsiveTabsTrigger value="library">Design Library</ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="components">Components</ResponsiveTabsTrigger>
+          </ResponsiveTabsList>
+          <ResponsiveTabsContent value="library">
+            <DesignLibrary />
+          </ResponsiveTabsContent>
+          <ResponsiveTabsContent value="components">
+            <ComponentConfigurationPanel />
+          </ResponsiveTabsContent>
+        </ResponsiveTabs>
       )
     },
     {
@@ -167,15 +143,28 @@ export const AdminPortal = () => {
           </p>
         </AdaptiveSection>
 
-        <ResponsiveTabs
-          items={mainTabs}
-          defaultValue="users"
-          orientation="responsive"
-          breakpoint="lg"
-          fullWidth
-          variant="default"
+        <ResponsiveTabs 
+          defaultValue="users" 
+          variant="default" 
+          size="md" 
+          equalWidth 
           className="bg-card/50 backdrop-blur-sm shadow-surface"
-        />
+        >
+          <ResponsiveTabsList>
+            {mainTabs.map((tab) => (
+              <ResponsiveTabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-2">
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </ResponsiveTabsTrigger>
+            ))}
+          </ResponsiveTabsList>
+          
+          {mainTabs.map((tab) => (
+            <ResponsiveTabsContent key={tab.value} value={tab.value}>
+              {tab.content}
+            </ResponsiveTabsContent>
+          ))}
+        </ResponsiveTabs>
       </AdaptiveSection>
     </ResponsiveContainer>
   );

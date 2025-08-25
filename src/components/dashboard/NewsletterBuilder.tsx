@@ -257,7 +257,7 @@ const NewsletterBuilder = () => {
             </ResponsiveTabsList>
             <ResponsiveTabsContent value="blocks" className="flex-1 m-0 min-h-0">
               <div className="pane">
-                <ResponsiveTabs defaultValue="blocks" variant="borderless" size="md" equalWidth className="h-full flex flex-col">
+                <ResponsiveTabs defaultValue="blocks" variant="compact" size="sm" equalWidth className="h-full flex flex-col">
                   <ResponsiveTabsList className="rounded-none border-b">
                     <ResponsiveTabsTrigger value="blocks">{t('blocks')}</ResponsiveTabsTrigger>
                     <ResponsiveTabsTrigger value="templates">{t('templates')}</ResponsiveTabsTrigger>
@@ -326,7 +326,7 @@ const NewsletterBuilder = () => {
               onResize={(size) => updatePanelSize('leftSidebar', size)}
               className="border-r bg-card"
             >
-              <ResponsiveTabs defaultValue="blocks" variant="borderless" size="md" equalWidth className="h-full flex flex-col">
+              <ResponsiveTabs defaultValue="blocks" variant="compact" size="sm" equalWidth className="h-full flex flex-col">
                 <ResponsiveTabsList className="rounded-none border-b">
                   <ResponsiveTabsTrigger value="blocks">{t('blocks')}</ResponsiveTabsTrigger>
                   <ResponsiveTabsTrigger value="templates">{t('templates')}</ResponsiveTabsTrigger>

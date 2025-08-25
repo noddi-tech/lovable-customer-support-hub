@@ -60,15 +60,16 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
       orientation = 'responsive',
       breakpoint = 'md',
       variant = 'default',
-      spacing = '4',
-      fullWidth = false,
+      spacing = '1',
+      fullWidth = true, // Default to true for legacy API to fix uneven widths
     } = props;
 
+    // Mobile-first responsive orientation
     const orientationClass = useMemo(() => orientation === 'responsive' 
-      ? `flex-col ${breakpoint}:flex-row`
+      ? `flex-col md:flex-row` // Always mobile-first
       : orientation === 'vertical' 
         ? 'flex-col' 
-        : 'flex-row', [orientation, breakpoint]);
+        : 'flex-row', [orientation]);
 
     const spacingClass = useMemo(() => typeof spacing === 'string' 
       ? `gap-${spacing}` 
@@ -79,20 +80,48 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
           spacing.xl && `xl:gap-${spacing.xl}`
         ), [spacing]);
 
+    const variantClasses = useMemo(() => {
+      switch (variant) {
+        case 'pills':
+          return {
+            list: 'bg-muted p-1 rounded-lg',
+            trigger: 'rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm'
+          };
+        case 'underline':
+          return {
+            list: 'border-b bg-transparent',
+            trigger: 'border-b-2 border-transparent data-[state=active]:border-primary rounded-none'
+          };
+        case 'borderless':
+          return {
+            list: 'bg-transparent',
+            trigger: 'data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-md'
+          };
+        case 'compact':
+          return {
+            list: 'bg-muted/50 p-0.5 rounded',
+            trigger: 'text-xs h-6 px-2 rounded-sm data-[state=active]:bg-background'
+          };
+        default:
+          return {
+            list: 'bg-muted rounded-md',
+            trigger: 'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm'
+          };
+      }
+    }, [variant]);
+
+    // Override shadcn's inline-flex with flex for full-width layouts
     const tabsListClass = useMemo(() => cn(
-      'flex',
+      'flex flex-wrap w-full', // Override inline-flex, add flex-wrap for mobile overflow
       orientationClass,
       spacingClass,
-      fullWidth && 'w-full',
-      variant === 'pills' && 'bg-muted p-1 rounded-lg',
-      variant === 'underline' && 'border-b'
-    ), [orientationClass, spacingClass, fullWidth, variant]);
+      variantClasses.list
+    ), [orientationClass, spacingClass, variantClasses.list]);
 
     const tabsTriggerClass = useMemo(() => cn(
-      fullWidth && 'flex-1',
-      variant === 'pills' && 'rounded-md',
-      variant === 'underline' && 'border-b-2 border-transparent data-[state=active]:border-primary'
-    ), [fullWidth, variant]);
+      fullWidth && 'flex-1 min-w-0', // min-w-0 prevents text overflow
+      variantClasses.trigger
+    ), [fullWidth, variantClasses.trigger]);
 
     const tabsClassName = useMemo(() => cn('w-full', className), [className]);
     const tabsOrientation = useMemo(() => orientation === 'vertical' ? 'vertical' : 'horizontal', [orientation]);
@@ -117,9 +146,9 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
               className={tabsTriggerClass}
             >
               {item.icon && (
-                <item.icon className="w-4 h-4 mr-2" />
+                <item.icon className="w-4 h-4 mr-2 flex-shrink-0" />
               )}
-              {item.label}
+              <span className="truncate">{item.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -148,16 +177,17 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
     breakpoint = 'md',
     variant = 'default',
     size = 'md',
-    equalWidth = false,
+    equalWidth = true, // Default to true to fix uneven widths
     justifyContent = 'start',
     spacing = '1',
   } = props;
 
+  // Mobile-first responsive orientation
   const orientationClass = useMemo(() => orientation === 'responsive' 
-    ? `flex-col ${breakpoint}:flex-row`
+    ? `flex-col md:flex-row` // Always mobile-first
     : orientation === 'vertical' 
       ? 'flex-col' 
-      : 'flex-row', [orientation, breakpoint]);
+      : 'flex-row', [orientation]);
 
   const spacingClass = useMemo(() => typeof spacing === 'string' 
     ? `gap-${spacing}` 
@@ -170,9 +200,9 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
 
   const sizeClasses = useMemo(() => {
     const sizeMap = {
-      sm: 'text-xs h-8 px-2',
-      md: 'text-sm h-9 px-3',
-      lg: 'text-base h-10 px-4'
+      sm: 'text-xs h-8 px-2 py-1',
+      md: 'text-sm h-9 px-3 py-1.5',
+      lg: 'text-base h-10 px-4 py-2'
     };
     return sizeMap[size];
   }, [size]);
@@ -236,7 +266,7 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
         if (React.isValidElement(child) && child.type === ResponsiveTabsList) {
           return React.cloneElement(child as React.ReactElement<ResponsiveTabsListProps>, {
             className: cn(
-              'flex flex-wrap w-full',
+              'flex flex-wrap w-full', // Override inline-flex, add flex-wrap
               orientationClass,
               spacingClass,
               justifyClass,
@@ -246,7 +276,7 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
             equalWidth,
             size,
             variant,
-            triggerClassName: variantClasses.trigger
+            triggerClassName: cn(sizeClasses, variantClasses.trigger)
           });
         }
         return child;
@@ -267,23 +297,13 @@ interface ResponsiveTabsListProps {
 
 export const ResponsiveTabsList = forwardRef<HTMLDivElement, ResponsiveTabsListProps>(
   ({ children, className, equalWidth, size = 'md', variant, triggerClassName, ...props }, ref) => {
-    const sizeClasses = useMemo(() => {
-      const sizeMap = {
-        sm: 'text-xs h-8 px-2',
-        md: 'text-sm h-9 px-3',
-        lg: 'text-base h-10 px-4'
-      };
-      return sizeMap[size];
-    }, [size]);
-
     return (
       <TabsList ref={ref} className={className} {...props}>
         {React.Children.map(children, (child) => {
           if (React.isValidElement(child) && child.type === ResponsiveTabsTrigger) {
             return React.cloneElement(child as React.ReactElement<ResponsiveTabsTriggerProps>, {
               className: cn(
-                sizeClasses,
-                equalWidth && 'flex-1',
+                equalWidth && 'flex-1 min-w-0', // min-w-0 prevents text overflow
                 triggerClassName,
                 child.props.className
               )
@@ -308,7 +328,7 @@ export const ResponsiveTabsTrigger = forwardRef<HTMLButtonElement, ResponsiveTab
   ({ children, className, ...props }, ref) => {
     return (
       <TabsTrigger ref={ref} className={className} {...props}>
-        {children}
+        <span className="truncate">{children}</span>
       </TabsTrigger>
     );
   }
