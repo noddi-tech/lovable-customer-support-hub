@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { EmailAccountConnection } from '@/components/dashboard/EmailAccountConnection';
 import { Separator } from '@/components/ui/separator';
 import { Mail, MessageSquare, Instagram, Phone } from 'lucide-react';
@@ -15,24 +15,30 @@ export const IntegrationSettings = () => {
   return (
     <div className="pane">
       <div className="space-y-6">
-      <Tabs defaultValue="email" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 bg-card/50 backdrop-blur-sm shadow-surface">
-          <TabsTrigger value="email" className="flex items-center gap-2">
+      <ResponsiveTabs 
+        defaultValue="email" 
+        variant="pills" 
+        size="md" 
+        equalWidth 
+        className="space-y-6"
+      >
+        <ResponsiveTabsList className="bg-card/50 backdrop-blur-sm shadow-surface">
+          <ResponsiveTabsTrigger value="email" className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
             {t('admin.email')}
-          </TabsTrigger>
-          <TabsTrigger value="sms" className="flex items-center gap-2">
+          </ResponsiveTabsTrigger>
+          <ResponsiveTabsTrigger value="sms" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             {t('admin.sms')}
-          </TabsTrigger>
-          <TabsTrigger value="voice" className="flex items-center gap-2">
+          </ResponsiveTabsTrigger>
+          <ResponsiveTabsTrigger value="voice" className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
             {t('admin.voice')}
-          </TabsTrigger>
-        </TabsList>
+          </ResponsiveTabsTrigger>
+        </ResponsiveTabsList>
 
         {/* Email Integration Tab */}
-        <TabsContent value="email" className="space-y-6">
+        <ResponsiveTabsContent value="email" className="space-y-6">
           {/* Email accounts and inbox management */}
           <Card className="bg-gradient-surface border-border/50 shadow-surface">
             <CardHeader>
@@ -98,10 +104,10 @@ export const IntegrationSettings = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </ResponsiveTabsContent>
 
         {/* SMS Integration Tab */}
-        <TabsContent value="sms" className="space-y-6">
+        <ResponsiveTabsContent value="sms" className="space-y-6">
           <Card className="bg-gradient-surface border-border/50 shadow-surface">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -120,10 +126,10 @@ export const IntegrationSettings = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </ResponsiveTabsContent>
 
         {/* Voice Integration Tab */}
-        <TabsContent value="voice" className="space-y-6">
+        <ResponsiveTabsContent value="voice" className="space-y-6">
           <Card className="bg-gradient-surface border-border/50 shadow-surface">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -138,8 +144,8 @@ export const IntegrationSettings = () => {
               <VoiceIntegrationsList />
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </ResponsiveTabsContent>
+      </ResponsiveTabs>
     </div>
   </div>
   );

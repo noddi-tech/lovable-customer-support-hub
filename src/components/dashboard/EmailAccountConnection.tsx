@@ -1,4 +1,4 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from "@/components/admin/design/components/layouts";
 import { EmailForwarding } from "./EmailForwarding";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Forward, Server, Plus } from "lucide-react";
@@ -20,34 +20,40 @@ export function EmailAccountConnection() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="forwarding" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-muted/50">
-              <TabsTrigger value="forwarding" className="flex items-center gap-2">
+          <ResponsiveTabs 
+            defaultValue="forwarding" 
+            variant="underline" 
+            size="md" 
+            equalWidth 
+            className="w-full"
+          >
+            <ResponsiveTabsList className="bg-muted/50">
+              <ResponsiveTabsTrigger value="forwarding" className="flex items-center gap-2">
                 <Forward className="h-4 w-4" />
                 Email Forwarding
-              </TabsTrigger>
-              <TabsTrigger value="add-alias" className="flex items-center gap-2">
+              </ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="add-alias" className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Add Alias
-              </TabsTrigger>
-              <TabsTrigger value="inbound" className="flex items-center gap-2">
+              </ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="inbound" className="flex items-center gap-2">
                 <Server className="h-4 w-4" />
                 Inbound & Domain
-              </TabsTrigger>
-            </TabsList>
+              </ResponsiveTabsTrigger>
+            </ResponsiveTabsList>
             
-            <TabsContent value="forwarding" className="mt-6">
+            <ResponsiveTabsContent value="forwarding" className="mt-6">
               <EmailForwarding mode="gmailAndAccounts" />
-            </TabsContent>
+            </ResponsiveTabsContent>
             
-            <TabsContent value="add-alias" className="mt-6">
+            <ResponsiveTabsContent value="add-alias" className="mt-6">
               <EmailForwarding mode="addAliasOnly" />
-            </TabsContent>
+            </ResponsiveTabsContent>
             
-            <TabsContent value="inbound" className="mt-6 space-y-6">
+            <ResponsiveTabsContent value="inbound" className="mt-6 space-y-6">
               <SendgridSetupWizard />
-            </TabsContent>
-          </Tabs>
+            </ResponsiveTabsContent>
+          </ResponsiveTabs>
 
           <div className="mt-8 space-y-6">
             <ConnectedEmailAccounts />

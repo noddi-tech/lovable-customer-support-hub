@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { Heading } from '@/components/ui/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,134 +62,138 @@ export default function Settings() {
 
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
-          <Tabs defaultValue="general" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-1 bg-card/50 backdrop-blur-sm border border-border/50 shadow-surface">
-              <TabsTrigger value="departments" className="flex items-center gap-2">
-                <Building className="w-4 h-4" />
-                {t('settings.tabs.departments')}
-              </TabsTrigger>
-              <TabsTrigger value="general" className="flex items-center gap-2">
-                <SettingsIcon className="w-4 h-4" />
-                {t('settings.tabs.general')}
-              </TabsTrigger>
-              <TabsTrigger value="profile" className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                {t('settings.tabs.profile')}
-              </TabsTrigger>
-              <TabsTrigger value="notifications" className="flex items-center gap-2">
-                <Bell className="w-4 h-4" />
-                {t('settings.tabs.notifications')}
-              </TabsTrigger>
-              <TabsTrigger value="email-templates" className="flex items-center gap-2">
-                <Palette className="w-4 h-4" />
-                {t('settings.tabs.emailDesign')}
-              </TabsTrigger>
-              <TabsTrigger value="users" disabled={!canManageUsers} className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                {t('settings.tabs.users')}
-              </TabsTrigger>
-              <TabsTrigger value="admin" disabled={!canManageSettings} className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                {t('settings.tabs.admin')}
-              </TabsTrigger>
-            </TabsList>
+            <ResponsiveTabs 
+              defaultValue="general" 
+              variant="default" 
+              size="md" 
+              equalWidth 
+              className="space-y-8"
+            >
+              <ResponsiveTabsList className="bg-card/50 backdrop-blur-sm border border-border/50 shadow-surface">
+                <ResponsiveTabsTrigger value="departments" className="flex items-center gap-2">
+                  <Building className="w-4 h-4" />
+                  {t('settings.tabs.departments')}
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="general" className="flex items-center gap-2">
+                  <SettingsIcon className="w-4 h-4" />
+                  {t('settings.tabs.general')}
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="profile" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  {t('settings.tabs.profile')}
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="notifications" className="flex items-center gap-2">
+                  <Bell className="w-4 h-4" />
+                  {t('settings.tabs.notifications')}
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="email-templates" className="flex items-center gap-2">
+                  <Palette className="w-4 h-4" />
+                  {t('settings.tabs.emailDesign')}
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="users" disabled={!canManageUsers} className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  {t('settings.tabs.users')}
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="admin" disabled={!canManageSettings} className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  {t('settings.tabs.admin')}
+                </ResponsiveTabsTrigger>
+              </ResponsiveTabsList>
 
+              {/* Departments Management */}
+              <ResponsiveTabsContent value="departments" className="space-y-6">
+                <DepartmentManagement />
+              </ResponsiveTabsContent>
 
+              {/* General Settings */}
+              <ResponsiveTabsContent value="general" className="space-y-6">
+                      <LanguageSettings />
+                      <TimezoneSettings />
+                      {/* Uncomment to test timezone functionality:
+                      <TimezoneTest className="mt-4" />
+                      */}
+                <Card className="bg-gradient-surface border-border/50 shadow-surface">
+                  <CardHeader>
+                    <CardTitle className="text-primary">{t('common.settings')}</CardTitle>
+                    <CardDescription>
+                      {t('settings.description')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      {t('settings.description')}
+                    </p>
+                  </CardContent>
+                </Card>
+              </ResponsiveTabsContent>
 
-            {/* Departments Management */}
-            <TabsContent value="departments" className="space-y-6">
-              <DepartmentManagement />
-            </TabsContent>
+              {/* Profile Settings */}
+              <ResponsiveTabsContent value="profile" className="space-y-6">
+                <Card className="bg-gradient-surface border-border/50 shadow-surface">
+                  <CardHeader>
+                    <CardTitle className="text-primary">{t('settings.tabs.profile')}</CardTitle>
+                    <CardDescription>
+                      {t('settings.description')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      {t('settings.description')}
+                    </p>
+                  </CardContent>
+                </Card>
+              </ResponsiveTabsContent>
 
-            {/* General Settings */}
-            <TabsContent value="general" className="space-y-6">
-                    <LanguageSettings />
-                    <TimezoneSettings />
-                    {/* Uncomment to test timezone functionality:
-                    <TimezoneTest className="mt-4" />
-                    */}
-              <Card className="bg-gradient-surface border-border/50 shadow-surface">
-                <CardHeader>
-                  <CardTitle className="text-primary">{t('common.settings')}</CardTitle>
-                  <CardDescription>
-                    {t('settings.description')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {t('settings.description')}
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
+              {/* Notification Settings */}
+              <ResponsiveTabsContent value="notifications" className="space-y-6">
+                <Card className="bg-gradient-surface border-border/50 shadow-surface">
+                  <CardHeader>
+                    <CardTitle className="text-primary">{t('settings.tabs.notifications')}</CardTitle>
+                    <CardDescription>
+                      {t('settings.description')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      {t('settings.description')}
+                    </p>
+                  </CardContent>
+                </Card>
+              </ResponsiveTabsContent>
 
-            {/* Profile Settings */}
-            <TabsContent value="profile" className="space-y-6">
-              <Card className="bg-gradient-surface border-border/50 shadow-surface">
-                <CardHeader>
-                  <CardTitle className="text-primary">{t('settings.tabs.profile')}</CardTitle>
-                  <CardDescription>
-                    {t('settings.description')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {t('settings.description')}
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
+              {/* Email Template Settings */}
+              <ResponsiveTabsContent value="email-templates" className="space-y-6">
+                <EmailTemplateSettings />
+              </ResponsiveTabsContent>
 
-            {/* Notification Settings */}
-            <TabsContent value="notifications" className="space-y-6">
-              <Card className="bg-gradient-surface border-border/50 shadow-surface">
-                <CardHeader>
-                  <CardTitle className="text-primary">{t('settings.tabs.notifications')}</CardTitle>
-                  <CardDescription>
-                    {t('settings.description')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {t('settings.description')}
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
+              {/* Users Management */}
+              <ResponsiveTabsContent value="users" className="space-y-6">
+                {canManageUsers ? (
+                  <UserManagement />
+                ) : (
+                  <Alert>
+                    <Shield className="h-4 w-4" />
+                    <AlertDescription>
+                      {t('settings.permissions.denied')}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </ResponsiveTabsContent>
 
-            {/* Email Template Settings */}
-            <TabsContent value="email-templates" className="space-y-6">
-              <EmailTemplateSettings />
-            </TabsContent>
-
-            {/* Users Management */}
-            <TabsContent value="users" className="space-y-6">
-              {canManageUsers ? (
-                <UserManagement />
-              ) : (
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    {t('settings.permissions.denied')}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-
-            {/* Admin Portal */}
-            <TabsContent value="admin" className="space-y-6">
-              {canManageSettings ? (
-                <AdminPortal />
-              ) : (
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    {t('settings.permissions.denied')}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-          </Tabs>
+              {/* Admin Portal */}
+              <ResponsiveTabsContent value="admin" className="space-y-6">
+                {canManageSettings ? (
+                  <AdminPortal />
+                ) : (
+                  <Alert>
+                    <Shield className="h-4 w-4" />
+                    <AlertDescription>
+                      {t('settings.permissions.denied')}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </ResponsiveTabsContent>
+            </ResponsiveTabs>
         </div>
       </div>
     </div>

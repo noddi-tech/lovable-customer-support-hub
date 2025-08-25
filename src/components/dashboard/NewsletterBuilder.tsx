@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { 
   Type, 
@@ -248,29 +249,29 @@ const NewsletterBuilder = () => {
       <div className="app-main flex">
         {isMobile ? (
           // Mobile: Tabs-based layout without resizing
-          <Tabs defaultValue="canvas" className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 rounded-none border-b bg-card">
-              <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
-              <TabsTrigger value="canvas">{t('canvas')}</TabsTrigger>
-              <TabsTrigger value="properties">{t('properties')}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="blocks" className="flex-1 m-0 min-h-0">
+          <ResponsiveTabs defaultValue="canvas" variant="borderless" size="md" equalWidth className="flex-1 flex flex-col">
+            <ResponsiveTabsList className="rounded-none border-b bg-card">
+              <ResponsiveTabsTrigger value="blocks">{t('blocks')}</ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="canvas">{t('canvas')}</ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="properties">{t('properties')}</ResponsiveTabsTrigger>
+            </ResponsiveTabsList>
+            <ResponsiveTabsContent value="blocks" className="flex-1 m-0 min-h-0">
               <div className="pane">
-                <Tabs defaultValue="blocks" className="h-full flex flex-col">
-                  <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
-                    <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
-                    <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="blocks" className="flex-1 m-0 min-h-0">
+                <ResponsiveTabs defaultValue="blocks" variant="borderless" size="md" equalWidth className="h-full flex flex-col">
+                  <ResponsiveTabsList className="rounded-none border-b">
+                    <ResponsiveTabsTrigger value="blocks">{t('blocks')}</ResponsiveTabsTrigger>
+                    <ResponsiveTabsTrigger value="templates">{t('templates')}</ResponsiveTabsTrigger>
+                  </ResponsiveTabsList>
+                  <ResponsiveTabsContent value="blocks" className="flex-1 m-0 min-h-0">
                     <BlocksPalette onAddBlock={addBlock} />
-                  </TabsContent>
-                  <TabsContent value="templates" className="flex-1 m-0 min-h-0">
+                  </ResponsiveTabsContent>
+                  <ResponsiveTabsContent value="templates" className="flex-1 m-0 min-h-0">
                     <TemplateLibrary />
-                  </TabsContent>
-                </Tabs>
+                  </ResponsiveTabsContent>
+                </ResponsiveTabs>
               </div>
-            </TabsContent>
-            <TabsContent value="canvas" className="flex-1 m-0 min-h-0">
+            </ResponsiveTabsContent>
+            <ResponsiveTabsContent value="canvas" className="flex-1 m-0 min-h-0">
               <DndContext
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}
@@ -294,26 +295,26 @@ const NewsletterBuilder = () => {
                   ) : null}
                 </DragOverlay>
               </DndContext>
-            </TabsContent>
-            <TabsContent value="properties" className="flex-1 m-0 min-h-0">
-              <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
-                  <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
-                  <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
-                  <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
-                </TabsList>
-                <TabsContent value="properties" className="flex-1 m-0 min-h-0">
+            </ResponsiveTabsContent>
+            <ResponsiveTabsContent value="properties" className="flex-1 m-0 min-h-0">
+              <ResponsiveTabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} variant="compact" size="sm" equalWidth className="h-full flex flex-col">
+                <ResponsiveTabsList className="rounded-none border-b">
+                  <ResponsiveTabsTrigger value="properties" className="text-xs">{t('properties')}</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="global" className="text-xs">{t('global')}</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="personalization" className="text-xs">{t('personalization')}</ResponsiveTabsTrigger>
+                </ResponsiveTabsList>
+                <ResponsiveTabsContent value="properties" className="flex-1 m-0 min-h-0">
                   <PropertiesPanel selectedBlockId={selectedBlockId} />
-                </TabsContent>
-                <TabsContent value="global" className="flex-1 m-0 min-h-0">
+                </ResponsiveTabsContent>
+                <ResponsiveTabsContent value="global" className="flex-1 m-0 min-h-0">
                   <GlobalStylesPanel />
-                </TabsContent>
-                <TabsContent value="personalization" className="flex-1 m-0 min-h-0">
+                </ResponsiveTabsContent>
+                <ResponsiveTabsContent value="personalization" className="flex-1 m-0 min-h-0">
                   <PersonalizationPanel />
-                </TabsContent>
-              </Tabs>
-            </TabsContent>
-          </Tabs>
+                </ResponsiveTabsContent>
+              </ResponsiveTabs>
+            </ResponsiveTabsContent>
+          </ResponsiveTabs>
         ) : (
           // Desktop/Tablet: Resizable panels
           <ResizablePanelGroup direction="horizontal" className="flex-1">
@@ -325,22 +326,22 @@ const NewsletterBuilder = () => {
               onResize={(size) => updatePanelSize('leftSidebar', size)}
               className="border-r bg-card"
             >
-              <Tabs defaultValue="blocks" className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
-                  <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
-                  <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
-                </TabsList>
-                <TabsContent value="blocks" className="flex-1 m-0 min-h-0">
+              <ResponsiveTabs defaultValue="blocks" variant="borderless" size="md" equalWidth className="h-full flex flex-col">
+                <ResponsiveTabsList className="rounded-none border-b">
+                  <ResponsiveTabsTrigger value="blocks">{t('blocks')}</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="templates">{t('templates')}</ResponsiveTabsTrigger>
+                </ResponsiveTabsList>
+                <ResponsiveTabsContent value="blocks" className="flex-1 m-0 min-h-0">
                   <div className="pane">
                     <BlocksPalette onAddBlock={addBlock} />
                   </div>
-                </TabsContent>
-                <TabsContent value="templates" className="flex-1 m-0 min-h-0">
+                </ResponsiveTabsContent>
+                <ResponsiveTabsContent value="templates" className="flex-1 m-0 min-h-0">
                   <div className="pane">
                     <TemplateLibrary />
                   </div>
-                </TabsContent>
-              </Tabs>
+                </ResponsiveTabsContent>
+              </ResponsiveTabs>
             </ResizablePanel>
 
             <ResizableHandle withHandle />
@@ -387,22 +388,22 @@ const NewsletterBuilder = () => {
               onResize={(size) => updatePanelSize('rightSidebar', size)}
               className="border-l bg-card"
             >
-              <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full flex flex-col">
-                <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
-                  <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
-                  <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
-                  <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
-                </TabsList>
-                <TabsContent value="properties" className="flex-1 m-0 min-h-0">
+              <ResponsiveTabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} variant="compact" size="sm" equalWidth className="h-full flex flex-col">
+                <ResponsiveTabsList className="rounded-none border-b">
+                  <ResponsiveTabsTrigger value="properties" className="text-xs">{t('properties')}</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="global" className="text-xs">{t('global')}</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="personalization" className="text-xs">{t('personalization')}</ResponsiveTabsTrigger>
+                </ResponsiveTabsList>
+                <ResponsiveTabsContent value="properties" className="flex-1 m-0 min-h-0">
                   <PropertiesPanel selectedBlockId={selectedBlockId} />
-                </TabsContent>
-                <TabsContent value="global" className="flex-1 m-0 min-h-0">
+                </ResponsiveTabsContent>
+                <ResponsiveTabsContent value="global" className="flex-1 m-0 min-h-0">
                   <GlobalStylesPanel />
-                </TabsContent>
-                <TabsContent value="personalization" className="flex-1 m-0 min-h-0">
+                </ResponsiveTabsContent>
+                <ResponsiveTabsContent value="personalization" className="flex-1 m-0 min-h-0">
                   <PersonalizationPanel />
-                </TabsContent>
-              </Tabs>
+                </ResponsiveTabsContent>
+              </ResponsiveTabs>
             </ResizablePanel>
           </ResizablePanelGroup>
         )}

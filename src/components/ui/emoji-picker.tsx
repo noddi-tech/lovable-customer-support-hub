@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Smile, Search } from 'lucide-react';
 import { emojiCategories, type EmojiData, getEmojiSuggestions } from '@/utils/emojiUtils';
@@ -103,38 +103,38 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
             <p className="text-xs mt-1">Try searching for :smile: or :heart:</p>
           </div>
         ) : (
-          <Tabs defaultValue="Smileys & People" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 text-xs h-8">
-              <TabsTrigger value="Smileys & People" className="text-xs p-1">
+          <ResponsiveTabs defaultValue="Smileys & People" variant="compact" size="sm" equalWidth className="w-full">
+            <ResponsiveTabsList className="text-xs h-8">
+              <ResponsiveTabsTrigger value="Smileys & People" className="text-xs p-1">
                 😀
-              </TabsTrigger>
-              <TabsTrigger value="Hearts & Symbols" className="text-xs p-1">
+              </ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="Hearts & Symbols" className="text-xs p-1">
                 ❤️
-              </TabsTrigger>
-              <TabsTrigger value="Objects & Tech" className="text-xs p-1">
+              </ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="Objects & Tech" className="text-xs p-1">
                 📧
-              </TabsTrigger>
-              <TabsTrigger value="Travel & Places" className="text-xs p-1">
+              </ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="Travel & Places" className="text-xs p-1">
                 🚗
-              </TabsTrigger>
-              <TabsTrigger value="Activities & Events" className="text-xs p-1">
+              </ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="Activities & Events" className="text-xs p-1">
                 🎉
-              </TabsTrigger>
-            </TabsList>
+              </ResponsiveTabsTrigger>
+            </ResponsiveTabsList>
 
             <ScrollArea className="h-60">
               {Object.entries(emojiCategories).map(([category, emojis]) => (
-                <TabsContent key={category} value={category} className="mt-0">
+                <ResponsiveTabsContent key={category} value={category} className="mt-0">
                   <div className="p-2">
                     <h4 className="text-sm font-medium mb-2 text-muted-foreground">
                       {category}
                     </h4>
                     {renderEmojiGrid(emojis)}
                   </div>
-                </TabsContent>
+                </ResponsiveTabsContent>
               ))}
             </ScrollArea>
-          </Tabs>
+          </ResponsiveTabs>
         )}
 
         <div className="border-t px-3 py-2 text-xs text-muted-foreground">
