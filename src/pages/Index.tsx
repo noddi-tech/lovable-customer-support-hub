@@ -2,6 +2,8 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { InteractionsSidebar } from '@/components/layout/InteractionsSidebar';
+import { MarketingSidebar } from '@/components/layout/MarketingSidebar';
+import { OperationsSidebar } from '@/components/layout/OperationsSidebar';
 import { EnhancedInteractionsLayout } from '@/components/dashboard/EnhancedInteractionsLayout';
 import { VoiceInterface } from '@/components/dashboard/VoiceInterface';
 import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
@@ -75,11 +77,16 @@ const Index = () => {
   const getSidebar = () => {
     const section = getCurrentSection();
     
-    if (section === 'interactions') {
-      return <InteractionsSidebar />;
+    switch (section) {
+      case 'interactions':
+        return <InteractionsSidebar />;
+      case 'marketing':
+        return <MarketingSidebar />;
+      case 'operations':
+        return <OperationsSidebar />;
+      default:
+        return null;
     }
-    
-    return null;
   };
 
   return (

@@ -70,19 +70,19 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
     <SidebarProvider>
       <div className="flex h-screen flex-col overflow-hidden bg-background">
         {/* Top Header */}
-        <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 shadow-sm">
-          <ResponsiveFlex gap="4" alignment="center" className="flex-1">
-            {/* Logo & Navigation */}
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-semibold text-sm">CS</span>
-                </div>
-                <span className="font-semibold text-foreground hidden sm:block">Customer Support Hub</span>
+        <header className="flex h-16 items-center border-b border-border bg-background px-4 shadow-sm">
+          <ResponsiveFlex gap="4" alignment="center" className="w-full">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-semibold text-sm">CS</span>
               </div>
-              
-              {/* Main Navigation */}
-              <nav className="hidden md:flex items-center gap-1">
+              <span className="font-semibold text-foreground hidden sm:block">Customer Support Hub</span>
+            </div>
+            
+            {/* Centered Main Navigation */}
+            <ResponsiveFlex justify="center" className="flex-1">
+              <nav className="flex items-center gap-1 flex-wrap justify-center">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = currentSection === item.id;
@@ -93,21 +93,21 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
                       variant={isActive ? "default" : "ghost"}
                       size="sm"
                       className={cn(
-                        "gap-2",
+                        "gap-2 min-w-0 flex-shrink-0",
                         isActive && "bg-primary text-primary-foreground"
                       )}
                       onClick={() => navigate(item.path)}
                     >
                       <Icon className="h-4 w-4" />
-                      {item.label}
+                      <span className="hidden sm:inline">{item.label}</span>
                     </Button>
                   );
                 })}
               </nav>
-            </div>
+            </ResponsiveFlex>
 
             {/* Right side actions */}
-            <ResponsiveFlex gap="2" alignment="center" className="ml-auto">
+            <ResponsiveFlex gap="2" alignment="center">
               <Button variant="ghost" size="sm">
                 <Search className="h-4 w-4" />
               </Button>
