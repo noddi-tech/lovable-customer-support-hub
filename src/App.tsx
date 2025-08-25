@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
+import AdminDesignComponentsPage from "./pages/AdminDesignComponentsPage";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
@@ -23,13 +24,26 @@ const AppContent = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       
+      {/* Main App Routes */}
+      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/voice" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/marketing" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      
+      {/* Settings Routes */}
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/settings/*" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      
+      {/* Admin Routes */}
+      <Route path="/admin/design/components" element={<ProtectedRoute><AdminDesignComponentsPage /></ProtectedRoute>} />
       <Route path="/admin/*" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      
+      {/* Static Pages */}
       <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
       <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      
+      {/* Catch-all */}
       <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
     </Routes>
   </BrowserRouter>
