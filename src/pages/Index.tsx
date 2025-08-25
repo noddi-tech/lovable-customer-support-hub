@@ -24,7 +24,11 @@ const Index = () => {
 
   const getCurrentSubSection = () => {
     const path = location.pathname;
-    if (path === '/voice') return 'voice';
+    if (path.includes('/voice')) return 'voice';
+    if (path.includes('/newsletters')) return 'newsletters';
+    if (path.includes('/tickets')) return 'tickets';
+    if (path.includes('/doorman')) return 'doorman';
+    if (path.includes('/recruitment')) return 'recruitment';
     return 'text';
   };
 
@@ -37,6 +41,14 @@ const Index = () => {
         if (subSection === 'voice') {
           return <VoiceInterface />;
         }
+        if (subSection === 'text') {
+          const TextInboxPage = React.lazy(() => import('@/pages/TextInboxPage'));
+          return (
+            <React.Suspense fallback={<div>Loading...</div>}>
+              <TextInboxPage />
+            </React.Suspense>
+          );
+        }
         return (
           <EnhancedInteractionsLayout
             activeSubTab={subSection}
@@ -47,16 +59,32 @@ const Index = () => {
         );
       
       case 'marketing':
+        if (subSection === 'newsletters') {
+          const NewsletterManagementPage = React.lazy(() => import('@/pages/NewsletterManagementPage'));
+          return (
+            <React.Suspense fallback={<div>Loading...</div>}>
+              <NewsletterManagementPage />
+            </React.Suspense>
+          );
+        }
         return <NewsletterBuilder />;
       
       case 'operations':
-        return (
-          <div className="space-y-6">
-            <ServiceTicketsInterface />
-            <DoormanInterface />  
-            <RecruitmentInterface />
-          </div>
-        );
+        if (subSection === 'tickets') {
+          const ServiceTicketsPage = React.lazy(() => import('@/pages/ServiceTicketsPage'));
+          return (
+            <React.Suspense fallback={<div>Loading...</div>}>
+              <ServiceTicketsPage />
+            </React.Suspense>
+          );
+        }
+        if (subSection === 'doorman') {
+          return <DoormanInterface />;
+        }
+        if (subSection === 'recruitment') {
+          return <RecruitmentInterface />;
+        }
+        return <ServiceTicketsInterface />;
       
       default:
         return (
