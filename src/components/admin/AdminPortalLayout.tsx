@@ -101,7 +101,7 @@ const AdminSidebar = () => {
         </div>
         
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">
+          <SidebarGroupLabel className="text-sidebar-foreground/70 px-2 pb-2">
             Administration
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -111,21 +111,16 @@ const AdminSidebar = () => {
                   <SidebarMenuButton 
                     asChild 
                     isActive={isActive(item.url)}
-                    className="w-full"
                   >
                     <a 
                       href={item.url}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                        isActive(item.url)
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-                          : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                      }`}
+                      className="flex items-center gap-3 px-3 py-3 rounded-md transition-colors min-h-[44px]"
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-4 w-4 shrink-0" />
                       {state === 'expanded' && (
-                        <div className="flex-1 text-left">
-                          <div className="text-sm font-medium">{item.title}</div>
-                          <div className="text-xs text-sidebar-foreground/60">
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="text-sm font-medium leading-tight mb-0.5">{item.title}</div>
+                          <div className="text-xs text-sidebar-foreground/60 leading-tight">
                             {item.description}
                           </div>
                         </div>
