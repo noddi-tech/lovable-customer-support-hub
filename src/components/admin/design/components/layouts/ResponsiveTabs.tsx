@@ -39,6 +39,7 @@ interface StandardResponsiveTabsProps {
   equalWidth?: boolean;
   justifyContent?: 'start' | 'center' | 'end' | 'between';
   spacing?: ResponsiveValue<string>;
+  scrollable?: boolean;
 }
 
 type ResponsiveTabsProps = LegacyResponsiveTabsProps | StandardResponsiveTabsProps;
@@ -180,6 +181,7 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
     equalWidth = true, // Default to true to fix uneven widths
     justifyContent = 'start',
     spacing = '1',
+    scrollable = false,
   } = props;
 
   // Mobile-first responsive orientation
@@ -264,9 +266,10 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
     >
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child) && child.type === ResponsiveTabsList) {
-          return React.cloneElement(child as React.ReactElement<ResponsiveTabsListProps>, {
+    return React.cloneElement(child as React.ReactElement<ResponsiveTabsListProps>, {
             className: cn(
               'flex flex-wrap w-full', // Override inline-flex, add flex-wrap
+              scrollable && 'overflow-x-auto scrollbar-thin',
               orientationClass,
               spacingClass,
               justifyClass,

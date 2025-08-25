@@ -134,38 +134,86 @@ export const AdminPortal = () => {
   ];
 
   return (
-    <ResponsiveContainer className="pane" padding={{ sm: '4', md: '6' }}>
-      <AdaptiveSection spacing={{ sm: '4', md: '6' }}>
-        <AdaptiveSection spacing="2">
-          <Heading level={2}>{t('admin.title')}</Heading>
-          <p className="text-muted-foreground">
+    <ResponsiveContainer className="flex h-full" maxWidth="full">
+      {/* Admin Sidebar */}
+      <aside className="w-64 bg-card border-r border-border shadow-surface hidden lg:flex flex-col">
+        <div className="p-4 border-b border-border">
+          <Heading level={3} className="text-lg">{t('admin.title')}</Heading>
+          <p className="text-muted-foreground text-sm mt-1">
             {t('admin.description')}
           </p>
-        </AdaptiveSection>
+        </div>
+        
+        <nav className="flex-1 p-3">
+          <ResponsiveTabs 
+            defaultValue="users" 
+            variant="pills" 
+            size="sm" 
+            orientation="vertical"
+            className="w-full"
+          >
+            <ResponsiveTabsList className="flex-col bg-transparent gap-1 w-full">
+              {mainTabs.map((tab) => (
+                <ResponsiveTabsTrigger 
+                  key={tab.value} 
+                  value={tab.value} 
+                  className="w-full justify-start text-left"
+                >
+                  <tab.icon className="w-4 h-4 mr-2" />
+                  {tab.label}
+                </ResponsiveTabsTrigger>
+              ))}
+            </ResponsiveTabsList>
+          </ResponsiveTabs>
+        </nav>
+      </aside>
 
-        <ResponsiveTabs 
-          defaultValue="users" 
-          variant="default" 
-          size="md" 
-          equalWidth 
-          className="bg-card/50 backdrop-blur-sm shadow-surface"
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col">
+        {/* Mobile Header with Tabs */}
+        <div className="lg:hidden border-b border-border bg-card/50">
+          <div className="p-4">
+            <Heading level={3}>{t('admin.title')}</Heading>
+            <p className="text-muted-foreground text-sm">{t('admin.description')}</p>
+          </div>
+          <ResponsiveTabs 
+            defaultValue="users" 
+            variant="underline" 
+            size="sm" 
+            equalWidth 
+            scrollable
+          >
+            <ResponsiveTabsList className="bg-transparent border-none px-4">
+              {mainTabs.map((tab) => (
+                <ResponsiveTabsTrigger key={tab.value} value={tab.value}>
+                  <tab.icon className="w-4 h-4" />
+                </ResponsiveTabsTrigger>
+              ))}
+            </ResponsiveTabsList>
+          </ResponsiveTabs>
+        </div>
+
+        {/* Content Area */}
+        <ResponsiveContainer 
+          className="flex-1 overflow-y-auto" 
+          padding={{ sm: '4', md: '6' }}
+          maxWidth="full"
         >
-          <ResponsiveTabsList>
+          <ResponsiveTabs 
+            defaultValue="users" 
+            variant="borderless"
+            className="h-full"
+          >
             {mainTabs.map((tab) => (
-              <ResponsiveTabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-2">
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </ResponsiveTabsTrigger>
+              <ResponsiveTabsContent key={tab.value} value={tab.value} className="h-full">
+                <AdaptiveSection spacing="6" className="max-h-[calc(100vh-300px)] overflow-y-auto">
+                  {tab.content}
+                </AdaptiveSection>
+              </ResponsiveTabsContent>
             ))}
-          </ResponsiveTabsList>
-          
-          {mainTabs.map((tab) => (
-            <ResponsiveTabsContent key={tab.value} value={tab.value}>
-              {tab.content}
-            </ResponsiveTabsContent>
-          ))}
-        </ResponsiveTabs>
-      </AdaptiveSection>
+          </ResponsiveTabs>
+        </ResponsiveContainer>
+      </main>
     </ResponsiveContainer>
   );
 };
