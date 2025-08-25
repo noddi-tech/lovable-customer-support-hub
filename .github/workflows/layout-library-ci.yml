@@ -1,0 +1,87 @@
+name: Layout Library CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/components/admin/design/components/layouts/**'
+      - 'src/components/admin/design/stories/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/components/admin/design/components/layouts/**'
+      - 'src/components/admin/design/stories/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests with coverage
+        run: npm run test -- --coverage --reporter=verbose src/components/admin/design/components/layouts/__tests__/
+        
+      - name: Coverage quality gate
+        run: |
+          npm run test -- --coverage --reporter=json | jq '.coverageMap | keys[] as $k | .[$k] | select(.s | map(.) | add / length < 1.0) | $k'
+          if [ $? -eq 0 ]; then
+            echo "❌ Coverage below 100% threshold"
+            exit 1
+          fi
+          echo "✅ 100% test coverage achieved"
+          
+      - name: Build Storybook
+        run: npm run build-storybook -- --quiet
+        
+      - name: TypeScript check
+        run: npx tsc --noEmit
+        
+      - name: Build production bundle
+        run: npm run build
+        
+      - name: Bundle size check
+        run: |
+          BUNDLE_SIZE=$(du -sh dist/ | cut -f1)
+          echo "Bundle size: $BUNDLE_SIZE"
+          if [[ ${BUNDLE_SIZE%M*} -gt 50 ]]; then
+            echo "❌ Bundle size exceeds 50MB limit"
+            exit 1
+          fi
+          echo "✅ Bundle size within limits"
+
+  accessibility:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build Storybook
+        run: npm run build-storybook
+        
+      - name: Run accessibility tests
+        run: |
+          npx http-server storybook-static -p 6006 &
+          sleep 5
+          npx @storybook/test-runner --url http://localhost:6006 --accessibility
