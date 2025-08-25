@@ -70,8 +70,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
     <SidebarProvider>
       <div className="flex h-screen flex-col overflow-hidden bg-background">
         {/* Top Header */}
-        <header className="flex h-16 items-center border-b border-border bg-background px-4 shadow-sm">
-          <ResponsiveFlex gap="4" alignment="center" className="w-full">
+        <header className="flex h-16 items-center justify-center border-b border-border bg-background px-4 shadow-sm">
+          <ResponsiveFlex gap="4" alignment="center" className="w-full h-full">
             {/* Logo */}
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
@@ -80,9 +80,9 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
               <span className="font-semibold text-foreground hidden sm:block">Customer Support Hub</span>
             </div>
             
-            {/* Centered Main Navigation */}
-            <ResponsiveFlex justify="center" className="flex-1">
-              <nav className="flex items-center gap-1 flex-wrap justify-center">
+            {/* Centered Main Navigation - Both Horizontal and Vertical */}
+            <ResponsiveFlex justify="center" alignment="center" className="flex-1 h-full">
+              <nav className="flex items-center justify-center gap-1 flex-wrap">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = currentSection === item.id;
