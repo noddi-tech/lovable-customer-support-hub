@@ -1,11 +1,14 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { StatusFilter, InboxId, ConversationId } from '@/types/interactions';
 
 export interface NavigationState {
   selectedTab: string;
   selectedInboxId?: string;
   conversationId?: string;
-  inbox?: string; // Add inbox parameter for master-list-detail
+  inbox?: InboxId;
+  status: StatusFilter;
+  search?: string;
 }
 
 export const useInteractionsNavigation = () => {
@@ -17,7 +20,9 @@ export const useInteractionsNavigation = () => {
       selectedTab: searchParams.get('tab') || 'all',
       selectedInboxId: searchParams.get('inbox') || undefined,
       conversationId: searchParams.get('c') || searchParams.get('conversation') || undefined,
-      inbox: searchParams.get('inbox') || undefined, // Support both inbox params
+      inbox: searchParams.get('inbox') || undefined,
+      status: (searchParams.get('status') || 'all') as StatusFilter,
+      search: searchParams.get('q') || undefined,
     };
   }, [searchParams]);
 
@@ -32,16 +37,20 @@ export const useInteractionsNavigation = () => {
       newParams.set('tab', newState.selectedTab);
     }
     
-    if (newState.selectedInboxId) {
-      newParams.set('inbox', newState.selectedInboxId);
+    if (newState.selectedInboxId || newState.inbox) {
+      newParams.set('inbox', newState.selectedInboxId || newState.inbox || '');
     }
     
     if (newState.conversationId) {
       newParams.set('c', newState.conversationId);
     }
     
-    if (newState.inbox) {
-      newParams.set('inbox', newState.inbox);
+    if (newState.status && newState.status !== 'all') {
+      newParams.set('status', newState.status);
+    }
+    
+    if (newState.search) {
+      newParams.set('q', newState.search);
     }
     
     setSearchParams(newParams, { replace: true });
@@ -62,6 +71,38 @@ export const useInteractionsNavigation = () => {
     updateNavigation({ selectedInboxId: inboxId, inbox: inboxId });
   }, [updateNavigation]);
 
+  // Set inbox (clears conversation, preserves status)
+  const setInbox = useCallback((inboxId: InboxId) => {
+    updateNavigation({ 
+      selectedInboxId: inboxId, 
+      inbox: inboxId,
+      conversationId: undefined 
+    });
+  }, [updateNavigation]);
+
+  // Set status filter (clears conversation)
+  const setStatus = useCallback((status: StatusFilter) => {
+    updateNavigation({ 
+      status,
+      conversationId: undefined 
+    });
+  }, [updateNavigation]);
+
+  // Set search query (debounced)
+  const setSearch = useCallback((search: string) => {
+    updateNavigation({ search });
+  }, [updateNavigation]);
+
+  // Open conversation
+  const openConversation = useCallback((conversationId: ConversationId) => {
+    updateNavigation({ conversationId });
+  }, [updateNavigation]);
+
+  // Back to list (clear only conversation)
+  const backToList = useCallback(() => {
+    updateNavigation({ conversationId: undefined });
+  }, [updateNavigation]);
+
   // Clear conversation (back to list)
   const clearConversation = useCallback(() => {
     updateNavigation({ conversationId: undefined });
@@ -74,5 +115,10 @@ export const useInteractionsNavigation = () => {
     navigateToConversation,
     navigateToInbox,
     clearConversation,
+    setInbox,
+    setStatus,
+    setSearch,
+    openConversation,
+    backToList,
   };
 };

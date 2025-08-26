@@ -2,6 +2,8 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MessageCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import { VoiceInterface } from './VoiceInterface';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
@@ -11,6 +13,9 @@ import { ReplySidebar } from '@/components/admin/design/components/detail/ReplyS
 import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
 import { ConversationView } from './ConversationView';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
+import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
+import type { ConversationRow } from '@/types/interactions';
+import { formatDistanceToNow } from 'date-fns';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -58,138 +63,218 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const navigation = useInteractionsNavigation();
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Get state from URL navigation
-  const { conversationId, inbox } = navigation.currentState;
+  const { conversationId, inbox, status, search } = navigation.currentState;
   const isDetail = !!conversationId;
+  
+  // Get accessible inboxes and set default if needed
+  const { data: inboxes = [] } = useAccessibleInboxes();
+  
+  // Determine effective inbox ID
+  const effectiveInboxId = inbox || selectedInboxId || inboxes[0]?.id || 'all';
+  const effectiveStatus = status || 'all';
+  const effectiveSearch = search || searchQuery;
 
-  // Mock conversation data - in real app, this would come from API
-  const mockConversations = useMemo(() => [
-    {
-      id: 'conv-1',
-      subject: 'Order #12345 - Shipping Question',
-      preview: 'Hi, I was wondering about the shipping status of my recent order. Could you please provide an update?',
-      customer: { name: 'John Smith', email: 'john@example.com', initials: 'JS' },
-      status: 'open' as const,
-      priority: 'normal' as const,
-      channel: 'email' as const,
-      updatedAt: '2 hours ago',
-      isUnread: true
-    },
-    {
-      id: 'conv-2', 
-      subject: 'Product Return Request',
-      preview: 'I need to return the blue sweater I ordered last week. It doesn\'t fit properly.',
-      customer: { name: 'Sarah Johnson', email: 'sarah@example.com', initials: 'SJ' },
-      status: 'pending' as const,
-      priority: 'high' as const,
-      channel: 'chat' as const,
-      updatedAt: '1 day ago',
-      isUnread: false
-    },
-    {
-      id: 'conv-3',
-      subject: 'Technical Support Needed',
-      preview: 'The mobile app keeps crashing when I try to view my order history. This is very frustrating.',
-      customer: { name: 'Mike Chen', email: 'mike@example.com', initials: 'MC' },
-      status: 'resolved' as const,
-      priority: 'urgent' as const,
-      channel: 'email' as const,
-      updatedAt: '3 days ago',
-      isUnread: false
+  // Set default inbox if none selected
+  useEffect(() => {
+    if (!inbox && !selectedInboxId && inboxes.length > 0) {
+      navigation.setInbox(inboxes[0].id);
     }
-  ], []);
+  }, [inbox, selectedInboxId, inboxes, navigation]);
+
+  // Get conversations and thread data
+  const { data: conversations = [], isLoading: conversationsLoading } = useConversations({
+    inboxId: effectiveInboxId,
+    status: effectiveStatus,
+    q: effectiveSearch
+  });
+  
+  const { data: thread, isLoading: threadLoading } = useThread(conversationId);
+  const replyMutation = useReply(conversationId || '', effectiveInboxId, effectiveStatus, effectiveSearch);
 
   // Find selected conversation
   const selectedConversation = conversationId ? 
-    mockConversations.find(c => c.id === conversationId) : null;
+    conversations.find(c => c.id === conversationId) : null;
 
   // Handlers
-  const handleConversationSelect = useCallback((conversation: any) => {
-    navigation.navigateToConversation(conversation.id);
+  const handleConversationSelect = useCallback((conversation: ConversationRow) => {
+    navigation.openConversation(conversation.id);
   }, [navigation]);
 
   const handleBack = useCallback(() => {
-    navigation.clearConversation();
+    navigation.backToList();
   }, [navigation]);
 
   const handleInboxSelect = useCallback((inboxId: string) => {
-    navigation.navigateToInbox(inboxId);
+    navigation.setInbox(inboxId);
+  }, [navigation]);
+
+  const handleStatusSelect = useCallback((status: any) => {
+    navigation.setStatus(status);
+  }, [navigation]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    // Debounced search will be handled by the navigation hook
+    const timeoutId = setTimeout(() => {
+      navigation.setSearch(value);
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [navigation]);
 
   const handleSendReply = useCallback(async (text: string) => {
-    console.log('Sending reply:', text);
-    // In real app, send to API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }, []);
+    if (!conversationId) return;
+    await replyMutation.mutateAsync(text);
+  }, [conversationId, replyMutation]);
 
   // Render VoiceInterface if active sub-tab is 'voice'
   if (activeSubTab === 'voice') {
     return <VoiceInterface />;
   }
 
-  // Render inbox list
+  // Render inbox list with search
   const renderInboxList = () => (
-    <InboxList
-      selectedInbox={inbox || selectedInboxId || 'all'}
-      onInboxSelect={handleInboxSelect}
-    />
-  );
-
-  // Render conversation list
-  const renderConversationList = () => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
+    <div className="space-y-4">
+      {/* Search Input */}
+      <div className="px-2">
+        <Input
+          placeholder="Search conversations..."
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="bg-background border-border focus-visible:ring-ring"
+        />
       </div>
       
-      <div className="space-y-2">
-        {mockConversations.map((conversation) => (
-          <EntityListRow
-            key={conversation.id}
-            subject={conversation.subject}
-            preview={conversation.preview}
-            avatar={{
-              fallback: conversation.customer.initials,
-              alt: conversation.customer.name
-            }}
-            selected={conversation.id === conversationId}
-            onClick={() => handleConversationSelect(conversation)}
-            badges={[
-              ...(conversation.isUnread ? [{ label: 'Unread', variant: 'default' as const }] : []),
-              { label: conversation.priority, variant: conversation.priority === 'urgent' ? 'destructive' as const : 'secondary' as const },
-              { label: conversation.status, variant: 'outline' as const }
-            ]}
-            meta={[
-              { label: 'From', value: conversation.customer.name },
-              { label: 'Channel', value: conversation.channel },
-              { label: 'Updated', value: conversation.updatedAt }
-            ]}
-          />
-        ))}
-      </div>
+      {/* Inbox and Filter List */}
+      <InboxList
+        selectedInbox={effectiveInboxId}
+        selectedStatus={effectiveStatus}
+        onInboxSelect={handleInboxSelect}
+        onStatusSelect={handleStatusSelect}
+      />
     </div>
   );
 
+  // Render conversation list (single column only)
+  const renderConversationList = () => {
+    if (conversationsLoading) {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-4 border border-border rounded-lg bg-card">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (conversations.length === 0) {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
+          </div>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No conversations found</h3>
+            <p className="text-sm text-muted-foreground">
+              {effectiveSearch ? 'Try adjusting your search or filters.' : 'No conversations match the current filter.'}
+            </p>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
+          <span className="text-sm text-muted-foreground">{conversations.length} conversations</span>
+        </div>
+        
+        {/* Single column list - never a grid */}
+        <div className="space-y-2">
+          {conversations.map((conversation) => (
+            <EntityListRow
+              key={conversation.id}
+              subject={conversation.subject}
+              preview={conversation.preview}
+              avatar={{
+                fallback: conversation.fromName?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
+                alt: conversation.fromName || 'Unknown'
+              }}
+              selected={conversation.id === conversationId}
+              onClick={() => handleConversationSelect(conversation)}
+              badges={[
+                ...(conversation.unread ? [{ label: 'Unread', variant: 'default' as const }] : []),
+                ...(conversation.priority && conversation.priority !== 'normal' ? [{
+                  label: conversation.priority,
+                  variant: conversation.priority === 'urgent' ? 'destructive' as const : 'secondary' as const
+                }] : []),
+                { label: conversation.status, variant: 'outline' as const }
+              ]}
+              meta={[
+                { label: 'From', value: conversation.fromName || 'Unknown' },
+                { label: 'Channel', value: conversation.channel },
+                { label: 'Updated', value: formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true }) }
+              ]}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // Render message thread
   const renderMessageThread = () => {
-    if (!selectedConversation) return null;
+    if (!conversationId || !thread) {
+      if (threadLoading) {
+        return (
+          <Card className="h-full">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+      return null;
+    }
 
     return (
       <Card className="h-full">
         <CardContent className="p-6">
           <div className="space-y-4">
             <div>
-              <h1 className="text-xl font-semibold mb-2">{selectedConversation.subject}</h1>
+              <h1 className="text-xl font-semibold mb-2">{thread.subject}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{selectedConversation.customer.name}</span>
+                <span>{thread.customer?.full_name || 'Unknown Customer'}</span>
                 <span>•</span>
-                <span>{selectedConversation.updatedAt}</span>
+                <span>{thread.customer?.email}</span>
               </div>
             </div>
             
             <div className="border-t border-border pt-4">
-              <ConversationView conversationId={selectedConversation.id} />
+              <ConversationView conversationId={conversationId} />
             </div>
           </div>
         </CardContent>
@@ -199,15 +284,16 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   // Render reply sidebar
   const renderReplySidebar = () => {
-    if (!selectedConversation) return null;
+    if (!conversationId || !thread) return null;
 
     return (
       <ReplySidebar
-        conversationId={selectedConversation.id}
-        status={selectedConversation.status}
-        priority={selectedConversation.priority}
+        conversationId={conversationId}
+        status={selectedConversation?.status || 'open'}
+        priority={selectedConversation?.priority || 'normal'}
         onSendReply={handleSendReply}
-        placeholder={`Reply to ${selectedConversation.customer.name}...`}
+        placeholder={`Reply to ${thread.customer?.full_name || 'customer'}...`}
+        isLoading={replyMutation.isPending}
       />
     );
   };

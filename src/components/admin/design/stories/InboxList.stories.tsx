@@ -44,9 +44,10 @@ export const ServiceTickets: Story = {
     return (
       <div className="w-80 bg-background p-4 border rounded-lg">
         <InboxList
-          inboxes={ticketInboxes}
           selectedInbox={selectedInbox}
+          selectedStatus="all"
           onInboxSelect={setSelectedInbox}
+          onStatusSelect={() => {}}
         />
       </div>
     );
@@ -67,9 +68,10 @@ export const NewsletterInboxes: Story = {
     return (
       <div className="w-80 bg-background p-4 border rounded-lg">
         <InboxList
-          inboxes={newsletterInboxes}
           selectedInbox={selectedInbox}
+          selectedStatus="all"
           onInboxSelect={setSelectedInbox}
+          onStatusSelect={() => {}}
         />
       </div>
     );
@@ -99,9 +101,10 @@ export const WithoutCounts: Story = {
     return (
       <div className="w-80 bg-background p-4 border rounded-lg">
         <InboxList
-          inboxes={inboxesWithoutCounts}
           selectedInbox={selectedInbox}
+          selectedStatus="all"
           onInboxSelect={setSelectedInbox}
+          onStatusSelect={() => {}}
         />
       </div>
     );
