@@ -193,32 +193,11 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
           ) : (
             // Full screen conversation view - let ConversationView handle its own layout
             <div className="h-full overflow-y-auto">
-              {/* Back Button */}
-              <div className="absolute top-4 left-4 z-10">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedConversation(null);
-                    const newParams = new URLSearchParams(searchParams);
-                    newParams.delete('conversation');
-                    setSearchParams(newParams, { replace: true });
-                  }}
-                  className="flex items-center gap-2 bg-background/95 backdrop-blur-sm border-border"
-                >
-                  <Sidebar className="h-4 w-4" />
-                  <span>Back to Inbox</span>
-                </Button>
-              </div>
-
-              {/* Main conversation content with proper padding for back button */}
-              <div className="pt-16 h-full">
-                {selectedConversation ? (
-                  <ConversationView conversationId={selectedConversation.id} />
-                ) : (
-                  <EmptyConversationState />
-                )}
-              </div>
+              {selectedConversation ? (
+                <ConversationView conversationId={selectedConversation.id} />
+              ) : (
+                <EmptyConversationState />
+              )}
             </div>
           )}
         </div>

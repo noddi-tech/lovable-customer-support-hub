@@ -488,7 +488,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               variant="ghost" 
               size="sm"
               onClick={() => {
-                navigate('/', { replace: true });
+                // Handle URL state management properly
+                const newParams = new URLSearchParams(window.location.search);
+                newParams.delete('conversation');
+                const newUrl = window.location.pathname + (newParams.toString() ? '?' + newParams.toString() : '');
+                navigate(newUrl, { replace: true });
               }}
               className="flex items-center gap-1 md:gap-2 text-muted-foreground hover:text-foreground flex-shrink-0"
             >
