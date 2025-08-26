@@ -77,10 +77,10 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
   };
 
   return (
-    <ResponsiveContainer className={cn("flex-1 overflow-y-auto", className)}>
+    <ResponsiveContainer className={cn("flex-1 overflow-y-auto h-[calc(100vh-6rem)]", className)}>
       {selectedConversation ? (
         // Detail View - Full Screen Layout without excessive sidebar
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="h-full overflow-y-auto flex flex-col">
           {/* Back Button */}
           <div className="absolute top-4 left-4 z-10">
             <Button
@@ -146,7 +146,7 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
         </div>
       ) : (
         // List View - Full Screen Grid Layout
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="h-full overflow-y-auto flex flex-col">
           <div className="p-4 border-b border-border bg-background">
             <h2 className="text-xl font-semibold text-foreground">{title}</h2>
             <p className="text-sm text-muted-foreground">

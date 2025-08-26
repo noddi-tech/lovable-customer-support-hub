@@ -178,10 +178,10 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
             selectedInboxId={selectedInboxId}
           />
         </AdaptiveSection>
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto h-[calc(100vh-6rem)]">
           {shouldShowConversationList ? (
             // Full screen conversation list
-            <div className="flex-1 overflow-y-auto">
+            <div className="h-full overflow-y-auto">
               <ConversationList
                 selectedConversation={selectedConversation}
                 onSelectConversation={handleSelectConversation}
@@ -192,7 +192,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
             </div>
           ) : (
             // Full screen conversation view - let ConversationView handle its own layout
-            <div className="flex-1 overflow-y-auto">
+            <div className="h-full overflow-y-auto">
               {/* Back Button */}
               <div className="absolute top-4 left-4 z-10">
                 <Button
