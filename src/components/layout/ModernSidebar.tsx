@@ -107,7 +107,7 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
   };
 
   return (
-    <Sidebar className="border-r border-border bg-card/50 backdrop-blur-sm">
+    <Sidebar className="border-0 bg-transparent h-full">
       <SidebarHeader className="border-b border-border p-4">
         <Button className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
           <Plus className="h-4 w-4" />

@@ -38,35 +38,35 @@ Optimized for accessibility with WCAG AA compliance.
 @layer base {
   :root {
     /* Base colors - Clean, professional palette aligned with card-based design */
-    --background: 248 249 251; /* #F8F9FB - Clean light background */
+    --background: 220 27% 98%; /* #F8F9FB - Clean light background */
     --foreground: 224 71% 4%;
 
     /* Card system for panels and components */
-    --card: 255 255 255; /* #FFFFFF - Pure white cards */
+    --card: 0 0% 100%; /* #FFFFFF - Pure white cards */
     --card-foreground: 224 71% 4%;
 
     /* Popover and modal colors */
-    --popover: 255 255 255; /* #FFFFFF */
+    --popover: 0 0% 100%; /* #FFFFFF */
     --popover-foreground: 224 71% 4%;
 
     /* Primary brand - Professional purple */
-    --primary: 102 86 217; /* #6656D9 - Brand purple */
+    --primary: 247 63% 59%; /* #6656D9 - Brand purple */
     --primary-foreground: 255 255 255;
-    --primary-hover: 98 82 213;
+    --primary-hover: 247 63% 55%;
     --primary-muted: 246 245 252;
 
     /* Secondary - Subtle gray for secondary actions */
-    --secondary: 241 243 247; /* #F1F3F7 - Subtle muted background */
+    --secondary: 220 27% 96%; /* #F1F3F7 - Subtle muted background */
     --secondary-foreground: 71 85 105;
-    --secondary-hover: 237 239 244;
+    --secondary-hover: 220 27% 94%;
 
     /* Muted colors for less important elements - Strategic use for sidebars/headers */
-    --muted: 241 243 247; /* #F1F3F7 - For sidebars and headers */
+    --muted: 220 27% 96%; /* #F1F3F7 - For sidebars and headers */
     --muted-foreground: 100 116 139;
 
     /* Accent colors for highlights and notifications */
     --accent: 246 245 252;
-    --accent-foreground: 102 86 217;
+    --accent-foreground: 247 63% 59%;
 
     /* Status colors for inbox states */
     --success: 34 197 94;
@@ -82,9 +82,9 @@ Optimized for accessibility with WCAG AA compliance.
     --destructive-muted: 254 226 226;
 
     /* Border and input colors */
-    --border: 230 232 238; /* #E6E8EE - Subtle borders */
-    --input: 230 232 238;
-    --ring: 102 86 217; /* #6656D9 - Brand purple for focus rings */
+    --border: 225 19% 92%; /* #E6E8EE - Subtle borders */
+    --input: 225 19% 92%;
+    --ring: 247 63% 59%; /* #6656D9 - Brand purple for focus rings */
 
     /* Inbox specific colors */
     --inbox-unread: 217 91% 60%;
@@ -99,14 +99,14 @@ Optimized for accessibility with WCAG AA compliance.
     --channel-whatsapp: 142 76% 36%;
 
     /* Sidebar colors - Use muted for strategic visual hierarchy */
-    --sidebar: 241 243 247; /* #F1F3F7 - Matches muted for clean separation */
+    --sidebar: 220 27% 96%; /* #F1F3F7 - Matches muted for clean separation */
     --sidebar-foreground: 71 85 105;
-    --sidebar-primary: 102 86 217; /* #6656D9 - Brand purple */
+    --sidebar-primary: 247 63% 59%; /* #6656D9 - Brand purple */
     --sidebar-primary-foreground: 255 255 255;
     --sidebar-accent: 246 245 252;
-    --sidebar-accent-foreground: 102 86 217;
-    --sidebar-border: 230 232 238; /* #E6E8EE */
-    --sidebar-ring: 102 86 217;
+    --sidebar-accent-foreground: 247 63% 59%;
+    --sidebar-border: 225 19% 92%; /* #E6E8EE */
+    --sidebar-ring: 247 63% 59%;
 
     /* Shadows and effects */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);

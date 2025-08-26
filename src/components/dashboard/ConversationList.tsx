@@ -1,4 +1,5 @@
 import { Clock, Inbox } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { ConversationListProvider, useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { ConversationListHeader } from "./conversation-list/ConversationListHeader";
 import { ConversationListItem } from "./conversation-list/ConversationListItem";
@@ -36,17 +37,20 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <ConversationListHeader onToggleCollapse={onToggleCollapse} />
+      {/* Header - only show when onToggleCollapse is provided */}
+      {onToggleCollapse && (
+        <ConversationListHeader onToggleCollapse={onToggleCollapse} />
+      )}
       
-      {/* Conversation List - Optimized rendering */}
-      <div className="pane flex-1">
+      {/* Conversation List - Card-based layout */}
+      <div className="pane flex-1 overflow-y-auto min-h-0">
         {shouldUseVirtualization ? (
           <VirtualizedConversationList
             onSelectConversation={onSelectConversation}
             selectedConversation={selectedConversation}
           />
         ) : (
-          <div className="px-3 md:px-4 pb-4 space-y-2">
+          <div className="p-4 space-y-3">
             {isLoading ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
@@ -59,15 +63,26 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
                 <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {/* Conversation List */}
+              <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {/* Conversation Cards */}
                 {filteredConversations.map((conversation) => (
-                  <ConversationListItem 
+                  <Card 
                     key={conversation.id}
-                    conversation={conversation}
-                    isSelected={selectedConversation?.id === conversation.id}
-                    onSelect={onSelectConversation}
-                  />
+                    className={`cursor-pointer border-border hover:shadow-md transition-all duration-200 ${
+                      selectedConversation?.id === conversation.id 
+                        ? 'ring-2 ring-ring bg-accent/50' 
+                        : 'hover:bg-card/80'
+                    }`}
+                    onClick={() => onSelectConversation(conversation)}
+                  >
+                    <CardContent className="p-4">
+                      <ConversationListItem 
+                        conversation={conversation}
+                        isSelected={selectedConversation?.id === conversation.id}
+                        onSelect={onSelectConversation}
+                      />
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}

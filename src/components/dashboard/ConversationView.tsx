@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { 
   MoreHorizontal, 
   Archive, 
@@ -42,7 +43,7 @@ import {
   Sparkles,
   Loader2,
   Move,
-  ChevronLeft,
+  ArrowLeft,
   ChevronRight,
   Reply
  } from 'lucide-react';
@@ -478,9 +479,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   }
 
   return (
-    <div className="flex-1 min-h-0 w-full flex flex-col bg-gradient-surface">
+    <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
       {/* Conversation Header - Responsive */}
-      <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
+      <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
             {/* Back to Inbox Button */}
@@ -492,6 +493,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 e.stopPropagation();
                 console.log('Back button clicked');
                 // Simple navigation back to inbox
+                const newSearchParams = new URLSearchParams(window.location.search);
+                newSearchParams.delete('conversation');
+                newSearchParams.delete('c');
+                window.history.pushState({}, '', `${window.location.pathname}?${newSearchParams.toString()}`);
+                window.location.reload();
+              }}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">{t('conversation.backToInbox', 'Back')}</span>
+            </Button>
                 navigate('/', { replace: true });
               }}
               className="flex items-center gap-1 md:gap-2 text-muted-foreground hover:text-foreground flex-shrink-0"

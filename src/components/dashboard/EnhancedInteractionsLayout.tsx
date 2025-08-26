@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageCircle, Sidebar } from 'lucide-react';
+import { MessageCircle, Sidebar, RefreshCw, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { ContentPane } from '@/components/ui/content-pane';
 import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
@@ -61,8 +62,8 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const isMobile = useIsMobile();
   const { t } = useTranslation();
   
-  // Get conversation ID from URL
-  const conversationIdFromUrl = searchParams.get('conversation');
+  // Get conversation ID from URL using ?c=<id>
+  const conversationIdFromUrl = searchParams.get('c');
 
   // Load conversation from URL when available, or clear when URL param is removed
   useEffect(() => {
@@ -90,17 +91,17 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     console.log('Selecting conversation:', conversation.id);
     setSelectedConversation(conversation);
     
-    // Update URL with conversation ID
+    // Update URL with conversation ID using ?c=<id> format
     const newParams = new URLSearchParams(searchParams);
-    newParams.set('conversation', conversation.id);
+    newParams.set('c', conversation.id);
     setSearchParams(newParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  // Handle conversation list toggle
+  // Handle conversation list toggle (Back button)
   const handleToggleConversationList = useCallback(() => {
     setSelectedConversation(null);
     const newParams = new URLSearchParams(searchParams);
-    newParams.delete('conversation');
+    newParams.delete('c');
     setSearchParams(newParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -170,42 +171,60 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     );
   }
 
-  // Desktop & Tablet: Sidebar + full-screen toggle layout
+  // Desktop & Tablet: Clean card-based layout
   return (
-    <ResponsiveContainer className="flex-1 overflow-y-auto">
-      <ResponsiveFlex className="flex-1" wrap={false}>
-        <AdaptiveSection className="hidden md:flex">
-          <OptimizedInteractionsSidebar
-            selectedTab={selectedTab}
-            onTabChange={onTabChange}
-            selectedInboxId={selectedInboxId}
-          />
-        </AdaptiveSection>
-        <div className="flex-1 overflow-y-auto h-[calc(100vh-6rem)]">
-          {shouldShowConversationList ? (
-            // Full screen conversation list
-            <div className="h-full overflow-y-auto">
-              <ConversationList
-                selectedConversation={selectedConversation}
-                onSelectConversation={handleSelectConversation}
-                selectedInboxId={selectedInboxId}
-                selectedTab={selectedTab}
-                onToggleCollapse={undefined}
-              />
+    <div className="h-full w-full flex flex-col min-h-0">
+      {shouldShowConversationList ? (
+        // Conversation List with Card wrapper
+        <Card className="h-full flex flex-col border-border">
+          <CardHeader className="flex-shrink-0 pb-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{t('conversations.title', 'Conversations')}</h2>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
             </div>
-          ) : (
-            // Full screen conversation view - let ConversationView handle its own layout
-            <div className="h-full overflow-y-auto">
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto min-h-0 p-0">
+            <ConversationList
+              selectedConversation={selectedConversation}
+              onSelectConversation={handleSelectConversation}
+              selectedInboxId={selectedInboxId}
+              selectedTab={selectedTab}
+              onToggleCollapse={undefined}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        // Conversation View with Back button and Card wrapper
+        <div className="h-full flex flex-col min-h-0">
+          <div className="flex-shrink-0 mb-4">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleToggleConversationList}
+              className="mb-2"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {t('conversations.backToInbox', 'Back to Inbox')}
+            </Button>
+          </div>
+          <Card className="flex-1 flex flex-col border-border overflow-hidden">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {selectedConversation ? (
                 <ConversationView conversationId={selectedConversation.id} />
               ) : (
                 <EmptyConversationState />
               )}
             </div>
-          )}
+          </Card>
         </div>
-      </ResponsiveFlex>
-    </ResponsiveContainer>
+      )}
+    </div>
   );
 };
 

@@ -126,7 +126,7 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
 
   return (
     <div className="flex flex-col">
-      <header className="modern-header flex items-center justify-between h-16 px-4 bg-card border-b border-border shadow-sm z-50">
+      <header className="modern-header flex items-center justify-between h-14 px-4 bg-muted border-b border-border shadow-sm z-50">
         {/* Left Section */}
         <div className="flex items-center gap-4">
           {/* Sidebar Toggle - Mobile */}
@@ -270,7 +270,7 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
       </header>
 
       {/* Breadcrumb Navigation */}
-      <div className="flex items-center h-10 px-4 bg-muted/30 border-b border-border">
+      <div className="flex items-center h-10 px-4 bg-muted border-b border-border">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
