@@ -273,6 +273,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
               placeholder={placeholder}
               className="min-h-[120px] resize-none"
               disabled={isLoading || isSending}
+              aria-label="Reply message"
             />
             <div className="text-xs text-muted-foreground">
               Press ⌘+Enter to send
@@ -298,6 +299,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
               disabled={!currentReplyText.trim() || isLoading || isSending}
               size="sm"
               className="ml-auto"
+              aria-label="Send reply"
             >
               {isSending ? (
                 <>

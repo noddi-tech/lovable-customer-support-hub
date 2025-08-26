@@ -241,9 +241,6 @@ export const TicketDetail: Story = {
 
     const renderTicketActions = () => (
       <ReplySidebar
-        title="Ticket Actions"
-        recipientLabel="Update Status"
-        placeholder="Add a comment or update..."
         onSend={(message) => {
           console.log('Adding comment to ticket:', selectedTicket, 'Message:', message);
         }}
@@ -315,8 +312,6 @@ export const MobileView: Story = {
 
     const renderTicketActions = () => (
       <ReplySidebar
-        title="Actions"
-        placeholder="Add comment..."
         onSend={(message) => console.log('Comment:', message)}
         actions={
           <div className="space-y-2">
