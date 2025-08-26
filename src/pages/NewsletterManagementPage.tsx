@@ -1,7 +1,10 @@
-import React from 'react';
-import { InboxLayout } from '@/components/layout/InboxLayout';
-import { ResponsiveGrid, LayoutItem } from '@/components/admin/design/components/layouts';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import React, { useMemo, useCallback } from 'react';
+import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
+import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
+import { ReplySidebar } from '@/components/admin/design/components/detail/ReplySidebar';
+import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
+import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, Send, Edit, Calendar, Users, TrendingUp } from 'lucide-react';
@@ -146,177 +149,264 @@ const mockNewsletterDetails = {
 };
 
 const NewsletterManagementPage: React.FC = () => {
-  const renderDetail = (newsletterId: string) => {
-    const newsletter = mockNewsletterDetails[newsletterId as keyof typeof mockNewsletterDetails];
-    
+  const navigation = useInteractionsNavigation();
+  
+  // Get state from URL navigation
+  const { conversationId, inbox } = navigation.currentState;
+  const isDetail = !!conversationId;
+
+  // Transform newsletters to match EntityListRow format
+  const newsletterEntities = useMemo(() => 
+    mockNewsletters.map(newsletter => ({
+      id: newsletter.id,
+      subject: newsletter.title,
+      preview: newsletter.subtitle,
+      status: newsletter.status,
+      priority: newsletter.priority,
+      timestamp: newsletter.timestamp
+    })), []);
+
+  // Find selected newsletter
+  const selectedNewsletter = conversationId ? 
+    mockNewsletters.find(n => n.id === conversationId) : null;
+
+  const handleNewsletterSelect = useCallback((newsletter: any) => {
+    navigation.navigateToConversation(newsletter.id);
+  }, [navigation]);
+
+  const handleBack = useCallback(() => {
+    navigation.clearConversation();
+  }, [navigation]);
+
+  const handleInboxSelect = useCallback((inboxId: string) => {
+    navigation.navigateToInbox(inboxId);
+  }, [navigation]);
+
+  const handleSendNote = useCallback(async (note: string) => {
+    console.log('Adding note to newsletter:', conversationId, 'Note:', note);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }, [conversationId]);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'sent': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+      case 'scheduled': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+      case 'draft': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+    }
+  };
+
+  // Render inbox list for newsletters
+  const renderInboxList = () => (
+    <InboxList
+      selectedInbox={inbox || 'all'}
+      onInboxSelect={handleInboxSelect}
+    />
+  );
+
+  // Render newsletter list
+  const renderNewsletterList = () => (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">Newsletters</h2>
+      </div>
+      
+      <div className="space-y-2">
+        {newsletterEntities.map((newsletter) => (
+          <EntityListRow
+            key={newsletter.id}
+            subject={newsletter.subject}
+            preview={newsletter.preview}
+            avatar={{
+              fallback: 'NL',
+              alt: 'Newsletter'
+            }}
+            selected={newsletter.id === conversationId}
+            onClick={() => handleNewsletterSelect(newsletter)}
+            badges={[
+              { 
+                label: newsletter.status, 
+                variant: newsletter.status === 'sent' ? 'default' as const : 
+                        newsletter.status === 'scheduled' ? 'secondary' as const : 'outline' as const 
+              },
+              { 
+                label: newsletter.priority, 
+                variant: newsletter.priority === 'high' ? 'destructive' as const : 'secondary' as const 
+              }
+            ]}
+            meta={[
+              { label: 'Status', value: newsletter.status },
+              { label: 'Updated', value: newsletter.timestamp }
+            ]}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  // Render newsletter details
+  const renderNewsletterDetails = () => {
+    if (!selectedNewsletter) return null;
+
+    const newsletter = mockNewsletterDetails[selectedNewsletter.id as keyof typeof mockNewsletterDetails];
     if (!newsletter) {
-      return <div className="text-center py-8 text-muted-foreground">Newsletter details not found.</div>;
+      return (
+        <Card className="h-full">
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">Newsletter details not found.</p>
+          </CardContent>
+        </Card>
+      );
     }
 
-    const getStatusColor = (status: string) => {
-      switch (status) {
-        case 'sent': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-        case 'scheduled': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-        case 'draft': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-        default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
-      }
-    };
-
     return (
-      <div className="max-w-4xl mx-auto">
-        <ResponsiveGrid cols={{ sm: '1' }} gap="6">
+      <Card className="h-full">
+        <CardContent className="p-6 space-y-6">
           {/* Newsletter Overview */}
-          <LayoutItem>
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">{newsletter.title}</h3>
-                    <p className="text-muted-foreground">{newsletter.subject}</p>
-                  </div>
-                  <Badge className={getStatusColor(newsletter.status)}>
-                    {newsletter.status.charAt(0).toUpperCase() + newsletter.status.slice(1)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Subscribers</p>
-                    <p className="text-foreground font-semibold">{newsletter.subscribers.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Created</p>
-                    <p className="text-foreground">{newsletter.created}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Modified</p>
-                    <p className="text-foreground">{newsletter.lastModified}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Author</p>
-                    <p className="text-foreground">{newsletter.author}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </LayoutItem>
+          <div>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-xl font-semibold mb-2">{newsletter.title}</h1>
+                <p className="text-muted-foreground">{newsletter.subject}</p>
+              </div>
+              <Badge className={getStatusColor(newsletter.status)}>
+                {newsletter.status.charAt(0).toUpperCase() + newsletter.status.slice(1)}
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Subscribers</p>
+                <p className="text-foreground font-semibold">{newsletter.subscribers.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Created</p>
+                <p className="text-foreground">{newsletter.created}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Modified</p>
+                <p className="text-foreground">{newsletter.lastModified}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Author</p>
+                <p className="text-foreground">{newsletter.author}</p>
+              </div>
+            </div>
+          </div>
 
           {/* Actions */}
-          <LayoutItem>
-            <Card>
-              <CardHeader>
-                <h4 className="font-semibold text-foreground">Actions</h4>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
+          <div>
+            <h4 className="font-semibold text-foreground mb-3">Actions</h4>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Newsletter
+              </Button>
+              <Button variant="outline" size="sm">
+                <Eye className="h-4 w-4 mr-2" />
+                Preview
+              </Button>
+              {newsletter.status === 'draft' && (
+                <>
                   <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Newsletter
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview
+                  <Button variant="default" size="sm">
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Now
                   </Button>
-                  {newsletter.status === 'draft' && (
-                    <>
-                      <Button variant="outline" size="sm">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Schedule
-                      </Button>
-                      <Button variant="default" size="sm">
-                        <Send className="h-4 w-4 mr-2" />
-                        Send Now
-                      </Button>
-                    </>
-                  )}
-                  {newsletter.status === 'sent' && (
-                    <Button variant="outline" size="sm">
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      View Analytics
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </LayoutItem>
+                </>
+              )}
+              {newsletter.status === 'sent' && (
+                <Button variant="outline" size="sm">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  View Analytics
+                </Button>
+              )}
+            </div>
+          </div>
 
           {/* Analytics (for sent newsletters) */}
           {newsletter.status === 'sent' && (
-            <LayoutItem>
-              <Card>
-                <CardHeader>
-                  <h4 className="font-semibold text-foreground">Performance Analytics</h4>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{newsletter.analytics.opens.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">Opens</div>
-                      <div className="text-xs text-muted-foreground">
-                        {((newsletter.analytics.opens / newsletter.subscribers) * 100).toFixed(1)}% rate
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{newsletter.analytics.clicks.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">Clicks</div>
-                      <div className="text-xs text-muted-foreground">
-                        {((newsletter.analytics.clicks / newsletter.analytics.opens) * 100).toFixed(1)}% CTR
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-destructive">{newsletter.analytics.unsubscribes}</div>
-                      <div className="text-sm text-muted-foreground">Unsubscribes</div>
-                      <div className="text-xs text-muted-foreground">
-                        {((newsletter.analytics.unsubscribes / newsletter.subscribers) * 100).toFixed(2)}% rate
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">{newsletter.analytics.bounces}</div>
-                      <div className="text-sm text-muted-foreground">Bounces</div>
-                      <div className="text-xs text-muted-foreground">
-                        {((newsletter.analytics.bounces / newsletter.subscribers) * 100).toFixed(2)}% rate
-                      </div>
-                    </div>
+            <div>
+              <h4 className="font-semibold text-foreground mb-3">Performance Analytics</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{newsletter.analytics.opens.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Opens</div>
+                  <div className="text-xs text-muted-foreground">
+                    {((newsletter.analytics.opens / newsletter.subscribers) * 100).toFixed(1)}% rate
                   </div>
-                </CardContent>
-              </Card>
-            </LayoutItem>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{newsletter.analytics.clicks.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Clicks</div>
+                  <div className="text-xs text-muted-foreground">
+                    {((newsletter.analytics.clicks / newsletter.analytics.opens) * 100).toFixed(1)}% CTR
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-destructive">{newsletter.analytics.unsubscribes}</div>
+                  <div className="text-sm text-muted-foreground">Unsubscribes</div>
+                  <div className="text-xs text-muted-foreground">
+                    {((newsletter.analytics.unsubscribes / newsletter.subscribers) * 100).toFixed(2)}% rate
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">{newsletter.analytics.bounces}</div>
+                  <div className="text-sm text-muted-foreground">Bounces</div>
+                  <div className="text-xs text-muted-foreground">
+                    {((newsletter.analytics.bounces / newsletter.subscribers) * 100).toFixed(2)}% rate
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Content Preview */}
-          <LayoutItem>
-            <Card>
-              <CardHeader>
-                <h4 className="font-semibold text-foreground">Content Preview</h4>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-muted/50 p-4 rounded-lg max-h-96 overflow-y-auto">
-                  <div 
-                    className="prose prose-sm max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: newsletter.content }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </LayoutItem>
-        </ResponsiveGrid>
-      </div>
+          <div>
+            <h4 className="font-semibold text-foreground mb-3">Content Preview</h4>
+            <div className="bg-muted/50 p-4 rounded-lg max-h-96 overflow-y-auto">
+              <div 
+                className="prose prose-sm max-w-none dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: newsletter.content }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
-  const handleReply = (newsletterId: string, message: string) => {
-    console.log('Adding note to newsletter:', newsletterId, 'Message:', message);
-    // Here you would typically save the note to your backend
+  // Render actions sidebar
+  const renderActionsSidebar = () => {
+    if (!selectedNewsletter) return null;
+
+    return (
+      <ReplySidebar
+        conversationId={selectedNewsletter.id}
+        onSendReply={handleSendNote}
+        placeholder="Add newsletter notes..."
+        showMetadata={false}
+        showActions={true}
+      />
+    );
   };
 
   return (
-    <InboxLayout
-      conversations={mockNewsletters}
-      renderDetail={renderDetail}
-      title="Newsletter Management"
-      onReply={handleReply}
-      showReplyBox={true}
+    <MasterDetailShell
+      left={renderInboxList()}
+      center={renderNewsletterList()}
+      detailLeft={renderNewsletterDetails()}
+      detailRight={renderActionsSidebar()}
+      isDetail={isDetail}
+      onBack={handleBack}
+      backButtonLabel="Back to Newsletters"
+      leftPaneLabel="Newsletter categories"
+      centerPaneLabel="Newsletter list"
+      detailLeftLabel="Newsletter details"
+      detailRightLabel="Newsletter actions"
     />
   );
 };
