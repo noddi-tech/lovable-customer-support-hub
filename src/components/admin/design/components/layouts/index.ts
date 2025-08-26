@@ -11,6 +11,7 @@ export {
   ResponsiveTabsTrigger, 
   ResponsiveTabsContent 
 } from './ResponsiveTabs';
+export { AdaptiveSection } from './AdaptiveSection';
 export { MasterDetailShell } from './MasterDetailShell';
 export { InboxList } from './InboxList';
 
