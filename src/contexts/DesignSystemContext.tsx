@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-// Define the design system interface based on the current structure
+// Enhanced design system interface for card-based UI with strategic theming
 interface DesignSystem {
   colors: {
     primary: string;
@@ -12,13 +12,14 @@ interface DesignSystem {
     secondaryForeground: string;
     accent: string;
     accentForeground: string;
-    background: string;
+    background: string; // Clean content background (#F8F9FB)
     foreground: string;
-    muted: string;
+    muted: string; // Strategic sidebar/header background (#F1F3F7)
     mutedForeground: string;
-    card: string;
+    card: string; // Pure white cards (#FFFFFF)
     cardForeground: string;
-    border: string;
+    border: string; // Subtle borders (#E6E8EE)
+    ring: string; // Brand purple for focus (#6656D9)
     success: string;
     successForeground: string;
     warning: string;
@@ -134,25 +135,26 @@ interface DesignSystem {
 // Default design system values
 const defaultDesignSystem: DesignSystem = {
   colors: {
-    primary: '217 91% 60%',
-    primaryForeground: '0 0% 98%',
-    secondary: '220 14% 96%',
-    secondaryForeground: '220 9% 46%',
-    accent: '217 91% 95%',
-    accentForeground: '217 91% 40%',
-    background: '250 50% 98%',
+    primary: '102 86 217', // Updated to brand purple #6656D9
+    primaryForeground: '255 255 255',
+    secondary: '241 243 247', // Updated to muted #F1F3F7
+    secondaryForeground: '71 85 105',
+    accent: '246 245 252',
+    accentForeground: '102 86 217',
+    background: '248 249 251', // Updated to #F8F9FB
     foreground: '224 71% 4%',
-    muted: '220 14% 96%',
-    mutedForeground: '220 9% 46%',
-    card: '0 0% 100%',
+    muted: '241 243 247', // Updated to #F1F3F7
+    mutedForeground: '100 116 139',
+    card: '255 255 255', // Updated to pure white #FFFFFF
     cardForeground: '224 71% 4%',
-    border: '220 13% 91%',
-    success: '142 76% 36%',
-    successForeground: '0 0% 98%',
-    warning: '38 92% 50%',
-    warningForeground: '0 0% 98%',
-    destructive: '0 84% 60%',
-    destructiveForeground: '0 0% 98%',
+    border: '230 232 238', // Updated to #E6E8EE
+    ring: '102 86 217', // Added ring property - brand purple #6656D9
+    success: '34 197 94',
+    successForeground: '255 255 255',
+    warning: '251 146 60',
+    warningForeground: '255 255 255',
+    destructive: '239 68 68',
+    destructiveForeground: '255 255 255',
   },
   typography: {
     fontFamily: 'Inter, system-ui, sans-serif',
