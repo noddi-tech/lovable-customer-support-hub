@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, Suspense, lazy, useEffect } from
 import { ChevronDown, ChevronUp, Download, Eye, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment } from '@/utils/emailFormatting';
+import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
 import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
 
 interface EmailRenderProps {
@@ -98,12 +98,15 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
     console.log('[EmailRender] Content type:', contentType, 'isHTML:', isHTML);
     console.log('[EmailRender] Attachments available:', attachments);
     
+    const normalized = fixEncodingIssues(content);
+    
     if (isHTML) {
-      return sanitizeEmailHTML(content, attachments, true, messageId);
+      const alreadyWrapped = /class=\"email-render\"/.test(normalized);
+      return alreadyWrapped ? normalized : sanitizeEmailHTML(normalized, attachments, true, messageId);
     } else {
-      return formatPlainTextEmail(content);
+      return formatPlainTextEmail(normalized);
     }
-  }, [content, isHTML, attachments, messageId]);
+  }, [content, isHTML, attachments, messageId, contentType]);
 
   const contentWithCollapsibleSections = useMemo(() => {
     if (!isHTML) {

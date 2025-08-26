@@ -135,16 +135,11 @@ export const MessagesList = () => {
                       : "bg-primary text-primary-foreground ml-auto",
                     message.is_internal && "bg-orange-50 border border-orange-200"
                   )}>
-                    {shouldRenderAsHTML(message.content, message.content_type || 'text/plain') ? (
-                      <EmailRender 
-                        content={sanitizeEmailHTML(message.content)} 
-                        attachments={message.attachments ? JSON.parse(message.attachments) as EmailAttachment[] : []}
-                      />
-                    ) : (
-                      <div className="whitespace-pre-wrap text-sm">
-                        {message.content}
-                      </div>
-                    )}
+                    <EmailRender 
+                      content={message.content}
+                      contentType={message.content_type || 'text/plain'}
+                      attachments={message.attachments ? JSON.parse(message.attachments) as EmailAttachment[] : []}
+                    />
                     
                     {/* Attachments */}
                     {message.attachments && JSON.parse(message.attachments).length > 0 && (
