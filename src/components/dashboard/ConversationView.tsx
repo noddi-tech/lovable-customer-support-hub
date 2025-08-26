@@ -71,7 +71,7 @@ interface ConversationViewProps {
 }
 
 export const ConversationView: React.FC<ConversationViewProps> = ({ conversationId }) => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const { t } = useTranslation();
@@ -487,16 +487,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Back button clicked');
-                // Simple navigation back to inbox
-                const newSearchParams = new URLSearchParams(window.location.search);
-                newSearchParams.delete('conversation');
-                newSearchParams.delete('c');
-                window.history.pushState({}, '', `${window.location.pathname}?${newSearchParams.toString()}`);
-                window.location.reload();
+              onClick={() => {
+                // Remove conversation ID from URL to go back to list
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete('c');
+                setSearchParams(newParams, { replace: true });
               }}
               className="shrink-0"
             >
