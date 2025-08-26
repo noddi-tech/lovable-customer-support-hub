@@ -35,7 +35,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
   const shouldUseVirtualization = filteredConversations.length > 500;
 
   return (
-    <div className="flex flex-col bg-gradient-surface h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0">
       <ConversationListHeader onToggleCollapse={onToggleCollapse} />
       
       {/* Conversation List - Optimized rendering */}

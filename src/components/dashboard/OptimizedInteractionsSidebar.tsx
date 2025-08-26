@@ -128,7 +128,7 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
   // Error state
   if (error) {
     return (
-      <Sidebar className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <Sidebar className="border-r border-sidebar-border text-sidebar-foreground">
         <SidebarContent className="p-4">
           <div className="text-center">
             <p className="text-sm text-destructive">Error loading sidebar data</p>
@@ -148,7 +148,7 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
 
   return (
     <Sidebar 
-      className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
+      className="border-r border-sidebar-border text-sidebar-foreground"
       collapsible="none"
     >
       <SidebarContent className="p-0">
