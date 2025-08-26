@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Archive, Forward, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -34,6 +34,7 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
+  const [isReplyBoxVisible, setIsReplyBoxVisible] = useState(false);
 
   // Sync with URL state
   useEffect(() => {
@@ -61,6 +62,7 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
     if (selectedConversation && replyMessage.trim()) {
       onReply?.(selectedConversation, replyMessage);
       setReplyMessage('');
+      setIsReplyBoxVisible(false);
     }
   };
 
@@ -75,10 +77,10 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
   };
 
   return (
-    <ResponsiveContainer className={cn("h-full w-full max-h-[calc(100vh-120px)]", className)}>
+    <ResponsiveContainer className={cn("flex-1 overflow-hidden", className)}>
       {selectedConversation ? (
-        // Detail View with Reply Sidebar - Full Screen Layout
-        <ResponsiveFlex className="h-full w-full" wrap={false}>
+        // Detail View with Actions Sidebar - Full Screen Layout
+        <ResponsiveFlex className="flex-1" wrap={false}>
           {/* Back Button */}
           <div className="absolute top-4 left-4 z-10">
             <Button
@@ -93,50 +95,91 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 h-full w-full overflow-y-auto pt-16">
-            {renderDetail(selectedConversation)}
+          <div className="flex-1 overflow-hidden flex flex-col pt-16">
+            <div className="flex-1 overflow-y-auto">
+              {renderDetail(selectedConversation)}
+            </div>
+            
+            {/* Dynamic Reply Box */}
+            {showReplyBox && isReplyBoxVisible && (
+              <div className="border-t border-border bg-background p-4">
+                <div className="max-w-4xl mx-auto">
+                  <h4 className="font-medium text-foreground mb-3">Reply to this conversation</h4>
+                  <div className="flex flex-col gap-3">
+                    <Textarea
+                      placeholder="Type your reply..."
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      className="min-h-[120px] resize-none"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsReplyBoxVisible(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleSendReply}
+                        disabled={!replyMessage.trim()}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Reply
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Reply Sidebar - 25% width with proper styling */}
-          {showReplyBox && (
-            <div className="w-1/4 bg-background border-l border-border flex flex-col h-full">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold text-foreground">Reply</h3>
-              </div>
-              <div className="flex-1 p-4 flex flex-col gap-4">
-                <textarea
-                  placeholder="Type your reply..."
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                  className="flex-1 min-h-[200px] resize-none p-3 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                />
-                <Button
-                  onClick={handleSendReply}
-                  disabled={!replyMessage.trim()}
-                  className="w-full"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Reply
-                </Button>
-              </div>
+          {/* Actions Sidebar - 20% width */}
+          <div className="w-1/5 bg-muted/30 border-l border-border flex flex-col">
+            <div className="p-4 border-b border-border">
+              <h3 className="font-semibold text-foreground">Actions</h3>
             </div>
-          )}
+            <div className="flex-1 p-4 flex flex-col gap-3">
+              {showReplyBox && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="justify-start"
+                  onClick={() => setIsReplyBoxVisible(!isReplyBoxVisible)}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Reply
+                </Button>
+              )}
+              <Button variant="outline" size="sm" className="justify-start">
+                <Forward className="h-4 w-4 mr-2" />
+                Forward
+              </Button>
+              <Button variant="outline" size="sm" className="justify-start">
+                <Archive className="h-4 w-4 mr-2" />
+                Archive
+              </Button>
+              <Button variant="outline" size="sm" className="justify-start">
+                <UserCheck className="h-4 w-4 mr-2" />
+                Assign
+              </Button>
+            </div>
+          </div>
         </ResponsiveFlex>
       ) : (
         // List View - Full Screen Grid Layout
-        <div className="h-full w-full overflow-y-auto">
-          <div className="p-4 border-b border-border bg-background sticky top-0 z-10">
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-border bg-background">
             <h2 className="text-xl font-semibold text-foreground">{title}</h2>
             <p className="text-sm text-muted-foreground">
               {conversations.length} {conversations.length === 1 ? 'item' : 'items'}
             </p>
           </div>
 
-          <div className="p-4 h-full w-full">
+          <div className="flex-1 overflow-y-auto p-4">
             <ResponsiveGrid 
               cols={{ sm: '1', md: '2', lg: '3', xl: '4' }} 
               gap="4"
-              className="auto-rows-fr w-full h-full"
+              className="auto-rows-fr"
             >
               {conversations.map((conversation) => (
                 <LayoutItem key={conversation.id}>

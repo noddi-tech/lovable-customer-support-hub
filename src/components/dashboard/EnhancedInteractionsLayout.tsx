@@ -116,8 +116,8 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Mobile layout: Single pane with stacking
   if (isMobile) {
     return (
-      <ResponsiveContainer className="h-full w-full max-h-[calc(100vh-120px)]">
-        <ResponsiveFlex direction="col" className="h-full w-full" gap="0">
+      <ResponsiveContainer className="flex-1 overflow-hidden">
+        <ResponsiveFlex direction="col" className="flex-1" gap="0">
           <ResponsiveFlex alignment="center" gap="2" className="p-2 border-b border-border">
             <MobileSidebarDrawer selectedTab={selectedTab} onTabChange={onTabChange} />
             <h2 className="text-sm font-medium">
@@ -125,7 +125,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
             </h2>
           </ResponsiveFlex>
           {shouldShowConversationList ? (
-            <div className="flex-1 w-full h-full overflow-y-auto">
+            <div className="flex-1 overflow-y-auto">
               <ConversationList
                 selectedConversation={selectedConversation}
                 onSelectConversation={handleSelectConversation}
@@ -135,26 +135,28 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
               />
             </div>
           ) : (
-            <ResponsiveFlex className="flex-1 h-full w-full" wrap={false}>
-              <div className="flex-1 w-full h-full overflow-y-auto">
+            <ResponsiveFlex className="flex-1" wrap={false}>
+              <div className="flex-1 overflow-y-auto">
                 {selectedConversation ? (
                   <ConversationView conversationId={selectedConversation.id} />
                 ) : (
                   <EmptyConversationState />
                 )}
               </div>
-              {/* Mobile Reply Sidebar - 30% width */}
-              <div className="w-[30%] bg-background border-l border-border flex flex-col h-full">
+              {/* Mobile Actions Sidebar - 25% width */}
+              <div className="w-1/4 bg-muted/30 border-l border-border flex flex-col">
                 <div className="p-3 border-b border-border">
-                  <h3 className="font-medium text-sm text-foreground">Reply</h3>
+                  <h3 className="font-medium text-sm text-foreground">Actions</h3>
                 </div>
-                <div className="flex-1 p-3 flex flex-col gap-3">
-                  <textarea 
-                    className="flex-1 min-h-[120px] resize-none p-2 text-sm border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Type your reply..."
-                  />
-                  <button className="w-full px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">
-                    Send Reply
+                <div className="flex-1 p-3 flex flex-col gap-2">
+                  <button className="w-full px-2 py-1 text-xs bg-primary text-primary-foreground rounded font-medium hover:bg-primary/90 transition-colors">
+                    Reply
+                  </button>
+                  <button className="w-full px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded font-medium hover:bg-secondary/90 transition-colors">
+                    Forward
+                  </button>
+                  <button className="w-full px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded font-medium hover:bg-secondary/90 transition-colors">
+                    Archive
                   </button>
                 </div>
               </div>
@@ -167,19 +169,19 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   // Desktop & Tablet: Sidebar + full-screen toggle layout
   return (
-    <ResponsiveContainer className="h-full w-full max-h-[calc(100vh-120px)]">
-      <ResponsiveFlex className="h-full w-full" wrap={false}>
-        <AdaptiveSection className="hidden md:flex h-full">
+    <ResponsiveContainer className="flex-1 overflow-hidden">
+      <ResponsiveFlex className="flex-1" wrap={false}>
+        <AdaptiveSection className="hidden md:flex">
           <OptimizedInteractionsSidebar
             selectedTab={selectedTab}
             onTabChange={onTabChange}
             selectedInboxId={selectedInboxId}
           />
         </AdaptiveSection>
-        <div className="h-full flex-1 w-full">
+        <div className="flex-1 overflow-hidden">
           {shouldShowConversationList ? (
             // Full screen conversation list
-            <div className="h-full w-full overflow-y-auto">
+            <div className="flex-1 overflow-y-auto">
               <ConversationList
                 selectedConversation={selectedConversation}
                 onSelectConversation={handleSelectConversation}
@@ -189,8 +191,8 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
               />
             </div>
           ) : (
-            // Full screen conversation view with reply sidebar
-            <ResponsiveFlex className="h-full w-full" wrap={false}>
+            // Full screen conversation view with actions sidebar
+            <ResponsiveFlex className="flex-1" wrap={false}>
               {/* Back Button */}
               <div className="absolute top-4 left-4 z-10">
                 <Button
@@ -210,7 +212,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
               </div>
 
               {/* Main conversation content */}
-              <div className="flex-1 h-full w-full overflow-y-auto pt-16">
+              <div className="flex-1 overflow-y-auto pt-16">
                 {selectedConversation ? (
                   <ConversationView conversationId={selectedConversation.id} />
                 ) : (
@@ -218,19 +220,25 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
                 )}
               </div>
 
-              {/* Desktop Reply Sidebar - 25% width with proper styling */}
-              <div className="w-1/4 bg-background border-l border-border flex flex-col h-full">
+              {/* Actions Sidebar - 20% width */}
+              <div className="w-1/5 bg-muted/30 border-l border-border flex flex-col">
                 <div className="p-4 border-b border-border">
-                  <h3 className="font-semibold text-foreground">Reply</h3>
+                  <h3 className="font-semibold text-foreground">Actions</h3>
                 </div>
-                <div className="flex-1 p-4 flex flex-col gap-4">
-                  <textarea 
-                    className="flex-1 min-h-[200px] resize-none p-3 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Type your reply..."
-                  />
-                  <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition-colors">
-                    Send Reply
-                  </button>
+                <div className="flex-1 p-4 flex flex-col gap-3">
+                  <Button variant="outline" size="sm" className="justify-start">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Reply
+                  </Button>
+                  <Button variant="outline" size="sm" className="justify-start">
+                    Forward
+                  </Button>
+                  <Button variant="outline" size="sm" className="justify-start">
+                    Archive
+                  </Button>
+                  <Button variant="outline" size="sm" className="justify-start">
+                    Assign
+                  </Button>
                 </div>
               </div>
             </ResponsiveFlex>
