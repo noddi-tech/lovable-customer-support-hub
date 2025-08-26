@@ -289,7 +289,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     return (
       <ReplySidebar
         conversationId={conversationId}
-        status={selectedConversation?.status || 'open'}
+        status={(selectedConversation?.status === 'archived' ? 'closed' : selectedConversation?.status) || 'open'}
         priority={selectedConversation?.priority || 'normal'}
         onSendReply={handleSendReply}
         placeholder={`Reply to ${thread.customer?.full_name || 'customer'}...`}

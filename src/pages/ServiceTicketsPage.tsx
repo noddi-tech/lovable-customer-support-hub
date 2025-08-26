@@ -400,9 +400,10 @@ const ServiceTicketsPage: React.FC = () => {
       onBack={() => navigation.clearConversation()}
       left={
         <InboxList
-          inboxes={ticketInboxes}
           selectedInbox={navigation.currentState.selectedInboxId}
+          selectedStatus="all"
           onInboxSelect={navigation.navigateToInbox}
+          onStatusSelect={() => {}}
         />
       }
       center={renderTicketsList()}

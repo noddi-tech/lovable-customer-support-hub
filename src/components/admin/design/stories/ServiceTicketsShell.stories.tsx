@@ -140,9 +140,10 @@ export const TicketsList: Story = {
         onBack={() => setSelectedTicket(null)}
         left={
           <InboxList
-            inboxes={ticketInboxes}
             selectedInbox={selectedInbox}
+            selectedStatus="all"
             onInboxSelect={setSelectedInbox}
+            onStatusSelect={() => {}}
           />
         }
         center={renderTicketsList()}
