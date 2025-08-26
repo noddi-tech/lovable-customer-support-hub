@@ -47,7 +47,6 @@ import {
   ChevronRight,
   Reply
  } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -504,13 +503,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               <ArrowLeft className="h-4 w-4 mr-1" />
               <span className="hidden sm:inline">{t('conversation.backToInbox', 'Back')}</span>
             </Button>
-                navigate('/', { replace: true });
-              }}
-              className="flex items-center gap-1 md:gap-2 text-muted-foreground hover:text-foreground flex-shrink-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span className="hidden sm:inline text-sm">{t('conversation.backToInbox')}</span>
-            </Button>
             
             <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
               <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
@@ -605,7 +597,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       {/* Main Content Area - Simplified Layout */}
       <div className="flex-1 min-h-0 w-full flex bg-background">
         {isMobile ? (
-          /* Mobile: Single column with drawer for customer info */
+          // Mobile: Single column with drawer for customer info
           <div className="flex flex-col flex-1 min-h-0 w-full">
             <ScrollArea className="flex-1 pane">
               <div 
