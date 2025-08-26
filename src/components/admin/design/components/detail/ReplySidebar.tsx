@@ -17,6 +17,12 @@ interface ReplySidebarProps {
   onReplyChange?: (text: string) => void;
   onSendReply?: (text: string) => Promise<void>;
   
+  // Simple interface for tests/stories
+  onSend?: (message: string) => void;  // Add this for compatibility
+  title?: string;                      // Add this for compatibility
+  recipientLabel?: string;             // Add this for compatibility
+  actions?: React.ReactNode;           // Add this for compatibility
+  
   // Conversation metadata
   status?: 'open' | 'pending' | 'resolved' | 'closed';
   priority?: 'low' | 'normal' | 'high' | 'urgent';
@@ -49,6 +55,10 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
   replyText = '',
   onReplyChange,
   onSendReply,
+  onSend,  // Add this for compatibility
+  title,   // Add this for compatibility
+  recipientLabel, // Add this for compatibility
+  actions, // Add this for compatibility
   status = 'open',
   priority = 'normal',
   assignedTo,
@@ -75,14 +85,19 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
     
     setIsSending(true);
     try {
-      await onSendReply?.(currentReplyText.trim());
+      // Use onSend if provided (for compatibility), otherwise onSendReply
+      if (onSend) {
+        onSend(currentReplyText.trim());
+      } else {
+        await onSendReply?.(currentReplyText.trim());
+      }
       setCurrentReplyText('');
     } catch (error) {
       console.error('Failed to send reply:', error);
     } finally {
       setIsSending(false);
     }
-  }, [currentReplyText, onSendReply, isSending, setCurrentReplyText]);
+  }, [currentReplyText, onSend, onSendReply, isSending, setCurrentReplyText]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
     // Send on Cmd+Enter or Ctrl+Enter
@@ -114,8 +129,20 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
 
   return (
     <div className={cn("space-y-4", className)}>
+      {/* Custom actions from props */}
+      {actions && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">{title || 'Actions'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {actions}
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Conversation Metadata */}
-      {showMetadata && (
+      {showMetadata && !actions && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold">Conversation Details</CardTitle>
@@ -203,7 +230,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
       )}
 
       {/* Quick Actions */}
-      {showActions && (
+      {showActions && !actions && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
@@ -230,7 +257,12 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
       {/* Reply Area */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Reply</CardTitle>
+          <CardTitle className="text-sm font-semibold">{title || 'Reply'}</CardTitle>
+          {recipientLabel && (
+            <div className="text-sm text-muted-foreground">
+              To: {recipientLabel}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">

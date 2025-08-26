@@ -16,7 +16,10 @@ vi.mock('react-router-dom', async () => {
 describe('useInteractionsNavigation', () => {
   beforeEach(() => {
     mockSetSearchParams.mockClear();
-    mockSearchParams.clear();
+    // Clear all URLSearchParams entries manually
+    for (const key of Array.from(mockSearchParams.keys())) {
+      mockSearchParams.delete(key);
+    }
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (

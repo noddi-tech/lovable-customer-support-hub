@@ -21,7 +21,9 @@ interface EntityListRowProps {
   subject: string;
   preview?: string;
   meta?: EntityMeta[];
+  metadata?: EntityMeta[];  // Add for compatibility
   badges?: EntityBadge[];
+  timestamp?: string;       // Add for compatibility
   
   // Leading element (avatar or icon)
   leading?: React.ReactNode;
@@ -33,6 +35,7 @@ interface EntityListRowProps {
   
   // State and interaction
   selected?: boolean;
+  isSelected?: boolean;     // Add for compatibility
   onClick?: () => void;
   onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
   href?: string;
@@ -51,10 +54,13 @@ export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
     subject,
     preview,
     meta = [],
+    metadata = [],        // Add for compatibility
     badges = [],
+    timestamp,            // Add for compatibility
     leading,
     avatar,
     selected = false,
+    isSelected = false,   // Add for compatibility
     onClick,
     onKeyDown,
     href,
@@ -64,6 +70,17 @@ export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
     'aria-describedby': ariaDescribedBy,
     ...props
   }, ref) => {
+    
+    // Use isSelected or selected for compatibility
+    const isCurrentlySelected = isSelected || selected;
+    
+    // Combine meta and metadata arrays
+    const allMeta = [...meta, ...metadata];
+    
+    // Add timestamp to meta if provided
+    if (timestamp) {
+      allMeta.push({ label: 'Time', value: timestamp });
+    }
     
     const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
       // Support Enter and Space for activation
@@ -105,7 +122,7 @@ export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         
         // Selected state
-        selected ? [
+        isCurrentlySelected ? [
           "ring-2 ring-ring bg-card border-ring/20",
           "shadow-sm"
         ] : [
@@ -181,11 +198,11 @@ export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
           )}
           
           {/* Meta information */}
-          {meta.length > 0 && (
+          {allMeta.length > 0 && (
             <>
               <Separator className="my-1.5" />
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                {meta.map((item, index) => (
+                {allMeta.map((item, index) => (
                   <div
                     key={index}
                     className={cn("flex items-center gap-1", item.className)}
