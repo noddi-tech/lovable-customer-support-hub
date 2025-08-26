@@ -64,7 +64,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Get conversation ID from URL
   const conversationIdFromUrl = searchParams.get('conversation');
 
-  // Load conversation from URL when available
+  // Load conversation from URL when available, or clear when URL param is removed
   useEffect(() => {
     if (conversationIdFromUrl && !selectedConversation) {
       // Create a mock conversation object from URL ID
@@ -79,6 +79,9 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
         updated_at: new Date().toISOString()
       };
       setSelectedConversation(urlConversation);
+    } else if (!conversationIdFromUrl && selectedConversation) {
+      // Clear selected conversation when URL param is removed
+      setSelectedConversation(null);
     }
   }, [conversationIdFromUrl, selectedConversation]);
 
