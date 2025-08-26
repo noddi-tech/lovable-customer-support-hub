@@ -1,15 +1,16 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MessageCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ContentPane } from '@/components/ui/content-pane';
-import { ConversationList } from './ConversationList';
-import { ConversationView } from './ConversationView';
 import { VoiceInterface } from './VoiceInterface';
-import { MobileSidebarDrawer } from './MobileSidebarDrawer';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
+import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
+import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
+import { ReplySidebar } from '@/components/admin/design/components/detail/ReplySidebar';
+import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
+import { ConversationView } from './ConversationView';
+import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -54,140 +55,172 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   onTabChange,
   selectedInboxId
 }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  
-  const isMobile = useIsMobile();
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
+  const navigation = useInteractionsNavigation();
   
-  // Get conversation ID from URL using ?c=<id>
-  const conversationIdFromUrl = searchParams.get('c');
+  // Get state from URL navigation
+  const { conversationId, inbox } = navigation.currentState;
+  const isDetail = !!conversationId;
 
-  // Load conversation from URL when available, or clear when URL param is removed
-  useEffect(() => {
-    if (conversationIdFromUrl && !selectedConversation) {
-      // Create a mock conversation object from URL ID
-      // In a real app, you'd fetch the conversation data
-      const urlConversation: Conversation = {
-        id: conversationIdFromUrl,
-        subject: 'Conversation from URL',
-        status: 'open',
-        priority: 'normal',
-        is_read: false,
-        channel: 'email',
-        updated_at: new Date().toISOString()
-      };
-      setSelectedConversation(urlConversation);
-    } else if (!conversationIdFromUrl && selectedConversation) {
-      // Clear selected conversation when URL param is removed
-      setSelectedConversation(null);
+  // Mock conversation data - in real app, this would come from API
+  const mockConversations = useMemo(() => [
+    {
+      id: 'conv-1',
+      subject: 'Order #12345 - Shipping Question',
+      preview: 'Hi, I was wondering about the shipping status of my recent order. Could you please provide an update?',
+      customer: { name: 'John Smith', email: 'john@example.com', initials: 'JS' },
+      status: 'open' as const,
+      priority: 'normal' as const,
+      channel: 'email' as const,
+      updatedAt: '2 hours ago',
+      isUnread: true
+    },
+    {
+      id: 'conv-2', 
+      subject: 'Product Return Request',
+      preview: 'I need to return the blue sweater I ordered last week. It doesn\'t fit properly.',
+      customer: { name: 'Sarah Johnson', email: 'sarah@example.com', initials: 'SJ' },
+      status: 'pending' as const,
+      priority: 'high' as const,
+      channel: 'chat' as const,
+      updatedAt: '1 day ago',
+      isUnread: false
+    },
+    {
+      id: 'conv-3',
+      subject: 'Technical Support Needed',
+      preview: 'The mobile app keeps crashing when I try to view my order history. This is very frustrating.',
+      customer: { name: 'Mike Chen', email: 'mike@example.com', initials: 'MC' },
+      status: 'resolved' as const,
+      priority: 'urgent' as const,
+      channel: 'email' as const,
+      updatedAt: '3 days ago',
+      isUnread: false
     }
-  }, [conversationIdFromUrl, selectedConversation]);
+  ], []);
 
-  // Handle conversation selection
-  const handleSelectConversation = useCallback((conversation: Conversation) => {
-    console.log('Selecting conversation:', conversation.id);
-    setSelectedConversation(conversation);
-    
-    // Update URL with conversation ID using ?c=<id> format
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('c', conversation.id);
-    setSearchParams(newParams, { replace: true });
-  }, [searchParams, setSearchParams]);
+  // Find selected conversation
+  const selectedConversation = conversationId ? 
+    mockConversations.find(c => c.id === conversationId) : null;
 
-  // Handle conversation list toggle (Back button)
-  const handleToggleConversationList = useCallback(() => {
-    setSelectedConversation(null);
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('c');
-    setSearchParams(newParams, { replace: true });
-  }, [searchParams, setSearchParams]);
+  // Handlers
+  const handleConversationSelect = useCallback((conversation: any) => {
+    navigation.navigateToConversation(conversation.id);
+  }, [navigation]);
+
+  const handleBack = useCallback(() => {
+    navigation.clearConversation();
+  }, [navigation]);
+
+  const handleInboxSelect = useCallback((inboxId: string) => {
+    navigation.navigateToInbox(inboxId);
+  }, [navigation]);
+
+  const handleSendReply = useCallback(async (text: string) => {
+    console.log('Sending reply:', text);
+    // In real app, send to API
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }, []);
 
   // Render VoiceInterface if active sub-tab is 'voice'
   if (activeSubTab === 'voice') {
-    return (
-      <ContentPane className="h-full">
-        <VoiceInterface />
-      </ContentPane>
-    );
+    return <VoiceInterface />;
   }
 
-  // Mobile layout: Single column (detail if ?c, else list) with back button
-  if (isMobile) {
-    return (
-      <div className="h-full flex flex-col min-h-0 bg-background">
-        <div className="flex items-center gap-2 p-3 border-b border-border bg-background">
-          <MobileSidebarDrawer selectedTab={selectedTab} onTabChange={onTabChange} />
-          <h2 className="text-sm font-medium">
-            {t('sidebar.inbox', 'Inbox')}
-          </h2>
-        </div>
-        
-        {selectedConversation ? (
-          <div className="flex-1 overflow-auto min-h-0">
-            <ConversationView conversationId={selectedConversation.id} />
-          </div>
-        ) : (
-          <div className="flex-1 overflow-auto min-h-0">
-            <ConversationList
-              selectedConversation={selectedConversation}
-              onSelectConversation={handleSelectConversation}
-              selectedInboxId={selectedInboxId}
-              selectedTab={selectedTab}
-            />
-          </div>
-        )}
+  // Render inbox list
+  const renderInboxList = () => (
+    <InboxList
+      selectedInbox={inbox || selectedInboxId || 'all'}
+      onInboxSelect={handleInboxSelect}
+    />
+  );
+
+  // Render conversation list
+  const renderConversationList = () => (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
       </div>
-    );
-  }
-
-  // Desktop & Tablet: Master-list-detail layout (always two panes)
-  return (
-    <div className="h-full min-h-0 grid gap-0 sm:grid-cols-1 md:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] bg-background">
-      {/* Left pane: Vertical conversation list */}
-      <aside className="min-h-0 overflow-auto border-r border-border bg-background">
-        <div className="p-3">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-foreground/70">
-              {t('conversations.title', 'Conversations')}
-            </h2>
-            <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
-          <ConversationList
-            selectedConversation={selectedConversation}
-            onSelectConversation={handleSelectConversation}
-            selectedInboxId={selectedInboxId}
-            selectedTab={selectedTab}
+      
+      <div className="space-y-2">
+        {mockConversations.map((conversation) => (
+          <EntityListRow
+            key={conversation.id}
+            subject={conversation.subject}
+            preview={conversation.preview}
+            avatar={{
+              fallback: conversation.customer.initials,
+              alt: conversation.customer.name
+            }}
+            selected={conversation.id === conversationId}
+            onClick={() => handleConversationSelect(conversation)}
+            badges={[
+              ...(conversation.isUnread ? [{ label: 'Unread', variant: 'default' as const }] : []),
+              { label: conversation.priority, variant: conversation.priority === 'urgent' ? 'destructive' as const : 'secondary' as const },
+              { label: conversation.status, variant: 'outline' as const }
+            ]}
+            meta={[
+              { label: 'From', value: conversation.customer.name },
+              { label: 'Channel', value: conversation.channel },
+              { label: 'Updated', value: conversation.updatedAt }
+            ]}
           />
-        </div>
-      </aside>
+        ))}
+      </div>
+    </div>
+  );
 
-      {/* Right pane: Conversation detail or placeholder */}
-      <section className="min-h-0 overflow-auto p-4">
-        {selectedConversation ? (
-          <Card className="h-full border-border">
-            <div className="h-full overflow-auto min-h-0">
+  // Render message thread
+  const renderMessageThread = () => {
+    if (!selectedConversation) return null;
+
+    return (
+      <Card className="h-full">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div>
+              <h1 className="text-xl font-semibold mb-2">{selectedConversation.subject}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{selectedConversation.customer.name}</span>
+                <span>•</span>
+                <span>{selectedConversation.updatedAt}</span>
+              </div>
+            </div>
+            
+            <div className="border-t border-border pt-4">
               <ConversationView conversationId={selectedConversation.id} />
             </div>
-          </Card>
-        ) : (
-          <Card className="h-full border-border">
-            <CardContent className="h-full grid place-items-center text-foreground/60 p-6">
-              <div className="text-center">
-                <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {t('interactions.noConversationSelected', 'Select a conversation')}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('interactions.selectConversationToStart', 'Choose a conversation from the list to view messages and details.')}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </section>
-    </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Render reply sidebar
+  const renderReplySidebar = () => {
+    if (!selectedConversation) return null;
+
+    return (
+      <ReplySidebar
+        conversationId={selectedConversation.id}
+        status={selectedConversation.status}
+        priority={selectedConversation.priority}
+        onSendReply={handleSendReply}
+        placeholder={`Reply to ${selectedConversation.customer.name}...`}
+      />
+    );
+  };
+
+  return (
+    <MasterDetailShell
+      left={renderInboxList()}
+      center={renderConversationList()}
+      detailLeft={renderMessageThread()}
+      detailRight={renderReplySidebar()}
+      isDetail={isDetail}
+      onBack={handleBack}
+      backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
+    />
   );
 };

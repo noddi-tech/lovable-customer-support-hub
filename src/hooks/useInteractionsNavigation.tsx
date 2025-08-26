@@ -5,6 +5,7 @@ export interface NavigationState {
   selectedTab: string;
   selectedInboxId?: string;
   conversationId?: string;
+  inbox?: string; // Add inbox parameter for master-list-detail
 }
 
 export const useInteractionsNavigation = () => {
@@ -15,7 +16,8 @@ export const useInteractionsNavigation = () => {
     return {
       selectedTab: searchParams.get('tab') || 'all',
       selectedInboxId: searchParams.get('inbox') || undefined,
-      conversationId: searchParams.get('conversation') || undefined,
+      conversationId: searchParams.get('c') || searchParams.get('conversation') || undefined,
+      inbox: searchParams.get('inbox') || undefined, // Support both inbox params
     };
   }, [searchParams]);
 
@@ -35,7 +37,11 @@ export const useInteractionsNavigation = () => {
     }
     
     if (newState.conversationId) {
-      newParams.set('conversation', newState.conversationId);
+      newParams.set('c', newState.conversationId);
+    }
+    
+    if (newState.inbox) {
+      newParams.set('inbox', newState.inbox);
     }
     
     setSearchParams(newParams, { replace: true });
@@ -53,7 +59,12 @@ export const useInteractionsNavigation = () => {
 
   // Navigate to inbox
   const navigateToInbox = useCallback((inboxId: string) => {
-    updateNavigation({ selectedInboxId: inboxId });
+    updateNavigation({ selectedInboxId: inboxId, inbox: inboxId });
+  }, [updateNavigation]);
+
+  // Clear conversation (back to list)
+  const clearConversation = useCallback(() => {
+    updateNavigation({ conversationId: undefined });
   }, [updateNavigation]);
 
   return {
@@ -62,5 +73,6 @@ export const useInteractionsNavigation = () => {
     navigateToTab,
     navigateToConversation,
     navigateToInbox,
+    clearConversation,
   };
 };

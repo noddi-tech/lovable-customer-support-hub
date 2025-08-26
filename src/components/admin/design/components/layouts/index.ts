@@ -12,6 +12,7 @@ export {
   ResponsiveTabsContent 
 } from './ResponsiveTabs';
 export { AdaptiveSection } from './AdaptiveSection';
+export { MasterDetailShell } from './MasterDetailShell';
 
 // TypeScript utility types
 export type ResponsiveValue<T> = T | { 
