@@ -452,13 +452,39 @@ export const formatEmailText = (content: string): string => {
 };
 
 /**
- * Basic encoding fixes for legacy content
+ * Enhanced encoding fixes for Norwegian and international characters
  */
 export const fixEncodingIssues = (content: string): string => {
-  return content
+  let fixed = content;
+  
+  // Fix Norwegian character encoding issues (UTF-8 decoded as Latin-1)
+  const norwegianFixes: Record<string, string> = {
+    'Ã¸': 'ø',
+    'Ã¥': 'å', 
+    'Ã¦': 'æ',
+    'Ã˜': 'Ø',
+    'Ã…': 'Å',
+    'Ã†': 'Æ',
+    'â€™': "'",
+    'â€œ': '"',
+    'â€': '"',
+    'â€"': '–',
+    'â€•': '—',
+    'Â': ' '
+  };
+
+  // Apply Norwegian character fixes
+  for (const [wrong, correct] of Object.entries(norwegianFixes)) {
+    fixed = fixed.replace(new RegExp(wrong, 'g'), correct);
+  }
+  
+  // Fix HTML entities
+  fixed = fixed
     .replace(/&amp;([a-zA-Z]+);/g, '&$1;')
     .replace(/\s+/g, ' ')
     .trim();
+    
+  return fixed;
 };
 
 /**

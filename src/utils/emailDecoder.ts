@@ -22,6 +22,33 @@ function findTextPart(part: any, preferredMime: string = 'text/html'): any {
 }
 
 /**
+ * Fix Norwegian character encoding issues (UTF-8 decoded as Latin-1)
+ */
+function fixNorwegianEncoding(text: string): string {
+  const norwegianFixes: Record<string, string> = {
+    'Ã¸': 'ø',
+    'Ã¥': 'å', 
+    'Ã¦': 'æ',
+    'Ã˜': 'Ø',
+    'Ã…': 'Å',
+    'Ã†': 'Æ',
+    'â€™': "'",
+    'â€œ': '"',
+    'â€': '"',
+    'â€"': '–',
+    'â€•': '—',
+    'Â': ''
+  };
+
+  let fixed = text;
+  for (const [wrong, correct] of Object.entries(norwegianFixes)) {
+    fixed = fixed.replace(new RegExp(wrong, 'g'), correct);
+  }
+  
+  return fixed;
+}
+
+/**
  * Decodes the email body from a Gmail API message object, handling base64url, charsets, and multipart.
  * Supports all languages by using the part's charset (falls back to utf-8).
  * @param message - The full message object from gmail.users.messages.get({format: 'FULL'})
@@ -59,11 +86,26 @@ export function getDecodedEmailContent(message: any): string {
 
   // Decode bytes using the charset (handles æøå, emojis, Chinese, etc.)
   try {
-    const decoder = new TextDecoder(charset);
-    return decoder.decode(bytes);
+    const decoder = new TextDecoder(charset, { fatal: false, ignoreBOM: true });
+    let decoded = decoder.decode(bytes);
+    
+    // Check for Norwegian character encoding issues and fix them
+    if (decoded.includes('Ã¸') || decoded.includes('Ã¥') || decoded.includes('Ã¦')) {
+      console.log('[EmailDecoder] Detected Norwegian encoding issues, applying fixes');
+      decoded = fixNorwegianEncoding(decoded);
+    }
+    
+    return decoded;
   } catch (e) {
     console.warn(`Decoding failed with charset '${charset}', falling back to utf-8:`, e);
     const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
-    return decoder.decode(bytes);
+    let decoded = decoder.decode(bytes);
+    
+    // Apply Norwegian fixes to fallback as well
+    if (decoded.includes('Ã¸') || decoded.includes('Ã¥') || decoded.includes('Ã¦')) {
+      decoded = fixNorwegianEncoding(decoded);
+    }
+    
+    return decoded;
   }
 }
