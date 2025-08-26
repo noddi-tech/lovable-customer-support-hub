@@ -116,7 +116,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Mobile layout: Single pane with stacking
   if (isMobile) {
     return (
-      <ResponsiveContainer className="flex-1 overflow-hidden">
+      <ResponsiveContainer className="flex-1 overflow-y-auto">
         <ResponsiveFlex direction="col" className="flex-1" gap="0">
           <ResponsiveFlex alignment="center" gap="2" className="p-2 border-b border-border">
             <MobileSidebarDrawer selectedTab={selectedTab} onTabChange={onTabChange} />
@@ -169,7 +169,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   // Desktop & Tablet: Sidebar + full-screen toggle layout
   return (
-    <ResponsiveContainer className="flex-1 overflow-hidden">
+    <ResponsiveContainer className="flex-1 overflow-y-auto">
       <ResponsiveFlex className="flex-1" wrap={false}>
         <AdaptiveSection className="hidden md:flex">
           <OptimizedInteractionsSidebar
@@ -191,8 +191,8 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
               />
             </div>
           ) : (
-            // Full screen conversation view with actions sidebar
-            <ResponsiveFlex className="flex-1" wrap={false}>
+            // Full screen conversation view - let ConversationView handle its own layout
+            <div className="flex-1 overflow-y-auto">
               {/* Back Button */}
               <div className="absolute top-4 left-4 z-10">
                 <Button
@@ -211,37 +211,15 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
                 </Button>
               </div>
 
-              {/* Main conversation content */}
-              <div className="flex-1 overflow-y-auto pt-16">
+              {/* Main conversation content with proper padding for back button */}
+              <div className="pt-16 h-full">
                 {selectedConversation ? (
                   <ConversationView conversationId={selectedConversation.id} />
                 ) : (
                   <EmptyConversationState />
                 )}
               </div>
-
-              {/* Actions Sidebar - 20% width */}
-              <div className="w-1/5 bg-muted/30 border-l border-border flex flex-col">
-                <div className="p-4 border-b border-border">
-                  <h3 className="font-semibold text-foreground">Actions</h3>
-                </div>
-                <div className="flex-1 p-4 flex flex-col gap-3">
-                  <Button variant="outline" size="sm" className="justify-start">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Reply
-                  </Button>
-                  <Button variant="outline" size="sm" className="justify-start">
-                    Forward
-                  </Button>
-                  <Button variant="outline" size="sm" className="justify-start">
-                    Archive
-                  </Button>
-                  <Button variant="outline" size="sm" className="justify-start">
-                    Assign
-                  </Button>
-                </div>
-              </div>
-            </ResponsiveFlex>
+            </div>
           )}
         </div>
       </ResponsiveFlex>

@@ -77,10 +77,10 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
   };
 
   return (
-    <ResponsiveContainer className={cn("flex-1 overflow-hidden", className)}>
+    <ResponsiveContainer className={cn("flex-1 overflow-y-auto", className)}>
       {selectedConversation ? (
-        // Detail View with Actions Sidebar - Full Screen Layout
-        <ResponsiveFlex className="flex-1" wrap={false}>
+        // Detail View - Full Screen Layout without excessive sidebar
+        <div className="flex-1 overflow-hidden flex flex-col">
           {/* Back Button */}
           <div className="absolute top-4 left-4 z-10">
             <Button
@@ -94,15 +94,13 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
             </Button>
           </div>
 
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-hidden flex flex-col pt-16">
-            <div className="flex-1 overflow-y-auto">
-              {renderDetail(selectedConversation)}
-            </div>
+          {/* Main Content Area with proper pane scroll */}
+          <div className="flex-1 overflow-y-auto pt-16">
+            {renderDetail(selectedConversation)}
             
-            {/* Dynamic Reply Box */}
+            {/* Dynamic Reply Box below content */}
             {showReplyBox && isReplyBoxVisible && (
-              <div className="border-t border-border bg-background p-4">
+              <div className="border-t border-border bg-background p-4 mt-4">
                 <div className="max-w-4xl mx-auto">
                   <h4 className="font-medium text-foreground mb-3">Reply to this conversation</h4>
                   <div className="flex flex-col gap-3">
@@ -110,7 +108,7 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
                       placeholder="Type your reply..."
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
-                      className="min-h-[120px] resize-none"
+                      className="min-h-[120px] resize-none bg-background border-border"
                     />
                     <div className="flex gap-2 justify-end">
                       <Button
@@ -133,38 +131,19 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
             )}
           </div>
 
-          {/* Actions Sidebar - 20% width */}
-          <div className="w-1/5 bg-muted/30 border-l border-border flex flex-col">
-            <div className="p-4 border-b border-border">
-              <h3 className="font-semibold text-foreground">Actions</h3>
-            </div>
-            <div className="flex-1 p-4 flex flex-col gap-3">
-              {showReplyBox && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="justify-start"
-                  onClick={() => setIsReplyBoxVisible(!isReplyBoxVisible)}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Reply
-                </Button>
-              )}
-              <Button variant="outline" size="sm" className="justify-start">
-                <Forward className="h-4 w-4 mr-2" />
-                Forward
-              </Button>
-              <Button variant="outline" size="sm" className="justify-start">
-                <Archive className="h-4 w-4 mr-2" />
-                Archive
-              </Button>
-              <Button variant="outline" size="sm" className="justify-start">
-                <UserCheck className="h-4 w-4 mr-2" />
-                Assign
+          {/* Floating Reply Action Button */}
+          {showReplyBox && !isReplyBoxVisible && (
+            <div className="fixed bottom-6 right-6 z-20">
+              <Button 
+                onClick={() => setIsReplyBoxVisible(true)}
+                className="shadow-lg"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Reply
               </Button>
             </div>
-          </div>
-        </ResponsiveFlex>
+          )}
+        </div>
       ) : (
         // List View - Full Screen Grid Layout
         <div className="flex-1 overflow-hidden flex flex-col">
