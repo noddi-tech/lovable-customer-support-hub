@@ -116,91 +116,128 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Mobile layout: Single pane with stacking
   if (isMobile) {
     return (
-      <AdaptiveSection className="h-full flex flex-col" padding="0">
-        <ResponsiveFlex alignment="center" gap="2" className="p-2 border-b border-border">
-          <MobileSidebarDrawer selectedTab={selectedTab} onTabChange={onTabChange} />
-          <h2 className="text-sm font-medium">
-            {t('sidebar.inbox', 'Inbox')}
-          </h2>
+      <ResponsiveContainer className="h-full w-full max-h-[calc(100vh-120px)]">
+        <ResponsiveFlex direction="col" className="h-full w-full" gap="0">
+          <ResponsiveFlex alignment="center" gap="2" className="p-2 border-b border-border">
+            <MobileSidebarDrawer selectedTab={selectedTab} onTabChange={onTabChange} />
+            <h2 className="text-sm font-medium">
+              {t('sidebar.inbox', 'Inbox')}
+            </h2>
+          </ResponsiveFlex>
+          {shouldShowConversationList ? (
+            <div className="flex-1 w-full h-full overflow-y-auto">
+              <ConversationList
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+                selectedInboxId={selectedInboxId}
+                selectedTab={selectedTab}
+                onToggleCollapse={handleToggleConversationList}
+              />
+            </div>
+          ) : (
+            <ResponsiveFlex className="flex-1 h-full w-full" wrap={false}>
+              <div className="flex-1 w-full h-full overflow-y-auto">
+                {selectedConversation ? (
+                  <ConversationView conversationId={selectedConversation.id} />
+                ) : (
+                  <EmptyConversationState />
+                )}
+              </div>
+              {/* Mobile Reply Sidebar - 30% width */}
+              <div className="w-[30%] bg-background border-l border-border flex flex-col h-full">
+                <div className="p-3 border-b border-border">
+                  <h3 className="font-medium text-sm text-foreground">Reply</h3>
+                </div>
+                <div className="flex-1 p-3 flex flex-col gap-3">
+                  <textarea 
+                    className="flex-1 min-h-[120px] resize-none p-2 text-sm border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    placeholder="Type your reply..."
+                  />
+                  <button className="w-full px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">
+                    Send Reply
+                  </button>
+                </div>
+              </div>
+            </ResponsiveFlex>
+          )}
         </ResponsiveFlex>
-        {shouldShowConversationList ? (
-          <ContentPane variant="card" className="flex-1">
-            <ConversationList
-              selectedConversation={selectedConversation}
-              onSelectConversation={handleSelectConversation}
-              selectedInboxId={selectedInboxId}
-              selectedTab={selectedTab}
-              onToggleCollapse={handleToggleConversationList}
-            />
-          </ContentPane>
-        ) : (
-          <ContentPane className="flex-1">
-            {selectedConversation ? (
-              <AdaptiveSection className="h-full">
-                <ConversationView conversationId={selectedConversation.id} />
-              </AdaptiveSection>
-            ) : (
-              <EmptyConversationState />
-            )}
-          </ContentPane>
-        )}
-      </AdaptiveSection>
+      </ResponsiveContainer>
     );
   }
 
   // Desktop & Tablet: Sidebar + full-screen toggle layout
   return (
-    <ResponsiveFlex className="h-full" wrap={false}>
-      <AdaptiveSection className="hidden md:flex h-full">
-        <OptimizedInteractionsSidebar
-          selectedTab={selectedTab}
-          onTabChange={onTabChange}
-          selectedInboxId={selectedInboxId}
-        />
-      </AdaptiveSection>
-      <ContentPane className="h-full p-0 flex-1">
-        {shouldShowConversationList ? (
-          // Full screen conversation list
-          <ContentPane variant="bordered" className="h-full">
-            <ConversationList
-              selectedConversation={selectedConversation}
-              onSelectConversation={handleSelectConversation}
-              selectedInboxId={selectedInboxId}
-              selectedTab={selectedTab}
-              onToggleCollapse={undefined}
-            />
-          </ContentPane>
-        ) : (
-          // Full screen conversation view with back button
-          <ContentPane className="h-full relative">
-            <AdaptiveSection className="absolute top-4 left-4 z-10">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSelectedConversation(null);
-                  const newParams = new URLSearchParams(searchParams);
-                  newParams.delete('conversation');
-                  setSearchParams(newParams, { replace: true });
-                }}
-                className="flex items-center gap-2 bg-background/95 backdrop-blur-sm"
-              >
-                <Sidebar className="h-4 w-4" />
-                <span>Back to Inbox</span>
-              </Button>
-            </AdaptiveSection>
+    <ResponsiveContainer className="h-full w-full max-h-[calc(100vh-120px)]">
+      <ResponsiveFlex className="h-full w-full" wrap={false}>
+        <AdaptiveSection className="hidden md:flex h-full">
+          <OptimizedInteractionsSidebar
+            selectedTab={selectedTab}
+            onTabChange={onTabChange}
+            selectedInboxId={selectedInboxId}
+          />
+        </AdaptiveSection>
+        <div className="h-full flex-1 w-full">
+          {shouldShowConversationList ? (
+            // Full screen conversation list
+            <div className="h-full w-full overflow-y-auto">
+              <ConversationList
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+                selectedInboxId={selectedInboxId}
+                selectedTab={selectedTab}
+                onToggleCollapse={undefined}
+              />
+            </div>
+          ) : (
+            // Full screen conversation view with reply sidebar
+            <ResponsiveFlex className="h-full w-full" wrap={false}>
+              {/* Back Button */}
+              <div className="absolute top-4 left-4 z-10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedConversation(null);
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.delete('conversation');
+                    setSearchParams(newParams, { replace: true });
+                  }}
+                  className="flex items-center gap-2 bg-background/95 backdrop-blur-sm border-border"
+                >
+                  <Sidebar className="h-4 w-4" />
+                  <span>Back to Inbox</span>
+                </Button>
+              </div>
 
-            {selectedConversation ? (
-              <AdaptiveSection className="h-full">
-                <ConversationView conversationId={selectedConversation.id} />
-              </AdaptiveSection>
-            ) : (
-              <EmptyConversationState />
-            )}
-          </ContentPane>
-        )}
-      </ContentPane>
-    </ResponsiveFlex>
+              {/* Main conversation content */}
+              <div className="flex-1 h-full w-full overflow-y-auto pt-16">
+                {selectedConversation ? (
+                  <ConversationView conversationId={selectedConversation.id} />
+                ) : (
+                  <EmptyConversationState />
+                )}
+              </div>
+
+              {/* Desktop Reply Sidebar - 25% width with proper styling */}
+              <div className="w-1/4 bg-background border-l border-border flex flex-col h-full">
+                <div className="p-4 border-b border-border">
+                  <h3 className="font-semibold text-foreground">Reply</h3>
+                </div>
+                <div className="flex-1 p-4 flex flex-col gap-4">
+                  <textarea 
+                    className="flex-1 min-h-[200px] resize-none p-3 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    placeholder="Type your reply..."
+                  />
+                  <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition-colors">
+                    Send Reply
+                  </button>
+                </div>
+              </div>
+            </ResponsiveFlex>
+          )}
+        </div>
+      </ResponsiveFlex>
+    </ResponsiveContainer>
   );
 };
 

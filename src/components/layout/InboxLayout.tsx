@@ -75,43 +75,40 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
   };
 
   return (
-    <ResponsiveContainer className={cn("h-full max-h-[calc(100vh-120px)]", className)}>
+    <ResponsiveContainer className={cn("h-full w-full max-h-[calc(100vh-120px)]", className)}>
       {selectedConversation ? (
-        // Detail View with Reply Sidebar
-        <ResponsiveFlex className="h-full gap-0" wrap={false}>
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Back Button */}
-            <div className="flex items-center gap-2 p-4 border-b border-border bg-background sticky top-0 z-10">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToList}
-                className="flex items-center gap-2 hover:bg-muted"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to {title}</span>
-              </Button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {renderDetail(selectedConversation)}
-            </div>
+        // Detail View with Reply Sidebar - Full Screen Layout
+        <ResponsiveFlex className="h-full w-full" wrap={false}>
+          {/* Back Button */}
+          <div className="absolute top-4 left-4 z-10">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackToList}
+              className="flex items-center gap-2 bg-background/95 backdrop-blur-sm border-border"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to {title}</span>
+            </Button>
           </div>
 
-          {/* Reply Sidebar */}
+          {/* Main Content Area */}
+          <div className="flex-1 h-full w-full overflow-y-auto pt-16">
+            {renderDetail(selectedConversation)}
+          </div>
+
+          {/* Reply Sidebar - 25% width with proper styling */}
           {showReplyBox && (
-            <div className="w-80 border-l border-border bg-background flex flex-col">
+            <div className="w-1/4 bg-background border-l border-border flex flex-col h-full">
               <div className="p-4 border-b border-border">
                 <h3 className="font-semibold text-foreground">Reply</h3>
               </div>
               <div className="flex-1 p-4 flex flex-col gap-4">
-                <Textarea
+                <textarea
                   placeholder="Type your reply..."
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
-                  className="flex-1 min-h-[200px] resize-none border border-border"
+                  className="flex-1 min-h-[200px] resize-none p-3 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
                 <Button
                   onClick={handleSendReply}
@@ -126,8 +123,8 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
           )}
         </ResponsiveFlex>
       ) : (
-        // List View
-        <div className="h-full overflow-y-auto">
+        // List View - Full Screen Grid Layout
+        <div className="h-full w-full overflow-y-auto">
           <div className="p-4 border-b border-border bg-background sticky top-0 z-10">
             <h2 className="text-xl font-semibold text-foreground">{title}</h2>
             <p className="text-sm text-muted-foreground">
@@ -135,11 +132,11 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
             </p>
           </div>
 
-          <div className="p-4">
+          <div className="p-4 h-full w-full">
             <ResponsiveGrid 
               cols={{ sm: '1', md: '2', lg: '3', xl: '4' }} 
               gap="4"
-              className="auto-rows-fr"
+              className="auto-rows-fr w-full h-full"
             >
               {conversations.map((conversation) => (
                 <LayoutItem key={conversation.id}>
