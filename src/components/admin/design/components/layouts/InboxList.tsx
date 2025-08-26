@@ -16,6 +16,7 @@ interface InboxListProps {
   selectedInbox?: string;
   onInboxSelect?: (inboxId: string) => void;
   className?: string;
+  inboxes?: InboxItem[];
 }
 
 const defaultInboxes: InboxItem[] = [
