@@ -148,7 +148,7 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
 
   return (
     <Sidebar 
-      className="border-r border-sidebar-border text-sidebar-foreground"
+      className="border-r border-sidebar-border text-sidebar-foreground [&>[data-sidebar=sidebar]]:bg-background"
       collapsible="none"
     >
       <SidebarContent className="p-0">
