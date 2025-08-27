@@ -138,7 +138,7 @@ const VoiceInboxPage: React.FC = () => {
     };
 
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full px-4 sm:px-6 md:px-8 xl:px-12">
         <ResponsiveGrid cols={{ sm: '1' }} gap="6">
           {/* Call Overview */}
           <LayoutItem>

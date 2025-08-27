@@ -137,11 +137,9 @@ const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'g
   return (
     <div className="h-full">
       <div className="pane h-full">
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-6xl mx-auto">
+        <div className="py-8 px-4 sm:px-6 md:px-8 xl:px-12">
           {renderContent()}
         </div>
-      </div>
       </div>
     </div>
   );

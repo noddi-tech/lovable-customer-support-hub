@@ -158,7 +158,7 @@ const TextInboxPage: React.FC = () => {
     const messages = mockMessages[conversationId as keyof typeof mockMessages] || [];
     
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full px-4 sm:px-6 md:px-8 xl:px-12">
         <ResponsiveGrid cols={{ sm: '1' }} gap="4">
           {messages.map((message) => (
             <LayoutItem key={message.id}>

@@ -112,14 +112,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   
   // Memoize panel configuration to prevent infinite re-renders
   const defaultSizes = useMemo(() => ({
-    messages: isMobile ? 100 : isTablet ? 75 : 70,
-    sidebar: isMobile ? 0 : isTablet ? 25 : 30
-  }), [isMobile, isTablet]);
+    messages: 100
+  }), []);
 
   const minSizes = useMemo(() => ({
-    messages: isMobile ? 100 : 50,
-    sidebar: isMobile ? 0 : 20
-  }), [isMobile]);
+    messages: 100
+  }), []);
 
   // Panel persistence for conversation view
   const { getPanelSize, updatePanelSize } = useResizablePanels({
@@ -755,21 +753,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
             </ScrollArea>
           </div>
         ) : (
-          /* Desktop/Tablet: Resizable panels with proper ScrollArea */
-          <ResizablePanelGroup direction="horizontal" className="flex-1 w-full">
-            {/* Messages Panel */}
-            <ResizablePanel 
-              defaultSize={showCustomerInfo ? getPanelSize('messages') : 100}
-              minSize={showCustomerInfo ? 50 : 100}
-              maxSize={showCustomerInfo ? 80 : 100}
-              onResize={(size) => updatePanelSize('messages', size)}
-              className="flex flex-col min-h-0"
-            >
-              <ScrollArea className="flex-1 pane">
-                <div 
-                  ref={messagesContainerRef}
-                  className="p-6"
-                >
+          /* Desktop/Tablet: Single messages panel - no customer info sidebar */
+          <div className="flex flex-col flex-1 min-h-0 w-full">
+            <ScrollArea className="flex-1 pane">
+              <div 
+                ref={messagesContainerRef}
+                className="p-6"
+              >
                   <div className="space-y-4 w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
                     {messages.length === 0 ? (
                       <div className="text-center text-muted-foreground py-8">

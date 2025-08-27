@@ -30,7 +30,7 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = React.mem
       ), [padding]);
 
   const maxWidthClass = useMemo(() => maxWidth === 'full' ? 'w-full' : `max-w-${maxWidth}`, [maxWidth]);
-  const centerClass = useMemo(() => center ? 'mx-auto' : '', [center]);
+  const centerClass = useMemo(() => (center && maxWidth !== 'full') ? 'mx-auto' : '', [center, maxWidth]);
 
   const combinedClassName = useMemo(() => cn(
     'w-full',
