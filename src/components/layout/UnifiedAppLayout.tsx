@@ -2,6 +2,8 @@ import React from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { LayoutDoctor } from '@/dev/LayoutDoctor';
+import { AppContent } from '@/components/layout/AppContent';
 import { Button } from '@/components/ui/button';
 import { 
   MessageSquare, 
@@ -130,9 +132,10 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
           <aside className="min-h-0 border-r border-border bg-muted">
             {sidebar}
           </aside>
-          <section className="min-h-0 overflow-y-auto w-full max-w-none px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
-            {children}
-          </section>
+        <section className="min-h-0 w-full overflow-auto">
+          {process.env.NODE_ENV !== "production" ? <LayoutDoctor /> : null}
+          <AppContent>{children}</AppContent>
+        </section>
         </main>
       </div>
     </SidebarProvider>

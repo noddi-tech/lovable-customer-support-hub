@@ -132,12 +132,12 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
       {isDetail ? (
         // Detail mode: Message thread + Reply sidebar
         <div 
-          className="grid h-full min-h-0 w-full max-w-none grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] gap-6 md:gap-8"
+          className="grid min-h-0 w-full max-w-none grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] gap-6"
           data-testid="detail-grid"
         >
           {/* Detail left: Message thread */}
-          <div className="min-h-0 border-r border-border">
-            <ScrollArea className="h-full" aria-label={detailLeftLabel}>
+          <div className="min-h-0 min-w-0 border-r border-border">
+            <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
               <div className="p-4 md:p-6">
                 {detailLeft}
               </div>
@@ -145,8 +145,8 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           </div>
           
           {/* Detail right: Reply & Actions sidebar */}
-          <div className="min-h-0 bg-card">
-            <ScrollArea className="h-full" aria-label={detailRightLabel}>
+          <div className="min-h-0 min-w-0 bg-card">
+            <ScrollArea className="h-full overflow-y-auto" aria-label={detailRightLabel}>
               <div className="p-4 md:p-6">
                 {detailRight}
               </div>
@@ -155,11 +155,14 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         </div>
       ) : (
         // List mode: Inbox list + Conversation list
-        <div className="grid h-full min-h-0 w-full max-w-none grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-6 md:gap-8">
+        <div 
+          className="grid min-h-0 w-full max-w-none grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-6"
+          data-testid="list-grid"
+        >
           {/* Left: Inbox list */}
           {left && (
-            <div className="min-h-0 border-r border-border bg-muted/30">
-              <ScrollArea className="h-full" aria-label={leftPaneLabel}>
+            <div className="min-h-0 min-w-0 border-r border-border bg-muted/30">
+              <ScrollArea className="h-full overflow-y-auto" aria-label={leftPaneLabel}>
                 <div className="p-4">
                   {left}
                 </div>
@@ -168,8 +171,8 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           )}
           
           {/* Center: Conversation list */}
-          <div className="min-h-0">
-            <ScrollArea className="h-full" aria-label={centerPaneLabel}>
+          <div className="min-h-0 min-w-0">
+            <ScrollArea className="h-full overflow-y-auto" aria-label={centerPaneLabel}>
               <div className="p-4 md:p-6">
                 {center}
               </div>

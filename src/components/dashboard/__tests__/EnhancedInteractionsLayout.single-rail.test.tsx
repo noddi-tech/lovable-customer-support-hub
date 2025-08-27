@@ -1,16 +1,15 @@
-import React from 'react';
-import { render } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
-import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
+import { render, screen } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { vi, describe, it, beforeEach, expect } from "vitest";
+import { EnhancedInteractionsLayout } from "../EnhancedInteractionsLayout";
 
+// Create test wrapper
 const createTestWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: {
-        retry: false,
-      },
+      queries: { retry: false },
+      mutations: { retry: false },
     },
   });
 
@@ -23,83 +22,113 @@ const createTestWrapper = () => {
   );
 };
 
-describe('MasterDetailShell Single Right Rail', () => {
-  test('detail view has exactly two panes', () => {
-    const { container } = render(
-      <MasterDetailShell
-        detailLeft={<div data-testid="message-thread">Message Thread</div>}
-        detailRight={<div data-testid="reply-sidebar">Reply Sidebar</div>}
-        isDetail={true}
-        onBack={vi.fn()}
-        backButtonLabel="Back to Inbox"
-      />,
-      { wrapper: createTestWrapper() }
-    );
+// Mock the hooks
+vi.mock("@/hooks/useInteractionsData", () => ({
+  useAccessibleInboxes: () => ({
+    data: [{ id: "test-inbox", name: "Test Inbox" }],
+    isLoading: false,
+  }),
+  useConversations: () => ({
+    data: {
+      data: [
+        {
+          id: "test-conversation",
+          subject: "Test Subject",
+          status: "open",
+          priority: "normal",
+          customer: { name: "Test Customer", email: "test@example.com" },
+          lastMessage: { createdAt: new Date().toISOString() },
+        },
+      ],
+    },
+    isLoading: false,
+  }),
+  useThread: () => ({
+    data: [{ id: "test-message", content: "Test message" }],
+    isLoading: false,
+  }),
+  useReply: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}));
 
-    // Find the detail grid container  
-    const detailGrid = container.querySelector('[data-testid="detail-grid"]');
-    expect(detailGrid).toBeDefined();
-    
-    // Assert exactly 2 children: message thread (left) + ReplySidebar (right)
-    expect(detailGrid?.childElementCount).toBe(2);
+vi.mock("@/hooks/useInteractionsNavigation", () => ({
+  useInteractionsNavigation: () => ({
+    selectedConversationId: "test-conversation",
+    selectedInboxId: "test-inbox",
+    selectedStatus: "open",
+    searchQuery: "",
+    setInboxId: vi.fn(),
+    setStatus: vi.fn(),
+    setSearchQuery: vi.fn(),
+    openConversation: vi.fn(),
+    goBack: vi.fn(),
+  }),
+}));
+
+vi.mock("@/hooks/use-responsive", () => ({
+  useIsMobile: () => false,
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback: string) => fallback,
+  }),
+}));
+
+describe("EnhancedInteractionsLayout", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  test('list view has correct two-column layout', () => {
-    const { container } = render(
-      <MasterDetailShell
-        left={<div data-testid="inbox-list">Inbox List</div>}
-        center={<div data-testid="conversation-list">Conversation List</div>}
-        isDetail={false}
-        onBack={vi.fn()}
-        backButtonLabel="Back to Inbox"
-      />,
-      { wrapper: createTestWrapper() }
+  it("renders exactly two panes in detail mode", () => {
+    const Wrapper = createTestWrapper();
+    
+    render(
+      <Wrapper>
+        <EnhancedInteractionsLayout 
+          activeSubTab="email"
+          selectedTab="interactions"
+          onTabChange={vi.fn()}
+          selectedInboxId="test-inbox"
+        />
+      </Wrapper>
     );
 
-    // Should not have detail grid in list mode
-    const detailGrid = container.querySelector('[data-testid="detail-grid"]');
-    expect(detailGrid).toBeNull();
-    
-    // Should have both left and center panes
-    const inboxList = container.querySelector('[data-testid="inbox-list"]');
-    const conversationList = container.querySelector('[data-testid="conversation-list"]');
-    expect(inboxList).toBeDefined();
-    expect(conversationList).toBeDefined();
+    const detailGrid = screen.getByTestId("detail-grid");
+    expect(detailGrid).toBeInTheDocument();
+    expect(detailGrid.children).toHaveLength(2);
   });
 
-  test('no extra sidebars or duplicate content should exist', () => {
-    const { container } = render(
-      <MasterDetailShell
-        detailLeft={<div>Message Thread</div>}
-        detailRight={
-          <div data-testid="reply-sidebar">
-            <h3>Conversation Details</h3>
-            <h3>Quick Actions</h3>
-            <h3>Reply</h3>
-          </div>
-        }
-        isDetail={true}
-        onBack={vi.fn()}
-        backButtonLabel="Back to Inbox"
-      />,
-      { wrapper: createTestWrapper() }
-    );
-
-    // Ensure we only have one occurrence of key UI elements
-    const conversationDetailsNodes = Array.from(
-      container.querySelectorAll('*')
-    ).filter(node => 
-      node.textContent?.includes('Conversation Details')
-    );
+  it("has no layout clamps in interactions root", () => {
+    const Wrapper = createTestWrapper();
     
-    const quickActionsNodes = Array.from(
-      container.querySelectorAll('*')
-    ).filter(node => 
-      node.textContent?.includes('Quick Actions')
+    render(
+      <Wrapper>
+        <EnhancedInteractionsLayout 
+          activeSubTab="email"
+          selectedTab="interactions"
+          onTabChange={vi.fn()}
+          selectedInboxId="test-inbox"
+        />
+      </Wrapper>
     );
 
-    // Should only find these once in the ReplySidebar
-    expect(conversationDetailsNodes.length).toBeLessThanOrEqual(2); // Parent + child element
-    expect(quickActionsNodes.length).toBeLessThanOrEqual(2); // Parent + child element
+    const interactionsRoot = document.getElementById("interactions-root");
+    expect(interactionsRoot).toBeInTheDocument();
+    
+    // Check for clamp classes in the interactions subtree
+    const clampPattern = /\b(container|mx-auto|max-w-)\b/;
+    const elements = interactionsRoot?.querySelectorAll("*") || [];
+    
+    let hasClamps = false;
+    elements.forEach((el) => {
+      if (clampPattern.test(el.className || "")) {
+        hasClamps = true;
+      }
+    });
+    
+    expect(hasClamps).toBe(false);
   });
 });

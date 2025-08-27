@@ -299,14 +299,16 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   };
 
   return (
-    <MasterDetailShell
-      left={renderInboxList()}
-      center={renderConversationList()}
-      detailLeft={renderMessageThread()}
-      detailRight={renderReplySidebar()}
-      isDetail={isDetail}
-      onBack={handleBack}
-      backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
-    />
+    <div id="interactions-root">
+      <MasterDetailShell
+        left={renderInboxList()}
+        center={renderConversationList()}
+        detailLeft={renderMessageThread()}
+        detailRight={renderReplySidebar()}
+        isDetail={isDetail}
+        onBack={handleBack}
+        backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
+      />
+    </div>
   );
 };
