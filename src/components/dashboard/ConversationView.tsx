@@ -250,7 +250,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               ref={messagesContainerRef}
               className="p-3 md:p-6"
             >
-              <div className="space-y-4 w-full" style={{ paddingBottom: showReplyArea ? '320px' : '60px' }}>
+              <div className="space-y-4 w-full">
                 {messages.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -299,110 +299,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                   })
                 )}
 
-                {/* Desktop Reply Area */}
-                {conversation.status === 'open' && !conversation.is_archived && showReplyArea && (
-                  <div className="mt-8 p-4 space-y-4 w-full border-t border-border bg-card/50 rounded-lg">
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg shadow-sm">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary text-primary-foreground">A</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium text-sm">Reply to this conversation</div>
-                          <div className="text-xs text-muted-foreground">Type your response</div>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setShowReplyArea(false)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsInternalNote(false)}
-                          className={!isInternalNote ? 'bg-primary/10 text-primary' : ''}
-                        >
-                          <Reply className="h-4 w-4 mr-2" />
-                          Reply
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsInternalNote(true)}
-                          className={isInternalNote ? 'bg-primary/10 text-primary' : ''}
-                        >
-                          Internal Note
-                        </Button>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Textarea
-                          ref={replyRef}
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          onKeyDown={handleKeyPress}
-                          placeholder={isInternalNote ? "Add internal note..." : `Reply to ${conversation?.customer?.full_name || 'customer'}...`}
-                          className="min-h-[100px] resize-none"
-                          disabled={sendLoading}
-                        />
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" disabled={sendLoading}>
-                              <Paperclip className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" disabled={sendLoading}>
-                              <Smile className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <Button
-                            onClick={handleSendReply}
-                            disabled={!replyText.trim() || sendLoading}
-                            size="sm"
-                          >
-                            {sendLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                              <Send className="h-4 w-4 mr-2" />
-                            )}
-                            {isInternalNote ? 'Add Note' : 'Send Reply'}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Press ⌘+Enter to send quickly
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </ScrollArea>
         </div>
       </div>
         
-      {/* Mobile-optimized floating reply button */}
-      <div className="lg:hidden fixed bottom-4 right-4 z-40">
-        {conversation.status === 'open' && !conversation.is_archived && (
-          <Button 
-            onClick={() => {
-              setIsInternalNote(false);
-              setShowReplyArea(true);
-            }}
-            size="lg"
-            className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
-          >
-            <Reply className="h-6 w-6" />
-          </Button>
-        )}
-      </div>
     </div>
   );
 };

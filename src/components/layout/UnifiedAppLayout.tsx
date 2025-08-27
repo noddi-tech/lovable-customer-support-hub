@@ -130,7 +130,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
           <aside className="min-h-0 border-r border-border bg-muted">
             {sidebar}
           </aside>
-          <section className="min-h-0 overflow-y-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
+          <section className="min-h-0 overflow-y-auto w-full max-w-none px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
             {children}
           </section>
         </main>

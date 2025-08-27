@@ -132,7 +132,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
       {isDetail ? (
         // Detail mode: Message thread + Reply sidebar
         <div 
-          className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] gap-6 md:gap-8 px-4 sm:px-6 md:px-8"
+          className="grid h-full min-h-0 w-full max-w-none grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] gap-6 md:gap-8"
           data-testid="detail-grid"
         >
           {/* Detail left: Message thread */}
@@ -155,7 +155,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         </div>
       ) : (
         // List mode: Inbox list + Conversation list
-        <div className="grid h-full min-h-0 grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-6 md:gap-8 px-4 sm:px-6 md:px-8">
+        <div className="grid h-full min-h-0 w-full max-w-none grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-6 md:gap-8">
           {/* Left: Inbox list */}
           {left && (
             <div className="min-h-0 border-r border-border bg-muted/30">
