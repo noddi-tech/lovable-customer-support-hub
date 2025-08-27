@@ -3,7 +3,6 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { LayoutDoctor } from '@/dev/LayoutDoctor';
-import { AppContent } from '@/components/layout/AppContent';
 import { Button } from '@/components/ui/button';
 import { 
   MessageSquare, 
@@ -67,6 +66,26 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
     }
   ];
 
+  // Runtime width clamp diagnostic (dev only)
+  React.useEffect(() => {
+    if (import.meta.env.DEV) {
+      const anchor = document.querySelector('#interactions-root') ?? document.body;
+      let el: HTMLElement | null = anchor as HTMLElement;
+      const chain: string[] = [];
+      while (el) {
+        const cs = getComputedStyle(el);
+        chain.push(
+          `[${el.tagName.toLowerCase()}] class="${el.className}" id="${el.id}" ` +
+          `w=${el.clientWidth} max-w=${cs.maxWidth} ml=${cs.marginLeft} mr=${cs.marginRight}`
+        );
+        el = el.parentElement;
+      }
+      console.group('WIDTH-CLAMP-CHAIN');
+      chain.forEach((l) => console.log(l));
+      console.groupEnd();
+    }
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="h-svh grid grid-rows-[56px_1fr] bg-background">
@@ -128,14 +147,14 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
         </header>
 
         {/* Full-width content area. No max-width, no mx-auto */}
-        <main className="grid grid-cols-[240px_minmax(0,1fr)] md:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] min-h-0">
+        <main className="grid min-h-0 grid-cols-[240px_minmax(0,1fr)] md:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="min-h-0 border-r border-border bg-muted">
             {sidebar}
           </aside>
-        <section className="min-h-0 w-full overflow-auto">
-          {process.env.NODE_ENV !== "production" ? <LayoutDoctor /> : null}
-          <AppContent>{children}</AppContent>
-        </section>
+          <section id="interactions-root" className="min-h-0 w-full max-w-none overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
+            {process.env.NODE_ENV !== "production" ? <LayoutDoctor /> : null}
+            {children}
+          </section>
         </main>
       </div>
     </SidebarProvider>

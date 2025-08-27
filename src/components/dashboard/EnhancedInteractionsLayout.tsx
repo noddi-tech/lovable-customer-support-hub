@@ -299,7 +299,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   };
 
   return (
-    <div id="interactions-root">
+    <div id="interactions-root" data-testid="interactions-root">
       <MasterDetailShell
         left={renderInboxList()}
         center={renderConversationList()}

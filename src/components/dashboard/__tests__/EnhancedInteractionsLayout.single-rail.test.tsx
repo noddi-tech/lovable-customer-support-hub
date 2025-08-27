@@ -4,8 +4,53 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { vi, describe, it, beforeEach, expect } from "vitest";
 import { EnhancedInteractionsLayout } from "../EnhancedInteractionsLayout";
 
-// Create test wrapper
-const createTestWrapper = () => {
+// Mock the hooks and components
+vi.mock("@/hooks/use-responsive", () => ({
+  useIsMobile: () => false,
+}));
+
+vi.mock("@/hooks/useInteractionsNavigation", () => ({
+  useInteractionsNavigation: () => ({
+    currentState: {
+      conversationId: "test-conversation-id",
+      inbox: "test-inbox",
+      status: "all",
+      search: "",
+    },
+    setInbox: vi.fn(),
+    setStatus: vi.fn(),
+    setSearch: vi.fn(),
+    openConversation: vi.fn(),
+    backToList: vi.fn(),
+  }),
+}));
+
+vi.mock("@/hooks/useInteractionsData", () => ({
+  useAccessibleInboxes: () => ({ data: [{ id: "test-inbox", name: "Test Inbox" }] }),
+  useConversations: () => ({ data: [], isLoading: false }),
+  useThread: () => ({ data: { subject: "Test Thread", customer: { full_name: "Test Customer", email: "test@example.com" } }, isLoading: false }),
+  useReply: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+
+vi.mock("../ConversationView", () => ({
+  ConversationView: ({ conversationId }: { conversationId: string }) => <div data-testid="conversation-view">{conversationId}</div>,
+}));
+
+vi.mock("@/components/admin/design/components/detail/ReplySidebar", () => ({
+  ReplySidebar: (props: any) => <div data-testid="reply-sidebar">Reply Sidebar</div>,
+}));
+
+vi.mock("@/components/admin/design/components/layouts/InboxList", () => ({
+  InboxList: () => <div data-testid="inbox-list">Inbox List</div>,
+}));
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, defaultValue?: string) => defaultValue || key,
+  }),
+}));
+
+const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -13,7 +58,7 @@ const createTestWrapper = () => {
     },
   });
 
-  return ({ children }: { children: React.ReactNode }) => (
+  return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         {children}
@@ -22,113 +67,46 @@ const createTestWrapper = () => {
   );
 };
 
-// Mock the hooks
-vi.mock("@/hooks/useInteractionsData", () => ({
-  useAccessibleInboxes: () => ({
-    data: [{ id: "test-inbox", name: "Test Inbox" }],
-    isLoading: false,
-  }),
-  useConversations: () => ({
-    data: {
-      data: [
-        {
-          id: "test-conversation",
-          subject: "Test Subject",
-          status: "open",
-          priority: "normal",
-          customer: { name: "Test Customer", email: "test@example.com" },
-          lastMessage: { createdAt: new Date().toISOString() },
-        },
-      ],
-    },
-    isLoading: false,
-  }),
-  useThread: () => ({
-    data: [{ id: "test-message", content: "Test message" }],
-    isLoading: false,
-  }),
-  useReply: () => ({
-    mutate: vi.fn(),
-    isPending: false,
-  }),
-}));
-
-vi.mock("@/hooks/useInteractionsNavigation", () => ({
-  useInteractionsNavigation: () => ({
-    selectedConversationId: "test-conversation",
-    selectedInboxId: "test-inbox",
-    selectedStatus: "open",
-    searchQuery: "",
-    setInboxId: vi.fn(),
-    setStatus: vi.fn(),
-    setSearchQuery: vi.fn(),
-    openConversation: vi.fn(),
-    goBack: vi.fn(),
-  }),
-}));
-
-vi.mock("@/hooks/use-responsive", () => ({
-  useIsMobile: () => false,
-}));
-
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, fallback: string) => fallback,
-  }),
-}));
-
 describe("EnhancedInteractionsLayout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("renders exactly two panes in detail mode", () => {
-    const Wrapper = createTestWrapper();
-    
     render(
-      <Wrapper>
-        <EnhancedInteractionsLayout 
-          activeSubTab="email"
+      <TestWrapper>
+        <EnhancedInteractionsLayout
+          activeSubTab="conversations"
           selectedTab="interactions"
           onTabChange={vi.fn()}
           selectedInboxId="test-inbox"
         />
-      </Wrapper>
+      </TestWrapper>
     );
 
-    const detailGrid = screen.getByTestId("detail-grid");
-    expect(detailGrid).toBeInTheDocument();
-    expect(detailGrid.children).toHaveLength(2);
+    const grid = screen.getByTestId("detail-grid");
+    expect(grid).toBeInTheDocument();
+    expect(grid.childElementCount).toBe(2);
   });
 
-  it("has no layout clamps in interactions root", () => {
-    const Wrapper = createTestWrapper();
-    
+  it("does not have width clamps in interactions subtree", () => {
     render(
-      <Wrapper>
-        <EnhancedInteractionsLayout 
-          activeSubTab="email"
+      <TestWrapper>
+        <EnhancedInteractionsLayout
+          activeSubTab="conversations"
           selectedTab="interactions"
           onTabChange={vi.fn()}
           selectedInboxId="test-inbox"
         />
-      </Wrapper>
+      </TestWrapper>
     );
 
-    const interactionsRoot = document.getElementById("interactions-root");
-    expect(interactionsRoot).toBeInTheDocument();
+    const interactionsRoot = screen.getByTestId("interactions-root");
+    const allElements = interactionsRoot.querySelectorAll("*");
     
-    // Check for clamp classes in the interactions subtree
-    const clampPattern = /\b(container|mx-auto|max-w-)\b/;
-    const elements = interactionsRoot?.querySelectorAll("*") || [];
-    
-    let hasClamps = false;
-    elements.forEach((el) => {
-      if (clampPattern.test(el.className || "")) {
-        hasClamps = true;
-      }
+    allElements.forEach((element) => {
+      const className = element.className?.toString() || "";
+      expect(className).not.toMatch(/\b(container|mx-auto|max-w-)\b/);
     });
-    
-    expect(hasClamps).toBe(false);
   });
 });
