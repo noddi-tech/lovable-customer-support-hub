@@ -126,12 +126,15 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
   // Desktop/Tablet layout
   return (
     <div className={cn(
-      "h-full min-h-0 max-w-7xl mx-auto",
+      "h-full min-h-0",
       className
     )}>
       {isDetail ? (
         // Detail mode: Message thread + Reply sidebar
-        <div className="h-full grid grid-cols-1 md:grid-cols-[1fr_320px] lg:grid-cols-[1fr_380px] gap-0 min-h-0">
+        <div 
+          className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] gap-6 md:gap-8 px-4 sm:px-6 md:px-8"
+          data-testid="detail-grid"
+        >
           {/* Detail left: Message thread */}
           <div className="min-h-0 border-r border-border">
             <ScrollArea className="h-full" aria-label={detailLeftLabel}>
@@ -152,7 +155,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         </div>
       ) : (
         // List mode: Inbox list + Conversation list
-        <div className="h-full grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr] xl:grid-cols-[380px_1fr] gap-0 min-h-0">
+        <div className="grid h-full min-h-0 grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-6 md:gap-8 px-4 sm:px-6 md:px-8">
           {/* Left: Inbox list */}
           {left && (
             <div className="min-h-0 border-r border-border bg-muted/30">

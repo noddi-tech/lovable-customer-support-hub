@@ -133,13 +133,9 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
           
           <SidebarInset className="flex flex-col flex-1 min-w-0">
             <main className="flex-1 overflow-hidden">
-              <ResponsiveContainer 
-                className="h-full overflow-y-auto" 
-                maxWidth="full"
-                padding="4"
-              >
+              <section className="min-h-0 w-full overflow-auto px-4 sm:px-6 md:px-8 h-full">
                 {children}
-              </ResponsiveContainer>
+              </section>
             </main>
           </SidebarInset>
         </div>
