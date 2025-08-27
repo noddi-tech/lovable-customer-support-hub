@@ -67,73 +67,75 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   ];
 
   return (
-    <div className="h-svh grid grid-rows-[56px_1fr] bg-background">
-      {/* Top Header */}
-      <header className="bg-muted border-b border-border">
-        <div className="flex h-full items-center justify-center px-4 shadow-sm">
-          <ResponsiveFlex gap="4" alignment="center" className="w-full h-full">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-semibold text-sm">CS</span>
+    <SidebarProvider>
+      <div className="h-svh grid grid-rows-[56px_1fr] bg-background">
+        {/* Top Header */}
+        <header className="bg-muted border-b border-border">
+          <div className="flex h-full items-center justify-center px-4 shadow-sm">
+            <ResponsiveFlex gap="4" alignment="center" className="w-full h-full">
+              {/* Logo */}
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-semibold text-sm">CS</span>
+                </div>
+                <span className="font-semibold text-foreground hidden sm:block">Customer Support Hub</span>
               </div>
-              <span className="font-semibold text-foreground hidden sm:block">Customer Support Hub</span>
-            </div>
-            
-            {/* Centered Main Navigation - Both Horizontal and Vertical */}
-            <ResponsiveFlex justify="center" alignment="center" className="flex-1 h-full">
-              <nav className="flex items-center justify-center gap-1 flex-wrap">
-                {navigationItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentSection === item.id;
-                  
-                  return (
-                    <Button
-                      key={item.id}
-                      variant={isActive ? "default" : "ghost"}
-                      size="sm"
-                      className={cn(
-                        "gap-2 min-w-0 flex-shrink-0",
-                        isActive && "bg-primary text-primary-foreground"
-                      )}
-                      onClick={() => navigate(item.path)}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="hidden sm:inline">{item.label}</span>
-                    </Button>
-                  );
-                })}
-              </nav>
-            </ResponsiveFlex>
+              
+              {/* Centered Main Navigation - Both Horizontal and Vertical */}
+              <ResponsiveFlex justify="center" alignment="center" className="flex-1 h-full">
+                <nav className="flex items-center justify-center gap-1 flex-wrap">
+                  {navigationItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentSection === item.id;
+                    
+                    return (
+                      <Button
+                        key={item.id}
+                        variant={isActive ? "default" : "ghost"}
+                        size="sm"
+                        className={cn(
+                          "gap-2 min-w-0 flex-shrink-0",
+                          isActive && "bg-primary text-primary-foreground"
+                        )}
+                        onClick={() => navigate(item.path)}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="hidden sm:inline">{item.label}</span>
+                      </Button>
+                    );
+                  })}
+                </nav>
+              </ResponsiveFlex>
 
-            {/* Right side actions */}
-            <ResponsiveFlex gap="2" alignment="center">
-              <Button variant="ghost" size="sm">
-                <Search className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <User className="h-4 w-4" />
-              </Button>
+              {/* Right side actions */}
+              <ResponsiveFlex gap="2" alignment="center">
+                <Button variant="ghost" size="sm">
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <Bell className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <User className="h-4 w-4" />
+                </Button>
+              </ResponsiveFlex>
             </ResponsiveFlex>
-          </ResponsiveFlex>
-        </div>
-      </header>
+          </div>
+        </header>
 
-      {/* Full-width content area. No max-width, no mx-auto */}
-      <main className="grid grid-cols-[240px_minmax(0,1fr)] md:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] min-h-0">
-        <aside className="min-h-0 border-r border-border bg-muted">
-          {sidebar}
-        </aside>
-        <section className="min-h-0 overflow-y-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
-          {children}
-        </section>
-      </main>
-    </div>
+        {/* Full-width content area. No max-width, no mx-auto */}
+        <main className="grid grid-cols-[240px_minmax(0,1fr)] md:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] min-h-0">
+          <aside className="min-h-0 border-r border-border bg-muted">
+            {sidebar}
+          </aside>
+          <section className="min-h-0 overflow-y-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
+            {children}
+          </section>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 };
