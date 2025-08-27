@@ -498,7 +498,7 @@ export const DesignLibrary = () => {
   ];
 
   return (
-    <ResponsiveContainer className="pane" padding={{ sm: '4', md: '6' }}>
+    <ResponsiveContainer className="pane" padding={{ sm: '4', md: '6' }} center={true}>
       <AdaptiveSection spacing={{ sm: '4', md: '6' }}>
         <AdaptiveSection spacing="2">
           <h3 className="text-lg font-semibold text-primary">Design Library</h3>

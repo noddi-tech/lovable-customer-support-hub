@@ -10,7 +10,7 @@ import AdminDesignComponents from './AdminDesignComponents';
 export default function AdminDesignComponentsPage() {
   return (
     <UnifiedAppLayout sidebar={<SettingsSidebar />}>
-      <ResponsiveContainer className="space-y-6">
+      <ResponsiveContainer className="space-y-6" center={true}>
         {/* Enhanced Component Library Overview */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">

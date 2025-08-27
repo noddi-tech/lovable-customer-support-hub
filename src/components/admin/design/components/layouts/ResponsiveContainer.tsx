@@ -17,7 +17,7 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = React.mem
   className,
   padding = '4',
   maxWidth = '7xl',
-  center = true,
+  center = false,
   as: Component = 'div',
 }) => {
   const paddingClass = useMemo(() => typeof padding === 'string' 

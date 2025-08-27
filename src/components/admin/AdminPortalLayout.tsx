@@ -142,6 +142,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
             className="flex-1 overflow-y-auto"
             padding={{ sm: '4', md: '6' }}
             maxWidth="full"
+            center={true}
           >
             <div className="h-full">
               {children}
