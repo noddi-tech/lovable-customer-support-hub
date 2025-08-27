@@ -67,10 +67,10 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   ];
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen flex-col overflow-hidden bg-background">
-        {/* Top Header */}
-        <header className="flex h-16 items-center justify-center border-b border-border bg-background px-4 shadow-sm">
+    <div className="h-svh grid grid-rows-[56px_1fr] bg-background">
+      {/* Top Header */}
+      <header className="bg-muted border-b border-border">
+        <div className="flex h-full items-center justify-center px-4 shadow-sm">
           <ResponsiveFlex gap="4" alignment="center" className="w-full h-full">
             {/* Logo */}
             <div className="flex items-center gap-2">
@@ -120,26 +120,20 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
               <Button variant="ghost" size="sm">
                 <User className="h-4 w-4" />
               </Button>
-              
-              {/* Mobile sidebar trigger */}
-              {sidebar && <SidebarTrigger className="md:hidden" />}
             </ResponsiveFlex>
           </ResponsiveFlex>
-        </header>
-
-        {/* Main Content Area */}
-        <div className="flex flex-1 overflow-hidden">
-          {sidebar}
-          
-          <SidebarInset className="flex flex-col flex-1 min-w-0">
-            <main className="flex-1 overflow-hidden">
-              <section className="min-h-0 w-full overflow-auto px-4 sm:px-6 md:px-8 h-full">
-                {children}
-              </section>
-            </main>
-          </SidebarInset>
         </div>
-      </div>
-    </SidebarProvider>
+      </header>
+
+      {/* Full-width content area. No max-width, no mx-auto */}
+      <main className="grid grid-cols-[240px_minmax(0,1fr)] md:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] min-h-0">
+        <aside className="min-h-0 border-r border-border bg-muted">
+          {sidebar}
+        </aside>
+        <section className="min-h-0 overflow-y-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
+          {children}
+        </section>
+      </main>
+    </div>
   );
 };
