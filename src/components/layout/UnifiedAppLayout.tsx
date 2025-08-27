@@ -2,7 +2,6 @@ import React from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { LayoutDoctor } from '@/dev/LayoutDoctor';
 import { Button } from '@/components/ui/button';
 import { 
   MessageSquare, 
@@ -66,23 +65,19 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
     }
   ];
 
-  // Runtime width clamp diagnostic (dev only)
+  // Runtime clamp diagnostic (gated behind env var)
   React.useEffect(() => {
-    if (import.meta.env.DEV) {
-      const anchor = document.querySelector('#interactions-root') ?? document.body;
-      let el: HTMLElement | null = anchor as HTMLElement;
-      const chain: string[] = [];
-      while (el) {
+    if (import.meta.env.VITE_LAYOUT_DOCTOR === '1') {
+      const offenders: Element[] = [];
+      document.querySelectorAll('*').forEach(el => {
         const cs = getComputedStyle(el);
-        chain.push(
-          `[${el.tagName.toLowerCase()}] class="${el.className}" id="${el.id}" ` +
-          `w=${el.clientWidth} max-w=${cs.maxWidth} ml=${cs.marginLeft} mr=${cs.marginRight}`
-        );
-        el = el.parentElement;
-      }
-      console.group('WIDTH-CLAMP-CHAIN');
-      chain.forEach((l) => console.log(l));
-      console.groupEnd();
+        const mw = parseFloat(cs.maxWidth);
+        if ((cs.marginLeft === 'auto' && cs.marginRight === 'auto') ||
+            (!Number.isNaN(mw) && mw > 0 && mw < window.innerWidth - 40)) {
+          offenders.push(el);
+        }
+      });
+      console.log('Clamp offenders:', offenders.map(e => ({node: e, class: (e as HTMLElement).className, id: e.id})));
     }
   }, []);
 
@@ -152,7 +147,6 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
             {sidebar}
           </aside>
           <section id="interactions-root" className="min-h-0 w-full max-w-none overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
-            {process.env.NODE_ENV !== "production" ? <LayoutDoctor /> : null}
             {children}
           </section>
         </main>
