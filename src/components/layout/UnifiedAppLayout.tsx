@@ -146,7 +146,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
           <aside className="min-h-0 border-r border-border bg-muted">
             {sidebar}
           </aside>
-          <section id="interactions-root" className="min-h-0 w-full max-w-none overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
+          <section id="interactions-root" className="min-h-0 w-full max-w-none overflow-auto px-2 sm:px-3 lg:px-4">
             {children}
           </section>
         </main>
