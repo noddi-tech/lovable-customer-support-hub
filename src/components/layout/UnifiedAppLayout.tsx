@@ -2,7 +2,6 @@ import React from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { ResponsiveContainer, ResponsiveFlex } from '@/components/admin/design/components/layouts';
 import { Button } from '@/components/ui/button';
 import { 
   MessageSquare, 
@@ -71,8 +70,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
       <div className="h-svh grid grid-rows-[56px_1fr] bg-background">
         {/* Top Header */}
         <header className="bg-muted border-b border-border">
-          <div className="flex h-full items-center justify-center px-4 shadow-sm">
-            <ResponsiveFlex gap="4" alignment="center" className="w-full h-full">
+          <div className="flex h-full items-center px-4 shadow-sm">
+            <div className="flex items-center gap-4 w-full h-full">
               {/* Logo */}
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded bg-primary flex items-center justify-center">
@@ -81,8 +80,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
                 <span className="font-semibold text-foreground hidden sm:block">Customer Support Hub</span>
               </div>
               
-              {/* Centered Main Navigation - Both Horizontal and Vertical */}
-              <ResponsiveFlex justify="center" alignment="center" className="flex-1 h-full">
+              {/* Centered Main Navigation */}
+              <div className="flex-1 flex justify-center h-full">
                 <nav className="flex items-center justify-center gap-1 flex-wrap">
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
@@ -105,10 +104,10 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
                     );
                   })}
                 </nav>
-              </ResponsiveFlex>
+              </div>
 
               {/* Right side actions */}
-              <ResponsiveFlex gap="2" alignment="center">
+              <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm">
                   <Search className="h-4 w-4" />
                 </Button>
@@ -121,8 +120,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
                 <Button variant="ghost" size="sm">
                   <User className="h-4 w-4" />
                 </Button>
-              </ResponsiveFlex>
-            </ResponsiveFlex>
+              </div>
+            </div>
           </div>
         </header>
 

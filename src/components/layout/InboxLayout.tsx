@@ -4,7 +4,8 @@ import { ArrowLeft, Send, MessageCircle, Archive, Forward, UserCheck } from 'luc
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { ResponsiveContainer, ResponsiveGrid, LayoutItem, ResponsiveFlex } from '@/components/admin/design/components/layouts';
+import { ResponsiveGrid, LayoutItem } from '@/components/admin/design/components/layouts';
+import { AppContent } from './AppContent';
 import { cn } from '@/lib/utils';
 
 interface InboxLayoutProps {
@@ -80,7 +81,7 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
     <div className={cn("flex-1 overflow-hidden h-full bg-background", className)}>
       {selectedConversation ? (
         // Detail View - Enhanced card-based layout
-        <ResponsiveContainer className="h-full flex flex-col">
+        <div className="h-full flex flex-col w-full">
           {/* Back Button - Clean positioning */}
           <div className="p-4 border-b border-border bg-card">
             <Button
@@ -95,52 +96,54 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
           </div>
 
           {/* Main Content with Enhanced Card Structure */}
-          <div className="flex-1 overflow-y-auto bg-background p-4">
-            <Card className="w-full h-fit shadow-sm border-border">
-              <CardHeader>
-                <h3 className="text-lg font-semibold text-foreground">Conversation Details</h3>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderDetail(selectedConversation)}
-              </CardContent>
-            </Card>
-            
-            {/* Enhanced Reply Box */}
-            {showReplyBox && isReplyBoxVisible && (
-              <Card className="mt-4 border-border shadow-sm">
+          <AppContent className="flex-1 overflow-y-auto bg-background">
+            <div className="py-4">
+              <Card className="w-full h-fit shadow-sm border-border">
                 <CardHeader>
-                  <h4 className="font-medium text-foreground flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4" />
-                    Reply to this conversation
-                  </h4>
+                  <h3 className="text-lg font-semibold text-foreground">Conversation Details</h3>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Textarea
-                    placeholder="Type your reply..."
-                    value={replyMessage}
-                    onChange={(e) => setReplyMessage(e.target.value)}
-                    className="min-h-[120px] resize-none bg-background border-border focus:ring-ring"
-                  />
-                  <ResponsiveFlex className="gap-2 justify-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsReplyBoxVisible(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSendReply}
-                      disabled={!replyMessage.trim()}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Reply
-                    </Button>
-                  </ResponsiveFlex>
+                <CardContent className="space-y-4">
+                  {renderDetail(selectedConversation)}
                 </CardContent>
               </Card>
-            )}
-          </div>
+              
+              {/* Enhanced Reply Box */}
+              {showReplyBox && isReplyBoxVisible && (
+                <Card className="mt-4 border-border shadow-sm">
+                  <CardHeader>
+                    <h4 className="font-medium text-foreground flex items-center gap-2">
+                      <MessageCircle className="h-4 w-4" />
+                      Reply to this conversation
+                    </h4>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Textarea
+                      placeholder="Type your reply..."
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      className="min-h-[120px] resize-none bg-background border-border focus:ring-ring"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsReplyBoxVisible(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleSendReply}
+                        disabled={!replyMessage.trim()}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Reply
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </AppContent>
 
           {/* Enhanced Floating Reply Button */}
           {showReplyBox && !isReplyBoxVisible && (
@@ -154,10 +157,10 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
               </Button>
             </div>
           )}
-        </ResponsiveContainer>
+        </div>
       ) : (
         // List View - Enhanced Card-Based Grid Layout
-        <ResponsiveContainer className="h-full flex flex-col">
+        <div className="h-full flex flex-col w-full">
           {/* Enhanced Header Card */}
           <Card className="border-b border-border rounded-none shadow-none bg-card">
             <CardHeader>
@@ -173,73 +176,75 @@ export const InboxLayout: React.FC<InboxLayoutProps> = ({
           </Card>
 
           {/* Enhanced Conversation Grid with Cards */}
-          <div className="flex-1 overflow-y-auto bg-background p-4">
-            <ResponsiveGrid 
-              cols={{ sm: '1', md: '2', lg: '3', xl: '4' }} 
-              gap="4"
-              className="auto-rows-fr"
-            >
-              {conversations.map((conversation) => (
-                <LayoutItem key={conversation.id}>
-                  <Card 
-                    className={cn(
-                      "cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 h-full group hover:scale-[1.02]",
-                      getPriorityColor(conversation.priority),
-                      "bg-card border-border hover:border-primary/20"
-                    )}
-                    onClick={() => handleSelectConversation(conversation.id)}
-                  >
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-medium text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                          {conversation.title}
-                        </h3>
-                        {conversation.status && (
-                          <span className={cn(
-                            "text-xs px-2 py-1 rounded-full font-medium",
-                            conversation.status === 'open' ? 'bg-success/10 text-success border border-success/20' :
-                            conversation.status === 'pending' ? 'bg-warning/10 text-warning border border-warning/20' :
-                            conversation.status === 'resolved' ? 'bg-primary/10 text-primary border border-primary/20' :
-                            'bg-muted text-muted-foreground border border-border'
-                          )}>
-                            {conversation.status}
-                          </span>
+          <AppContent className="flex-1 overflow-y-auto bg-background">
+            <div className="py-4">
+              <ResponsiveGrid 
+                cols={{ sm: '1', md: '2', lg: '3', xl: '4' }} 
+                gap="4"
+                className="auto-rows-fr"
+              >
+                {conversations.map((conversation) => (
+                  <LayoutItem key={conversation.id}>
+                    <Card 
+                      className={cn(
+                        "cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 h-full group hover:scale-[1.02]",
+                        getPriorityColor(conversation.priority),
+                        "bg-card border-border hover:border-primary/20"
+                      )}
+                      onClick={() => handleSelectConversation(conversation.id)}
+                    >
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-medium text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                            {conversation.title}
+                          </h3>
+                          {conversation.status && (
+                            <span className={cn(
+                              "text-xs px-2 py-1 rounded-full font-medium",
+                              conversation.status === 'open' ? 'bg-success/10 text-success border border-success/20' :
+                              conversation.status === 'pending' ? 'bg-warning/10 text-warning border border-warning/20' :
+                              conversation.status === 'resolved' ? 'bg-primary/10 text-primary border border-primary/20' :
+                              'bg-muted text-muted-foreground border border-border'
+                            )}>
+                              {conversation.status}
+                            </span>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {conversation.subtitle && (
+                          <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
+                            {conversation.subtitle}
+                          </p>
                         )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      {conversation.subtitle && (
-                        <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
-                          {conversation.subtitle}
-                        </p>
-                      )}
-                      {conversation.timestamp && (
-                        <p className="text-xs text-muted-foreground">
-                          {conversation.timestamp}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </LayoutItem>
-              ))}
-            </ResponsiveGrid>
+                        {conversation.timestamp && (
+                          <p className="text-xs text-muted-foreground">
+                            {conversation.timestamp}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </LayoutItem>
+                ))}
+              </ResponsiveGrid>
 
-            {/* Enhanced Empty State */}
-            {conversations.length === 0 && (
-              <Card className="border-dashed border-2 border-border">
-                <CardContent className="flex items-center justify-center h-64 text-center">
-                  <div>
-                    <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">No items found</h3>
-                    <p className="text-muted-foreground">
-                      There are no items in this {title.toLowerCase()} yet.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </ResponsiveContainer>
+              {/* Enhanced Empty State */}
+              {conversations.length === 0 && (
+                <Card className="border-dashed border-2 border-border">
+                  <CardContent className="flex items-center justify-center h-64 text-center">
+                    <div>
+                      <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">No items found</h3>
+                      <p className="text-muted-foreground">
+                        There are no items in this {title.toLowerCase()} yet.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </AppContent>
+        </div>
       )}
     </div>
   );
