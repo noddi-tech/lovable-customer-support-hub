@@ -108,9 +108,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
 
           {/* RIGHT: Inspector/Properties */}
           <aside className="min-h-0 overflow-hidden border-l border-border bg-card">
-            <div className="h-full w-full overflow-y-auto">
-              {right}
-            </div>
+            {right}
           </aside>
         </div>
       </div>
@@ -134,9 +132,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
       >
         {/* LEFT: Blocks & Templates */}
         <div className="min-h-0 overflow-hidden border-r border-border bg-card">
-          <div className="h-full w-full overflow-y-auto">
-            {left}
-          </div>
+          {left}
         </div>
 
         {/* CENTER: Preview/Canvas */}
@@ -146,12 +142,10 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
           </div>
         </div>
 
-        {/* RIGHT: Inspector/Properties */}
-        <aside className="min-h-0 overflow-hidden border-l border-border bg-card">
-          <div className="h-full w-full overflow-y-auto">
+          {/* RIGHT: Inspector/Properties */}
+          <aside className="min-h-0 overflow-hidden border-l border-border bg-card">
             {right}
-          </div>
-        </aside>
+          </aside>
       </div>
     </div>
   );
