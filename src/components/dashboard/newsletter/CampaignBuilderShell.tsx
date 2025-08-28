@@ -97,7 +97,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
         {/* Two-pane content */}
         <div
           data-testid="campaigns-grid"
-          className="grid min-h-0 flex-1 w-full grid-cols-[minmax(280px,1fr)_minmax(280px,320px)] gap-4 md:gap-6"
+          className="grid min-h-0 flex-1 w-full grid-cols-[minmax(280px,1fr)_minmax(280px,360px)] gap-4 md:gap-6"
         >
           {/* CENTER: Preview/Canvas */}
           <div className="min-h-0 overflow-hidden">
@@ -130,7 +130,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
       {/* Three-pane content */}
       <div
         data-testid="campaigns-grid"
-        className="grid min-h-0 flex-1 w-full grid-cols-[minmax(280px,300px)_minmax(400px,1fr)_minmax(280px,360px)] xl:grid-cols-[minmax(300px,320px)_minmax(500px,1fr)_minmax(320px,400px)] gap-4 md:gap-6"
+        className="grid min-h-0 flex-1 w-full grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(300px,360px)] xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_minmax(320px,400px)] gap-4 md:gap-6"
       >
         {/* LEFT: Blocks & Templates */}
         <div className="min-h-0 overflow-hidden border-r border-border bg-card">

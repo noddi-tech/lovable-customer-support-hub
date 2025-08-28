@@ -236,9 +236,9 @@ export default function AdminDesignComponents() {
         </p>
 
         <ResponsiveTabs defaultValue="layouts" variant="underline" size="md" className="min-w-0">
-          <ResponsiveTabsList className="w-full flex-wrap gap-1">
+          <ResponsiveTabsList className="w-full flex flex-wrap gap-1 min-w-0">
             {componentCategories.map((category) => (
-              <ResponsiveTabsTrigger key={category.id} value={category.id} className="flex items-center gap-2 truncate min-w-0">
+              <ResponsiveTabsTrigger key={category.id} value={category.id} className="flex items-center gap-2 truncate min-w-0 shrink-0">
                 <category.icon className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">{category.name}</span>
               </ResponsiveTabsTrigger>

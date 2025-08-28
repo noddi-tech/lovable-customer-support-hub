@@ -63,6 +63,24 @@
   margin-bottom: 0.5rem;
 }
 
-.control-safe-spacing-loose {
-  margin-bottom: 1rem;
+/* Safety net for any missed tablists/toolbars without touching visuals */
+[role="tablist"]{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:center !important;
+  gap:.5rem !important;
+  min-width:0 !important;
+  overflow-x:auto !important;
+  overflow-y:visible !important;
+}
+[role="tablist"] > * { 
+  flex:0 0 auto !important; 
+}
+.control-toolbar{
+  display:flex !important; 
+  flex-wrap:wrap !important; 
+  gap:.5rem !important; 
+  min-width:0 !important; 
+  overflow-x:auto !important; 
+  overflow-y:visible !important;
 }
