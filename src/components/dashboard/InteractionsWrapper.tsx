@@ -8,13 +8,12 @@ interface InteractionsWrapperProps {
 
 const InteractionsWrapper: React.FC<InteractionsWrapperProps> = ({ activeSubSection = 'text' }) => {
   const renderContent = () => {
-    switch (activeSubSection) {
-      case 'text':
-        return <Dashboard activeMainTab="interactions" activeSubTab="text" onMainTabChange={() => {}} />;
+    switch (activeSubSection) {      case 'text':
+        return <Dashboard />;
       case 'voice':
         return <VoiceInterface />;
       default:
-        return <Dashboard activeMainTab="interactions" activeSubTab="text" onMainTabChange={() => {}} />;
+        return <Dashboard />;
     }
   };
 

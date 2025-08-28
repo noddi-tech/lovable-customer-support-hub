@@ -9,16 +9,10 @@ import { ResponsiveFlex } from '@/components/admin/design/components/layouts';
 
 interface ModernLayoutProps {
   children: React.ReactNode;
-  activeTab: string;
-  activeSubTab: string;
-  onTabChange: (tab: string, subTab: string) => void;
 }
 
 export const ModernLayout: React.FC<ModernLayoutProps> = ({
-  children,
-  activeTab,
-  activeSubTab,
-  onTabChange
+  children
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -31,9 +25,6 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
     <div className="h-svh grid grid-rows-[auto_1fr] bg-background overflow-hidden">
       {/* Header */}
       <ModernHeader
-        activeTab={activeTab}
-        activeSubTab={activeSubTab}
-        onTabChange={onTabChange}
         onSidebarToggle={handleSidebarToggle}
         showSidebarToggle={isMobile}
       />
@@ -43,11 +34,7 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
         {/* Sidebar */}
         <aside className="bg-muted border-r border-border overflow-auto min-h-0">
           <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <ModernSidebar 
-              activeTab={activeTab}
-              activeSubTab={activeSubTab}
-              onTabChange={onTabChange}
-            />
+            <ModernSidebar />
           </SidebarProvider>
         </aside>
         

@@ -45,13 +45,7 @@ interface Conversation {
   };
 }
 
-interface DashboardProps {
-  activeMainTab: string;
-  activeSubTab: string;
-  onMainTabChange: (tab: string, subTab: string) => void;
-}
-
-export const Dashboard = ({ activeMainTab, activeSubTab, onMainTabChange }: DashboardProps) => {
+export const Dashboard = () => {
   const { t } = useTranslation();
   
   // Dashboard is now simplified - conversations are handled by InteractionsLayout

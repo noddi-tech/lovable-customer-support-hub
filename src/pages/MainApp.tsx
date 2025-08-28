@@ -84,11 +84,7 @@ export const MainApp: React.FC<MainAppProps> = ({
   };
 
   return (
-    <ModernLayout
-      activeTab={activeTab}
-      activeSubTab={activeSubTab}
-      onTabChange={onTabChange}
-    >
+    <ModernLayout>
       {renderActiveContent()}
     </ModernLayout>
   );

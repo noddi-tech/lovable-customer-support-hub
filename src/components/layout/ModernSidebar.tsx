@@ -41,17 +41,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ModernSidebarProps {
-  activeTab: string;
-  activeSubTab: string;
-  onTabChange: (tab: string, subTab: string) => void;
-}
+interface ModernSidebarProps {}
 
-export const ModernSidebar: React.FC<ModernSidebarProps> = ({
-  activeTab,
-  activeSubTab,
-  onTabChange
-}) => {
+export const ModernSidebar: React.FC<ModernSidebarProps> = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,9 +93,9 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
 
   const isItemActive = (mainId: string, subId?: string) => {
     if (subId) {
-      return activeTab === mainId && activeSubTab === subId;
+      return location.pathname.includes(`/${mainId}`) && location.pathname.includes(`/${subId}`);
     }
-    return activeTab === mainId;
+    return location.pathname.includes(`/${mainId}`);
   };
 
   return (
@@ -143,13 +135,13 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
                     <SidebarMenu className="ml-4 mt-1">
                       {item.items.map((subItem) => (
                         <SidebarMenuItem key={`${item.id}-${subItem.id}`}>
-                          <SidebarMenuButton
-                            onClick={() => onTabChange(item.id, subItem.id)}
-                            className={cn(
-                              "w-full justify-between text-sm",
-                              isItemActive(item.id, subItem.id) && "bg-accent font-medium"
-                            )}
-                          >
+                        <SidebarMenuButton
+                          onClick={() => navigate(`/${item.id}/${subItem.id}`)}
+                          className={cn(
+                            "w-full justify-between text-sm",
+                            isItemActive(item.id, subItem.id) && "bg-accent font-medium"
+                          )}
+                        >
                             <div className="flex items-center gap-2">
                               <subItem.icon className="h-3 w-3" />
                               <span>{subItem.title}</span>
@@ -173,7 +165,7 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = ({
         <Separator className="mx-3" />
 
         {/* Quick Filters - Only for Interactions */}
-        {activeTab === 'interactions' && (
+        {location.pathname.includes('/interactions') && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 flex items-center justify-between">
               {t('sidebar.filters', 'Filters')}

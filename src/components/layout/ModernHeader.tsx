@@ -17,48 +17,17 @@ import {
   Settings,
   Palette,
   Menu,
-  Bell,
   MessageCircle,
-  Phone,
-  Users,
-  Clock,
-  Home,
-  Mail,
-  Send,
-  Headphones,
-  Ticket,
-  ShieldCheck,
-  UserPlus
+  Clock
 } from 'lucide-react';
-import { 
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarTrigger,
-} from '@/components/ui/menubar';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
 import { cn } from '@/lib/utils';
 
 interface ModernHeaderProps {
-  activeTab: string;
-  activeSubTab: string;
-  onTabChange: (tab: string, subTab: string) => void;
   onSidebarToggle?: () => void;
   showSidebarToggle?: boolean;
 }
 
 export const ModernHeader: React.FC<ModernHeaderProps> = ({
-  activeTab,
-  activeSubTab,
-  onTabChange,
   onSidebarToggle,
   showSidebarToggle = false
 }) => {
@@ -77,52 +46,6 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
     }
   };
 
-  // Navigation structure
-  const mainTabs = [
-    {
-      id: 'interactions',
-      title: t('header.interactions', 'Interactions'),
-      icon: MessageCircle,
-      items: [
-        { id: 'text', title: t('header.messages', 'Messages'), icon: Mail },
-        { id: 'voice', title: t('header.calls', 'Calls'), icon: Phone },
-      ]
-    },
-    {
-      id: 'marketing',
-      title: t('header.marketing', 'Marketing'),
-      icon: Send,
-      items: [
-        { id: 'newsletters', title: t('header.newsletters', 'Newsletters'), icon: Mail },
-      ]
-    },
-    {
-      id: 'operations',
-      title: t('header.operations', 'Operations'),
-      icon: Users,
-      items: [
-        { id: 'tickets', title: t('header.tickets', 'Tickets'), icon: Ticket },
-        { id: 'doorman', title: t('header.doorman', 'Doorman'), icon: ShieldCheck },
-        { id: 'recruitment', title: t('header.recruitment', 'Recruitment'), icon: UserPlus },
-      ]
-    },
-    {
-      id: 'settings',
-      title: t('header.settings', 'Settings'),
-      icon: Settings,
-      items: [
-        { id: 'general', title: t('header.general', 'General'), icon: Settings },
-        { id: 'profile', title: t('header.profile', 'Profile'), icon: User },
-        { id: 'notifications', title: t('header.notifications', 'Notifications'), icon: Bell },
-        { id: 'email-templates', title: t('header.emailTemplates', 'Email Templates'), icon: Mail },
-        { id: 'admin', title: t('header.adminPortal', 'Admin Portal'), icon: ShieldCheck },
-      ]
-    }
-  ];
-
-  // Get current tab info
-  const currentMainTab = mainTabs.find(tab => tab.id === activeTab);
-  const currentSubTab = currentMainTab?.items.find(item => item.id === activeSubTab);
 
   return (
     <div className="flex flex-col">
@@ -159,51 +82,6 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
           </div>
         </div>
 
-        {/* Center Section - Menubar Navigation */}
-        {!isMobile && (
-          <div className="flex-1 flex justify-center">
-            <Menubar className="border-none bg-transparent">
-              {mainTabs.map((tab) => {
-                const TabIcon = tab.icon;
-                const isActiveTab = activeTab === tab.id;
-                
-                return (
-                  <MenubarMenu key={tab.id}>
-                    <MenubarTrigger className={cn(
-                      "cursor-pointer px-3 py-2 text-sm font-medium transition-colors",
-                      isActiveTab 
-                        ? "text-primary bg-primary/10" 
-                        : "text-muted-foreground hover:text-foreground"
-                    )}>
-                      <TabIcon className="h-4 w-4 mr-2" />
-                      {tab.title}
-                    </MenubarTrigger>
-                    <MenubarContent align="start" className="min-w-48">
-                      {tab.items.map((item) => {
-                        const ItemIcon = item.icon;
-                        const isActiveSubTab = activeTab === tab.id && activeSubTab === item.id;
-                        
-                        return (
-                          <MenubarItem
-                            key={item.id}
-                            className={cn(
-                              "cursor-pointer",
-                              isActiveSubTab && "bg-primary/10 text-primary"
-                            )}
-                            onClick={() => onTabChange(tab.id, item.id)}
-                          >
-                            <ItemIcon className="h-4 w-4 mr-2" />
-                            {item.title}
-                          </MenubarItem>
-                        );
-                      })}
-                    </MenubarContent>
-                  </MenubarMenu>
-                );
-              })}
-            </Menubar>
-          </div>
-        )}
 
         {/* Right Section */}
         <div className="flex items-center gap-2">
@@ -269,49 +147,6 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
         </div>
       </header>
 
-      {/* Breadcrumb Navigation */}
-      <div className="flex items-center h-10 px-4 bg-muted border-b border-border">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink 
-                onClick={() => navigate('/')} 
-                className="cursor-pointer flex items-center"
-              >
-                <Home className="h-3 w-3 mr-1" />
-                Home
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            
-            {currentMainTab && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink 
-                    onClick={() => currentMainTab.items[0] && onTabChange(currentMainTab.id, currentMainTab.items[0].id)}
-                    className="cursor-pointer flex items-center"
-                  >
-                    <currentMainTab.icon className="h-3 w-3 mr-1" />
-                    {currentMainTab.title}
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-              </>
-            )}
-            
-            {currentSubTab && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="flex items-center">
-                    <currentSubTab.icon className="h-3 w-3 mr-1" />
-                    {currentSubTab.title}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </>
-            )}
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
     </div>
   );
 };
