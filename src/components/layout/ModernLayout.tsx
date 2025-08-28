@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { ModernAppShell } from './ModernAppShell';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { ModernHeader } from './ModernHeader';
 import { ModernSidebar } from './ModernSidebar';
-import { ModernMainContent } from './ModernMainContent';
 import { useIsMobile } from '@/hooks/use-responsive';
-import { ResponsiveFlex } from '@/components/admin/design/components/layouts';
 
 interface ModernLayoutProps {
   children: React.ReactNode;

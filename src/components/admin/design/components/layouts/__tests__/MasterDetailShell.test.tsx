@@ -64,6 +64,24 @@ describe('MasterDetailShell', () => {
       expect(screen.queryByTestId('center-pane')).not.toBeInTheDocument();
     });
 
+    it('detail-grid has exactly 2 children', () => {
+      mockUseIsMobile.mockReturnValue(false);
+      
+      render(<MasterDetailShell {...detailProps} />);
+      
+      const detailGrid = screen.getByTestId('detail-grid');
+      expect(detailGrid).toBeInTheDocument();
+      expect(detailGrid.children).toHaveLength(2);
+    });
+
+    it('does not render detail-grid in list mode', () => {
+      mockUseIsMobile.mockReturnValue(false);
+      
+      render(<MasterDetailShell {...mockProps} />);
+      
+      expect(screen.queryByTestId('detail-grid')).not.toBeInTheDocument();
+    });
+
     it('shows back button on mobile in detail mode', () => {
       mockUseIsMobile.mockReturnValue(true);
       
