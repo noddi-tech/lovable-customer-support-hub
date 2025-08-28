@@ -84,3 +84,8 @@
   overflow-x:auto !important; 
   overflow-y:visible !important;
 }
+
+/* Keep tab contents on one line everywhere */
+[role="tab"]{ 
+  white-space:nowrap !important; 
+}
