@@ -32,10 +32,10 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
         )}
 
         {/* Mobile actions bar */}
-        <div className="flex items-center gap-2 p-2 border-b border-border bg-card">
+        <div className="flex flex-wrap items-center gap-2 p-2 border-b border-border bg-card min-w-0">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="flex-shrink-0">
                 <Layers className="h-4 w-4 mr-2" />
                 Blocks
               </Button>
@@ -47,7 +47,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="flex-shrink-0">
                 <Settings className="h-4 w-4 mr-2" />
                 Inspector
               </Button>
@@ -80,12 +80,12 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
         )}
 
         {/* Tablet actions bar */}
-        <div className="flex items-center gap-2 p-2 border-b border-border bg-card">
+        <div className="flex flex-wrap items-center gap-2 p-2 border-b border-border bg-card min-w-0">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="flex-shrink-0">
                 <Menu className="h-4 w-4 mr-2" />
-                Blocks & Templates
+                <span className="truncate">Blocks & Templates</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-80 p-0">
@@ -95,9 +95,9 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
         </div>
 
         {/* Two-pane content */}
-        <div 
+        <div
           data-testid="campaigns-grid"
-          className="grid min-h-0 flex-1 w-full grid-cols-[minmax(0,1fr)_320px] gap-4 md:gap-6"
+          className="grid min-h-0 flex-1 w-full grid-cols-[minmax(280px,1fr)_minmax(280px,320px)] gap-4 md:gap-6"
         >
           {/* CENTER: Preview/Canvas */}
           <div className="min-h-0 overflow-hidden">
@@ -130,7 +130,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
       {/* Three-pane content */}
       <div
         data-testid="campaigns-grid"
-        className="grid min-h-0 flex-1 w-full grid-cols-[280px_minmax(0,1fr)_360px] xl:grid-cols-[300px_minmax(0,1fr)_400px] gap-4 md:gap-6"
+        className="grid min-h-0 flex-1 w-full grid-cols-[minmax(280px,300px)_minmax(400px,1fr)_minmax(280px,360px)] xl:grid-cols-[minmax(300px,320px)_minmax(500px,1fr)_minmax(320px,400px)] gap-4 md:gap-6"
       >
         {/* LEFT: Blocks & Templates */}
         <div className="min-h-0 overflow-hidden border-r border-border bg-card">

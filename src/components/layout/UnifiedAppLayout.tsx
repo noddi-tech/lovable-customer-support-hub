@@ -8,6 +8,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { AppMainNav } from './AppMainNav';
+import { UIProbe } from '@/dev/UIProbe';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -37,6 +38,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
 
   return (
     <SidebarProvider>
+      <UIProbe />
       <div className="h-svh flex w-full bg-background">
         {/* Sidebar Navigation */}
         <AppMainNav />

@@ -12,15 +12,27 @@ const RISKY_PATTERNS = [
   /-mb-2\b/,
   /-mb-px\b/,
   /mt-\[-1px\]/,
-  /TabsList.*-mb-/,
+  /-mt-1\b/,
+  /-mt-2\b/,
+  /-mt-px\b/,
+  /whitespace-nowrap.*TabsList/,
+  /TabsList.*whitespace-nowrap/,
+  /flex-nowrap.*control-toolbar/,
+  /control-toolbar.*flex-nowrap/
 ];
 
 const PATTERN_NAMES = [
-  'negative margin bottom (-mb-1)',
-  'negative margin bottom (-mb-2)', 
-  'negative margin bottom (-mb-px)',
-  'negative margin top (mt-[-1px])',
-  'TabsList with negative margin bottom',
+  'negative margin-bottom (-mb-1)',
+  'negative margin-bottom (-mb-2)', 
+  'negative margin-bottom (-mb-px)',
+  'negative margin-top (mt-[-1px])',
+  'negative margin-top (-mt-1)',
+  'negative margin-top (-mt-2)',
+  'negative margin-top (-mt-px)',
+  'whitespace-nowrap on TabsList (prevents wrapping)',
+  'whitespace-nowrap on TabsList (prevents wrapping)',
+  'flex-nowrap on toolbar (prevents wrapping)',
+  'flex-nowrap on toolbar (prevents wrapping)'
 ];
 
 function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
