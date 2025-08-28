@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Mail, Settings as SettingsIcon, User, Bell, MessageSquare, Camera, Palette, Building } from 'lucide-react';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { SettingsSidebar } from '@/components/layout/SettingsSidebar';
 
 import { AdminPortal } from '@/components/admin/AdminPortal';
 import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
@@ -129,14 +128,14 @@ export default function Settings() {
 
   if (isAdminMode) {
     return (
-      <UnifiedAppLayout sidebar={<SettingsSidebar />}>
+      <UnifiedAppLayout>
         {renderAdminContent()}
       </UnifiedAppLayout>
     );
   }
 
   return (
-    <UnifiedAppLayout sidebar={<SettingsSidebar />}>
+    <UnifiedAppLayout>
       {renderSettingsContent()}
     </UnifiedAppLayout>
   );

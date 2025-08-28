@@ -109,7 +109,7 @@ const Index = () => {
 
   return (
     <>
-      <UnifiedAppLayout sidebar={getSidebar()}>
+      <UnifiedAppLayout>
         {renderContent()}
       </UnifiedAppLayout>
       <PerformanceStatus />

@@ -1,6 +1,5 @@
 import React from 'react';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { SettingsSidebar } from '@/components/layout/SettingsSidebar';
 import { ResponsiveContainer, ResponsiveGrid, LayoutItem, ResponsiveFlex } from '@/components/admin/design/components/layouts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +8,7 @@ import AdminDesignComponents from './AdminDesignComponents';
 
 export default function AdminDesignComponentsPage() {
   return (
-    <UnifiedAppLayout sidebar={<SettingsSidebar />}>
+    <UnifiedAppLayout>
       <ResponsiveContainer className="space-y-6" center={true}>
         {/* Enhanced Component Library Overview */}
         <div className="space-y-4">
