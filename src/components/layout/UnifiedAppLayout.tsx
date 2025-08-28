@@ -65,21 +65,23 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
     }
   ];
 
-  // Runtime clamp diagnostic (gated behind env var)
-  React.useEffect(() => {
-    if (import.meta.env.VITE_LAYOUT_DOCTOR === '1') {
-      const offenders: Element[] = [];
-      document.querySelectorAll('*').forEach(el => {
-        const cs = getComputedStyle(el);
-        const mw = parseFloat(cs.maxWidth);
-        if ((cs.marginLeft === 'auto' && cs.marginRight === 'auto') ||
-            (!Number.isNaN(mw) && mw > 0 && mw < window.innerWidth - 40)) {
-          offenders.push(el);
-        }
-      });
-      console.log('Clamp offenders:', offenders.map(e => ({node: e, class: (e as HTMLElement).className, id: e.id})));
-    }
-  }, []);
+  // (Optional) Keep this only for local dev and only when explicitly enabled
+  // React.useEffect(() => {
+  //   if (import.meta.env.DEV && import.meta.env.VITE_LAYOUT_DOCTOR === '1') {
+  //     const root = document.getElementById('interactions-root') ?? document.body;
+  //     const offenders: Element[] = [];
+  //     root.querySelectorAll<HTMLElement>('*').forEach(el => {
+  //       const cs = getComputedStyle(el);
+  //       const mw = parseFloat(cs.maxWidth);
+  //       if ((cs.marginLeft === 'auto' && cs.marginRight === 'auto') ||
+  //           (!Number.isNaN(mw) && mw > 0 && mw < window.innerWidth - 40)) {
+  //         offenders.push(el);
+  //       }
+  //     });
+  //     // eslint-disable-next-line no-console
+  //     console.log('Clamp offenders:', offenders.map(e => ({class: e.className, id: e.id})));
+  //   }
+  // }, []);
 
   return (
     <SidebarProvider>
@@ -146,7 +148,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
           <aside className="min-h-0 border-r border-border bg-muted">
             {sidebar}
           </aside>
-          <section id="interactions-root" className="min-h-0 w-full max-w-none overflow-auto px-2 sm:px-3 lg:px-4">
+          {/* No gutters here; MasterDetailShell will provide gutters */}
+          <section className="min-h-0 w-full max-w-none overflow-auto">
             {children}
           </section>
         </main>

@@ -126,7 +126,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
   // Desktop/Tablet layout
   return (
     <div className={cn(
-      "h-full min-h-0",
+      "h-full min-h-0 w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12",
       className
     )}>
       {isDetail ? (
