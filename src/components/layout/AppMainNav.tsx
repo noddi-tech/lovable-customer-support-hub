@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect } from 'react';
 import { useLocation, NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -17,7 +17,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
 
-export const AppMainNav: React.FC = () => {
+export const AppMainNav = () => {
   const location = useLocation();
   const { t } = useTranslation();
   const { state } = useSidebar();
@@ -28,7 +28,7 @@ export const AppMainNav: React.FC = () => {
   const groupedItems = getGroupedNavItems(isAdmin);
   
   // Log nav matches in dev mode
-  React.useEffect(() => {
+  useEffect(() => {
     logNavMatch(location.pathname);
   }, [location.pathname]);
 
