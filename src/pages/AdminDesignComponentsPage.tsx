@@ -9,7 +9,7 @@ import AdminDesignComponents from './AdminDesignComponents';
 export default function AdminDesignComponentsPage() {
   return (
     <UnifiedAppLayout>
-      <ResponsiveContainer className="space-y-6" center={true}>
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 space-y-6">
         {/* Enhanced Component Library Overview */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -218,7 +218,7 @@ export default function AdminDesignComponentsPage() {
         <div className="border-t pt-6">
           <AdminDesignComponents />
         </div>
-      </ResponsiveContainer>
+      </div>
     </UnifiedAppLayout>
   );
 }

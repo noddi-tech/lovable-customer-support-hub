@@ -223,7 +223,7 @@ export default function AdminDesignComponents() {
   ];
 
   return (
-    <ResponsiveContainer className="overflow-y-auto max-h-[calc(100vh-200px)]" center={true}>
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 overflow-y-auto max-h-[calc(100vh-200px)]">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Box className="h-6 w-6 text-primary" />
@@ -292,6 +292,6 @@ export default function AdminDesignComponents() {
           ))}
         </ResponsiveTabs>
       </div>
-    </ResponsiveContainer>
+    </div>
   );
 }

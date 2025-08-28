@@ -498,7 +498,7 @@ export const DesignLibrary = () => {
   ];
 
   return (
-    <ResponsiveContainer className="pane" padding={{ sm: '4', md: '6' }} center={true}>
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
       <AdaptiveSection spacing={{ sm: '4', md: '6' }}>
         <AdaptiveSection spacing="2">
           <h3 className="text-lg font-semibold text-primary">Design Library</h3>
@@ -526,6 +526,6 @@ export const DesignLibrary = () => {
           </Button>
         </ResponsiveFlex>
       </AdaptiveSection>
-    </ResponsiveContainer>
+    </div>
   );
 };
