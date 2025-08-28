@@ -65,6 +65,7 @@ const NewsletterBuilder = () => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSaveDraft, setShowSaveDraft] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
+  const [activeLeftPanel, setActiveLeftPanel] = useState<'blocks' | 'templates'>('blocks');
   const [activeRightPanel, setActiveRightPanel] = useState<'properties' | 'global' | 'personalization'>('properties');
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -217,29 +218,25 @@ const NewsletterBuilder = () => {
       header={
         <div className="px-3 pt-3 bg-card">
           <div data-testid="builder-left-tabs">
-            <Tabs defaultValue="blocks">
-              <TabsList className="flex flex-wrap items-center gap-2 min-w-0 overflow-visible rounded-lg bg-muted p-1 mb-3">
-                <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
-                <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <TabsList className="flex flex-wrap items-center gap-2 min-w-0 overflow-visible rounded-lg bg-muted p-1 mb-3">
+              <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
+              <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
+            </TabsList>
           </div>
           <Separator />
         </div>
       }
     >
-      <Tabs defaultValue="blocks" className="h-full">
-        <TabsContent value="blocks" className="h-full m-0">
-          <div className="p-3">
-            <BlocksPalette onAddBlock={addBlock} />
-          </div>
-        </TabsContent>
-        <TabsContent value="templates" className="h-full m-0">
-          <div className="p-3">
-            <TemplateLibrary />
-          </div>
-        </TabsContent>
-      </Tabs>
+      <TabsContent value="blocks" className="h-full m-0">
+        <div className="p-3">
+          <BlocksPalette onAddBlock={addBlock} />
+        </div>
+      </TabsContent>
+      <TabsContent value="templates" className="h-full m-0">
+        <div className="p-3">
+          <TemplateLibrary />
+        </div>
+      </TabsContent>
     </PaneColumn>
   );
 
@@ -312,12 +309,14 @@ const NewsletterBuilder = () => {
   return (
     <div className="h-full bg-background">
       {import.meta.env.DEV && <PaneTabProbe />}
-      <CampaignBuilderShell
-        toolbar={renderToolbar()}
-        left={renderLeftPane()}
-        center={renderCenterPane()}
-        right={renderRightPane()}
-      />
+      <Tabs value={activeLeftPanel} onValueChange={(value) => setActiveLeftPanel(value as any)}>
+        <CampaignBuilderShell
+          toolbar={renderToolbar()}
+          left={renderLeftPane()}
+          center={renderCenterPane()}
+          right={renderRightPane()}
+        />
+      </Tabs>
 
       {/* Dialogs */}
       <PreviewDialog
