@@ -65,6 +65,33 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const navigation = useInteractionsNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Dev-only performance monitoring
+  useEffect(() => {
+    if (import.meta.env.DEV && import.meta.env.VITE_PERF_LOG === '1') {
+      performance.mark('enhanced-interactions-layout-mount-start');
+      
+      return () => {
+        performance.mark('enhanced-interactions-layout-mount-end');
+        performance.measure(
+          'enhanced-interactions-layout-mount',
+          'enhanced-interactions-layout-mount-start',
+          'enhanced-interactions-layout-mount-end'
+        );
+        
+        const measure = performance.getEntriesByName('enhanced-interactions-layout-mount')[0];
+        if (measure) {
+          // eslint-disable-next-line no-console
+          console.log(`EnhancedInteractionsLayout mount time: ${measure.duration.toFixed(2)}ms`);
+        }
+        
+        // Cleanup
+        performance.clearMarks('enhanced-interactions-layout-mount-start');
+        performance.clearMarks('enhanced-interactions-layout-mount-end');
+        performance.clearMeasures('enhanced-interactions-layout-mount');
+      };
+    }
+  }, []);
+  
   // Get state from URL navigation
   const { conversationId, inbox, status, search } = navigation.currentState;
   const isDetail = !!conversationId;
