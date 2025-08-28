@@ -210,27 +210,32 @@ const NewsletterBuilder = () => {
 
   // Render left pane (blocks and templates)
   const renderLeftPane = () => (
-    <div className="h-full flex flex-col border-r border-border bg-card">
-      <div className="px-3 pt-3">
-        <Tabs defaultValue="blocks">
-          <TabsList className="h-8 gap-1 rounded-lg bg-muted p-1 mb-3">
-            <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
-            <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+    <div className="grid min-h-0 h-full grid-rows-[auto_1fr] border-r border-border bg-card">
+      {/* Fixed header with tabs - non-scrolling */}
+      <div className="sticky top-0 z-10 bg-card">
+        <div className="px-3 pt-3">
+          <Tabs defaultValue="blocks">
+            <TabsList className="flex flex-wrap items-center gap-2 min-w-0 h-8 gap-1 rounded-lg bg-muted p-1 mb-3">
+              <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
+              <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        <Separator />
       </div>
-      <Separator />
-      <div className="flex-1 min-h-0">
+      
+      {/* Scrolling content area */}
+      <div className="min-h-0">
         <Tabs defaultValue="blocks" className="h-full">
           <TabsContent value="blocks" className="h-full m-0">
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-full [scrollbar-gutter:stable_both-edges]">
               <div className="p-3">
                 <BlocksPalette onAddBlock={addBlock} />
               </div>
             </ScrollArea>
           </TabsContent>
           <TabsContent value="templates" className="h-full m-0">
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-full [scrollbar-gutter:stable_both-edges]">
               <div className="p-3">
                 <TemplateLibrary />
               </div>
@@ -270,35 +275,40 @@ const NewsletterBuilder = () => {
 
   // Render right pane (properties/inspector)
   const renderRightPane = () => (
-    <div className="h-full flex flex-col border-l border-border bg-card">
-      <div className="px-3 pt-3">
-        <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)}>
-          <TabsList className="h-8 gap-1 rounded-lg bg-muted p-1 mb-3 grid w-full grid-cols-3">
-            <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
-            <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
-            <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+    <div className="grid min-h-0 h-full grid-rows-[auto_1fr] border-l border-border bg-card">
+      {/* Fixed header with tabs - non-scrolling */}
+      <div className="sticky top-0 z-10 bg-card">
+        <div className="px-3 pt-3">
+          <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)}>
+            <TabsList className="flex flex-wrap items-center gap-2 min-w-0 h-8 gap-1 rounded-lg bg-muted p-1 mb-3">
+              <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
+              <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
+              <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        <Separator />
       </div>
-      <Separator />
-      <div className="flex-1 min-h-0">
+      
+      {/* Scrolling content area */}
+      <div className="min-h-0">
         <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full">
           <TabsContent value="properties" className="h-full m-0">
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-full [scrollbar-gutter:stable_both-edges]">
               <div className="p-3">
                 <PropertiesPanel selectedBlockId={selectedBlockId} />
               </div>
             </ScrollArea>
           </TabsContent>
           <TabsContent value="global" className="h-full m-0">
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-full [scrollbar-gutter:stable_both-edges]">
               <div className="p-3">
                 <GlobalStylesPanel />
               </div>
             </ScrollArea>
           </TabsContent>
           <TabsContent value="personalization" className="h-full m-0">
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-full [scrollbar-gutter:stable_both-edges]">
               <div className="p-3">
                 <PersonalizationPanel />
               </div>
