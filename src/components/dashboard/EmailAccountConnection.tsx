@@ -27,18 +27,18 @@ export function EmailAccountConnection() {
             equalWidth 
             className="w-full"
           >
-            <ResponsiveTabsList className="bg-muted/50">
-              <ResponsiveTabsTrigger value="forwarding" className="flex items-center gap-2">
-                <Forward className="h-4 w-4" />
-                Email Forwarding
+            <ResponsiveTabsList className="flex flex-wrap items-center gap-2 min-w-0 bg-muted/50">
+              <ResponsiveTabsTrigger value="forwarding">
+                <Forward className="h-4 w-4" aria-hidden />
+                <span>Email Forwarding</span>
               </ResponsiveTabsTrigger>
-              <ResponsiveTabsTrigger value="add-alias" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Add Alias
+              <ResponsiveTabsTrigger value="add-alias">
+                <Plus className="h-4 w-4" aria-hidden />
+                <span>Add Alias</span>
               </ResponsiveTabsTrigger>
-              <ResponsiveTabsTrigger value="inbound" className="flex items-center gap-2">
-                <Server className="h-4 w-4" />
-                Inbound & Domain
+              <ResponsiveTabsTrigger value="inbound">
+                <Server className="h-4 w-4" aria-hidden />
+                <span>Inbound & Domain</span>
               </ResponsiveTabsTrigger>
             </ResponsiveTabsList>
             

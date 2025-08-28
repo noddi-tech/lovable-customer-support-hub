@@ -329,9 +329,22 @@ interface ResponsiveTabsTriggerProps {
 
 export const ResponsiveTabsTrigger = forwardRef<HTMLButtonElement, ResponsiveTabsTriggerProps>(
   ({ children, className, ...props }, ref) => {
+    // Sanitize vertical layout classes from incoming className
+    const sanitizedClassName = className
+      ?.replace(/\bflex-col\b/g, "flex-row")
+      .replace(/\bgrid\b/g, "inline-flex")
+      .replace(/\bitems-start\b/g, "items-center");
+      
     return (
-      <TabsTrigger ref={ref} className={className} {...props}>
-        <span className="truncate">{children}</span>
+      <TabsTrigger 
+        ref={ref} 
+        className={cn(
+          "!inline-flex !flex-row !items-center gap-2 !whitespace-nowrap shrink-0 min-w-fit leading-none",
+          sanitizedClassName
+        )} 
+        {...props}
+      >
+        {children}
       </TabsTrigger>
     );
   }

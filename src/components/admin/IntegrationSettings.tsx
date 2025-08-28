@@ -22,18 +22,18 @@ export const IntegrationSettings = () => {
         equalWidth 
         className="space-y-6"
       >
-        <ResponsiveTabsList className="bg-card/50 backdrop-blur-sm shadow-surface">
-          <ResponsiveTabsTrigger value="email" className="flex items-center gap-2">
-            <Mail className="w-4 h-4" />
-            {t('admin.email')}
+        <ResponsiveTabsList className="flex flex-wrap items-center gap-2 min-w-0 bg-card/50 backdrop-blur-sm shadow-surface">
+          <ResponsiveTabsTrigger value="email">
+            <Mail className="w-4 h-4" aria-hidden />
+            <span>{t('admin.email')}</span>
           </ResponsiveTabsTrigger>
-          <ResponsiveTabsTrigger value="sms" className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            {t('admin.sms')}
+          <ResponsiveTabsTrigger value="sms">
+            <MessageSquare className="w-4 h-4" aria-hidden />
+            <span>{t('admin.sms')}</span>
           </ResponsiveTabsTrigger>
-          <ResponsiveTabsTrigger value="voice" className="flex items-center gap-2">
-            <Phone className="w-4 h-4" />
-            {t('admin.voice')}
+          <ResponsiveTabsTrigger value="voice">
+            <Phone className="w-4 h-4" aria-hidden />
+            <span>{t('admin.voice')}</span>
           </ResponsiveTabsTrigger>
         </ResponsiveTabsList>
 
