@@ -501,7 +501,19 @@ export const DesignLibrary = () => {
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
       <AdaptiveSection spacing={{ sm: '4', md: '6' }}>
         <AdaptiveSection spacing="2">
-          <h3 className="text-lg font-semibold text-primary">Design Library</h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-primary">Design Library</h3>
+            </div>
+            <Button
+              onClick={saveToDatabase}
+              disabled={saveMutation.isPending || isLoading}
+              className="w-full md:w-auto gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {saveMutation.isPending ? 'Saving...' : 'Save to Database'}
+            </Button>
+          </div>
           <p className="text-muted-foreground">
             Manage your organization's design system and component library with live preview
           </p>
@@ -513,18 +525,8 @@ export const DesignLibrary = () => {
           orientation="responsive"
           breakpoint="lg"
           variant="default"
+          className="min-w-0"
         />
-
-        <ResponsiveFlex justify="end">
-          <Button
-            onClick={saveToDatabase}
-            disabled={saveMutation.isPending || isLoading}
-            className="w-full md:w-auto"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {saveMutation.isPending ? 'Saving...' : 'Save to Database'}
-          </Button>
-        </ResponsiveFlex>
       </AdaptiveSection>
     </div>
   );

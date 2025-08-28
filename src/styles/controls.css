@@ -1,0 +1,68 @@
+/* Scoped helpers for tabs and buttons to prevent overlap */
+/* Import once in src/App.tsx - no global resets */
+
+.control-row { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.5rem; 
+  flex-wrap: wrap; 
+  min-width: 0; 
+}
+
+.control-tab { 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
+  height: 28px; 
+  min-height: 28px; 
+  padding: 0 0.5rem; 
+  line-height: 1; 
+  white-space: nowrap; 
+  border-radius: 0.5rem; 
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 150ms ease;
+}
+
+.control-tabslist { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 0.25rem; 
+  height: auto; 
+  min-height: 28px;
+  padding: 0.25rem; 
+  border-radius: 0.5rem;
+}
+
+.control-toolbar { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.5rem; 
+  flex-wrap: wrap; 
+  min-width: 0; 
+}
+
+/* Ensure tabs don't break out of containers */
+.control-tab:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Override any existing negative margins that could cause overlap */
+.control-tabslist * {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Safe spacing for tab containers */
+.control-safe-spacing {
+  margin-bottom: 0.75rem;
+}
+
+.control-safe-spacing-tight {
+  margin-bottom: 0.5rem;
+}
+
+.control-safe-spacing-loose {
+  margin-bottom: 1rem;
+}

@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { I18nWrapper } from "@/components/i18n/I18nWrapper";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
+import { ControlDoctor } from "@/dev/ControlDoctor";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -18,11 +19,13 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import "@/lib/i18n";
+import "@/styles/controls.css";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => (
   <BrowserRouter>
+    <ControlDoctor />
     <Routes>
       <Route path="/auth" element={<Auth />} />
       

@@ -90,14 +90,14 @@ const NewsletterBuilder = () => {
 
   // Render the toolbar
   const renderToolbar = () => (
-    <div className="px-4 py-2 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
+    <div className="px-4 py-2 flex items-center justify-between gap-2 min-w-0">
+      <div className="control-toolbar flex-wrap min-w-0">
         <Button
           variant="outline"
           size="sm"
           onClick={undo}
           disabled={!canUndo}
-          className="h-8"
+          className="h-8 shrink-0"
         >
           <Undo className="h-4 w-4" />
         </Button>
@@ -106,21 +106,21 @@ const NewsletterBuilder = () => {
           size="sm"
           onClick={redo}
           disabled={!canRedo}
-          className="h-8"
+          className="h-8 shrink-0"
         >
           <Redo className="h-4 w-4" />
         </Button>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-6 shrink-0" />
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowPreview(true)}
-          className="h-8 gap-2"
+          className="h-8 gap-2 shrink-0"
         >
           <Eye className="h-4 w-4" />
           {t('preview')}
         </Button>
-        <div className="flex rounded-md border overflow-hidden">
+        <div className="flex rounded-md border overflow-hidden shrink-0">
           <Button
             variant={previewDevice === 'desktop' ? 'default' : 'ghost'}
             size="sm"
@@ -142,28 +142,28 @@ const NewsletterBuilder = () => {
           variant="outline"
           size="sm"
           onClick={() => setIsDarkMode(!isDarkMode)}
-          className="h-8"
+          className="h-8 shrink-0"
         >
           {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="control-toolbar flex-wrap min-w-0">
         <Button
           variant="outline"
           size="sm"
           onClick={() => clearNewsletter()}
-          className="h-8 gap-2"
+          className="h-8 gap-2 shrink-0"
           title="Reset layout"
         >
           Reset Layout
         </Button>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-6 shrink-0" />
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowSaveDraft(true)}
-          className="h-8 gap-2"
+          className="h-8 gap-2 shrink-0"
         >
           <Save className="h-4 w-4" />
           {t('saveDraft')}
@@ -172,7 +172,7 @@ const NewsletterBuilder = () => {
           variant="outline"
           size="sm"
           onClick={handleTestEmail}
-          className="h-8 gap-2"
+          className="h-8 gap-2 shrink-0"
         >
           <Send className="h-4 w-4" />
           {t('sendTest')}
@@ -181,17 +181,17 @@ const NewsletterBuilder = () => {
           variant="outline"
           size="sm"
           onClick={handleExportHTML}
-          className="h-8 gap-2"
+          className="h-8 gap-2 shrink-0"
         >
           <Download className="h-4 w-4" />
           {t('exportHTML')}
         </Button>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className="h-6 shrink-0" />
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowSchedule(true)}
-          className="h-8 gap-2"
+          className="h-8 gap-2 shrink-0"
         >
           <Calendar className="h-4 w-4" />
           {t('schedule')}
@@ -199,7 +199,7 @@ const NewsletterBuilder = () => {
         <Button
           variant="default"
           size="sm"
-          className="h-8 gap-2"
+          className="h-8 gap-2 shrink-0"
         >
           <Send className="h-4 w-4" />
           {t('send')}

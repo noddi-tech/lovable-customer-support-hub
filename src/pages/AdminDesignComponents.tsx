@@ -235,10 +235,10 @@ export default function AdminDesignComponents() {
           Comprehensive collection of responsive layout and navigation components built on top of shadcn/ui and Tailwind CSS.
         </p>
 
-        <ResponsiveTabs defaultValue="layouts" variant="underline" size="md">
-          <ResponsiveTabsList className="w-full">
+        <ResponsiveTabs defaultValue="layouts" variant="underline" size="md" className="min-w-0">
+          <ResponsiveTabsList className="w-full flex-wrap gap-1">
             {componentCategories.map((category) => (
-              <ResponsiveTabsTrigger key={category.id} value={category.id} className="flex items-center gap-2">
+              <ResponsiveTabsTrigger key={category.id} value={category.id} className="flex items-center gap-2 whitespace-nowrap">
                 <category.icon className="h-4 w-4" />
                 {category.name}
               </ResponsiveTabsTrigger>
