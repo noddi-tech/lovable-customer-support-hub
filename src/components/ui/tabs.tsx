@@ -3,6 +3,10 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
+// Helper to sanitize vertical layout classes from incoming className
+const stripVertical = (cls?: string) =>
+  cls ? cls.replace(/\bflex-col\b/g, "flex-row").replace(/\bgrid\b/g, "inline-flex") : cls;
+
 const Tabs = TabsPrimitive.Root
 
 const TabsList = React.forwardRef<
@@ -27,8 +31,15 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
-      className
+      // Hard requirements (use ! to defeat later overrides)
+      "inline-flex !flex-row !items-center gap-2 !whitespace-nowrap shrink-0 min-w-fit",
+      // Visual size
+      "rounded-lg px-3 py-1 text-sm font-medium",
+      // Focus and interaction states
+      "ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      // Active states (keep existing styles)
+      "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+      stripVertical(className)
     )}
     {...props}
   />

@@ -87,5 +87,8 @@
 
 /* Keep tab contents on one line everywhere */
 [role="tab"]{ 
-  white-space:nowrap !important; 
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
 }
