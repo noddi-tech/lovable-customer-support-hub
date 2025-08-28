@@ -138,7 +138,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           {/* Detail left: Message thread */}
           <div className="min-h-0 min-w-0 border-r border-border">
             <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
-              <div className="p-3 sm:p-4">
+              <div className="py-3 sm:py-4 px-0">
                 {detailLeft}
               </div>
             </ScrollArea>
@@ -147,7 +147,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           {/* Detail right: Reply & Actions sidebar */}
           <div className="min-h-0 min-w-0 bg-card">
             <ScrollArea className="h-full overflow-y-auto" aria-label={detailRightLabel}>
-              <div className="p-3 sm:p-4">
+              <div className="py-3 sm:py-4 px-0">
                 {detailRight}
               </div>
             </ScrollArea>
@@ -163,7 +163,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           {left && (
             <div className="min-h-0 min-w-0 border-r border-border bg-muted/30">
               <ScrollArea className="h-full overflow-y-auto" aria-label={leftPaneLabel}>
-                <div className="p-4">
+                <div className="py-4 px-0">
                   {left}
                 </div>
               </ScrollArea>
@@ -173,7 +173,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           {/* Center: Conversation list */}
           <div className="min-h-0 min-w-0">
             <ScrollArea className="h-full overflow-y-auto" aria-label={centerPaneLabel}>
-              <div className="p-3 sm:p-4">
+              <div className="py-3 sm:py-4 px-0">
                 {center}
               </div>
             </ScrollArea>
