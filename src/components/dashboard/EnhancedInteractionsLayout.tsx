@@ -289,6 +289,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     return (
       <ReplySidebar
         conversationId={conversationId}
+        customer={thread.customer}
         status={(selectedConversation?.status === 'archived' ? 'closed' : selectedConversation?.status) || 'open'}
         priority={selectedConversation?.priority || 'normal'}
         onSendReply={handleSendReply}
@@ -299,16 +300,14 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   };
 
   return (
-    <div id="interactions-root" data-testid="interactions-root">
-      <MasterDetailShell
-        left={renderInboxList()}
-        center={renderConversationList()}
-        detailLeft={renderMessageThread()}
-        detailRight={renderReplySidebar()}
-        isDetail={isDetail}
-        onBack={handleBack}
-        backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
-      />
-    </div>
+    <MasterDetailShell
+      left={renderInboxList()}
+      center={renderConversationList()}
+      detailLeft={renderMessageThread()}
+      detailRight={renderReplySidebar()}
+      isDetail={isDetail}
+      onBack={handleBack}
+      backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
+    />
   );
 };

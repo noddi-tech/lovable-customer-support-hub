@@ -23,6 +23,16 @@ interface ReplySidebarProps {
   recipientLabel?: string;             // Add this for compatibility
   actions?: React.ReactNode;           // Add this for compatibility
   
+  // Customer information
+  customer?: {
+    id?: string;
+    full_name?: string;
+    email?: string;
+    avatar_url?: string;
+    phone?: string;
+    company?: string;
+  };
+  
   // Conversation metadata
   status?: 'open' | 'pending' | 'resolved' | 'closed';
   priority?: 'low' | 'normal' | 'high' | 'urgent';
@@ -47,6 +57,7 @@ interface ReplySidebarProps {
   // Customization
   showActions?: boolean;
   showMetadata?: boolean;
+  showCustomer?: boolean;
   placeholder?: string;
 }
 
@@ -59,6 +70,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
   title,   // Add this for compatibility
   recipientLabel, // Add this for compatibility
   actions, // Add this for compatibility
+  customer,
   status = 'open',
   priority = 'normal',
   assignedTo,
@@ -72,6 +84,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
   className,
   showActions = true,
   showMetadata = true,
+  showCustomer = true,
   placeholder = "Type your reply..."
 }) => {
   const [internalReplyText, setInternalReplyText] = useState(replyText);
@@ -129,6 +142,50 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
 
   return (
     <div className={cn("space-y-4", className)}>
+      {/* Customer Information */}
+      {showCustomer && customer && !actions && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Customer</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={customer.avatar_url} />
+                <AvatarFallback className="text-sm font-medium">
+                  {customer.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm text-foreground truncate">
+                  {customer.full_name || 'Unknown Customer'}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {customer.email}
+                </div>
+              </div>
+            </div>
+            
+            {(customer.phone || customer.company) && (
+              <div className="space-y-1 pt-2 border-t border-border">
+                {customer.phone && (
+                  <div className="text-xs">
+                    <span className="text-muted-foreground">Phone:</span>{' '}
+                    <span className="text-foreground">{customer.phone}</span>
+                  </div>
+                )}
+                {customer.company && (
+                  <div className="text-xs">
+                    <span className="text-muted-foreground">Company:</span>{' '}
+                    <span className="text-foreground">{customer.company}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Custom actions from props */}
       {actions && (
         <Card>
@@ -245,8 +302,10 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
               Snooze
             </Button>
             <Button variant="outline" size="sm" className="w-full justify-start">
-              <MoreVertical className="h-4 w-4 mr-2" />
-              More Actions
+              Archive
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              Mark Closed
             </Button>
           </CardContent>
         </Card>

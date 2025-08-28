@@ -148,8 +148,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
           <aside className="min-h-0 border-r border-border bg-muted">
             {sidebar}
           </aside>
-          {/* No gutters here; MasterDetailShell will provide gutters */}
-          <section className="min-h-0 w-full max-w-none overflow-auto">
+          {/* Single source of gutters - UnifiedAppLayout provides them */}
+          <section className="min-h-0 w-full max-w-none overflow-auto px-4 sm:px-6 md:px-8">
             {children}
           </section>
         </main>
