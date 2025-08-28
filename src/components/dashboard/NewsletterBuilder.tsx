@@ -213,7 +213,7 @@ const NewsletterBuilder = () => {
     <div className="h-full flex flex-col border-r border-border bg-card">
       <div className="px-3 pt-3">
         <Tabs defaultValue="blocks">
-          <TabsList className="h-8 gap-1 rounded-lg bg-muted p-1 mb-3 grid w-full grid-cols-2">
+          <TabsList className="h-8 gap-1 rounded-lg bg-muted p-1 mb-3">
             <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
             <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
           </TabsList>
