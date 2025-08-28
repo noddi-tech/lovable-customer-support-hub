@@ -10,7 +10,7 @@ import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
 import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
-import { PerformanceStatus } from '../components/dashboard/PerformanceStatus';
+
 
 const Index = () => {
   const location = useLocation();
@@ -108,12 +108,9 @@ const Index = () => {
   };
 
   return (
-    <>
-      <UnifiedAppLayout>
-        {renderContent()}
-      </UnifiedAppLayout>
-      <PerformanceStatus />
-    </>
+    <UnifiedAppLayout>
+      {renderContent()}
+    </UnifiedAppLayout>
   );
 };
 
