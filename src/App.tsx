@@ -3,7 +3,7 @@ import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -25,19 +25,42 @@ const AppContent = () => (
     <Routes>
       <Route path="/auth" element={<Auth />} />
       
-      {/* Main App Routes */}
+      {/* Main App Routes - Interactions */}
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/interactions/text" element={<Navigate to="/" replace />} />
+      <Route path="/interactions/voice" element={<Navigate to="/voice" replace />} />
       <Route path="/voice" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      
+      {/* Marketing Routes */}
       <Route path="/marketing" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/marketing/campaigns" element={<Navigate to="/marketing" replace />} />
+      <Route path="/marketing/newsletters" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      
+      {/* Operations Routes */}
       <Route path="/operations" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/service-tickets" element={<Navigate to="/operations" replace />} />
+      <Route path="/operations/doorman" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/recruitment" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       
       {/* Settings Routes */}
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/settings/*" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/settings/general" element={<Navigate to="/settings" replace />} />
+      <Route path="/settings/profile" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/settings/notifications" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
       {/* Admin Routes */}
+      <Route path="/admin" element={<Navigate to="/admin/general" replace />} />
+      <Route path="/admin/general" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin/email-design" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin/departments" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin/inboxes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin/integrations" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin/voice" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin/design" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/admin/design/components" element={<ProtectedRoute><AdminDesignComponentsPage /></ProtectedRoute>} />
-      <Route path="/admin/*" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
       {/* Static Pages */}
       <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />

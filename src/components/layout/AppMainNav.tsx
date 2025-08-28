@@ -97,6 +97,7 @@ export const AppMainNav = () => {
                             to={item.to} 
                             end={item.to === '/'}
                             className={getNavClassName(itemIsActive)}
+                            {...(itemIsActive && { "aria-current": "page" })}
                           >
                             <Icon className="mr-2 h-4 w-4" />
                             {!isCollapsed && <span>{item.label}</span>}
