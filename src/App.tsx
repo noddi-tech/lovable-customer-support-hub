@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 import { I18nWrapper } from "@/components/i18n/I18nWrapper";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import Index from "./pages/Index";
@@ -52,15 +53,15 @@ const AppContent = () => (
       
       {/* Admin Routes */}
       <Route path="/admin" element={<Navigate to="/admin/general" replace />} />
-      <Route path="/admin/general" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/admin/email-design" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/admin/departments" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/admin/inboxes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/admin/integrations" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/admin/voice" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/admin/design" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/admin/design/components" element={<ProtectedRoute><AdminDesignComponentsPage /></ProtectedRoute>} />
+      <Route path="/admin/general" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/email-design" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/departments" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/inboxes" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/integrations" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/voice" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/design" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/design/components" element={<ProtectedRoute><AdminRoute><AdminDesignComponentsPage /></AdminRoute></ProtectedRoute>} />
       
       {/* Static Pages */}
       <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
