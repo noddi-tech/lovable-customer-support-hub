@@ -109,4 +109,27 @@ describe("EnhancedInteractionsLayout", () => {
       expect(className).not.toMatch(/\b(container|mx-auto|max-w-)\b/);
     });
   });
+
+  it("detail grid has exactly two panes and no inner horizontal padding", () => {
+    render(
+      <TestWrapper>
+        <EnhancedInteractionsLayout
+          activeSubTab="conversations"
+          selectedTab="interactions"
+          onTabChange={vi.fn()}
+          selectedInboxId="test-inbox"
+        />
+      </TestWrapper>
+    );
+
+    const grid = screen.getByTestId("detail-grid");
+    expect(grid.childElementCount).toBe(2); // thread + right rail
+
+    // Check immediate children for px-0 (or 0 computed padding-left/right)
+    Array.from(grid.children).forEach((child) => {
+      const cs = window.getComputedStyle(child as HTMLElement);
+      expect(parseFloat(cs.paddingLeft)).toBeLessThanOrEqual(1);
+      expect(parseFloat(cs.paddingRight)).toBeLessThanOrEqual(1);
+    });
+  });
 });
