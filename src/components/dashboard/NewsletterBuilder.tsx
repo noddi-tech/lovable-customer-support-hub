@@ -30,6 +30,7 @@ import { SaveDraftDialog } from './newsletter/SaveDraftDialog';
 import { ScheduleDialog } from './newsletter/ScheduleDialog';
 import { useNewsletterStore } from './newsletter/useNewsletterStore';
 import { CampaignBuilderShell } from './newsletter/CampaignBuilderShell';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export interface NewsletterBlock {
   id: string;
@@ -209,18 +210,35 @@ const NewsletterBuilder = () => {
 
   // Render left pane (blocks and templates)
   const renderLeftPane = () => (
-    <Tabs defaultValue="blocks" className="h-full flex flex-col">
-      <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
-        <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
-        <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
-      </TabsList>
-      <TabsContent value="blocks" className="flex-1 m-0 mt-0 min-h-0">
-        <BlocksPalette onAddBlock={addBlock} />
-      </TabsContent>
-      <TabsContent value="templates" className="flex-1 m-0 mt-0 min-h-0">
-        <TemplateLibrary />
-      </TabsContent>
-    </Tabs>
+    <div className="h-full flex flex-col border-r border-border bg-card">
+      <div className="px-3 pt-3">
+        <Tabs defaultValue="blocks">
+          <TabsList className="h-8 gap-1 rounded-lg bg-muted p-1 mb-3 grid w-full grid-cols-2">
+            <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
+            <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      <Separator />
+      <div className="flex-1 min-h-0">
+        <Tabs defaultValue="blocks" className="h-full">
+          <TabsContent value="blocks" className="h-full m-0">
+            <ScrollArea className="h-full">
+              <div className="p-3">
+                <BlocksPalette onAddBlock={addBlock} />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="templates" className="h-full m-0">
+            <ScrollArea className="h-full">
+              <div className="p-3">
+                <TemplateLibrary />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
   );
 
   // Render center pane (canvas/preview)
@@ -252,22 +270,43 @@ const NewsletterBuilder = () => {
 
   // Render right pane (properties/inspector)
   const renderRightPane = () => (
-    <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full flex flex-col">
-      <TabsList className="grid w-full grid-cols-3 rounded-none border-b">
-        <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
-        <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
-        <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
-      </TabsList>
-      <TabsContent value="properties" className="flex-1 m-0 mt-0 min-h-0">
-        <PropertiesPanel selectedBlockId={selectedBlockId} />
-      </TabsContent>
-      <TabsContent value="global" className="flex-1 m-0 mt-0 min-h-0">
-        <GlobalStylesPanel />
-      </TabsContent>
-      <TabsContent value="personalization" className="flex-1 m-0 mt-0 min-h-0">
-        <PersonalizationPanel />
-      </TabsContent>
-    </Tabs>
+    <div className="h-full flex flex-col border-l border-border bg-card">
+      <div className="px-3 pt-3">
+        <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)}>
+          <TabsList className="h-8 gap-1 rounded-lg bg-muted p-1 mb-3 grid w-full grid-cols-3">
+            <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
+            <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
+            <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      <Separator />
+      <div className="flex-1 min-h-0">
+        <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full">
+          <TabsContent value="properties" className="h-full m-0">
+            <ScrollArea className="h-full">
+              <div className="p-3">
+                <PropertiesPanel selectedBlockId={selectedBlockId} />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="global" className="h-full m-0">
+            <ScrollArea className="h-full">
+              <div className="p-3">
+                <GlobalStylesPanel />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="personalization" className="h-full m-0">
+            <ScrollArea className="h-full">
+              <div className="p-3">
+                <PersonalizationPanel />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
   );
 
   return (

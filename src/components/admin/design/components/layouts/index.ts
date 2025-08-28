@@ -14,6 +14,7 @@ export {
 export { AdaptiveSection } from './AdaptiveSection';
 export { MasterDetailShell } from './MasterDetailShell';
 export { InboxList } from './InboxList';
+export { PaneTabs, SafeTabsList } from './PaneTabs';
 
 // TypeScript utility types
 export type ResponsiveValue<T> = T | { 
