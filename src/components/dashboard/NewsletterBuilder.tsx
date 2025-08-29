@@ -308,7 +308,7 @@ const NewsletterBuilder = () => {
 
   return (
     <div className="h-full bg-background">
-      {import.meta.env.DEV && <PaneTabProbe />}
+      {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <PaneTabProbe />}
       <Tabs value={activeLeftPanel} onValueChange={(value) => setActiveLeftPanel(value as any)}>
         <CampaignBuilderShell
           toolbar={renderToolbar()}

@@ -25,7 +25,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => (
   <BrowserRouter>
-    <ControlDoctor />
+    {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <ControlDoctor />}
     <Routes>
       <Route path="/auth" element={<Auth />} />
       

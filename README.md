@@ -71,3 +71,23 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Dev Utilities
+
+This project includes debugging utilities for UI development:
+
+### UI Probes
+Enable UI debugging probes during development to detect overlapping tabs and buttons:
+
+```bash
+VITE_UI_PROBE=1 npm run dev
+```
+
+### Linting
+Run automated linting to detect unsafe tab/button patterns:
+
+```bash
+npm run lint:tabs
+```
+
+See `docs/ui-tabs-checklist.md` for detailed QA guidelines.

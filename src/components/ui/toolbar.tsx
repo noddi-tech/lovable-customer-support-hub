@@ -8,7 +8,7 @@ export function Toolbar({ className, ...props }: ToolbarProps) {
     <div
       {...props}
       className={cn(
-        "flex flex-wrap items-center gap-2 w-full min-w-0 overflow-x-auto overflow-y-visible",
+        "flex flex-wrap items-center gap-2 w-full min-w-0 overflow-y-visible",
         className
       )}
     />

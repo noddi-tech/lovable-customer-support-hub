@@ -38,7 +38,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
 
   return (
     <SidebarProvider>
-      <UIProbe />
+      {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <UIProbe />}
       <div className="h-svh flex w-full bg-background">
         {/* Sidebar Navigation */}
         <AppMainNav />

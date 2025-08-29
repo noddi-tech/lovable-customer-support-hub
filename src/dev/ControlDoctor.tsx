@@ -14,7 +14,7 @@ interface OverlapViolation {
  */
 export function ControlDoctor() {
   useEffect(() => {
-    if (import.meta.env.VITE_UI_DOCTOR !== '1') {
+    if (import.meta.env.VITE_UI_PROBE !== '1') {
       return;
     }
 

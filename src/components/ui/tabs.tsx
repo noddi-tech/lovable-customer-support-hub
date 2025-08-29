@@ -16,7 +16,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "flex flex-wrap items-center gap-2 w-full min-w-0 overflow-x-auto overflow-y-visible rounded-xl bg-muted p-1 text-muted-foreground",
+      "flex flex-wrap items-center gap-2 w-full min-w-0 overflow-y-visible rounded-xl bg-muted p-1 text-muted-foreground",
       className
     )}
     {...props}
@@ -32,7 +32,7 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       // Hard requirements (use ! to defeat later overrides)
-      "inline-flex !flex-row !items-center gap-2 !whitespace-nowrap shrink-0 min-w-fit",
+      "inline-flex h-9 items-center justify-center gap-2 !whitespace-nowrap shrink-0 min-w-fit leading-none",
       // Visual size
       "rounded-lg px-3 py-1 text-sm font-medium",
       // Focus and interaction states
