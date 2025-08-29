@@ -1,9 +1,9 @@
 import React from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Menu, Settings, Layers } from 'lucide-react';
 import { useIsMobile, useIsTablet } from '@/hooks/use-responsive';
+import { PaneColumn, PaneScroll } from '@/components/layout';
 
 interface CampaignBuilderShellProps {
   toolbar?: React.ReactNode;
@@ -101,18 +101,20 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
           className="grid h-full min-h-0 w-full grid-cols-[minmax(280px,1fr)_minmax(280px,360px)] gap-4 md:gap-6"
         >
           {/* CENTER: Preview/Canvas */}
-          <div className="min-h-0 min-w-0">
-            <ScrollArea className="h-full w-full">
+          <PaneColumn>
+            <PaneScroll>
               {center}
-            </ScrollArea>
-          </div>
+            </PaneScroll>
+          </PaneColumn>
 
           {/* RIGHT: Inspector/Properties */}
-          <aside className="min-h-0 min-w-0 border-l border-border bg-card">
-            <ScrollArea className="h-full w-full">
-              {right}
-            </ScrollArea>
-          </aside>
+          <PaneColumn className="border-l border-border bg-card" asChild>
+            <aside>
+              <PaneScroll>
+                {right}
+              </PaneScroll>
+            </aside>
+          </PaneColumn>
         </div>
       </div>
     );
@@ -134,25 +136,27 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
         className="grid h-full min-h-0 w-full grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(300px,360px)] xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_minmax(320px,400px)] gap-4 md:gap-6"
       >
         {/* LEFT: Blocks & Templates */}
-        <div className="min-h-0 min-w-0 border-r border-border bg-card">
-          <ScrollArea className="h-full w-full">
+        <PaneColumn className="border-r border-border bg-card">
+          <PaneScroll>
             {left}
-          </ScrollArea>
-        </div>
+          </PaneScroll>
+        </PaneColumn>
 
         {/* CENTER: Preview/Canvas */}
-        <div className="min-h-0 min-w-0">
-          <ScrollArea className="h-full w-full">
+        <PaneColumn>
+          <PaneScroll>
             {center}
-          </ScrollArea>
-        </div>
+          </PaneScroll>
+        </PaneColumn>
 
           {/* RIGHT: Inspector/Properties */}
-          <aside className="min-h-0 min-w-0 border-l border-border bg-card">
-            <ScrollArea className="h-full w-full">
-              {right}
-            </ScrollArea>
-          </aside>
+          <PaneColumn className="border-l border-border bg-card" asChild>
+            <aside>
+              <PaneScroll>
+                {right}
+              </PaneScroll>
+            </aside>
+          </PaneColumn>
       </div>
     </div>
   );
