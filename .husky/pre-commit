@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running UI guardrails..."
+
+# Check for unsafe tab/button patterns
+npx tsx scripts/lint-tabs-overflow.ts
+
+# Run long-labels test to ensure no regressions  
+npx vitest --run --reporter=verbose -t "long-labels"
+
+echo "✅ UI guardrails passed!"

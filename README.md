@@ -87,7 +87,14 @@ VITE_UI_PROBE=1 npm run dev
 Run automated linting to detect unsafe tab/button patterns:
 
 ```bash
-npm run lint:tabs
+npx tsx scripts/lint-tabs-overflow.ts
+```
+
+### Testing
+Run UI guardrail tests to ensure tabs handle long labels properly:
+
+```bash
+npx vitest --run --reporter=verbose -t "long-labels"
 ```
 
 See `docs/ui-tabs-checklist.md` for detailed QA guidelines.
