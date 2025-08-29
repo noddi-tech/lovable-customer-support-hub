@@ -8,11 +8,11 @@ export function PaneColumn({
   "data-testid": dataTestId,
 }: React.PropsWithChildren<{ header: React.ReactNode; className?: string; "data-testid"?: string }>) {
   return (
-    <div data-testid={dataTestId} className={cn("grid min-h-0 grid-rows-[auto_1fr]", className)}>
+    <div data-testid={dataTestId} className={cn("flex flex-col min-h-0 h-full", className)}>
       {/* Fixed header row */}
-      <div className="sticky top-0 z-10 bg-background">{header}</div>
-      {/* Scrollable body row */}
-      <div className="min-h-0 overflow-y-auto [scrollbar-gutter:stable_both-edges]">
+      <div className="shrink-0 bg-background">{header}</div>
+      {/* Scrollable body row - let parent ScrollArea handle the scroll */}
+      <div className="flex-1 min-h-0">
         {children}
       </div>
     </div>

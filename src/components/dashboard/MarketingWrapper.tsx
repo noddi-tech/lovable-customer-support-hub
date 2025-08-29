@@ -19,7 +19,7 @@ const MarketingWrapper: React.FC<MarketingWrapperProps> = ({ activeSubSection = 
   };
 
   return (
-    <div className="h-full">
+    <div className="h-full min-h-0 overflow-hidden">
       {renderContent()}
     </div>
   );
