@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Menu, Settings, Layers } from 'lucide-react';
 import { useIsMobile, useIsTablet } from '@/hooks/use-responsive';
 
@@ -97,18 +98,20 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
         {/* Two-pane content */}
         <div
           data-testid="campaigns-grid"
-          className="grid min-h-0 flex-1 w-full grid-cols-[minmax(280px,1fr)_minmax(280px,360px)] gap-4 md:gap-6"
+          className="grid h-full min-h-0 w-full grid-cols-[minmax(280px,1fr)_minmax(280px,360px)] gap-4 md:gap-6"
         >
           {/* CENTER: Preview/Canvas */}
-          <div className="min-h-0 overflow-hidden">
-            <div className="h-full w-full overflow-auto">
+          <div className="min-h-0 min-w-0">
+            <ScrollArea className="h-full w-full">
               {center}
-            </div>
+            </ScrollArea>
           </div>
 
           {/* RIGHT: Inspector/Properties */}
-          <aside className="min-h-0 overflow-hidden border-l border-border bg-card">
-            {right}
+          <aside className="min-h-0 min-w-0 border-l border-border bg-card">
+            <ScrollArea className="h-full w-full">
+              {right}
+            </ScrollArea>
           </aside>
         </div>
       </div>
@@ -128,23 +131,27 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
       {/* Three-pane content */}
       <div
         data-testid="campaigns-grid"
-        className="grid min-h-0 flex-1 w-full grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(300px,360px)] xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_minmax(320px,400px)] gap-4 md:gap-6"
+        className="grid h-full min-h-0 w-full grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(300px,360px)] xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_minmax(320px,400px)] gap-4 md:gap-6"
       >
         {/* LEFT: Blocks & Templates */}
-        <div className="min-h-0 overflow-hidden border-r border-border bg-card">
-          {left}
+        <div className="min-h-0 min-w-0 border-r border-border bg-card">
+          <ScrollArea className="h-full w-full">
+            {left}
+          </ScrollArea>
         </div>
 
         {/* CENTER: Preview/Canvas */}
-        <div className="min-h-0 overflow-hidden">
-          <div className="h-full w-full overflow-auto">
+        <div className="min-h-0 min-w-0">
+          <ScrollArea className="h-full w-full">
             {center}
-          </div>
+          </ScrollArea>
         </div>
 
           {/* RIGHT: Inspector/Properties */}
-          <aside className="min-h-0 overflow-hidden border-l border-border bg-card">
-            {right}
+          <aside className="min-h-0 min-w-0 border-l border-border bg-card">
+            <ScrollArea className="h-full w-full">
+              {right}
+            </ScrollArea>
           </aside>
       </div>
     </div>
