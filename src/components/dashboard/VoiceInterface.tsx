@@ -350,6 +350,50 @@ export const VoiceInterface = () => {
       }
     };
 
+    // For ongoing calls, use CallStatusCard with manual end functionality
+    if (selectedSection === 'ongoing-calls') {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">{getSectionTitle()}</h2>
+            <RealTimeIndicator onRefresh={handleRefreshAll} />
+          </div>
+          
+          <div className="space-y-3">
+            {activeCalls.map((call) => (
+              <CallStatusCard
+                key={call.id}
+                call={call}
+                onViewDetails={(call) => {
+                  const entity = {
+                    id: call.id,
+                    type: 'call' as const,
+                    status: call.status,
+                    customer: {
+                      phone: call.customer_phone || '',
+                      initials: 'UC'
+                    },
+                    agentPhone: call.agent_phone,
+                    direction: call.direction,
+                    duration: call.duration_seconds,
+                    endedAt: call.ended_at,
+                    metadata: call.metadata
+                  };
+                  handleEntitySelect(entity);
+                }}
+              />
+            ))}
+            
+            {activeCalls.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No active calls
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
