@@ -315,26 +315,36 @@ export const VoiceInterface = () => {
       );
     }
 
+    // For callback sections, use CallbackRequestsList
+    if (selectedSection.startsWith('callbacks-')) {
+      const statusFilter = selectedSection === 'callbacks-pending' ? 'pending' :
+                          selectedSection === 'callbacks-assigned' ? 'assigned' :
+                          selectedSection === 'callbacks-closed' ? 'closed' : 'all';
+      
+      return (
+        <CallbackRequestsList
+          statusFilter={statusFilter}
+        />
+      );
+    }
+
+    // For voicemail sections, use VoicemailsList
+    if (selectedSection.startsWith('voicemails-')) {
+      const statusFilter = selectedSection === 'voicemails-pending' ? 'pending' :
+                          selectedSection === 'voicemails-assigned' ? 'assigned' :
+                          selectedSection === 'voicemails-closed' ? 'closed' : 'all';
+      
+      return (
+        <VoicemailsList
+          statusFilter={statusFilter}
+        />
+      );
+    }
+
     const getSectionTitle = () => {
       switch (selectedSection) {
         case 'ongoing-calls':
           return 'Active Calls';
-        case 'callbacks-pending':
-          return 'Pending Callbacks';
-        case 'callbacks-assigned':
-          return 'Assigned Callbacks';
-        case 'callbacks-closed':
-          return 'Closed Callbacks';
-        case 'callbacks-all':
-          return 'All Callbacks';
-        case 'voicemails-pending':
-          return 'Pending Voicemails';
-        case 'voicemails-assigned':
-          return 'Assigned Voicemails';
-        case 'voicemails-closed':
-          return 'Closed Voicemails';
-        case 'voicemails-all':
-          return 'All Voicemails';
         default:
           return 'Calls';
       }
@@ -384,62 +394,6 @@ export const VoiceInterface = () => {
                       label: 'Agent', 
                       value: formatPhoneNumber(entity.agentPhone) 
                     }] : [])
-                  ]}
-                />
-              );
-            } else if (entity.type === 'callback') {
-              return (
-                <EntityListRow
-                  key={entity.id}
-                  subject={formatPhoneNumber(entity.customer.phone)}
-                  preview={`Callback request • ${entity.status}`}
-                  avatar={{
-                    fallback: entity.customer.initials,
-                    alt: entity.customer.phone
-                  }}
-                  selected={entity.id === conversationId}
-                  onClick={() => handleEntitySelect(entity)}
-                  badges={[
-                    { label: 'Callback', variant: 'default' as const },
-                    { label: entity.status, variant: 'outline' as const }
-                  ]}
-                  meta={[
-                    { 
-                      label: 'Requested', 
-                      value: entity.requestedAt ? 
-                        format(new Date(entity.requestedAt), 'HH:mm') : 
-                        'Unknown'
-                    }
-                  ]}
-                />
-              );
-            } else if (entity.type === 'voicemail') {
-              return (
-                <EntityListRow
-                  key={entity.id}
-                  subject={formatPhoneNumber(entity.customer.phone)}
-                  preview={`Voicemail • ${entity.status}`}
-                  avatar={{
-                    fallback: entity.customer.initials,
-                    alt: entity.customer.phone
-                  }}
-                  selected={entity.id === conversationId}
-                  onClick={() => handleEntitySelect(entity)}
-                  badges={[
-                    { label: 'VM', variant: 'default' as const },
-                    { label: entity.status, variant: 'outline' as const }
-                  ]}
-                  meta={[
-                    { 
-                      label: 'Duration', 
-                      value: formatDuration(entity.duration) 
-                    },
-                    { 
-                      label: 'Received', 
-                      value: entity.receivedAt ? 
-                        format(new Date(entity.receivedAt), 'HH:mm') : 
-                        'Unknown'
-                    }
                   ]}
                 />
               );
