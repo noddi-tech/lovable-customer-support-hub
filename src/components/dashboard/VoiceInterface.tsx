@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCalls } from '@/hooks/useCalls';
+import { useCallbackRequests } from '@/hooks/useCallbackRequests';
+import { useVoicemails } from '@/hooks/useVoicemails';
 import { useRealTimeCallNotifications } from '@/hooks/useRealTimeCallNotifications';
 import { CallStatusCard } from './voice/CallStatusCard';
 import { CallEventsList } from './voice/CallEventsList';
@@ -43,6 +45,15 @@ export const VoiceInterface = () => {
     error 
   } = useCalls();
   
+  const { 
+    callbackRequests,
+    pendingRequests,
+    processedRequests,
+    completedRequests
+  } = useCallbackRequests();
+  
+  const { voicemails } = useVoicemails();
+  
   // Initialize real-time notifications
   useRealTimeCallNotifications();
   
@@ -50,38 +61,134 @@ export const VoiceInterface = () => {
   const [selectedSection, setSelectedSection] = useState('ongoing-calls');
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  // Mock call queue list - in real app this would come from API
-  const callQueues = useMemo(() => [
-    { id: 'active', name: 'Active Calls', count: activeCalls.length, icon: <Phone className="h-4 w-4" /> },
-    { id: 'callbacks-pending', name: 'Pending Callbacks', count: 23, icon: <Clock className="h-4 w-4" /> },
-    { id: 'voicemails', name: 'Voicemails', count: 8, icon: <MessageSquare className="h-4 w-4" /> },
-    { id: 'recent', name: 'Recent Calls', count: calls.length, icon: <Phone className="h-4 w-4" /> }
-  ], [activeCalls.length, calls.length]);
-
-  // Transform calls to entities for the list
-  const callEntities = useMemo(() => {
-    const filteredCalls = selectedSection === 'ongoing-calls' ? activeCalls : calls;
+  // Filter calls based on selected section
+  const getFilteredData = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
     
-    return filteredCalls.map(call => ({
-      id: call.id,
-      subject: call.customer_phone || 'Unknown Number',
-      preview: call.direction === 'inbound' ? 'Incoming call' : 'Outgoing call',
-      customer: {
-        phone: call.customer_phone || 'Unknown',
-        initials: 'UC'
-      },
-      status: call.status,
-      direction: call.direction,
-      duration: call.duration_seconds,
-      endedAt: call.ended_at,
-      agentPhone: call.agent_phone,
-      metadata: call.metadata
-    }));
-  }, [activeCalls, calls, selectedSection]);
+    switch (selectedSection) {
+      // Active calls
+      case 'ongoing-calls':
+        return { type: 'calls', data: activeCalls };
+      
+      // Callback requests
+      case 'callbacks-pending':
+        return { type: 'callbacks', data: pendingRequests || [] };
+      case 'callbacks-assigned':
+        return { type: 'callbacks', data: processedRequests || [] };
+      case 'callbacks-closed':
+        return { type: 'callbacks', data: completedRequests || [] };
+      case 'callbacks-all':
+        return { type: 'callbacks', data: callbackRequests || [] };
+      
+      // Voicemails
+      case 'voicemails-pending':
+        return { type: 'voicemails', data: voicemails?.filter(vm => vm.status === 'pending') || [] };
+      case 'voicemails-assigned':
+        return { type: 'voicemails', data: voicemails?.filter(vm => vm.status === 'assigned') || [] };
+      case 'voicemails-closed':
+        return { type: 'voicemails', data: voicemails?.filter(vm => vm.status === 'closed') || [] };
+      case 'voicemails-all':
+        return { type: 'voicemails', data: voicemails || [] };
+      
+      // Calls with date filters
+      case 'calls-today':
+        return { 
+          type: 'calls', 
+          data: calls.filter(call => {
+            const callDate = new Date(call.started_at);
+            return callDate >= today;
+          })
+        };
+      case 'calls-yesterday':
+        return { 
+          type: 'calls', 
+          data: calls.filter(call => {
+            const callDate = new Date(call.started_at);
+            return callDate >= yesterday && callDate < today;
+          })
+        };
+      case 'calls-all':
+        return { type: 'calls', data: calls };
+      
+      // Events
+      case 'events-log':
+        return { type: 'events', data: callEvents || [] };
+      
+      default:
+        return { type: 'calls', data: activeCalls };
+    }
+  }, [activeCalls, calls, selectedSection, callbackRequests, pendingRequests, processedRequests, completedRequests, voicemails, callEvents]);
 
-  // Find selected call entity
-  const selectedCallEntity = conversationId ? 
-    callEntities.find(c => c.id === conversationId) : null;
+  // Transform data to entities for the list
+  const entities = useMemo(() => {
+    const { type, data } = getFilteredData;
+    
+    if (type === 'calls') {
+      return data.map(call => ({
+        id: call.id,
+        type: 'call',
+        subject: call.customer_phone || 'Unknown Number',
+        preview: call.direction === 'inbound' ? 'Incoming call' : 'Outgoing call',
+        customer: {
+          phone: call.customer_phone || 'Unknown',
+          initials: 'UC'
+        },
+        status: call.status,
+        direction: call.direction,
+        duration: call.duration_seconds,
+        endedAt: call.ended_at,
+        agentPhone: call.agent_phone,
+        metadata: call.metadata
+      }));
+    } else if (type === 'callbacks') {
+      return data.map(callback => ({
+        id: callback.id,
+        type: 'callback',
+        subject: callback.customer_phone || 'Unknown Number',
+        preview: `Callback request • ${callback.status}`,
+        customer: {
+          phone: callback.customer_phone || 'Unknown',
+          initials: 'UC'
+        },
+        status: callback.status,
+        requestedAt: callback.created_at,
+        metadata: callback.metadata
+      }));
+    } else if (type === 'voicemails') {
+      return data.map(voicemail => ({
+        id: voicemail.id,
+        type: 'voicemail',
+        subject: voicemail.caller_phone || 'Unknown Number',
+        preview: `Voicemail • ${voicemail.status}`,
+        customer: {
+          phone: voicemail.caller_phone || 'Unknown',
+          initials: 'UC'
+        },
+        status: voicemail.status,
+        duration: voicemail.duration,
+        receivedAt: voicemail.created_at,
+        metadata: voicemail.metadata
+      }));
+    } else if (type === 'events') {
+      return data.map(event => ({
+        id: event.id,
+        type: 'event',
+        subject: event.event_type || 'Event',
+        preview: `Call event • ${event.event_type}`,
+        timestamp: event.timestamp,
+        eventData: event.event_data
+      }));
+    }
+    
+    return [];
+  }, [getFilteredData]);
+
+  // Find selected entity
+  const selectedEntity = conversationId ? 
+    entities.find(e => e.id === conversationId) : null;
 
   const handleRefreshAll = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['calls'] });
@@ -91,17 +198,17 @@ export const VoiceInterface = () => {
     queryClient.invalidateQueries({ queryKey: ['call-notifications'] });
   }, [queryClient]);
 
-  const handleCallSelect = useCallback((callEntity: any) => {
-    navigation.navigateToConversation(callEntity.id);
+  const handleEntitySelect = useCallback((entity: any) => {
+    navigation.navigateToConversation(entity.id);
   }, [navigation]);
 
   const handleBack = useCallback(() => {
     navigation.clearConversation();
   }, [navigation]);
 
-  const handleQueueSelect = useCallback((queueId: string) => {
-    setSelectedSection(queueId);
-    navigation.navigateToInbox(queueId);
+  const handleSectionChange = useCallback((sectionId: string) => {
+    setSelectedSection(sectionId);
+    navigation.navigateToInbox(sectionId);
   }, [navigation]);
 
   const handleAddCallNote = useCallback(async (note: string) => {
@@ -152,123 +259,288 @@ export const VoiceInterface = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Render queue list
-  const renderQueueList = () => (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-foreground/70 px-2 pb-2">Call Queues</h3>
-      <div className="space-y-1">
-        {callQueues.map((queue) => (
-          <Button
-            key={queue.id}
-            variant={selectedSection === queue.id ? "secondary" : "ghost"}
-            className="w-full justify-between h-auto px-3 py-2 text-left"
-            onClick={() => handleQueueSelect(queue.id)}
-          >
-            <div className="flex items-center gap-2">
-              <span className="flex-shrink-0">{queue.icon}</span>
-              <span className="text-sm font-medium truncate">{queue.name}</span>
-            </div>
-            {queue.count > 0 && (
-              <Badge variant="secondary" className="ml-2 px-2 py-0 h-5 text-xs">
-                {queue.count}
-              </Badge>
-            )}
-          </Button>
-        ))}
-      </div>
-    </div>
+  // Render sidebar with voice-specific filters
+  const renderVoiceSidebar = () => (
+    <VoiceSidebar
+      selectedSection={selectedSection}
+      onSectionChange={handleSectionChange}
+    />
   );
 
   // Render call list
-  const renderCallList = () => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Calls</h2>
-        <RealTimeIndicator onRefresh={handleRefreshAll} />
-      </div>
+  const renderCallList = () => {
+    const getSectionTitle = () => {
+      switch (selectedSection) {
+        case 'ongoing-calls':
+          return 'Active Calls';
+        case 'callbacks-pending':
+          return 'Pending Callbacks';
+        case 'callbacks-assigned':
+          return 'Assigned Callbacks';
+        case 'callbacks-closed':
+          return 'Closed Callbacks';
+        case 'callbacks-all':
+          return 'All Callbacks';
+        case 'voicemails-pending':
+          return 'Pending Voicemails';
+        case 'voicemails-assigned':
+          return 'Assigned Voicemails';
+        case 'voicemails-closed':
+          return 'Closed Voicemails';
+        case 'voicemails-all':
+          return 'All Voicemails';
+        case 'calls-today':
+          return "Today's Calls";
+        case 'calls-yesterday':
+          return "Yesterday's Calls";
+        case 'calls-all':
+          return 'All Calls';
+        case 'events-log':
+          return 'Call Events Log';
+        default:
+          return 'Calls';
+      }
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">{getSectionTitle()}</h2>
+          <RealTimeIndicator onRefresh={handleRefreshAll} />
+        </div>
       
       <div className="space-y-2">
-        {callEntities.map((callEntity) => (
-          <EntityListRow
-            key={callEntity.id}
-            subject={formatPhoneNumber(callEntity.customer.phone)}
-            preview={`${callEntity.direction === 'inbound' ? 'Incoming' : 'Outgoing'} call • ${callEntity.status}`}
-            avatar={{
-              fallback: callEntity.customer.initials,
-              alt: callEntity.customer.phone
-            }}
-            selected={callEntity.id === conversationId}
-            onClick={() => handleCallSelect(callEntity)}
-            badges={[
-              { 
-                label: callEntity.direction === 'inbound' ? 'In' : 'Out', 
-                variant: callEntity.direction === 'inbound' ? 'default' as const : 'secondary' as const 
-              },
-              { label: callEntity.status, variant: 'outline' as const }
-            ]}
-            meta={[
-              { 
-                label: 'Duration', 
-                value: formatDuration(callEntity.duration) 
-              },
-              { 
-                label: 'Time', 
-                value: callEntity.endedAt ? 
-                  format(new Date(callEntity.endedAt), 'HH:mm') : 
-                  'Active'
-              },
-              ...(callEntity.agentPhone ? [{ 
-                label: 'Agent', 
-                value: formatPhoneNumber(callEntity.agentPhone) 
-              }] : [])
-            ]}
-          />
-        ))}
+        {entities.map((entity) => {
+          const renderEntityRow = () => {
+            if (entity.type === 'call') {
+              return (
+                <EntityListRow
+                  key={entity.id}
+                  subject={formatPhoneNumber(entity.customer.phone)}
+                  preview={`${entity.direction === 'inbound' ? 'Incoming' : 'Outgoing'} call • ${entity.status}`}
+                  avatar={{
+                    fallback: entity.customer.initials,
+                    alt: entity.customer.phone
+                  }}
+                  selected={entity.id === conversationId}
+                  onClick={() => handleEntitySelect(entity)}
+                  badges={[
+                    { 
+                      label: entity.direction === 'inbound' ? 'In' : 'Out', 
+                      variant: entity.direction === 'inbound' ? 'default' as const : 'secondary' as const 
+                    },
+                    { label: entity.status, variant: 'outline' as const }
+                  ]}
+                  meta={[
+                    { 
+                      label: 'Duration', 
+                      value: formatDuration(entity.duration) 
+                    },
+                    { 
+                      label: 'Time', 
+                      value: entity.endedAt ? 
+                        format(new Date(entity.endedAt), 'HH:mm') : 
+                        'Active'
+                    },
+                    ...(entity.agentPhone ? [{ 
+                      label: 'Agent', 
+                      value: formatPhoneNumber(entity.agentPhone) 
+                    }] : [])
+                  ]}
+                />
+              );
+            } else if (entity.type === 'callback') {
+              return (
+                <EntityListRow
+                  key={entity.id}
+                  subject={formatPhoneNumber(entity.customer.phone)}
+                  preview={`Callback request • ${entity.status}`}
+                  avatar={{
+                    fallback: entity.customer.initials,
+                    alt: entity.customer.phone
+                  }}
+                  selected={entity.id === conversationId}
+                  onClick={() => handleEntitySelect(entity)}
+                  badges={[
+                    { label: 'Callback', variant: 'default' as const },
+                    { label: entity.status, variant: 'outline' as const }
+                  ]}
+                  meta={[
+                    { 
+                      label: 'Requested', 
+                      value: entity.requestedAt ? 
+                        format(new Date(entity.requestedAt), 'HH:mm') : 
+                        'Unknown'
+                    }
+                  ]}
+                />
+              );
+            } else if (entity.type === 'voicemail') {
+              return (
+                <EntityListRow
+                  key={entity.id}
+                  subject={formatPhoneNumber(entity.customer.phone)}
+                  preview={`Voicemail • ${entity.status}`}
+                  avatar={{
+                    fallback: entity.customer.initials,
+                    alt: entity.customer.phone
+                  }}
+                  selected={entity.id === conversationId}
+                  onClick={() => handleEntitySelect(entity)}
+                  badges={[
+                    { label: 'VM', variant: 'default' as const },
+                    { label: entity.status, variant: 'outline' as const }
+                  ]}
+                  meta={[
+                    { 
+                      label: 'Duration', 
+                      value: formatDuration(entity.duration) 
+                    },
+                    { 
+                      label: 'Received', 
+                      value: entity.receivedAt ? 
+                        format(new Date(entity.receivedAt), 'HH:mm') : 
+                        'Unknown'
+                    }
+                  ]}
+                />
+              );
+            } else if (entity.type === 'event') {
+              return (
+                <EntityListRow
+                  key={entity.id}
+                  subject={entity.subject}
+                  preview={entity.preview}
+                  avatar={{
+                    fallback: 'EV',
+                    alt: 'Event'
+                  }}
+                  selected={entity.id === conversationId}
+                  onClick={() => handleEntitySelect(entity)}
+                  badges={[
+                    { label: 'Event', variant: 'secondary' as const }
+                  ]}
+                  meta={[
+                    { 
+                      label: 'Time', 
+                      value: entity.timestamp ? 
+                        format(new Date(entity.timestamp), 'HH:mm') : 
+                        'Unknown'
+                    }
+                  ]}
+                />
+              );
+            }
+            return null;
+          };
+
+          return renderEntityRow();
+        })}
+        
+        {entities.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No items found for the selected filter.
+          </div>
+        )}
       </div>
     </div>
-  );
+    );
+  };
 
-  // Render call details
-  const renderCallDetails = () => {
-    if (!selectedCallEntity) return null;
+  // Render details
+  const renderDetails = () => {
+    if (!selectedEntity) return null;
 
     return (
       <Card className="h-full">
         <CardContent className="p-6">
           <div className="space-y-4">
             <div>
-              <h1 className="text-xl font-semibold mb-2">Call Details</h1>
+              <h1 className="text-xl font-semibold mb-2">
+                {selectedEntity.type === 'call' ? 'Call Details' : 
+                 selectedEntity.type === 'callback' ? 'Callback Details' :
+                 selectedEntity.type === 'voicemail' ? 'Voicemail Details' : 'Event Details'}
+              </h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{formatPhoneNumber(selectedCallEntity.customer.phone)}</span>
-                <span>•</span>
-                <span>{selectedCallEntity.direction === 'inbound' ? 'Incoming' : 'Outgoing'}</span>
-                <span>•</span>
-                <span>{formatDuration(selectedCallEntity.duration)}</span>
+                {selectedEntity.type === 'call' && (
+                  <>
+                    <span>{formatPhoneNumber((selectedEntity as any).customer.phone)}</span>
+                    <span>•</span>
+                    <span>{(selectedEntity as any).direction === 'inbound' ? 'Incoming' : 'Outgoing'}</span>
+                    <span>•</span>
+                    <span>{formatDuration((selectedEntity as any).duration)}</span>
+                  </>
+                )}
+                {selectedEntity.type === 'callback' && (
+                  <>
+                    <span>{formatPhoneNumber((selectedEntity as any).customer.phone)}</span>
+                    <span>•</span>
+                    <span>Callback Request</span>
+                    <span>•</span>
+                    <span>{(selectedEntity as any).status}</span>
+                  </>
+                )}
+                {selectedEntity.type === 'voicemail' && (
+                  <>
+                    <span>{formatPhoneNumber((selectedEntity as any).customer.phone)}</span>
+                    <span>•</span>
+                    <span>Voicemail</span>
+                    <span>•</span>
+                    <span>{formatDuration((selectedEntity as any).duration)}</span>
+                  </>
+                )}
               </div>
             </div>
             
             <div className="border-t border-border pt-4">
-              <h3 className="font-medium mb-2">Call Information</h3>
+              <h3 className="font-medium mb-2">Information</h3>
               <div className="space-y-2 text-sm">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="font-medium text-muted-foreground">Status:</span>
-                    <span className="ml-2">{selectedCallEntity.status}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-muted-foreground">Direction:</span>
-                    <span className="ml-2">{selectedCallEntity.direction}</span>
-                  </div>
-                  {selectedCallEntity.endedAt && (
+                  {/* Status - available for all types except event */}
+                  {selectedEntity.type !== 'event' && (
                     <div>
-                      <span className="font-medium text-muted-foreground">Ended:</span>
-                      <span className="ml-2">{format(new Date(selectedCallEntity.endedAt), 'MMM d, HH:mm')}</span>
+                      <span className="font-medium text-muted-foreground">Status:</span>
+                      <span className="ml-2">{(selectedEntity as any).status}</span>
                     </div>
                   )}
-                  {selectedCallEntity.agentPhone && (
+                  
+                  {/* Direction - only for calls */}
+                  {selectedEntity.type === 'call' && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Direction:</span>
+                      <span className="ml-2">{(selectedEntity as any).direction}</span>
+                    </div>
+                  )}
+                  
+                  {/* Ended At - only for calls */}
+                  {selectedEntity.type === 'call' && (selectedEntity as any).endedAt && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Ended:</span>
+                      <span className="ml-2">{format(new Date((selectedEntity as any).endedAt), 'MMM d, HH:mm')}</span>
+                    </div>
+                  )}
+                  
+                  {/* Requested At - only for callbacks */}
+                  {selectedEntity.type === 'callback' && (selectedEntity as any).requestedAt && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Requested:</span>
+                      <span className="ml-2">{format(new Date((selectedEntity as any).requestedAt), 'MMM d, HH:mm')}</span>
+                    </div>
+                  )}
+                  
+                  {/* Received At - only for voicemails */}
+                  {selectedEntity.type === 'voicemail' && (selectedEntity as any).receivedAt && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Received:</span>
+                      <span className="ml-2">{format(new Date((selectedEntity as any).receivedAt), 'MMM d, HH:mm')}</span>
+                    </div>
+                  )}
+                  
+                  {/* Agent Phone - only for calls */}
+                  {selectedEntity.type === 'call' && (selectedEntity as any).agentPhone && (
                     <div>
                       <span className="font-medium text-muted-foreground">Agent:</span>
-                      <span className="ml-2">{formatPhoneNumber(selectedCallEntity.agentPhone)}</span>
+                      <span className="ml-2">{formatPhoneNumber((selectedEntity as any).agentPhone)}</span>
                     </div>
                   )}
                 </div>
@@ -282,13 +554,18 @@ export const VoiceInterface = () => {
 
   // Render actions sidebar
   const renderActionsSidebar = () => {
-    if (!selectedCallEntity) return null;
+    if (!selectedEntity) return null;
+
+    const placeholder = selectedEntity.type === 'call' ? 'Add call notes...' :
+                       selectedEntity.type === 'callback' ? 'Add callback notes...' :
+                       selectedEntity.type === 'voicemail' ? 'Add voicemail notes...' :
+                       'Add notes...';
 
     return (
       <ReplySidebar
-        conversationId={selectedCallEntity.id}
+        conversationId={selectedEntity.id}
         onSendReply={handleAddCallNote}
-        placeholder="Add call notes..."
+        placeholder={placeholder}
         showMetadata={false}
         showActions={true}
       />
@@ -298,17 +575,17 @@ export const VoiceInterface = () => {
   return (
     <>
       <MasterDetailShell
-        left={renderQueueList()}
+        left={renderVoiceSidebar()}
         center={renderCallList()}
-        detailLeft={renderCallDetails()}
+        detailLeft={renderDetails()}
         detailRight={renderActionsSidebar()}
         isDetail={isDetail}
         onBack={handleBack}
-        backButtonLabel="Back to Calls"
-        leftPaneLabel="Call queues"
-        centerPaneLabel="Call list"
-        detailLeftLabel="Call details"
-        detailRightLabel="Call actions"
+        backButtonLabel="Back to Voice"
+        leftPaneLabel="Voice filters"
+        centerPaneLabel="Voice items"
+        detailLeftLabel="Details"
+        detailRightLabel="Actions"
       />
       
       {/* Call Details Dialog */}
