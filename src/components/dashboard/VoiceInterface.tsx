@@ -269,6 +269,52 @@ export const VoiceInterface = () => {
 
   // Render call list
   const renderCallList = () => {
+    // For specific sections that need their own filtering components
+    if (selectedSection === 'calls-all') {
+      return (
+        <CallsList
+          showTimeFilter={true}
+          onNavigateToEvents={(callId) => {
+            handleSectionChange('events-log');
+            // Additional logic could be added here to filter events by call ID
+          }}
+        />
+      );
+    }
+    
+    if (selectedSection === 'events-log') {
+      return (
+        <CallEventsList
+          events={callEvents}
+        />
+      );
+    }
+
+    // For calls with date filters, use CallsList with date filter
+    if (selectedSection === 'calls-today') {
+      return (
+        <CallsList
+          showTimeFilter={false}
+          dateFilter="today"
+          onNavigateToEvents={(callId) => {
+            handleSectionChange('events-log');
+          }}
+        />
+      );
+    }
+    
+    if (selectedSection === 'calls-yesterday') {
+      return (
+        <CallsList
+          showTimeFilter={false}
+          dateFilter="yesterday"
+          onNavigateToEvents={(callId) => {
+            handleSectionChange('events-log');
+          }}
+        />
+      );
+    }
+
     const getSectionTitle = () => {
       switch (selectedSection) {
         case 'ongoing-calls':
@@ -289,14 +335,6 @@ export const VoiceInterface = () => {
           return 'Closed Voicemails';
         case 'voicemails-all':
           return 'All Voicemails';
-        case 'calls-today':
-          return "Today's Calls";
-        case 'calls-yesterday':
-          return "Yesterday's Calls";
-        case 'calls-all':
-          return 'All Calls';
-        case 'events-log':
-          return 'Call Events Log';
         default:
           return 'Calls';
       }
@@ -400,31 +438,6 @@ export const VoiceInterface = () => {
                       label: 'Received', 
                       value: entity.receivedAt ? 
                         format(new Date(entity.receivedAt), 'HH:mm') : 
-                        'Unknown'
-                    }
-                  ]}
-                />
-              );
-            } else if (entity.type === 'event') {
-              return (
-                <EntityListRow
-                  key={entity.id}
-                  subject={entity.subject}
-                  preview={entity.preview}
-                  avatar={{
-                    fallback: 'EV',
-                    alt: 'Event'
-                  }}
-                  selected={entity.id === conversationId}
-                  onClick={() => handleEntitySelect(entity)}
-                  badges={[
-                    { label: 'Event', variant: 'secondary' as const }
-                  ]}
-                  meta={[
-                    { 
-                      label: 'Time', 
-                      value: entity.timestamp ? 
-                        format(new Date(entity.timestamp), 'HH:mm') : 
                         'Unknown'
                     }
                   ]}
