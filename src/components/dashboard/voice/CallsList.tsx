@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TimeRangeFilter } from '@/components/ui/timerange-filter';
+import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { useCalls } from '@/hooks/useCalls';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
+import { useCallNotes } from '@/hooks/useCallNotes';
 import { formatDistanceToNow, format, isAfter } from 'date-fns';
 import { CallDetailsDialog } from './CallDetailsDialog';
 import { CallActionButton } from './CallActionButton';
@@ -18,6 +20,20 @@ interface CallsListProps {
   dateFilter?: 'today' | 'yesterday';
   onNavigateToEvents?: (callId: string) => void;
 }
+
+// Component to get notes count for a call
+const CallNotesCount = ({ callId }: { callId: string }) => {
+  const { notes } = useCallNotes(callId);
+  const notesCount = notes?.length || 0;
+  
+  return notesCount > 0 ? (
+    <SidebarCounter 
+      count={notesCount} 
+      variant="default" 
+      className="ml-1" 
+    />
+  ) : null;
+};
 
 export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvents }: CallsListProps) => {
   const { t } = useTranslation();
@@ -476,7 +492,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
                         title="View call events history"
                       >
                         <History className="h-3 w-3" />
-                        History
+                        Events
                       </Button>
                     )}
                     <Button
@@ -488,6 +504,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
                     >
                       <MessageSquare className="h-3 w-3" />
                       Notes
+                      <CallNotesCount callId={call.id} />
                     </Button>
                   </div>
                 </div>
