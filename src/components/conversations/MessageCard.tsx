@@ -113,11 +113,6 @@ export const MessageCard = ({
                      </Badge>
                    )}
                    
-                   {message.originalMessage?._syntheticQuoted && (
-                     <Badge variant="secondary" className="text-xs">
-                       Quoted history
-                     </Badge>
-                   )}
                 </div>
                 
                 {/* Preview line when collapsed */}
@@ -191,8 +186,8 @@ export const MessageCard = ({
               messageId={message.id}
             />
             
-            {/* Quoted content toggle - only show for non-synthetic messages */}
-            {!message.originalMessage?._syntheticQuoted && message.quotedBlocks && message.quotedBlocks.length > 0 && (
+            {/* Quoted content toggle */}
+            {message.quotedBlocks && message.quotedBlocks.length > 0 && (
               <div className="mt-3 pt-3 border-t border-border">
                 <Button
                   variant="ghost"

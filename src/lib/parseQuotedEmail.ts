@@ -2,6 +2,9 @@
 // Returns the content that should be shown in the card (visibleContent)
 // and a list of quoted blocks (for optional "Show quoted history")
 
+// Never promote quoted blocks into cards
+export const ENABLE_QUOTED_SEGMENTATION = false;
+
 export type QuotedBlock = {
   kind: 'gmail' | 'outlook' | 'apple' | 'yahoo' | 'blockquote' | 'header' | 'plain';
   raw: string;
