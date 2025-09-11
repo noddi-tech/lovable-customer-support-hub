@@ -14,24 +14,15 @@ import {
   ChevronUp
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { parseEmailContent } from "@/lib/parseQuotedEmail";
 import { type EmailAttachment } from "@/utils/emailFormatting";
 import { useDateFormatting } from "@/hooks/useDateFormatting";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { type NormalizedMessage } from "@/lib/normalizeMessage";
+import { MessageDebugProbe } from "./MessageDebugProbe";
 
 interface MessageItemProps {
-  message: {
-    id: string;
-    content: string;
-    content_type?: string;
-    sender_type: 'customer' | 'agent';
-    sender_id?: string | null;
-    is_internal: boolean;
-    attachments?: any;
-    created_at: string;
-    email_subject?: string;
-  };
+  message: NormalizedMessage;
   conversation: {
     customer?: {
       full_name?: string;
@@ -47,22 +38,17 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
   const { t } = useTranslation();
   const [showQuoted, setShowQuoted] = useState(false);
   
-  const isFromCustomer = message.sender_type === 'customer';
+  const isFromCustomer = message.authorType === 'customer';
   
-  // Parse quoted content
-  const parsedContent = parseEmailContent(
-    message.content, 
-    message.content_type || 'text/plain'
-  );
-  
-  const attachments = message.attachments ? 
-    (typeof message.attachments === 'string' ? 
-      JSON.parse(message.attachments) : 
-      message.attachments) as EmailAttachment[] : [];
+  // Get attachments from original message
+  const attachments = message.originalMessage?.attachments ? 
+    (typeof message.originalMessage.attachments === 'string' ? 
+      JSON.parse(message.originalMessage.attachments) : 
+      message.originalMessage.attachments) as EmailAttachment[] : [];
 
   const handleEdit = () => {
     if (onEdit) {
-      onEdit(message.id, message.content);
+      onEdit(message.id, message.originalMessage?.content || message.visibleBody);
     }
   };
 
@@ -82,24 +68,21 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
                 isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"
               )}>
                 {isFromCustomer 
-                  ? conversation.customer?.full_name?.[0] || 'C'
-                  : message.sender_id?.[0] || 'A'
+                  ? conversation.customer?.full_name?.[0] || message.from.name?.[0] || 'C'
+                  : message.from.name?.[0] || 'A'
                 }
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="font-medium text-sm">
-                  {isFromCustomer 
-                    ? conversation.customer?.full_name || t('conversation.customer')
-                    : message.sender_id || t('conversation.agent')
-                  }
+                  {message.authorLabel}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {dateTime(message.created_at)}
+                  {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
                 </div>
                 
-                {message.is_internal && (
+                {message.originalMessage?.is_internal && (
                   <Badge variant="outline" className="text-xs">
                     <Lock className="w-3 h-3 mr-1" />
                     {t('conversation.internalNote')}
@@ -114,9 +97,9 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
                 )}
               </div>
               
-              {message.email_subject && (
+              {message.originalMessage?.email_subject && (
                 <div className="text-xs text-muted-foreground mt-1 truncate">
-                  Subject: {message.email_subject}
+                  Subject: {message.originalMessage.email_subject}
                 </div>
               )}
             </div>
@@ -151,14 +134,14 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
       <CardContent className="pt-0">
         {/* Main message content */}
         <EmailRender
-          content={parsedContent.visibleContent}
-          contentType={message.content_type || 'text/plain'}
+          content={message.visibleBody}
+          contentType={message.originalMessage?.content_type || 'text/plain'}
           attachments={attachments}
           messageId={message.id}
         />
         
         {/* Quoted content toggle */}
-        {parsedContent.hasQuotedContent && (
+        {message.quotedBlocks && message.quotedBlocks.length > 0 && (
           <div className="mt-3 pt-3 border-t border-border">
             <Button
               variant="ghost"
@@ -174,23 +157,35 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
               ) : (
                 <>
                   <ChevronDown className="w-3 h-3 mr-1" />
-                  Show quoted text
+                  Show quoted text ({message.quotedBlocks.length} block{message.quotedBlocks.length > 1 ? 's' : ''})
                 </>
               )}
             </Button>
             
             {showQuoted && (
-              <div className="mt-2 pl-3 border-l-2 border-muted">
-                <EmailRender
-                  content={parsedContent.quotedContent}
-                  contentType={message.content_type || 'text/plain'}
-                  attachments={[]}
-                  messageId={`${message.id}-quoted`}
-                />
+              <div className="mt-2 space-y-2">
+                {message.quotedBlocks.map((block, index) => (
+                  <div key={index} className="pl-3 border-l-2 border-muted">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">
+                      {block.kind === 'gmail' ? 'Gmail Quote' : 
+                       block.kind === 'outlook' ? 'Outlook Quote' :
+                       block.kind === 'blockquote' ? 'HTML Quote' : 'Quoted Text'}
+                    </div>
+                    <EmailRender
+                      content={block.raw}
+                      contentType={message.originalMessage?.content_type || 'text/plain'}
+                      attachments={[]}
+                      messageId={`${message.id}-quoted-${index}`}
+                    />
+                  </div>
+                ))}
               </div>
             )}
           </div>
         )}
+        
+        {/* Dev probe */}
+        <MessageDebugProbe message={message} />
       </CardContent>
     </Card>
   );

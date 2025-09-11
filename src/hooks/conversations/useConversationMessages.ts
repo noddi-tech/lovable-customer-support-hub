@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { normalizeMessage, deduplicateMessages, createNormalizationContext, type NormalizedMessage, type NormalizationContext } from '@/lib/normalizeMessage';
 
 const INITIAL_VISIBLE_COUNT = 3;
 const PAGE_SIZE = 10;
@@ -19,7 +20,7 @@ interface Message {
 }
 
 interface MessagesPage {
-  messages: Message[];
+  messages: NormalizedMessage[];
   hasMore: boolean;
   totalCount: number;
 }
@@ -28,8 +29,18 @@ interface MessagesPage {
  * Hook for progressive message loading with infinite query
  * Shows newest messages first, loads older on demand
  */
-export function useConversationMessages(conversationId?: string) {
+export function useConversationMessages(conversationId?: string, normalizationContext?: NormalizationContext) {
   const { user } = useAuth();
+  
+  // Create default normalization context if none provided
+  const defaultContext = createNormalizationContext({
+    currentUserEmail: user?.email || undefined,
+    // TODO: Add agent emails from organization data when available
+    agentEmails: [],
+    agentPhones: [],
+  });
+  
+  const ctx = normalizationContext || defaultContext;
   
   return useInfiniteQuery({
     queryKey: ['conversation-messages', conversationId, user?.id],
@@ -73,16 +84,22 @@ export function useConversationMessages(conversationId?: string) {
         
       if (error) throw error;
       
-      // Reverse to show chronological order (oldest first) and ensure proper typing
-      const chronologicalMessages = (messages || []).reverse().map(msg => ({
+      // Normalize messages and ensure proper typing
+      const rawMessages = (messages || []).reverse().map(msg => ({
         ...msg,
         sender_type: msg.sender_type as 'customer' | 'agent'
       }));
       
+      // Normalize messages using the context
+      const normalizedMessages = rawMessages.map(msg => normalizeMessage(msg, ctx));
+      
+      // Deduplicate to prevent issues with duplicate content
+      const dedupedMessages = deduplicateMessages(normalizedMessages);
+      
       const hasMore = (totalCount || 0) > offset + limit;
       
       return {
-        messages: chronologicalMessages,
+        messages: dedupedMessages,
         hasMore,
         totalCount: totalCount || 0
       };
@@ -100,8 +117,8 @@ export function useConversationMessages(conversationId?: string) {
 /**
  * Hook to get flattened message list from infinite query
  */
-export function useConversationMessagesList(conversationId?: string) {
-  const query = useConversationMessages(conversationId);
+export function useConversationMessagesList(conversationId?: string, normalizationContext?: NormalizationContext) {
+  const query = useConversationMessages(conversationId, normalizationContext);
   
   const allMessages = query.data?.pages.flatMap(page => page.messages) || [];
   const totalCount = query.data?.pages[0]?.totalCount || 0;

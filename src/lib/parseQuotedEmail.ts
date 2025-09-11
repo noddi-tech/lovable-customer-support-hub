@@ -2,7 +2,7 @@
  * Utility functions to parse and collapse quoted email content
  */
 
-interface ParsedEmailContent {
+export interface ParsedEmailContent {
   visibleContent: string;
   quotedContent: string;
   hasQuotedContent: boolean;
