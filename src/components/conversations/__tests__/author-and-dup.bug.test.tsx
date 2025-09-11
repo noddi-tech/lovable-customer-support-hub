@@ -204,6 +204,7 @@ describe('Author Attribution and Duplicate Content Issues', () => {
         messages: [],
         totalCount: 5,
         normalizedCount: 0,
+        totalNormalizedEstimated: 5,
         confidence: 'high' as const,
         hasNextPage: true,
         isFetchingNextPage: false,

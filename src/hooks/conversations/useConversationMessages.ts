@@ -24,6 +24,7 @@ interface MessagesPage {
   hasMore: boolean;
   totalCount: number;
   normalizedCount: number;
+  totalNormalizedEstimated: number;
   confidence: 'high' | 'medium' | 'low';
 }
 
@@ -48,7 +49,7 @@ export function useConversationMessages(conversationId?: string, normalizationCo
     queryKey: ['conversation-messages', conversationId, user?.id],
     queryFn: async ({ pageParam = 0 }): Promise<MessagesPage> => {
       if (!conversationId) {
-        return { messages: [], hasMore: false, totalCount: 0, normalizedCount: 0, confidence: 'high' as const };
+        return { messages: [], hasMore: false, totalCount: 0, normalizedCount: 0, totalNormalizedEstimated: 0, confidence: 'high' as const };
       }
       
       // For initial page, get newest messages
@@ -110,11 +111,17 @@ export function useConversationMessages(conversationId?: string, normalizationCo
         confidence = 'medium';
       }
       
+      // Estimate total normalized based on current ratio
+      const estimatedNormalized = totalCount && rawMessages.length > 0 
+        ? Math.round((totalCount || 0) * (dedupedMessages.length / rawMessages.length))
+        : totalCount || 0;
+
       return {
         messages: dedupedMessages,
         hasMore,
         totalCount: totalCount || 0,
         normalizedCount: dedupedMessages.length,
+        totalNormalizedEstimated: estimatedNormalized,
         confidence
       };
     },
@@ -137,6 +144,7 @@ export function useConversationMessagesList(conversationId?: string, normalizati
   const allMessages = query.data?.pages.flatMap(page => page.messages) || [];
   const totalCount = query.data?.pages[0]?.totalCount || 0;
   const normalizedCount = query.data?.pages.reduce((sum, page) => sum + page.normalizedCount, 0) || 0;
+  const totalNormalizedEstimated = query.data?.pages[0]?.totalNormalizedEstimated || 0;
   const confidence = query.data?.pages[0]?.confidence || 'high';
   const hasNextPage = query.hasNextPage;
   const isFetchingNextPage = query.isFetchingNextPage;
@@ -146,6 +154,7 @@ export function useConversationMessagesList(conversationId?: string, normalizati
     messages: allMessages,
     totalCount,
     normalizedCount,
+    totalNormalizedEstimated,
     confidence,
     hasNextPage,
     isFetchingNextPage,

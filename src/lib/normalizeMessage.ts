@@ -12,6 +12,7 @@ export interface QuotedBlock {
 
 export interface NormalizedMessage {
   id: string;
+  dedupKey: string;
   createdAt: string | number;
   channel: 'email' | 'sms' | 'voice' | string;
 
@@ -217,8 +218,12 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   // Extract quoted blocks
   const quotedBlocks = extractQuotedBlocks(parsedContent.quotedContent);
   
+  // Generate stable dedup key
+  const dedupKey = rawMessage.id || `msg-${Date.now()}-${Math.random()}`;
+
   return {
     id: rawMessage.id,
+    dedupKey,
     createdAt: rawMessage.created_at,
     channel,
     from,

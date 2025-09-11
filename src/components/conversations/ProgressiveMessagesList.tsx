@@ -1,8 +1,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, MessageSquare, ChevronUp } from "lucide-react";
-import { MessageItem } from "./MessageItem";
+import { Loader2, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
+import { MessageCard } from "./MessageCard";
 import { useConversationMessagesList } from "@/hooks/conversations/useConversationMessages";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -24,10 +24,11 @@ export const ProgressiveMessagesList = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
+  const [allCollapsed, setAllCollapsed] = useState(true);
   
   const {
     messages,
-    totalCount,
+    totalNormalizedEstimated,
     normalizedCount,
     confidence,
     hasNextPage,
@@ -114,6 +115,16 @@ export const ProgressiveMessagesList = ({
     }
   };
 
+  // Calculate remaining count with proper logic
+  const visibleCount = messages.length;
+  const remaining = confidence === 'high' && totalNormalizedEstimated && totalNormalizedEstimated > visibleCount
+    ? Math.max(totalNormalizedEstimated - visibleCount, 0)
+    : null;
+  
+  const loadOlderLabel = remaining === null || remaining > 500 || confidence === 'low'
+    ? 'Load older messages'
+    : `Load older messages (${remaining} remaining)`;
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -138,6 +149,35 @@ export const ProgressiveMessagesList = ({
     <div className="flex-1 min-h-0 relative">
       <ScrollArea className="h-full" ref={scrollAreaRef}>
         <div className="p-4 space-y-4">
+          {/* Expand/Collapse All Controls */}
+          {messages.length > 0 && (
+            <div className="flex justify-between items-center pb-2 border-b border-border">
+              <div className="text-sm text-muted-foreground">
+                {messages.length} message{messages.length > 1 ? 's' : ''}
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAllCollapsed(false)}
+                  className="text-xs"
+                >
+                  <ChevronDown className="w-3 h-3 mr-1" />
+                  Expand all
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAllCollapsed(true)}
+                  className="text-xs"
+                >
+                  <ChevronUp className="w-3 h-3 mr-1" />
+                  Collapse all
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Load older messages button */}
           {(hasNextPage || isFetchingNextPage) && (
             <div className="text-center pb-4">
@@ -153,35 +193,26 @@ export const ProgressiveMessagesList = ({
                     <Loader2 className="w-3 h-3 mr-2 animate-spin" />
                     Loading older messages...
                   </>
-                ) : (() => {
-                  const remaining = Math.max(totalCount - messages.length, 0);
-                  
-                  // Show no count if confidence is low or remaining is too high
-                  if (confidence === 'low' || remaining > 500) {
-                    return 'Load older messages';
-                  }
-                  
-                  // Show count for reasonable numbers
-                  return remaining > 0 
-                    ? `Load older messages (${remaining} remaining)`
-                    : 'Load older messages';
-                })()}
+                ) : (
+                  loadOlderLabel
+                )}
               </Button>
             </div>
           )}
           
-          {/* Messages list */}
+          {/* Messages list - Cards in DESC order (newest first) */}
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>{t('conversation.noMessages')}</p>
             </div>
           ) : (
-            messages.map((message, index) => (
-              <MessageItem
-                key={message.id}
+            messages.map((message) => (
+              <MessageCard
+                key={message.dedupKey || message.id}
                 message={message}
                 conversation={conversation}
+                defaultCollapsed={allCollapsed}
                 onEdit={onEditMessage}
                 onDelete={onDeleteMessage}
               />
