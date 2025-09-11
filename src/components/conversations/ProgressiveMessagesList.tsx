@@ -29,7 +29,7 @@ export const ProgressiveMessagesList = ({
   const {
     messages,
     totalNormalizedEstimated,
-    normalizedCount,
+    normalizedCountLoaded,
     confidence,
     hasNextPage,
     isFetchingNextPage,
@@ -115,9 +115,9 @@ export const ProgressiveMessagesList = ({
     }
   };
 
-  // Calculate remaining count with proper logic
-  const visibleCount = messages.length;
-  const remaining = confidence === 'high' && totalNormalizedEstimated && totalNormalizedEstimated > visibleCount
+  // Calculate remaining count with proper confidence-based logic
+  const visibleCount = normalizedCountLoaded;
+  const remaining = confidence === 'high' && totalNormalizedEstimated > visibleCount
     ? Math.max(totalNormalizedEstimated - visibleCount, 0)
     : null;
   

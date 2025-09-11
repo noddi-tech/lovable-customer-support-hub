@@ -77,7 +77,7 @@ describe('ProgressiveMessagesList', () => {
     mockUseConversationMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 10,
-      normalizedCount: 3,
+      normalizedCountLoaded: 3,
       totalNormalizedEstimated: 10,
       confidence: 'high' as const,
       hasNextPage: true,
@@ -111,7 +111,7 @@ describe('ProgressiveMessagesList', () => {
     mockUseConversationMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 15,
-      normalizedCount: 3,
+      normalizedCountLoaded: 3,
       totalNormalizedEstimated: 15,
       confidence: 'high' as const,
       hasNextPage: true,
@@ -143,7 +143,7 @@ describe('ProgressiveMessagesList', () => {
     mockUseConversationMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 15,
-      normalizedCount: 3,
+      normalizedCountLoaded: 3,
       totalNormalizedEstimated: 15,
       confidence: 'high' as const,
       hasNextPage: true,
@@ -175,7 +175,7 @@ describe('ProgressiveMessagesList', () => {
     mockUseConversationMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 15,
-      normalizedCount: 3,
+      normalizedCountLoaded: 3,
       totalNormalizedEstimated: 15,
       confidence: 'high' as const,
       hasNextPage: true,
@@ -206,7 +206,7 @@ describe('ProgressiveMessagesList', () => {
     mockUseConversationMessagesList.mockReturnValue({
       messages: [],
       totalCount: 0,
-      normalizedCount: 0,
+      normalizedCountLoaded: 0,
       totalNormalizedEstimated: 0,
       confidence: 'high' as const,
       hasNextPage: false,
@@ -235,7 +235,7 @@ describe('ProgressiveMessagesList', () => {
     mockUseConversationMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 3,
-      normalizedCount: 3,
+      normalizedCountLoaded: 3,
       totalNormalizedEstimated: 3,
       confidence: 'high' as const,
       hasNextPage: false,

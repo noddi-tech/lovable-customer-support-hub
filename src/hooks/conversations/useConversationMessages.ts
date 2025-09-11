@@ -25,12 +25,14 @@ interface MessagesPage {
   totalCount: number;
   normalizedCount: number;
   totalNormalizedEstimated: number;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: 'high' | 'low';
+  oldestLoadedAt?: string;
 }
 
 /**
  * Hook for progressive message loading with infinite query
  * Shows newest messages first, loads older on demand
+ * Implements robust cross-page deduplication
  */
 export function useConversationMessages(conversationId?: string, normalizationContext?: NormalizationContext) {
   const { user } = useAuth();
@@ -47,27 +49,23 @@ export function useConversationMessages(conversationId?: string, normalizationCo
   
   return useInfiniteQuery({
     queryKey: ['conversation-messages', conversationId, user?.id],
-    queryFn: async ({ pageParam = 0 }): Promise<MessagesPage> => {
+    queryFn: async ({ pageParam }: { pageParam: number | string | undefined }): Promise<MessagesPage> => {
       if (!conversationId) {
-        return { messages: [], hasMore: false, totalCount: 0, normalizedCount: 0, totalNormalizedEstimated: 0, confidence: 'high' as const };
+        return { 
+          messages: [], 
+          hasMore: false, 
+          totalCount: 0, 
+          normalizedCount: 0, 
+          totalNormalizedEstimated: 0, 
+          confidence: 'high' as const 
+        };
       }
       
-      // For initial page, get newest messages
-      // For subsequent pages, get older messages
-      const isInitialPage = pageParam === 0;
+      const isInitialPage = typeof pageParam === 'number' ? pageParam === 0 : !pageParam;
       const limit = isInitialPage ? INITIAL_VISIBLE_COUNT : PAGE_SIZE;
       
-      // Get total count first
-      const { count: totalCount } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('conversation_id', conversationId);
-      
-      // Calculate offset for pagination
-      // We're loading from newest to oldest, so offset from end
-      const offset = isInitialPage ? 0 : INITIAL_VISIBLE_COUNT + (pageParam - 1) * PAGE_SIZE;
-      
-      const { data: messages, error } = await supabase
+      // For pagination beyond first page, use timestamp cursor to prevent overlap
+      let query = supabase
         .from('messages')
         .select(`
           id,
@@ -79,16 +77,34 @@ export function useConversationMessages(conversationId?: string, normalizationCo
           attachments,
           created_at,
           email_subject,
-          email_headers
+          email_headers,
+          external_id,
+          email_message_id
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-        
+        .limit(limit);
+
+      // For subsequent pages, add cursor to prevent overlap
+      if (!isInitialPage && typeof pageParam === 'string') {
+        query = query.lt('created_at', pageParam);
+      }
+      
+      const { data: messages, error } = await query;
       if (error) throw error;
       
+      // Get total count only on first page
+      let totalCount = 0;
+      if (isInitialPage) {
+        const { count } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conversationId);
+        totalCount = count || 0;
+      }
+      
       // Normalize messages and ensure proper typing
-      const rawMessages = (messages || []).reverse().map(msg => ({
+      const rawMessages = (messages || []).map(msg => ({
         ...msg,
         sender_type: msg.sender_type as 'customer' | 'agent'
       }));
@@ -96,38 +112,38 @@ export function useConversationMessages(conversationId?: string, normalizationCo
       // Normalize messages using the context
       const normalizedMessages = rawMessages.map(msg => normalizeMessage(msg, ctx));
       
-      // Deduplicate to prevent issues with duplicate content
-      const dedupedMessages = deduplicateMessages(normalizedMessages);
+      // Track oldest loaded timestamp for cursor
+      const oldestLoadedAt = rawMessages.length > 0 
+        ? rawMessages[rawMessages.length - 1].created_at 
+        : undefined;
       
-      const hasMore = (totalCount || 0) > offset + limit;
+      const hasMore = rawMessages.length === limit;
       
-      // Calculate confidence based on normalization ratio
-      const normalizationRatio = rawMessages.length > 0 ? dedupedMessages.length / rawMessages.length : 1;
-      let confidence: 'high' | 'medium' | 'low' = 'high';
+      // Calculate confidence only on first page
+      let confidence: 'high' | 'low' = 'high';
+      let estimatedNormalized = totalCount;
       
-      if (normalizationRatio < 0.7) {
+      if (isInitialPage && rawMessages.length >= 20) {
+        const normalizationRatio = normalizedMessages.length / rawMessages.length;
+        confidence = (normalizationRatio >= 0.3 && normalizationRatio <= 1.0) ? 'high' : 'low';
+        estimatedNormalized = Math.round(totalCount * normalizationRatio);
+      } else if (isInitialPage && rawMessages.length > 0) {
         confidence = 'low';
-      } else if (normalizationRatio < 0.9) {
-        confidence = 'medium';
       }
-      
-      // Estimate total normalized based on current ratio
-      const estimatedNormalized = totalCount && rawMessages.length > 0 
-        ? Math.round((totalCount || 0) * (dedupedMessages.length / rawMessages.length))
-        : totalCount || 0;
 
       return {
-        messages: dedupedMessages,
+        messages: normalizedMessages,
         hasMore,
-        totalCount: totalCount || 0,
-        normalizedCount: dedupedMessages.length,
+        totalCount,
+        normalizedCount: normalizedMessages.length,
         totalNormalizedEstimated: estimatedNormalized,
-        confidence
+        confidence,
+        oldestLoadedAt
       };
     },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.hasMore ? allPages.length : undefined;
+    initialPageParam: 0 as number | string,
+    getNextPageParam: (lastPage) => {
+      return lastPage.hasMore && lastPage.oldestLoadedAt ? lastPage.oldestLoadedAt : undefined;
     },
     enabled: !!conversationId && !!user,
     staleTime: 10 * 1000, // 10 seconds - messages change frequently
@@ -136,24 +152,34 @@ export function useConversationMessages(conversationId?: string, normalizationCo
 }
 
 /**
- * Hook to get flattened message list from infinite query
+ * Hook to get flattened message list from infinite query with cross-page deduplication
  */
 export function useConversationMessagesList(conversationId?: string, normalizationContext?: NormalizationContext) {
   const query = useConversationMessages(conversationId, normalizationContext);
   
-  const allMessages = query.data?.pages.flatMap(page => page.messages) || [];
+  // Flatten all messages and apply cross-page deduplication
+  const allRawMessages = query.data?.pages.flatMap((page: MessagesPage) => page.messages) || [];
+  const allMessages = deduplicateMessages(allRawMessages);
+  
+  // Sort newest first for display
+  const sortedMessages = [...allMessages].sort((a, b) => {
+    const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt;
+    const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt;
+    return timeB - timeA; // DESC order (newest first)
+  });
+  
   const totalCount = query.data?.pages[0]?.totalCount || 0;
-  const normalizedCount = query.data?.pages.reduce((sum, page) => sum + page.normalizedCount, 0) || 0;
+  const normalizedCountLoaded = allMessages.length;
   const totalNormalizedEstimated = query.data?.pages[0]?.totalNormalizedEstimated || 0;
-  const confidence = query.data?.pages[0]?.confidence || 'high';
+  const confidence = query.data?.pages[0]?.confidence || ('high' as const);
   const hasNextPage = query.hasNextPage;
   const isFetchingNextPage = query.isFetchingNextPage;
   const fetchNextPage = query.fetchNextPage;
   
   return {
-    messages: allMessages,
+    messages: sortedMessages,
     totalCount,
-    normalizedCount,
+    normalizedCountLoaded,
     totalNormalizedEstimated,
     confidence,
     hasNextPage,

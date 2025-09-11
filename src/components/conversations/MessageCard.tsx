@@ -55,10 +55,10 @@ export const MessageCard = ({
       JSON.parse(message.originalMessage.attachments) : 
       message.originalMessage.attachments) as EmailAttachment[] : [];
 
-  // Generate preview text (first 120 chars of visible body, no HTML)
+  // Generate preview text (first 160 chars of visible body, no HTML)
   const getPreviewText = (content: string) => {
-    const textOnly = content.replace(/<[^>]*>/g, '').trim();
-    return textOnly.length > 120 ? textOnly.substring(0, 120) + '...' : textOnly;
+    const textOnly = content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    return textOnly.length > 160 ? textOnly.substring(0, 160) + '...' : textOnly;
   };
 
   const handleEdit = () => {

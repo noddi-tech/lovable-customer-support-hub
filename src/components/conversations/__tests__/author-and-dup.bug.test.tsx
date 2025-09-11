@@ -203,7 +203,7 @@ describe('Author Attribution and Duplicate Content Issues', () => {
       mockUseConversationMessagesList.mockReturnValue({
         messages: [],
         totalCount: 5,
-        normalizedCount: 0,
+        normalizedCountLoaded: 0,
         totalNormalizedEstimated: 5,
         confidence: 'high' as const,
         hasNextPage: true,
