@@ -3,7 +3,7 @@
  * Provides consistent author attribution and content parsing
  */
 
-import { parseEmailContent } from './parseQuotedEmail';
+import { parseQuotedEmail, type QuotedBlock } from './parseQuotedEmail';
 
 // Helper functions for deduplication
 function normalizeText(s: string): string {
@@ -25,10 +25,7 @@ function simpleHash(s: string): string {
   return Math.abs(h).toString(36);
 }
 
-export interface QuotedBlock {
-  kind: 'gmail' | 'outlook' | 'blockquote' | 'generic';
-  raw: string;
-}
+
 
 export interface NormalizedMessage {
   id: string;
@@ -125,39 +122,16 @@ function isAgentPhone(phone: string | undefined, ctx: NormalizationContext): boo
   return ctx.agentPhoneSet.has(phone.trim());
 }
 
-/**
- * Extract quoted blocks with their types
- */
-function extractQuotedBlocks(quotedContent: string): QuotedBlock[] {
-  if (!quotedContent.trim()) return [];
-  
-  // Try to identify the type of quoted content
-  let kind: QuotedBlock['kind'] = 'generic';
-  
-  const content = quotedContent.toLowerCase();
-  if (content.includes('on ') && content.includes(' wrote:')) {
-    kind = 'gmail';
-  } else if (content.includes('-----original message-----')) {
-    kind = 'outlook';
-  } else if (content.includes('<blockquote') || content.includes('blockquote>')) {
-    kind = 'blockquote';
-  }
-  
-  return [{
-    kind,
-    raw: quotedContent
-  }];
-}
 
 /**
  * Normalize a raw message from Supabase into canonical format
  */
 export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): NormalizedMessage {
   // Parse content to separate visible and quoted parts
-  const parsedContent = parseEmailContent(
-    rawMessage.content || '', 
-    rawMessage.content_type || 'text/plain'
-  );
+  const parsedContent = parseQuotedEmail({
+    content: rawMessage.content || '', 
+    contentType: rawMessage.content_type || 'text/plain'
+  });
   
   // Determine channel from message data
   let channel: string = rawMessage.channel || 'email';
@@ -236,7 +210,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   }
   
   // Extract quoted blocks
-  const quotedBlocks = extractQuotedBlocks(parsedContent.quotedContent);
+  const quotedBlocks = parsedContent.quotedBlocks;
   
   const result: NormalizedMessage = {
     id: rawMessage.id,
@@ -249,7 +223,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     authorType,
     authorLabel,
     visibleBody: parsedContent.visibleContent,
-    quotedBlocks: quotedBlocks.length > 0 ? quotedBlocks : undefined,
+    quotedBlocks: quotedBlocks?.length > 0 ? quotedBlocks : undefined,
     originalMessage: rawMessage
   };
 

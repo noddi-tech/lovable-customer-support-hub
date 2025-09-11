@@ -1,198 +1,145 @@
-/**
- * Utility functions to parse and collapse quoted email content
- */
+// Robust quoted-reply extraction for HTML and plain text emails
+// Returns the content that should be shown in the card (visibleContent)
+// and a list of quoted blocks (for optional "Show quoted history")
 
-export interface ParsedEmailContent {
-  visibleContent: string;
-  quotedContent: string;
-  hasQuotedContent: boolean;
-  detectedPattern?: string;
-}
+export type QuotedBlock = {
+  kind: 'gmail' | 'outlook' | 'apple' | 'yahoo' | 'blockquote' | 'header' | 'plain';
+  raw: string;
+};
 
-/**
- * Enhanced patterns for detecting quoted email content
- */
-const QUOTED_PATTERNS = [
-  // Gmail/Google style
-  { pattern: /^On .+ wrote:$/m, type: 'gmail' },
-  { pattern: /^Den .+ skrev:$/m, type: 'gmail-no' },
-  { pattern: /^På .+ skrev:$/m, type: 'gmail-no' },
-  { pattern: /^Skrev .+:$/m, type: 'gmail-no' },
-  
-  // Standard email headers
-  { pattern: /^From: .+$/m, type: 'header' },
-  { pattern: /^Sent: .+$/m, type: 'header' },
-  { pattern: /^To: .+$/m, type: 'header' },
-  { pattern: /^Subject: .+$/m, type: 'header' },
-  { pattern: /^Date: .+$/m, type: 'header' },
-  
-  // Exchange/Outlook
-  { pattern: /-----Original Message-----/i, type: 'outlook' },
-  { pattern: /_____+/, type: 'separator' },
-  
-  // Apple Mail
-  { pattern: /^Begin forwarded message:$/m, type: 'apple' },
-  
-  // Generic quote indicators  
-  { pattern: /^> /m, type: 'blockquote' },
-  { pattern: /^&gt; /m, type: 'blockquote' },
+type Input = { content: string; contentType?: string };
+
+const WROTE_HEADERS = [
+  // English
+  /^On .+ wrote:$/i,
+  /^-----Original Message-----$/i,
+  /^From: .+\n(?:Sent|Date): .+\n(?:To|Cc): .+\n(?:Subject|Re): .+$/i,
+  // Norwegian
+  /^(Den|På) .+ skrev:$/i,
+  /^Fra: .+\n(?:Sendt|Dato): .+\n(?:Til|Kopi): .+\n(?:Emne|Re): .+$/i,
+  /^Skrev .+:$/i,
 ];
 
-/**
- * Extract quoted content from plain text email
- */
-export function parseQuotedText(content: string): ParsedEmailContent {
-  if (!content) {
-    return { visibleContent: content, quotedContent: '', hasQuotedContent: false };
-  }
+function stripHtmlComments(s: string) {
+  return s.replace(/<!--[\s\S]*?-->/g, '');
+}
 
-  let splitPoint = -1;
-  let detectedPattern = '';
+function normalizeWhitespace(s: string) {
+  return s.replace(/\r\n/g, '\n').replace(/\u00A0/g, ' ').replace(/[ \t]+/g, ' ').trim();
+}
 
-  // Find the first occurrence of any quoted pattern
-  for (const { pattern, type } of QUOTED_PATTERNS) {
-    const match = content.match(pattern);
-    if (match && match.index !== undefined) {
-      if (splitPoint === -1 || match.index < splitPoint) {
-        splitPoint = match.index;
-        detectedPattern = type;
-      }
-    }
-  }
-
-  // If no pattern found, check for multiple consecutive lines starting with >
-  if (splitPoint === -1) {
-    const lines = content.split('\n');
-    let quoteStartIndex = -1;
-    let consecutiveQuoteLines = 0;
-    
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim().startsWith('>') || lines[i].trim().startsWith('&gt;')) {
-        if (quoteStartIndex === -1) {
-          quoteStartIndex = i;
-        }
-        consecutiveQuoteLines++;
-      } else if (consecutiveQuoteLines > 0) {
-        // If we had quoted lines but now don't, check if we have enough to consider it a quote block
-        if (consecutiveQuoteLines >= 2) {
-          splitPoint = lines.slice(0, quoteStartIndex).join('\n').length;
-          break;
-        }
-        quoteStartIndex = -1;
-        consecutiveQuoteLines = 0;
-      }
-    }
-    
-    // Check if the email ends with quoted lines
-    if (consecutiveQuoteLines >= 2 && quoteStartIndex !== -1) {
-      splitPoint = lines.slice(0, quoteStartIndex).join('\n').length;
-    }
-  }
-
-  if (splitPoint === -1) {
-    return { visibleContent: content, quotedContent: '', hasQuotedContent: false };
-  }
-
-  const visibleContent = content.substring(0, splitPoint).trim();
-  const quotedContent = content.substring(splitPoint).trim();
-
-  return {
-    visibleContent,
-    quotedContent,
-    hasQuotedContent: quotedContent.length > 0,
-    detectedPattern
-  };
+function htmlToDocument(html: string): Document {
+  const parser = new DOMParser();
+  return parser.parseFromString(html, 'text/html');
 }
 
 /**
- * Extract quoted content from HTML email
+ * Extract quoted blocks from HTML by removing known containers and blockquotes.
+ * Returns [visibleHTML, quotedBlocks]
  */
-export function parseQuotedHTML(htmlContent: string): ParsedEmailContent {
-  if (!htmlContent) {
-    return { visibleContent: htmlContent, quotedContent: '', hasQuotedContent: false };
+function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlock[] } {
+  const quoted: QuotedBlock[] = [];
+  const doc = htmlToDocument(stripHtmlComments(html));
+  const body = doc.body;
+
+  // Known quoted containers (Gmail/Outlook/Apple/Yahoo)
+  const selectors = [
+    'div.gmail_quote', '.gmail_quote', '.gmail_extra', '.gmail_attr',
+    '.yahoo_quoted', 'div.yahoo_quoted',
+    '.AppleMailQuote', '.moz-cite-prefix', '.moz-signature',
+    'blockquote[type="cite"]', 'blockquote',
+    // Outlook often wraps original with a top border container
+    'div[style*="border-top:1px solid #ccc"]',
+    'div[style*="border-top: 1px solid #ccc"]',
+    'div[style*="border-top:1pt solid"]',
+  ];
+
+  // Collect and remove nodes
+  selectors.forEach(sel => {
+    body.querySelectorAll(sel).forEach((node) => {
+      const raw = (node as HTMLElement).outerHTML || node.textContent || '';
+      // classify best-effort
+      const kind: QuotedBlock['kind'] =
+        sel.includes('gmail') ? 'gmail'
+      : sel.includes('yahoo') ? 'yahoo'
+      : sel.includes('AppleMail') ? 'apple'
+      : sel.includes('moz') ? 'apple'
+      : sel.startsWith('blockquote') ? 'blockquote'
+      : sel.includes('border-top') ? 'outlook'
+      : 'plain';
+      quoted.push({ kind, raw });
+      node.remove();
+    });
+  });
+
+  // Fallback: detect header markers inside remaining HTML text and split
+  const remaining = body.innerText || '';
+  const lines = remaining.split('\n');
+  const headerIdx = lines.findIndex(line => WROTE_HEADERS.some(rx => rx.test(line.trim())));
+  if (headerIdx > -1) {
+    const raw = lines.slice(headerIdx).join('\n');
+    quoted.push({ kind: 'header', raw });
+    // remove that section from DOM text by cutting innerHTML after that marker
+    // Simple approach: cut body.innerHTML at the start of that line's text
+    const marker = lines[headerIdx].trim();
+    const idxInHtml = body.innerHTML.indexOf(marker);
+    if (idxInHtml >= 0) {
+      body.innerHTML = body.innerHTML.slice(0, idxInHtml);
+    }
   }
 
-  // Create a temporary DOM element to parse HTML
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
+  const visibleHTML = body.innerHTML.trim();
+  return { visibleHTML, quoted };
+}
 
-  // Look for common quoted content containers with enhanced selectors
-  const quotedElements = tempDiv.querySelectorAll(
-    'blockquote, .quote, .quoted-text, .gmail_quote, .outlook_quote, .yahoo_quoted, .AppleMailQuote, [class*="quote"], [style*="border-top"], div[class*="gmail"]'
-  );
+/**
+ * Extract quoted blocks from plain text.
+ * Returns [visibleText, quotedBlocks]
+ */
+function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBlock[] } {
+  const quoted: QuotedBlock[] = [];
+  const lines = text.split('\n');
 
-  if (quotedElements.length === 0) {
-    // Try text-based parsing on the HTML content
-    const textContent = tempDiv.textContent || '';
-    const parsed = parseQuotedText(textContent);
-    
-    if (!parsed.hasQuotedContent) {
-      return { visibleContent: htmlContent, quotedContent: '', hasQuotedContent: false };
-    }
-    
-    // If we found quoted text, try to find the corresponding HTML split point
-    const visibleTextLength = parsed.visibleContent.length;
-    let htmlLength = 0;
-    let splitIndex = 0;
-    
-    for (const node of tempDiv.childNodes) {
-      const nodeText = node.textContent || '';
-      if (htmlLength + nodeText.length >= visibleTextLength) {
-        break;
-      }
-      htmlLength += nodeText.length;
-      splitIndex++;
-    }
-    
-    const visibleNodes = Array.from(tempDiv.childNodes).slice(0, splitIndex);
-    const quotedNodes = Array.from(tempDiv.childNodes).slice(splitIndex);
-    
-    const visibleHTML = visibleNodes.map(node => {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        return (node as Element).outerHTML;
-      }
-      return node.textContent || '';
-    }).join('');
-    
-    const quotedHTML = quotedNodes.map(node => {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        return (node as Element).outerHTML;
-      }
-      return node.textContent || '';
-    }).join('');
-    
-    return {
-      visibleContent: visibleHTML,
-      quotedContent: quotedHTML,
-      hasQuotedContent: quotedHTML.trim().length > 0
-    };
+  // If there are any ">"-prefixed lines, treat the first block of them and below as quoted
+  const angleIdx = lines.findIndex(l => l.trim().startsWith('>'));
+  // Or find classic header lines (On ... wrote:, Original Message, Norwegian variants)
+  const headerIdx = lines.findIndex(l => WROTE_HEADERS.some(rx => rx.test(l.trim())));
+
+  let cut = -1;
+  if (headerIdx > -1) cut = headerIdx;
+  else if (angleIdx > -1) cut = angleIdx;
+
+  if (cut > -1) {
+    quoted.push({
+      kind: headerIdx > -1 ? 'header' : 'plain',
+      raw: lines.slice(cut).join('\n'),
+    });
   }
 
-  // Remove quoted elements and get the remaining HTML
-  quotedElements.forEach(element => element.remove());
-  
-  const visibleHTML = tempDiv.innerHTML;
-  
-  // Get the quoted content
-  const quotedHTML = Array.from(quotedElements)
-    .map(element => element.outerHTML)
+  const visible = cut > -1 ? lines.slice(0, cut).join('\n') : lines.join('\n');
+
+  // Also drop any trailing quote-style lines from the visible preview
+  const pruned = visible
+    .split('\n')
+    .filter(l => !l.trim().startsWith('>'))
     .join('\n');
 
-  return {
-    visibleContent: visibleHTML,
-    quotedContent: quotedHTML,
-    hasQuotedContent: quotedHTML.trim().length > 0,
-    detectedPattern: 'html-elements'
-  };
+  return { visibleText: pruned.trim(), quoted };
 }
 
 /**
- * Main function to parse email content based on content type
+ * Public API
  */
-export function parseEmailContent(content: string, contentType: string = 'text/plain'): ParsedEmailContent {
-  if (contentType.includes('html')) {
-    return parseQuotedHTML(content);
-  } else {
-    return parseQuotedText(content);
+export function parseQuotedEmail(input: Input): { visibleContent: string; quotedBlocks: QuotedBlock[] } {
+  const contentType = (input.contentType || '').toLowerCase();
+  const content = input.content || '';
+
+  if (contentType.includes('html') || /<\/?[a-z][\s\S]*>/i.test(content)) {
+    const { visibleHTML, quoted } = extractFromHtml(content);
+    return { visibleContent: visibleHTML.trim(), quotedBlocks: quoted };
   }
+
+  // Plain text
+  const { visibleText, quoted } = extractFromPlain(normalizeWhitespace(content));
+  return { visibleContent: visibleText, quotedBlocks: quoted };
 }
