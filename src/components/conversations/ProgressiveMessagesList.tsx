@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 import { MessageCard } from "./MessageCard";
-import { useConversationMessagesList } from "@/hooks/conversations/useConversationMessages";
+import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessages";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -28,15 +28,15 @@ export const ProgressiveMessagesList = ({
   
   const {
     messages,
-    totalNormalizedEstimated,
-    normalizedCountLoaded,
-    confidence,
+    totalCount,
+    loadedCount,
+    remaining,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
     isLoading,
     error
-  } = useConversationMessagesList(conversationId);
+  } = useThreadMessagesList(conversationId);
 
   // Auto-scroll to bottom when messages change (for new messages)
   useEffect(() => {
@@ -115,15 +115,10 @@ export const ProgressiveMessagesList = ({
     }
   };
 
-  // Calculate remaining count with proper confidence-based logic
-  const visibleCount = normalizedCountLoaded;
-  const remaining = confidence === 'high' && totalNormalizedEstimated > visibleCount
-    ? Math.max(totalNormalizedEstimated - visibleCount, 0)
-    : null;
-  
-  const loadOlderLabel = remaining === null || remaining > 500 || confidence === 'low'
-    ? 'Load older messages'
-    : `Load older messages (${remaining} remaining)`;
+  // Calculate remaining count for thread-aware messaging
+  const loadOlderLabel = remaining > 0
+    ? `Load older messages (${remaining} remaining)`
+    : 'Load older messages';
 
   if (isLoading) {
     return (
@@ -207,16 +202,16 @@ export const ProgressiveMessagesList = ({
               <p>{t('conversation.noMessages')}</p>
             </div>
           ) : (
-             messages.map((message) => (
-               <MessageCard
-                 key={message.originalMessage?._syntheticQuoted ? `${message.dedupKey}::q` : message.dedupKey || message.id}
-                 message={message}
-                 conversation={conversation}
-                 defaultCollapsed={allCollapsed}
-                 onEdit={onEditMessage}
-                 onDelete={onDeleteMessage}
-               />
-             ))
+              messages.map((message) => (
+                <MessageCard
+                  key={message.dedupKey || message.id}
+                  message={message}
+                  conversation={conversation}
+                  defaultCollapsed={allCollapsed}
+                  onEdit={onEditMessage}
+                  onDelete={onDeleteMessage}
+                />
+              ))
           )}
         </div>
       </ScrollArea>

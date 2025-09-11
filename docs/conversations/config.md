@@ -1,96 +1,75 @@
-# Conversation Performance Configuration
+# Conversation Configuration
 
-## Performance Settings
+## Thread-Aware Messaging
 
-The conversation loading behavior can be customized with these constants:
+The conversation view implements thread-aware messaging that shows one card per database message, with quoted content automatically hidden for a cleaner experience.
 
-### Message Loading
-```typescript
-// src/hooks/conversations/useConversationMessages.ts
-const INITIAL_VISIBLE_COUNT = 3; // Number of newest messages shown on first load
-const PAGE_SIZE = 10;            // Number of messages loaded per page when fetching older
-```
+### Key Features
 
-### Environment Variables
-```bash
-# Enable performance debugging (development only)
-VITE_UI_PROBE=1
-```
+- **One card per DB message**: Each message row from the database renders as a single card
+- **Thread-aware loading**: Uses email headers (Message-ID, In-Reply-To, References) to build conversation threads
+- **Quoted content hidden**: Quoted email tails are automatically stripped from the display
+- **Smart pagination**: "Load older messages" loads actual database rows, not quote segments
+- **Proper deduplication**: Messages are deduplicated using stable keys across pages
 
-## Configuration Options
+### Email Threading
 
-### INITIAL_VISIBLE_COUNT
-- **Default**: 3
-- **Purpose**: Controls how many of the newest messages are shown immediately when opening a conversation
-- **Impact**: Lower values = faster initial load, higher values = more context visible immediately
-- **Recommendation**: 2-5 messages for optimal balance
+The system uses several methods to group related messages:
 
-### PAGE_SIZE  
-- **Default**: 10
-- **Purpose**: Controls how many older messages are loaded when user scrolls to top or clicks "Load older"
-- **Impact**: Higher values = fewer network requests but larger data transfers
-- **Recommendation**: 10-20 messages per page
+1. **Email Headers** (primary method):
+   - `Message-ID`: Unique identifier for each email
+   - `In-Reply-To`: References the Message-ID being replied to
+   - `References`: Chain of all previous Message-IDs in the thread
 
-### Quoted Text Collapse
-- **Default**: Enabled (quoted content collapsed by default)
-- **Purpose**: Reduces visual clutter and improves readability
-- **Toggle**: Users can expand quoted content with "Show quoted text" button
+2. **Subject + Participants** (fallback):
+   - Normalized subject line (removing Re:, Fwd: prefixes)
+   - Matching participants (customer and inbox emails)
+   - Time window (90 days by default)
 
-## Remaining Count Algorithm
+### Configuration
 
-### Count Calculation
-The "Load older messages" button shows remaining count based on:
-- **High confidence**: Shows exact count when normalization ratio > 90%
-- **Medium confidence**: Shows exact count when normalization ratio > 70%
-- **Low confidence**: Hides count when normalization ratio < 70%
-- **Large counts**: Hides count when remaining > 500 messages
+#### Feature Flags
 
-### Confidence Levels
-```typescript
-// Calculated based on raw vs normalized message ratio
-const normalizationRatio = normalizedMessages.length / rawMessages.length;
-```
+- `VITE_QUOTED_SEGMENTATION=0`: Quoted segmentation is disabled by default
+- `VITE_UI_PROBE=1`: Enable debug probes for development
 
-## Quoted Content Detection
+#### Behavior
 
-### Supported Patterns
-- **Gmail**: `On [date] wrote:`, multi-language support (Norwegian: `Den/På [date] skrev:`)
-- **Outlook**: `-----Original Message-----`, email headers (`From:`, `Sent:`, `To:`)
-- **Apple Mail**: `Begin forwarded message:`
-- **HTML**: `.gmail_quote`, `.outlook_quote`, `blockquote`, `[style*="border-top"]`
-- **Generic**: Lines starting with `>` or `&gt;`
+- **Initial load**: Shows 3 newest messages
+- **Pagination**: 20 messages per page after initial load
+- **Remaining count**: Based on actual database message count
+- **Deduplication**: Uses Message-ID, external_id, or content hash
 
-### Deduplication Strategy
-1. **Primary**: Message ID matching
-2. **Secondary**: Soft key = `${sender}-${date}-${contentHash}`
-3. **Chronological**: Maintains time order after deduplication
+### Quoted Content Handling
 
-## Performance Targets
+Quoted email content is:
+- Automatically detected and stripped from the visible message body
+- Not displayed in the UI (no "Show quoted history" toggle)
+- Preserved in the database but hidden from users
+- Can be re-enabled via feature flag for debugging
 
-### Time to Content
-- **Target**: < 800ms from conversation click to visible messages
-- **Measured**: From user click to 3 newest messages rendered
+### Performance Optimizations
 
-### Memory Usage
-- **Target**: 70% reduction in initial DOM size for large conversations
-- **Method**: Progressive loading + lazy composer + quoted content collapse
+- **Cross-page deduplication**: Prevents duplicate messages when loading older content
+- **Stable dedup keys**: Consistent message identification across sessions
+- **Efficient threading**: Uses database indexes on email headers and timestamps
+- **Smart pagination**: Only loads real messages, not synthetic quote segments
 
-### Bundle Size
-- **Target**: Reduce initial JS by lazy-loading reply editor
-- **Method**: Load composer only when user clicks "Reply"
+### Development Notes
 
-## Monitoring
+When `VITE_QUOTED_SEGMENTATION=1` is set, the system will still parse quoted content but will not display it in the UI. This allows for future features while maintaining the clean thread-aware experience.
 
-When `VITE_UI_PROBE=1` is enabled, performance timing logs will be shown in console:
-- Initial conversation load time
-- Message fetch duration  
-- Render completion time
+The thread building logic handles various email client formats:
+- Gmail quote blocks
+- Outlook original message headers
+- Apple Mail citations
+- Norwegian email patterns
+- Plain text angle-bracket quotes
 
-## Customization
+### Database Schema
 
-To adjust settings for your use case:
-
-1. **Large Conversations (100+ messages)**: Reduce `INITIAL_VISIBLE_COUNT` to 2
-2. **Fast Networks**: Increase `PAGE_SIZE` to 20
-3. **Mobile Users**: Keep defaults (optimized for slower connections)
-4. **Power Users**: Consider increasing `INITIAL_VISIBLE_COUNT` to 5
+The conversation threading relies on these message fields:
+- `email_headers`: JSON containing Message-ID, In-Reply-To, References
+- `email_subject`: Subject line for fallback threading
+- `external_id`: External system message identifier
+- `created_at`: Timestamp for pagination and time-based filtering

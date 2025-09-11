@@ -5,6 +5,9 @@
 // Never promote quoted blocks into cards
 export const ENABLE_QUOTED_SEGMENTATION = false;
 
+// Feature flag for showing quoted content in UI
+const SHOW_QUOTED = import.meta.env.VITE_QUOTED_SEGMENTATION === '1' && false;
+
 export type QuotedBlock = {
   kind: 'gmail' | 'outlook' | 'apple' | 'yahoo' | 'blockquote' | 'header' | 'plain';
   raw: string;
@@ -258,10 +261,18 @@ export function parseQuotedEmail(input: Input): { visibleContent: string; quoted
 
   if (contentType.includes('html') || /<\/?[a-z][\s\S]*>/i.test(content)) {
     const { visibleHTML, quoted, quotedMessages } = extractFromHtml(content);
-    return { visibleContent: visibleHTML.trim(), quotedBlocks: quoted, quotedMessages };
+    return { 
+      visibleContent: visibleHTML.trim(), 
+      quotedBlocks: SHOW_QUOTED ? quoted : [],
+      quotedMessages: SHOW_QUOTED ? quotedMessages : []
+    };
   }
 
   // Plain text
   const { visibleText, quoted, quotedMessages } = extractFromPlain(normalizeWhitespace(content));
-  return { visibleContent: visibleText, quotedBlocks: quoted, quotedMessages };
+  return { 
+    visibleContent: visibleText, 
+    quotedBlocks: SHOW_QUOTED ? quoted : [],
+    quotedMessages: SHOW_QUOTED ? quotedMessages : []
+  };
 }

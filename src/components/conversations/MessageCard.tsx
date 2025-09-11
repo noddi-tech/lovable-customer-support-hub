@@ -45,7 +45,9 @@ export const MessageCard = ({
   const { dateTime } = useDateFormatting();
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  const [showQuoted, setShowQuoted] = useState(false);
+  
+  // never show quoted blocks (even if present)
+  const SHOW_QUOTED = import.meta.env.VITE_QUOTED_SEGMENTATION === '1' && false;
   
   const isFromCustomer = message.authorType === 'customer';
   
@@ -186,47 +188,12 @@ export const MessageCard = ({
               messageId={message.id}
             />
             
-            {/* Quoted content toggle */}
-            {message.quotedBlocks && message.quotedBlocks.length > 0 && (
+            {/* Quoted content toggle - only show if feature flag is enabled */}
+            {SHOW_QUOTED && message.quotedBlocks && message.quotedBlocks.length > 0 && (
               <div className="mt-3 pt-3 border-t border-border">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowQuoted(!showQuoted)}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  {showQuoted ? (
-                    <>
-                      <ChevronUp className="w-3 h-3 mr-1" />
-                      Hide quoted history
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="w-3 h-3 mr-1" />
-                      Show quoted history ({message.quotedBlocks.length} block{message.quotedBlocks.length > 1 ? 's' : ''})
-                    </>
-                  )}
-                </Button>
-                
-                {showQuoted && (
-                  <div className="mt-2 space-y-2">
-                    {message.quotedBlocks.map((block, index) => (
-                      <div key={index} className="pl-3 border-l-2 border-muted">
-                        <div className="text-xs text-muted-foreground mb-1 font-medium">
-                          {block.kind === 'gmail' ? 'Gmail Quote' : 
-                           block.kind === 'outlook' ? 'Outlook Quote' :
-                           block.kind === 'blockquote' ? 'HTML Quote' : 'Quoted Text'}
-                        </div>
-                        <EmailRender
-                          content={block.raw}
-                          contentType={message.originalMessage?.content_type || 'text/plain'}
-                          attachments={[]}
-                          messageId={`${message.id}-quoted-${index}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="text-xs text-muted-foreground">
+                  Thread-aware view: Quoted content hidden
+                </div>
               </div>
             )}
             
