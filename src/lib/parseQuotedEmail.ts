@@ -6,29 +6,36 @@ export interface ParsedEmailContent {
   visibleContent: string;
   quotedContent: string;
   hasQuotedContent: boolean;
+  detectedPattern?: string;
 }
 
 /**
- * Common patterns that indicate quoted/previous email content
+ * Enhanced patterns for detecting quoted email content
  */
 const QUOTED_PATTERNS = [
-  // Gmail/Outlook style
-  /^On .+ wrote:$/m,
-  /^From: .+$/m,
-  /^Sent: .+$/m,
-  /^To: .+$/m,
-  /^Subject: .+$/m,
+  // Gmail/Google style
+  { pattern: /^On .+ wrote:$/m, type: 'gmail' },
+  { pattern: /^Den .+ skrev:$/m, type: 'gmail-no' },
+  { pattern: /^På .+ skrev:$/m, type: 'gmail-no' },
+  { pattern: /^Skrev .+:$/m, type: 'gmail-no' },
+  
+  // Standard email headers
+  { pattern: /^From: .+$/m, type: 'header' },
+  { pattern: /^Sent: .+$/m, type: 'header' },
+  { pattern: /^To: .+$/m, type: 'header' },
+  { pattern: /^Subject: .+$/m, type: 'header' },
+  { pattern: /^Date: .+$/m, type: 'header' },
   
   // Exchange/Outlook
-  /-----Original Message-----/i,
-  /_____+/,
+  { pattern: /-----Original Message-----/i, type: 'outlook' },
+  { pattern: /_____+/, type: 'separator' },
   
   // Apple Mail
-  /^Begin forwarded message:$/m,
+  { pattern: /^Begin forwarded message:$/m, type: 'apple' },
   
   // Generic quote indicators  
-  /^> /m,
-  /^&gt; /m,
+  { pattern: /^> /m, type: 'blockquote' },
+  { pattern: /^&gt; /m, type: 'blockquote' },
 ];
 
 /**
@@ -40,15 +47,15 @@ export function parseQuotedText(content: string): ParsedEmailContent {
   }
 
   let splitPoint = -1;
-  let foundPattern = '';
+  let detectedPattern = '';
 
   // Find the first occurrence of any quoted pattern
-  for (const pattern of QUOTED_PATTERNS) {
+  for (const { pattern, type } of QUOTED_PATTERNS) {
     const match = content.match(pattern);
     if (match && match.index !== undefined) {
       if (splitPoint === -1 || match.index < splitPoint) {
         splitPoint = match.index;
-        foundPattern = match[0];
+        detectedPattern = type;
       }
     }
   }
@@ -92,7 +99,8 @@ export function parseQuotedText(content: string): ParsedEmailContent {
   return {
     visibleContent,
     quotedContent,
-    hasQuotedContent: quotedContent.length > 0
+    hasQuotedContent: quotedContent.length > 0,
+    detectedPattern
   };
 }
 
@@ -108,9 +116,9 @@ export function parseQuotedHTML(htmlContent: string): ParsedEmailContent {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
 
-  // Look for common quoted content containers
+  // Look for common quoted content containers with enhanced selectors
   const quotedElements = tempDiv.querySelectorAll(
-    'blockquote, .quote, .quoted-text, .gmail_quote, .outlook_quote, [class*="quote"]'
+    'blockquote, .quote, .quoted-text, .gmail_quote, .outlook_quote, .yahoo_quoted, .AppleMailQuote, [class*="quote"], [style*="border-top"], div[class*="gmail"]'
   );
 
   if (quotedElements.length === 0) {
@@ -173,7 +181,8 @@ export function parseQuotedHTML(htmlContent: string): ParsedEmailContent {
   return {
     visibleContent: visibleHTML,
     quotedContent: quotedHTML,
-    hasQuotedContent: quotedHTML.trim().length > 0
+    hasQuotedContent: quotedHTML.trim().length > 0,
+    detectedPattern: 'html-elements'
   };
 }
 

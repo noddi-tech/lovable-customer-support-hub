@@ -36,6 +36,35 @@ VITE_UI_PROBE=1
 - **Purpose**: Reduces visual clutter and improves readability
 - **Toggle**: Users can expand quoted content with "Show quoted text" button
 
+## Remaining Count Algorithm
+
+### Count Calculation
+The "Load older messages" button shows remaining count based on:
+- **High confidence**: Shows exact count when normalization ratio > 90%
+- **Medium confidence**: Shows exact count when normalization ratio > 70%
+- **Low confidence**: Hides count when normalization ratio < 70%
+- **Large counts**: Hides count when remaining > 500 messages
+
+### Confidence Levels
+```typescript
+// Calculated based on raw vs normalized message ratio
+const normalizationRatio = normalizedMessages.length / rawMessages.length;
+```
+
+## Quoted Content Detection
+
+### Supported Patterns
+- **Gmail**: `On [date] wrote:`, multi-language support (Norwegian: `Den/På [date] skrev:`)
+- **Outlook**: `-----Original Message-----`, email headers (`From:`, `Sent:`, `To:`)
+- **Apple Mail**: `Begin forwarded message:`
+- **HTML**: `.gmail_quote`, `.outlook_quote`, `blockquote`, `[style*="border-top"]`
+- **Generic**: Lines starting with `>` or `&gt;`
+
+### Deduplication Strategy
+1. **Primary**: Message ID matching
+2. **Secondary**: Soft key = `${sender}-${date}-${contentHash}`
+3. **Chronological**: Maintains time order after deduplication
+
 ## Performance Targets
 
 ### Time to Content
@@ -44,7 +73,7 @@ VITE_UI_PROBE=1
 
 ### Memory Usage
 - **Target**: 70% reduction in initial DOM size for large conversations
-- **Method**: Progressive loading + lazy composer
+- **Method**: Progressive loading + lazy composer + quoted content collapse
 
 ### Bundle Size
 - **Target**: Reduce initial JS by lazy-loading reply editor

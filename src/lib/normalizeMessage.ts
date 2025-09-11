@@ -233,10 +233,25 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
 }
 
 /**
- * Deduplicate messages by ID, maintaining chronological order
+ * Create a soft deduplication key for messages without stable IDs
+ */
+function createSoftDedupKey(message: NormalizedMessage): string {
+  const timeStr = typeof message.createdAt === 'string' 
+    ? new Date(message.createdAt).toISOString().split('T')[0] 
+    : new Date(message.createdAt).toISOString().split('T')[0];
+  
+  const senderKey = message.from.email || message.from.phone || message.from.userId || 'unknown';
+  const contentHash = createContentHash(message.visibleBody);
+  
+  return `${senderKey}-${timeStr}-${contentHash}`;
+}
+
+/**
+ * Enhanced deduplication with soft key fallbacks
  */
 export function deduplicateMessages(messages: NormalizedMessage[]): NormalizedMessage[] {
-  const seen = new Set<string>();
+  const seenIds = new Set<string>();
+  const seenSoftKeys = new Set<string>();
   const deduped: NormalizedMessage[] = [];
   
   // Sort by creation time first (oldest to newest)
@@ -247,10 +262,21 @@ export function deduplicateMessages(messages: NormalizedMessage[]): NormalizedMe
   });
   
   for (const message of sorted) {
-    if (!seen.has(message.id)) {
-      seen.add(message.id);
-      deduped.push(message);
+    // Primary deduplication by ID
+    if (message.id && seenIds.has(message.id)) {
+      continue;
     }
+    
+    // Secondary deduplication by soft key
+    const softKey = createSoftDedupKey(message);
+    if (seenSoftKeys.has(softKey)) {
+      continue;
+    }
+    
+    // Add to seen sets and results
+    if (message.id) seenIds.add(message.id);
+    seenSoftKeys.add(softKey);
+    deduped.push(message);
   }
   
   return deduped;

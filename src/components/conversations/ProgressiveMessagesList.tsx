@@ -28,6 +28,8 @@ export const ProgressiveMessagesList = ({
   const {
     messages,
     totalCount,
+    normalizedCount,
+    confidence,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -151,9 +153,19 @@ export const ProgressiveMessagesList = ({
                     <Loader2 className="w-3 h-3 mr-2 animate-spin" />
                     Loading older messages...
                   </>
-                ) : (
-                  `Load older messages (${totalCount - messages.length} remaining)`
-                )}
+                ) : (() => {
+                  const remaining = Math.max(totalCount - messages.length, 0);
+                  
+                  // Show no count if confidence is low or remaining is too high
+                  if (confidence === 'low' || remaining > 500) {
+                    return 'Load older messages';
+                  }
+                  
+                  // Show count for reasonable numbers
+                  return remaining > 0 
+                    ? `Load older messages (${remaining} remaining)`
+                    : 'Load older messages';
+                })()}
               </Button>
             </div>
           )}

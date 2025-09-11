@@ -7,6 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { createContentHash, type NormalizedMessage } from "@/lib/normalizeMessage";
 import { cn } from "@/lib/utils";
 
+// Helper function to create soft dedup key (matches normalizeMessage.ts)
+function createSoftDedupKey(message: NormalizedMessage): string {
+  const timeStr = typeof message.createdAt === 'string' 
+    ? new Date(message.createdAt).toISOString().split('T')[0] 
+    : new Date(message.createdAt).toISOString().split('T')[0];
+  
+  const senderKey = message.from.email || message.from.phone || message.from.userId || 'unknown';
+  const contentHash = createContentHash(message.visibleBody);
+  
+  return `${senderKey}-${timeStr}-${contentHash}`;
+}
+
 interface MessageDebugProbeProps {
   message: NormalizedMessage;
   className?: string;
@@ -59,11 +71,17 @@ export const MessageDebugProbe = ({ message, className }: MessageDebugProbeProps
         </div>
         <div className="flex gap-2">
           <span>
-            <span className="text-orange-600">Visible:</span> {visibleHash} ({message.visibleBody.length}ch)
+            <span className="text-orange-600">Visible:</span> {message.visibleBody.length} chars
           </span>
           <span>
-            <span className="text-orange-600">Full:</span> {fullHash} ({message.originalMessage?.content?.length || 0}ch)
+            <span className="text-orange-600">Full:</span> {(message.originalMessage?.content || '').length} chars
           </span>
+        </div>
+        <div>
+          <span className="text-orange-600">Visible Hash:</span> {visibleHash.substring(0, 8)}
+        </div>
+        <div>
+          <span className="text-orange-600">Dedup Key:</span> {createSoftDedupKey(message).substring(0, 20)}
         </div>
         {message.quotedBlocks && message.quotedBlocks.length > 0 && (
           <div>
