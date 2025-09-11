@@ -3,7 +3,7 @@
  * Provides consistent author attribution and content parsing
  */
 
-import { parseQuotedEmail, type QuotedBlock } from './parseQuotedEmail';
+import { parseQuotedEmail, type QuotedBlock, type QuotedMessage } from './parseQuotedEmail';
 
 // Helper functions for deduplication
 function normalizeText(s: string): string {
@@ -224,7 +224,10 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     authorLabel,
     visibleBody: parsedContent.visibleContent,
     quotedBlocks: quotedBlocks?.length > 0 ? quotedBlocks : undefined,
-    originalMessage: rawMessage
+    originalMessage: {
+      ...rawMessage,
+      _quotedMessages: parsedContent.quotedMessages
+    }
   };
 
   // Generate stable dedup key after we have the normalized message

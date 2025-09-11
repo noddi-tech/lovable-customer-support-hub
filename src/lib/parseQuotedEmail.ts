@@ -7,6 +7,17 @@ export type QuotedBlock = {
   raw: string;
 };
 
+export interface QuotedMessage {
+  bodyHtml: string;           // HTML of the quoted email body
+  bodyText: string;           // plain text version
+  headers?: Record<string,string>; // parsed headers if available
+  fromEmail?: string;
+  fromName?: string;
+  sentAtIso?: string;         // ISO date if detected
+  vendor?: 'gmail' | 'outlook' | 'apple' | 'generic';
+  confidence: 'high'|'medium'|'low';
+}
+
 type Input = { content: string; contentType?: string };
 
 const WROTE_HEADERS = [
@@ -37,8 +48,98 @@ function htmlToDocument(html: string): Document {
  * Extract quoted blocks from HTML by removing known containers and blockquotes.
  * Returns [visibleHTML, quotedBlocks]
  */
-function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlock[] } {
+function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessage {
+  const bodyHtml = raw;
+  const bodyText = stripHtmlTags(raw);
+  
+  let fromEmail: string | undefined;
+  let fromName: string | undefined;
+  let sentAtIso: string | undefined;
+  let vendor: QuotedMessage['vendor'] = 'generic';
+  let confidence: QuotedMessage['confidence'] = 'low';
+
+  // Gmail patterns
+  if (kind === 'gmail') {
+    vendor = 'gmail';
+    // Look for "On ... <email> wrote:" pattern
+    const gmailMatch = raw.match(/On .+?(\d{4}).+?<([^>]+)>.+?wrote:/i);
+    if (gmailMatch) {
+      fromEmail = gmailMatch[2];
+      confidence = 'high';
+    }
+    // Look for name patterns
+    const nameMatch = raw.match(/On .+?,\s*(.+?)\s*<[^>]+>.+?wrote:/i);
+    if (nameMatch) {
+      fromName = nameMatch[1].trim();
+    }
+  }
+  
+  // Outlook patterns
+  else if (kind === 'outlook') {
+    vendor = 'outlook';
+    // Look for "From:" headers
+    const fromMatch = raw.match(/From:\s*(.+?)(?:\n|<br|$)/i);
+    if (fromMatch) {
+      const fromValue = fromMatch[1].trim();
+      const emailMatch = fromValue.match(/<([^>]+)>/);
+      const nameMatch = fromValue.match(/^([^<]+)</);
+      
+      fromEmail = emailMatch ? emailMatch[1] : fromValue;
+      fromName = nameMatch ? nameMatch[1].trim().replace(/"/g, '') : undefined;
+      confidence = 'high';
+    }
+    
+    // Look for "Sent:" or "Date:" headers
+    const dateMatch = raw.match(/(?:Sent|Date):\s*(.+?)(?:\n|<br|$)/i);
+    if (dateMatch) {
+      const dateStr = dateMatch[1].trim();
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        sentAtIso = parsedDate.toISOString();
+      }
+    }
+  }
+  
+  // Header-based patterns (Norwegian, English)
+  else if (kind === 'header') {
+    // Norwegian patterns
+    const norMatch = raw.match(/^(Den|På)\s+(.+?)\s+skrev\s+(.+?):/i);
+    if (norMatch) {
+      fromEmail = norMatch[3].trim();
+      const dateStr = norMatch[2].trim();
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        sentAtIso = parsedDate.toISOString();
+      }
+      confidence = 'medium';
+    }
+    
+    // Simple "Wrote ..." pattern
+    const wroteMatch = raw.match(/Skrev\s+(.+?):/i);
+    if (wroteMatch) {
+      fromEmail = wroteMatch[1].trim();
+      confidence = 'medium';
+    }
+  }
+
+  return {
+    bodyHtml,
+    bodyText,
+    fromEmail,
+    fromName,
+    sentAtIso,
+    vendor,
+    confidence
+  };
+}
+
+function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
   const quoted: QuotedBlock[] = [];
+  const quotedMessages: QuotedMessage[] = [];
   const doc = htmlToDocument(stripHtmlComments(html));
   const body = doc.body;
 
@@ -67,7 +168,14 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
       : sel.startsWith('blockquote') ? 'blockquote'
       : sel.includes('border-top') ? 'outlook'
       : 'plain';
-      quoted.push({ kind, raw });
+      
+      const quotedBlock = { kind, raw };
+      quoted.push(quotedBlock);
+      
+      // Parse into structured message
+      const quotedMessage = parseQuotedHeaders(raw, kind);
+      quotedMessages.push(quotedMessage);
+      
       node.remove();
     });
   });
@@ -78,7 +186,13 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const headerIdx = lines.findIndex(line => WROTE_HEADERS.some(rx => rx.test(line.trim())));
   if (headerIdx > -1) {
     const raw = lines.slice(headerIdx).join('\n');
-    quoted.push({ kind: 'header', raw });
+    const quotedBlock = { kind: 'header' as const, raw };
+    quoted.push(quotedBlock);
+    
+    // Parse into structured message
+    const quotedMessage = parseQuotedHeaders(raw, 'header');
+    quotedMessages.push(quotedMessage);
+    
     // remove that section from DOM text by cutting innerHTML after that marker
     // Simple approach: cut body.innerHTML at the start of that line's text
     const marker = lines[headerIdx].trim();
@@ -89,15 +203,16 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   }
 
   const visibleHTML = body.innerHTML.trim();
-  return { visibleHTML, quoted };
+  return { visibleHTML, quoted, quotedMessages };
 }
 
 /**
  * Extract quoted blocks from plain text.
  * Returns [visibleText, quotedBlocks]
  */
-function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBlock[] } {
+function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
   const quoted: QuotedBlock[] = [];
+  const quotedMessages: QuotedMessage[] = [];
   const lines = text.split('\n');
 
   // If there are any ">"-prefixed lines, treat the first block of them and below as quoted
@@ -110,10 +225,14 @@ function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBl
   else if (angleIdx > -1) cut = angleIdx;
 
   if (cut > -1) {
-    quoted.push({
-      kind: headerIdx > -1 ? 'header' : 'plain',
-      raw: lines.slice(cut).join('\n'),
-    });
+    const kind = headerIdx > -1 ? 'header' : 'plain';
+    const raw = lines.slice(cut).join('\n');
+    const quotedBlock = { kind: kind as 'header' | 'plain', raw };
+    quoted.push(quotedBlock);
+    
+    // Parse into structured message
+    const quotedMessage = parseQuotedHeaders(raw, kind as 'header' | 'plain');
+    quotedMessages.push(quotedMessage);
   }
 
   const visible = cut > -1 ? lines.slice(0, cut).join('\n') : lines.join('\n');
@@ -124,22 +243,22 @@ function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBl
     .filter(l => !l.trim().startsWith('>'))
     .join('\n');
 
-  return { visibleText: pruned.trim(), quoted };
+  return { visibleText: pruned.trim(), quoted, quotedMessages };
 }
 
 /**
  * Public API
  */
-export function parseQuotedEmail(input: Input): { visibleContent: string; quotedBlocks: QuotedBlock[] } {
+export function parseQuotedEmail(input: Input): { visibleContent: string; quotedBlocks: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
   const contentType = (input.contentType || '').toLowerCase();
   const content = input.content || '';
 
   if (contentType.includes('html') || /<\/?[a-z][\s\S]*>/i.test(content)) {
-    const { visibleHTML, quoted } = extractFromHtml(content);
-    return { visibleContent: visibleHTML.trim(), quotedBlocks: quoted };
+    const { visibleHTML, quoted, quotedMessages } = extractFromHtml(content);
+    return { visibleContent: visibleHTML.trim(), quotedBlocks: quoted, quotedMessages };
   }
 
   // Plain text
-  const { visibleText, quoted } = extractFromPlain(normalizeWhitespace(content));
-  return { visibleContent: visibleText, quotedBlocks: quoted };
+  const { visibleText, quoted, quotedMessages } = extractFromPlain(normalizeWhitespace(content));
+  return { visibleContent: visibleText, quotedBlocks: quoted, quotedMessages };
 }

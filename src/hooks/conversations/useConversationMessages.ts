@@ -2,6 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeMessage, deduplicateMessages, createNormalizationContext, type NormalizedMessage, type NormalizationContext } from '@/lib/normalizeMessage';
+import { segmentMessageIntoCards } from '@/lib/segmentThread';
 
 const INITIAL_VISIBLE_COUNT = 3;
 const PAGE_SIZE = 20;
@@ -137,15 +138,26 @@ export function useConversationMessagesList(conversationId?: string, ctx?: Norma
   const seen = new Set<string>();
   const deduped = flat.filter(m => (seen.has(m.dedupKey) ? false : (seen.add(m.dedupKey), true)));
 
-  // newest → oldest for display
-  const messages = [...deduped].sort((a, b) =>
+  // Segment each message into cards (including quoted emails as separate cards)
+  const cards = deduped.flatMap(m =>
+    segmentMessageIntoCards(m, {
+      agentEmails: ctx?.agentEmailSet ? Array.from(ctx.agentEmailSet) : [],
+      currentUserEmail: ctx?.currentUserEmail,
+    })
+  );
+
+  // Sort cards DESC (newest first)
+  const messages = cards.sort((a, b) =>
     (new Date(b.createdAt).getTime()) - (new Date(a.createdAt).getTime())
   );
 
   const totalCount = q.data?.pages[0]?.totalCount || 0;
   const normalizedCountLoaded = messages.length;
   const totalNormalizedEstimated = q.data?.pages[0]?.totalNormalizedEstimated || 0;
-  const confidence = q.data?.pages[0]?.confidence || 'high';
+  
+  // If segmentation created extra cards, set confidence to low to hide remaining count
+  const hasSegmentedCards = cards.length > deduped.length;
+  const confidence = hasSegmentedCards ? 'low' : (q.data?.pages[0]?.confidence || 'high');
 
   return {
     messages,

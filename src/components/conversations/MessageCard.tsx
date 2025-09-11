@@ -106,12 +106,18 @@ export const MessageCard = ({
                     </Badge>
                   )}
                   
-                  {attachments.length > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      <Paperclip className="w-3 h-3 mr-1" />
-                      {attachments.length}
-                    </Badge>
-                  )}
+                   {attachments.length > 0 && (
+                     <Badge variant="outline" className="text-xs">
+                       <Paperclip className="w-3 h-3 mr-1" />
+                       {attachments.length}
+                     </Badge>
+                   )}
+                   
+                   {message.originalMessage?._syntheticQuoted && (
+                     <Badge variant="secondary" className="text-xs">
+                       Quoted history
+                     </Badge>
+                   )}
                 </div>
                 
                 {/* Preview line when collapsed */}
@@ -185,8 +191,8 @@ export const MessageCard = ({
               messageId={message.id}
             />
             
-            {/* Quoted content toggle */}
-            {message.quotedBlocks && message.quotedBlocks.length > 0 && (
+            {/* Quoted content toggle - only show for non-synthetic messages */}
+            {!message.originalMessage?._syntheticQuoted && message.quotedBlocks && message.quotedBlocks.length > 0 && (
               <div className="mt-3 pt-3 border-t border-border">
                 <Button
                   variant="ghost"

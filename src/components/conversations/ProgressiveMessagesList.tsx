@@ -207,16 +207,16 @@ export const ProgressiveMessagesList = ({
               <p>{t('conversation.noMessages')}</p>
             </div>
           ) : (
-            messages.map((message) => (
-              <MessageCard
-                key={message.dedupKey || message.id}
-                message={message}
-                conversation={conversation}
-                defaultCollapsed={allCollapsed}
-                onEdit={onEditMessage}
-                onDelete={onDeleteMessage}
-              />
-            ))
+             messages.map((message) => (
+               <MessageCard
+                 key={message.originalMessage?._syntheticQuoted ? `${message.dedupKey}::q` : message.dedupKey || message.id}
+                 message={message}
+                 conversation={conversation}
+                 defaultCollapsed={allCollapsed}
+                 onEdit={onEditMessage}
+                 onDelete={onDeleteMessage}
+               />
+             ))
           )}
         </div>
       </ScrollArea>
