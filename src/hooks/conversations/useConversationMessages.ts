@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { normalizeMessage, deduplicateMessages, createNormalizationContext, type NormalizedMessage, type NormalizationContext } from '@/lib/normalizeMessage';
 
 const INITIAL_VISIBLE_COUNT = 3;
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 interface Message {
   id: string;
@@ -26,7 +26,7 @@ interface MessagesPage {
   normalizedCount: number;
   totalNormalizedEstimated: number;
   confidence: 'high' | 'low';
-  oldestLoadedAt?: string;
+  oldestCursor: null | string;
 }
 
 /**
@@ -48,8 +48,9 @@ export function useConversationMessages(conversationId?: string, normalizationCo
   const ctx = normalizationContext || defaultContext;
   
   return useInfiniteQuery({
-    queryKey: ['conversation-messages', conversationId, user?.id],
-    queryFn: async ({ pageParam }: { pageParam: number | string | undefined }): Promise<MessagesPage> => {
+    queryKey: ['conversation-messages', conversationId],
+    initialPageParam: null as null | string, // null = first page, else ISO cursor
+    queryFn: async ({ pageParam }) => {
       if (!conversationId) {
         return { 
           messages: [], 
@@ -57,135 +58,105 @@ export function useConversationMessages(conversationId?: string, normalizationCo
           totalCount: 0, 
           normalizedCount: 0, 
           totalNormalizedEstimated: 0, 
-          confidence: 'high' as const 
+          confidence: 'high' as const, 
+          oldestCursor: null as null | string 
         };
       }
-      
-      const isInitialPage = typeof pageParam === 'number' ? pageParam === 0 : !pageParam;
-      const limit = isInitialPage ? INITIAL_VISIBLE_COUNT : PAGE_SIZE;
-      
-      // For pagination beyond first page, use timestamp cursor to prevent overlap
-      let query = supabase
-        .from('messages')
+
+      const isFirst = pageParam === null;
+      const take = isFirst ? INITIAL_VISIBLE_COUNT : PAGE_SIZE;
+
+      // Base query (DESC by created_at) + cursor
+      let q = supabase.from('messages')
         .select(`
-          id,
-          content,
-          content_type,
-          sender_type,
-          sender_id,
-          is_internal,
-          attachments,
-          created_at,
-          email_subject,
-          email_headers,
-          external_id,
-          email_message_id
+          id, content, content_type, sender_type, sender_id, is_internal, attachments,
+          created_at, email_subject, email_headers, external_id, email_message_id
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .limit(take + 1);               // fetch one extra to detect "has more"
 
-      // For subsequent pages, add cursor to prevent overlap
-      if (!isInitialPage && typeof pageParam === 'string') {
-        query = query.lt('created_at', pageParam);
-      }
-      
-      const { data: messages, error } = await query;
+      if (!isFirst && pageParam) q = q.lt('created_at', pageParam); // strictly older
+
+      const { data: rows, error } = await q;
       if (error) throw error;
-      
-      // Get total count only on first page
+
+      // totalCount only once
       let totalCount = 0;
-      if (isInitialPage) {
+      if (isFirst) {
         const { count } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('conversation_id', conversationId);
         totalCount = count || 0;
       }
-      
-      // Normalize messages and ensure proper typing
-      const rawMessages = (messages || []).map(msg => ({
-        ...msg,
-        sender_type: msg.sender_type as 'customer' | 'agent'
-      }));
-      
-      // Normalize messages using the context
-      const normalizedMessages = rawMessages.map(msg => normalizeMessage(msg, ctx));
-      
-      // Track oldest loaded timestamp for cursor
-      const oldestLoadedAt = rawMessages.length > 0 
-        ? rawMessages[rawMessages.length - 1].created_at 
-        : undefined;
-      
-      const hasMore = rawMessages.length === limit;
-      
-      // Calculate confidence only on first page
+
+      // Slice to kept items and compute next cursor
+      const hasMore = rows.length > take;
+      const kept = rows.slice(0, take);
+      const oldestCursor = kept.length ? kept[kept.length - 1].created_at : null;
+
+      // normalize
+      const rawMessages = kept.map(r => ({ ...r, sender_type: r.sender_type as 'customer' | 'agent' }));
+      const normalized = rawMessages.map(r => normalizeMessage(r, ctx));
+
+      // confidence estimate only on first page
       let confidence: 'high' | 'low' = 'high';
-      let estimatedNormalized = totalCount;
-      
-      if (isInitialPage && rawMessages.length >= 20) {
-        const normalizationRatio = normalizedMessages.length / rawMessages.length;
-        confidence = (normalizationRatio >= 0.3 && normalizationRatio <= 1.0) ? 'high' : 'low';
-        estimatedNormalized = Math.round(totalCount * normalizationRatio);
-      } else if (isInitialPage && rawMessages.length > 0) {
-        confidence = 'low';
+      let totalNormalizedEstimated = totalCount;
+      if (isFirst) {
+        const ratio = rows.length ? normalized.length / rows.length : 1;
+        confidence = (rows.length >= 20 && ratio >= 0.3 && ratio <= 1.0) ? 'high' : 'low';
+        totalNormalizedEstimated = Math.round((totalCount || 0) * (ratio || 1));
       }
 
       return {
-        messages: normalizedMessages,
+        messages: normalized,
         hasMore,
         totalCount,
-        normalizedCount: normalizedMessages.length,
-        totalNormalizedEstimated: estimatedNormalized,
+        normalizedCount: normalized.length,
+        totalNormalizedEstimated,
         confidence,
-        oldestLoadedAt
+        oldestCursor,
       };
     },
-    initialPageParam: 0 as number | string,
-    getNextPageParam: (lastPage) => {
-      return lastPage.hasMore && lastPage.oldestLoadedAt ? lastPage.oldestLoadedAt : undefined;
-    },
-    enabled: !!conversationId && !!user,
-    staleTime: 10 * 1000, // 10 seconds - messages change frequently
-    gcTime: 2 * 60 * 1000, // 2 minutes
+    getNextPageParam: (last) => (last.hasMore && last.oldestCursor ? last.oldestCursor : undefined),
+    enabled: !!conversationId,
+    staleTime: 10_000,
+    gcTime: 120_000,
   });
 }
 
 /**
  * Hook to get flattened message list from infinite query with cross-page deduplication
  */
-export function useConversationMessagesList(conversationId?: string, normalizationContext?: NormalizationContext) {
-  const query = useConversationMessages(conversationId, normalizationContext);
-  
-  // Flatten all messages and apply cross-page deduplication
-  const allRawMessages = query.data?.pages.flatMap((page: MessagesPage) => page.messages) || [];
-  const allMessages = deduplicateMessages(allRawMessages);
-  
-  // Sort newest first for display
-  const sortedMessages = [...allMessages].sort((a, b) => {
-    const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt;
-    const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt;
-    return timeB - timeA; // DESC order (newest first)
-  });
-  
-  const totalCount = query.data?.pages[0]?.totalCount || 0;
-  const normalizedCountLoaded = allMessages.length;
-  const totalNormalizedEstimated = query.data?.pages[0]?.totalNormalizedEstimated || 0;
-  const confidence = query.data?.pages[0]?.confidence || ('high' as const);
-  const hasNextPage = query.hasNextPage;
-  const isFetchingNextPage = query.isFetchingNextPage;
-  const fetchNextPage = query.fetchNextPage;
-  
+export function useConversationMessagesList(conversationId?: string, ctx?: NormalizationContext) {
+  const q = useConversationMessages(conversationId, ctx);
+
+  const flat = q.data?.pages.flatMap(p => p.messages) ?? [];
+  // one global pass
+  const seen = new Set<string>();
+  const deduped = flat.filter(m => (seen.has(m.dedupKey) ? false : (seen.add(m.dedupKey), true)));
+
+  // newest → oldest for display
+  const messages = [...deduped].sort((a, b) =>
+    (new Date(b.createdAt).getTime()) - (new Date(a.createdAt).getTime())
+  );
+
+  const totalCount = q.data?.pages[0]?.totalCount || 0;
+  const normalizedCountLoaded = messages.length;
+  const totalNormalizedEstimated = q.data?.pages[0]?.totalNormalizedEstimated || 0;
+  const confidence = q.data?.pages[0]?.confidence || 'high';
+
   return {
-    messages: sortedMessages,
+    messages,
     totalCount,
     normalizedCountLoaded,
     totalNormalizedEstimated,
     confidence,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    isLoading: query.isLoading,
-    error: query.error
+    hasNextPage: q.hasNextPage,
+    isFetchingNextPage: q.isFetchingNextPage,
+    fetchNextPage: q.fetchNextPage,
+    isLoading: q.isLoading,
+    error: q.error,
   };
 }

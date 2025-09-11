@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { deduplicateMessages, createContentHash, normalizeMessage, createNormalizationContext } from '@/lib/normalizeMessage';
+import { deduplicateMessages, normalizeMessage, createNormalizationContext } from '@/lib/normalizeMessage';
+
+// Helper function to create simple hash (internal implementation)
+function simpleHash(s: string): string {
+  let h = 0; 
+  for (let i = 0; i < s.length; i++) { 
+    h = ((h << 5) - h) + s.charCodeAt(i); 
+    h |= 0; 
+  }
+  return Math.abs(h).toString(36);
+}
 
 const testNormalizationContext = createNormalizationContext({
   currentUserEmail: 'agent@test.com',
@@ -181,7 +191,7 @@ describe('Message Deduplication with Soft Keys', () => {
     const content2 = 'Hello world';
     const content3 = 'Hello World'; // Different case
     
-    expect(createContentHash(content1)).toBe(createContentHash(content2));
-    expect(createContentHash(content1)).not.toBe(createContentHash(content3));
+    expect(simpleHash(content1)).toBe(simpleHash(content2));
+    expect(simpleHash(content1)).not.toBe(simpleHash(content3));
   });
 });

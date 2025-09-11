@@ -4,8 +4,18 @@
  */
 
 import { Badge } from "@/components/ui/badge";
-import { createContentHash, type NormalizedMessage } from "@/lib/normalizeMessage";
+import { type NormalizedMessage } from "@/lib/normalizeMessage";
 import { cn } from "@/lib/utils";
+
+// Helper function to create simple hash (internal implementation)
+function simpleHash(s: string): string {
+  let h = 0; 
+  for (let i = 0; i < s.length; i++) { 
+    h = ((h << 5) - h) + s.charCodeAt(i); 
+    h |= 0; 
+  }
+  return Math.abs(h).toString(36);
+}
 
 // Helper function to create soft dedup key (matches normalizeMessage.ts)
 function createSoftDedupKey(message: NormalizedMessage): string {
@@ -14,7 +24,7 @@ function createSoftDedupKey(message: NormalizedMessage): string {
     : new Date(message.createdAt).toISOString().split('T')[0];
   
   const senderKey = message.from.email || message.from.phone || message.from.userId || 'unknown';
-  const contentHash = createContentHash(message.visibleBody);
+  const contentHash = simpleHash(message.visibleBody);
   
   return `${senderKey}-${timeStr}-${contentHash}`;
 }
@@ -32,8 +42,8 @@ export const MessageDebugProbe = ({ message, className }: MessageDebugProbeProps
     return null;
   }
   
-  const visibleHash = createContentHash(message.visibleBody);
-  const fullHash = createContentHash(message.originalMessage?.content || '');
+  const visibleHash = simpleHash(message.visibleBody);
+  const fullHash = simpleHash(message.originalMessage?.content || '');
   
   return (
     <div className={cn(

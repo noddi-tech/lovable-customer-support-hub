@@ -5,6 +5,26 @@
 
 import { parseEmailContent } from './parseQuotedEmail';
 
+// Helper functions for deduplication
+function normalizeText(s: string): string {
+  return s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function roundTo2Min(ts: string | number): string {
+  const d = new Date(ts);
+  const m = Math.floor(d.getMinutes() / 2) * 2;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), m).toISOString();
+}
+
+function simpleHash(s: string): string {
+  let h = 0; 
+  for (let i = 0; i < s.length; i++) { 
+    h = ((h << 5) - h) + s.charCodeAt(i); 
+    h |= 0; 
+  }
+  return Math.abs(h).toString(36);
+}
+
 export interface QuotedBlock {
   kind: 'gmail' | 'outlook' | 'blockquote' | 'generic';
   raw: string;
@@ -239,53 +259,23 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   return result;
 }
 
-/**
- * Normalize text content for deduplication
- */
-function normalizeText(content: string): string {
-  return content
-    .replace(/<[^>]+>/g, '')  // Strip HTML
-    .replace(/\s+/g, ' ')     // Collapse whitespace
-    .trim()
-    .toLowerCase();
-}
-
-/**
- * Round timestamp to 2-minute buckets to handle minor time variations
- */
-function roundTo2Min(timestamp: string | number): string {
-  const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp);
-  const minutes = Math.floor(date.getMinutes() / 2) * 2;
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), minutes).toISOString();
-}
 
 /**
  * Generate stable dedup key with 3-step fallback chain
  */
-function generateStableDedupKey(rawMessage: any, normalizedMessage: NormalizedMessage): string {
-  // Priority 1: Explicit unique IDs from backend
-  const explicitId = rawMessage.external_id || 
-                    rawMessage.message_id || 
-                    rawMessage.headers?.['Message-ID'];
-  if (explicitId) {
-    return `explicit:${explicitId}`;
-  }
+function generateStableDedupKey(raw: any, norm: NormalizedMessage): string {
+  // Prefer IDs in your stored headers JSON
+  const hdr = raw.email_headers || raw.headers || {};
+  const explicit =
+    raw.external_id ||
+    raw.message_id ||
+    hdr['Message-ID'] || hdr['Message-Id'] || hdr['X-Message-Id'] || raw.email_message_id;
+  if (explicit) return `id:${String(explicit)}`;
 
-  // Priority 2: Email-style reference ID
-  const emailId = rawMessage.headers?.['X-Message-Id'] || 
-                 rawMessage.headers?.['Message-Id'] ||
-                 rawMessage.email_message_id;
-  if (emailId) {
-    return `email:${emailId}`;
-  }
-
-  // Priority 3: Content hash fallback
-  const normalizedContent = normalizeText(normalizedMessage.visibleBody);
-  const timeKey = roundTo2Min(normalizedMessage.createdAt);
-  const authorKey = normalizedMessage.authorType;
-  const contentHash = createContentHash(`${authorKey}|${normalizedContent}|${timeKey}`);
-  
-  return `content:${contentHash}`;
+  // Fallback: content hash + author + 2-min bucket
+  const content = normalizeText(norm.visibleBody);
+  const bucket = roundTo2Min(norm.createdAt);
+  return `ch:${simpleHash(`${norm.authorType}|${content}|${bucket}`)}`;
 }
 
 /**
@@ -313,17 +303,4 @@ export function deduplicateMessages(messages: NormalizedMessage[]): NormalizedMe
   }
   
   return deduped;
-}
-
-/**
- * Create a simple hash for content deduplication fallback
- */
-export function createContentHash(content: string): string {
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash).toString(36);
 }
