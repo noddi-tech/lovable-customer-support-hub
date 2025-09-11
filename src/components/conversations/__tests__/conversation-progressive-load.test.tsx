@@ -2,6 +2,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, describe, beforeEach, test, expect } from 'vitest';
 import { ProgressiveMessagesList } from '../ProgressiveMessagesList';
+import { normalizeMessage, createNormalizationContext } from '@/lib/normalizeMessage';
 
 // Mock the hooks
 vi.mock('@/hooks/conversations/useConversationMessages', () => ({
@@ -27,7 +28,8 @@ const createTestQueryClient = () => new QueryClient({
   },
 });
 
-const mockMessages = [
+// Raw mock messages (database format)
+const rawMockMessages = [
   {
     id: '1',
     content: 'First message',
@@ -59,6 +61,15 @@ const mockMessages = [
     created_at: '2024-01-01T12:00:00Z'
   }
 ];
+
+// Create normalization context for tests
+const testNormalizationContext = createNormalizationContext({
+  agentEmails: ['agent@test.com'],
+  currentUserEmail: 'agent@test.com'
+});
+
+// Normalize mock messages
+const mockMessages = rawMockMessages.map(msg => normalizeMessage(msg, testNormalizationContext));
 
 const mockConversation = {
   customer: {

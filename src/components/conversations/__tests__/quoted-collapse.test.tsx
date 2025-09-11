@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, describe, test, expect } from 'vitest';
 import { MessageItem } from '../MessageItem';
+import { normalizeMessage, createNormalizationContext } from '@/lib/normalizeMessage';
 
 // Mock the hooks and utilities
 vi.mock('@/hooks/useDateFormatting', () => ({
@@ -34,9 +35,15 @@ const mockConversation = {
   }
 };
 
+// Create normalization context for tests
+const testNormalizationContext = createNormalizationContext({
+  agentEmails: ['agent@test.com'],
+  currentUserEmail: 'agent@test.com'
+});
+
 describe('MessageItem - Quoted Text Collapse', () => {
   test('shows toggle for messages with quoted content', async () => {
-    const messageWithQuote = {
+    const rawMessage = {
       id: '1',
       content: 'This is my reply.\n\nOn 2024-01-01, Original Sender wrote:\n> This is the original message\n> that was quoted',
       content_type: 'text/plain',
@@ -47,12 +54,13 @@ describe('MessageItem - Quoted Text Collapse', () => {
       created_at: '2024-01-01T10:00:00Z'
     };
 
+    const normalizedMessage = normalizeMessage(rawMessage, testNormalizationContext);
     const queryClient = createTestQueryClient();
     
     render(
       <QueryClientProvider client={queryClient}>
         <MessageItem
-          message={messageWithQuote}
+          message={normalizedMessage}
           conversation={mockConversation}
         />
       </QueryClientProvider>
@@ -64,7 +72,7 @@ describe('MessageItem - Quoted Text Collapse', () => {
   });
 
   test('does not show toggle for messages without quoted content', async () => {
-    const messageWithoutQuote = {
+    const rawMessage = {
       id: '1',
       content: 'This is just a regular message without any quotes.',
       content_type: 'text/plain',
@@ -75,12 +83,13 @@ describe('MessageItem - Quoted Text Collapse', () => {
       created_at: '2024-01-01T10:00:00Z'
     };
 
+    const normalizedMessage = normalizeMessage(rawMessage, testNormalizationContext);
     const queryClient = createTestQueryClient();
     
     render(
       <QueryClientProvider client={queryClient}>
         <MessageItem
-          message={messageWithoutQuote}
+          message={normalizedMessage}
           conversation={mockConversation}
         />
       </QueryClientProvider>
@@ -91,7 +100,7 @@ describe('MessageItem - Quoted Text Collapse', () => {
   });
 
   test('toggle shows and hides quoted content', async () => {
-    const messageWithQuote = {
+    const rawMessage = {
       id: '1',
       content: 'This is my reply.\n\nOn 2024-01-01, Original Sender wrote:\n> This is the original message\n> that was quoted',
       content_type: 'text/plain',
@@ -102,12 +111,13 @@ describe('MessageItem - Quoted Text Collapse', () => {
       created_at: '2024-01-01T10:00:00Z'
     };
 
+    const normalizedMessage = normalizeMessage(rawMessage, testNormalizationContext);
     const queryClient = createTestQueryClient();
     
     render(
       <QueryClientProvider client={queryClient}>
         <MessageItem
-          message={messageWithQuote}
+          message={normalizedMessage}
           conversation={mockConversation}
         />
       </QueryClientProvider>
@@ -132,7 +142,7 @@ describe('MessageItem - Quoted Text Collapse', () => {
   });
 
   test('handles HTML quoted content with blockquotes', async () => {
-    const messageWithHTMLQuote = {
+    const rawMessage = {
       id: '1',
       content: '<p>This is my reply.</p><blockquote><p>This is the quoted content</p></blockquote>',
       content_type: 'text/html',
@@ -143,12 +153,13 @@ describe('MessageItem - Quoted Text Collapse', () => {
       created_at: '2024-01-01T10:00:00Z'
     };
 
+    const normalizedMessage = normalizeMessage(rawMessage, testNormalizationContext);
     const queryClient = createTestQueryClient();
     
     render(
       <QueryClientProvider client={queryClient}>
         <MessageItem
-          message={messageWithHTMLQuote}
+          message={normalizedMessage}
           conversation={mockConversation}
         />
       </QueryClientProvider>
@@ -160,7 +171,7 @@ describe('MessageItem - Quoted Text Collapse', () => {
   });
 
   test('handles email headers pattern', async () => {
-    const messageWithEmailHeaders = {
+    const rawMessage = {
       id: '1',
       content: 'Thanks for your email.\n\n-----Original Message-----\nFrom: sender@example.com\nTo: recipient@example.com\nSent: Monday, January 1, 2024\n\nOriginal email content here.',
       content_type: 'text/plain',
@@ -171,12 +182,13 @@ describe('MessageItem - Quoted Text Collapse', () => {
       created_at: '2024-01-01T10:00:00Z'
     };
 
+    const normalizedMessage = normalizeMessage(rawMessage, testNormalizationContext);
     const queryClient = createTestQueryClient();
     
     render(
       <QueryClientProvider client={queryClient}>
         <MessageItem
-          message={messageWithEmailHeaders}
+          message={normalizedMessage}
           conversation={mockConversation}
         />
       </QueryClientProvider>
