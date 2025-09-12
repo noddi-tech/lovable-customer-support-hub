@@ -69,16 +69,14 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
               <AvatarFallback className={cn(
                 isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"
               )}>
-                {isFromCustomer 
-                  ? conversation.customer?.full_name?.[0] || message.from.name?.[0] || 'C'
-                  : message.from.name?.[0] || 'A'
-                }
+                {(message.from.name || message.from.email || '•').trim().charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="font-medium text-sm">
-                  {message.authorLabel}
+                <div className="font-medium text-sm truncate">
+                  {message.from.name?.trim() || message.from.email?.split('@')[0] || (message.authorType === 'agent' ? 'Agent' : 'Customer')}
+                  {message.from.email && <span className="ml-2 text-muted-foreground text-xs">({message.from.email})</span>}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
@@ -99,11 +97,12 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
                 )}
               </div>
               
-              {message.originalMessage?.email_subject && (
-                <div className="text-xs text-muted-foreground mt-1 truncate">
-                  Subject: {message.originalMessage.email_subject}
-                </div>
-              )}
+              {/* Recipients line */}
+              <div className="text-xs text-muted-foreground truncate">
+                {message.to.length > 0 && <>{t('mail.to') || 'to'} {message.to.slice(0, 3).map(r => r.name || r.email).join(', ')}{message.to.length > 3 ? ` +${message.to.length - 3}` : ''}</>}
+                {message.cc && message.cc.length > 0 && <> · {t('mail.cc') || 'cc'} {message.cc.slice(0, 2).map(r => r.name || r.email).join(', ')}{message.cc.length > 2 ? ` +${message.cc.length - 2}` : ''}</>}
+                {message.subject && <> · Re: {message.subject}</>}
+              </div>
             </div>
           </div>
           

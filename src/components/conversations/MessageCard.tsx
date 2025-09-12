@@ -57,11 +57,39 @@ export const MessageCard = ({
       JSON.parse(message.originalMessage.attachments) : 
       message.originalMessage.attachments) as EmailAttachment[] : [];
 
-  // Generate preview text (first 160 chars of visible body, no HTML)
-  const getPreviewText = (content: string) => {
-    const textOnly = content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-    return textOnly.length > 160 ? textOnly.substring(0, 160) + '...' : textOnly;
+  // Decode HTML entities and generate preview text
+  const decodeEntities = (s: string) => {
+    if (!s) return s;
+    return s
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"');
   };
+
+  const getPreviewText = (content: string) => {
+    const textOnly = decodeEntities(content.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    return textOnly.length > 160 ? textOnly.slice(0, 160) + '…' : textOnly;
+  };
+
+  // Format sender and recipients
+  const senderName = message.from.name?.trim()
+    || message.from.email?.split('@')[0]
+    || (message.authorType === 'agent' ? 'Agent' : 'Customer');
+
+  const senderEmail = message.from.email;
+
+  function formatRecipients(list: {name?: string; email?: string}[] = [], max = 3) {
+    if (!list.length) return '';
+    const names = list.slice(0, max).map(r => r.name || r.email || '—');
+    const rest = list.length > max ? ` +${list.length - max}` : '';
+    return `${names.join(', ')}${rest}`;
+  }
+
+  const toLine = formatRecipients(message.to);
+  const ccLine = formatRecipients(message.cc);
 
   const handleEdit = () => {
     if (onEdit) {
@@ -85,15 +113,15 @@ export const MessageCard = ({
                 <AvatarFallback className={cn(
                   isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"
                 )}>
-                  {message.avatarInitial}
+                  {(message.from.name || message.from.email || '•').trim().charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="font-medium text-sm">
-                    {message.authorType === "agent" ? "Agent" : "Customer"}
-                    <span className="text-muted-foreground ml-1">{message.authorLabel}</span>
+                  <div className="font-medium text-sm truncate">
+                    {senderName}
+                    {senderEmail && <span className="ml-2 text-muted-foreground text-xs">({senderEmail})</span>}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
@@ -114,17 +142,18 @@ export const MessageCard = ({
                    )}
                    
                 </div>
+
+                {/* Recipients line */}
+                <div className="text-xs text-muted-foreground truncate">
+                  {toLine && <>{t('mail.to') || 'to'} {toLine}</>}
+                  {ccLine && <> · {t('mail.cc') || 'cc'} {ccLine}</>}
+                  {message.subject && <> · Re: {message.subject}</>}
+                </div>
                 
                 {/* Preview line when collapsed */}
                 {isCollapsed && (
                   <div className="text-sm text-muted-foreground mt-1 line-clamp-1">
                     {getPreviewText(message.visibleBody)}
-                  </div>
-                )}
-                
-                {message.originalMessage?.email_subject && isCollapsed && (
-                  <div className="text-xs text-muted-foreground/70 mt-0.5 truncate">
-                    Re: {message.originalMessage.email_subject}
                   </div>
                 )}
               </div>

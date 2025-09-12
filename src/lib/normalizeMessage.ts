@@ -27,22 +27,22 @@ function simpleHash(s: string): string {
 
 
 
+export interface EmailAddress {
+  name?: string;
+  email?: string;
+}
+
 export interface NormalizedMessage {
   id: string;
   dedupKey: string;
   createdAt: string | number;
   channel: 'email' | 'sms' | 'voice' | string;
 
-  from: { 
-    name?: string; 
-    email?: string; 
-    phone?: string; 
-    userId?: string;
-  };
-  to: Array<{ 
-    email?: string; 
-    phone?: string; 
-  }>;
+  from: EmailAddress;
+  to: EmailAddress[];
+  cc?: EmailAddress[];
+  bcc?: EmailAddress[];
+  subject?: string;
 
   // Derived fields
   direction: 'inbound' | 'outbound';
@@ -70,6 +70,30 @@ export interface NormalizationContext {
  */
 function createCaseInsensitiveSet(items: string[]): Set<string> {
   return new Set(items.map(item => item.toLowerCase().trim()));
+}
+
+/**
+ * Parse email address list (handles "Name <email@x>" or plain "email@x", comma-separated)
+ */
+function parseAddressList(input?: string | string[]): EmailAddress[] {
+  if (!input) return [];
+  const raw = Array.isArray(input) ? input.join(',') : input;
+  return raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(s => {
+      // "Name <mail@x>" or just "mail@x"
+      const m = s.match(/^(.*)<([^>]+)>$/);
+      if (m) {
+        return { name: m[1].trim().replace(/^"|"$/g, ''), email: m[2].trim() };
+      }
+      return { email: s.replace(/^"|"$/g, '') };
+    });
+}
+
+function parseSingleAddress(input?: string): EmailAddress {
+  return parseAddressList(input)[0] ?? {};
 }
 
 /**
@@ -144,34 +168,23 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   // Determine channel from message data
   let channel: string = rawMessage.channel || 'email';
   
-  // Extract sender information from email headers first, then fallback
-  const from: NormalizedMessage['from'] = {};
+  // Extract participants from email headers
+  const headers = (rawMessage.email_headers ?? {}) as Record<string, string>;
   
-  const fromHeader = rawMessage.email_headers?.from || rawMessage.email_headers?.From || "";
-  const fromEmail = extractEmailAddress(fromHeader) || rawMessage.from_email || rawMessage.sender_email || "";
-  const email = fromEmail.toLowerCase();
+  const from = parseSingleAddress(headers['from'] || headers['From'] || rawMessage.from);
+  const to = parseAddressList(headers['to'] || headers['To'] || rawMessage.to);
+  const cc = parseAddressList(headers['cc'] || headers['Cc'] || rawMessage.cc);
+  const bcc = parseAddressList(headers['bcc'] || headers['Bcc'] || rawMessage.bcc);
   
-  // Extract name from header
-  let fromName = "";
-  if (fromHeader && typeof fromHeader === 'string') {
-    const nameMatch = fromHeader.match(/^([^<]+)</);
-    fromName = nameMatch ? nameMatch[1].trim().replace(/"/g, '') : "";
-  }
-  
-  from.email = fromEmail;
-  from.name = fromName || undefined;
-  
-  // Fallback to sender_id if available
-  if (!from.email && !from.phone && rawMessage.sender_id) {
-    from.userId = rawMessage.sender_id;
-  }
+  const subject = rawMessage.email_subject || headers['subject'] || headers['Subject'];
   
   // For SMS, we might have phone information
-  if (channel === 'sms' && rawMessage.customer_phone) {
-    from.phone = rawMessage.customer_phone;
+  if (channel === 'sms' && rawMessage.customer_phone && !from.email) {
+    from.email = rawMessage.customer_phone; // Store phone as email for SMS
   }
   
   // Determine if this is an agent based on email headers first
+  const email = from.email?.toLowerCase() || "";
   const isAgent =
     !!ctx.agentEmailSet?.has(email) ||
     !!ctx.orgDomains?.some(d => email.endsWith(`@${d}`)) ||
@@ -183,7 +196,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   const authorLabel = isAgent ? `Agent (${email})` : email;
   
   // Avatar initial
-  const initial = (fromName || email || "A").trim()[0]?.toUpperCase() || "A";
+  const initial = (from.name || from.email || "A").trim()[0]?.toUpperCase() || "A";
   
   // Determine direction
   const direction: 'inbound' | 'outbound' = isAgent ? 'outbound' : 'inbound';
@@ -197,7 +210,10 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     createdAt: rawMessage.created_at,
     channel,
     from,
-    to: [], // TODO: Extract recipient information if needed
+    to,
+    cc: cc.length ? cc : undefined,
+    bcc: bcc.length ? bcc : undefined,
+    subject,
     direction,
     authorType,
     authorLabel,

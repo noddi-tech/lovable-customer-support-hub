@@ -23,7 +23,7 @@ function createSoftDedupKey(message: NormalizedMessage): string {
     ? new Date(message.createdAt).toISOString().split('T')[0] 
     : new Date(message.createdAt).toISOString().split('T')[0];
   
-  const senderKey = message.from.email || message.from.phone || message.from.userId || 'unknown';
+  const senderKey = message.from.email || 'unknown';
   const contentHash = simpleHash(message.visibleBody);
   
   return `${senderKey}-${timeStr}-${contentHash}`;
