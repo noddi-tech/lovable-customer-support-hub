@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
+import { ConversationSidebar } from './ConversationSidebar';
 import { ConversationView } from './ConversationView';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
@@ -308,11 +309,26 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     );
   };
 
+  // Render conversation sidebar (without reply functionality)
+  const renderConversationSidebar = () => {
+    if (!conversationId || !thread) return null;
+
+    return (
+      <ConversationSidebar
+        conversationId={conversationId}
+        customer={thread.customer}
+        status={(selectedConversation?.status === 'archived' ? 'closed' : selectedConversation?.status) || 'open'}
+        priority={selectedConversation?.priority || 'normal'}
+      />
+    );
+  };
+
   return (
     <MasterDetailShell
       left={renderInboxList()}
       center={renderConversationList()}
       detailLeft={renderMessageThread()}
+      detailRight={renderConversationSidebar()}
       isDetail={isDetail}
       onBack={handleBack}
       backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
