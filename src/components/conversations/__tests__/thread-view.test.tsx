@@ -1,11 +1,11 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProgressiveMessagesList } from '../ProgressiveMessagesList';
-import { useThreadMessagesList } from '@/hooks/conversations/useThreadMessages';
+import { useThreadMessagesList } from '@/hooks/conversations/useThreadMessagesList';
 import { vi } from 'vitest';
 
 // Mock the hook
-vi.mock('@/hooks/conversations/useThreadMessages');
+vi.mock('@/hooks/conversations/useThreadMessagesList');
 const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList);
 
 // Mock react-i18next
@@ -49,6 +49,7 @@ const mockMessages = [
     direction: 'inbound' as const,
     authorType: 'customer' as const,
     authorLabel: 'Customer',
+    avatarInitial: 'C',
     visibleBody: 'This is the first message content',
     originalMessage: {
       id: 'msg-1',
@@ -69,6 +70,7 @@ const mockMessages = [
     direction: 'outbound' as const,
     authorType: 'agent' as const,
     authorLabel: 'Agent (agent@company.com)',
+    avatarInitial: 'A',
     visibleBody: 'This is the agent reply',
     originalMessage: {
       id: 'msg-2',
@@ -89,6 +91,7 @@ const mockMessages = [
     direction: 'inbound' as const,
     authorType: 'customer' as const,
     authorLabel: 'Customer',
+    avatarInitial: 'C',
     visibleBody: 'Follow-up from customer',
     originalMessage: {
       id: 'msg-3',
@@ -169,6 +172,7 @@ describe('ProgressiveMessagesList - Thread View', () => {
       messages: [
         {
           ...mockMessages[0],
+          avatarInitial: 'C',
           quotedBlocks: [
             { kind: 'gmail' as const, raw: 'Some quoted content' },
           ],

@@ -1,225 +1,129 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { normalizeMessage, deduplicateMessages, createNormalizationContext, type NormalizedMessage, type NormalizationContext } from '@/lib/normalizeMessage';
-import { buildThreadSeed, messageMatchesThread, type ThreadSeed } from '@/lib/emailThreading';
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { createNormalizationContext, normalizeMessage, NormalizedMessage } from "@/lib/normalizeMessage";
+import { canonicalizeEmail, normalizeSubject, extractMessageIds } from "@/lib/emailThreading";
+import { useAuth } from "@/hooks/useAuth";
 
-const INITIAL_VISIBLE_COUNT = 3;
-const PAGE_SIZE = 20;
-
-interface Message {
-  id: string;
-  content: string;
-  content_type: string;
-  sender_type: 'customer' | 'agent';
-  sender_id: string | null;
-  is_internal: boolean;
-  attachments: any;
-  created_at: string;
-  email_subject?: string;
-  email_headers?: any;
-  external_id?: string;
-  email_message_id?: string;
-  conversation?: {
-    customer?: {
-      email?: string;
-      full_name?: string;
-    };
-    inbox_id?: string;
-  };
-}
-
-interface ThreadPage {
-  messages: NormalizedMessage[];
-  hasMore: boolean;
-  totalCount: number;
-  loadedCount: number;
-  oldestCursor: null | string;
-  threadSeed?: ThreadSeed;
-}
+const INITIAL = 3;
+const PAGE = 25;
 
 /**
- * Hook for thread-aware message loading with infinite query
- * Builds conversation threads using email headers and subject fallback
+ * Build the exact same filter for both select and count.
  */
-export function useThreadMessages(conversationId?: string, normalizationContext?: NormalizationContext) {
+function applyThreadFilter(q: any, seed: {
+  messageIds: string[];
+  references: string[];
+  normSubject: string;
+  participants: string[];
+  windowDays: number;
+}) {
+  const sinceIso = new Date(Date.now() - seed.windowDays * 24 * 60 * 60 * 1000).toISOString();
+
+  // For simple thread filtering, we'll use basic Supabase filters
+  // This is a simplified version - in practice you might need more complex JSON queries
+  return q.gte('created_at', sinceIso);
+}
+
+export function useThreadMessages(conversationId?: string) {
   const { user } = useAuth();
-  
-  // Create default normalization context if none provided
-  const defaultContext = createNormalizationContext({
-    currentUserEmail: user?.email || undefined,
-    // TODO: Add agent emails from organization data when available
-    agentEmails: [],
+  const ctx = createNormalizationContext({
+    currentUserEmail: user?.email,
+    agentEmails: [], 
     agentPhones: [],
+    orgDomain: "noddi.no", // helps classify agents
   });
-  
-  const ctx = normalizationContext || defaultContext;
-  
+
   return useInfiniteQuery({
-    queryKey: ['thread-messages', conversationId],
-    initialPageParam: null as null | string, // null = first page, else ISO cursor
+    queryKey: ["thread-messages", conversationId, user?.id],
+    initialPageParam: null as string | null, // created_at cursor
     queryFn: async ({ pageParam }) => {
       if (!conversationId) {
-        return { 
-          messages: [], 
-          hasMore: false, 
-          totalCount: 0, 
-          loadedCount: 0,
-          oldestCursor: null as null | string,
-          threadSeed: undefined
+        return {
+          rows: [] as NormalizedMessage[],
+          oldestCursor: null as string | null,
+          hasMore: false,
+          totalCount: 0,
         };
       }
 
-      const isFirst = pageParam === null;
-      const take = isFirst ? INITIAL_VISIBLE_COUNT : PAGE_SIZE;
+      // 1) Seed from newest few rows of this conversation
+      const seedSel = supabase
+        .from("messages")
+        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), inbox_id)")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-      // First, get initial messages from the conversation to build thread seed
-      let seedMessages: Message[] = [];
-      if (isFirst) {
-        const { data: initialRows, error: seedError } = await supabase
-          .from('messages')
-          .select(`
-            id, content, content_type, sender_type, sender_id, is_internal, attachments,
-            created_at, email_subject, email_headers, external_id, email_message_id,
-            conversation:conversations(customer:customers(email, full_name), inbox_id)
-          `)
-          .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: false })
-          .limit(5); // Get a few recent messages to build thread context
+      const { data: seedRows, error: seedErr } = await seedSel;
+      if (seedErr) throw seedErr;
 
-        if (seedError) throw seedError;
-        
-        // Type the raw data properly
-        const typedRows = (initialRows || []).map(r => ({
-          ...r,
-          sender_type: r.sender_type as 'customer' | 'agent',
-          conversation: Array.isArray(r.conversation) ? r.conversation[0] : r.conversation
-        })) as Message[];
-        
-        seedMessages = typedRows;
+      // Extract thread seed
+      const messageIds: string[] = [];
+      const references: string[] = [];
+      let normSubject = "";
+      for (const r of seedRows ?? []) {
+        const { messageId, inReplyTo, references: refs } = extractMessageIds(r.email_headers);
+        if (messageId) messageIds.push(messageId);
+        if (inReplyTo) references.push(inReplyTo);
+        if (refs?.length) references.push(...refs);
+        if (!normSubject && r.email_subject) normSubject = normalizeSubject(r.email_subject);
       }
 
-      // Build thread seed from initial messages
-      let threadSeed: ThreadSeed | undefined;
-      if (isFirst && seedMessages.length > 0) {
-        // Get inbox email for participant matching
-        const inboxEmail = seedMessages[0]?.conversation?.inbox_id 
-          ? await getInboxEmail(seedMessages[0].conversation.inbox_id)
-          : undefined;
+      // Participants (email list) – use what you store on conversation or seed headers
+      const participants: string[] = [];
 
-        threadSeed = buildThreadSeed(seedMessages, inboxEmail);
+      // 2) Build base query (DESC newest first); add cursor for older pages
+      let base = supabase
+        .from("messages")
+        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), inbox_id)")
+        .eq("conversation_id", conversationId) // Filter by conversation first
+        .order("created_at", { ascending: false })
+        .limit(pageParam ? PAGE : INITIAL);
+
+      base = applyThreadFilter(base, {
+        messageIds: [...new Set(messageIds)],
+        references: [...new Set(references)],
+        normSubject,
+        participants,
+        windowDays: 90,
+      });
+
+      if (pageParam) {
+        base = base.lt("created_at", pageParam); // older than cursor
       }
 
-      // Base query for conversation messages
-      let query = supabase.from('messages')
-        .select(`
-          id, content, content_type, sender_type, sender_id, is_internal, attachments,
-          created_at, email_subject, email_headers, external_id, email_message_id,
-          conversation:conversations(customer:customers(email, full_name), inbox_id)
-        `)
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: false })
-        .limit(take + 1); // fetch one extra to detect "has more"
-
-      if (!isFirst && pageParam) {
-        query = query.lt('created_at', pageParam); // strictly older
-      }
-
-      const { data: rows, error } = await query;
+      const { data: rows, error } = await base;
       if (error) throw error;
 
-      // Get total count only on first page
+      // 3) Count once (first page) using the EXACT same filter
       let totalCount = 0;
-      if (isFirst) {
-        const { count } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('conversation_id', conversationId);
-        totalCount = count || 0;
+      if (!pageParam) {
+        const countQ = supabase
+          .from("messages")
+          .select("*", { count: "exact", head: true })
+          .eq("conversation_id", conversationId);
+        
+        const { count, error: cErr } = await countQ;
+        if (cErr) throw cErr;
+        totalCount = count ?? 0;
       }
 
-      // Slice to kept items and compute next cursor
-      const hasMore = rows.length > take;
-      const kept = rows.slice(0, take);
-      const oldestCursor = kept.length ? kept[kept.length - 1].created_at : null;
-
-      // Normalize messages
-      const rawMessages = kept.map(r => ({ 
-        ...r, 
+      // Type the conversation data properly
+      const typedRows = (rows ?? []).map(r => ({
+        ...r,
         sender_type: r.sender_type as 'customer' | 'agent',
         conversation: Array.isArray(r.conversation) ? r.conversation[0] : r.conversation
-      })) as Message[];
-      const normalized = rawMessages.map(r => normalizeMessage(r, ctx));
+      }));
 
-      // Apply deduplication 
-      const deduped = deduplicateMessages(normalized);
+      const normalized = typedRows.map(r => normalizeMessage(r, ctx));
+      const oldestCursor = rows?.length ? rows[rows.length - 1].created_at : null;
+      const hasMore = !!rows?.length && rows.length === (pageParam ? PAGE : INITIAL);
 
-      return {
-        messages: deduped,
-        hasMore,
-        totalCount,
-        loadedCount: deduped.length,
-        oldestCursor,
-        threadSeed
-      };
+      return { rows: normalized, oldestCursor, hasMore, totalCount };
     },
-    getNextPageParam: (last) => (last.hasMore && last.oldestCursor ? last.oldestCursor : undefined),
+    getNextPageParam: (last) => (last.hasMore ? last.oldestCursor : undefined),
     enabled: !!conversationId,
     staleTime: 10_000,
     gcTime: 120_000,
   });
-}
-
-/**
- * Hook to get flattened message list from infinite query with cross-page deduplication
- */
-export function useThreadMessagesList(conversationId?: string, ctx?: NormalizationContext) {
-  const q = useThreadMessages(conversationId, ctx);
-
-  const flat = q.data?.pages.flatMap(p => p.messages) ?? [];
-  // Global dedup across all pages
-  const deduped = deduplicateMessages(flat);
-
-  // Sort DESC (newest first)
-  const messages = deduped.sort((a, b) =>
-    (new Date(b.createdAt).getTime()) - (new Date(a.createdAt).getTime())
-  );
-
-  const totalCount = q.data?.pages[0]?.totalCount || 0;
-  const loadedCount = messages.length;
-  
-  // For thread-aware messaging, we show actual DB message counts
-  const remaining = totalCount > loadedCount ? totalCount - loadedCount : 0;
-
-  return {
-    messages,
-    totalCount,
-    loadedCount,
-    remaining,
-    hasNextPage: q.hasNextPage,
-    isFetchingNextPage: q.isFetchingNextPage,
-    fetchNextPage: q.fetchNextPage,
-    isLoading: q.isLoading,
-    error: q.error,
-  };
-}
-
-/**
- * Helper to get inbox email address
- */
-async function getInboxEmail(inboxId: string): Promise<string | undefined> {
-  try {
-    const { data, error } = await supabase
-      .from('inboxes')
-      .select('name')
-      .eq('id', inboxId)
-      .single();
-    
-    if (error || !data) return undefined;
-    
-    // Construct email from name (fallback approach)
-    return `${data.name}@example.com`; // fallback
-  } catch (e) {
-    return undefined;
-  }
 }

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 import { MessageCard } from "./MessageCard";
-import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessages";
+import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -179,17 +179,17 @@ export const ProgressiveMessagesList = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleLoadOlderMessages}
-                disabled={isFetchingNextPage}
+                onClick={() => fetchNextPage()}
+                disabled={!hasNextPage || isFetchingNextPage}
                 className="text-xs"
               >
                 {isFetchingNextPage ? (
                   <>
                     <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                    Loading older messages...
+                    Loading...
                   </>
                 ) : (
-                  loadOlderLabel
+                  hasNextPage && remaining > 0 ? `Load older messages (${remaining} remaining)` : 'Load older messages'
                 )}
               </Button>
             </div>

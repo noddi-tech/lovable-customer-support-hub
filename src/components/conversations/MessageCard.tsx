@@ -85,17 +85,15 @@ export const MessageCard = ({
                 <AvatarFallback className={cn(
                   isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"
                 )}>
-                  {isFromCustomer 
-                    ? conversation.customer?.full_name?.[0] || message.from.name?.[0] || 'C'
-                    : message.from.name?.[0] || 'A'
-                  }
+                  {message.avatarInitial}
                 </AvatarFallback>
               </Avatar>
               
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="font-medium text-sm">
-                    {message.authorLabel}
+                    {message.authorType === "agent" ? "Agent" : "Customer"}
+                    <span className="text-muted-foreground ml-1">{message.authorLabel}</span>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}

@@ -48,6 +48,7 @@ export interface NormalizedMessage {
   direction: 'inbound' | 'outbound';
   authorType: 'agent' | 'customer' | 'system';
   authorLabel: string; // e.g., "Agent (tom@noddi.no)" or "torstein@hyre.no"
+  avatarInitial: string; // Initial for avatar display
 
   // Content rendering
   visibleBody: string;         // without quoted sections
@@ -60,7 +61,7 @@ export interface NormalizedMessage {
 export interface NormalizationContext {
   agentEmailSet: Set<string>;     // case-insensitive agent emails
   agentPhoneSet: Set<string>;     // agent phone numbers
-  orgDomain?: string;             // fallback org domain
+  orgDomains?: string[];          // fallback org domains (now array)
   currentUserEmail?: string;      // fallback current user
 }
 
@@ -78,12 +79,13 @@ export function createNormalizationContext(options: {
   agentEmails?: string[];
   agentPhones?: string[];
   orgDomain?: string;
+  orgDomains?: string[];
   currentUserEmail?: string;
 }): NormalizationContext {
   return {
     agentEmailSet: createCaseInsensitiveSet(options.agentEmails || []),
     agentPhoneSet: new Set((options.agentPhones || []).map(p => p.trim())),
-    orgDomain: options.orgDomain,
+    orgDomains: options.orgDomains || (options.orgDomain ? [options.orgDomain] : []),
     currentUserEmail: options.currentUserEmail?.toLowerCase().trim(),
   };
 }
@@ -106,9 +108,13 @@ function isAgentEmail(email: string | undefined, ctx: NormalizationContext): boo
     return true;
   }
   
-  // Check against org domain (if available)
-  if (ctx.orgDomain && normalizedEmail.endsWith(`@${ctx.orgDomain.toLowerCase()}`)) {
-    return true;
+  // Check against org domains (if available)
+  if (ctx.orgDomains?.length) {
+    for (const domain of ctx.orgDomains) {
+      if (normalizedEmail.endsWith(`@${domain.toLowerCase()}`)) {
+        return true;
+      }
+    }
   }
   
   return false;
@@ -123,6 +129,8 @@ function isAgentPhone(phone: string | undefined, ctx: NormalizationContext): boo
 }
 
 
+import { extractEmailAddress } from './emailThreading';
+
 /**
  * Normalize a raw message from Supabase into canonical format
  */
@@ -136,24 +144,22 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   // Determine channel from message data
   let channel: string = rawMessage.channel || 'email';
   
-  // Extract sender information
+  // Extract sender information from email headers first, then fallback
   const from: NormalizedMessage['from'] = {};
   
-  // For email messages, try to extract from email headers or sender info
-  if (rawMessage.email_headers?.from) {
-    const fromHeader = rawMessage.email_headers.from;
-    if (typeof fromHeader === 'string') {
-      // Parse "Name <email@domain.com>" format
-      const emailMatch = fromHeader.match(/<([^>]+)>/);
-      const nameMatch = fromHeader.match(/^([^<]+)</);
-      
-      from.email = emailMatch ? emailMatch[1].trim() : fromHeader.trim();
-      from.name = nameMatch ? nameMatch[1].trim().replace(/"/g, '') : undefined;
-    } else if (typeof fromHeader === 'object' && fromHeader.email) {
-      from.email = fromHeader.email;
-      from.name = fromHeader.name;
-    }
+  const fromHeader = rawMessage.email_headers?.from || rawMessage.email_headers?.From || "";
+  const fromEmail = extractEmailAddress(fromHeader) || rawMessage.from_email || rawMessage.sender_email || "";
+  const email = fromEmail.toLowerCase();
+  
+  // Extract name from header
+  let fromName = "";
+  if (fromHeader && typeof fromHeader === 'string') {
+    const nameMatch = fromHeader.match(/^([^<]+)</);
+    fromName = nameMatch ? nameMatch[1].trim().replace(/"/g, '') : "";
   }
+  
+  from.email = fromEmail;
+  from.name = fromName || undefined;
   
   // Fallback to sender_id if available
   if (!from.email && !from.phone && rawMessage.sender_id) {
@@ -165,49 +171,22 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     from.phone = rawMessage.customer_phone;
   }
   
-  // Determine direction and author type
-  let direction: 'inbound' | 'outbound' = 'inbound';
-  let authorType: 'agent' | 'customer' | 'system' = 'customer';
+  // Determine if this is an agent based on email headers first
+  const isAgent =
+    !!ctx.agentEmailSet?.has(email) ||
+    !!ctx.orgDomains?.some(d => email.endsWith(`@${d}`)) ||
+    rawMessage.sender_type === "agent" ||
+    !!rawMessage.is_internal;
   
-  if (channel === 'email') {
-    if (isAgentEmail(from.email, ctx)) {
-      direction = 'outbound';
-      authorType = 'agent';
-    }
-  } else if (channel === 'sms') {
-    if (isAgentPhone(from.phone, ctx)) {
-      direction = 'outbound';
-      authorType = 'agent';
-    }
-  } else {
-    // For other channels, use the sender_type if available
-    if (rawMessage.sender_type === 'agent') {
-      direction = 'outbound';
-      authorType = 'agent';
-    }
-  }
+  // Author fields
+  const authorType = isAgent ? "agent" : "customer";
+  const authorLabel = isAgent ? `Agent (${email})` : email;
   
-  // Create author label
-  let authorLabel: string;
-  if (authorType === 'agent') {
-    if (from.name) {
-      authorLabel = from.email ? `${from.name} (${from.email})` : from.name;
-    } else if (from.email) {
-      authorLabel = `Agent (${from.email})`;
-    } else {
-      authorLabel = 'Agent';
-    }
-  } else {
-    if (from.name) {
-      authorLabel = from.name;
-    } else if (from.email) {
-      authorLabel = from.email;
-    } else if (from.phone) {
-      authorLabel = from.phone;
-    } else {
-      authorLabel = 'Customer';
-    }
-  }
+  // Avatar initial
+  const initial = (fromName || email || "A").trim()[0]?.toUpperCase() || "A";
+  
+  // Determine direction
+  const direction: 'inbound' | 'outbound' = isAgent ? 'outbound' : 'inbound';
   
   // Extract quoted blocks
   const quotedBlocks = parsedContent.quotedBlocks;
@@ -222,6 +201,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     direction,
     authorType,
     authorLabel,
+    avatarInitial: initial,
     visibleBody: parsedContent.visibleContent,
     quotedBlocks: quotedBlocks?.length > 0 ? quotedBlocks : undefined,
     originalMessage: {

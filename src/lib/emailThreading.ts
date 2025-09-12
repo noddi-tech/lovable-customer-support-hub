@@ -88,6 +88,27 @@ function parseReferences(referencesHeader: string | undefined): string[] {
 }
 
 /**
+ * Extract email address from header string like "Name <email@domain.com>"
+ */
+export function extractEmailAddress(headerValue: string): string {
+  if (!headerValue) return '';
+  
+  // Try to extract from angle brackets first
+  const emailMatch = headerValue.match(/<([^>]+)>/);
+  if (emailMatch) {
+    return emailMatch[1].trim();
+  }
+  
+  // If no brackets, assume the whole string is an email
+  // Basic email validation
+  if (headerValue.includes('@')) {
+    return headerValue.trim();
+  }
+  
+  return '';
+}
+
+/**
  * Canonicalize email address for comparison (lowercase, trimmed)
  */
 export function canonicalizeEmail(email: string): string {
