@@ -1,6 +1,7 @@
 import { useThreadMessages } from "./useThreadMessages";
+import { NormalizationContext } from "@/lib/normalizeMessage";
 
-export function useThreadMessagesList(conversationId?: string) {
+export function useThreadMessagesList(conversationId?: string, context?: NormalizationContext) {
   const q = useThreadMessages(conversationId);
 
   const pages = q.data?.pages ?? [];

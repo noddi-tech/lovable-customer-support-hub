@@ -6,19 +6,22 @@
 import { parseQuotedEmail, type QuotedBlock, type QuotedMessage } from './parseQuotedEmail';
 
 // Robust header parsing helpers
-function safeParseHeaders(h: unknown): Record<string, string> {
+function safeParseHeaders(h: unknown): Record<string, any> {
   if (!h) return {};
   if (typeof h === 'string') {
     try { const o = JSON.parse(h); return typeof o === 'object' && o ? o as any : {}; } catch { return {}; }
   }
-  return (typeof h === 'object') ? (h as Record<string, string>) : {};
+  return (typeof h === 'object') ? (h as Record<string, any>) : {};
 }
 
-function getHeader(headers: Record<string, string>, key: string): string | undefined {
-  // case-insensitive lookup
-  const found = Object.keys(headers).find(k => k.toLowerCase() === key.toLowerCase());
-  const v = found ? headers[found] : undefined;
-  return v?.trim() || undefined;
+function firstString(v: any): string | undefined {
+  if (Array.isArray(v)) return v.find(x => typeof x === 'string')?.trim();
+  return typeof v === 'string' ? v.trim() : undefined;
+}
+
+function getHeader(headers: Record<string, any>, key: string): string | undefined {
+  const k = Object.keys(headers).find(h => h.toLowerCase() === key.toLowerCase());
+  return k ? firstString(headers[k]) : undefined;
 }
 
 function extractNameEmail(input?: string) {

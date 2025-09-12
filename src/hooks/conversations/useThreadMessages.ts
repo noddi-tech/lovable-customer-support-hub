@@ -26,12 +26,6 @@ function applyThreadFilter(q: any, seed: {
 
 export function useThreadMessages(conversationId?: string) {
   const { user } = useAuth();
-  const ctx = createNormalizationContext({
-    currentUserEmail: user?.email,
-    agentEmails: [], 
-    agentPhones: [],
-    orgDomain: "noddi.no", // helps classify agents
-  });
 
   // Debug logging flag
   const isDebugMode = import.meta.env.VITE_UI_PROBE === '1';
@@ -154,6 +148,20 @@ export function useThreadMessages(conversationId?: string) {
         sender_type: r.sender_type as 'customer' | 'agent',
         conversation: Array.isArray(r.conversation) ? r.conversation[0] : r.conversation
       }));
+
+      // Extract conversation customer info for normalization context
+      const conversationData = typedRows[0]?.conversation;
+      const customerData = conversationData?.customer;
+      
+      // Create conversation-specific normalization context
+      const ctx = createNormalizationContext({
+        currentUserEmail: user?.email,
+        agentEmails: [], 
+        agentPhones: [],
+        agentDomains: ['noddi.no'], // helps classify agents
+        conversationCustomerEmail: customerData?.email,
+        conversationCustomerName: customerData?.full_name,
+      });
 
       const normalized = typedRows.map(r => normalizeMessage(r, ctx));
       const oldestCursor = rows?.length ? rows[rows.length - 1].created_at : null;

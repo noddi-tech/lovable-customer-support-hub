@@ -1,9 +1,11 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 import { MessageCard } from "./MessageCard";
 import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList";
+import { createNormalizationContext } from "@/lib/normalizeMessage";
+import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +23,20 @@ export const ProgressiveMessagesList = ({
   onDeleteMessage 
 }: ProgressiveMessagesListProps) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
   const [allCollapsed, setAllCollapsed] = useState(true);
+  
+  // Create conversation-specific normalization context
+  const normalizationCtx = useMemo(() => createNormalizationContext({
+    currentUserEmail: user?.email,
+    agentDomains: ['noddi.no'],        // quick win so agents resolve
+    agentEmails: [],                   // keep empty or fill from org if available
+    conversationCustomerEmail: conversation?.customer?.email,
+    conversationCustomerName: conversation?.customer?.full_name,
+  }), [user?.email, conversation?.customer?.email, conversation?.customer?.full_name]);
   
   const {
     messages,
@@ -38,7 +50,7 @@ export const ProgressiveMessagesList = ({
     fetchNextPage,
     isLoading,
     error
-  } = useThreadMessagesList(conversationId);
+  } = useThreadMessagesList(conversationId, normalizationCtx);
 
   // Auto-scroll to bottom when messages change (for new messages)
   useEffect(() => {
