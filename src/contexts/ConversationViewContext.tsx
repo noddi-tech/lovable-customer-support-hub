@@ -13,6 +13,10 @@ interface ConversationViewState {
   aiOpen: boolean;
   aiLoading: boolean;
   aiSuggestions: any[];
+  translateOpen: boolean;
+  translateLoading: boolean;
+  sourceLanguage: string;
+  targetLanguage: string;
   assignDialogOpen: boolean;
   assignSelectedUserId: string;
   assignLoading: boolean;
@@ -34,6 +38,7 @@ type ConversationViewAction =
   | { type: 'SET_IS_INTERNAL_NOTE'; payload: boolean }
   | { type: 'SET_EDITING_MESSAGE'; payload: { id: string | null; text: string } }
   | { type: 'SET_AI_STATE'; payload: { open: boolean; loading: boolean; suggestions: any[] } }
+  | { type: 'SET_TRANSLATE_STATE'; payload: { open: boolean; loading: boolean; sourceLanguage: string; targetLanguage: string } }
   | { type: 'SET_ASSIGN_DIALOG'; payload: { open: boolean; userId: string; loading: boolean } }
   | { type: 'SET_MOVE_DIALOG'; payload: { open: boolean; inboxId: string; loading: boolean } }
   | { type: 'SET_SNOOZE_DIALOG'; payload: { open: boolean; date: Date | undefined; time: string } }
@@ -50,6 +55,10 @@ const initialState: ConversationViewState = {
   aiOpen: false,
   aiLoading: false,
   aiSuggestions: [],
+  translateOpen: false,
+  translateLoading: false,
+  sourceLanguage: 'auto',
+  targetLanguage: 'en',
   assignDialogOpen: false,
   assignSelectedUserId: '',
   assignLoading: false,
@@ -76,6 +85,8 @@ function conversationViewReducer(state: ConversationViewState, action: Conversat
       return { ...state, editingMessageId: action.payload.id, editText: action.payload.text };
     case 'SET_AI_STATE':
       return { ...state, aiOpen: action.payload.open, aiLoading: action.payload.loading, aiSuggestions: action.payload.suggestions };
+    case 'SET_TRANSLATE_STATE':
+      return { ...state, translateOpen: action.payload.open, translateLoading: action.payload.loading, sourceLanguage: action.payload.sourceLanguage, targetLanguage: action.payload.targetLanguage };
     case 'SET_ASSIGN_DIALOG':
       return { ...state, assignDialogOpen: action.payload.open, assignSelectedUserId: action.payload.userId, assignLoading: action.payload.loading };
     case 'SET_MOVE_DIALOG':
@@ -110,6 +121,7 @@ interface ConversationViewContextType {
   updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
   snoozeConversation: () => Promise<void>;
   getAiSuggestions: () => Promise<void>;
+  translateText: (text: string, sourceLanguage: string, targetLanguage: string) => Promise<string>;
   refreshConversation: () => Promise<void>;
 }
 
@@ -464,6 +476,28 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     }
   };
 
+  const translateText = async (text: string, sourceLanguage: string, targetLanguage: string): Promise<string> => {
+    if (!text.trim()) return text;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-text', {
+        body: { 
+          text: text.trim(),
+          sourceLanguage,
+          targetLanguage
+        }
+      });
+
+      if (error) throw error;
+      
+      return data.translatedText || text;
+    } catch (error: any) {
+      logger.error('Failed to translate text', error, 'ConversationViewProvider');
+      toast.error('Failed to translate text: ' + error.message);
+      return text;
+    }
+  };
+
   const refreshConversation = async () => {
     await gmailSyncMutation.mutateAsync();
   };
@@ -483,6 +517,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     updateStatus,
     snoozeConversation,
     getAiSuggestions,
+    translateText,
     refreshConversation,
   };
 

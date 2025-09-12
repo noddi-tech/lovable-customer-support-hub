@@ -7,22 +7,51 @@ import {
   Send,
   Smile,
   Sparkles,
-  Loader2
+  Loader2,
+  Languages
 } from "lucide-react";
 import { EmojiAutocompleteInput } from "@/components/ui/emoji-autocomplete-input";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const ReplyArea = () => {
   const { 
     state, 
     dispatch, 
     sendReply, 
-    getAiSuggestions 
+    getAiSuggestions,
+    translateText
   } = useConversationView();
   const { t } = useTranslation();
   const replyRef = useRef<HTMLTextAreaElement>(null);
+
+  // Available languages for translation
+  const languages = [
+    { code: 'auto', name: t('conversation.autoDetect') },
+    { code: 'en', name: t('languages.en') },
+    { code: 'es', name: t('languages.es') },
+    { code: 'fr', name: t('languages.fr') },
+    { code: 'de', name: t('languages.de') },
+    { code: 'it', name: t('languages.it') },
+    { code: 'pt', name: t('languages.pt') },
+    { code: 'nl', name: t('languages.nl') },
+    { code: 'no', name: t('languages.no') },
+    { code: 'sv', name: t('languages.sv') },
+    { code: 'da', name: t('languages.da') }
+  ];
 
   // Focus the reply area when it becomes visible
   useEffect(() => {
@@ -68,6 +97,40 @@ export const ReplyArea = () => {
   const handleAiSuggestionSelect = (suggestion: string) => {
     dispatch({ type: 'SET_REPLY_TEXT', payload: suggestion });
     dispatch({ type: 'SET_AI_STATE', payload: { open: false, loading: false, suggestions: [] } });
+  };
+
+  const handleTranslate = async () => {
+    if (!state.replyText.trim()) return;
+    
+    dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+      open: false, 
+      loading: true, 
+      sourceLanguage: state.sourceLanguage,
+      targetLanguage: state.targetLanguage
+    }});
+    
+    try {
+      const translatedText = await translateText(
+        state.replyText,
+        state.sourceLanguage,
+        state.targetLanguage
+      );
+      
+      dispatch({ type: 'SET_REPLY_TEXT', payload: translatedText });
+      dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+        open: false, 
+        loading: false,
+        sourceLanguage: state.sourceLanguage,
+        targetLanguage: state.targetLanguage
+      }});
+    } catch (error) {
+      dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+        open: false, 
+        loading: false,
+        sourceLanguage: state.sourceLanguage,
+        targetLanguage: state.targetLanguage
+      }});
+    }
   };
 
   if (!state.showReplyArea) {
@@ -120,6 +183,106 @@ export const ReplyArea = () => {
             </div>
             
             <div className="flex items-center space-x-2">
+              <Popover open={state.translateOpen} onOpenChange={(open) => 
+                dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+                  open, 
+                  loading: state.translateLoading,
+                  sourceLanguage: state.sourceLanguage,
+                  targetLanguage: state.targetLanguage
+                }})
+              }>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={state.translateLoading || !state.replyText.trim()}
+                  >
+                    {state.translateLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Languages className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline ml-2">
+                      {t('conversation.translate')}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-4">
+                    <h4 className="font-medium leading-none">{t('conversation.translate')}</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-sm">{t('conversation.sourceLanguage')}</Label>
+                        <Select
+                          value={state.sourceLanguage}
+                          onValueChange={(value) => 
+                            dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+                              open: state.translateOpen,
+                              loading: state.translateLoading,
+                              sourceLanguage: value,
+                              targetLanguage: state.targetLanguage
+                            }})
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {languages.map((lang) => (
+                              <SelectItem key={lang.code} value={lang.code}>
+                                {lang.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-sm">{t('conversation.targetLanguage')}</Label>
+                        <Select
+                          value={state.targetLanguage}
+                          onValueChange={(value) => 
+                            dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+                              open: state.translateOpen,
+                              loading: state.translateLoading,
+                              sourceLanguage: state.sourceLanguage,
+                              targetLanguage: value
+                            }})
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {languages.filter(lang => lang.code !== 'auto').map((lang) => (
+                              <SelectItem key={lang.code} value={lang.code}>
+                                {lang.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button 
+                        onClick={handleTranslate}
+                        disabled={state.translateLoading || !state.replyText.trim() || state.sourceLanguage === state.targetLanguage}
+                        className="w-full"
+                      >
+                        {state.translateLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            {t('conversation.translating')}
+                          </>
+                        ) : (
+                          <>
+                            <Languages className="h-4 w-4 mr-2" />
+                            {t('conversation.translate')}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               <Button
                 variant="outline"
                 size="sm"
