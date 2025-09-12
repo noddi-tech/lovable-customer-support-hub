@@ -269,13 +269,11 @@ describe('ProgressiveMessagesList - Card Order and Toggle', () => {
       </QueryClientProvider>
     );
 
-    await waitFor(() => {
       // Should show customer email as label
       expect(screen.getByText('customer@example.com')).toBeInTheDocument();
       
       // Should show agent email as label 
       expect(screen.getByText('agent@test.com')).toBeInTheDocument();
-    });
   });
 
   it('shows quoted history toggle when available', async () => {

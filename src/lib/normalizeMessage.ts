@@ -129,17 +129,18 @@ function parseSingleAddress(input?: string): EmailAddress {
 export function createNormalizationContext(options: {
   agentEmails?: string[];
   agentPhones?: string[];
+  agentDomains?: string[];
   orgDomain?: string;
   orgDomains?: string[];
   currentUserEmail?: string;
   conversationCustomerEmail?: string;
   conversationCustomerName?: string;
 }): NormalizationContext {
-  const allDomains = options.orgDomains || (options.orgDomain ? [options.orgDomain] : []);
+  const allDomains = options.agentDomains || options.orgDomains || (options.orgDomain ? [options.orgDomain] : []);
   return {
-    agentEmailSet: createCaseInsensitiveSet(options.agentEmails || []),
+    agentEmailSet: new Set((options.agentEmails ?? []).map(e => e.toLowerCase())),
     agentPhoneSet: new Set((options.agentPhones || []).map(p => p.trim())),
-    agentDomainsSet: createCaseInsensitiveSet(allDomains),
+    agentDomainsSet: new Set((allDomains ?? []).map(d => d.toLowerCase())),
     orgDomains: allDomains,
     currentUserEmail: options.currentUserEmail?.toLowerCase().trim(),
     conversationCustomerEmail: options.conversationCustomerEmail?.toLowerCase().trim(),
@@ -218,8 +219,8 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   if (!fromEmail && typeof rawMessage.sender_id === 'string' && rawMessage.sender_id.includes('@')) {
     fromEmail = rawMessage.sender_id.toLowerCase();
   }
-  if (!fromName && rawMessage.sender_name) {
-    fromName = rawMessage.sender_name;
+  if (!fromName && typeof rawMessage.sender_name === 'string') {
+    fromName = rawMessage.sender_name.trim() || undefined;
   }
 
   // For SMS, we might have phone information

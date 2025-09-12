@@ -43,7 +43,7 @@ export function useConversationMessages(conversationId?: string, normalizationCo
     // TODO: Add agent emails from organization data when available
     agentEmails: [],
     agentPhones: [],
-    orgDomains: ['noddi.no'], // Seed with known agent domains
+    agentDomains: ['noddi.no'], // Seed with known agent domains
   });
   
   const ctx = normalizationContext || defaultContext;
