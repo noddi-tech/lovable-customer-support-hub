@@ -31,6 +31,8 @@ export const ProgressiveMessagesList = ({
     totalCount,
     loadedCount,
     remaining,
+    confidence,
+    estimatedNormalized,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -115,10 +117,32 @@ export const ProgressiveMessagesList = ({
     }
   };
 
-  // Calculate remaining count for thread-aware messaging
-  const loadOlderLabel = remaining > 0
+  // Calculate remaining count with confidence check
+  const loadOlderLabel = remaining > 0 && confidence === 'high'
     ? `Load older messages (${remaining} remaining)`
     : 'Load older messages';
+
+  // Debug probe visibility
+  const isProbeMode = import.meta.env.VITE_UI_PROBE === '1';
+
+  // Force load function for debug probe
+  const handleForceLoad = () => {
+    console.debug('[ProgressiveMessagesList] Force load triggered', {
+      conversationId,
+      hasNextPage,
+      isFetchingNextPage,
+      totalCount,
+      loadedCount,
+      remaining,
+      confidence,
+      estimatedNormalized
+    });
+    fetchNextPage();
+  };
+
+  const oldestLoadedAt = messages.length > 0 
+    ? messages[messages.length - 1].createdAt 
+    : null;
 
   if (isLoading) {
     return (
@@ -142,6 +166,27 @@ export const ProgressiveMessagesList = ({
 
   return (
     <div className="flex-1 min-h-0 relative">
+      {/* Debug Header - Only visible when VITE_UI_PROBE=1 */}
+      {isProbeMode && (
+        <div className="bg-orange-100 border-l-4 border-orange-500 p-3 text-xs font-mono">
+          <div className="font-bold text-orange-800 mb-2">🔍 DEBUG PROBE - Conversation Threading</div>
+          <div className="space-y-1 text-orange-700">
+            <div><span className="font-semibold">Conversation ID:</span> {conversationId}</div>
+            <div><span className="font-semibold">Pages Loaded:</span> {messages.length > 0 ? '1+' : '0'} | Has Next: {hasNextPage ? 'YES' : 'NO'}</div>
+            <div><span className="font-semibold">DB Total:</span> {totalCount} | Loaded: {loadedCount} | Estimated: {estimatedNormalized}</div>
+            <div><span className="font-semibold">Remaining:</span> {remaining} | Confidence: {confidence}</div>
+            <div><span className="font-semibold">Oldest Cursor:</span> {oldestLoadedAt ? new Date(oldestLoadedAt).toLocaleTimeString() : 'none'}</div>
+            <button 
+              onClick={handleForceLoad}
+              disabled={!hasNextPage || isFetchingNextPage}
+              className="mt-2 px-2 py-1 bg-orange-200 hover:bg-orange-300 rounded text-xs disabled:opacity-50"
+            >
+              🚀 Force Load Older {isFetchingNextPage ? '(Loading...)' : ''}
+            </button>
+          </div>
+        </div>
+      )}
+      
       <ScrollArea className="h-full" ref={scrollAreaRef}>
         <div className="p-4 space-y-4">
           {/* Expand/Collapse All Controls */}

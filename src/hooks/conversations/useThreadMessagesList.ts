@@ -21,13 +21,22 @@ export function useThreadMessagesList(conversationId?: string) {
 
   const totalCount = pages[0]?.totalCount ?? 0;
   const loadedCount = messages.length;
-  const remaining = Math.max(totalCount - loadedCount, 0);
+  const confidence = pages[0]?.confidence ?? 'high';
+  
+  // Only show numeric remaining when confidence is high
+  const estimatedNormalized = confidence === 'high' ? totalCount : loadedCount;
+  const rawRemaining = Math.max(estimatedNormalized - loadedCount, 0);
+  
+  // Clamp remaining to reasonable limits and hide when confidence is low
+  const remaining = confidence === 'high' && rawRemaining <= 500 ? rawRemaining : 0;
 
   return {
     messages,
     totalCount,
     loadedCount,
     remaining,
+    confidence,
+    estimatedNormalized,
     hasNextPage: q.hasNextPage,
     isFetchingNextPage: q.isFetchingNextPage,
     fetchNextPage: q.fetchNextPage,

@@ -91,7 +91,20 @@ export const MessageDebugProbe = ({ message, className }: MessageDebugProbeProps
           <span className="text-orange-600">Visible Hash:</span> {visibleHash.substring(0, 8)}
         </div>
         <div>
-          <span className="text-orange-600">Dedup Key:</span> {createSoftDedupKey(message).substring(0, 20)}
+          <span className="text-orange-600">Dedup Key:</span> {message.dedupKey.substring(0, 20)}
+        </div>
+        <div>
+          <span className="text-orange-600">Headers:</span> {
+            message.originalMessage?.email_headers 
+              ? Object.keys(message.originalMessage.email_headers).join(', ').substring(0, 50) + '...'
+              : 'none'
+          }
+        </div>
+        <div>
+          <span className="text-orange-600">Real From:</span> {message.from.email} ({message.from.name || 'no name'})
+        </div>
+        <div>
+          <span className="text-orange-600">Author Type:</span> {message.authorType} | {message.authorLabel}
         </div>
         {message.quotedBlocks && message.quotedBlocks.length > 0 && (
           <div>

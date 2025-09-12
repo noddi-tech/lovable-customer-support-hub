@@ -168,15 +168,21 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   // Determine channel from message data
   let channel: string = rawMessage.channel || 'email';
   
-  // Extract participants from email headers
-  const headers = (rawMessage.email_headers ?? {}) as Record<string, string>;
+  // Extract participants from email headers - normalize keys to lowercase
+  const rawHeaders = (rawMessage.email_headers ?? {}) as Record<string, string>;
+  const headers: Record<string, string> = {};
   
-  const from = parseSingleAddress(headers['from'] || headers['From'] || rawMessage.from);
-  const to = parseAddressList(headers['to'] || headers['To'] || rawMessage.to);
-  const cc = parseAddressList(headers['cc'] || headers['Cc'] || rawMessage.cc);
-  const bcc = parseAddressList(headers['bcc'] || headers['Bcc'] || rawMessage.bcc);
+  // Normalize header keys to lowercase for consistent access
+  Object.entries(rawHeaders).forEach(([key, value]) => {
+    headers[key.toLowerCase()] = value;
+  });
   
-  const subject = rawMessage.email_subject || headers['subject'] || headers['Subject'];
+  const from = parseSingleAddress(headers['from'] || rawMessage.from);
+  const to = parseAddressList(headers['to'] || rawMessage.to);
+  const cc = parseAddressList(headers['cc'] || rawMessage.cc);
+  const bcc = parseAddressList(headers['bcc'] || rawMessage.bcc);
+  
+  const subject = rawMessage.email_subject || headers['subject'];
   
   // For SMS, we might have phone information
   if (channel === 'sms' && rawMessage.customer_phone && !from.email) {

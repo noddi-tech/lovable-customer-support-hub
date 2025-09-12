@@ -33,6 +33,9 @@ export function useThreadMessages(conversationId?: string) {
     orgDomain: "noddi.no", // helps classify agents
   });
 
+  // Debug logging flag
+  const isDebugMode = import.meta.env.VITE_UI_PROBE === '1';
+
   return useInfiniteQuery({
     queryKey: ["thread-messages", conversationId, user?.id],
     initialPageParam: null as string | null, // created_at cursor
@@ -95,17 +98,54 @@ export function useThreadMessages(conversationId?: string) {
       const { data: rows, error } = await base;
       if (error) throw error;
 
-      // 3) Count once (first page) using the EXACT same filter
+      // Debug logging for pagination
+      if (isDebugMode && rows) {
+        console.debug('[useThreadMessages] page fetched', {
+          conversationId,
+          isInitialPage: !pageParam,
+          limit: pageParam ? PAGE : INITIAL,
+          rowsReturned: rows.length,
+          firstFiveRows: rows.slice(0, 5).map(r => ({
+            id: r.id,
+            created_at: r.created_at,
+            sender_type: r.sender_type,
+            from: (r.email_headers as any)?.['from'] || (r.email_headers as any)?.['From'],
+            external_id: r.external_id
+          }))
+        });
+      }
+
+      // 3) Count once (first page) using the EXACT same filter for thread-aware counting
       let totalCount = 0;
       if (!pageParam) {
-        const countQ = supabase
+        let countQ = supabase
           .from("messages")
           .select("*", { count: "exact", head: true })
           .eq("conversation_id", conversationId);
         
+        // Apply the same thread filter to get accurate count
+        countQ = applyThreadFilter(countQ, {
+          messageIds: [...new Set(messageIds)],
+          references: [...new Set(references)],
+          normSubject,
+          participants,
+          windowDays: 90,
+        });
+        
         const { count, error: cErr } = await countQ;
         if (cErr) throw cErr;
         totalCount = count ?? 0;
+        
+        // Debug logging
+        if (isDebugMode) {
+          console.debug('[useThreadMessages] count query', { 
+            conversationId, 
+            totalCount,
+            messageIds: messageIds.length,
+            references: references.length,
+            normSubject: normSubject || 'none'
+          });
+        }
       }
 
       // Type the conversation data properly
@@ -119,7 +159,19 @@ export function useThreadMessages(conversationId?: string) {
       const oldestCursor = rows?.length ? rows[rows.length - 1].created_at : null;
       const hasMore = !!rows?.length && rows.length === (pageParam ? PAGE : INITIAL);
 
-      return { rows: normalized, oldestCursor, hasMore, totalCount };
+      // Confidence assessment: if first page has fewer than 10 messages, mark as low confidence
+      let confidence: 'high' | 'low' = 'high';
+      if (!pageParam && rows && rows.length < 10) {
+        confidence = 'low';
+        if (isDebugMode) {
+          console.debug('[useThreadMessages] low confidence due to small initial page', {
+            conversationId,
+            initialRowCount: rows.length
+          });
+        }
+      }
+
+      return { rows: normalized, oldestCursor, hasMore, totalCount, confidence };
     },
     getNextPageParam: (last) => (last.hasMore ? last.oldestCursor : undefined),
     enabled: !!conversationId,
