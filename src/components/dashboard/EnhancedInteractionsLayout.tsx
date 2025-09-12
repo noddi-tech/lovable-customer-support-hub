@@ -9,7 +9,6 @@ import { useIsMobile } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
-import { ReplySidebar } from '@/components/admin/design/components/detail/ReplySidebar';
 import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
 import { ConversationView } from './ConversationView';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
@@ -309,29 +308,11 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     );
   };
 
-  // Render reply sidebar
-  const renderReplySidebar = () => {
-    if (!conversationId || !thread) return null;
-
-    return (
-      <ReplySidebar
-        conversationId={conversationId}
-        customer={thread.customer}
-        status={(selectedConversation?.status === 'archived' ? 'closed' : selectedConversation?.status) || 'open'}
-        priority={selectedConversation?.priority || 'normal'}
-        onSendReply={handleSendReply}
-        placeholder={`Reply to ${thread.customer?.full_name || 'customer'}...`}
-        isLoading={replyMutation.isPending}
-      />
-    );
-  };
-
   return (
     <MasterDetailShell
       left={renderInboxList()}
       center={renderConversationList()}
       detailLeft={renderMessageThread()}
-      detailRight={renderReplySidebar()}
       isDetail={isDetail}
       onBack={handleBack}
       backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
