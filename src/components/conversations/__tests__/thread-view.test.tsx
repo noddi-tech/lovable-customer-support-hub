@@ -231,11 +231,11 @@ describe('ProgressiveMessagesList - Thread View', () => {
       />
     );
 
-    // Check customer attribution
-    expect(screen.getAllByText('Customer')).toHaveLength(2);
+    // Check customer email displayed as authorLabel
+    expect(screen.getAllByText('customer@example.com')).toHaveLength(2);
     
-    // Check agent attribution
-    expect(screen.getByText('Agent (agent@company.com)')).toBeInTheDocument();
+    // Check agent email displayed as authorLabel
+    expect(screen.getByText('agent@company.com')).toBeInTheDocument();
   });
 
   it('shows correct remaining count decreases', () => {

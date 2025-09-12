@@ -270,11 +270,11 @@ describe('ProgressiveMessagesList - Card Order and Toggle', () => {
     );
 
     await waitFor(() => {
-      // Should show customer label
+      // Should show customer email as label
       expect(screen.getByText('customer@example.com')).toBeInTheDocument();
       
-      // Should show agent label 
-      expect(screen.getByText('Agent (agent@test.com)')).toBeInTheDocument();
+      // Should show agent email as label 
+      expect(screen.getByText('agent@test.com')).toBeInTheDocument();
     });
   });
 

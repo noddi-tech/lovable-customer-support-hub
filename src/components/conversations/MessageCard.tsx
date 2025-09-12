@@ -120,12 +120,11 @@ export const MessageCard = ({
     return textOnly.length > 160 ? textOnly.slice(0, 160) + '…' : textOnly;
   };
 
-  // Format sender and recipients
-  const senderName = message.from.name?.trim()
-    || message.from.email?.split('@')[0]
-    || (message.authorType === 'agent' ? 'Agent' : 'Customer');
-
-  const senderEmail = message.from.email;
+  // Use the real author label from normalization
+  const display = message.authorLabel;
+  
+  // Avatar initial from sender (name -> initials; else first letter of email)
+  const initial = (message.from.name?.[0] ?? message.from.email?.[0] ?? '•').toUpperCase();
 
   function formatRecipients(list: {name?: string; email?: string}[] = [], max = 3) {
     if (!list.length) return '';
@@ -165,17 +164,14 @@ export const MessageCard = ({
         <div className="p-4 pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3 min-w-0 flex-1">
-              <div className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                {initials(message.from)}
+              <div className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium" title={message.from.email || message.from.name}>
+                {initial}
               </div>
               
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="font-medium truncate">
-                    {senderName}
-                    {senderEmail && (
-                      <span className="ml-2 text-muted-foreground text-xs hidden sm:inline">({senderEmail})</span>
-                    )}
+                    {display}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
@@ -251,19 +247,19 @@ export const MessageCard = ({
                 </div>
 
                 {/* Full recipients list when expanded */}
-                {showAllRecipients && (
-                  <div className="mt-1 space-x-1 text-xs text-muted-foreground">
-                    <span className="font-medium">{t('mail.to') || 'to'}:</span>{' '}
-                    {(message.to ?? []).map(a => display(a)).filter(Boolean).join(', ')}
-                    {message.cc?.length ? (
-                      <>
-                        {' · '}
-                        <span className="font-medium">{t('mail.cc') || 'cc'}:</span>{' '}
-                        {message.cc.map(a => display(a)).filter(Boolean).join(', ')}
-                      </>
-                    ) : null}
-                  </div>
-                )}
+                 {showAllRecipients && (
+                   <div className="mt-1 space-x-1 text-xs text-muted-foreground">
+                     <span className="font-medium">{t('mail.to') || 'to'}:</span>{' '}
+                     {(message.to ?? []).map(a => a.name || a.email || '').filter(Boolean).join(', ')}
+                     {message.cc?.length ? (
+                       <>
+                         {' · '}
+                         <span className="font-medium">{t('mail.cc') || 'cc'}:</span>{' '}
+                         {message.cc.map(a => a.name || a.email || '').filter(Boolean).join(', ')}
+                       </>
+                     ) : null}
+                   </div>
+                 )}
                 
                 {/* Preview line when collapsed */}
                 {isCollapsed && (

@@ -61,6 +61,7 @@ export interface NormalizedMessage {
 export interface NormalizationContext {
   agentEmailSet: Set<string>;     // case-insensitive agent emails
   agentPhoneSet: Set<string>;     // agent phone numbers
+  agentDomainsSet: Set<string>;   // case-insensitive agent domains
   orgDomains?: string[];          // fallback org domains (now array)
   currentUserEmail?: string;      // fallback current user
 }
@@ -70,6 +71,18 @@ export interface NormalizationContext {
  */
 function createCaseInsensitiveSet(items: string[]): Set<string> {
   return new Set(items.map(item => item.toLowerCase().trim()));
+}
+
+/**
+ * Extract name and email from email header string
+ */
+function extractNameEmail(input?: string) {
+  if (!input) return { name: undefined, email: undefined };
+  // Examples: "Ola Gjønnes <ola@hyre.no>", "<ola@hyre.no>", "ola@hyre.no"
+  const m = input.match(/^(?:"?([^"]+)"?\s*)?<([^>]+)>$/);
+  if (m) return { name: m[1]?.trim(), email: m[2].trim().toLowerCase() };
+  if (input.includes('@')) return { name: undefined, email: input.trim().toLowerCase() };
+  return { name: input.trim(), email: undefined };
 }
 
 /**
@@ -106,10 +119,12 @@ export function createNormalizationContext(options: {
   orgDomains?: string[];
   currentUserEmail?: string;
 }): NormalizationContext {
+  const allDomains = options.orgDomains || (options.orgDomain ? [options.orgDomain] : []);
   return {
     agentEmailSet: createCaseInsensitiveSet(options.agentEmails || []),
     agentPhoneSet: new Set((options.agentPhones || []).map(p => p.trim())),
-    orgDomains: options.orgDomains || (options.orgDomain ? [options.orgDomain] : []),
+    agentDomainsSet: createCaseInsensitiveSet(allDomains),
+    orgDomains: allDomains,
     currentUserEmail: options.currentUserEmail?.toLowerCase().trim(),
   };
 }
@@ -168,6 +183,54 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   // Determine channel from message data
   let channel: string = rawMessage.channel || 'email';
   
+  // Extract real sender information
+  let fromName: string | undefined;
+  let fromEmail: string | undefined;
+
+  if (channel === 'email') {
+    // Prefer structured headers if available
+    const rawHeaders = (rawMessage.email_headers ?? {}) as Record<string, string>;
+    const headers: Record<string, string> = {};
+    
+    // Normalize header keys to lowercase for consistent access
+    Object.entries(rawHeaders).forEach(([key, value]) => {
+      headers[key.toLowerCase()] = value;
+    });
+    
+    const headerFrom = headers['from'] || rawMessage.from || rawMessage.sender_email;
+    const parsed = extractNameEmail(headerFrom);
+    fromName = parsed.name;
+    fromEmail = parsed.email;
+  }
+
+  // Fallbacks for missing email/name
+  if (!fromEmail && typeof rawMessage.sender_id === 'string' && rawMessage.sender_id.includes('@')) {
+    fromEmail = rawMessage.sender_id.toLowerCase();
+  }
+  if (!fromName && rawMessage.sender_name) fromName = rawMessage.sender_name;
+
+  // For SMS, we might have phone information
+  if (channel === 'sms' && rawMessage.customer_phone && !fromEmail) {
+    fromEmail = rawMessage.customer_phone; // Store phone as email for SMS
+  }
+
+  // Build public-facing author label
+  const authorLabel =
+    fromEmail && fromName ? `${fromName} <${fromEmail}>`
+    : fromEmail           ? fromEmail
+    : fromName            ? fromName
+                          : 'Unknown sender';
+
+  // Decide authorType (internal use) via context
+  const isAgent =
+    (fromEmail && ctx.agentEmailSet?.has(fromEmail)) ||
+    (fromEmail && ctx.agentDomainsSet?.has(fromEmail.split('@')[1])) ||
+    rawMessage.sender_type === "agent" ||
+    !!rawMessage.is_internal;
+  
+  const authorType: 'agent' | 'customer' | 'system' =
+    isAgent ? 'agent' : (rawMessage.sender_type as any) ?? 'customer';
+
   // Extract participants from email headers - normalize keys to lowercase
   const rawHeaders = (rawMessage.email_headers ?? {}) as Record<string, string>;
   const headers: Record<string, string> = {};
@@ -177,29 +240,12 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     headers[key.toLowerCase()] = value;
   });
   
-  const from = parseSingleAddress(headers['from'] || rawMessage.from);
+  const from = { name: fromName, email: fromEmail, userId: rawMessage.sender_id };
   const to = parseAddressList(headers['to'] || rawMessage.to);
   const cc = parseAddressList(headers['cc'] || rawMessage.cc);
   const bcc = parseAddressList(headers['bcc'] || rawMessage.bcc);
   
   const subject = rawMessage.email_subject || headers['subject'];
-  
-  // For SMS, we might have phone information
-  if (channel === 'sms' && rawMessage.customer_phone && !from.email) {
-    from.email = rawMessage.customer_phone; // Store phone as email for SMS
-  }
-  
-  // Determine if this is an agent based on email headers first
-  const email = from.email?.toLowerCase() || "";
-  const isAgent =
-    !!ctx.agentEmailSet?.has(email) ||
-    !!ctx.orgDomains?.some(d => email.endsWith(`@${d}`)) ||
-    rawMessage.sender_type === "agent" ||
-    !!rawMessage.is_internal;
-  
-  // Author fields
-  const authorType = isAgent ? "agent" : "customer";
-  const authorLabel = isAgent ? `Agent (${email})` : email;
   
   // Avatar initial
   const initial = (from.name || from.email || "A").trim()[0]?.toUpperCase() || "A";
