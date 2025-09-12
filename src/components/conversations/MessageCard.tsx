@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EmailRender } from "@/components/ui/email-render";
 import { 
@@ -21,6 +19,53 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { type NormalizedMessage } from "@/lib/normalizeMessage";
 import { MessageDebugProbe } from "./MessageDebugProbe";
+
+// --- Helpers ---
+type Addr = { name?: string; email?: string };
+
+function display(addr?: Addr) {
+  if (!addr) return '';
+  return addr.name?.trim() || addr.email || '';
+}
+
+function initials(addr?: Addr) {
+  const s = display(addr);
+  const parts = s.split('@')[0].split(/[.\s_-]+/).filter(Boolean);
+  const two = (parts[0]?.[0] || '') + (parts[1]?.[0] || '');
+  return (two || s[0] || '•').toUpperCase();
+}
+
+function formatList(list: Addr[] = [], max = 3) {
+  const shown = list.slice(0, max).map(display).filter(Boolean);
+  const extra = list.length - shown.length;
+  return { shown, extra };
+}
+
+// tone per direction (authorType)
+function tone(authorType: 'agent' | 'customer' | 'system' = 'customer') {
+  if (authorType === 'agent') {
+    return {
+      accentBar: 'bg-emerald-500',
+      border: 'border-emerald-200',
+      bg: 'bg-emerald-50/60',
+      chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+    };
+  }
+  if (authorType === 'customer') {
+    return {
+      accentBar: 'bg-indigo-500',
+      border: 'border-indigo-200',
+      bg: 'bg-indigo-50/60',
+      chip: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
+    };
+  }
+  return {
+    accentBar: 'bg-slate-400',
+    border: 'border-slate-200',
+    bg: 'bg-slate-50/60',
+    chip: 'bg-slate-50 text-slate-800 ring-slate-200',
+  };
+}
 
 interface MessageCardProps {
   message: NormalizedMessage;
@@ -45,6 +90,7 @@ export const MessageCard = ({
   const { dateTime } = useDateFormatting();
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [showAllRecipients, setShowAllRecipients] = useState(false);
   
   // never show quoted blocks (even if present)
   const SHOW_QUOTED = import.meta.env.VITE_QUOTED_SEGMENTATION === '1' && false;
@@ -88,8 +134,12 @@ export const MessageCard = ({
     return `${names.join(', ')}${rest}`;
   }
 
-  const toLine = formatRecipients(message.to);
-  const ccLine = formatRecipients(message.cc);
+  // Recipients formatting
+  const { shown: toShown, extra: toExtra } = formatList(message.to, 3);
+  const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2);
+
+  // Get theme tone
+  const tne = tone(message.authorType);
 
   const handleEdit = () => {
     if (onEdit) {
@@ -104,24 +154,28 @@ export const MessageCard = ({
   };
 
   return (
-    <Card className="group overflow-hidden">
+    <div className={cn(
+      "group relative rounded-xl border transition-colors",
+      tne.border,
+      !isCollapsed && tne.bg
+    )}>
+      <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-l-xl", tne.accentBar)} />
+      
       <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
-        <CardHeader className="pb-2">
+        <div className="p-4 pb-2">
           <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3 min-w-0 flex-1">
-              <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarFallback className={cn(
-                  isFromCustomer ? "bg-primary text-primary-foreground" : "bg-muted"
-                )}>
-                  {(message.from.name || message.from.email || '•').trim().charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                {initials(message.from)}
+              </div>
               
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="font-medium text-sm truncate">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="font-medium truncate">
                     {senderName}
-                    {senderEmail && <span className="ml-2 text-muted-foreground text-xs">({senderEmail})</span>}
+                    {senderEmail && (
+                      <span className="ml-2 text-muted-foreground text-xs hidden sm:inline">({senderEmail})</span>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
@@ -140,20 +194,88 @@ export const MessageCard = ({
                        {attachments.length}
                      </Badge>
                    )}
-                   
                 </div>
 
-                {/* Recipients line */}
-                <div className="text-xs text-muted-foreground truncate">
-                  {toLine && <>{t('mail.to') || 'to'} {toLine}</>}
-                  {ccLine && <> · {t('mail.cc') || 'cc'} {ccLine}</>}
-                  {message.subject && <> · Re: {message.subject}</>}
+                {/* Participants chips */}
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                  {toShown.length > 0 && (
+                    <>
+                      <span className="text-muted-foreground">{t('mail.to') || 'to'}</span>
+                      {toShown.map((name) => (
+                        <span
+                          key={`to-${name}`}
+                          className={cn(
+                            "px-2 py-0.5 rounded-full ring-1",
+                            tne.chip
+                          )}
+                          title={name}
+                        >
+                          {name}
+                        </span>
+                      ))}
+                      {toExtra > 0 && !showAllRecipients && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllRecipients(true)}
+                          className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
+                        >
+                          +{toExtra} {t('mail.more') || 'more'}
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {ccShown.length > 0 && (
+                    <>
+                      <span className="ml-2 text-muted-foreground">{t('mail.cc') || 'cc'}</span>
+                      {ccShown.map((name) => (
+                        <span
+                          key={`cc-${name}`}
+                          className={cn("px-2 py-0.5 rounded-full ring-1", tne.chip)}
+                          title={name}
+                        >
+                          {name}
+                        </span>
+                      ))}
+                      {ccExtra > 0 && !showAllRecipients && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllRecipients(true)}
+                          className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
+                        >
+                          +{ccExtra} {t('mail.more') || 'more'}
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
+
+                {/* Full recipients list when expanded */}
+                {showAllRecipients && (
+                  <div className="mt-1 space-x-1 text-xs text-muted-foreground">
+                    <span className="font-medium">{t('mail.to') || 'to'}:</span>{' '}
+                    {(message.to ?? []).map(a => display(a)).filter(Boolean).join(', ')}
+                    {message.cc?.length ? (
+                      <>
+                        {' · '}
+                        <span className="font-medium">{t('mail.cc') || 'cc'}:</span>{' '}
+                        {message.cc.map(a => display(a)).filter(Boolean).join(', ')}
+                      </>
+                    ) : null}
+                  </div>
+                )}
                 
                 {/* Preview line when collapsed */}
                 {isCollapsed && (
                   <div className="text-sm text-muted-foreground mt-1 line-clamp-1">
                     {getPreviewText(message.visibleBody)}
+                  </div>
+                )}
+
+                {/* Subject line when collapsed */}
+                {message.subject && isCollapsed && (
+                  <div className="text-xs text-muted-foreground/70 mt-0.5 truncate">
+                    Re: {message.subject}
                   </div>
                 )}
               </div>
@@ -196,14 +318,14 @@ export const MessageCard = ({
               </div>
             </div>
           </div>
-        </CardHeader>
+        </div>
         
         <CollapsibleContent>
-          <CardContent className="pt-0">
+          <div className="px-4 pb-4">
             {/* Subject line when expanded */}
-            {message.originalMessage?.email_subject && (
+            {message.subject && (
               <div className="text-sm font-medium mb-3 pb-2 border-b border-border">
-                Subject: {message.originalMessage.email_subject}
+                Subject: {message.subject}
               </div>
             )}
             
@@ -226,9 +348,9 @@ export const MessageCard = ({
             
             {/* Dev probe */}
             <MessageDebugProbe message={message} />
-          </CardContent>
+          </div>
         </CollapsibleContent>
       </Collapsible>
-    </Card>
+    </div>
   );
 };
