@@ -43,6 +43,7 @@ export function useConversationMessages(conversationId?: string, normalizationCo
     // TODO: Add agent emails from organization data when available
     agentEmails: [],
     agentPhones: [],
+    orgDomains: ['noddi.no'], // Seed with known agent domains
   });
   
   const ctx = normalizationContext || defaultContext;
@@ -69,8 +70,9 @@ export function useConversationMessages(conversationId?: string, normalizationCo
       // Base query (DESC by created_at) + cursor
       let q = supabase.from('messages')
         .select(`
-          id, content, content_type, sender_type, sender_id, is_internal, attachments,
-          created_at, email_subject, email_headers, external_id, email_message_id
+          id, content, content_type, sender_type, sender_id, 
+          is_internal, attachments, created_at, email_subject, email_headers, 
+          external_id, email_message_id
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })

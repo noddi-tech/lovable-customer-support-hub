@@ -101,6 +101,9 @@ export const MessageDebugProbe = ({ message, className }: MessageDebugProbeProps
           }
         </div>
         <div>
+          <span className="text-orange-600">Detected From:</span> {message.authorLabel} — Raw: {(message.originalMessage?.email_headers?.From || message.originalMessage?.email_headers?.from || message.originalMessage?.sender_email || message.originalMessage?.from || 'n/a')}
+        </div>
+        <div>
           <span className="text-orange-600">Real From:</span> {message.from.email} ({message.from.name || 'no name'})
         </div>
         <div>

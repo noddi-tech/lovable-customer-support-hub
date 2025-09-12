@@ -5,6 +5,32 @@
 
 import { parseQuotedEmail, type QuotedBlock, type QuotedMessage } from './parseQuotedEmail';
 
+// Robust header parsing helpers
+function safeParseHeaders(h: unknown): Record<string, string> {
+  if (!h) return {};
+  if (typeof h === 'string') {
+    try { const o = JSON.parse(h); return typeof o === 'object' && o ? o as any : {}; } catch { return {}; }
+  }
+  return (typeof h === 'object') ? (h as Record<string, string>) : {};
+}
+
+function getHeader(headers: Record<string, string>, key: string): string | undefined {
+  // case-insensitive lookup
+  const found = Object.keys(headers).find(k => k.toLowerCase() === key.toLowerCase());
+  const v = found ? headers[found] : undefined;
+  return v?.trim() || undefined;
+}
+
+function extractNameEmail(input?: string) {
+  if (!input) return { name: undefined, email: undefined };
+  const s = input.trim();
+  // "Name" <email@host>  |  Name <email@host>  |  <email@host>  |  email@host
+  const m1 = s.match(/^(?:"?([^"]+)"?\s*)?<([^>]+)>$/);
+  if (m1) return { name: m1[1]?.trim(), email: m1[2].trim().toLowerCase() };
+  if (s.includes('@')) return { name: undefined, email: s.toLowerCase() };
+  return { name: s, email: undefined };
+}
+
 // Helper functions for deduplication
 function normalizeText(s: string): string {
   return s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -24,8 +50,6 @@ function simpleHash(s: string): string {
   }
   return Math.abs(h).toString(36);
 }
-
-
 
 export interface EmailAddress {
   name?: string;
@@ -64,6 +88,8 @@ export interface NormalizationContext {
   agentDomainsSet: Set<string>;   // case-insensitive agent domains
   orgDomains?: string[];          // fallback org domains (now array)
   currentUserEmail?: string;      // fallback current user
+  conversationCustomerEmail?: string;  // conversation customer email
+  conversationCustomerName?: string;   // conversation customer name
 }
 
 /**
@@ -71,18 +97,6 @@ export interface NormalizationContext {
  */
 function createCaseInsensitiveSet(items: string[]): Set<string> {
   return new Set(items.map(item => item.toLowerCase().trim()));
-}
-
-/**
- * Extract name and email from email header string
- */
-function extractNameEmail(input?: string) {
-  if (!input) return { name: undefined, email: undefined };
-  // Examples: "Ola Gjønnes <ola@hyre.no>", "<ola@hyre.no>", "ola@hyre.no"
-  const m = input.match(/^(?:"?([^"]+)"?\s*)?<([^>]+)>$/);
-  if (m) return { name: m[1]?.trim(), email: m[2].trim().toLowerCase() };
-  if (input.includes('@')) return { name: undefined, email: input.trim().toLowerCase() };
-  return { name: input.trim(), email: undefined };
 }
 
 /**
@@ -118,6 +132,8 @@ export function createNormalizationContext(options: {
   orgDomain?: string;
   orgDomains?: string[];
   currentUserEmail?: string;
+  conversationCustomerEmail?: string;
+  conversationCustomerName?: string;
 }): NormalizationContext {
   const allDomains = options.orgDomains || (options.orgDomain ? [options.orgDomain] : []);
   return {
@@ -126,6 +142,8 @@ export function createNormalizationContext(options: {
     agentDomainsSet: createCaseInsensitiveSet(allDomains),
     orgDomains: allDomains,
     currentUserEmail: options.currentUserEmail?.toLowerCase().trim(),
+    conversationCustomerEmail: options.conversationCustomerEmail?.toLowerCase().trim(),
+    conversationCustomerName: options.conversationCustomerName?.trim(),
   };
 }
 
@@ -183,69 +201,67 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   // Determine channel from message data
   let channel: string = rawMessage.channel || 'email';
   
-  // Extract real sender information
-  let fromName: string | undefined;
-  let fromEmail: string | undefined;
+  const headers = safeParseHeaders(rawMessage.email_headers ?? rawMessage.headers ?? rawMessage.emailHeaders);
 
-  if (channel === 'email') {
-    // Prefer structured headers if available
-    const rawHeaders = (rawMessage.email_headers ?? {}) as Record<string, string>;
-    const headers: Record<string, string> = {};
-    
-    // Normalize header keys to lowercase for consistent access
-    Object.entries(rawHeaders).forEach(([key, value]) => {
-      headers[key.toLowerCase()] = value;
-    });
-    
-    const headerFrom = headers['from'] || rawMessage.from || rawMessage.sender_email;
-    const parsed = extractNameEmail(headerFrom);
-    fromName = parsed.name;
-    fromEmail = parsed.email;
-  }
+  // Try multiple header keys (case-insensitive)
+  const fromLine =
+    getHeader(headers, 'From') ??
+    getHeader(headers, 'Sender') ??
+    getHeader(headers, 'Reply-To') ??
+    (typeof rawMessage.from === 'string' ? rawMessage.from : undefined) ??
+    (typeof rawMessage.sender_email === 'string' ? rawMessage.sender_email : undefined);
 
-  // Fallbacks for missing email/name
+  // Parse name/email
+  let { name: fromName, email: fromEmail } = extractNameEmail(fromLine);
+
+  // Fallbacks if header missing
   if (!fromEmail && typeof rawMessage.sender_id === 'string' && rawMessage.sender_id.includes('@')) {
     fromEmail = rawMessage.sender_id.toLowerCase();
   }
-  if (!fromName && rawMessage.sender_name) fromName = rawMessage.sender_name;
+  if (!fromName && rawMessage.sender_name) {
+    fromName = rawMessage.sender_name;
+  }
 
   // For SMS, we might have phone information
   if (channel === 'sms' && rawMessage.customer_phone && !fromEmail) {
     fromEmail = rawMessage.customer_phone; // Store phone as email for SMS
   }
 
-  // Build public-facing author label
-  const authorLabel =
-    fromEmail && fromName ? `${fromName} <${fromEmail}>`
-    : fromEmail           ? fromEmail
-    : fromName            ? fromName
-                          : 'Unknown sender';
+  // Build display label (public)
+  let authorLabel =
+    (fromName && fromEmail) ? `${fromName} <${fromEmail}>`
+    : (fromEmail || fromName || undefined);
 
-  // Decide authorType (internal use) via context
+  // Detect agent/customer using context
   const isAgent =
     (fromEmail && ctx.agentEmailSet?.has(fromEmail)) ||
-    (fromEmail && ctx.agentDomainsSet?.has(fromEmail.split('@')[1])) ||
-    rawMessage.sender_type === "agent" ||
-    !!rawMessage.is_internal;
-  
-  const authorType: 'agent' | 'customer' | 'system' =
-    isAgent ? 'agent' : (rawMessage.sender_type as any) ?? 'customer';
+    (fromEmail && ctx.agentDomainsSet?.has(fromEmail.split('@')[1]?.toLowerCase() ?? ''));
 
-  // Extract participants from email headers - normalize keys to lowercase
-  const rawHeaders = (rawMessage.email_headers ?? {}) as Record<string, string>;
-  const headers: Record<string, string> = {};
-  
-  // Normalize header keys to lowercase for consistent access
-  Object.entries(rawHeaders).forEach(([key, value]) => {
-    headers[key.toLowerCase()] = value;
-  });
-  
+  const authorType: 'agent' | 'customer' | 'system' =
+    isAgent ? 'agent' : ((rawMessage.sender_type as any) ?? 'customer');
+
+  // Use conversation fallbacks only if still missing
+  if (!authorLabel) {
+    if (authorType === 'customer' && ctx.conversationCustomerEmail) {
+      const e = ctx.conversationCustomerEmail.toLowerCase();
+      const n = ctx.conversationCustomerName;
+      fromEmail = fromEmail ?? e;
+      fromName  = fromName  ?? n;
+      authorLabel = (n && e) ? `${n} <${e}>` : (e || n);
+    } else if (authorType === 'agent' && ctx.currentUserEmail) {
+      fromEmail = fromEmail ?? ctx.currentUserEmail.toLowerCase();
+      authorLabel = fromEmail;
+    }
+  }
+
+  const displayAuthorLabel = authorLabel ?? 'Unknown sender';
+
   const from = { name: fromName, email: fromEmail, userId: rawMessage.sender_id };
-  const to = parseAddressList(headers['to'] || rawMessage.to);
-  const cc = parseAddressList(headers['cc'] || rawMessage.cc);
-  const bcc = parseAddressList(headers['bcc'] || rawMessage.bcc);
+  const to = parseAddressList(getHeader(headers, 'To') || rawMessage.to);
+  const cc = parseAddressList(getHeader(headers, 'Cc') || rawMessage.cc);
+  const bcc = parseAddressList(getHeader(headers, 'Bcc') || rawMessage.bcc);
   
-  const subject = rawMessage.email_subject || headers['subject'];
+  const subject = rawMessage.email_subject || getHeader(headers, 'Subject');
   
   // Avatar initial
   const initial = (from.name || from.email || "A").trim()[0]?.toUpperCase() || "A";
@@ -268,7 +284,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     subject,
     direction,
     authorType,
-    authorLabel,
+    authorLabel: displayAuthorLabel,
     avatarInitial: initial,
     visibleBody: parsedContent.visibleContent,
     quotedBlocks: quotedBlocks?.length > 0 ? quotedBlocks : undefined,
