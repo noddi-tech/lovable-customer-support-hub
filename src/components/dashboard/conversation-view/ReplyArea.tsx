@@ -171,13 +171,14 @@ export const ReplyArea = () => {
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <Switch
                 id="internal-note"
                 checked={state.isInternalNote}
                 onCheckedChange={(checked) => dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: checked })}
+                className="data-[state=checked]:bg-warning"
               />
-              <Label htmlFor="internal-note" className="text-sm">
+              <Label htmlFor="internal-note" className="text-sm font-medium cursor-pointer">
                 {t('conversation.internalNote')}
               </Label>
             </div>
