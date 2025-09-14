@@ -11,6 +11,21 @@ import type {
 } from '@/types/interactions';
 import { logger } from '@/utils/logger';
 
+// Auth error codes that indicate authentication issues
+const AUTH_ERROR_CODES = [
+  'JWT expired',
+  'refresh_token_not_found', 
+  'PGRST301',
+  'PGRST116',
+  'insufficient_permissions'
+];
+
+const isAuthError = (error: any): boolean => {
+  return AUTH_ERROR_CODES.some(code => 
+    error?.message?.includes(code) || error?.code === code
+  );
+};
+
 /**
  * Get accessible inboxes for the current user
  */
@@ -20,6 +35,13 @@ export async function listAccessibleInboxes(): Promise<Inbox[]> {
     
     if (error) {
       logger.error('Error fetching inboxes', error, 'listAccessibleInboxes');
+      
+      // Return empty array for auth errors instead of throwing
+      if (isAuthError(error)) {
+        logger.warn('Auth error detected, returning empty inboxes', error);
+        return [];
+      }
+      
       throw error;
     }
     
@@ -31,6 +53,12 @@ export async function listAccessibleInboxes(): Promise<Inbox[]> {
     }));
   } catch (error) {
     logger.error('Failed to list accessible inboxes', error, 'listAccessibleInboxes');
+    
+    // Return empty array for auth errors
+    if (isAuthError(error)) {
+      return [];
+    }
+    
     return [];
   }
 }
@@ -98,6 +126,13 @@ export async function listConversations(params: {
     
     if (error) {
       logger.error('Error fetching conversations', error, 'listConversations');
+      
+      // Return empty array for auth errors instead of throwing  
+      if (isAuthError(error)) {
+        logger.warn('Auth error detected, returning empty conversations', error);
+        return [];
+      }
+      
       throw error;
     }
     
@@ -155,6 +190,12 @@ export async function listConversations(params: {
     return conversations;
   } catch (error) {
     logger.error('Failed to list conversations', error, 'listConversations');
+    
+    // Return empty array for auth errors
+    if (isAuthError(error)) {
+      return [];
+    }
+    
     return [];
   }
 }

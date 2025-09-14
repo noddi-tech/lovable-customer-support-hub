@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleRealtimeSubscriptions } from './useSimpleRealtimeSubscriptions';
 import { useNetworkErrorHandler } from './useNetworkErrorHandler';
+import { useAuth } from './useAuth';
 
 export interface OptimizedCounts {
   conversations: {
@@ -34,6 +35,7 @@ export interface OptimizedCounts {
 
 export const useOptimizedCounts = (): OptimizedCounts => {
   const queryClient = useQueryClient();
+  const { user, loading: authLoading } = useAuth();
   const { createResilientQuery } = useNetworkErrorHandler({
     suppressAnalyticsErrors: true,
     retryAttempts: 2,
@@ -51,6 +53,7 @@ export const useOptimizedCounts = (): OptimizedCounts => {
   // Get all counts efficiently with single RPC call using resilient network handling
   const countsQuery = useQuery({
     queryKey: ['all-counts'],
+    enabled: !!user && !authLoading, // Only fetch when authenticated
     queryFn: createResilientQuery(
       async () => {
         try {
@@ -98,11 +101,15 @@ export const useOptimizedCounts = (): OptimizedCounts => {
             }> : []
           };
         } catch (networkError: any) {
-          // Graceful degradation for network errors
+          // Graceful degradation for network and auth errors
           if (networkError.message?.includes('ERR_BLOCKED_BY_CLIENT') || 
               networkError.message?.includes('NetworkError') ||
-              networkError.name === 'NetworkError') {
-            console.warn('Network blocked, falling back to empty state');
+              networkError.name === 'NetworkError' ||
+              networkError.message?.includes('JWT expired') ||
+              networkError.message?.includes('refresh_token_not_found') ||
+              networkError.code === 'PGRST301' ||
+              networkError.code === 'PGRST116') {
+            console.warn('Network/Auth error, falling back to empty state:', networkError.message);
             return defaultCounts;
           }
           throw networkError;
@@ -157,12 +164,12 @@ export const useOptimizedCounts = (): OptimizedCounts => {
   }, [queryClient]);
 
   return {
-    conversations: countsQuery.data?.conversations || defaultCounts.conversations,
-    channels: countsQuery.data?.channels || defaultCounts.channels,
-    notifications: countsQuery.data?.notifications || defaultCounts.notifications,
-    inboxes: countsQuery.data?.inboxes || defaultCounts.inboxes,
-    loading: countsQuery.isLoading,
-    error: countsQuery.error?.message || null,
+    conversations: user ? (countsQuery.data?.conversations || defaultCounts.conversations) : defaultCounts.conversations,
+    channels: user ? (countsQuery.data?.channels || defaultCounts.channels) : defaultCounts.channels,
+    notifications: user ? (countsQuery.data?.notifications || defaultCounts.notifications) : defaultCounts.notifications,
+    inboxes: user ? (countsQuery.data?.inboxes || defaultCounts.inboxes) : defaultCounts.inboxes,
+    loading: authLoading || countsQuery.isLoading,
+    error: !user && !authLoading ? 'Please log in to view data' : (countsQuery.error?.message || null),
     prefetchData
   };
 };

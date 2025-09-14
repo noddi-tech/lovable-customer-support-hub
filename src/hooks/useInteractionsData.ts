@@ -16,16 +16,44 @@ import type {
   InboxId,
   ConversationId 
 } from '@/types/interactions';
+import { useAuth } from './useAuth';
 
 /**
  * Hook to get accessible inboxes
  */
 export function useAccessibleInboxes() {
+  const { user, loading: authLoading } = useAuth();
+  
   return useQuery({
     queryKey: ['inboxes'],
-    queryFn: listAccessibleInboxes,
+    enabled: !!user && !authLoading, // Only fetch when authenticated
+    queryFn: async () => {
+      try {
+        return await listAccessibleInboxes();
+      } catch (error: any) {
+        // Handle auth-related errors by returning empty array
+        if (error?.message?.includes('JWT expired') || 
+            error?.message?.includes('refresh_token_not_found') ||
+            error?.code === 'PGRST301' ||
+            error?.code === 'PGRST116') {
+          console.warn('Authentication issue detected, returning empty inboxes');
+          return [];
+        }
+        throw error;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors
+      if (error?.message?.includes('JWT expired') || 
+          error?.message?.includes('refresh_token_not_found') ||
+          error?.code === 'PGRST301' ||
+          error?.code === 'PGRST116') {
+        return false;
+      }
+      return failureCount < 2;
+    }
   });
 }
 
@@ -56,10 +84,34 @@ export function useConversations({
 }) {
   return useQuery({
     queryKey: ['conversations', inboxId, status, q],
-    queryFn: () => listConversations({ inboxId, status, q }),
+    queryFn: async () => {
+      try {
+        return await listConversations({ inboxId, status, q });
+      } catch (error: any) {
+        // Handle auth-related errors by returning empty array
+        if (error?.message?.includes('JWT expired') || 
+            error?.message?.includes('refresh_token_not_found') ||
+            error?.code === 'PGRST301' ||
+            error?.code === 'PGRST116') {
+          console.warn('Authentication issue detected, returning empty conversations');
+          return [];
+        }
+        throw error;
+      }
+    },
     enabled: !!inboxId,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors
+      if (error?.message?.includes('JWT expired') || 
+          error?.message?.includes('refresh_token_not_found') ||
+          error?.code === 'PGRST301' ||
+          error?.code === 'PGRST116') {
+        return false;
+      }
+      return failureCount < 2;
+    }
   });
 }
 
