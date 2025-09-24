@@ -1,20 +1,29 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { getCardStyles } from "@/hooks/useDesignSystemValues"
 
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "border bg-card text-card-foreground rounded-[var(--card-border-radius,0.75rem)] p-[var(--card-padding,1.5rem)] shadow-[var(--card-shadow,0_4px_6px_-1px_rgb(0_0_0_/_0.1))]",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, style, ...props }, ref) => {
+  const cardStyles = getCardStyles();
+  
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "border p-6",
+        className
+      )}
+      style={{
+        ...cardStyles,
+        ...style
+      }}
+      {...props}
+    />
+  );
+})
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef<
