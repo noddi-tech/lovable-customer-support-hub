@@ -106,13 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       setLoading(false);
       
-      // Validate existing session
+      // Validate existing session without redirect
       if (session) {
-        const isValid = await validateSession();
-        if (!isValid) {
-          console.log('Existing session invalid, redirecting to auth');
-          window.location.href = '/auth';
-        }
+        await validateSession();
       }
     });
 
