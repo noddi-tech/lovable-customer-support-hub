@@ -94,7 +94,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error('suggest-replies error', err);
-    return new Response(JSON.stringify({ error: 'Failed to generate suggestions', detail: err?.message || String(err) }), {
+    return new Response(JSON.stringify({ error: 'Failed to generate suggestions', detail: err instanceof Error ? err.message : String(err) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

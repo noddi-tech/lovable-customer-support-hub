@@ -56,7 +56,7 @@ serve(async (req: Request) => {
 
     for (const conv of snoozedConversations || []) {
       const snoozeUntil = new Date(conv.snooze_until);
-      const userTimezone = conv.profiles?.timezone || 'UTC';
+      const userTimezone = (conv.profiles as any)?.timezone || 'UTC';
       
       console.log(`Checking conversation ${conv.id}:`);
       console.log(`  - Snooze until: ${snoozeUntil.toISOString()}`);
@@ -78,7 +78,7 @@ serve(async (req: Request) => {
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-          hour12: conv.profiles?.time_format !== '24h'
+          hour12: (conv.profiles as any)?.time_format !== '24h'
         }).format(nowUTC);
 
         // Insert notification if we have a target user

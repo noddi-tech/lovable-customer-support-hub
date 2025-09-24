@@ -24,7 +24,7 @@ function getThreadKey(headersRaw?: string | null): string | null {
   const references = parseHeaderValue(headersRaw, "References");
   const messageId = parseHeaderValue(headersRaw, "Message-ID") || parseHeaderValue(headersRaw, "Message-Id");
   const refFirst = references ? (references.match(/<[^>]+>/g)?.[0] || references) : null;
-  return (inReply || refFirst || messageId || null)?.replace(/[<>]/g, "");
+  return (inReply || refFirst || messageId || null)?.replace(/[<>]/g, "") || null;
 }
 
 serve(async (req: Request) => {
@@ -176,6 +176,6 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("sendgrid-inbound error", error);
-    return new Response(JSON.stringify({ error: String(error?.message || error) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

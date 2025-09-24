@@ -175,7 +175,7 @@ serve(async (req: Request) => {
 
         // Sync emails from Gmail (inbox and optionally sent)
         const inboxResult = await syncGmailMessages(account, supabaseClient, 'inbox');
-        let sentResult = { success: true, messageCount: 0 };
+        let sentResult: { success: boolean; messageCount?: number; error?: string } = { success: true, messageCount: 0 };
         
         if (syncSent) {
           sentResult = await syncGmailMessages(account, supabaseClient, 'sent');
@@ -184,8 +184,8 @@ serve(async (req: Request) => {
         syncResults.push({
           accountId: account.id,
           success: inboxResult.success && sentResult.success,
-          messageCount: inboxResult.messageCount + sentResult.messageCount,
-          error: inboxResult.error || sentResult.error
+          messageCount: (inboxResult.messageCount || 0) + (sentResult.messageCount || 0),
+          error: (inboxResult as any).error || (sentResult as any).error
         });
 
         // Update last sync time
@@ -199,7 +199,7 @@ serve(async (req: Request) => {
         syncResults.push({
           accountId: account.id,
           success: false,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     }
@@ -210,7 +210,7 @@ serve(async (req: Request) => {
 
   } catch (error) {
     console.error('Error in gmail-sync function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -613,6 +613,6 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
     return { success: true, messageCount: processedCount };
   } catch (error) {
     console.error('Error syncing Gmail messages:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }

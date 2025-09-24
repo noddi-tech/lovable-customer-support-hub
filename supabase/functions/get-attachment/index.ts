@@ -183,7 +183,7 @@ serve(async (req) => {
           Loading Error
         </text>
         <text x="150" y="150" text-anchor="middle" fill="#7f1d1d" font-size="11" font-family="Arial, sans-serif">
-          ${error.message.slice(0, 40)}...
+          ${error instanceof Error ? error.message.slice(0, 40) : String(error).slice(0, 40)}...
         </text>
       </svg>
     `

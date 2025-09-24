@@ -132,7 +132,7 @@ serve(async (req) => {
     console.error('translate-text error:', err);
     return new Response(JSON.stringify({ 
       error: 'Failed to translate text', 
-      detail: err?.message || String(err) 
+      detail: err instanceof Error ? err.message : String(err) 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

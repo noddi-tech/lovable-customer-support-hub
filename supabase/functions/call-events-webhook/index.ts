@@ -370,9 +370,9 @@ function extractEventData(dataMapping: any, standardEvent: StandardCallEvent): a
               // Handle array access like 'ivr_options[0]'
               const [arrayName, indexStr] = part.split('[');
               const index = parseInt(indexStr.replace(']', ''));
-              value = value?.[arrayName]?.[index];
+              value = (value as any)?.[arrayName]?.[index];
             } else {
-              value = value?.[part];
+              value = (value as any)?.[part];
             }
             
             if (value === undefined) break;
@@ -452,8 +452,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message,
-        stack: error.stack 
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
