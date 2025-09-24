@@ -10,6 +10,7 @@ import { MailPlus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { GoogleGroupSetup } from './GoogleGroupSetup';
+import { SendgridWebhookFixer } from './SendgridWebhookFixer';
 
 interface SetupFormValues {
   domain: string;
@@ -177,7 +178,11 @@ export const SendgridSetupWizard = () => {
   };
 
   return (
-    <Card id="sendgrid-setup" className="bg-gradient-surface border-border/50 shadow-surface">
+    <div className="space-y-6">
+      {/* Emergency webhook fixer for hei@noddi.no */}
+      <SendgridWebhookFixer />
+      
+      <Card id="sendgrid-setup" className="bg-gradient-surface border-border/50 shadow-surface">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <MailPlus className="w-5 h-5" />
@@ -309,5 +314,6 @@ export const SendgridSetupWizard = () => {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 };
