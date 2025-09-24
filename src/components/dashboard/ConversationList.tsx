@@ -24,7 +24,7 @@ interface ConversationListProps {
   onToggleCollapse?: () => void;
 }
 
-const ConversationListContent = ({ onSelectConversation, selectedConversation, onToggleCollapse }: Omit<ConversationListProps, 'selectedTab' | 'selectedInboxId'>) => {
+const ConversationListContent = ({ onSelectConversation, selectedConversation, onToggleCollapse, selectedInboxId }: Omit<ConversationListProps, 'selectedTab'>) => {
   const { filteredConversations, isLoading, hasSessionError } = useConversationList();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -74,7 +74,20 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       
       {/* Header - only show when onToggleCollapse is provided */}
       {onToggleCollapse && (
-        <ConversationListHeader onToggleCollapse={onToggleCollapse} />
+        <ConversationListHeader 
+          onToggleCollapse={onToggleCollapse} 
+          selectedInboxId={selectedInboxId}
+          onInboxChange={(inboxId) => {
+            // Update URL with new inbox selection
+            const url = new URL(window.location.href);
+            if (inboxId === 'all') {
+              url.searchParams.delete('inbox');
+            } else {
+              url.searchParams.set('inbox', inboxId);
+            }
+            window.history.pushState({}, '', url.toString());
+          }}
+        />
       )}
       
       {/* Conversation List - Card-based layout */}
@@ -140,6 +153,7 @@ export const ConversationList = ({ selectedTab, onSelectConversation, selectedCo
         onSelectConversation={onSelectConversation}
         selectedConversation={selectedConversation}
         onToggleCollapse={onToggleCollapse}
+        selectedInboxId={selectedInboxId}
       />
     </ConversationListProvider>
   );

@@ -1,21 +1,32 @@
-import { Search, Filter, Inbox, CheckCheck, ChevronDown } from "lucide-react";
+import { Search, Filter, Inbox, CheckCheck, ChevronDown, Move, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ConversationListFilters } from "./ConversationListFilters";
+import { InboxSwitcher } from "../InboxSwitcher";
+import { ConversationMigrator } from "../ConversationMigrator";
 import { useConversationList } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
+import { useState } from "react";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
+  selectedInboxId: string;
+  onInboxChange?: (inboxId: string) => void;
 }
 
-export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHeaderProps) => {
+export const ConversationListHeader = ({ 
+  onToggleCollapse, 
+  selectedInboxId, 
+  onInboxChange 
+}: ConversationListHeaderProps) => {
   const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead } = useConversationList();
   const { t } = useTranslation();
+  const [showMigrator, setShowMigrator] = useState(false);
 
   const totalCount = filteredConversations.length;
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
@@ -37,12 +48,14 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
 
   return (
     <div className="flex-shrink-0 p-2 md:p-3 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
-      {/* Row 1: Title + Unread Count + Actions */}
+      {/* Row 1: Inbox Switcher + Unread Count + Actions */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5">
-          <h1 className="font-semibold text-sm md:text-base">
-            {t('dashboard.conversationList.conversations', 'Conversations')}
-          </h1>
+        <div className="flex items-center gap-2">
+          <InboxSwitcher 
+            selectedInboxId={selectedInboxId}
+            onInboxChange={onInboxChange || (() => {})}
+            className="h-7 text-xs"
+          />
           <Badge variant="destructive" className="h-4 px-1.5 text-xs">
             {unreadCount}
           </Badge>
@@ -74,6 +87,31 @@ export const ConversationListHeader = ({ onToggleCollapse }: ConversationListHea
             </PopoverContent>
           </Popover>
           
+          {/* Migration Tool */}
+          <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 gap-1 text-xs"
+              >
+                <Move className="!w-3 !h-3" />
+                <span className="hidden sm:inline">
+                  {t('dashboard.conversationList.migrate', 'Migrate')}
+                </span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>{t('dashboard.migrateConversations', 'Migrate Conversations')}</DialogTitle>
+              </DialogHeader>
+              <ConversationMigrator 
+                sourceInboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+                onMigrationComplete={() => setShowMigrator(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
           {/* Mark All Read Button */}
           <Button
             variant="outline"

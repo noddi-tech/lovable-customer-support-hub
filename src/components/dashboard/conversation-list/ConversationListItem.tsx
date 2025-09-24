@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Archive, Trash2, Star, Clock, MessageCircle, MoreVertical } from "lucide-react";
+import { MoreHorizontal, Archive, Trash2, Star, Clock, MessageCircle, MoreVertical, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
+import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from "react-i18next";
 import { ResponsiveFlex, AdaptiveSection } from '@/components/admin/design/components/layouts';
 
@@ -42,6 +43,7 @@ interface ConversationListItemProps {
 export const ConversationListItem = memo<ConversationListItemProps>(({ conversation, isSelected, onSelect }) => {
   const { dispatch, archiveConversation } = useConversationList();
   const { conversation: formatConversationTime } = useDateFormatting();
+  const { inboxes } = useOptimizedCounts();
   const { t } = useTranslation();
 
   // Memoize computed values to prevent recalculation
@@ -54,7 +56,9 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
     priorityLabel: t(`conversation.${conversation.priority}`, conversation.priority),
     subjectText: conversation.subject || t('dashboard.conversation.noSubject', 'No Subject'),
     formattedTime: formatConversationTime(conversation.updated_at),
-    customerInitial: conversation.customer?.full_name?.[0] || 'C'
+    customerInitial: conversation.customer?.full_name?.[0] || 'C',
+    inboxName: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.name || 'Unknown Inbox' : 'No Inbox',
+    inboxColor: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.color || '#6B7280' : '#6B7280'
   }), [
     conversation.channel,
     conversation.snooze_until,
@@ -176,6 +180,16 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
               <span className="text-xs text-muted-foreground">
                 {computedValues.customerEmail ? `From: ${computedValues.customerEmail}` : 'No email'}
               </span>
+              {/* Inbox Indicator */}
+              <div className="flex items-center gap-1">
+                <div 
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: computedValues.inboxColor }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {computedValues.inboxName}
+                </span>
+              </div>
             </ResponsiveFlex>
             
             <ResponsiveFlex alignment="center" gap="2">
@@ -268,6 +282,16 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
               <span className="text-xs text-muted-foreground">
                 {computedValues.customerEmail ? `From: ${computedValues.customerEmail}` : 'No email'}
               </span>
+              {/* Inbox Indicator */}
+              <div className="flex items-center gap-1">
+                <div 
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: computedValues.inboxColor }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {computedValues.inboxName}
+                </span>
+              </div>
             </ResponsiveFlex>
             
             <ResponsiveFlex alignment="center" gap="2">
