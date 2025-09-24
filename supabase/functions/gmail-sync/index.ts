@@ -497,6 +497,9 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         const isFromAgent = folder === 'sent' || authorEmail === accountAddress;
         const customerEmail = isFromAgent ? (toEmail || to) : (authorEmail || fromEmail);
         
+        // Determine recipient email for inbox routing
+        const recipientEmail = isFromAgent ? customerEmail : accountAddress;
+        
         const senderType = isFromAgent ? 'agent' : 'customer';
 
         // Find or create customer

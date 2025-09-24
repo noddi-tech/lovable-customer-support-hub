@@ -72,18 +72,44 @@ serve(async (req: Request) => {
     );
 
     // Lookup inbound route using the actual SMTP recipient (rcptEmail)
-    const { data: route, error: routeError } = await supabase
+    let { data: route, error: routeError } = await supabase
       .from("inbound_routes")
       .select("*, domain:email_domains(*)")
       .eq("address", rcptEmail)
       .maybeSingle();
 
-    if (routeError || !route) {
-      return new Response(JSON.stringify({ error: "Route not found", rcptEmail, headerTo, details: routeError?.message }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    let organization_id: string;
+    let inbox_id: string | null = null;
 
-    const organization_id = route.organization_id as string;
-    const inbox_id = route.inbox_id as string | null;
+    if (route && !routeError) {
+      // Found direct inbound route
+      organization_id = route.organization_id as string;
+      inbox_id = route.inbox_id as string | null;
+    } else {
+      // Try to find organization and inbox via email routing function
+      // First get organization (fallback to demo org for now)
+      const domain = rcptEmail.split('@')[1];
+      const { data: org } = await supabase
+        .from("organizations")  
+        .select("id")
+        .eq("slug", domain === 'noddi.no' || domain === 'inbound.noddi.no' ? 'noddi' : 'demo')
+        .single();
+      
+      if (!org) {
+        return new Response(JSON.stringify({ error: "Organization not found", rcptEmail, domain }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      
+      organization_id = org.id;
+      
+      // Use the routing function to determine inbox
+      const { data: routedInboxId } = await supabase
+        .rpc('get_inbox_for_email', { 
+          recipient_email: rcptEmail, 
+          org_id: organization_id 
+        });
+      
+      inbox_id = routedInboxId;
+    }
 
     // Determine the real author (handle Google Groups/List rewrites like "via Hei")
     const replyToRaw = parseHeaderValue(headersRaw, "Reply-To");
