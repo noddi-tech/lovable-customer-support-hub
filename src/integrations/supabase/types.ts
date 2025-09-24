@@ -1388,6 +1388,26 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_conversations_with_session_recovery: {
+        Args: { inbox_uuid?: string }
+        Returns: {
+          assigned_to: Json
+          channel: string
+          customer: Json
+          id: string
+          inbox_id: string
+          is_archived: boolean
+          is_read: boolean
+          organization_id: string
+          priority: string
+          received_at: string
+          session_uid: string
+          snooze_until: string
+          status: string
+          subject: string
+          updated_at: string
+        }[]
+      }
       get_email_accounts: {
         Args: Record<PropertyKey, never>
         Returns: {

@@ -174,21 +174,56 @@ export async function listConversations(params: {
   cursor?: string;
 }): Promise<ConversationRow[]> {
   try {
-    const { data, error } = await supabase.rpc('get_conversations');
+    const { inboxId, status, q, page = 1 } = params;
     
-    if (error) {
-      logger.error('Error fetching conversations', error, 'listConversations');
+    // Try emergency recovery function first with inbox filter
+    const inboxUuid = (inboxId && inboxId !== 'all') ? inboxId : null;
+    
+    let query = supabase.rpc('get_conversations_with_session_recovery', { 
+      inbox_uuid: inboxUuid 
+    });
+    
+    const { data: recoveryData, error: recoveryError } = await query;
+    
+    if (recoveryError) {
+      console.error('Emergency recovery failed:', recoveryError);
       
-      // Return empty array for auth errors instead of throwing  
-      if (isAuthError(error)) {
-        logger.warn('Auth error detected, returning empty conversations', error);
-        return [];
+      // Fallback to original method
+      let fallbackQuery = supabase.rpc('get_conversations').select('*');
+      
+      const { data: fallbackData, error: fallbackError } = await fallbackQuery.limit(50);
+      
+      if (fallbackError) {
+        logger.error('Error fetching conversations (fallback)', fallbackError, 'listConversations');
+        if (isAuthError(fallbackError)) {
+          logger.warn('Auth error detected, returning empty conversations', fallbackError);
+          return [];
+        }
+        throw fallbackError;
       }
       
-      throw error;
+      // Apply filters on fallback data
+      let conversations = (fallbackData || []).map((conv: any) => ({
+        id: conv.id,
+        subject: conv.subject || 'No subject',
+        preview: conv.preview_text || conv.subject || 'No preview',
+        fromName: conv.customer?.full_name,
+        channel: conv.channel,
+        updatedAt: conv.updated_at,
+        unread: !conv.is_read,
+        priority: conv.priority,
+        status: conv.status,
+        assignee: conv.assigned_to?.full_name,
+        customerId: conv.customer?.id,
+        inboxId: conv.inbox_id,
+        isArchived: conv.is_archived
+      })) as ConversationRow[];
+      
+      return applyFilters(conversations, params);
     }
     
-    let conversations = (data || []).map((conv: any) => ({
+    // Process recovery data with filters
+    let conversations = (recoveryData || []).map((conv: any) => ({
       id: conv.id,
       subject: conv.subject || 'No subject',
       preview: conv.preview_text || conv.subject || 'No preview',
@@ -204,42 +239,17 @@ export async function listConversations(params: {
       isArchived: conv.is_archived
     })) as ConversationRow[];
     
-    // Apply filters
-    if (params.inboxId && params.inboxId !== 'all') {
-      conversations = conversations.filter(c => c.inboxId === params.inboxId);
+    // Log session debugging info
+    if (recoveryData && recoveryData.length > 0) {
+      console.log('Session Recovery Debug:', {
+        session_uid: recoveryData[0]?.session_uid,
+        organization_id: recoveryData[0]?.organization_id,
+        total_conversations: recoveryData.length,
+        inbox_filter: inboxUuid
+      });
     }
     
-    if (params.status !== 'all') {
-      switch (params.status) {
-        case 'unread':
-          conversations = conversations.filter(c => c.unread);
-          break;
-        case 'assigned':
-          conversations = conversations.filter(c => !!c.assignee);
-          break;
-        case 'pending':
-          conversations = conversations.filter(c => c.status === 'pending');
-          break;
-        case 'closed':
-          conversations = conversations.filter(c => c.status === 'closed');
-          break;
-        case 'archived':
-          conversations = conversations.filter(c => c.isArchived);
-          break;
-      }
-    }
-    
-    // Apply search
-    if (params.q) {
-      const query = params.q.toLowerCase();
-      conversations = conversations.filter(c => 
-        c.subject.toLowerCase().includes(query) ||
-        c.preview.toLowerCase().includes(query) ||
-        c.fromName?.toLowerCase().includes(query)
-      );
-    }
-    
-    return conversations;
+    return applyFilters(conversations, params);
   } catch (error) {
     logger.error('Failed to list conversations', error, 'listConversations');
     
@@ -250,6 +260,54 @@ export async function listConversations(params: {
     
     return [];
   }
+}
+
+// Helper function to apply filters
+function applyFilters(conversations: ConversationRow[], params: {
+  inboxId?: InboxId;
+  status: StatusFilter;
+  q?: string;
+  page?: number;
+}): ConversationRow[] {
+  let filtered = conversations;
+  
+  // Apply inbox filter
+  if (params.inboxId && params.inboxId !== 'all') {
+    filtered = filtered.filter(c => c.inboxId === params.inboxId);
+  }
+  
+  // Apply status filter
+  if (params.status !== 'all') {
+    switch (params.status) {
+      case 'unread':
+        filtered = filtered.filter(c => c.unread);
+        break;
+      case 'assigned':
+        filtered = filtered.filter(c => !!c.assignee);
+        break;
+      case 'pending':
+        filtered = filtered.filter(c => c.status === 'pending');
+        break;
+      case 'closed':
+        filtered = filtered.filter(c => c.status === 'closed');
+        break;
+      case 'archived':
+        filtered = filtered.filter(c => c.isArchived);
+        break;
+    }
+  }
+  
+  // Apply search
+  if (params.q) {
+    const query = params.q.toLowerCase();
+    filtered = filtered.filter(c => 
+      c.subject.toLowerCase().includes(query) ||
+      c.preview.toLowerCase().includes(query) ||
+      c.fromName?.toLowerCase().includes(query)
+    );
+  }
+  
+  return filtered;
 }
 
 /**

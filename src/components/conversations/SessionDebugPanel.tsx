@@ -1,180 +1,148 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/components/auth/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, Database, User, Clock } from 'lucide-react';
+import { RefreshCw, Database, User, Building } from 'lucide-react';
 
 interface SessionDebugInfo {
-  sessionValid: boolean;
-  dbConnectionWorking: boolean;
-  authUidWorking: boolean;
-  userProfileExists: boolean;
-  organizationId: string | null;
-  lastChecked: string;
+  frontend_user: any;
+  frontend_session: any;
+  db_auth_uid: string | null;
+  db_organization_id: string | null;
+  db_profile_exists: boolean;
+  timestamp: string;
 }
 
 export function SessionDebugPanel() {
-  const { user, session, validateSession, refreshSession } = useAuth();
+  const { user, session, profile } = useAuth();
   const [debugInfo, setDebugInfo] = useState<SessionDebugInfo | null>(null);
-  const [isChecking, setIsChecking] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const runDiagnostics = async () => {
-    setIsChecking(true);
-    const startTime = Date.now();
-
+  const fetchDebugInfo = async () => {
+    setIsLoading(true);
     try {
-      const diagnostics: SessionDebugInfo = {
-        sessionValid: false,
-        dbConnectionWorking: false,
-        authUidWorking: false,
-        userProfileExists: false,
-        organizationId: null,
-        lastChecked: new Date().toISOString()
+      const { data, error } = await supabase.rpc('validate_session_context');
+      
+      const info: SessionDebugInfo = {
+        frontend_user: user ? { id: user.id, email: user.email } : null,
+        frontend_session: session ? 'exists' : null,
+        db_auth_uid: data?.[0]?.auth_uid || null,
+        db_organization_id: data?.[0]?.organization_id || null,
+        db_profile_exists: data?.[0]?.profile_exists || false,
+        timestamp: new Date().toISOString()
       };
-
-      console.log('=== SESSION DIAGNOSTICS START ===');
-      console.log('User:', user?.id);
-      console.log('Session expires:', session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'No session');
-
-      // Test 1: Validate session
-      try {
-        diagnostics.sessionValid = await validateSession();
-        console.log('✓ Session validation:', diagnostics.sessionValid);
-      } catch (error) {
-        console.error('✗ Session validation failed:', error);
+      
+      setDebugInfo(info);
+      
+      if (error) {
+        console.error('Session validation error:', error);
       }
-
-      // Test 2: Database connection
-      try {
-        const { data, error } = await supabase.from('profiles').select('count').limit(1);
-        diagnostics.dbConnectionWorking = !error;
-        console.log('✓ DB connection:', diagnostics.dbConnectionWorking);
-        if (error) console.error('DB error:', error);
-      } catch (error) {
-        console.error('✗ DB connection failed:', error);
-      }
-
-      // Test 3: auth.uid() function
-      try {
-        const { data, error } = await supabase.rpc('get_user_organization_id');
-        diagnostics.authUidWorking = !error;
-        diagnostics.organizationId = data;
-        console.log('✓ auth.uid() working:', diagnostics.authUidWorking, 'Org ID:', data);
-        if (error) console.error('auth.uid() error:', error);
-      } catch (error) {
-        console.error('✗ auth.uid() failed:', error);
-      }
-
-      // Test 4: User profile exists
-      if (user?.id) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('user_id, organization_id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          diagnostics.userProfileExists = !!data && !error;
-          console.log('✓ User profile exists:', diagnostics.userProfileExists, data);
-          if (error) console.error('Profile error:', error);
-        } catch (error) {
-          console.error('✗ Profile check failed:', error);
-        }
-      }
-
-      const duration = Date.now() - startTime;
-      console.log('=== SESSION DIAGNOSTICS END ===', `(${duration}ms)`);
-
-      setDebugInfo(diagnostics);
     } catch (error) {
-      console.error('Diagnostics failed:', error);
+      console.error('Debug info fetch error:', error);
     } finally {
-      setIsChecking(false);
+      setIsLoading(false);
     }
   };
 
-  const handleRefreshSession = async () => {
-    console.log('Refreshing session...');
-    await refreshSession();
-    setTimeout(() => runDiagnostics(), 1000);
-  };
+  useEffect(() => {
+    fetchDebugInfo();
+  }, []);
 
-  if (!import.meta.env.DEV) {
-    return null; // Only show in development
-  }
+  const getStatusBadge = (condition: boolean, label: string) => (
+    <Badge variant={condition ? "default" : "destructive"}>
+      {condition ? '✓' : '✗'} {label}
+    </Badge>
+  );
+
+  const isHealthy = debugInfo && 
+    debugInfo.frontend_user && 
+    debugInfo.frontend_session && 
+    debugInfo.db_auth_uid && 
+    debugInfo.db_organization_id && 
+    debugInfo.db_profile_exists;
 
   return (
-    <Card className="m-4 border-2 border-dashed border-warning/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Database className="w-4 h-4" />
-          Session Debug Panel
-          <Badge variant="outline" className="ml-auto">DEV</Badge>
-        </CardTitle>
+    <Card className="w-full max-w-2xl mb-4 mx-4">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Session Debug Panel</CardTitle>
+        <Button
+          onClick={fetchDebugInfo}
+          disabled={isLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            onClick={runDiagnostics}
-            disabled={isChecking}
-            className="flex-1"
-          >
-            {isChecking ? (
-              <>
-                <RefreshCw className="w-3 h-3 mr-2 animate-spin" />
-                Checking...
-              </>
-            ) : (
-              <>
-                <Database className="w-3 h-3 mr-2" />
-                Run Diagnostics
-              </>
-            )}
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={handleRefreshSession}
-          >
-            Refresh Session
-          </Button>
-        </div>
-
+      <CardContent className="space-y-4">
         {debugInfo && (
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-1">
-                <Badge variant={debugInfo.sessionValid ? "default" : "destructive"} className="w-2 h-2 p-0 rounded-full" />
-                Session Valid
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="font-medium">Frontend State</span>
+                </div>
+                {getStatusBadge(!!debugInfo.frontend_user, 'User Exists')}
+                {getStatusBadge(!!debugInfo.frontend_session, 'Session Active')}
+                {debugInfo.frontend_user && (
+                  <div className="text-xs text-muted-foreground">
+                    ID: {debugInfo.frontend_user.id}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <Badge variant={debugInfo.dbConnectionWorking ? "default" : "destructive"} className="w-2 h-2 p-0 rounded-full" />
-                DB Connection
-              </div>
-              <div className="flex items-center gap-1">
-                <Badge variant={debugInfo.authUidWorking ? "default" : "destructive"} className="w-2 h-2 p-0 rounded-full" />
-                auth.uid() Working
-              </div>
-              <div className="flex items-center gap-1">
-                <Badge variant={debugInfo.userProfileExists ? "default" : "destructive"} className="w-2 h-2 p-0 rounded-full" />
-                Profile Exists
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  <span className="font-medium">Database State</span>
+                </div>
+                {getStatusBadge(!!debugInfo.db_auth_uid, 'Auth UID')}
+                {getStatusBadge(debugInfo.db_profile_exists, 'Profile Exists')}
+                {debugInfo.db_auth_uid && (
+                  <div className="text-xs text-muted-foreground">
+                    UID: {debugInfo.db_auth_uid}
+                  </div>
+                )}
               </div>
             </div>
             
-            {debugInfo.organizationId && (
-              <div className="text-xs text-muted-foreground">
-                Org ID: {debugInfo.organizationId}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                <span className="font-medium">Organization</span>
+              </div>
+              {getStatusBadge(!!debugInfo.db_organization_id, 'Organization ID')}
+              {debugInfo.db_organization_id && (
+                <div className="text-xs text-muted-foreground">
+                  Org: {debugInfo.db_organization_id}
+                </div>
+              )}
+            </div>
+            
+            <div className="pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Overall Health</span>
+                <Badge variant={isHealthy ? "default" : "destructive"}>
+                  {isHealthy ? '✓ Healthy' : '✗ Issues Detected'}
+                </Badge>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Last check: {new Date(debugInfo.timestamp).toLocaleTimeString()}
+              </div>
+            </div>
+            
+            {profile && (
+              <div className="pt-2 border-t text-xs space-y-1">
+                <div><strong>Profile:</strong> {profile.full_name} ({profile.email})</div>
+                <div><strong>Role:</strong> {profile.role}</div>
+                <div><strong>Org ID:</strong> {profile.organization_id}</div>
               </div>
             )}
-            
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              Last checked: {new Date(debugInfo.lastChecked).toLocaleTimeString()}
-            </div>
-          </div>
+          </>
         )}
       </CardContent>
     </Card>
