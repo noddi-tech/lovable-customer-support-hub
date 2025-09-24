@@ -1438,6 +1438,10 @@ export type Database = {
           conversations_unread: number
         }[]
       }
+      get_inbox_for_email: {
+        Args: { org_id: string; recipient_email: string }
+        Returns: string
+      }
       get_inboxes: {
         Args: Record<PropertyKey, never>
         Returns: {

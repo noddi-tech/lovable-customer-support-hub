@@ -546,11 +546,19 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
         }
 
         if (!conversation) {
+          // Determine correct inbox based on recipient email
+          const { data: inboxId } = await supabaseClient
+            .rpc('get_inbox_for_email', { 
+              recipient_email: recipientEmail, 
+              org_id: account.organization_id 
+            });
+
           const { data: newConversation } = await supabaseClient
             .from('conversations')
             .insert({
               organization_id: account.organization_id,
               email_account_id: account.id,
+              inbox_id: inboxId,
               customer_id: customer?.id,
               subject: subject.replace(/^Re:\s*/, ''), // Remove Re: prefix for clean subject
               external_id: threadId,
