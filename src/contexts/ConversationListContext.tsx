@@ -100,6 +100,7 @@ interface ConversationListContextType {
   dispatch: React.Dispatch<ConversationListAction>;
   conversations: Conversation[];
   isLoading: boolean;
+  hasSessionError: boolean;
   archiveConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
   markAllAsRead: () => void;
@@ -121,7 +122,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const { user } = useAuth();
 
   // Fetch conversations
-  const { data: conversations = [], isLoading } = useQuery({
+  const { data: conversations = [], isLoading, error } = useQuery({
     queryKey: ['conversations', user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -131,6 +132,13 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
       if (error) {
         logger.error('Error fetching conversations', error, 'ConversationListProvider');
+        // Check if it's a session error
+        if (error?.code === 'PGRST301' || 
+            error?.message?.includes('JWT expired') ||
+            error?.message?.includes('auth.uid() is null') ||
+            error?.code === 'PGRST116') {
+          throw new Error('SESSION_ERROR');
+        }
         return [];
       }
       
@@ -141,7 +149,17 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         assigned_to: conv.assigned_to as AssignedTo,
       })) as Conversation[];
     },
+    retry: (failureCount, error: any) => {
+      // Don't retry session errors
+      if (error?.message === 'SESSION_ERROR') {
+        return false;
+      }
+      return failureCount < 2;
+    }
   });
+
+  // Detect session errors
+  const hasSessionError = error?.message === 'SESSION_ERROR';
 
   // Archive conversation mutation
   const archiveConversationMutation = useMutation({
@@ -374,6 +392,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     dispatch,
     conversations,
     isLoading,
+    hasSessionError,
     archiveConversation,
     deleteConversation,
     markAllAsRead,

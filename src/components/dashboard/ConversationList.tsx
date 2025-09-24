@@ -5,10 +5,13 @@ import { ConversationListHeader } from "./conversation-list/ConversationListHead
 import { ConversationListItem } from "./conversation-list/ConversationListItem";
 import { ConversationListDeleteDialog } from "./conversation-list/ConversationListDeleteDialog";
 import { VirtualizedConversationList } from "./conversation-list/VirtualizedConversationList";
+import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
+import { SessionDebugPanel } from "@/components/conversations/SessionDebugPanel";
 // Removed old realtime subscription hook - now using centralized system
 import { useMemoryLeakPrevention } from "@/hooks/useMemoryLeakPrevention";
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from "react-i18next";
+import { useState, useEffect } from 'react';
 
 interface ConversationListProps {
   selectedTab: string;
@@ -19,15 +22,25 @@ interface ConversationListProps {
 }
 
 const ConversationListContent = ({ onSelectConversation, selectedConversation, onToggleCollapse }: Omit<ConversationListProps, 'selectedTab' | 'selectedInboxId'>) => {
-  const { filteredConversations, isLoading } = useConversationList();
+  const { filteredConversations, isLoading, hasSessionError } = useConversationList();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const [showSessionBanner, setShowSessionBanner] = useState(false);
 
   // Memory leak prevention for this component
   const memoryUtils = useMemoryLeakPrevention('ConversationList', {
     enableLogging: import.meta.env.DEV,
     maxEventListeners: 15,
   });
+
+  // Show session recovery banner if there are session issues and no conversations
+  useEffect(() => {
+    if (hasSessionError && filteredConversations.length === 0 && !isLoading) {
+      setShowSessionBanner(true);
+    } else if (filteredConversations.length > 0) {
+      setShowSessionBanner(false);
+    }
+  }, [hasSessionError, filteredConversations.length, isLoading]);
 
   // Note: Real-time subscriptions are now centralized in useOptimizedCounts
   // to prevent duplicate subscriptions and improve performance
@@ -37,6 +50,12 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
 
   return (
     <div className="flex flex-col h-full min-h-0">
+      {/* Session Recovery Banner */}
+      <SessionRecoveryBanner 
+        show={showSessionBanner} 
+        onHide={() => setShowSessionBanner(false)} 
+      />
+      
       {/* Header - only show when onToggleCollapse is provided */}
       {onToggleCollapse && (
         <ConversationListHeader onToggleCollapse={onToggleCollapse} />
@@ -44,6 +63,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       
       {/* Conversation List - Card-based layout */}
       <div className="pane flex-1 overflow-y-auto min-h-0">
+        {import.meta.env.DEV && <SessionDebugPanel />}
+        
         {shouldUseVirtualization ? (
           <VirtualizedConversationList
             onSelectConversation={onSelectConversation}

@@ -44,22 +44,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const validateSession = async () => {
-    if (!session) return false;
+  const validateSession = async (retryCount = 0) => {
+    if (!session) {
+      console.log('No session to validate');
+      return false;
+    }
     
     try {
-      // Test if the session is valid by making a simple query
-      const { error } = await supabase.from('profiles').select('user_id').eq('user_id', session.user.id).maybeSingle();
+      // Test if the session is valid by making a simple query that requires auth
+      const { error } = await supabase.rpc('get_user_organization_id');
       
-      if (error && (error.code === 'PGRST301' || error.message?.includes('JWT expired'))) {
-        console.log('Session invalid, attempting refresh...');
-        const newSession = await refreshSession();
-        return !!newSession;
+      if (error) {
+        console.log('Session validation failed:', error.code, error.message);
+        
+        // Handle specific auth error codes
+        if (error.code === 'PGRST301' || 
+            error.message?.includes('JWT expired') ||
+            error.message?.includes('refresh_token_not_found') ||
+            error.code === 'PGRST116') {
+          
+          console.log('Session invalid, attempting refresh...');
+          const newSession = await refreshSession();
+          
+          if (newSession && retryCount < 2) {
+            // Retry validation once with the new session
+            await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay
+            return await validateSession(retryCount + 1);
+          }
+          
+          return !!newSession;
+        }
+        
+        // Other errors might not be auth-related
+        return false;
       }
       
-      return !error;
+      console.log('Session validation successful');
+      return true;
     } catch (error) {
       console.error('Session validation failed:', error);
+      
+      // If we haven't tried refreshing yet, attempt it
+      if (retryCount === 0) {
+        console.log('Attempting session refresh due to validation error...');
+        const newSession = await refreshSession();
+        if (newSession) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return await validateSession(1);
+        }
+      }
+      
       return false;
     }
   };

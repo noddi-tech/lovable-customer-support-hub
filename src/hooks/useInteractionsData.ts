@@ -91,35 +91,64 @@ export function useConversations({
   status: StatusFilter; 
   q?: string; 
 }) {
-  const { refreshSession } = useAuth();
+  const { user, refreshSession, validateSession } = useAuth();
   
   return useQuery({
     queryKey: ['conversations', inboxId, status, q],
     queryFn: async () => {
+      // Pre-validate session before making the request
+      if (user) {
+        const isValid = await validateSession();
+        if (!isValid) {
+          console.warn('Session invalid before conversations query, refreshing...');
+          const newSession = await refreshSession();
+          if (!newSession) {
+            throw new Error('Session refresh failed');
+          }
+          // Brief delay to ensure session propagation
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+
       try {
-        return await listConversations({ inboxId, status, q });
+        const conversations = await listConversations({ inboxId, status, q });
+        console.log(`Loaded ${conversations.length} conversations for inbox ${inboxId}`);
+        return conversations;
       } catch (error: any) {
-        // Handle auth-related errors by attempting session refresh
+        console.error('Conversations query failed:', error);
+        
+        // Handle auth-related errors with enhanced recovery
         if (error?.message?.includes('JWT expired') || 
             error?.message?.includes('refresh_token_not_found') ||
             error?.code === 'PGRST301' ||
-            error?.code === 'PGRST116') {
-          console.warn('Authentication issue detected in conversations, attempting session refresh...');
+            error?.code === 'PGRST116' ||
+            error?.message?.includes('auth.uid() is null')) {
+          
+          console.warn('Authentication issue detected in conversations, attempting session recovery...');
           
           const newSession = await refreshSession();
           if (newSession) {
-            // Retry with refreshed session
-            return await listConversations({ inboxId, status, q });
+            // Wait for session to propagate and retry
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            try {
+              const retryConversations = await listConversations({ inboxId, status, q });
+              console.log(`Retry successful: loaded ${retryConversations.length} conversations`);
+              return retryConversations;
+            } catch (retryError) {
+              console.error('Retry after session refresh also failed:', retryError);
+              throw retryError;
+            }
           }
           
-          // If refresh fails, redirect to auth
-          window.location.href = '/auth';
+          // If refresh fails, return empty array and let user know
+          console.error('Session refresh failed, returning empty conversations');
           return [];
         }
         throw error;
       }
     },
-    enabled: !!inboxId,
+    enabled: !!inboxId && !!user,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
     retry: (failureCount, error: any) => {
@@ -127,7 +156,8 @@ export function useConversations({
       if (error?.message?.includes('JWT expired') || 
           error?.message?.includes('refresh_token_not_found') ||
           error?.code === 'PGRST301' ||
-          error?.code === 'PGRST116') {
+          error?.code === 'PGRST116' ||
+          error?.message?.includes('auth.uid() is null')) {
         return false;
       }
       return failureCount < 2;
