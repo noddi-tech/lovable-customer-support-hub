@@ -1479,6 +1479,15 @@ export type Database = {
         Args: { notification_id: string }
         Returns: undefined
       }
+      validate_session_context: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          auth_uid: string
+          organization_id: string
+          profile_exists: boolean
+          session_valid: boolean
+        }[]
+      }
     }
     Enums: {
       app_permission:

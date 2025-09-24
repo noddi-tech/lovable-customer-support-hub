@@ -17,6 +17,7 @@ import type {
   ConversationId 
 } from '@/types/interactions';
 import { useAuth } from '@/components/auth/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook to get accessible inboxes
@@ -96,69 +97,85 @@ export function useConversations({
   return useQuery({
     queryKey: ['conversations', inboxId, status, q],
     queryFn: async () => {
-      // Pre-validate session before making the request
-      if (user) {
-        const isValid = await validateSession();
-        if (!isValid) {
-          console.warn('Session invalid before conversations query, refreshing...');
+      // Step 1: Validate database session context first
+      try {
+        const { data: sessionCheck } = await supabase.rpc('validate_session_context');
+        const sessionInfo = sessionCheck?.[0];
+        
+        console.log('🔍 Session validation:', {
+          auth_uid: sessionInfo?.auth_uid,
+          session_valid: sessionInfo?.session_valid,
+          profile_exists: sessionInfo?.profile_exists,
+          organization_id: sessionInfo?.organization_id
+        });
+
+        // If auth.uid() is null in database context, force session sync
+        if (!sessionInfo?.session_valid || !sessionInfo?.auth_uid) {
+          console.warn('⚠️ Database session invalid, attempting recovery...');
+          
           const newSession = await refreshSession();
           if (!newSession) {
-            throw new Error('Session refresh failed');
+            throw new Error('Session refresh failed - auth.uid() is null');
           }
-          // Brief delay to ensure session propagation
-          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          // Wait for session propagation
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Re-validate
+          const { data: recheckSession } = await supabase.rpc('validate_session_context');
+          const recheckInfo = recheckSession?.[0];
+          
+          if (!recheckInfo?.session_valid) {
+            throw new Error('Session sync failed - database context not restored');
+          }
         }
+      } catch (validationError) {
+        console.error('Session validation failed:', validationError);
+        throw validationError;
       }
 
+      // Step 2: Now fetch conversations with validated session
       try {
         const conversations = await listConversations({ inboxId, status, q });
-        console.log(`Loaded ${conversations.length} conversations for inbox ${inboxId}`);
+        console.log(`✅ Loaded ${conversations.length} conversations for inbox ${inboxId}`);
         return conversations;
       } catch (error: any) {
-        console.error('Conversations query failed:', error);
+        console.error('❌ Conversations query failed:', error);
         
         // Handle auth-related errors with enhanced recovery
         if (error?.message?.includes('JWT expired') || 
             error?.message?.includes('refresh_token_not_found') ||
             error?.code === 'PGRST301' ||
             error?.code === 'PGRST116' ||
-            error?.message?.includes('auth.uid() is null')) {
+            error?.message?.includes('auth.uid()')) {
           
-          console.warn('Authentication issue detected in conversations, attempting session recovery...');
+          console.warn('🚨 Auth error detected, final recovery attempt...');
           
           const newSession = await refreshSession();
           if (newSession) {
-            // Wait for session to propagate and retry
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
             try {
               const retryConversations = await listConversations({ inboxId, status, q });
-              console.log(`Retry successful: loaded ${retryConversations.length} conversations`);
+              console.log(`🔄 Retry successful: loaded ${retryConversations.length} conversations`);
               return retryConversations;
             } catch (retryError) {
-              console.error('Retry after session refresh also failed:', retryError);
-              throw retryError;
+              console.error('Final retry failed:', retryError);
+              throw new Error('Session sync failed - conversations still not accessible');
             }
           }
           
-          // If refresh fails, return empty array and let user know
-          console.error('Session refresh failed, returning empty conversations');
-          return [];
+          throw new Error('Session expired - please refresh or log in again');
         }
         throw error;
       }
     },
     enabled: !!inboxId && !!user,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000,
+    gcTime: 2 * 60 * 1000,
     retry: (failureCount, error: any) => {
-      // Don't retry on auth errors after refresh attempt
-      if (error?.message?.includes('JWT expired') || 
-          error?.message?.includes('refresh_token_not_found') ||
-          error?.code === 'PGRST301' ||
-          error?.code === 'PGRST116' ||
-          error?.message?.includes('auth.uid() is null')) {
-        return false;
+      if (error?.message?.includes('Session') || error?.message?.includes('auth.uid()')) {
+        return false; // Don't retry session errors
       }
       return failureCount < 2;
     }

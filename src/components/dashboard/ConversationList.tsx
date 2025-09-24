@@ -8,6 +8,7 @@ import { VirtualizedConversationList } from "./conversation-list/VirtualizedConv
 import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
 import { SessionDebugPanel } from "@/components/conversations/SessionDebugPanel";
 import { AuthContextDebugger } from "@/components/conversations/AuthContextDebugger";
+import { SessionSyncButton } from "@/components/conversations/SessionSyncButton";
 // Removed old realtime subscription hook - now using centralized system
 import { useMemoryLeakPrevention } from "@/hooks/useMemoryLeakPrevention";
 import { useAuth } from '@/hooks/useAuth';
@@ -55,6 +56,16 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       <SessionRecoveryBanner 
         show={showSessionBanner} 
         onHide={() => setShowSessionBanner(false)} 
+      />
+      
+      {/* Session Sync Button */}
+      <SessionSyncButton 
+        onSyncSuccess={() => {
+          setShowSessionBanner(false);
+          // Trigger a window reload to refresh all data after successful session sync
+          window.location.reload();
+        }}
+        showAlert={hasSessionError && filteredConversations.length === 0}
       />
       
       {/* Header - only show when onToggleCollapse is provided */}
