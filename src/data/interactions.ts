@@ -17,13 +17,31 @@ const AUTH_ERROR_CODES = [
   'refresh_token_not_found', 
   'PGRST301',
   'PGRST116',
-  'insufficient_permissions'
+  'insufficient_permissions',
+  'auth.uid()'
 ];
 
-const isAuthError = (error: any): boolean => {
-  return AUTH_ERROR_CODES.some(code => 
-    error?.message?.includes(code) || error?.code === code
-  );
+export const isAuthError = (error: any): boolean => {
+  if (!error) return false;
+  
+  const message = error?.message?.toLowerCase() || '';
+  const code = error?.code || '';
+  
+  // Check for explicit auth error codes
+  if (AUTH_ERROR_CODES.some(authCode => 
+    code.includes(authCode) || message.includes(authCode.toLowerCase())
+  )) {
+    return true;
+  }
+  
+  // Check for auth-related error messages
+  return message.includes('jwt expired') ||
+         message.includes('refresh_token_not_found') ||
+         message.includes('auth.uid()') ||
+         message.includes('session') ||
+         message.includes('authentication') ||
+         message.includes('unauthorized') ||
+         message.includes('null');
 };
 
 /**

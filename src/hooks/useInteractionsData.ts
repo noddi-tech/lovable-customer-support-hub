@@ -5,7 +5,8 @@ import {
   getInboxCounts,
   listConversations,
   getThread,
-  postReply
+  postReply,
+  isAuthError
 } from '@/data/interactions';
 import type { 
   Inbox, 
@@ -100,7 +101,12 @@ export function useConversations({
       // Step 1: Validate database session context first
       try {
         const { data: sessionCheck } = await supabase.rpc('validate_session_context');
-        const sessionInfo = sessionCheck?.[0];
+        
+        if (!sessionCheck || !Array.isArray(sessionCheck) || sessionCheck.length === 0) {
+          throw new Error('Session context validation RPC failed');
+        }
+        
+        const sessionInfo = sessionCheck[0];
         
         console.log('🔍 Session validation:', {
           auth_uid: sessionInfo?.auth_uid,
@@ -123,7 +129,12 @@ export function useConversations({
           
           // Re-validate
           const { data: recheckSession } = await supabase.rpc('validate_session_context');
-          const recheckInfo = recheckSession?.[0];
+          
+          if (!recheckSession || !Array.isArray(recheckSession) || recheckSession.length === 0) {
+            throw new Error('Session recheck RPC failed');
+          }
+          
+          const recheckInfo = recheckSession[0];
           
           if (!recheckInfo?.session_valid) {
             throw new Error('Session sync failed - database context not restored');

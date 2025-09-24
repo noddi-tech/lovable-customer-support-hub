@@ -9,6 +9,7 @@ import { SessionRecoveryBanner } from "@/components/conversations/SessionRecover
 import { SessionDebugPanel } from "@/components/conversations/SessionDebugPanel";
 import { AuthContextDebugger } from "@/components/conversations/AuthContextDebugger";
 import { SessionSyncButton } from "@/components/conversations/SessionSyncButton";
+import { SessionHealthMonitor } from "@/components/conversations/SessionHealthMonitor";
 // Removed old realtime subscription hook - now using centralized system
 import { useMemoryLeakPrevention } from "@/hooks/useMemoryLeakPrevention";
 import { useAuth } from '@/hooks/useAuth';
@@ -57,6 +58,9 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
         show={showSessionBanner} 
         onHide={() => setShowSessionBanner(false)} 
       />
+      
+      {/* Session Health Monitor */}
+      <SessionHealthMonitor showDetails={import.meta.env.DEV && filteredConversations.length === 0} />
       
       {/* Session Sync Button */}
       <SessionSyncButton 
