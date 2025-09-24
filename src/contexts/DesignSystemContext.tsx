@@ -287,8 +287,18 @@ interface DesignSystemProviderProps {
 export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ children }) => {
   const [designSystem, setDesignSystem] = useState<DesignSystem>(defaultDesignSystem);
 
-  // Get user's organization ID from auth context
-  const { profile } = useAuth();
+  // Get user's organization ID from auth context - handle case when auth isn't ready
+  let profile = null;
+  let loading = true;
+  
+  try {
+    const authResult = useAuth();
+    profile = authResult.profile;
+    loading = authResult.loading;
+  } catch (error) {
+    // Auth context not available yet, use defaults
+    console.log('Auth context not available, using default design system');
+  }
 
   // Fetch organization-specific design system from database
   const { data: organizationData, isLoading } = useQuery({
@@ -305,7 +315,7 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.organization_id,
+    enabled: !!profile?.organization_id && !loading,
   });
 
   // Update design system when database data changes
@@ -454,7 +464,7 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
 
   // Set up real-time updates for design system changes
   useEffect(() => {
-    if (!profile?.organization_id) return;
+    if (!profile?.organization_id || loading) return;
 
     const channel = supabase
       .channel('design-system-changes')
