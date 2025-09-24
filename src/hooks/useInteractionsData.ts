@@ -16,13 +16,13 @@ import type {
   InboxId,
   ConversationId 
 } from '@/types/interactions';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/components/auth/AuthContext';
 
 /**
  * Hook to get accessible inboxes
  */
 export function useAccessibleInboxes() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshSession } = useAuth();
   
   return useQuery({
     queryKey: ['inboxes'],
@@ -31,12 +31,21 @@ export function useAccessibleInboxes() {
       try {
         return await listAccessibleInboxes();
       } catch (error: any) {
-        // Handle auth-related errors by returning empty array
+        // Handle auth-related errors by attempting session refresh
         if (error?.message?.includes('JWT expired') || 
             error?.message?.includes('refresh_token_not_found') ||
             error?.code === 'PGRST301' ||
             error?.code === 'PGRST116') {
-          console.warn('Authentication issue detected, returning empty inboxes');
+          console.warn('Authentication issue detected, attempting session refresh...');
+          
+          const newSession = await refreshSession();
+          if (newSession) {
+            // Retry with refreshed session
+            return await listAccessibleInboxes();
+          }
+          
+          // If refresh fails, redirect to auth
+          window.location.href = '/auth';
           return [];
         }
         throw error;
@@ -45,7 +54,7 @@ export function useAccessibleInboxes() {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error: any) => {
-      // Don't retry on auth errors
+      // Don't retry on auth errors after refresh attempt
       if (error?.message?.includes('JWT expired') || 
           error?.message?.includes('refresh_token_not_found') ||
           error?.code === 'PGRST301' ||
@@ -82,18 +91,29 @@ export function useConversations({
   status: StatusFilter; 
   q?: string; 
 }) {
+  const { refreshSession } = useAuth();
+  
   return useQuery({
     queryKey: ['conversations', inboxId, status, q],
     queryFn: async () => {
       try {
         return await listConversations({ inboxId, status, q });
       } catch (error: any) {
-        // Handle auth-related errors by returning empty array
+        // Handle auth-related errors by attempting session refresh
         if (error?.message?.includes('JWT expired') || 
             error?.message?.includes('refresh_token_not_found') ||
             error?.code === 'PGRST301' ||
             error?.code === 'PGRST116') {
-          console.warn('Authentication issue detected, returning empty conversations');
+          console.warn('Authentication issue detected in conversations, attempting session refresh...');
+          
+          const newSession = await refreshSession();
+          if (newSession) {
+            // Retry with refreshed session
+            return await listConversations({ inboxId, status, q });
+          }
+          
+          // If refresh fails, redirect to auth
+          window.location.href = '/auth';
           return [];
         }
         throw error;
@@ -103,7 +123,7 @@ export function useConversations({
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
     retry: (failureCount, error: any) => {
-      // Don't retry on auth errors
+      // Don't retry on auth errors after refresh attempt
       if (error?.message?.includes('JWT expired') || 
           error?.message?.includes('refresh_token_not_found') ||
           error?.code === 'PGRST301' ||

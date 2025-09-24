@@ -8,6 +8,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<Session | null>;
+  validateSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,12 +28,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
+  const refreshSession = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+      if (error) throw error;
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      return session;
+    } catch (error) {
+      console.error('Session refresh failed:', error);
+      setSession(null);
+      setUser(null);
+      return null;
+    }
+  };
+
+  const validateSession = async () => {
+    if (!session) return false;
+    
+    try {
+      // Test if the session is valid by making a simple query
+      const { error } = await supabase.from('profiles').select('user_id').eq('user_id', session.user.id).maybeSingle();
+      
+      if (error && (error.code === 'PGRST301' || error.message?.includes('JWT expired'))) {
+        console.log('Session invalid, attempting refresh...');
+        const newSession = await refreshSession();
+        return !!newSession;
+      }
+      
+      return !error;
+    } catch (error) {
+      console.error('Session validation failed:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        if (!mounted) return;
+        
         const previousUser = user;
         const newUser = session?.user ?? null;
+        
+        console.log('Auth state change:', event, { 
+          hasSession: !!session, 
+          userId: newUser?.id,
+          sessionExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : null
+        });
         
         setSession(session);
         setUser(newUser);
@@ -42,17 +90,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           queryClient.clear();
           console.log('Cleared query cache due to auth state change:', event);
         }
+        
+        // Validate session after sign-in
+        if (event === 'SIGNED_IN' && session) {
+          setTimeout(() => validateSession(), 1000);
+        }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Validate existing session
+      if (session) {
+        const isValid = await validateSession();
+        if (!isValid) {
+          console.log('Existing session invalid, redirecting to auth');
+          window.location.href = '/auth';
+        }
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
@@ -85,6 +152,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     loading,
     signOut,
+    refreshSession,
+    validateSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
