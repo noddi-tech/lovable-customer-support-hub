@@ -427,11 +427,11 @@ export const Auth: React.FC = () => {
         </Card>
 
         {/* Demo Notice */}
-        <Card className="mt-6 bg-primary-muted border-primary">
+        <Card className="mt-6">
           <CardContent className="pt-6">
             <div className="text-center">
-              <h3 className="font-medium text-primary-foreground mb-2">{t('auth.demoMode')}</h3>
-              <p className="text-sm text-primary-foreground/80">
+              <h3 className="font-medium mb-2">{t('auth.demoMode')}</h3>
+              <p className="text-sm text-muted-foreground">
                 {t('auth.demoModeDescription')}
               </p>
             </div>

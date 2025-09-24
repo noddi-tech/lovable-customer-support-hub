@@ -375,7 +375,9 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
     // Apply colors with proper CSS variable mapping and contrast checking
     Object.entries(designSystem.colors).forEach(([key, value]) => {
       const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-      root.style.setProperty(cssVar, value);
+      // Ensure HSL format is preserved
+      const hslValue = value.includes('hsl(') ? value : value;
+      root.style.setProperty(cssVar, hslValue);
       
       // Auto-generate proper foreground colors for backgrounds
       if (!key.includes('Foreground') && !key.includes('foreground')) {
