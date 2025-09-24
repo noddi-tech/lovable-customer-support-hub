@@ -135,26 +135,26 @@ interface DesignSystem {
 // Default design system values
 const defaultDesignSystem: DesignSystem = {
   colors: {
-    primary: '102 86 217', // Updated to brand purple #6656D9
-    primaryForeground: '255 255 255',
-    secondary: '241 243 247', // Updated to muted #F1F3F7
-    secondaryForeground: '71 85 105',
-    accent: '246 245 252',
-    accentForeground: '102 86 217',
-    background: '248 249 251', // Updated to #F8F9FB
-    foreground: '224 71% 4%',
-    muted: '241 243 247', // Updated to #F1F3F7
-    mutedForeground: '100 116 139',
-    card: '255 255 255', // Updated to pure white #FFFFFF
-    cardForeground: '224 71% 4%',
-    border: '230 232 238', // Updated to #E6E8EE
-    ring: '102 86 217', // Added ring property - brand purple #6656D9
-    success: '34 197 94',
-    successForeground: '255 255 255',
-    warning: '251 146 60',
-    warningForeground: '255 255 255',
-    destructive: '239 68 68',
-    destructiveForeground: '255 255 255',
+    primary: '252 75% 60%', // Brand purple #6656D9 in HSL
+    primaryForeground: '0 0% 100%', // Pure white in HSL
+    secondary: '220 14% 96%', // Muted #F1F3F7 in HSL
+    secondaryForeground: '215 25% 27%', // Dark gray in HSL
+    accent: '252 75% 98%', // Very light purple in HSL
+    accentForeground: '252 75% 60%', // Brand purple in HSL
+    background: '210 20% 98%', // #F8F9FB in HSL
+    foreground: '224 71% 4%', // Keep existing HSL
+    muted: '220 14% 96%', // #F1F3F7 in HSL
+    mutedForeground: '215 16% 47%', // Medium gray in HSL
+    card: '0 0% 100%', // Pure white #FFFFFF in HSL
+    cardForeground: '224 71% 4%', // Keep existing HSL
+    border: '220 13% 91%', // #E6E8EE in HSL
+    ring: '252 75% 60%', // Brand purple #6656D9 in HSL
+    success: '142 76% 36%', // Green in HSL
+    successForeground: '0 0% 100%', // White in HSL
+    warning: '32 95% 44%', // Orange in HSL
+    warningForeground: '0 0% 100%', // White in HSL
+    destructive: '0 84% 60%', // Red in HSL
+    destructiveForeground: '0 0% 100%', // White in HSL
   },
   typography: {
     fontFamily: 'Inter, system-ui, sans-serif',
@@ -375,9 +375,8 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
     // Apply colors with proper CSS variable mapping and contrast checking
     Object.entries(designSystem.colors).forEach(([key, value]) => {
       const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-      // Ensure HSL format is preserved
-      const hslValue = value.includes('hsl(') ? value : value;
-      root.style.setProperty(cssVar, hslValue);
+      // Set the HSL value directly without modification
+      root.style.setProperty(cssVar, value);
       
       // Auto-generate proper foreground colors for backgrounds
       if (!key.includes('Foreground') && !key.includes('foreground')) {
