@@ -51,9 +51,9 @@ Optimized for accessibility with WCAG AA compliance.
 
     /* Primary brand - Professional purple */
     --primary: 247 63% 59%; /* #6656D9 - Brand purple */
-    --primary-foreground: 255 255 255;
+    --primary-foreground: 0 0% 100%; /* White */
     --primary-hover: 247 63% 55%;
-    --primary-muted: 246 245 252;
+    --primary-muted: 247 63% 97%; /* Very light purple */
 
     /* Secondary - Subtle gray for secondary actions */
     --secondary: 220 27% 96%; /* #F1F3F7 - Subtle muted background */
