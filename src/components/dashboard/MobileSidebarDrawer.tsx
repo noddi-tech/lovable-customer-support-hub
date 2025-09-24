@@ -9,12 +9,14 @@ interface MobileSidebarDrawerProps {
   selectedTab: string;
   onTabChange: (tab: string) => void;
   activeTab?: string;
+  selectedInboxId?: string;
 }
 
 export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
   selectedTab,
   onTabChange,
-  activeTab = 'interactions'
+  activeTab = 'interactions',
+  selectedInboxId
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -41,6 +43,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
             <OptimizedInteractionsSidebar 
               selectedTab={selectedTab}
               onTabChange={handleTabChange}
+              selectedInboxId={selectedInboxId}
             />
           </SidebarStateManager>
         </div>

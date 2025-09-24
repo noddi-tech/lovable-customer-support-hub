@@ -1403,6 +1403,21 @@ export type Database = {
           sync_interval_minutes: number
         }[]
       }
+      get_inbox_counts: {
+        Args: { inbox_uuid: string }
+        Returns: {
+          channels_email: number
+          channels_facebook: number
+          channels_instagram: number
+          channels_whatsapp: number
+          conversations_all: number
+          conversations_archived: number
+          conversations_assigned: number
+          conversations_closed: number
+          conversations_pending: number
+          conversations_unread: number
+        }[]
+      }
       get_inboxes: {
         Args: Record<PropertyKey, never>
         Returns: {

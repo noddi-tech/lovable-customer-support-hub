@@ -6,12 +6,14 @@ interface AppSidebarProps {
   selectedTab: string;
   onTabChange: (tab: string) => void;
   activeTab?: string; // Main app tab (interactions, marketing, etc.)
+  selectedInboxId?: string; // Pass inbox ID for context-aware counts
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   selectedTab,
   onTabChange,
-  activeTab = 'interactions'
+  activeTab = 'interactions',
+  selectedInboxId
 }) => {
   // For now, we'll focus on Interactions tab with optimized performance
   // Later this can be extended to handle different tab contexts
@@ -21,6 +23,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         <OptimizedInteractionsSidebar 
           selectedTab={selectedTab}
           onTabChange={onTabChange}
+          selectedInboxId={selectedInboxId}
         />
       </SidebarStateManager>
     );
@@ -32,6 +35,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <OptimizedInteractionsSidebar 
         selectedTab={selectedTab}
         onTabChange={onTabChange}
+        selectedInboxId={selectedInboxId}
       />
     </SidebarStateManager>
   );

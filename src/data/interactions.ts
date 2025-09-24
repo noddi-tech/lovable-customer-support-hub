@@ -68,35 +68,69 @@ export async function listAccessibleInboxes(): Promise<Inbox[]> {
  */
 export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
   try {
-    const { data, error } = await supabase.rpc('get_all_counts');
-    
-    if (error) {
-      logger.error('Error fetching inbox counts', error, 'getInboxCounts');
-      throw error;
-    }
-    
-    const result = data?.[0];
-    if (!result) {
+    // Use inbox-specific counts when a specific inbox is selected
+    if (inboxId && inboxId !== 'all') {
+      const { data, error } = await supabase.rpc('get_inbox_counts', { inbox_uuid: inboxId });
+      
+      if (error) {
+        logger.error('Error fetching inbox-specific counts', error, 'getInboxCounts');
+        throw error;
+      }
+      
+      const result = data?.[0];
+      if (!result) {
+        return {
+          inboxId,
+          total: 0,
+          unread: 0,
+          assigned: 0,
+          pending: 0,
+          closed: 0,
+          archived: 0
+        };
+      }
+      
       return {
         inboxId,
-        total: 0,
-        unread: 0,
-        assigned: 0,
-        pending: 0,
-        closed: 0,
-        archived: 0
+        total: Number(result.conversations_all) || 0,
+        unread: Number(result.conversations_unread) || 0,
+        assigned: Number(result.conversations_assigned) || 0,
+        pending: Number(result.conversations_pending) || 0,
+        closed: Number(result.conversations_closed) || 0,
+        archived: Number(result.conversations_archived) || 0,
+      };
+    } else {
+      // Use global counts for 'all' inboxes
+      const { data, error } = await supabase.rpc('get_all_counts');
+      
+      if (error) {
+        logger.error('Error fetching global counts', error, 'getInboxCounts');
+        throw error;
+      }
+      
+      const result = data?.[0];
+      if (!result) {
+        return {
+          inboxId,
+          total: 0,
+          unread: 0,
+          assigned: 0,
+          pending: 0,
+          closed: 0,
+          archived: 0
+        };
+      }
+      
+      return {
+        inboxId,
+        total: Number(result.conversations_all) || 0,
+        unread: Number(result.conversations_unread) || 0,
+        assigned: Number(result.conversations_assigned) || 0,
+        pending: Number(result.conversations_pending) || 0,
+        closed: Number(result.conversations_closed) || 0,
+        archived: Number(result.conversations_archived) || 0,
       };
     }
-    
-    return {
-      inboxId,
-      total: Number(result.conversations_all) || 0,
-      unread: Number(result.conversations_unread) || 0,
-      assigned: Number(result.conversations_assigned) || 0,
-      pending: Number(result.conversations_pending) || 0,
-      closed: Number(result.conversations_closed) || 0,
-      archived: Number(result.conversations_archived) || 0,
-    };
   } catch (error) {
     logger.error('Failed to get inbox counts', error, 'getInboxCounts');
     return {

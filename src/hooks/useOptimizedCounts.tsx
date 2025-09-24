@@ -31,9 +31,10 @@ export interface OptimizedCounts {
   loading: boolean;
   error: string | null;
   prefetchData: (dataType: string) => void;
+  isInboxSpecific: boolean;
 }
 
-export const useOptimizedCounts = (): OptimizedCounts => {
+export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts => {
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { createResilientQuery } = useNetworkErrorHandler({
@@ -50,56 +51,94 @@ export const useOptimizedCounts = (): OptimizedCounts => {
     inboxes: []
   };
 
-  // Get all counts efficiently with single RPC call using resilient network handling
+  // Get counts efficiently - either global or inbox-specific
   const countsQuery = useQuery({
-    queryKey: ['all-counts'],
+    queryKey: selectedInboxId ? ['inbox-counts', selectedInboxId] : ['all-counts'],
     enabled: !!user && !authLoading, // Only fetch when authenticated
     queryFn: createResilientQuery(
       async () => {
         try {
-          const { data, error } = await supabase.rpc('get_all_counts');
-          if (error) {
-            // Handle different error types gracefully
-            if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || 
-                error.message?.includes('NetworkError') ||
-                error.message?.includes('blocked')) {
-              console.warn('Network request blocked, using cached data if available');
-              return defaultCounts;
+          if (selectedInboxId) {
+            // Fetch inbox-specific counts
+            const { data, error } = await supabase.rpc('get_inbox_counts', { inbox_uuid: selectedInboxId });
+            if (error) {
+              if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || 
+                  error.message?.includes('NetworkError') ||
+                  error.message?.includes('blocked')) {
+                console.warn('Network request blocked, using cached data if available');
+                return { ...defaultCounts, inboxes: [] };
+              }
+              console.error('Error fetching inbox counts:', error);
+              throw error;
             }
-            console.error('Error fetching all counts:', error);
-            throw error;
+            
+            const result = data?.[0];
+            if (!result) {
+              throw new Error('No data returned from get_inbox_counts');
+            }
+            
+            return {
+              conversations: {
+                all: Number(result.conversations_all) || 0,
+                unread: Number(result.conversations_unread) || 0,
+                assigned: Number(result.conversations_assigned) || 0,
+                pending: Number(result.conversations_pending) || 0,
+                closed: Number(result.conversations_closed) || 0,
+                archived: Number(result.conversations_archived) || 0,
+              },
+              channels: {
+                email: Number(result.channels_email) || 0,
+                facebook: Number(result.channels_facebook) || 0,
+                instagram: Number(result.channels_instagram) || 0,
+                whatsapp: Number(result.channels_whatsapp) || 0,
+              },
+              notifications: 0, // Notifications are global, not inbox-specific
+              inboxes: [] // Don't show inbox breakdown when viewing specific inbox
+            };
+          } else {
+            // Fetch global counts
+            const { data, error } = await supabase.rpc('get_all_counts');
+            if (error) {
+              if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || 
+                  error.message?.includes('NetworkError') ||
+                  error.message?.includes('blocked')) {
+                console.warn('Network request blocked, using cached data if available');
+                return defaultCounts;
+              }
+              console.error('Error fetching all counts:', error);
+              throw error;
+            }
+            
+            const result = data?.[0];
+            if (!result) {
+              throw new Error('No data returned from get_all_counts');
+            }
+            
+            return {
+              conversations: {
+                all: Number(result.conversations_all) || 0,
+                unread: Number(result.conversations_unread) || 0,
+                assigned: Number(result.conversations_assigned) || 0,
+                pending: Number(result.conversations_pending) || 0,
+                closed: Number(result.conversations_closed) || 0,
+                archived: Number(result.conversations_archived) || 0,
+              },
+              channels: {
+                email: Number(result.channels_email) || 0,
+                facebook: Number(result.channels_facebook) || 0,
+                instagram: Number(result.channels_instagram) || 0,
+                whatsapp: Number(result.channels_whatsapp) || 0,
+              },
+              notifications: Number(result.notifications_unread) || 0,
+              inboxes: Array.isArray(result.inboxes_data) ? result.inboxes_data as Array<{
+                id: string;
+                name: string;
+                color: string;
+                conversation_count: number;
+                is_active: boolean;
+              }> : []
+            };
           }
-          
-          // Transform the single-row result to our interface format
-          const result = data?.[0];
-          if (!result) {
-            throw new Error('No data returned from get_all_counts');
-          }
-          
-          return {
-            conversations: {
-              all: Number(result.conversations_all) || 0,
-              unread: Number(result.conversations_unread) || 0,
-              assigned: Number(result.conversations_assigned) || 0,
-              pending: Number(result.conversations_pending) || 0,
-              closed: Number(result.conversations_closed) || 0,
-              archived: Number(result.conversations_archived) || 0,
-            },
-            channels: {
-              email: Number(result.channels_email) || 0,
-              facebook: Number(result.channels_facebook) || 0,
-              instagram: Number(result.channels_instagram) || 0,
-              whatsapp: Number(result.channels_whatsapp) || 0,
-            },
-            notifications: Number(result.notifications_unread) || 0,
-            inboxes: Array.isArray(result.inboxes_data) ? result.inboxes_data as Array<{
-              id: string;
-              name: string;
-              color: string;
-              conversation_count: number;
-              is_active: boolean;
-            }> : []
-          };
         } catch (networkError: any) {
           // Graceful degradation for network and auth errors
           if (networkError.message?.includes('ERR_BLOCKED_BY_CLIENT') || 
@@ -110,13 +149,13 @@ export const useOptimizedCounts = (): OptimizedCounts => {
               networkError.code === 'PGRST301' ||
               networkError.code === 'PGRST116') {
             console.warn('Network/Auth error, falling back to empty state:', networkError.message);
-            return defaultCounts;
+            return selectedInboxId ? { ...defaultCounts, inboxes: [] } : defaultCounts;
           }
           throw networkError;
         }
       },
-      'all-counts',
-      defaultCounts
+      selectedInboxId ? `inbox-counts-${selectedInboxId}` : 'all-counts',
+      selectedInboxId ? { ...defaultCounts, inboxes: [] } : defaultCounts
     ),
     refetchInterval: 300000, // 5 minutes - less frequent polling for better performance
     staleTime: 240000, // 4 minutes stale time - use cached data longer
@@ -129,9 +168,9 @@ export const useOptimizedCounts = (): OptimizedCounts => {
   
   // Simple realtime subscriptions for essential updates only
   useSimpleRealtimeSubscriptions([
-    { table: 'conversations', queryKey: 'all-counts' },
-    { table: 'notifications', queryKey: 'all-counts' },
-  ], !isLoading && !error);
+    { table: 'conversations', queryKey: selectedInboxId ? `inbox-counts-${selectedInboxId}` : 'all-counts' },
+    { table: 'notifications', queryKey: selectedInboxId ? '' : 'all-counts' }, // Only global notifications
+  ].filter(sub => sub.queryKey), !isLoading && !error);
 
   // Prefetch related data when user hovers over navigation items
   const prefetchData = useCallback((dataType: string) => {
@@ -170,6 +209,7 @@ export const useOptimizedCounts = (): OptimizedCounts => {
     inboxes: user ? (countsQuery.data?.inboxes || defaultCounts.inboxes) : defaultCounts.inboxes,
     loading: authLoading || countsQuery.isLoading,
     error: !user && !authLoading ? 'Please log in to view data' : (countsQuery.error?.message || null),
-    prefetchData
+    prefetchData,
+    isInboxSpecific: !!selectedInboxId
   };
 };

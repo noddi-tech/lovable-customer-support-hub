@@ -23,7 +23,16 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
   selectedInboxId
 }) => {
   const { t } = useTranslation();
-  const { conversations, channels, notifications, inboxes, loading, error, prefetchData } = useOptimizedCounts();
+  const { 
+    conversations, 
+    channels, 
+    notifications, 
+    inboxes, 
+    loading, 
+    error, 
+    prefetchData,
+    isInboxSpecific
+  } = useOptimizedCounts(selectedInboxId);
   const { navigateToTab } = useInteractionsNavigation();
 
   // Memoize the tab change handler to prevent unnecessary re-renders
