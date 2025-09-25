@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Reply } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useConversationView } from "@/contexts/ConversationViewContext";
 
 // Lazy load the actual reply component
 const ReplyArea = lazy(() => import('@/components/dashboard/conversation-view/ReplyArea').then(module => ({ default: module.ReplyArea })));
@@ -28,13 +29,20 @@ const ReplyAreaSkeleton = () => (
 
 export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) => {
   const { t } = useTranslation();
+  const { dispatch } = useConversationView();
   const [showReplyArea, setShowReplyArea] = useState(false);
+
+  const handleShowReply = () => {
+    // Set both local state (for lazy loading) and context state (for reply functionality)
+    setShowReplyArea(true);
+    dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: true });
+  };
 
   if (!showReplyArea) {
     return (
       <div className="p-4 border-t border-border">
         <Button
-          onClick={() => setShowReplyArea(true)}
+          onClick={handleShowReply}
           className="w-full"
           variant="default"
         >
