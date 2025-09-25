@@ -32,13 +32,21 @@ serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log(`[SendGrid-Inbound] ${new Date().toISOString()} - Incoming webhook request`);
+
   try {
     const url = new URL(req.url);
     const token = url.searchParams.get("token");
     const expected = Deno.env.get("SENDGRID_INBOUND_TOKEN");
+    
+    console.log(`[SendGrid-Inbound] Authentication check - Token provided: ${!!token}, Expected token configured: ${!!expected}`);
+    
     if (!expected || token !== expected) {
+      console.log(`[SendGrid-Inbound] Authentication failed - Invalid token`);
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    
+    console.log(`[SendGrid-Inbound] Authentication successful`);
 
     const form = await req.formData();
     const toRaw = String(form.get("to") || "");
@@ -51,6 +59,8 @@ serve(async (req: Request) => {
 
     const headerTo = extractEmail(toRaw);
     const fromEmail = extractEmail(fromRaw);
+    
+    console.log(`[SendGrid-Inbound] Parsed emails - Header To: ${headerTo}, From: ${fromEmail}`);
 
     // Use the SMTP envelope recipient when present (Google Group forwarding keeps To: as public address)
     let rcptEmail: string | null = headerTo;
@@ -62,7 +72,10 @@ serve(async (req: Request) => {
       if (envTo) rcptEmail = envTo;
     } catch {}
 
+    console.log(`[SendGrid-Inbound] Final recipient determination - RCPT: ${rcptEmail}, Header To: ${headerTo}, From: ${fromEmail}`);
+    
     if (!rcptEmail || !fromEmail) {
+      console.log(`[SendGrid-Inbound] Missing required fields - rcptEmail: ${rcptEmail}, fromEmail: ${fromEmail}`);
       return new Response(JSON.stringify({ error: "Missing to/from", headerTo, rcptEmail }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -83,6 +96,7 @@ serve(async (req: Request) => {
 
     if (route && !routeError) {
       // Found direct inbound route
+      console.log(`[SendGrid-Inbound] Found direct inbound route for ${rcptEmail} - Org: ${route.organization_id}, Inbox: ${route.inbox_id}`);
       organization_id = route.organization_id as string;
       inbox_id = route.inbox_id as string | null;
     } else {
@@ -96,9 +110,11 @@ serve(async (req: Request) => {
         .single();
       
       if (!org) {
+        console.log(`[SendGrid-Inbound] Organization not found for domain: ${domain}`);
         return new Response(JSON.stringify({ error: "Organization not found", rcptEmail, domain }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       
+      console.log(`[SendGrid-Inbound] Using fallback routing - Org: ${org.id}, Domain: ${domain}`);
       organization_id = org.id;
       
       // Use the routing function to determine inbox
@@ -108,6 +124,7 @@ serve(async (req: Request) => {
           org_id: organization_id 
         });
       
+      console.log(`[SendGrid-Inbound] Routed to inbox: ${routedInboxId}`);
       inbox_id = routedInboxId;
     }
 
@@ -126,9 +143,12 @@ serve(async (req: Request) => {
     const looksLikeGroup = (fromEmail === rcptEmail) || / via /i.test(fromRaw) || (senderHeaderEmail && senderHeaderEmail === rcptEmail);
 
     if (looksLikeGroup && (replyToEmail || xOriginalFromEmail)) {
+      console.log(`[SendGrid-Inbound] Detected group forwarding - Original author: ${replyToEmail || xOriginalFromEmail}`);
       authorEmail = replyToEmail || xOriginalFromEmail!;
       authorRaw = replyToRaw || xOriginalFromRaw || authorEmail;
     }
+    
+    console.log(`[SendGrid-Inbound] Final author determination - Email: ${authorEmail}, Display: ${displayName}`);
 
     const displayName = (authorRaw?.replace(/<[^>]+>/g, '').replace(/"/g, '').replace(/\s+via\s+.*/i, '').trim()) || (authorEmail?.split('@')[0] || '');
 
@@ -142,6 +162,7 @@ serve(async (req: Request) => {
 
     let customer_id = customerExisting?.id as string | null;
     if (!customer_id) {
+      console.log(`[SendGrid-Inbound] Creating new customer - Email: ${authorEmail}, Name: ${displayName}`);
       const { data: inserted, error: insErr } = await supabase
         .from("customers")
         .insert({ email: authorEmail, full_name: displayName, organization_id })
@@ -149,6 +170,9 @@ serve(async (req: Request) => {
         .single();
       if (insErr) throw insErr;
       customer_id = inserted.id;
+      console.log(`[SendGrid-Inbound] Created customer with ID: ${customer_id}`);
+    } else {
+      console.log(`[SendGrid-Inbound] Found existing customer with ID: ${customer_id}`);
     }
 
     // Find or create conversation by thread key
@@ -163,6 +187,7 @@ serve(async (req: Request) => {
 
     let conversation_id = existingConv?.id as string | null;
     if (!conversation_id) {
+      console.log(`[SendGrid-Inbound] Creating new conversation - Thread: ${threadKey}, Subject: ${subject}`);
       const { data: convIns, error: convErr } = await supabase
         .from("conversations")
         .insert({
@@ -178,6 +203,9 @@ serve(async (req: Request) => {
         .single();
       if (convErr) throw convErr;
       conversation_id = convIns.id;
+      console.log(`[SendGrid-Inbound] Created conversation with ID: ${conversation_id}`);
+    } else {
+      console.log(`[SendGrid-Inbound] Found existing conversation with ID: ${conversation_id}`);
     }
 
     // Insert message
@@ -185,6 +213,8 @@ serve(async (req: Request) => {
     const contentType = html ? "html" : (text ? "text" : "html");
 
     const headersObj = headersRaw ? { raw: headersRaw } : null;
+    console.log(`[SendGrid-Inbound] Inserting message - Content type: ${contentType}, Length: ${contentHtml.length}`);
+    
     const { error: msgErr } = await supabase
       .from("messages")
       .insert({
@@ -199,9 +229,10 @@ serve(async (req: Request) => {
       });
     if (msgErr) throw msgErr;
 
+    console.log(`[SendGrid-Inbound] Successfully processed email - Conversation: ${conversation_id}, Customer: ${customer_id}`);
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
-    console.error("sendgrid-inbound error", error);
+    console.error(`[SendGrid-Inbound] Error processing webhook:`, error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
