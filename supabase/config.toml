@@ -70,5 +70,8 @@ verify_jwt = true
 [functions.test-basic]
 verify_jwt = false
 
+[functions.sendgrid-inbound]
+verify_jwt = false
+
 [functions.test-aircall-webhook]
 verify_jwt = false

@@ -148,9 +148,9 @@ serve(async (req: Request) => {
       authorRaw = replyToRaw || xOriginalFromRaw || authorEmail;
     }
     
-    console.log(`[SendGrid-Inbound] Final author determination - Email: ${authorEmail}, Display: ${displayName}`);
-
     const displayName = (authorRaw?.replace(/<[^>]+>/g, '').replace(/"/g, '').replace(/\s+via\s+.*/i, '').trim()) || (authorEmail?.split('@')[0] || '');
+    
+    console.log(`[SendGrid-Inbound] Final author determination - Email: ${authorEmail}, Display: ${displayName}`);
 
     // Find or create customer using the detected author
     const { data: customerExisting } = await supabase
