@@ -66,7 +66,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   return (
     <ConversationViewProvider conversationId={conversationId}>
-      <div className="flex-1 min-h-0 w-full grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 bg-background">
+      <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
         {/* Main Conversation Column */}
         <div className="flex flex-col min-h-0 w-full bg-background">
           {/* Conversation Header */}
@@ -134,15 +134,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
 
-        {/* Sidebar Column (Desktop only) - Customer data shown in ConversationSidebar */}
-        <div className="hidden lg:flex flex-col bg-muted border-l border-border overflow-auto min-h-0">
-          <div className="p-4 space-y-4">
-            {/* Customer data is handled by ConversationSidebar component */}
-            <div className="text-sm text-muted-foreground">
-              Additional conversation details and actions would go here
-            </div>
-          </div>
-        </div>
       </div>
     </ConversationViewProvider>
   );
