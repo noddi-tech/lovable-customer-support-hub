@@ -216,12 +216,24 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
 
   // Use ONLY ui_meta data for rendering - no fallbacks to old structure
   const payload = data;
+  
+  // Debug logging for payload verification
+  console.info("[Noddi] payload", {
+    source: payload?.source,
+    version: payload?.data?.ui_meta?.version,
+    order_tags: payload?.data?.ui_meta?.order_tags,
+    keys: Object.keys(payload?.data?.ui_meta ?? {})
+  });
+  
   const src = payload?.source; // "cache" | "live"
   const m = payload?.data?.ui_meta;
   const version = m?.version || "1.0";
   
-  // Numerical version comparison to avoid lexicographic traps
-  const verNum = (v: string) => Number((v.split("noddi-edge-")[1] ?? "0").split(".").slice(0,2).join("."));
+  // Numeric-safe version parser
+  const verNum = (v?: string) => {
+    const match = /noddi-edge-(\d+)\.(\d+)/.exec(v ?? "");
+    return match ? Number(`${match[1]}.${match[2]}`) : 0;
+  };
   const showV13 = verNum(version) >= 1.3;
   const showV14 = verNum(version) >= 1.4;
   
@@ -252,10 +264,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   
   // Enhanced fields (version gated)
   const urls = showV13 ? (m?.partner_urls) : undefined;
-  const order = showV13 ? (m?.order_summary ?? null) : null;
+  const order = m?.order_summary;
   const vehicleLabel = showV13 ? m?.vehicle_label : null;
   const serviceTitle = showV13 ? m?.service_title : null;
-  const tags: string[] = showV14 ? (m?.order_tags ?? []) : [];
+  const tags: string[] = Array.isArray(m?.order_tags) ? m.order_tags : [];
   
   // Order summary logic - only show when real lines exist
   const hasLines = !!(order && Array.isArray(order.lines) && order.lines.length > 0);
