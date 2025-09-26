@@ -100,12 +100,13 @@ serve(async (req) => {
       console.log('Cache table not available, proceeding with API call');
     }
 
-    // Step 2: Lookup user by email
+    // Step 2: Lookup user by email - try different authentication methods
     console.log('Fetching user from Noddi API');
     console.log('API Key present:', !!noddihApiKey);
     console.log('API Key length:', noddihApiKey?.length);
     
-    const userResponse = await fetch(`https://api.noddi.no/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, {
+    // Try the original format first
+    let userResponse = await fetch(`https://api.noddi.no/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, {
       headers: {
         'Authorization': `ApiKey ${noddihApiKey}`,
         'Accept': 'application/json',
@@ -113,10 +114,46 @@ serve(async (req) => {
       }
     });
     
-    console.log('Response status:', userResponse.status);
+    console.log('Response status (ApiKey format):', userResponse.status);
+    
+    // If that fails with 401/403, try different authentication formats
+    if (userResponse.status === 401 || userResponse.status === 403) {
+      console.log('Trying Bearer token format...');
+      userResponse = await fetch(`https://api.noddi.no/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, {
+        headers: {
+          'Authorization': `Bearer ${noddihApiKey}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Response status (Bearer format):', userResponse.status);
+      
+      // If still failing, try X-API-Key header
+      if (userResponse.status === 401 || userResponse.status === 403) {
+        console.log('Trying X-API-Key header format...');
+        userResponse = await fetch(`https://api.noddi.no/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, {
+          headers: {
+            'X-API-Key': noddihApiKey,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Response status (X-API-Key format):', userResponse.status);
+      }
+    }
+    
+    console.log('Final response status:', userResponse.status);
     console.log('Response headers:', Object.fromEntries(userResponse.headers.entries()));
 
     if (!userResponse.ok) {
+      // Log the full error response for debugging
+      const errorText = await userResponse.text();
+      console.log('Error response body:', errorText);
+      console.log('Error response status:', userResponse.status);
+      console.log('Error response statusText:', userResponse.statusText);
+      
       if (userResponse.status === 404) {
         return new Response(
           JSON.stringify({ error: 'Customer not found in Noddi system', notFound: true }), 
@@ -129,7 +166,19 @@ serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      throw new Error(`Noddi API error: ${userResponse.status} ${userResponse.statusText}`);
+      // Return detailed error information for debugging
+      return new Response(
+        JSON.stringify({ 
+          error: `Noddi API error: ${userResponse.status} ${userResponse.statusText}`,
+          details: errorText,
+          debug: {
+            status: userResponse.status,
+            statusText: userResponse.statusText,
+            headers: Object.fromEntries(userResponse.headers.entries())
+          }
+        }), 
+        { status: userResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const noddihUser: NoddihUser = await userResponse.json();
