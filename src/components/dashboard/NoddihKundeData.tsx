@@ -243,7 +243,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   };
 
   // Extract display values using helpers
-  const customerName = displayName(noddihCustomer, noddihCustomer.email);
+  const customerName = displayName(noddihCustomer, noddihCustomer.email, priorityBooking);
   const priorityBookingDate = priorityBooking ? isoFromBooking(priorityBooking, priorityBookingType) : undefined;
   const priorityBookingStatus = priorityBooking ? statusLabel(priorityBooking.status) : 'Unknown';
   const customerLanguage = statusLabel(noddihCustomer?.language);

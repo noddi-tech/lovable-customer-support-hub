@@ -9,14 +9,31 @@ const STATUS_CODE_MAP: Record<number, string> = {
   // add/adjust to your enum if needed
 };
 
-export function displayName(user?: any, email?: string): string {
-  const direct =
-    user?.name && String(user.name).trim()
-      ? String(user.name).trim()
-      : [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
-
+export function displayName(user?: any, email?: string, priorityBooking?: any): string {
+  // Try user.name first
+  const direct = user?.name && String(user.name).trim()
+    ? String(user.name).trim()
+    : null;
+  
   if (direct) return direct;
 
+  // Try first_name + last_name (expected structure)
+  const fn1 = (user?.first_name || "").trim();
+  const ln1 = (user?.last_name || "").trim();
+  const fromParts1 = [fn1, ln1].filter(Boolean).join(" ").trim();
+  if (fromParts1) return fromParts1;
+
+  // Try firstName + lastName (current structure)  
+  const fn2 = (user?.firstName || "").trim();
+  const ln2 = (user?.lastName || "").trim();
+  const fromParts2 = [fn2, ln2].filter(Boolean).join(" ").trim();
+  if (fromParts2) return fromParts2;
+
+  // Try priority booking customer/user name
+  const pbName = priorityBooking?.customer?.name || priorityBooking?.user?.name || "";
+  if (pbName && String(pbName).trim()) return String(pbName).trim();
+
+  // Fallback to email prefix
   const fallback = (email || "").split("@")[0];
   return fallback || "Unknown Name";
 }

@@ -223,7 +223,7 @@ serve(async (req) => {
       }
     }
 
-    // Step 6: Check for unpaid bookings
+    // Step 6: Check for unpaid bookings with proper filtering
     console.log('Checking for unpaid bookings');
     let pendingBookings: NoddihBooking[] = [];
     
@@ -236,10 +236,70 @@ serve(async (req) => {
 
     if (unpaidResponse.ok) {
       const allUnpaidBookings: NoddihBooking[] = await unpaidResponse.json();
-      // Filter to only this user group's bookings (this is a simplification - 
-      // in reality we'd need to check which bookings belong to this user)
-      pendingBookings = allUnpaidBookings.slice(0, 5); // Limit for demo
-      console.log(`Found ${pendingBookings.length} unpaid bookings`);
+      pendingBookings = filterUnpaidForGroup(allUnpaidBookings, selectedGroup.id);
+      console.log(`Found ${pendingBookings.length} truly unpaid bookings for group ${selectedGroup.id}`);
+    }
+
+    // Helper functions for unpaid booking filtering
+    function normalizeLabel(v: any): string {
+      return String(v ?? "").toLowerCase();
+    }
+
+    function isReallyUnpaid(x: any): boolean {
+      const label =
+        normalizeLabel(x?.status?.label) ||
+        normalizeLabel(x?.payment_status) ||
+        normalizeLabel(x?.payment?.status);
+
+      const unpaidLabels = ["unpaid", "pending", "requires payment", "requires_payment", "overdue"];
+      const hasUnpaidLabel = unpaidLabels.includes(label);
+      const booleanUnpaid = x?.is_paid === false || x?.paid === false;
+      const amountUnpaid = (Number(x?.amount_due) || 0) > 0 || (Number(x?.balance) || 0) > 0;
+
+      const cancelled =
+        normalizeLabel(x?.status?.label) === "cancelled" ||
+        normalizeLabel(x?.state) === "cancelled" ||
+        x?.cancelled === true;
+
+      return !cancelled && (hasUnpaidLabel || booleanUnpaid || amountUnpaid);
+    }
+
+    function extractGroupId(x: any): number | null {
+      return (
+        (x?.user_group_id != null ? Number(x.user_group_id) : null) ??
+        (x?.user_group?.id != null ? Number(x.user_group.id) : null) ??
+        (x?.booking?.user_group_id != null ? Number(x.booking.user_group_id) : null) ??
+        (x?.booking?.user_group?.id != null ? Number(x.booking.user_group.id) : null) ??
+        null
+      );
+    }
+
+    function extractBookingId(x: any): number | null {
+      return (
+        (x?.id != null ? Number(x.id) : null) ??
+        (x?.booking_id != null ? Number(x.booking_id) : null) ??
+        (x?.booking?.id != null ? Number(x.booking.id) : null) ??
+        null
+      );
+    }
+
+    function filterUnpaidForGroup(unpaid: any[], ugid: number): any[] {
+      const seen = new Set<number>();
+      const result: any[] = [];
+
+      for (const item of unpaid || []) {
+        const gid = extractGroupId(item);
+        if (gid !== Number(ugid)) continue;
+
+        if (!isReallyUnpaid(item)) continue;
+
+        const bid = extractBookingId(item) ?? -1;
+        if (bid >= 0 && seen.has(bid)) continue;
+        if (bid >= 0) seen.add(bid);
+
+        result.push(item);
+      }
+      return result;
     }
 
     // Step 7: Prepare response data
