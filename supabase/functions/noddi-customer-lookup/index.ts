@@ -8,7 +8,9 @@ const corsHeaders = {
 
 interface NoddihCustomerLookupRequest {
   email: string;
-  customerId: string;
+  customerId?: string;
+  organizationId?: string;
+  forceRefresh?: boolean;
 }
 
 interface NoddihUser {
@@ -46,11 +48,11 @@ serve(async (req) => {
   }
 
   try {
-    const { email, customerId }: NoddihCustomerLookupRequest = await req.json();
+    const { email, customerId, organizationId, forceRefresh }: NoddihCustomerLookupRequest = await req.json();
     
-    if (!email) {
+    if (!email || !organizationId) {
       return new Response(
-        JSON.stringify({ error: 'Email is required' }), 
+        JSON.stringify({ error: 'Email and organization ID are required' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -70,34 +72,39 @@ serve(async (req) => {
 
     console.log(`Starting Noddi lookup for email: ${email}`);
 
-    // Step 1: Check cache first (30-minute TTL)
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-    
-    try {
-      const { data: cachedData } = await supabase
-        .from('noddi_customer_cache')
-        .select('*')
-        .eq('email', email)
-        .gte('last_refreshed_at', thirtyMinutesAgo)
-        .maybeSingle();
+    // Step 1: Check cache first (30-minute TTL) unless force refresh is requested
+    if (!forceRefresh) {
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      
+      try {
+        const { data: cachedData } = await supabase
+          .from('noddi_customer_cache')
+          .select('*')
+          .eq('email', email)
+          .eq('organization_id', organizationId)
+          .gte('last_refreshed_at', thirtyMinutesAgo)
+          .maybeSingle();
 
-      if (cachedData) {
-        console.log('Returning cached Noddi data');
-        return new Response(
-          JSON.stringify({
-            cached: true,
-            customer: cachedData.cached_customer_data,
-            priorityBooking: cachedData.cached_priority_booking,
-            priorityBookingType: cachedData.priority_booking_type,
-            pendingBookings: cachedData.cached_pending_bookings,
-            pendingBookingsCount: cachedData.pending_bookings_count,
-            lastRefreshed: cachedData.last_refreshed_at
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        if (cachedData) {
+          console.log('Returning cached Noddi data');
+          return new Response(
+            JSON.stringify({
+              cached: true,
+              customer: cachedData.cached_customer_data,
+              priorityBooking: cachedData.cached_priority_booking,
+              priorityBookingType: cachedData.priority_booking_type,
+              pendingBookings: cachedData.cached_pending_bookings,
+              pendingBookingsCount: cachedData.pending_bookings_count,
+              lastRefreshed: cachedData.last_refreshed_at
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (error) {
+        console.log('Cache table not available, proceeding with API call');
       }
-    } catch (error) {
-      console.log('Cache table not available, proceeding with API call');
+    } else {
+      console.log('Force refresh requested, skipping cache');
     }
 
     // Step 2: Lookup user by email
@@ -261,6 +268,7 @@ serve(async (req) => {
       await supabase
         .from('noddi_customer_cache')
         .upsert({
+          organization_id: organizationId,
           customer_id: customerId,
           noddi_user_id: noddihUser.id,
           user_group_id: selectedGroup.id,

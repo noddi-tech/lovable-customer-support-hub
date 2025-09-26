@@ -44,6 +44,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     isError, 
     hasEmail, 
     hasPhoneOnly, 
+    isAuthenticated,
     refresh, 
     isRefreshing 
   } = useNoddihKundeData(customer);
@@ -122,7 +123,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No email or phone available for this customer
+              {!isAuthenticated 
+                ? 'Authentication required to access Noddi data'
+                : 'No email or phone available for this customer'
+              }
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -150,6 +154,14 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   }
 
   if (isError || (data?.error && !data?.notFound)) {
+    const errorMessage = data?.rateLimited 
+      ? 'Rate limited by Noddi API. Please try again later.' 
+      : data?.error === 'Email and organization ID are required'
+        ? 'Missing required information for Noddi lookup'
+        : data?.error === 'Noddi API key not configured'
+          ? 'Noddi integration not configured'
+          : error?.message || data?.error || 'Failed to load Noddi data';
+    
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -170,9 +182,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              {data?.rateLimited 
-                ? 'Rate limited by Noddi API. Please try again later.' 
-                : error?.message || data?.error || 'Failed to load Noddi data'}
+              {errorMessage}
             </AlertDescription>
           </Alert>
         </CardContent>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NoddihCustomer {
   noddiUserId: number;
@@ -47,11 +48,12 @@ interface Customer {
 
 export const useNoddihKundeData = (customer: Customer | null) => {
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   const lookupQuery = useQuery({
-    queryKey: ['noddi-customer-lookup', customer?.email],
+    queryKey: ['noddi-customer-lookup', customer?.email, profile?.organization_id],
     queryFn: async (): Promise<NoddihLookupResponse | null> => {
-      if (!customer?.email) {
+      if (!customer?.email || !profile?.organization_id) {
         return null;
       }
 
@@ -60,7 +62,8 @@ export const useNoddihKundeData = (customer: Customer | null) => {
       const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
         body: {
           email: customer.email,
-          customerId: customer.id
+          customerId: customer.id,
+          organizationId: profile.organization_id
         }
       });
 
@@ -71,7 +74,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
 
       return data as NoddihLookupResponse;
     },
-    enabled: !!customer?.email,
+    enabled: !!customer?.email && !!profile?.organization_id,
     staleTime: 30 * 60 * 1000, // 30 minutes
     gcTime: 60 * 60 * 1000, // 1 hour
     retry: (failureCount, error) => {
@@ -85,8 +88,8 @@ export const useNoddihKundeData = (customer: Customer | null) => {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      if (!customer?.email) {
-        throw new Error('No customer email available');
+      if (!customer?.email || !profile?.organization_id) {
+        throw new Error('Customer email and organization ID are required');
       }
 
       // Force fresh lookup by bypassing cache
@@ -94,6 +97,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
         body: {
           email: customer.email,
           customerId: customer.id,
+          organizationId: profile.organization_id,
           forceRefresh: true
         }
       });
@@ -106,7 +110,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
     },
     onSuccess: (data) => {
       // Update the cache with fresh data
-      queryClient.setQueryData(['noddi-customer-lookup', customer?.email], data);
+      queryClient.setQueryData(['noddi-customer-lookup', customer?.email, profile?.organization_id], data);
       toast.success('Noddi customer data refreshed');
     },
     onError: (error) => {
@@ -117,6 +121,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
 
   const hasEmail = !!customer?.email;
   const hasPhoneOnly = !!customer?.phone && !customer?.email;
+  const isAuthenticated = !!profile?.organization_id;
   
   return {
     data: lookupQuery.data,
@@ -125,6 +130,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
     isError: lookupQuery.isError,
     hasEmail,
     hasPhoneOnly,
+    isAuthenticated,
     refresh: refreshMutation.mutate,
     isRefreshing: refreshMutation.isPending,
     customer
