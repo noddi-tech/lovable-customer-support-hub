@@ -257,6 +257,9 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   const serviceTitle = showV13 ? m?.service_title : null;
   const tags: string[] = showV14 ? (m?.order_tags ?? []) : [];
   
+  // Order summary logic - only show when real lines exist
+  const hasLines = !!(order && Array.isArray(order.lines) && order.lines.length > 0);
+  
   // Type-safe access to urls
   const customerUrl = urls?.customer_url || null;
   const bookingUrl = urls?.booking_url || null;
@@ -358,26 +361,29 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
             <div className="mt-1 text-sm">
               {serviceTitle || "N/A"}{vehicleLabel ? ` — ${vehicleLabel}` : ""}
             </div>
-            
-            {/* Order tags for v1.4+ */}
-            {showV14 && tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {tags.map(tag => (
-                  <span
-                    key={tag}
-                    className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground/80"
-                    title={tag}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
+          </div>
+        )}
+
+        {/* Order tags for v1.4+ - show independently */}
+        {showV14 && tags.length > 0 && (
+          <div className="mt-4 rounded-xl border p-3">
+            <div className="text-sm font-medium">Service Tags</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {tags.map(tag => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground/80"
+                  title={tag}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Order summary - only show for v1.3+ and when we have real lines */}
-        {showV13 && order && Array.isArray(order.lines) && order.lines.length > 0 && (
+        {showV13 && hasLines && (
           <div className="mt-4 rounded-xl border p-3">
             <div className="text-sm font-medium">Order Summary</div>
             <div className="mt-2 space-y-1">
