@@ -62,10 +62,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Noddi Customer Data
-          </CardTitle>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Noddi Customer Data
+        </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">No customer selected</p>
@@ -78,10 +78,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Noddi Customer Data
-          </CardTitle>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Noddi Customer Data
+        </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
@@ -114,10 +114,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Noddi Customer Data
-          </CardTitle>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Noddi Customer Data
+        </CardTitle>
         </CardHeader>
         <CardContent>
           <Alert>
@@ -138,10 +138,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Noddi Customer Data
-          </CardTitle>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Noddi Customer Data
+        </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-4 w-full" />
@@ -246,14 +246,19 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   const customerName = displayName(noddihCustomer, noddihCustomer.email);
   const priorityBookingDate = priorityBooking ? isoFromBooking(priorityBooking, priorityBookingType) : undefined;
   const priorityBookingStatus = priorityBooking ? statusLabel(priorityBooking.status) : 'Unknown';
-  const customerLanguage = statusLabel(noddihCustomer.language);
+  const customerLanguage = statusLabel(noddihCustomer?.language);
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg flex items-center gap-2">
           <User className="h-5 w-5" />
-          Noddi Customer Data
+          {customerName}
+          {noddihCustomer.userGroupId != null && (
+            <Badge variant="outline" className="text-xs">
+              ID: {noddihCustomer.userGroupId}
+            </Badge>
+          )}
         </CardTitle>
         <div className="flex items-center gap-2">
           {data.cached && (
@@ -278,9 +283,6 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{customerName}</span>
-            <Badge variant="outline" className="text-xs">
-              ID: {noddihCustomer.noddiUserId}
-            </Badge>
           </div>
           
           <div className="grid grid-cols-1 gap-2 text-sm">
