@@ -43,8 +43,8 @@ export const createDynamicStyle = (properties: Record<string, string>) => {
 
 export const hsl = (value: string) => `hsl(${value})`;
 
-// Helper for getting component-specific styles
-export const getButtonStyles = (variant: 'primary' | 'secondary' = 'primary') => {
+// Helper hooks for getting component-specific styles
+export const useButtonStyles = (variant: 'primary' | 'secondary' = 'primary') => {
   const { designSystem } = useDesignSystem();
   const colors = designSystem.colors;
   const components = designSystem.components;
@@ -69,7 +69,7 @@ export const getButtonStyles = (variant: 'primary' | 'secondary' = 'primary') =>
   };
 };
 
-export const getCardStyles = () => {
+export const useCardStyles = () => {
   const { designSystem } = useDesignSystem();
   const colors = designSystem.colors;
   const components = designSystem.components;

@@ -1,13 +1,13 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
-import { getCardStyles } from "@/hooks/useDesignSystemValues"
+import { useCardStyles } from "@/hooks/useDesignSystemValues"
 
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const cardStyles = getCardStyles();
+  const cardStyles = useCardStyles();
   
   return (
     <div
