@@ -233,7 +233,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
         }).format(d);
   })();
 
+  const matchMode = meta?.match_mode || "email";
+  const conflict = meta?.conflict || false;
   const unpaidCount = meta?.unpaid_count || 0;
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -261,6 +264,14 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           )}
           {src === "cache" && (
             <span className="ml-2 text-xs text-muted-foreground">Cached</span>
+          )}
+          <span className="ml-2 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+            Matched by {matchMode === "phone" ? "Phone" : "Email"}
+          </span>
+          {conflict && (
+            <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800">
+              Conflict
+            </span>
           )}
         </h3>
 

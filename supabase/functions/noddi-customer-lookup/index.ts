@@ -16,20 +16,23 @@ export type NoddiLookupResponse = {
     priority_booking: any;
     unpaid_count: number;
     unpaid_bookings: any[];
-    ui_meta: {
-      display_name: string;
-      user_group_badge: number | null;
-      unpaid_count: number;
-      status_label: string | null;
-      booking_date_iso: string | null;
-      version: string;
-      source: "cache" | "live";
-    };
+      ui_meta: {
+        display_name: string;
+        user_group_badge: number | null;
+        unpaid_count: number;
+        status_label: string | null;
+        booking_date_iso: string | null;
+        match_mode: "phone" | "email";
+        conflict: boolean;
+        version: string;
+        source: "cache" | "live";
+      };
   };
 };
 
 interface NoddihCustomerLookupRequest {
-  email: string;
+  email?: string;
+  phone?: string;
   customerId?: string;
   organizationId?: string;
   forceRefresh?: boolean;
@@ -195,6 +198,47 @@ function filterUnpaidForGroup(unpaid: any[], ugid: number): any[] {
   return result;
 }
 
+async function getUserByEmail(email: string) {
+  const encodedEmail = encodeURIComponent(email);
+  const noddihApiKey = Deno.env.get('NODDI_API_KEY');
+  const response = await fetch(`https://api.noddi.no/v1/users/get-by-email/?email=${encodedEmail}`, {
+    headers: {
+      'Authorization': `Api-Key ${noddihApiKey}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Email lookup failed: ${response.status}`);
+  return await response.json();
+}
+
+function sanitizePhone(raw?: string): string | null {
+  if (!raw) return null;
+  // keep digits and a leading '+'
+  const trimmed = raw.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/[^\d+]/g, "");
+  return hasPlus ? digits : digits; // server parses it; prefer E.164 (+47...)
+}
+
+async function getUserByPhone(phone: string) {
+  const encodedPhone = encodeURIComponent(phone);
+  const noddihApiKey = Deno.env.get('NODDI_API_KEY');
+  const response = await fetch(`https://api.noddi.no/v1/users/get-by-phone-number/?phone_number=${encodedPhone}`, {
+    headers: {
+      'Authorization': `Api-Key ${noddihApiKey}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Phone lookup failed: ${response.status}`);
+  return await response.json();
+}
+
 function buildResponse(params: {
   source: "cache" | "live";
   ttl_seconds: number;
@@ -264,6 +308,8 @@ function buildResponse(params: {
         unpaid_count: safeUnpaidCount,
         status_label: status_label_computed,
         booking_date_iso,
+        match_mode: "email" as "phone" | "email",
+        conflict: false,
         version: "noddi-edge-1.2",
         source
       }
@@ -305,6 +351,8 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
         unpaid_count: Number(cacheRow?.pending_bookings_count ?? 0),
         status_label: status_label_computed,
         booking_date_iso,
+        match_mode: cacheRow?.phone ? "phone" as const : "email" as const,
+        conflict: false,
         version: "noddi-edge-1.2",
         source: "cache" as const,
       }
@@ -318,10 +366,19 @@ serve(async (req) => {
   }
 
   try {
-    const { email, customerId, organizationId, forceRefresh }: NoddihCustomerLookupRequest = await req.json();
+    const body = await req.json() as NoddihCustomerLookupRequest;
     
-    if (!email || !organizationId) {
-      return json({ error: 'Email and organization ID are required' }, 400);
+    const phone = sanitizePhone(body.phone);
+    const email = (body.email || "").trim().toLowerCase();
+    
+    if (!phone && !email) {
+      console.error('Missing required fields:', { email: !!email, phone: !!phone, organizationId: !!body.organizationId });
+      return json({ error: 'Either email or phone number is required' }, 400);
+    }
+    
+    if (!body.organizationId) {
+      console.error('Missing organization ID');
+      return json({ error: 'Organization ID is required' }, 400);
     }
 
     const noddihApiKey = Deno.env.get('NODDI_API_KEY');
@@ -334,20 +391,26 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`Starting Noddi lookup for email: ${email}`);
+    console.log('Starting Noddi lookup for:', { email, phone });
 
     // Step 1: Check cache first unless force refresh is requested
-    if (!forceRefresh) {
+    if (!body.forceRefresh) {
       const cacheExpiry = new Date(Date.now() - CACHE_TTL_SECONDS * 1000).toISOString();
       
+      let cacheQuery = supabase
+        .from('noddi_customer_cache')
+        .select('*')
+        .eq('organization_id', body.organizationId)
+        .gte('last_refreshed_at', cacheExpiry);
+      
+      if (phone) {
+        cacheQuery = cacheQuery.eq('phone', phone);
+      } else if (email) {
+        cacheQuery = cacheQuery.eq('email', email);
+      }
+      
       try {
-        const { data: cachedData } = await supabase
-          .from('noddi_customer_cache')
-          .select('*')
-          .eq('email', email)
-          .eq('organization_id', organizationId)
-          .gte('last_refreshed_at', cacheExpiry)
-          .maybeSingle();
+        const { data: cachedData } = await cacheQuery.maybeSingle();
 
         if (cachedData) {
           console.log('Returning cached Noddi data');
@@ -355,7 +418,7 @@ serve(async (req) => {
           const cacheAge = Math.floor((Date.now() - new Date(cachedData.last_refreshed_at).getTime()) / 1000);
           const remainingTtl = Math.max(0, CACHE_TTL_SECONDS - cacheAge);
           
-          return json(mapCacheRowToUnified(cachedData, email, remainingTtl));
+          return json(mapCacheRowToUnified(cachedData, email || phone || '', remainingTtl));
         }
       } catch (error) {
         console.log('Cache table not available, proceeding with API call');
@@ -364,75 +427,98 @@ serve(async (req) => {
       console.log('Force refresh requested, skipping cache');
     }
 
-    // Step 2: Lookup user by email
+    // Step 2: Lookup user (phone first, email fallback)
     console.log('Fetching user from Noddi API');
-    
-    const userResponse = await fetch(`https://api.noddi.no/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, {
-      headers: {
-        'Authorization': `Api-Key ${noddihApiKey}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+    let user: any | null = null;
+    let lookupKeyForCache: string | null = null;
+    let lookupMode: "phone" | "email" = "email";
+    let conflict = false;
+
+    if (phone) {
+      try {
+        user = await getUserByPhone(phone);
+        lookupMode = "phone";
+        lookupKeyForCache = phone;
+        console.log('Phone lookup result:', user ? 'found' : 'not found');
+      } catch (error) {
+        console.log('Phone lookup failed:', error);
       }
-    });
+    }
     
-    console.log('Response status:', userResponse.status);
-
-    if (!userResponse.ok) {
-      if (userResponse.status === 404) {
-        // Store negative cache
-        try {
-          await supabase
-            .from('noddi_customer_cache')
-            .upsert({
-              organization_id: organizationId,
-              customer_id: customerId,
-              noddi_user_id: -1,
-              user_group_id: null,
-              email: email,
-              last_refreshed_at: new Date().toISOString(),
-              priority_booking_id: null,
-              priority_booking_type: null,
-              pending_bookings_count: 0,
-              cached_customer_data: {},
-              cached_priority_booking: null,
-              cached_pending_bookings: []
-            }, {
-              onConflict: 'email'
-            });
-        } catch {}
-
-        return json({
-          ok: false,
-          source: "live",
-          ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
-          data: {
-            found: false,
-            email,
-            noddi_user_id: null,
+    if (!user && email) {
+      try {
+        user = await getUserByEmail(email);
+        if (user && phone) {
+          // Check if this is a different user than phone lookup would have found
+          lookupMode = "email";
+          // Could implement conflict detection here if needed
+        } else if (user) {
+          lookupMode = "email";
+        }
+        if (!lookupKeyForCache) lookupKeyForCache = email;
+        console.log('Email lookup result:', user ? 'found' : 'not found');
+      } catch (error) {
+        console.log('Email lookup failed:', error);
+      }
+    }
+    
+    if (!user) {
+      console.log('No user found for:', { email, phone });
+      
+      // Store negative cache entry
+      try {
+        await supabase
+          .from('noddi_customer_cache')
+          .upsert({
+            organization_id: body.organizationId,
+            customer_id: body.customerId,
+            email: email || null,
+            phone: phone || null,
+            noddi_user_id: -1,
             user_group_id: null,
-            user: null,
+            last_refreshed_at: new Date().toISOString(),
+            priority_booking_id: null,
             priority_booking_type: null,
-            priority_booking: null,
+            pending_bookings_count: 0,
+            cached_customer_data: {},
+            cached_priority_booking: null,
+            cached_pending_bookings: []
+          }, {
+            onConflict: phone ? 'phone' : 'email'
+          });
+      } catch {}
+
+      return json({
+        ok: false,
+        source: "live",
+        ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
+        data: {
+          found: false,
+          email: email || "",
+          noddi_user_id: null,
+          user_group_id: null,
+          user: null,
+          priority_booking_type: null,
+          priority_booking: null,
+          unpaid_count: 0,
+          unpaid_bookings: [],
+          ui_meta: {
+            display_name: email ? email.split("@")[0] : "Unknown Name",
+            user_group_badge: null,
             unpaid_count: 0,
-            unpaid_bookings: [],
-            ui_meta: {
-              display_name: email.split("@")[0] || "Unknown Name",
-              user_group_badge: null,
-              unpaid_count: 0,
-              version: "noddi-edge-1.1",
-              source: "live"
-            }
-          },
-          notFound: true
-        });
-      }
-      if (userResponse.status === 429) {
-        return json({ error: 'Rate limited by Noddi API. Please try again later.', rateLimited: true }, 429);
-      }
-      throw new Error(`Noddi API error: ${userResponse.status} ${userResponse.statusText}`);
+            status_label: null,
+            booking_date_iso: null,
+            match_mode: lookupMode,
+            conflict: false,
+            version: "noddi-edge-1.2",
+            source: "live"
+          }
+        },
+        notFound: true
+      });
     }
 
-    const noddihUser: NoddihUser = await userResponse.json();
+    const noddihUser = user;
     console.log(`Found Noddi user: ${noddihUser.id}`);
 
     // Step 3: Get user groups
@@ -552,8 +638,8 @@ serve(async (req) => {
       await supabase
         .from('noddi_customer_cache')
         .upsert({
-          organization_id: organizationId,
-          customer_id: customerId,
+          organization_id: body.organizationId,
+          customer_id: body.customerId,
           noddi_user_id: noddihUser.id,
           user_group_id: selectedGroup.id,
           email: email,

@@ -46,6 +46,8 @@ export type NoddiLookupResponse = {
       unpaid_count: number;
       status_label: string | null;
       booking_date_iso: string | null;
+      match_mode: "phone" | "email";
+      conflict: boolean;
       version: string;
       source: "cache" | "live";
     };
@@ -68,17 +70,18 @@ export const useNoddihKundeData = (customer: Customer | null) => {
   const { profile } = useAuth();
 
   const lookupQuery = useQuery({
-    queryKey: ['noddi-customer-lookup', customer?.email, profile?.organization_id],
+    queryKey: ['noddi-customer-lookup', customer?.email, customer?.phone, profile?.organization_id],
     queryFn: async (): Promise<NoddiLookupResponse | null> => {
-      if (!customer?.email || !profile?.organization_id) {
+      if ((!customer?.email && !customer?.phone) || !profile?.organization_id) {
         return null;
       }
 
-      console.log('Looking up Noddi customer data for:', customer.email);
+      console.log('Looking up Noddi customer data for:', { email: customer.email, phone: customer.phone });
       
       const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
         body: {
           email: customer.email,
+          phone: customer.phone,
           customerId: customer.id,
           organizationId: profile.organization_id
         }
@@ -91,7 +94,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
 
       return data as NoddiLookupResponse;
     },
-    enabled: !!customer?.email && !!profile?.organization_id,
+    enabled: (!!customer?.email || !!customer?.phone) && !!profile?.organization_id,
     staleTime: 30 * 60 * 1000, // 30 minutes
     gcTime: 60 * 60 * 1000, // 1 hour
     retry: (failureCount, error) => {
@@ -105,14 +108,15 @@ export const useNoddihKundeData = (customer: Customer | null) => {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      if (!customer?.email || !profile?.organization_id) {
-        throw new Error('Customer email and organization ID are required');
+      if ((!customer?.email && !customer?.phone) || !profile?.organization_id) {
+        throw new Error('Customer email/phone and organization ID are required');
       }
 
       // Force fresh lookup by bypassing cache
       const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
         body: {
           email: customer.email,
+          phone: customer.phone,
           customerId: customer.id,
           organizationId: profile.organization_id,
           forceRefresh: true
@@ -127,7 +131,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
     },
     onSuccess: (data) => {
       // Update the cache with fresh data
-      queryClient.setQueryData(['noddi-customer-lookup', customer?.email, profile?.organization_id], data);
+      queryClient.setQueryData(['noddi-customer-lookup', customer?.email, customer?.phone, profile?.organization_id], data);
       toast.success('Noddi customer data refreshed');
     },
     onError: (error) => {

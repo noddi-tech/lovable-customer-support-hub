@@ -984,6 +984,7 @@ export type Database = {
           noddi_user_id: number | null
           organization_id: string
           pending_bookings_count: number | null
+          phone: string | null
           priority_booking_id: number | null
           priority_booking_type: string | null
           updated_at: string
@@ -1001,6 +1002,7 @@ export type Database = {
           noddi_user_id?: number | null
           organization_id: string
           pending_bookings_count?: number | null
+          phone?: string | null
           priority_booking_id?: number | null
           priority_booking_type?: string | null
           updated_at?: string
@@ -1018,6 +1020,7 @@ export type Database = {
           noddi_user_id?: number | null
           organization_id?: string
           pending_bookings_count?: number | null
+          phone?: string | null
           priority_booking_id?: number | null
           priority_booking_type?: string | null
           updated_at?: string
