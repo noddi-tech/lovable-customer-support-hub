@@ -234,8 +234,11 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
+  const getStatusColor = (status: string | undefined | null) => {
+    if (!status || typeof status !== 'string') {
+      return 'bg-gray-100 text-gray-800';
+    }
+    switch (status.toLowerCase()) {
       case 'confirmed':
       case 'completed':
         return 'bg-green-100 text-green-800';
