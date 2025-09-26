@@ -971,6 +971,60 @@ export type Database = {
         }
         Relationships: []
       }
+      noddi_customer_cache: {
+        Row: {
+          cached_customer_data: Json | null
+          cached_pending_bookings: Json | null
+          cached_priority_booking: Json | null
+          created_at: string
+          customer_id: string | null
+          email: string
+          id: string
+          last_refreshed_at: string
+          noddi_user_id: number | null
+          organization_id: string
+          pending_bookings_count: number | null
+          priority_booking_id: number | null
+          priority_booking_type: string | null
+          updated_at: string
+          user_group_id: number | null
+        }
+        Insert: {
+          cached_customer_data?: Json | null
+          cached_pending_bookings?: Json | null
+          cached_priority_booking?: Json | null
+          created_at?: string
+          customer_id?: string | null
+          email: string
+          id?: string
+          last_refreshed_at?: string
+          noddi_user_id?: number | null
+          organization_id: string
+          pending_bookings_count?: number | null
+          priority_booking_id?: number | null
+          priority_booking_type?: string | null
+          updated_at?: string
+          user_group_id?: number | null
+        }
+        Update: {
+          cached_customer_data?: Json | null
+          cached_pending_bookings?: Json | null
+          cached_priority_booking?: Json | null
+          created_at?: string
+          customer_id?: string | null
+          email?: string
+          id?: string
+          last_refreshed_at?: string
+          noddi_user_id?: number | null
+          organization_id?: string
+          pending_bookings_count?: number | null
+          priority_booking_id?: number | null
+          priority_booking_type?: string | null
+          updated_at?: string
+          user_group_id?: number | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
