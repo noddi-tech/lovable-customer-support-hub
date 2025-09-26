@@ -44,6 +44,8 @@ export type NoddiLookupResponse = {
       display_name: string;
       user_group_badge: number | null;
       unpaid_count: number;
+      status_label: string | null;
+      booking_date_iso: string | null;
       version: string;
       source: "cache" | "live";
     };

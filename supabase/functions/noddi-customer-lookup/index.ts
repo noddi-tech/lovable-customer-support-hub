@@ -20,6 +20,8 @@ export type NoddiLookupResponse = {
       display_name: string;
       user_group_badge: number | null;
       unpaid_count: number;
+      status_label: string | null;
+      booking_date_iso: string | null;
       version: string;
       source: "cache" | "live";
     };
@@ -79,35 +81,59 @@ const json = (data: any, status = 200) =>
 
 // --- Helper Functions (Top Level) ---
 
-function resolveDisplayName(params: {
-  user?: any;
-  email?: string;
-  userGroup?: any;
-  priorityBooking?: any;
-}): string {
-  const { user, email, userGroup, priorityBooking } = params;
-
-  // Priority 1: user.name
+function resolveDisplayName({ user, email, userGroup, priorityBooking }: {
+  user?: any; email?: string; userGroup?: any; priorityBooking?: any;
+}) {
   const fromUserName = (user?.name ?? "").trim();
   if (fromUserName) return fromUserName;
 
-  // Priority 2: first_name + last_name (handle both naming conventions)
   const fn = (user?.first_name ?? user?.firstName ?? "").trim();
   const ln = (user?.last_name ?? user?.lastName ?? "").trim();
-  const fromUserParts = [fn, ln].filter(Boolean).join(" ").trim();
-  if (fromUserParts) return fromUserParts;
+  const parts = [fn, ln].filter(Boolean).join(" ").trim();
+  if (parts) return parts;
 
-  // Priority 3: userGroup.name
   const fromGroup = (userGroup?.name ?? "").trim();
   if (fromGroup) return fromGroup;
 
-  // Priority 4: priorityBooking customer/user name
   const fromPB = (priorityBooking?.customer?.name ?? priorityBooking?.user?.name ?? "").trim();
   if (fromPB) return fromPB;
 
-  // Priority 5: email prefix
-  const emailPrefix = (email || "").split("@")[0];
-  return emailPrefix || "Unknown Name";
+  const prefix = (email || "").split("@")[0];
+  return prefix || "Unknown Name";
+}
+
+function statusLabel(status: any): string {
+  if (status?.label) return String(status.label);
+  const v = status?.value ?? status?.id ?? status;
+  if (typeof v === "string") return v;
+  if (typeof v === "number") {
+    const map: Record<number,string> = {1:"Draft",2:"Pending",3:"Scheduled",4:"Completed",5:"Cancelled"};
+    return map[v] || `Status ${v}`;
+  }
+  return "Unknown";
+}
+
+function pick(obj:any, ...keys:string[]) {
+  for (const k of keys) if (obj && obj[k] != null) return obj[k];
+  return undefined;
+}
+
+function primaryBookingDateIso(booking:any, type:"upcoming"|"completed"|null|undefined): string|null {
+  if (!booking) return null;
+  // Upcoming → window start first; Completed → completed_at first
+  if (type === "upcoming") {
+    return (
+      pick(booking, "delivery_window_starts_at","window_starts_at","date","starts_at","scheduled_at") || null
+    );
+  }
+  if (type === "completed") {
+    return (
+      pick(booking, "completed_at","finished_at","date","updated_at","created_at") || null
+    );
+  }
+  return (
+    pick(booking, "delivery_window_starts_at","window_starts_at","completed_at","date","updated_at","created_at") || null
+  );
 }
 
 function norm(v: any): string {
@@ -214,6 +240,10 @@ function buildResponse(params: {
     priorityBooking: priority_booking
   });
 
+  // Compute canonical fields
+  const booking_date_iso = primaryBookingDateIso(priority_booking, safePriorityBookingType);
+  const status_label_computed = priority_booking ? statusLabel(priority_booking.status ?? priority_booking.booking_status) : null;
+
   return {
     ok: true,
     source,
@@ -232,7 +262,9 @@ function buildResponse(params: {
         display_name: finalDisplayName,
         user_group_badge: safeUserGroupId,
         unpaid_count: safeUnpaidCount,
-        version: "noddi-edge-1.1",
+        status_label: status_label_computed,
+        booking_date_iso,
+        version: "noddi-edge-1.2",
         source
       }
     }
@@ -244,20 +276,40 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
   const priorityBooking = cacheRow.cached_priority_booking || null;
   const userGroup = { id: cacheRow.user_group_id, name: null };
   
-  return buildResponse({
+  // Compute canonical fields for cache path too
+  const booking_date_iso = primaryBookingDateIso(priorityBooking, cacheRow?.priority_booking_type ?? null);
+  const status_label_computed = priorityBooking ? statusLabel(priorityBooking.status ?? priorityBooking.booking_status) : null;
+  
+  return {
+    ok: true,
     source: "cache",
     ttl_seconds: remainingTtl,
-    found: cacheRow.noddi_user_id !== -1,
-    email,
-    noddi_user_id: cacheRow.noddi_user_id === -1 ? null : cacheRow.noddi_user_id,
-    user_group_id: cacheRow.user_group_id,
-    user,
-    priority_booking_type: cacheRow.priority_booking_type,
-    priority_booking: priorityBooking,
-    unpaid_count: cacheRow.pending_bookings_count || 0,
-    unpaid_bookings: cacheRow.cached_pending_bookings || [],
-    userGroup
-  });
+    data: {
+      found: cacheRow.noddi_user_id !== -1,
+      email,
+      noddi_user_id: cacheRow.noddi_user_id === -1 ? null : cacheRow.noddi_user_id,
+      user_group_id: cacheRow.user_group_id,
+      user,
+      priority_booking_type: cacheRow.priority_booking_type,
+      priority_booking: priorityBooking,
+      unpaid_count: cacheRow.pending_bookings_count || 0,
+      unpaid_bookings: cacheRow.cached_pending_bookings || [],
+      ui_meta: {
+        display_name: resolveDisplayName({
+          user, 
+          email, 
+          userGroup: { id: cacheRow.user_group_id, name: cacheRow?.customer_group_name }, 
+          priorityBooking
+        }),
+        user_group_badge: cacheRow.user_group_id,
+        unpaid_count: Number(cacheRow?.pending_bookings_count ?? 0),
+        status_label: status_label_computed,
+        booking_date_iso,
+        version: "noddi-edge-1.2",
+        source: "cache" as const,
+      }
+    }
+  };
 }
 
 serve(async (req) => {
