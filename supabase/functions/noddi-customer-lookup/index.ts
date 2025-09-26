@@ -294,11 +294,23 @@ const TAG_RULES: Array<{label: string; rx: RegExp[]}> = [
 function textFromBooking(b:any): string {
   const parts:string[] = [];
   const push = (v:any) => v && parts.push(String(v));
+  
+  // common fields
   push(b?.service?.name); push(b?.service_name); push(b?.title); push(b?.name); push(b?.description);
-  const lines = b?.order?.lines ?? b?.order_lines ?? b?.lines ?? b?.items ?? [];
+  
+  // vehicle/notes often carry service hints
+  push(b?.vehicle_label); push(b?.vehicle?.label); push(b?.vehicle?.name);
+  push(b?.car?.label); push(b?.car?.make); push(b?.car?.model); push(b?.car?.notes);
+  
+  // references / metadata
+  push(b?.booking_reference); push(b?.metadata?.summary); push(b?.notes);
+  
+  // lines across various shapes
+  const lines = b?.order?.lines ?? b?.order_lines ?? b?.lines ?? b?.items ?? b?.services ?? [];
   for (const l of (Array.isArray(lines) ? lines : [])) {
     push(l?.name); push(l?.title); push(l?.description); push(l?.type); push(l?.sku);
   }
+  
   return norm(parts.join(" • "));
 }
 
@@ -382,6 +394,33 @@ async function getUserByPhone(phone: string) {
   return await response.json();
 }
 
+// Enrichment function - fetch booking details if tags are empty
+async function enrichBookingIfNeeded(pb: any, ugid: number | null, noddihApiKey: string) {
+  let tags = extractOrderTags(pb);
+  if (tags.length > 0 || !pb?.id) return { tags, bookingForCache: pb };
+
+  try {
+    console.log(`[noddi] Enriching booking ${pb.id} - initial tags empty`);
+    const detailResponse = await fetch(`https://api.noddi.no/v1/bookings/${pb.id}/`, {
+      headers: {
+        'Authorization': `Api-Key ${noddihApiKey}`,
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (detailResponse.ok) {
+      const detail = await detailResponse.json();
+      tags = extractOrderTags(detail);
+      console.log(`[noddi] Enriched tags:`, tags);
+      return { tags, bookingForCache: detail };
+    }
+  } catch (error) {
+    console.log(`[noddi] Enrichment failed:`, error);
+  }
+  
+  return { tags, bookingForCache: pb };
+}
+
 function buildResponse(params: {
   source: "cache" | "live";
   ttl_seconds: number;
@@ -396,6 +435,7 @@ function buildResponse(params: {
   unpaid_bookings?: any[];
   display_name?: string;
   userGroup?: any;
+  enriched_order_tags?: string[]; // Add this parameter
 }): NoddiLookupResponse {
   const {
     source,
@@ -410,7 +450,8 @@ function buildResponse(params: {
     unpaid_count = 0,
     unpaid_bookings = [],
     display_name,
-    userGroup
+    userGroup,
+    enriched_order_tags
   } = params;
 
   // Guard values
@@ -435,7 +476,8 @@ function buildResponse(params: {
   const vehicle_label = extractVehicleLabel(priority_booking);
   const service_title = extractServiceTitle(priority_booking);
   const order_summary = extractOrderSummary(priority_booking);
-  const order_tags = extractOrderTags(priority_booking);
+  const order_tags = enriched_order_tags || extractOrderTags(priority_booking); // Use enriched tags if provided
+  const hasLines = Array.isArray(order_summary?.lines) && order_summary.lines.length > 0;
   const partner_urls = buildPartnerUrls(safeUserGroupId, priority_booking);
 
   return {
@@ -462,7 +504,7 @@ function buildResponse(params: {
         conflict: false,
         vehicle_label,
         service_title,
-        order_summary,
+        order_summary: hasLines ? order_summary : undefined, // Only include if has lines
         order_tags,
         partner_urls,
         timezone: "Europe/Oslo",
@@ -486,7 +528,8 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
   const vehicle_label = extractVehicleLabel(priorityBooking);
   const service_title = extractServiceTitle(priorityBooking);
   const order_summary = extractOrderSummary(priorityBooking);
-  const order_tags = extractOrderTags(priorityBooking);
+  const order_tags = Array.isArray(cacheRow.cached_order_tags) ? cacheRow.cached_order_tags : extractOrderTags(priorityBooking);
+  const hasLines = Array.isArray(order_summary?.lines) && order_summary.lines.length > 0;
   const partner_urls = buildPartnerUrls(cacheRow.user_group_id, priorityBooking);
   
   return {
@@ -518,7 +561,7 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
           conflict: false,
           vehicle_label,
           service_title,
-          order_summary,
+          order_summary: hasLines ? order_summary : undefined, // Only include if has lines
           order_tags,
           partner_urls,
           timezone: "Europe/Oslo",
@@ -768,6 +811,11 @@ serve(async (req) => {
         }
       }
     }
+    
+    // Debug logging for priority booking
+    const pb = priorityBooking;
+    console.log("[noddi] pb.id", pb?.id, "has order?", !!(pb as any)?.order, "keys", Object.keys(pb ?? {}));
+    console.log("[noddi] pb textFromBooking:", textFromBooking(pb));
 
     // Step 6: Check for unpaid bookings with strict filtering
     console.log('Checking for unpaid bookings');
@@ -786,7 +834,9 @@ serve(async (req) => {
       console.log(`Found ${pendingBookings.length} truly unpaid bookings for group ${selectedGroup.id}`);
     }
 
-    // Step 7: Build unified response
+    // Step 7: Build unified response with enrichment
+    const { tags: order_tags, bookingForCache } = await enrichBookingIfNeeded(priorityBooking, selectedGroup.id, noddihApiKey);
+    
     const liveResponse = buildResponse({
       source: "live",
       ttl_seconds: CACHE_TTL_SECONDS,
@@ -796,10 +846,11 @@ serve(async (req) => {
       user_group_id: selectedGroup.id,
       user: noddihUser,
       priority_booking_type: priorityBookingType,
-      priority_booking: priorityBooking,
+      priority_booking: bookingForCache, // Use enriched booking
       unpaid_count: pendingBookings.length,
       unpaid_bookings: pendingBookings,
-      userGroup: selectedGroup
+      userGroup: selectedGroup,
+      enriched_order_tags: order_tags // Pass tags separately
     });
 
     // Step 8: Update cache (if table exists)
@@ -817,8 +868,9 @@ serve(async (req) => {
           priority_booking_type: priorityBookingType,
           pending_bookings_count: pendingBookings.length,
           cached_customer_data: noddihUser,
-          cached_priority_booking: priorityBooking || null,
-          cached_pending_bookings: pendingBookings
+          cached_priority_booking: bookingForCache || null, // Use enriched booking
+          cached_pending_bookings: pendingBookings,
+          cached_order_tags: order_tags // Cache the enriched tags
         }, {
           onConflict: 'email'
         });
