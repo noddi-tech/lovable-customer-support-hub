@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
 
 interface ConversationSidebarProps {
   conversationId?: string;
@@ -62,47 +63,8 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   return (
     <div className={cn("space-y-4", className)}>
       {/* Customer Information */}
-      {showCustomer && customer && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Customer</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={customer.avatar_url} />
-                <AvatarFallback className="text-sm font-medium">
-                  {customer.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm text-foreground truncate">
-                  {customer.full_name || 'Unknown Customer'}
-                </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {customer.email}
-                </div>
-              </div>
-            </div>
-            
-            {(customer.phone || customer.company) && (
-              <div className="space-y-1 pt-2 border-t border-border">
-                {customer.phone && (
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">Phone:</span>{' '}
-                    <span className="text-foreground">{customer.phone}</span>
-                  </div>
-                )}
-                {customer.company && (
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">Company:</span>{' '}
-                    <span className="text-foreground">{customer.company}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {showCustomer && customer?.id && (
+        <NoddihKundeData customer={customer as { id: string; email?: string; phone?: string; full_name?: string; }} />
       )}
       
       {/* Conversation Metadata */}
