@@ -48,6 +48,26 @@ export type NoddiLookupResponse = {
       booking_date_iso: string | null;
       match_mode: "phone" | "email";
       conflict: boolean;
+      vehicle_label?: string | null;
+      service_title?: string | null;
+      order_summary?: {
+        currency: string;
+        lines: Array<{
+          kind: "discount" | "line";
+          name: string;
+          quantity: number;
+          unit_amount: number;
+          subtotal: number;
+        }>;
+        vat: number;
+        total: number;
+      } | null;
+      partner_urls?: {
+        customer_url: string | null;
+        booking_url: string | null;
+        booking_id: number | null;
+      };
+      timezone?: string;
       version: string;
       source: "cache" | "live";
     };

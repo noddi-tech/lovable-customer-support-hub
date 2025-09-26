@@ -9,7 +9,8 @@ import {
   User, 
   Mail, 
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -217,10 +218,18 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   const payload = data;
   const src = payload?.source; // "cache" | "live"
   const meta = payload?.data?.ui_meta;
+  const version = meta?.version || "1.0";
+  const isNewVersion = version >= "noddi-edge-1.3";
+  
   const name = meta?.display_name || "Unknown Customer";
   const groupId = meta?.user_group_badge ?? null;
   const statusLabelText = meta?.status_label || null;
   const iso = meta?.booking_date_iso || null;
+  const timezone = meta?.timezone || "Europe/Oslo";
+
+  // Currency formatter
+  const money = (amt: number, cur: string) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(amt);
 
   const when = (() => {
     if (!iso) return "N/A";
@@ -229,13 +238,24 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
       ? "N/A"
       : new Intl.DateTimeFormat(undefined, {
           year: "numeric", month: "short", day: "2-digit",
-          hour: "2-digit", minute: "2-digit"
+          hour: "2-digit", minute: "2-digit", timeZone: timezone
         }).format(d);
   })();
 
   const matchMode = meta?.match_mode || "email";
   const conflict = meta?.conflict || false;
   const unpaidCount = meta?.unpaid_count || 0;
+  
+  // New enhanced fields (version gated)
+  const urls = isNewVersion ? (meta?.partner_urls) : undefined;
+  const order = isNewVersion ? (meta?.order_summary ?? null) : null;
+  const vehicleLabel = isNewVersion ? meta?.vehicle_label : null;
+  const serviceTitle = isNewVersion ? meta?.service_title : null;
+  
+  // Type-safe access to urls
+  const customerUrl = urls?.customer_url || null;
+  const bookingUrl = urls?.booking_url || null;
+  const bookingId = urls?.booking_id || null;
   
   return (
     <Card>
@@ -255,25 +275,59 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <h3 className="text-lg font-semibold">
+        <h3 className="flex items-center gap-2 text-lg font-semibold">
           {name}
           {groupId != null && (
-            <span className="ml-2 rounded-full border px-2 py-0.5 text-xs">
+            <span className="rounded-full border px-2 py-0.5 text-xs">
               ID: {groupId}
             </span>
           )}
           {src === "cache" && (
-            <span className="ml-2 text-xs text-muted-foreground">Cached</span>
+            <span className="text-xs text-muted-foreground">Cached</span>
           )}
-          <span className="ml-2 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+        </h3>
+
+        {/* Quick links - only show for new version */}
+        {isNewVersion && (customerUrl || bookingUrl) && (
+          <div className="mt-2 flex items-center gap-2">
+            {customerUrl && (
+              <a 
+                href={customerUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-xs underline hover:no-underline flex items-center gap-1"
+              >
+                Open Customer
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            {bookingUrl && (
+              <>
+                <span className="text-xs text-muted-foreground">·</span>
+                <a 
+                  href={bookingUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-xs underline hover:no-underline flex items-center gap-1"
+                >
+                  Open Booking{bookingId ? ` #${bookingId}` : ""}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded-full border px-2 py-0.5">
             Matched by {matchMode === "phone" ? "Phone" : "Email"}
           </span>
           {conflict && (
-            <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800">
+            <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-yellow-800">
               Conflict
             </span>
           )}
-        </h3>
+        </div>
 
         <div className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-muted-foreground" />
@@ -289,8 +343,48 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
               <span className="rounded-full border px-2 py-0.5 text-xs">{statusLabelText}</span>
             )}
           </div>
-          <div className="mt-2 text-base">{when}</div>
+          <div className="mt-1 text-base">{when}</div>
         </div>
+
+        {/* Service & vehicle section - only show for new version */}
+        {isNewVersion && (serviceTitle || vehicleLabel) && (
+          <div className="mt-4 rounded-xl border p-3">
+            <div className="text-sm font-medium">Service</div>
+            <div className="mt-1 text-sm">
+              {serviceTitle || "N/A"}{vehicleLabel ? ` — ${vehicleLabel}` : ""}
+            </div>
+          </div>
+        )}
+
+        {/* Order summary - only show for new version */}
+        {isNewVersion && order && (
+          <div className="mt-4 rounded-xl border p-3">
+            <div className="text-sm font-medium">Order Summary</div>
+            <div className="mt-2 space-y-1">
+              {(order.lines ?? []).map((l: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between text-sm">
+                  <div className="truncate">
+                    {l.name}
+                    {l.quantity > 1 && <span className="text-muted-foreground"> × {l.quantity}</span>}
+                  </div>
+                  <div className={l.kind === "discount" ? "text-red-600" : ""}>
+                    {money(l.subtotal || l.unit_amount * l.quantity || 0, order.currency)}
+                  </div>
+                </div>
+              ))}
+              {"vat" in order && (
+                <div className="flex items-center justify-between text-sm">
+                  <div className="text-muted-foreground">VAT</div>
+                  <div>{money(order.vat || 0, order.currency)}</div>
+                </div>
+              )}
+              <div className="mt-1 border-t pt-2 flex items-center justify-between text-sm font-medium">
+                <div>Total</div>
+                <div>{money(order.total || 0, order.currency)}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {unpaidCount > 0 && (
           <>

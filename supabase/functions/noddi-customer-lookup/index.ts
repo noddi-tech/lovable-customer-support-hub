@@ -16,17 +16,37 @@ export type NoddiLookupResponse = {
     priority_booking: any;
     unpaid_count: number;
     unpaid_bookings: any[];
-      ui_meta: {
-        display_name: string;
-        user_group_badge: number | null;
-        unpaid_count: number;
-        status_label: string | null;
-        booking_date_iso: string | null;
-        match_mode: "phone" | "email";
-        conflict: boolean;
-        version: string;
-        source: "cache" | "live";
+    ui_meta: {
+      display_name: string;
+      user_group_badge: number | null;
+      unpaid_count: number;
+      status_label: string | null;
+      booking_date_iso: string | null;
+      match_mode: "phone" | "email";
+      conflict: boolean;
+      vehicle_label?: string | null;
+      service_title?: string | null;
+      order_summary?: {
+        currency: string;
+        lines: Array<{
+          kind: "discount" | "line";
+          name: string;
+          quantity: number;
+          unit_amount: number;
+          subtotal: number;
+        }>;
+        vat: number;
+        total: number;
+      } | null;
+      partner_urls?: {
+        customer_url: string | null;
+        booking_url: string | null;
+        booking_id: number | null;
       };
+      timezone?: string;
+      version: string;
+      source: "cache" | "live";
+    };
   };
 };
 
@@ -70,6 +90,7 @@ interface NoddihBooking {
 // Configuration
 const CACHE_TTL_SECONDS = 30 * 60; // 30 minutes
 const NEGATIVE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes for not-found
+const PARTNER_BASE_URL = Deno.env.get("PARTNER_BASE_URL")?.replace(/\/+$/, "") || "https://partner.noddi.co";
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -172,12 +193,90 @@ function extractGroupId(x: any): number | null {
 }
 
 function extractBookingId(x: any): number | null {
-  return (
-    (x?.id != null ? Number(x.id) : null) ??
-    (x?.booking_id != null ? Number(x.booking_id) : null) ??
-    (x?.booking?.id != null ? Number(x.booking.id) : null) ??
-    null
-  );
+  const id = (x?.id != null ? Number(x.id) : null) ??
+            (x?.booking_id != null ? Number(x.booking_id) : null) ??
+            (x?.booking?.id != null ? Number(x.booking.id) : null) ??
+            null;
+  return (id != null && Number.isFinite(id)) ? id : null;
+}
+
+function extractVehicleLabel(b: any): string | null {
+  const plate = b?.car?.registration ?? b?.car?.plate ?? b?.vehicle?.plate ?? 
+                b?.vehicle?.registration ?? b?.car_registration ?? b?.license_plate ?? null;
+  const model = b?.car?.model ?? b?.vehicle?.model ?? b?.car_model ?? b?.vehicle_model ?? null;
+  const make = b?.car?.make ?? b?.vehicle?.make ?? b?.car_make ?? b?.vehicle_make ?? null;
+  
+  const composed = [make, model].filter(Boolean).join(" ");
+  if (composed && plate) return `${composed} (${plate})`;
+  if (composed) return composed;
+  if (plate) return plate;
+  return null;
+}
+
+function extractServiceTitle(b: any): string | null {
+  const direct = b?.service?.name ?? b?.service_name ?? b?.title ?? b?.name ?? null;
+  if (direct) return String(direct);
+  
+  const lines = b?.order?.lines ?? b?.order_lines ?? b?.lines ?? b?.items ?? b?.booking_lines ?? [];
+  const firstNonDiscount = (Array.isArray(lines) ? lines : []).find(
+    (l: any) => !/discount/i.test(String(l?.type ?? l?.name ?? ""))
+  ) || null;
+  
+  const ln = firstNonDiscount?.name ?? firstNonDiscount?.title ?? null;
+  return ln ? String(ln) : null;
+}
+
+function extractCurrency(b: any): string {
+  return b?.currency || b?.order?.currency || "NOK";
+}
+
+function pickAmount(...vals: any[]): number {
+  for (const v of vals) {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+
+function extractOrderSummary(b: any) {
+  const linesRaw = b?.order?.lines ?? b?.order_lines ?? b?.lines ?? 
+                   b?.items ?? b?.booking_lines ?? [];
+  const lines = Array.isArray(linesRaw) ? linesRaw : [];
+
+  // Normalize line items with PII cleanup and discount handling
+  const normLines = lines.map((l: any) => {
+    const isDiscount = /discount/i.test(String(l?.type ?? l?.name ?? ""));
+    const subtotal = pickAmount(l?.subtotal, l?.amount, l?.total);
+    const unitAmount = pickAmount(l?.unit_amount, l?.unit_price, l?.price);
+    const quantity = pickAmount(l?.quantity, l?.qty, 1);
+    
+    return {
+      kind: isDiscount ? ("discount" as const) : ("line" as const),
+      name: String(l?.name ?? l?.title ?? "Item"), // Only safe display fields
+      quantity,
+      unit_amount: unitAmount,
+      subtotal: isDiscount ? -Math.abs(subtotal || unitAmount * quantity) : (subtotal || unitAmount * quantity), // Make discounts negative
+    };
+  });
+
+  const vat = pickAmount(b?.vat_amount, b?.order?.vat_amount, b?.tax, b?.tax_total);
+  const total = pickAmount(b?.total_amount, b?.order?.total_amount, b?.grand_total, b?.amount_total, b?.total);
+
+  return {
+    currency: extractCurrency(b),
+    lines: normLines,
+    vat,
+    total,
+  };
+}
+
+function buildPartnerUrls(userGroupId: number | null, booking: any) {
+  const bookingId = extractBookingId(booking);
+  return {
+    customer_url: (userGroupId != null && Number.isFinite(userGroupId)) ? `${PARTNER_BASE_URL}/customers/${userGroupId}` : null,
+    booking_url: (bookingId != null && Number.isFinite(bookingId)) ? `${PARTNER_BASE_URL}/bookings/${bookingId}` : null,
+    booking_id: bookingId,
+  };
 }
 
 function filterUnpaidForGroup(unpaid: any[], ugid: number): any[] {
@@ -287,6 +386,12 @@ function buildResponse(params: {
   // Compute canonical fields
   const booking_date_iso = primaryBookingDateIso(priority_booking, safePriorityBookingType);
   const status_label_computed = priority_booking ? statusLabel(priority_booking.status ?? priority_booking.booking_status) : null;
+  
+  // Compute enhanced fields
+  const vehicle_label = extractVehicleLabel(priority_booking);
+  const service_title = extractServiceTitle(priority_booking);
+  const order_summary = extractOrderSummary(priority_booking);
+  const partner_urls = buildPartnerUrls(safeUserGroupId, priority_booking);
 
   return {
     ok: true,
@@ -310,7 +415,12 @@ function buildResponse(params: {
         booking_date_iso,
         match_mode: "email" as "phone" | "email",
         conflict: false,
-        version: "noddi-edge-1.2",
+        vehicle_label,
+        service_title,
+        order_summary,
+        partner_urls,
+        timezone: "Europe/Oslo",
+        version: "noddi-edge-1.3",
         source
       }
     }
@@ -326,6 +436,12 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
   const booking_date_iso = primaryBookingDateIso(priorityBooking, cacheRow?.priority_booking_type ?? null);
   const status_label_computed = priorityBooking ? statusLabel(priorityBooking.status ?? priorityBooking.booking_status) : null;
   
+  // Compute enhanced fields for cache consistency
+  const vehicle_label = extractVehicleLabel(priorityBooking);
+  const service_title = extractServiceTitle(priorityBooking);
+  const order_summary = extractOrderSummary(priorityBooking);
+  const partner_urls = buildPartnerUrls(cacheRow.user_group_id, priorityBooking);
+  
   return {
     ok: true,
     source: "cache",
@@ -340,22 +456,27 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
       priority_booking: priorityBooking,
       unpaid_count: cacheRow.pending_bookings_count || 0,
       unpaid_bookings: cacheRow.cached_pending_bookings || [],
-      ui_meta: {
-        display_name: resolveDisplayName({
-          user, 
-          email, 
-          userGroup: { id: cacheRow.user_group_id, name: cacheRow?.customer_group_name }, 
-          priorityBooking
-        }),
-        user_group_badge: cacheRow.user_group_id,
-        unpaid_count: Number(cacheRow?.pending_bookings_count ?? 0),
-        status_label: status_label_computed,
-        booking_date_iso,
-        match_mode: cacheRow?.phone ? "phone" as const : "email" as const,
-        conflict: false,
-        version: "noddi-edge-1.2",
-        source: "cache" as const,
-      }
+        ui_meta: {
+          display_name: resolveDisplayName({
+            user, 
+            email, 
+            userGroup: { id: cacheRow.user_group_id, name: cacheRow?.customer_group_name }, 
+            priorityBooking
+          }),
+          user_group_badge: cacheRow.user_group_id,
+          unpaid_count: Number(cacheRow?.pending_bookings_count ?? 0),
+          status_label: status_label_computed,
+          booking_date_iso,
+          match_mode: cacheRow?.phone ? "phone" as const : "email" as const,
+          conflict: false,
+          vehicle_label,
+          service_title,
+          order_summary,
+          partner_urls,
+          timezone: "Europe/Oslo",
+          version: "noddi-edge-1.3",
+          source: "cache" as const,
+        }
     }
   };
 }
