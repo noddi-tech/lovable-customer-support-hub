@@ -217,15 +217,19 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   // Use ONLY ui_meta data for rendering - no fallbacks to old structure
   const payload = data;
   const src = payload?.source; // "cache" | "live"
-  const meta = payload?.data?.ui_meta;
-  const version = meta?.version || "1.0";
-  const isNewVersion = version >= "noddi-edge-1.3";
+  const m = payload?.data?.ui_meta;
+  const version = m?.version || "1.0";
   
-  const name = meta?.display_name || "Unknown Customer";
-  const groupId = meta?.user_group_badge ?? null;
-  const statusLabelText = meta?.status_label || null;
-  const iso = meta?.booking_date_iso || null;
-  const timezone = meta?.timezone || "Europe/Oslo";
+  // Numerical version comparison to avoid lexicographic traps
+  const verNum = (v: string) => Number((v.split("noddi-edge-")[1] ?? "0").split(".").slice(0,2).join("."));
+  const showV13 = verNum(version) >= 1.3;
+  const showV14 = verNum(version) >= 1.4;
+  
+  const name = m?.display_name || "Unknown Customer";
+  const groupId = m?.user_group_badge ?? null;
+  const statusLabelText = m?.status_label || null;
+  const iso = m?.booking_date_iso || null;
+  const timezone = m?.timezone || "Europe/Oslo";
 
   // Currency formatter
   const money = (amt: number, cur: string) =>
@@ -242,15 +246,16 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
         }).format(d);
   })();
 
-  const matchMode = meta?.match_mode || "email";
-  const conflict = meta?.conflict || false;
-  const unpaidCount = meta?.unpaid_count || 0;
+  const matchMode = m?.match_mode || "email";
+  const conflict = m?.conflict || false;
+  const unpaidCount = m?.unpaid_count || 0;
   
-  // New enhanced fields (version gated)
-  const urls = isNewVersion ? (meta?.partner_urls) : undefined;
-  const order = isNewVersion ? (meta?.order_summary ?? null) : null;
-  const vehicleLabel = isNewVersion ? meta?.vehicle_label : null;
-  const serviceTitle = isNewVersion ? meta?.service_title : null;
+  // Enhanced fields (version gated)
+  const urls = showV13 ? (m?.partner_urls) : undefined;
+  const order = showV13 ? (m?.order_summary ?? null) : null;
+  const vehicleLabel = showV13 ? m?.vehicle_label : null;
+  const serviceTitle = showV13 ? m?.service_title : null;
+  const tags: string[] = showV14 ? (m?.order_tags ?? []) : [];
   
   // Type-safe access to urls
   const customerUrl = urls?.customer_url || null;
@@ -287,8 +292,8 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           )}
         </h3>
 
-        {/* Quick links - only show for new version */}
-        {isNewVersion && (customerUrl || bookingUrl) && (
+        {/* Quick links - only show for v1.3+ */}
+        {showV13 && (customerUrl || bookingUrl) && (
           <div className="mt-2 flex items-center gap-2">
             {customerUrl && (
               <a 
@@ -346,18 +351,33 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           <div className="mt-1 text-base">{when}</div>
         </div>
 
-        {/* Service & vehicle section - only show for new version */}
-        {isNewVersion && (serviceTitle || vehicleLabel) && (
+        {/* Service & vehicle section - only show for v1.3+ */}
+        {showV13 && (serviceTitle || vehicleLabel) && (
           <div className="mt-4 rounded-xl border p-3">
             <div className="text-sm font-medium">Service</div>
             <div className="mt-1 text-sm">
               {serviceTitle || "N/A"}{vehicleLabel ? ` — ${vehicleLabel}` : ""}
             </div>
+            
+            {/* Order tags for v1.4+ */}
+            {showV14 && tags.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {tags.map(tag => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground/80"
+                    title={tag}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Order summary - only show for new version */}
-        {isNewVersion && order && (
+        {/* Order summary - only show for v1.3+ and when we have real lines */}
+        {showV13 && order && Array.isArray(order.lines) && order.lines.length > 0 && (
           <div className="mt-4 rounded-xl border p-3">
             <div className="text-sm font-medium">Order Summary</div>
             <div className="mt-2 space-y-1">

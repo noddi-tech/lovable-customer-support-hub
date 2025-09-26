@@ -38,6 +38,7 @@ export type NoddiLookupResponse = {
         vat: number;
         total: number;
       } | null;
+      order_tags?: string[];
       partner_urls?: {
         customer_url: string | null;
         booking_url: string | null;
@@ -160,8 +161,13 @@ function primaryBookingDateIso(booking:any, type:"upcoming"|"completed"|null|und
   );
 }
 
-function norm(v: any): string {
-  return String(v ?? "").toLowerCase();
+function norm(s: any): string {
+  return String(s ?? "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")   // strip punctuation
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function isReallyUnpaid(x: any): boolean {
@@ -243,6 +249,9 @@ function extractOrderSummary(b: any) {
                    b?.items ?? b?.booking_lines ?? [];
   const lines = Array.isArray(linesRaw) ? linesRaw : [];
 
+  // Only return order summary when we have real line items
+  if (lines.length === 0) return null;
+
   // Normalize line items with PII cleanup and discount handling
   const normLines = lines.map((l: any) => {
     const isDiscount = /discount/i.test(String(l?.type ?? l?.name ?? ""));
@@ -268,6 +277,41 @@ function extractOrderSummary(b: any) {
     vat,
     total,
   };
+}
+
+// --- Order tag extraction (NB keywords + common synonyms) ---
+const TAG_RULES: Array<{label: string; rx: RegExp[]}> = [
+  { label: "Dekkhotell", rx: [/\bdekkhotell\b/, /\boppbevaring\b/, /\btire\s*hotel\b/, /\bfornyelse\b/] },
+  { label: "Dekkskift", rx: [/\bdekkskift\b/, /\bhjulskift\b/, /\bskifte\s*dekk\b/, /\btire\s*(change|swap)\b/] },
+  { label: "Hjemlevert dekkskift", rx: [/\bhjemlever\w*\b/, /\bhjem.*dekkskift\b/, /\bhome.*(change|swap)\b/] },
+  { label: "Henting/Levering", rx: [/\bhenting\b/, /\blevering\b/, /\bpick\s*up\b/, /\bdelivery\b/] },
+  { label: "Hjelp til å bære dekk", rx: [/\bb(æ|a)re\s*dekk\b/, /\bb(æ|a)rehjelp\b/, /\bcarry\b.*\bti?res?\b/] },
+  { label: "Felgvask", rx: [/\bfelgvask\b/, /\brim\s*wash\b/] },
+  { label: "Balansering", rx: [/\bbalanser\w*\b/, /\bbalance\b/] },
+  { label: "TPMS/Ventil", rx: [/\btpms\b/, /\bventil\w*\b/, /\bvalve\b/] },
+];
+
+function textFromBooking(b:any): string {
+  const parts:string[] = [];
+  const push = (v:any) => v && parts.push(String(v));
+  push(b?.service?.name); push(b?.service_name); push(b?.title); push(b?.name); push(b?.description);
+  const lines = b?.order?.lines ?? b?.order_lines ?? b?.lines ?? b?.items ?? [];
+  for (const l of (Array.isArray(lines) ? lines : [])) {
+    push(l?.name); push(l?.title); push(l?.description); push(l?.type); push(l?.sku);
+  }
+  return norm(parts.join(" • "));
+}
+
+function extractOrderTags(b:any): string[] {
+  const hay = textFromBooking(b);
+  const tags = new Set<string>();
+  for (const rule of TAG_RULES) if (rule.rx.some(r => r.test(hay))) tags.add(rule.label);
+  // fallback to service title only if still empty
+  if (!tags.size) {
+    const svc = norm(b?.service?.name ?? b?.service_name ?? b?.title ?? b?.name ?? "");
+    for (const rule of TAG_RULES) if (rule.rx.some(r => r.test(svc))) tags.add(rule.label);
+  }
+  return [...tags];
 }
 
 function buildPartnerUrls(userGroupId: number | null, booking: any) {
@@ -391,6 +435,7 @@ function buildResponse(params: {
   const vehicle_label = extractVehicleLabel(priority_booking);
   const service_title = extractServiceTitle(priority_booking);
   const order_summary = extractOrderSummary(priority_booking);
+  const order_tags = extractOrderTags(priority_booking);
   const partner_urls = buildPartnerUrls(safeUserGroupId, priority_booking);
 
   return {
@@ -418,9 +463,10 @@ function buildResponse(params: {
         vehicle_label,
         service_title,
         order_summary,
+        order_tags,
         partner_urls,
         timezone: "Europe/Oslo",
-        version: "noddi-edge-1.3",
+        version: "noddi-edge-1.4",
         source
       }
     }
@@ -440,6 +486,7 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
   const vehicle_label = extractVehicleLabel(priorityBooking);
   const service_title = extractServiceTitle(priorityBooking);
   const order_summary = extractOrderSummary(priorityBooking);
+  const order_tags = extractOrderTags(priorityBooking);
   const partner_urls = buildPartnerUrls(cacheRow.user_group_id, priorityBooking);
   
   return {
@@ -472,9 +519,10 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
           vehicle_label,
           service_title,
           order_summary,
+          order_tags,
           partner_urls,
           timezone: "Europe/Oslo",
-          version: "noddi-edge-1.3",
+          version: "noddi-edge-1.4",
           source: "cache" as const,
         }
     }

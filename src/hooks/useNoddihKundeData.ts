@@ -62,6 +62,7 @@ export type NoddiLookupResponse = {
         vat: number;
         total: number;
       } | null;
+      order_tags?: string[];
       partner_urls?: {
         customer_url: string | null;
         booking_url: string | null;
