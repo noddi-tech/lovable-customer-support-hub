@@ -102,12 +102,19 @@ serve(async (req) => {
 
     // Step 2: Lookup user by email
     console.log('Fetching user from Noddi API');
+    console.log('API Key present:', !!noddihApiKey);
+    console.log('API Key length:', noddihApiKey?.length);
+    
     const userResponse = await fetch(`https://api.noddi.no/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, {
       headers: {
         'Authorization': `ApiKey ${noddihApiKey}`,
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       }
     });
+    
+    console.log('Response status:', userResponse.status);
+    console.log('Response headers:', Object.fromEntries(userResponse.headers.entries()));
 
     if (!userResponse.ok) {
       if (userResponse.status === 404) {
@@ -284,11 +291,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in noddi-customer-lookup:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 
-        details: error.message,
-        stack: error.stack 
+        details: errorMessage,
+        stack: errorStack 
       }),
       { 
         status: 500, 

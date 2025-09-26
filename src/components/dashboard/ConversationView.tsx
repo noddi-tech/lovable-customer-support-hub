@@ -17,7 +17,6 @@ import { useConversationMeta } from '@/hooks/conversations/useConversationMeta';
 import { ProgressiveMessagesList } from '@/components/conversations/ProgressiveMessagesList';
 import { LazyReplyArea } from '@/components/conversations/LazyReplyArea';
 import { ConversationViewProvider } from '@/contexts/ConversationViewContext';
-import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
 
 interface ConversationViewProps {
   conversationId: string | null;
@@ -135,13 +134,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
 
-        {/* Sidebar Column (Desktop only) */}
+        {/* Sidebar Column (Desktop only) - Customer data shown in ConversationSidebar */}
         <div className="hidden lg:flex flex-col bg-muted border-l border-border overflow-auto min-h-0">
           <div className="p-4 space-y-4">
-            {/* Import and use NoddihKundeData component */}
-            <NoddihKundeData customer={conversation.customer} />
-            {/* Existing ConversationSidebar if it exists */}
-            {/* <ConversationSidebar ... /> */}
+            {/* Customer data is handled by ConversationSidebar component */}
+            <div className="text-sm text-muted-foreground">
+              Additional conversation details and actions would go here
+            </div>
           </div>
         </div>
       </div>
