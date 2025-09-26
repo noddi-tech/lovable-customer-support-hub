@@ -1,9 +1,29 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Unified response type
+export type NoddiLookupResponse = {
+  ok: boolean;
+  source: "cache" | "live";
+  ttl_seconds: number;
+  data: {
+    found: boolean;
+    email: string;
+    noddi_user_id: number | null;
+    user_group_id: number | null;
+    user: any;
+    priority_booking_type: "upcoming" | "completed" | null;
+    priority_booking: any;
+    unpaid_count: number;
+    unpaid_bookings: any[];
+    ui_meta: {
+      display_name: string;
+      user_group_badge: number | null;
+      unpaid_count: number;
+      version: string;
+      source: "cache" | "live";
+    };
+  };
 };
 
 interface NoddihCustomerLookupRequest {
@@ -42,28 +62,220 @@ interface NoddihBooking {
   paymentStatus?: string;
 }
 
+// Configuration
+const CACHE_TTL_SECONDS = 30 * 60; // 30 minutes
+const NEGATIVE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes for not-found
+
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const json = (data: any, status = 200) => 
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...cors, 'Content-Type': 'application/json' }
+  });
+
+// --- Helper Functions (Top Level) ---
+
+function resolveDisplayName(params: {
+  user?: any;
+  email?: string;
+  userGroup?: any;
+  priorityBooking?: any;
+}): string {
+  const { user, email, userGroup, priorityBooking } = params;
+
+  // Priority 1: user.name
+  const fromUserName = (user?.name ?? "").trim();
+  if (fromUserName) return fromUserName;
+
+  // Priority 2: first_name + last_name (handle both naming conventions)
+  const fn = (user?.first_name ?? user?.firstName ?? "").trim();
+  const ln = (user?.last_name ?? user?.lastName ?? "").trim();
+  const fromUserParts = [fn, ln].filter(Boolean).join(" ").trim();
+  if (fromUserParts) return fromUserParts;
+
+  // Priority 3: userGroup.name
+  const fromGroup = (userGroup?.name ?? "").trim();
+  if (fromGroup) return fromGroup;
+
+  // Priority 4: priorityBooking customer/user name
+  const fromPB = (priorityBooking?.customer?.name ?? priorityBooking?.user?.name ?? "").trim();
+  if (fromPB) return fromPB;
+
+  // Priority 5: email prefix
+  const emailPrefix = (email || "").split("@")[0];
+  return emailPrefix || "Unknown Name";
+}
+
+function norm(v: any): string {
+  return String(v ?? "").toLowerCase();
+}
+
+function isReallyUnpaid(x: any): boolean {
+  const label = norm(x?.status?.label) || norm(x?.payment_status) || norm(x?.payment?.status);
+  
+  const unpaidLabels = new Set([
+    "unpaid", "pending", "requires payment", "requires_payment", "overdue"
+  ]);
+  
+  const hasUnpaidLabel = unpaidLabels.has(label);
+  const booleanUnpaid = x?.is_paid === false || x?.paid === false;
+  const amountUnpaid = (Number(x?.amount_due) || 0) > 0 || (Number(x?.balance) || 0) > 0;
+  
+  const cancelled = norm(x?.status?.label) === "cancelled" || 
+                   norm(x?.state) === "cancelled" || 
+                   x?.cancelled === true;
+  
+  return !cancelled && (hasUnpaidLabel || booleanUnpaid || amountUnpaid);
+}
+
+function extractGroupId(x: any): number | null {
+  return (
+    (x?.user_group_id != null ? Number(x.user_group_id) : null) ??
+    (x?.user_group?.id != null ? Number(x.user_group.id) : null) ??
+    (x?.booking?.user_group_id != null ? Number(x.booking.user_group_id) : null) ??
+    (x?.booking?.user_group?.id != null ? Number(x.booking.user_group.id) : null) ??
+    null
+  );
+}
+
+function extractBookingId(x: any): number | null {
+  return (
+    (x?.id != null ? Number(x.id) : null) ??
+    (x?.booking_id != null ? Number(x.booking_id) : null) ??
+    (x?.booking?.id != null ? Number(x.booking.id) : null) ??
+    null
+  );
+}
+
+function filterUnpaidForGroup(unpaid: any[], ugid: number): any[] {
+  const seen = new Set<number>();
+  const result: any[] = [];
+
+  for (const item of unpaid || []) {
+    const gid = extractGroupId(item);
+    if (gid !== Number(ugid)) continue;
+    if (!isReallyUnpaid(item)) continue;
+
+    const bid = extractBookingId(item) ?? -1;
+    if (bid >= 0 && seen.has(bid)) continue;
+    if (bid >= 0) seen.add(bid);
+
+    result.push(item);
+  }
+  return result;
+}
+
+function buildResponse(params: {
+  source: "cache" | "live";
+  ttl_seconds: number;
+  found: boolean;
+  email: string;
+  noddi_user_id?: number | null;
+  user_group_id?: number | null;
+  user?: any;
+  priority_booking_type?: "upcoming" | "completed" | null;
+  priority_booking?: any;
+  unpaid_count?: number;
+  unpaid_bookings?: any[];
+  display_name?: string;
+  userGroup?: any;
+}): NoddiLookupResponse {
+  const {
+    source,
+    ttl_seconds,
+    found,
+    email,
+    noddi_user_id = null,
+    user_group_id = null,
+    user = null,
+    priority_booking_type = null,
+    priority_booking = null,
+    unpaid_count = 0,
+    unpaid_bookings = [],
+    display_name,
+    userGroup
+  } = params;
+
+  // Guard values
+  const safeUserGroupId = user_group_id != null ? Number(user_group_id) : null;
+  const safePriorityBookingType = ["upcoming", "completed"].includes(priority_booking_type as string) 
+    ? priority_booking_type as "upcoming" | "completed" 
+    : null;
+  const safeUnpaidCount = Math.max(0, Number(unpaid_count || 0));
+
+  const finalDisplayName = display_name || resolveDisplayName({
+    user,
+    email,
+    userGroup,
+    priorityBooking: priority_booking
+  });
+
+  return {
+    ok: true,
+    source,
+    ttl_seconds,
+    data: {
+      found,
+      email,
+      noddi_user_id,
+      user_group_id: safeUserGroupId,
+      user,
+      priority_booking_type: safePriorityBookingType,
+      priority_booking,
+      unpaid_count: safeUnpaidCount,
+      unpaid_bookings,
+      ui_meta: {
+        display_name: finalDisplayName,
+        user_group_badge: safeUserGroupId,
+        unpaid_count: safeUnpaidCount,
+        version: "noddi-edge-1.1",
+        source
+      }
+    }
+  };
+}
+
+function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number): NoddiLookupResponse {
+  const user = cacheRow.cached_customer_data || {};
+  const priorityBooking = cacheRow.cached_priority_booking || null;
+  const userGroup = { id: cacheRow.user_group_id, name: null };
+  
+  return buildResponse({
+    source: "cache",
+    ttl_seconds: remainingTtl,
+    found: cacheRow.noddi_user_id !== -1,
+    email,
+    noddi_user_id: cacheRow.noddi_user_id === -1 ? null : cacheRow.noddi_user_id,
+    user_group_id: cacheRow.user_group_id,
+    user,
+    priority_booking_type: cacheRow.priority_booking_type,
+    priority_booking: priorityBooking,
+    unpaid_count: cacheRow.pending_bookings_count || 0,
+    unpaid_bookings: cacheRow.cached_pending_bookings || [],
+    userGroup
+  });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
   }
 
   try {
     const { email, customerId, organizationId, forceRefresh }: NoddihCustomerLookupRequest = await req.json();
     
     if (!email || !organizationId) {
-      return new Response(
-        JSON.stringify({ error: 'Email and organization ID are required' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Email and organization ID are required' }, 400);
     }
 
     const noddihApiKey = Deno.env.get('NODDI_API_KEY');
     if (!noddihApiKey) {
       console.error('NODDI_API_KEY not found in environment');
-      return new Response(
-        JSON.stringify({ error: 'Noddi API key not configured' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Noddi API key not configured' }, 500);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -72,9 +284,9 @@ serve(async (req) => {
 
     console.log(`Starting Noddi lookup for email: ${email}`);
 
-    // Step 1: Check cache first (30-minute TTL) unless force refresh is requested
+    // Step 1: Check cache first unless force refresh is requested
     if (!forceRefresh) {
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const cacheExpiry = new Date(Date.now() - CACHE_TTL_SECONDS * 1000).toISOString();
       
       try {
         const { data: cachedData } = await supabase
@@ -82,39 +294,16 @@ serve(async (req) => {
           .select('*')
           .eq('email', email)
           .eq('organization_id', organizationId)
-          .gte('last_refreshed_at', thirtyMinutesAgo)
+          .gte('last_refreshed_at', cacheExpiry)
           .maybeSingle();
 
         if (cachedData) {
           console.log('Returning cached Noddi data');
           
-          // Compute ui_meta for cached response
-          const cachedUiMeta = {
-            display_name: resolveDisplayName({
-              user: cachedData.cached_customer_data,
-              email: email,
-              userGroup: { id: cachedData.user_group_id },
-              priorityBooking: cachedData.cached_priority_booking,
-            }),
-            user_group_badge: cachedData.user_group_id ?? null,
-            unpaid_count: cachedData.pending_bookings_count || 0,
-            version: "noddi-edge-1.1",
-            source: "cache"
-          };
+          const cacheAge = Math.floor((Date.now() - new Date(cachedData.last_refreshed_at).getTime()) / 1000);
+          const remainingTtl = Math.max(0, CACHE_TTL_SECONDS - cacheAge);
           
-          return new Response(
-            JSON.stringify({
-              cached: true,
-              customer: cachedData.cached_customer_data,
-              priorityBooking: cachedData.cached_priority_booking,
-              priorityBookingType: cachedData.priority_booking_type,
-              pendingBookings: cachedData.cached_pending_bookings,
-              pendingBookingsCount: cachedData.pending_bookings_count,
-              lastRefreshed: cachedData.last_refreshed_at,
-              ui_meta: cachedUiMeta
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return json(mapCacheRowToUnified(cachedData, email, remainingTtl));
         }
       } catch (error) {
         console.log('Cache table not available, proceeding with API call');
@@ -138,16 +327,55 @@ serve(async (req) => {
 
     if (!userResponse.ok) {
       if (userResponse.status === 404) {
-        return new Response(
-          JSON.stringify({ error: 'Customer not found in Noddi system', notFound: true }), 
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        // Store negative cache
+        try {
+          await supabase
+            .from('noddi_customer_cache')
+            .upsert({
+              organization_id: organizationId,
+              customer_id: customerId,
+              noddi_user_id: -1,
+              user_group_id: null,
+              email: email,
+              last_refreshed_at: new Date().toISOString(),
+              priority_booking_id: null,
+              priority_booking_type: null,
+              pending_bookings_count: 0,
+              cached_customer_data: {},
+              cached_priority_booking: null,
+              cached_pending_bookings: []
+            }, {
+              onConflict: 'email'
+            });
+        } catch {}
+
+        return json({
+          ok: false,
+          source: "live",
+          ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
+          data: {
+            found: false,
+            email,
+            noddi_user_id: null,
+            user_group_id: null,
+            user: null,
+            priority_booking_type: null,
+            priority_booking: null,
+            unpaid_count: 0,
+            unpaid_bookings: [],
+            ui_meta: {
+              display_name: email.split("@")[0] || "Unknown Name",
+              user_group_badge: null,
+              unpaid_count: 0,
+              version: "noddi-edge-1.1",
+              source: "live"
+            }
+          },
+          notFound: true
+        });
       }
       if (userResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limited by Noddi API. Please try again later.', rateLimited: true }), 
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return json({ error: 'Rate limited by Noddi API. Please try again later.', rateLimited: true }, 429);
       }
       throw new Error(`Noddi API error: ${userResponse.status} ${userResponse.statusText}`);
     }
@@ -170,16 +398,13 @@ serve(async (req) => {
     const userGroups: NoddihUserGroup[] = await groupsResponse.json();
     console.log(`Found ${userGroups.length} user groups`);
 
-    // Step 4: Select priority group (is_default_user_group > is_personal > first)
+    // Step 4: Select priority group
     let selectedGroup = userGroups.find(g => g.isDefaultUserGroup) || 
                        userGroups.find(g => g.isPersonal) || 
                        userGroups[0];
 
     if (!selectedGroup) {
-      return new Response(
-        JSON.stringify({ error: 'No user groups found for customer' }), 
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'No user groups found for customer' }, 404);
     }
 
     console.log(`Using user group: ${selectedGroup.id}`);
@@ -203,7 +428,6 @@ serve(async (req) => {
     if (upcomingResponse.ok) {
       const upcomingBookings: NoddihBooking[] = await upcomingResponse.json();
       if (upcomingBookings.length > 0) {
-        // Sort by delivery date (nearest first)
         priorityBooking = upcomingBookings.sort((a, b) => 
           new Date(a.deliveryWindowStartsAt || '').getTime() - new Date(b.deliveryWindowStartsAt || '').getTime()
         )[0];
@@ -228,7 +452,6 @@ serve(async (req) => {
       if (completedResponse.ok) {
         const completedBookings: NoddihBooking[] = await completedResponse.json();
         if (completedBookings.length > 0) {
-          // Sort by completion date (most recent first)
           priorityBooking = completedBookings.sort((a, b) => 
             new Date(b.completedAt || b.deliveryWindowStartsAt || '').getTime() - 
             new Date(a.completedAt || a.deliveryWindowStartsAt || '').getTime()
@@ -239,7 +462,7 @@ serve(async (req) => {
       }
     }
 
-    // Step 6: Check for unpaid bookings with proper filtering
+    // Step 6: Check for unpaid bookings with strict filtering
     console.log('Checking for unpaid bookings');
     let pendingBookings: NoddihBooking[] = [];
     
@@ -256,134 +479,21 @@ serve(async (req) => {
       console.log(`Found ${pendingBookings.length} truly unpaid bookings for group ${selectedGroup.id}`);
     }
 
-    // --- Name resolution (server-side) ---
-    function resolveDisplayName(params: {
-      user?: any;
-      email?: string;
-      userGroup?: any;
-      priorityBooking?: any;
-    }): string {
-      const { user, email, userGroup, priorityBooking } = params;
-
-      const fromUserName = (user?.name ?? "").trim();
-      if (fromUserName) return fromUserName;
-
-      const fn = (user?.first_name ?? user?.firstName ?? "").trim();
-      const ln = (user?.last_name ?? user?.lastName ?? "").trim();
-      const fromUserParts = [fn, ln].filter(Boolean).join(" ").trim();
-      if (fromUserParts) return fromUserParts;
-
-      const fromGroup = (userGroup?.name ?? "").trim();
-      if (fromGroup) return fromGroup;
-
-      const fromPB =
-        (priorityBooking?.customer?.name ??
-          priorityBooking?.user?.name ??
-          "").trim();
-      if (fromPB) return fromPB;
-
-      const emailPrefix = (email || "").split("@")[0];
-      return emailPrefix || "Unknown Name";
-    }
-
-    // --- Unpaid filtering (strict) ---
-    function norm(v: any) {
-      return String(v ?? "").toLowerCase();
-    }
-
-    function isReallyUnpaid(x: any): boolean {
-      const label =
-        norm(x?.status?.label) ||
-        norm(x?.payment_status) ||
-        norm(x?.payment?.status);
-
-      const unpaidLabels = new Set([
-        "unpaid", "pending", "requires payment", "requires_payment", "overdue"
-      ]);
-
-      const hasUnpaidLabel = unpaidLabels.has(label);
-      const booleanUnpaid = x?.is_paid === false || x?.paid === false;
-      const amountUnpaid = (Number(x?.amount_due) || 0) > 0 || (Number(x?.balance) || 0) > 0;
-
-      const cancelled =
-        norm(x?.status?.label) === "cancelled" ||
-        norm(x?.state) === "cancelled" ||
-        x?.cancelled === true;
-
-      return !cancelled && (hasUnpaidLabel || booleanUnpaid || amountUnpaid);
-    }
-
-    function extractGroupId(x: any): number | null {
-      return (
-        (x?.user_group_id != null ? Number(x.user_group_id) : null) ??
-        (x?.user_group?.id != null ? Number(x.user_group.id) : null) ??
-        (x?.booking?.user_group_id != null ? Number(x.booking.user_group_id) : null) ??
-        (x?.booking?.user_group?.id != null ? Number(x.booking.user_group.id) : null) ??
-        null
-      );
-    }
-
-    function extractBookingId(x: any): number | null {
-      return (
-        (x?.id != null ? Number(x.id) : null) ??
-        (x?.booking_id != null ? Number(x.booking_id) : null) ??
-        (x?.booking?.id != null ? Number(x.booking.id) : null) ??
-        null
-      );
-    }
-
-    function filterUnpaidForGroup(unpaid: any[], ugid: number): any[] {
-      const seen = new Set<number>();
-      const result: any[] = [];
-
-      for (const item of unpaid || []) {
-        const gid = extractGroupId(item);
-        if (gid !== Number(ugid)) continue;
-        if (!isReallyUnpaid(item)) continue;
-
-        const bid = extractBookingId(item) ?? -1;
-        if (bid >= 0 && seen.has(bid)) continue;
-        if (bid >= 0) seen.add(bid);
-
-        result.push(item);
-      }
-      return result;
-    }
-
-    // Step 7: Prepare response data with ui_meta
-    const ui_meta = {
-      display_name: resolveDisplayName({
-        user: noddihUser,
-        email: email,
-        userGroup: selectedGroup,
-        priorityBooking: priorityBooking,
-      }),
-      user_group_badge: selectedGroup.id ?? null,
+    // Step 7: Build unified response
+    const liveResponse = buildResponse({
+      source: "live",
+      ttl_seconds: CACHE_TTL_SECONDS,
+      found: true,
+      email,
+      noddi_user_id: noddihUser.id,
+      user_group_id: selectedGroup.id,
+      user: noddihUser,
+      priority_booking_type: priorityBookingType,
+      priority_booking: priorityBooking,
       unpaid_count: pendingBookings.length,
-      version: "noddi-edge-1.1",
-      source: "live"
-    };
-
-    const responseData = {
-      cached: false,
-      customer: {
-        noddiUserId: noddihUser.id,
-        userGroupId: selectedGroup.id,
-        email: noddihUser.email,
-        firstName: noddihUser.firstName,
-        lastName: noddihUser.lastName,
-        phone: noddihUser.phone,
-        language: noddihUser.language,
-        phoneVerified: noddihUser.phoneVerified,
-        registrationDate: noddihUser.registrationDate
-      },
-      priorityBooking,
-      priorityBookingType,
-      pendingBookings,
-      pendingBookingsCount: pendingBookings.length,
-      lastRefreshed: new Date().toISOString(),
-      ui_meta
-    };
+      unpaid_bookings: pendingBookings,
+      userGroup: selectedGroup
+    });
 
     // Step 8: Update cache (if table exists)
     try {
@@ -399,8 +509,8 @@ serve(async (req) => {
           priority_booking_id: priorityBooking?.id || null,
           priority_booking_type: priorityBookingType,
           pending_bookings_count: pendingBookings.length,
-          cached_customer_data: responseData.customer,
-          cached_priority_booking: priorityBooking || {},
+          cached_customer_data: noddihUser,
+          cached_priority_booking: priorityBooking || null,
           cached_pending_bookings: pendingBookings
         }, {
           onConflict: 'email'
@@ -411,26 +521,15 @@ serve(async (req) => {
       console.log('Could not update cache, but continuing:', cacheError);
     }
 
-    return new Response(
-      JSON.stringify(responseData),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return json(liveResponse);
 
   } catch (error) {
     console.error('Error in noddi-customer-lookup:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
     
-    return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error', 
-        details: errorMessage,
-        stack: errorStack 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    return json({ 
+      error: 'Internal server error', 
+      details: errorMessage
+    }, 500);
   }
 });

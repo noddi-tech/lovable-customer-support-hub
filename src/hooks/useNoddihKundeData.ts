@@ -26,25 +26,33 @@ interface NoddihBooking {
   paymentStatus?: string;
 }
 
-interface NoddihLookupResponse {
-  cached: boolean;
-  customer: NoddihCustomer;
-  priorityBooking: NoddihBooking | null;
-  priorityBookingType: 'upcoming' | 'completed' | null;
-  pendingBookings: NoddihBooking[];
-  pendingBookingsCount: number;
-  lastRefreshed: string;
-  ui_meta?: {
-    display_name: string;
-    user_group_badge: number | null;
+export type NoddiLookupResponse = {
+  ok: boolean;
+  source: "cache" | "live";
+  ttl_seconds: number;
+  data: {
+    found: boolean;
+    email: string;
+    noddi_user_id: number | null;
+    user_group_id: number | null;
+    user: any;
+    priority_booking_type: "upcoming" | "completed" | null;
+    priority_booking: any;
     unpaid_count: number;
-    version: string;
-    source: string;
+    unpaid_bookings: any[];
+    ui_meta: {
+      display_name: string;
+      user_group_badge: number | null;
+      unpaid_count: number;
+      version: string;
+      source: "cache" | "live";
+    };
   };
+  // Legacy support for transition period
   error?: string;
   notFound?: boolean;
   rateLimited?: boolean;
-}
+};
 
 interface Customer {
   id: string;
@@ -59,7 +67,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
 
   const lookupQuery = useQuery({
     queryKey: ['noddi-customer-lookup', customer?.email, profile?.organization_id],
-    queryFn: async (): Promise<NoddihLookupResponse | null> => {
+    queryFn: async (): Promise<NoddiLookupResponse | null> => {
       if (!customer?.email || !profile?.organization_id) {
         return null;
       }
@@ -79,7 +87,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
         throw new Error(`Failed to lookup Noddi data: ${error.message}`);
       }
 
-      return data as NoddihLookupResponse;
+      return data as NoddiLookupResponse;
     },
     enabled: !!customer?.email && !!profile?.organization_id,
     staleTime: 30 * 60 * 1000, // 30 minutes
