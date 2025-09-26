@@ -1,0 +1,132 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface NoddihCustomer {
+  noddiUserId: number;
+  userGroupId: number;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  language?: string;
+  phoneVerified?: boolean;
+  registrationDate?: string;
+}
+
+interface NoddihBooking {
+  id: number;
+  status: string;
+  deliveryWindowStartsAt?: string;
+  deliveryWindowEndsAt?: string;
+  completedAt?: string;
+  services?: any[];
+  totalAmount?: number;
+  paymentStatus?: string;
+}
+
+interface NoddihLookupResponse {
+  cached: boolean;
+  customer: NoddihCustomer;
+  priorityBooking: NoddihBooking | null;
+  priorityBookingType: 'upcoming' | 'completed' | null;
+  pendingBookings: NoddihBooking[];
+  pendingBookingsCount: number;
+  lastRefreshed: string;
+  error?: string;
+  notFound?: boolean;
+  rateLimited?: boolean;
+}
+
+interface Customer {
+  id: string;
+  email?: string;
+  phone?: string;
+  full_name?: string;
+}
+
+export const useNoddihKundeData = (customer: Customer | null) => {
+  const queryClient = useQueryClient();
+
+  const lookupQuery = useQuery({
+    queryKey: ['noddi-customer-lookup', customer?.email],
+    queryFn: async (): Promise<NoddihLookupResponse | null> => {
+      if (!customer?.email) {
+        return null;
+      }
+
+      console.log('Looking up Noddi customer data for:', customer.email);
+      
+      const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
+        body: {
+          email: customer.email,
+          customerId: customer.id
+        }
+      });
+
+      if (error) {
+        console.error('Noddi lookup error:', error);
+        throw new Error(`Failed to lookup Noddi data: ${error.message}`);
+      }
+
+      return data as NoddihLookupResponse;
+    },
+    enabled: !!customer?.email,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour
+    retry: (failureCount, error) => {
+      // Don't retry if customer not found or rate limited
+      if (error.message?.includes('not found') || error.message?.includes('rate limited')) {
+        return false;
+      }
+      return failureCount < 2;
+    }
+  });
+
+  const refreshMutation = useMutation({
+    mutationFn: async () => {
+      if (!customer?.email) {
+        throw new Error('No customer email available');
+      }
+
+      // Force fresh lookup by bypassing cache
+      const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
+        body: {
+          email: customer.email,
+          customerId: customer.id,
+          forceRefresh: true
+        }
+      });
+
+      if (error) {
+        throw new Error(`Failed to refresh Noddi data: ${error.message}`);
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      // Update the cache with fresh data
+      queryClient.setQueryData(['noddi-customer-lookup', customer?.email], data);
+      toast.success('Noddi customer data refreshed');
+    },
+    onError: (error) => {
+      console.error('Failed to refresh Noddi data:', error);
+      toast.error(`Failed to refresh Noddi data: ${error.message}`);
+    }
+  });
+
+  const hasEmail = !!customer?.email;
+  const hasPhoneOnly = !!customer?.phone && !customer?.email;
+  
+  return {
+    data: lookupQuery.data,
+    isLoading: lookupQuery.isLoading,
+    error: lookupQuery.error,
+    isError: lookupQuery.isError,
+    hasEmail,
+    hasPhoneOnly,
+    refresh: refreshMutation.mutate,
+    isRefreshing: refreshMutation.isPending,
+    customer
+  };
+};

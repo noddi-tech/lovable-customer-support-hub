@@ -17,6 +17,7 @@ import { useConversationMeta } from '@/hooks/conversations/useConversationMeta';
 import { ProgressiveMessagesList } from '@/components/conversations/ProgressiveMessagesList';
 import { LazyReplyArea } from '@/components/conversations/LazyReplyArea';
 import { ConversationViewProvider } from '@/contexts/ConversationViewContext';
+import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
 
 interface ConversationViewProps {
   conversationId: string | null;
@@ -66,69 +67,82 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   return (
     <ConversationViewProvider conversationId={conversationId}>
-      <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
-        {/* Conversation Header */}
-        <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
-              {/* Back to Inbox Button */}
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  const newParams = new URLSearchParams(searchParams);
-                  newParams.delete('c');
-                  setSearchParams(newParams);
-                }}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                {isMobile ? '' : 'Back to Inbox'}
-              </Button>
-              
-              {/* Customer Info */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center space-x-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      {(conversation.customer?.full_name || conversation.customer?.email || 'U').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <h1 className="text-sm md:text-base font-semibold truncate">
-                      {conversation.customer?.full_name || 'Unknown Customer'}
-                    </h1>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {conversation.customer?.email}
-                    </p>
+      <div className="flex-1 min-h-0 w-full grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 bg-background">
+        {/* Main Conversation Column */}
+        <div className="flex flex-col min-h-0 w-full bg-background">
+          {/* Conversation Header */}
+          <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
+                {/* Back to Inbox Button */}
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.delete('c');
+                    setSearchParams(newParams);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {isMobile ? '' : 'Back to Inbox'}
+                </Button>
+                
+                {/* Customer Info */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center space-x-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {(conversation.customer?.full_name || conversation.customer?.email || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <h1 className="text-sm md:text-base font-semibold truncate">
+                        {conversation.customer?.full_name || 'Unknown Customer'}
+                      </h1>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {conversation.customer?.email}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
+              
+              {/* Action buttons */}
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+                    queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            
-            {/* Action buttons */}
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
-                  queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
-                }}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
+          </div>
+
+          {/* Messages Area with Progressive Loading */}
+          <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
+            <ProgressiveMessagesList 
+              conversationId={conversationId} 
+              conversation={conversation}
+            />
+            <LazyReplyArea conversationId={conversationId} />
           </div>
         </div>
 
-        {/* Messages Area with Progressive Loading */}
-        <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
-          <ProgressiveMessagesList 
-            conversationId={conversationId} 
-            conversation={conversation}
-          />
-          <LazyReplyArea conversationId={conversationId} />
+        {/* Sidebar Column (Desktop only) */}
+        <div className="hidden lg:flex flex-col bg-muted border-l border-border overflow-auto min-h-0">
+          <div className="p-4 space-y-4">
+            {/* Import and use NoddihKundeData component */}
+            <NoddihKundeData customer={conversation.customer} />
+            {/* Existing ConversationSidebar if it exists */}
+            {/* <ConversationSidebar ... /> */}
+          </div>
         </div>
       </div>
     </ConversationViewProvider>
