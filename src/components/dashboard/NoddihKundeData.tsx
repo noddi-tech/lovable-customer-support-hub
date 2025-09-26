@@ -235,6 +235,8 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   };
 
   const getStatusColor = (status: any) => {
+    console.log('getStatusColor called with:', status, 'type:', typeof status);
+    
     let statusString: string;
     
     if (!status) {
@@ -244,9 +246,12 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     if (typeof status === 'string') {
       statusString = status;
     } else if (typeof status === 'object' && status !== null) {
-      statusString = status.value || status.label || 'unknown';
+      const extracted = status.value || status.label || 'unknown';
+      statusString = String(extracted);
+      console.log('Extracted from object:', extracted, 'converted to:', statusString);
     } else {
-      return 'bg-gray-100 text-gray-800';
+      statusString = String(status);
+      console.log('Converted non-object to string:', statusString);
     }
     
     switch (statusString.toLowerCase()) {
@@ -323,11 +328,17 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Language:</span>
                 <Badge variant="secondary">
-                  {typeof noddihCustomer.language === 'string' 
-                    ? noddihCustomer.language 
-                    : typeof noddihCustomer.language === 'object' && noddihCustomer.language !== null
-                      ? (noddihCustomer.language as any).value || (noddihCustomer.language as any).label || 'Unknown'
-                      : 'Unknown'}
+                  {(() => {
+                    console.log('Language field:', noddihCustomer.language, 'type:', typeof noddihCustomer.language);
+                    if (typeof noddihCustomer.language === 'string') {
+                      return noddihCustomer.language;
+                    } else if (typeof noddihCustomer.language === 'object' && noddihCustomer.language !== null) {
+                      const extracted = (noddihCustomer.language as any).value || (noddihCustomer.language as any).label || 'Unknown';
+                      return String(extracted);
+                    } else {
+                      return String(noddihCustomer.language || 'Unknown');
+                    }
+                  })()}
                 </Badge>
               </div>
             )}
@@ -352,11 +363,17 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
                 {priorityBookingType === 'upcoming' ? 'Next Booking' : 'Last Booking'}
               </h4>
               <Badge className={getStatusColor(priorityBooking.status)}>
-                {typeof priorityBooking.status === 'string' 
-                  ? priorityBooking.status 
-                  : typeof priorityBooking.status === 'object' && priorityBooking.status !== null
-                    ? (priorityBooking.status as any).value || (priorityBooking.status as any).label || 'Unknown'
-                    : 'Unknown'}
+                {(() => {
+                  console.log('Priority booking status:', priorityBooking.status, 'type:', typeof priorityBooking.status);
+                  if (typeof priorityBooking.status === 'string') {
+                    return priorityBooking.status;
+                  } else if (typeof priorityBooking.status === 'object' && priorityBooking.status !== null) {
+                    const extracted = (priorityBooking.status as any).value || (priorityBooking.status as any).label || 'Unknown';
+                    return String(extracted);
+                  } else {
+                    return String(priorityBooking.status || 'Unknown');
+                  }
+                })()}
               </Badge>
             </div>
             
