@@ -234,11 +234,22 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     }
   };
 
-  const getStatusColor = (status: string | undefined | null) => {
-    if (!status || typeof status !== 'string') {
+  const getStatusColor = (status: any) => {
+    let statusString: string;
+    
+    if (!status) {
       return 'bg-gray-100 text-gray-800';
     }
-    switch (status.toLowerCase()) {
+    
+    if (typeof status === 'string') {
+      statusString = status;
+    } else if (typeof status === 'object' && status !== null) {
+      statusString = status.value || status.label || 'unknown';
+    } else {
+      return 'bg-gray-100 text-gray-800';
+    }
+    
+    switch (statusString.toLowerCase()) {
       case 'confirmed':
       case 'completed':
         return 'bg-green-100 text-green-800';
@@ -311,7 +322,13 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
             {noddihCustomer.language && (
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Language:</span>
-                <Badge variant="secondary">{noddihCustomer.language}</Badge>
+                <Badge variant="secondary">
+                  {typeof noddihCustomer.language === 'string' 
+                    ? noddihCustomer.language 
+                    : typeof noddihCustomer.language === 'object' && noddihCustomer.language !== null
+                      ? (noddihCustomer.language as any).value || (noddihCustomer.language as any).label || 'Unknown'
+                      : 'Unknown'}
+                </Badge>
               </div>
             )}
             
@@ -335,7 +352,11 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
                 {priorityBookingType === 'upcoming' ? 'Next Booking' : 'Last Booking'}
               </h4>
               <Badge className={getStatusColor(priorityBooking.status)}>
-                {priorityBooking.status}
+                {typeof priorityBooking.status === 'string' 
+                  ? priorityBooking.status 
+                  : typeof priorityBooking.status === 'object' && priorityBooking.status !== null
+                    ? (priorityBooking.status as any).value || (priorityBooking.status as any).label || 'Unknown'
+                    : 'Unknown'}
               </Badge>
             </div>
             
