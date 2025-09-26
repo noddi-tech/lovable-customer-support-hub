@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
+import { displayName, statusLabel, isoFromBooking, formatDate } from '@/utils/noddiHelpers';
 
 interface Customer {
   id: string;
@@ -225,41 +225,14 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
 
   const { customer: noddihCustomer, priorityBooking, priorityBookingType, pendingBookings } = data;
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return format(new Date(dateString), 'MMM d, yyyy HH:mm');
-    } catch {
-      return dateString;
-    }
-  };
-
-  const getStatusColor = (status: any) => {
-    console.log('getStatusColor called with:', status, 'type:', typeof status);
-    
-    let statusString: string;
-    
-    if (!status) {
-      return 'bg-gray-100 text-gray-800';
-    }
-    
-    if (typeof status === 'string') {
-      statusString = status;
-    } else if (typeof status === 'object' && status !== null) {
-      const extracted = status.value || status.label || 'unknown';
-      statusString = String(extracted);
-      console.log('Extracted from object:', extracted, 'converted to:', statusString);
-    } else {
-      statusString = String(status);
-      console.log('Converted non-object to string:', statusString);
-    }
-    
-    switch (statusString.toLowerCase()) {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
       case 'confirmed':
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'pending':
       case 'scheduled':
+      case 'draft':
         return 'bg-yellow-100 text-yellow-800';
       case 'cancelled':
       case 'failed':
@@ -268,6 +241,12 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // Extract display values using helpers
+  const customerName = displayName(noddihCustomer, noddihCustomer.email);
+  const priorityBookingDate = priorityBooking ? isoFromBooking(priorityBooking, priorityBookingType) : undefined;
+  const priorityBookingStatus = priorityBooking ? statusLabel(priorityBooking.status) : 'Unknown';
+  const customerLanguage = statusLabel(noddihCustomer.language);
 
   return (
     <Card>
@@ -298,11 +277,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">
-              {noddihCustomer.firstName || noddihCustomer.lastName 
-                ? `${noddihCustomer.firstName || ''} ${noddihCustomer.lastName || ''}`.trim()
-                : 'Unknown Name'}
-            </span>
+            <span className="font-medium">{customerName}</span>
             <Badge variant="outline" className="text-xs">
               ID: {noddihCustomer.noddiUserId}
             </Badge>
@@ -327,19 +302,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
             {noddihCustomer.language && (
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Language:</span>
-                <Badge variant="secondary">
-                  {(() => {
-                    console.log('Language field:', noddihCustomer.language, 'type:', typeof noddihCustomer.language);
-                    if (typeof noddihCustomer.language === 'string') {
-                      return noddihCustomer.language;
-                    } else if (typeof noddihCustomer.language === 'object' && noddihCustomer.language !== null) {
-                      const extracted = (noddihCustomer.language as any).value || (noddihCustomer.language as any).label || 'Unknown';
-                      return String(extracted);
-                    } else {
-                      return String(noddihCustomer.language || 'Unknown');
-                    }
-                  })()}
-                </Badge>
+                <Badge variant="secondary">{customerLanguage}</Badge>
               </div>
             )}
             
@@ -362,29 +325,15 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
                 <Package className="h-4 w-4" />
                 {priorityBookingType === 'upcoming' ? 'Next Booking' : 'Last Booking'}
               </h4>
-              <Badge className={getStatusColor(priorityBooking.status)}>
-                {(() => {
-                  console.log('Priority booking status:', priorityBooking.status, 'type:', typeof priorityBooking.status);
-                  if (typeof priorityBooking.status === 'string') {
-                    return priorityBooking.status;
-                  } else if (typeof priorityBooking.status === 'object' && priorityBooking.status !== null) {
-                    const extracted = (priorityBooking.status as any).value || (priorityBooking.status as any).label || 'Unknown';
-                    return String(extracted);
-                  } else {
-                    return String(priorityBooking.status || 'Unknown');
-                  }
-                })()}
+              <Badge className={getStatusColor(priorityBookingStatus)}>
+                {priorityBookingStatus}
               </Badge>
             </div>
             
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {priorityBookingType === 'upcoming' 
-                    ? formatDate(priorityBooking.deliveryWindowStartsAt)
-                    : formatDate(priorityBooking.completedAt || priorityBooking.deliveryWindowStartsAt)}
-                </span>
+                <span>{formatDate(priorityBookingDate)}</span>
               </div>
               
               {priorityBooking.totalAmount && (
