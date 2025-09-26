@@ -34,6 +34,13 @@ interface NoddihLookupResponse {
   pendingBookings: NoddihBooking[];
   pendingBookingsCount: number;
   lastRefreshed: string;
+  ui_meta?: {
+    display_name: string;
+    user_group_badge: number | null;
+    unpaid_count: number;
+    version: string;
+    source: string;
+  };
   error?: string;
   notFound?: boolean;
   rateLimited?: boolean;

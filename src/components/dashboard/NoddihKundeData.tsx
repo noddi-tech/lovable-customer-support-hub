@@ -242,8 +242,12 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     }
   };
 
-  // Extract display values using helpers
-  const customerName = displayName(noddihCustomer, noddihCustomer.email, priorityBooking);
+  // Use server-computed ui_meta when available
+  const meta = data?.ui_meta;
+  const displayName = meta?.display_name || "Unknown Customer";
+  const userGroupId = meta?.user_group_badge ?? noddihCustomer?.userGroupId ?? null;
+  const unpaidCount = Number(meta?.unpaid_count ?? data?.pendingBookingsCount ?? 0);
+  const isCached = (data?.cached === true) || (meta?.source === "cache");
   const priorityBookingDate = priorityBooking ? isoFromBooking(priorityBooking, priorityBookingType) : undefined;
   const priorityBookingStatus = priorityBooking ? statusLabel(priorityBooking.status) : 'Unknown';
   const customerLanguage = statusLabel(noddihCustomer?.language);
@@ -253,15 +257,15 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg flex items-center gap-2">
           <User className="h-5 w-5" />
-          {customerName}
-          {noddihCustomer.userGroupId != null && (
+          {displayName}
+          {userGroupId != null && (
             <Badge variant="outline" className="text-xs">
-              ID: {noddihCustomer.userGroupId}
+              ID: {userGroupId}
             </Badge>
           )}
         </CardTitle>
         <div className="flex items-center gap-2">
-          {data.cached && (
+          {isCached && (
             <Badge variant="secondary" className="text-xs">
               Cached
             </Badge>
@@ -282,7 +286,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{customerName}</span>
+            <span className="font-medium">{displayName}</span>
           </div>
           
           <div className="grid grid-cols-1 gap-2 text-sm">
@@ -361,7 +365,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
         )}
 
         {/* Pending/Unpaid Bookings Alert */}
-        {pendingBookings.length > 0 && (
+        {unpaidCount > 0 && (
           <>
             <Separator />
             <Alert variant="destructive">
@@ -369,7 +373,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
               <AlertDescription>
                 <div className="font-medium">Financial Action Required</div>
                 <div className="mt-1">
-                  {pendingBookings.length} unpaid/pending booking(s) need attention
+                  {unpaidCount} unpaid/pending booking(s) need attention
                 </div>
               </AlertDescription>
             </Alert>

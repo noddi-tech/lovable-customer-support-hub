@@ -87,6 +87,21 @@ serve(async (req) => {
 
         if (cachedData) {
           console.log('Returning cached Noddi data');
+          
+          // Compute ui_meta for cached response
+          const cachedUiMeta = {
+            display_name: resolveDisplayName({
+              user: cachedData.cached_customer_data,
+              email: email,
+              userGroup: { id: cachedData.user_group_id },
+              priorityBooking: cachedData.cached_priority_booking,
+            }),
+            user_group_badge: cachedData.user_group_id ?? null,
+            unpaid_count: cachedData.pending_bookings_count || 0,
+            version: "noddi-edge-1.1",
+            source: "cache"
+          };
+          
           return new Response(
             JSON.stringify({
               cached: true,
@@ -95,7 +110,8 @@ serve(async (req) => {
               priorityBookingType: cachedData.priority_booking_type,
               pendingBookings: cachedData.cached_pending_bookings,
               pendingBookingsCount: cachedData.pending_bookings_count,
-              lastRefreshed: cachedData.last_refreshed_at
+              lastRefreshed: cachedData.last_refreshed_at,
+              ui_meta: cachedUiMeta
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
@@ -240,25 +256,58 @@ serve(async (req) => {
       console.log(`Found ${pendingBookings.length} truly unpaid bookings for group ${selectedGroup.id}`);
     }
 
-    // Helper functions for unpaid booking filtering
-    function normalizeLabel(v: any): string {
+    // --- Name resolution (server-side) ---
+    function resolveDisplayName(params: {
+      user?: any;
+      email?: string;
+      userGroup?: any;
+      priorityBooking?: any;
+    }): string {
+      const { user, email, userGroup, priorityBooking } = params;
+
+      const fromUserName = (user?.name ?? "").trim();
+      if (fromUserName) return fromUserName;
+
+      const fn = (user?.first_name ?? user?.firstName ?? "").trim();
+      const ln = (user?.last_name ?? user?.lastName ?? "").trim();
+      const fromUserParts = [fn, ln].filter(Boolean).join(" ").trim();
+      if (fromUserParts) return fromUserParts;
+
+      const fromGroup = (userGroup?.name ?? "").trim();
+      if (fromGroup) return fromGroup;
+
+      const fromPB =
+        (priorityBooking?.customer?.name ??
+          priorityBooking?.user?.name ??
+          "").trim();
+      if (fromPB) return fromPB;
+
+      const emailPrefix = (email || "").split("@")[0];
+      return emailPrefix || "Unknown Name";
+    }
+
+    // --- Unpaid filtering (strict) ---
+    function norm(v: any) {
       return String(v ?? "").toLowerCase();
     }
 
     function isReallyUnpaid(x: any): boolean {
       const label =
-        normalizeLabel(x?.status?.label) ||
-        normalizeLabel(x?.payment_status) ||
-        normalizeLabel(x?.payment?.status);
+        norm(x?.status?.label) ||
+        norm(x?.payment_status) ||
+        norm(x?.payment?.status);
 
-      const unpaidLabels = ["unpaid", "pending", "requires payment", "requires_payment", "overdue"];
-      const hasUnpaidLabel = unpaidLabels.includes(label);
+      const unpaidLabels = new Set([
+        "unpaid", "pending", "requires payment", "requires_payment", "overdue"
+      ]);
+
+      const hasUnpaidLabel = unpaidLabels.has(label);
       const booleanUnpaid = x?.is_paid === false || x?.paid === false;
       const amountUnpaid = (Number(x?.amount_due) || 0) > 0 || (Number(x?.balance) || 0) > 0;
 
       const cancelled =
-        normalizeLabel(x?.status?.label) === "cancelled" ||
-        normalizeLabel(x?.state) === "cancelled" ||
+        norm(x?.status?.label) === "cancelled" ||
+        norm(x?.state) === "cancelled" ||
         x?.cancelled === true;
 
       return !cancelled && (hasUnpaidLabel || booleanUnpaid || amountUnpaid);
@@ -290,7 +339,6 @@ serve(async (req) => {
       for (const item of unpaid || []) {
         const gid = extractGroupId(item);
         if (gid !== Number(ugid)) continue;
-
         if (!isReallyUnpaid(item)) continue;
 
         const bid = extractBookingId(item) ?? -1;
@@ -302,7 +350,20 @@ serve(async (req) => {
       return result;
     }
 
-    // Step 7: Prepare response data
+    // Step 7: Prepare response data with ui_meta
+    const ui_meta = {
+      display_name: resolveDisplayName({
+        user: noddihUser,
+        email: email,
+        userGroup: selectedGroup,
+        priorityBooking: priorityBooking,
+      }),
+      user_group_badge: selectedGroup.id ?? null,
+      unpaid_count: pendingBookings.length,
+      version: "noddi-edge-1.1",
+      source: "live"
+    };
+
     const responseData = {
       cached: false,
       customer: {
@@ -320,7 +381,8 @@ serve(async (req) => {
       priorityBookingType,
       pendingBookings,
       pendingBookingsCount: pendingBookings.length,
-      lastRefreshed: new Date().toISOString()
+      lastRefreshed: new Date().toISOString(),
+      ui_meta
     };
 
     // Step 8: Update cache (if table exists)
