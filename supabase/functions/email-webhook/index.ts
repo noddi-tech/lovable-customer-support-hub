@@ -31,6 +31,32 @@ serve(async (req: Request) => {
     const emailData: IncomingEmail = await req.json();
     console.log('Received email:', emailData);
 
+    // Helper function to extract thread ID from email headers
+    const getThreadId = (messageId: string, inReplyTo?: string, references?: string): string => {
+      // Clean Message-ID by removing angle brackets
+      const cleanId = (id: string) => id?.replace(/[<>]/g, '').trim();
+      
+      // If In-Reply-To exists, use it (points to immediate parent)
+      if (inReplyTo) {
+        console.log('Using In-Reply-To for thread ID:', inReplyTo);
+        return cleanId(inReplyTo);
+      }
+      
+      // Parse References header and use first Message-ID (thread root)
+      if (references) {
+        // Extract all Message-IDs from References using regex
+        const messageIds = references.match(/<[^>]+>/g);
+        if (messageIds && messageIds.length > 0) {
+          console.log('Using first reference for thread ID:', messageIds[0]);
+          return cleanId(messageIds[0]); // Use first (root) message ID
+        }
+      }
+      
+      // Fallback to current Message-ID for new threads
+      console.log('Using Message-ID for new thread:', messageId);
+      return cleanId(messageId);
+    };
+
     // Extract the forwarding address from the 'to' field
     const forwardingAddress = emailData.to;
     
@@ -84,8 +110,17 @@ serve(async (req: Request) => {
       customer = newCustomer;
     }
 
-    // Generate thread ID from subject or use existing references
-    const threadId = emailData.inReplyTo || emailData.references || emailData.messageId;
+    // Generate thread ID using intelligent parsing
+    const threadId = getThreadId(emailData.messageId, emailData.inReplyTo, emailData.references);
+    
+    console.log('Thread ID determination:', {
+      messageId: emailData.messageId,
+      inReplyTo: emailData.inReplyTo,
+      references: emailData.references,
+      resolvedThreadId: threadId,
+      method: emailData.inReplyTo ? 'inReplyTo' : 
+              (emailData.references ? 'references' : 'messageId')
+    });
 
     // Find or create conversation
     let { data: conversation, error: conversationError } = await supabaseClient
@@ -131,6 +166,7 @@ serve(async (req: Request) => {
         content: emailData.text || emailData.html || '',
         sender_type: 'customer',
         email_message_id: emailData.messageId,
+        email_thread_id: threadId,
         email_subject: emailData.subject,
         email_headers: {
           from: emailData.from,
