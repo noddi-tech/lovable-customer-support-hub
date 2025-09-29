@@ -10,7 +10,16 @@ import {
   Mail, 
   AlertTriangle,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Archive,
+  RotateCcw,
+  Truck,
+  Package,
+  Users,
+  Droplets,
+  Target,
+  Gauge,
+  Zap
 } from 'lucide-react';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -349,10 +358,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
 
         <Separator />
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-3">
+          <div className="space-y-2">
             <div className="text-sm text-muted-foreground">Last Booking</div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-2">
               {statusLabelText && (
                 <span className="rounded-full border px-2 py-0.5 text-xs">{statusLabelText}</span>
               )}
@@ -380,7 +389,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
               )}
             </div>
           </div>
-          <div className="mt-1 text-base">{when}</div>
+          <div className="text-base">{when}</div>
         </div>
 
         {/* Service & vehicle section - only show for v1.3+ */}
@@ -398,9 +407,31 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           <div className="mt-3">
             <div className="text-xs font-medium text-muted-foreground mb-1">Service Tags</div>
             <div className="flex flex-wrap gap-1.5">
-              {tags.map(t => (
-                <span key={t} className="px-2 py-0.5 text-xs rounded-full bg-muted">{t}</span>
-              ))}
+              {tags.map(t => {
+                const getServiceTagStyle = (tag: string) => {
+                  const tagLower = tag.toLowerCase();
+                  if (tagLower.includes('dekkhotell')) return { bg: 'bg-blue-100', text: 'text-blue-900', icon: Archive };
+                  if (tagLower.includes('dekkskift')) return { bg: 'bg-green-100', text: 'text-green-900', icon: RotateCcw };
+                  if (tagLower.includes('hjemlevering')) return { bg: 'bg-purple-100', text: 'text-purple-900', icon: Truck };
+                  if (tagLower.includes('henting') || tagLower.includes('levering')) return { bg: 'bg-orange-100', text: 'text-orange-900', icon: Package };
+                  if (tagLower.includes('bærehjelp')) return { bg: 'bg-teal-100', text: 'text-teal-900', icon: Users };
+                  if (tagLower.includes('felgvask')) return { bg: 'bg-indigo-100', text: 'text-indigo-900', icon: Droplets };
+                  if (tagLower.includes('balansering')) return { bg: 'bg-pink-100', text: 'text-pink-900', icon: Target };
+                  if (tagLower.includes('tpms') || tagLower.includes('ventil')) return { bg: 'bg-red-100', text: 'text-red-900', icon: Gauge };
+                  if (tagLower.includes('punktering')) return { bg: 'bg-yellow-100', text: 'text-yellow-900', icon: Zap };
+                  return { bg: 'bg-muted', text: 'text-muted-foreground', icon: null };
+                };
+                
+                const style = getServiceTagStyle(t);
+                const IconComponent = style.icon;
+                
+                return (
+                  <span key={t} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${style.bg} ${style.text}`}>
+                    {IconComponent && <IconComponent className="w-3 h-3" />}
+                    {t}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
