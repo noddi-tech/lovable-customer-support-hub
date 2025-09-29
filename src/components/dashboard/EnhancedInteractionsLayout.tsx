@@ -1,10 +1,13 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageCircle, RefreshCw } from 'lucide-react';
+import { MessageCircle, RefreshCw, GitMerge } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VoiceInterface } from './VoiceInterface';
+import { ThreadMerger } from './ThreadMerger';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
@@ -64,6 +67,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const isMobile = useIsMobile();
   const navigation = useInteractionsNavigation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMerger, setShowMerger] = useState(false);
   
   // Dev-only performance monitoring
   useEffect(() => {
@@ -164,14 +168,23 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Render inbox list with search
   const renderInboxList = () => (
     <div className="space-y-4">
-      {/* Search Input */}
-      <div className="px-2">
+      {/* Search Input and Merge Button */}
+      <div className="px-2 space-y-2">
         <Input
           placeholder="Search conversations..."
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="bg-background border-border focus-visible:ring-ring"
         />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowMerger(true)}
+          className="w-full"
+        >
+          <GitMerge className="h-4 w-4 mr-2" />
+          Merge Split Threads
+        </Button>
       </div>
       
       {/* Inbox and Filter List */}
@@ -324,14 +337,29 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   };
 
   return (
-    <MasterDetailShell
-      left={renderInboxList()}
-      center={renderConversationList()}
-      detailLeft={renderMessageThread()}
-      detailRight={renderConversationSidebar()}
-      isDetail={isDetail}
-      onBack={handleBack}
-      backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
-    />
+    <>
+      <MasterDetailShell
+        left={renderInboxList()}
+        center={renderConversationList()}
+        detailLeft={renderMessageThread()}
+        detailRight={renderConversationSidebar()}
+        isDetail={isDetail}
+        onBack={handleBack}
+        backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}
+      />
+      
+      {/* Thread Merger Dialog */}
+      <Dialog open={showMerger} onOpenChange={setShowMerger}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Merge Split Email Threads</DialogTitle>
+          </DialogHeader>
+          <ThreadMerger 
+            inboxId={effectiveInboxId}
+            onMergeComplete={() => setShowMerger(false)}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
