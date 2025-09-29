@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ConversationListFilters } from "./ConversationListFilters";
 import { InboxSwitcher } from "../InboxSwitcher";
 import { ConversationMigrator } from "../ConversationMigrator";
+import { ThreadMerger } from "../ThreadMerger";
 import { useConversationList } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
@@ -27,6 +28,7 @@ export const ConversationListHeader = ({
   const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead } = useConversationList();
   const { t } = useTranslation();
   const [showMigrator, setShowMigrator] = useState(false);
+  const [showThreadMerger, setShowThreadMerger] = useState(false);
 
   const totalCount = filteredConversations.length;
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
@@ -87,6 +89,31 @@ export const ConversationListHeader = ({
             </PopoverContent>
           </Popover>
           
+          {/* Thread Merger */}
+          <Dialog open={showThreadMerger} onOpenChange={setShowThreadMerger}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 gap-1 text-xs"
+              >
+                <Settings className="!w-3 !h-3" />
+                <span className="hidden sm:inline">
+                  {t('dashboard.conversationList.merge', 'Merge')}
+                </span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{t('dashboard.threadMerger', 'Thread Merger')}</DialogTitle>
+              </DialogHeader>
+              <ThreadMerger 
+                inboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+                onMergeComplete={() => setShowThreadMerger(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
           {/* Migration Tool */}
           <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
             <DialogTrigger asChild>
