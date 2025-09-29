@@ -422,7 +422,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
                       <div className="truncate">
                         {l.name}{l.quantity > 1 ? ` × ${l.quantity}` : ''}
                       </div>
-                      <div className={l.is_discount ? 'text-red-600' : ''}>
+                      <div className={`${l.is_discount ? 'text-red-600' : ''} ${meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}`}>
                         {moneyFmt(l.amount_gross, l.currency)}
                       </div>
                     </div>
@@ -434,17 +434,17 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
                 <div className="border-t pt-2 text-sm">
                   <div className="flex justify-between">
                     <span>VAT</span>
-                    <span>{moneyFmt(mny.vat, mny.currency)}</span>
+                    <span className={meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}>{moneyFmt(mny.vat, mny.currency)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
                     <span>Total</span>
-                    <span>{moneyFmt(mny.gross, mny.currency)}</span>
+                    <span className={meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}>{moneyFmt(mny.gross, mny.currency)}</span>
                   </div>
 
                   {mny.outstanding > 0 && (
                     <div className="mt-1 flex justify-between text-rose-700">
                       <span>Outstanding</span>
-                      <span>{moneyFmt(mny.outstanding, mny.currency)}</span>
+                      <span className={meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}>{moneyFmt(mny.outstanding, mny.currency)}</span>
                     </div>
                   )}
                 </div>
@@ -453,35 +453,6 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           );
         })()}
 
-        {/* Money card - only show when order_summary has lines */}
-        {showV14 && hasLines && (
-          <div className="mt-4 rounded-xl border p-3">
-            <div className="text-sm font-medium">Order Summary</div>
-            <div className="mt-2 space-y-1">
-              {(order.lines ?? []).map((l: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between text-sm">
-                  <div className="truncate">
-                    {l.name}
-                    {l.quantity > 1 && <span className="text-muted-foreground"> × {l.quantity}</span>}
-                  </div>
-                   <div className={l.kind === "discount" ? "text-red-600" : ""}>
-                     {moneyFmt(l.subtotal || l.unit_amount * l.quantity || 0, order.currency)}
-                  </div>
-                </div>
-              ))}
-              {"vat" in order && (
-                 <div className="flex items-center justify-between text-sm">
-                   <div className="text-muted-foreground">VAT</div>
-                   <div>{moneyFmt(order.vat || 0, order.currency)}</div>
-                 </div>
-               )}
-               <div className="mt-1 border-t pt-2 flex items-center justify-between text-sm font-medium">
-                 <div>Total</div>
-                 <div>{moneyFmt(order.total || 0, order.currency)}</div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {unpaidCount > 0 && (
           <>
