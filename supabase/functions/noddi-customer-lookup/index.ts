@@ -1,6 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Configuration constants
+const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
+const CACHE_TTL_SECONDS = Number(Deno.env.get("NODDI_CACHE_TTL_SECONDS") || 900);
+const DEBUG = (Deno.env.get("LOG_NODDI_DEBUG") || "false").toLowerCase() === "true";
+
+const noddiApiKey = Deno.env.get("NODDI_API_KEY") || "";
+function noddiAuthHeaders(): HeadersInit {
+  return {
+    "Authorization": `Api-Key ${noddiApiKey}`,
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+  };
+}
+
 // Unified response type
 export type NoddiLookupResponse = {
   ok: boolean;
@@ -88,8 +102,7 @@ interface NoddihBooking {
   paymentStatus?: string;
 }
 
-// Configuration
-const CACHE_TTL_SECONDS = 30 * 60; // 30 minutes
+// Legacy config for compatibility
 const NEGATIVE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes for not-found
 const PARTNER_BASE_URL = Deno.env.get("PARTNER_BASE_URL")?.replace(/\/+$/, "") || "https://partner.noddi.co";
 
@@ -161,11 +174,12 @@ function primaryBookingDateIso(booking:any, type:"upcoming"|"completed"|null|und
   );
 }
 
-function norm(s: any): string {
-  return String(s ?? "")
+function norm(input: any): string {
+  if (!input) return "";
+  return String(input)
     .normalize("NFKD")
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")   // strip punctuation
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")  // strip punctuation, keep letters (incl. æøå) & digits
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -279,51 +293,47 @@ function extractOrderSummary(b: any) {
   };
 }
 
-// --- Order tag extraction (NB keywords + common synonyms) ---
 const TAG_RULES: Array<{label: string; rx: RegExp[]}> = [
-  { label: "Dekkhotell", rx: [/\bdekkhotell\b/, /\boppbevaring\b/, /\btire\s*hotel\b/, /\bfornyelse\b/] },
-  { label: "Dekkskift", rx: [/\bdekkskift\b/, /\bhjulskift\b/, /\bskifte\s*dekk\b/, /\btire\s*(change|swap)\b/] },
-  { label: "Hjemlevert dekkskift", rx: [/\bhjemlever\w*\b/, /\bhjem.*dekkskift\b/, /\bhome.*(change|swap)\b/] },
-  { label: "Henting/Levering", rx: [/\bhenting\b/, /\blevering\b/, /\bpick\s*up\b/, /\bdelivery\b/] },
-  { label: "Hjelp til å bære dekk", rx: [/\bb(æ|a)re\s*dekk\b/, /\bb(æ|a)rehjelp\b/, /\bcarry\b.*\bti?res?\b/] },
-  { label: "Felgvask", rx: [/\bfelgvask\b/, /\brim\s*wash\b/] },
-  { label: "Balansering", rx: [/\bbalanser\w*\b/, /\bbalance\b/] },
-  { label: "TPMS/Ventil", rx: [/\btpms\b/, /\bventil\w*\b/, /\bvalve\b/] },
+  { label: "Dekkhotell", rx: [/dekkhotell/, /tire(s)?\s*(hotel|storage)/] },
+  { label: "Dekkskift",  rx: [/dekkskift/, /tire(s)?\s*(change|swap)/] },
+  { label: "Hjemlevert dekkskift", rx: [/hjem(levert)?\s*dekkskift/, /home\s*(tire\s*)?(change|service)/] },
+  { label: "Henting/Levering", rx: [/hent(ing)?/, /lever(ing)?/, /\bpick[-\s]?up\b/, /\bdelivery\b/] },
+  { label: "Hjelp bære dekk", rx: [/hjelp.*b(æ|ae)re.*dekk/, /carry\s*tires?/] },
+  { label: "Felgvask", rx: [/felg(vask)?/, /rim(s)?\s*(wash|clean)/] },
+  { label: "Balansering", rx: [/balanser(ing)?/, /\b(balance|balancing)\b/] },
+  { label: "TPMS/Ventil", rx: [/tpms|ventil/, /sensor(s)?|valve(s)?/] },
 ];
 
-function textFromBooking(b:any): string {
-  const parts:string[] = [];
-  const push = (v:any) => v && parts.push(String(v));
-  
-  // common fields
+function textFromBooking(b: any): string {
+  const parts: string[] = [];
+  const push = (v: any) => v && parts.push(String(v));
+
+  // High-signal fields
   push(b?.service?.name); push(b?.service_name); push(b?.title); push(b?.name); push(b?.description);
-  
-  // vehicle/notes often carry service hints
-  push(b?.vehicle_label); push(b?.vehicle?.label); push(b?.vehicle?.name);
+
+  // Vehicle/notes/meta can contain service wording
+  push(b?.vehicle_label);
+  push(b?.vehicle?.label); push(b?.vehicle?.name);
   push(b?.car?.label); push(b?.car?.make); push(b?.car?.model); push(b?.car?.notes);
-  
-  // references / metadata
   push(b?.booking_reference); push(b?.metadata?.summary); push(b?.notes);
-  
-  // lines across various shapes
+
+  // Lines across shapes
   const lines = b?.order?.lines ?? b?.order_lines ?? b?.lines ?? b?.items ?? b?.services ?? [];
   for (const l of (Array.isArray(lines) ? lines : [])) {
     push(l?.name); push(l?.title); push(l?.description); push(l?.type); push(l?.sku);
   }
-  
+
   return norm(parts.join(" • "));
 }
 
-function extractOrderTags(b:any): string[] {
+function extractOrderTags(b: any): string[] {
   const hay = textFromBooking(b);
-  const tags = new Set<string>();
-  for (const rule of TAG_RULES) if (rule.rx.some(r => r.test(hay))) tags.add(rule.label);
-  // fallback to service title only if still empty
-  if (!tags.size) {
-    const svc = norm(b?.service?.name ?? b?.service_name ?? b?.title ?? b?.name ?? "");
-    for (const rule of TAG_RULES) if (rule.rx.some(r => r.test(svc))) tags.add(rule.label);
+  if (!hay) return [];
+  const set = new Set<string>();
+  for (const rule of TAG_RULES) {
+    if (rule.rx.some(rx => rx.test(hay))) set.add(rule.label);
   }
-  return [...tags];
+  return [...set].sort();
 }
 
 function buildPartnerUrls(userGroupId: number | null, booking: any) {
@@ -355,13 +365,8 @@ function filterUnpaidForGroup(unpaid: any[], ugid: number): any[] {
 
 async function getUserByEmail(email: string) {
   const encodedEmail = encodeURIComponent(email);
-  const noddihApiKey = Deno.env.get('NODDI_API_KEY');
-  const response = await fetch(`https://api.noddi.no/v1/users/get-by-email/?email=${encodedEmail}`, {
-    headers: {
-      'Authorization': `Api-Key ${noddihApiKey}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    }
+  const response = await fetch(`${API_BASE}/v1/users/get-by-email/?email=${encodedEmail}`, {
+    headers: noddiAuthHeaders()
   });
   
   if (response.status === 404) return null;
@@ -380,13 +385,8 @@ function sanitizePhone(raw?: string): string | null {
 
 async function getUserByPhone(phone: string) {
   const encodedPhone = encodeURIComponent(phone);
-  const noddihApiKey = Deno.env.get('NODDI_API_KEY');
-  const response = await fetch(`https://api.noddi.no/v1/users/get-by-phone-number/?phone_number=${encodedPhone}`, {
-    headers: {
-      'Authorization': `Api-Key ${noddihApiKey}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    }
+  const response = await fetch(`${API_BASE}/v1/users/get-by-phone-number/?phone_number=${encodedPhone}`, {
+    headers: noddiAuthHeaders()
   });
   
   if (response.status === 404) return null;
@@ -394,30 +394,22 @@ async function getUserByPhone(phone: string) {
   return await response.json();
 }
 
-// Enrichment function - fetch booking details if tags are empty
-async function enrichBookingIfNeeded(pb: any, ugid: number | null, noddihApiKey: string) {
+async function enrichTagsIfEmpty(pb: any): Promise<{tags: string[]; bookingForCache: any}> {
   let tags = extractOrderTags(pb);
   if (tags.length > 0 || !pb?.id) return { tags, bookingForCache: pb };
 
   try {
-    console.log(`[noddi] Enriching booking ${pb.id} - initial tags empty`);
-    const detailResponse = await fetch(`https://api.noddi.no/v1/bookings/${pb.id}/`, {
-      headers: {
-        'Authorization': `Api-Key ${noddihApiKey}`,
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (detailResponse.ok) {
-      const detail = await detailResponse.json();
+    if (DEBUG) console.log(`[noddi] Enriching booking ${pb.id} (initially no tags)`);
+    const r = await fetch(`${API_BASE}/v1/bookings/${pb.id}/`, { headers: noddiAuthHeaders() });
+    if (r.ok) {
+      const detail = await r.json();
       tags = extractOrderTags(detail);
-      console.log(`[noddi] Enriched tags:`, tags);
+      if (DEBUG) console.log(`[noddi] Enriched tags:`, tags);
       return { tags, bookingForCache: detail };
     }
-  } catch (error) {
-    console.log(`[noddi] Enrichment failed:`, error);
+  } catch (e) {
+    if (DEBUG) console.log(`[noddi] Enrichment failed:`, e);
   }
-  
   return { tags, bookingForCache: pb };
 }
 
@@ -593,8 +585,7 @@ serve(async (req) => {
       return json({ error: 'Organization ID is required' }, 400);
     }
 
-    const noddihApiKey = Deno.env.get('NODDI_API_KEY');
-    if (!noddihApiKey) {
+    if (!noddiApiKey) {
       console.error('NODDI_API_KEY not found in environment');
       return json({ error: 'Noddi API key not configured' }, 500);
     }
@@ -734,11 +725,8 @@ serve(async (req) => {
     console.log(`Found Noddi user: ${noddihUser.id}`);
 
     // Step 3: Get user groups
-    const groupsResponse = await fetch(`https://api.noddi.no/v1/user-groups/?user_ids=${noddihUser.id}`, {
-      headers: {
-        'Authorization': `Api-Key ${noddihApiKey}`,
-        'Accept': 'application/json'
-      }
+    const groupsResponse = await fetch(`${API_BASE}/v1/user-groups/?user_ids=${noddihUser.id}`, {
+      headers: noddiAuthHeaders()
     });
 
     if (!groupsResponse.ok) {
@@ -766,13 +754,8 @@ serve(async (req) => {
     // Try upcoming bookings first
     console.log('Fetching upcoming bookings');
     const upcomingResponse = await fetch(
-      `https://api.noddi.no/v1/user-groups/${selectedGroup.id}/bookings-for-customer/?is_upcoming=true`,
-      {
-        headers: {
-          'Authorization': `Api-Key ${noddihApiKey}`,
-          'Accept': 'application/json'
-        }
-      }
+      `${API_BASE}/v1/user-groups/${selectedGroup.id}/bookings-for-customer/?is_upcoming=true`,
+      { headers: noddiAuthHeaders() }
     );
 
     if (upcomingResponse.ok) {
@@ -790,13 +773,8 @@ serve(async (req) => {
     if (!priorityBooking) {
       console.log('No upcoming bookings, fetching completed bookings');
       const completedResponse = await fetch(
-        `https://api.noddi.no/v1/user-groups/${selectedGroup.id}/bookings-for-customer/?is_completed=true`,
-        {
-          headers: {
-            'Authorization': `Api-Key ${noddihApiKey}`,
-            'Accept': 'application/json'
-          }
-        }
+        `${API_BASE}/v1/user-groups/${selectedGroup.id}/bookings-for-customer/?is_completed=true`,
+        { headers: noddiAuthHeaders() }
       );
 
       if (completedResponse.ok) {
@@ -821,11 +799,8 @@ serve(async (req) => {
     console.log('Checking for unpaid bookings');
     let pendingBookings: NoddihBooking[] = [];
     
-    const unpaidResponse = await fetch('https://api.noddi.no/v1/bookings/unpaid/', {
-      headers: {
-        'Authorization': `Api-Key ${noddihApiKey}`,
-        'Accept': 'application/json'
-      }
+    const unpaidResponse = await fetch(`${API_BASE}/v1/bookings/unpaid/`, {
+      headers: noddiAuthHeaders()
     });
 
     if (unpaidResponse.ok) {
@@ -835,7 +810,7 @@ serve(async (req) => {
     }
 
     // Step 7: Build unified response with enrichment
-    const { tags: order_tags, bookingForCache } = await enrichBookingIfNeeded(priorityBooking, selectedGroup.id, noddihApiKey);
+    const { tags: order_tags, bookingForCache } = await enrichTagsIfEmpty(priorityBooking);
     
     const liveResponse = buildResponse({
       source: "live",

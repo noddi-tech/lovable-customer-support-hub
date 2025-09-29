@@ -216,32 +216,24 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
 
   // Use ONLY ui_meta data for rendering - no fallbacks to old structure
   const payload = data;
-  
-  // Debug logging for payload verification
-  console.info("[Noddi] payload", {
-    source: payload?.source,
-    version: payload?.data?.ui_meta?.version,
-    order_tags: payload?.data?.ui_meta?.order_tags,
-    keys: Object.keys(payload?.data?.ui_meta ?? {})
-  });
-  
   const src = payload?.source; // "cache" | "live"
-  const m = payload?.data?.ui_meta;
-  const version = m?.version || "1.0";
+  const meta = payload?.data?.ui_meta;
+  const version = meta?.version || "1.0";
   
-  // Numeric-safe version parser
+  // Version parsing with better numeric safety
   const verNum = (v?: string) => {
-    const match = /noddi-edge-(\d+)\.(\d+)/.exec(v ?? "");
-    return match ? Number(`${match[1]}.${match[2]}`) : 0;
+    const m = /noddi-edge-(\d+)\.(\d+)/.exec(v ?? "");
+    return m ? Number(`${m[1]}.${m[2]}`) : 0;
   };
   const showV13 = verNum(version) >= 1.3;
   const showV14 = verNum(version) >= 1.4;
+  const tags: string[] = Array.isArray(meta?.order_tags) ? meta.order_tags : [];
   
-  const name = m?.display_name || "Unknown Customer";
-  const groupId = m?.user_group_badge ?? null;
-  const statusLabelText = m?.status_label || null;
-  const iso = m?.booking_date_iso || null;
-  const timezone = m?.timezone || "Europe/Oslo";
+  const name = meta?.display_name || "Unknown Customer";
+  const groupId = meta?.user_group_badge ?? null;
+  const statusLabelText = meta?.status_label || null;
+  const iso = meta?.booking_date_iso || null;
+  const timezone = meta?.timezone || "Europe/Oslo";
 
   // Currency formatter
   const money = (amt: number, cur: string) =>
@@ -258,16 +250,15 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
         }).format(d);
   })();
 
-  const matchMode = m?.match_mode || "email";
-  const conflict = m?.conflict || false;
-  const unpaidCount = m?.unpaid_count || 0;
+  const matchMode = meta?.match_mode || "email";
+  const conflict = meta?.conflict || false;
+  const unpaidCount = meta?.unpaid_count || 0;
   
   // Enhanced fields (version gated)
-  const urls = showV13 ? (m?.partner_urls) : undefined;
-  const order = m?.order_summary;
-  const vehicleLabel = showV13 ? m?.vehicle_label : null;
-  const serviceTitle = showV13 ? m?.service_title : null;
-  const tags: string[] = Array.isArray(m?.order_tags) ? m.order_tags : [];
+  const urls = showV13 ? (meta?.partner_urls) : undefined;
+  const order = meta?.order_summary;
+  const vehicleLabel = showV13 ? meta?.vehicle_label : null;
+  const serviceTitle = showV13 ? meta?.service_title : null;
   
   // Order summary logic - only show when real lines exist
   const hasLines = !!(order && Array.isArray(order.lines) && order.lines.length > 0);
@@ -376,26 +367,22 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           </div>
         )}
 
-        {/* Order tags for v1.4+ - show independently */}
+        {/* Service tags - only show if available and v1.4+ */}
         {showV14 && tags.length > 0 && (
-          <div className="mt-4 rounded-xl border p-3">
-            <div className="text-sm font-medium">Service Tags</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {tags.map(tag => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground/80"
-                  title={tag}
-                >
-                  {tag}
+          <div className="mt-3">
+            <div className="text-xs font-medium text-muted-foreground mb-1">Service Tags</div>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((t, i) => (
+                <span key={`${t}-${i}`} className="px-2 py-0.5 rounded-full text-xs border">
+                  {t}
                 </span>
               ))}
             </div>
           </div>
         )}
 
-        {/* Order summary - only show for v1.3+ and when we have real lines */}
-        {showV13 && hasLines && (
+        {/* Money card - only show when order_summary has lines */}
+        {showV14 && hasLines && (
           <div className="mt-4 rounded-xl border p-3">
             <div className="text-sm font-medium">Order Summary</div>
             <div className="mt-2 space-y-1">
