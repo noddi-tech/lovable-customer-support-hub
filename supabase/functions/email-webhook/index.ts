@@ -31,28 +31,26 @@ serve(async (req: Request) => {
     const emailData: IncomingEmail = await req.json();
     console.log('Received email:', emailData);
 
-    // Helper function to extract thread ID from email headers
+    // Helper function to extract thread ID from email headers (ALWAYS uses thread root)
     const getThreadId = (messageId: string, inReplyTo?: string, references?: string): string => {
-      // Clean Message-ID by removing angle brackets
       const cleanId = (id: string) => id?.replace(/[<>]/g, '').trim();
       
-      // If In-Reply-To exists, use it (points to immediate parent)
+      // PRIORITY 1: References header (first Message-ID is the thread root)
+      if (references) {
+        const messageIds = references.match(/<[^>]+>/g);
+        if (messageIds && messageIds.length > 0) {
+          console.log('Using first reference (thread root) for thread ID:', messageIds[0]);
+          return cleanId(messageIds[0]);
+        }
+      }
+      
+      // PRIORITY 2: In-Reply-To (fallback if no References)
       if (inReplyTo) {
         console.log('Using In-Reply-To for thread ID:', inReplyTo);
         return cleanId(inReplyTo);
       }
       
-      // Parse References header and use first Message-ID (thread root)
-      if (references) {
-        // Extract all Message-IDs from References using regex
-        const messageIds = references.match(/<[^>]+>/g);
-        if (messageIds && messageIds.length > 0) {
-          console.log('Using first reference for thread ID:', messageIds[0]);
-          return cleanId(messageIds[0]); // Use first (root) message ID
-        }
-      }
-      
-      // Fallback to current Message-ID for new threads
+      // PRIORITY 3: Message-ID (new thread)
       console.log('Using Message-ID for new thread:', messageId);
       return cleanId(messageId);
     };
@@ -118,8 +116,8 @@ serve(async (req: Request) => {
       inReplyTo: emailData.inReplyTo,
       references: emailData.references,
       resolvedThreadId: threadId,
-      method: emailData.inReplyTo ? 'inReplyTo' : 
-              (emailData.references ? 'references' : 'messageId')
+      method: emailData.references ? 'references (thread root)' : 
+              (emailData.inReplyTo ? 'inReplyTo' : 'messageId (new thread)')
     });
 
     // Find or create conversation

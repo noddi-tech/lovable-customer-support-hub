@@ -20,11 +20,15 @@ function parseHeaderValue(headersRaw?: string | null, name?: string): string | n
 }
 
 function getThreadKey(headersRaw?: string | null): string | null {
-  const inReply = parseHeaderValue(headersRaw, "In-Reply-To");
   const references = parseHeaderValue(headersRaw, "References");
+  const inReply = parseHeaderValue(headersRaw, "In-Reply-To");
   const messageId = parseHeaderValue(headersRaw, "Message-ID") || parseHeaderValue(headersRaw, "Message-Id");
+  
+  // PRIORITY 1: First Message-ID from References (thread root)
   const refFirst = references ? (references.match(/<[^>]+>/g)?.[0] || references) : null;
-  return (inReply || refFirst || messageId || null)?.replace(/[<>]/g, "") || null;
+  
+  // PRIORITY 2: In-Reply-To (fallback), PRIORITY 3: Message-ID (new thread)
+  return (refFirst || inReply || messageId || null)?.replace(/[<>]/g, "") || null;
 }
 
 serve(async (req: Request) => {
