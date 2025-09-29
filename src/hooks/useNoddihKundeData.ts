@@ -26,6 +26,8 @@ interface NoddihBooking {
   paymentStatus?: string;
 }
 
+type PaidState = 'paid' | 'partially_paid' | 'unpaid' | 'unknown';
+
 export type NoddiLookupResponse = {
   ok: boolean;
   source: "cache" | "live";
@@ -63,13 +65,32 @@ export type NoddiLookupResponse = {
         total: number;
       } | null;
       order_tags?: string[];
+      order_lines?: Array<{
+        name: string;
+        quantity: number;
+        amount_gross: number;
+        currency: string;
+        is_discount?: boolean;
+        is_fee?: boolean;
+      }>;
+      money?: {
+        currency: string;
+        gross: number;
+        net: number;
+        vat: number;
+        paid: number;
+        outstanding: number;
+        paid_state: PaidState;
+      };
+      unable_to_complete?: boolean;
+      unable_label?: string | null;
       partner_urls?: {
         customer_url: string | null;
         booking_url: string | null;
         booking_id: number | null;
       };
       timezone?: string;
-      version: "noddi-edge-1.5" | string;
+      version: string;
       source: "cache" | "live";
     };
   };

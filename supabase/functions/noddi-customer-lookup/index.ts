@@ -53,6 +53,25 @@ export type NoddiLookupResponse = {
         total: number;
       } | null;
       order_tags?: string[];
+      order_lines?: Array<{
+        name: string;
+        quantity: number;
+        amount_gross: number;
+        currency: string;
+        is_discount?: boolean;
+        is_fee?: boolean;
+      }>;
+      money?: {
+        currency: string;
+        gross: number;
+        net: number;
+        vat: number;
+        paid: number;
+        outstanding: number;
+        paid_state: 'paid' | 'partially_paid' | 'unpaid' | 'unknown';
+      };
+      unable_to_complete?: boolean;
+      unable_label?: string | null;
       partner_urls?: {
         customer_url: string | null;
         booking_url: string | null;
@@ -256,6 +275,61 @@ function pickAmount(...vals: any[]): number {
     if (Number.isFinite(n)) return n;
   }
   return 0;
+}
+
+// New helper functions for v1.6
+function n(v: any) { 
+  const x = Number(v); 
+  return Number.isFinite(x) ? x : 0; 
+}
+
+function isUnableToComplete(b: any) {
+  return Boolean(
+    b?.is_unable_to_complete === true ||
+    b?.is_fully_unable_to_complete === true ||
+    b?.is_partially_unable_to_complete === true ||
+    b?.order?.is_unable_to_complete === true
+  );
+}
+
+function unableLabel(b: any) {
+  if (b?.is_fully_unable_to_complete) return 'Unable to complete';
+  if (b?.is_partially_unable_to_complete) return 'Partially completed';
+  if (b?.is_unable_to_complete) return 'Unable to complete';
+  return null;
+}
+
+function pickCurrency(b: any) {
+  return b?.order?.currency ?? b?.order?.amount_gross?.currency ?? 'NOK';
+}
+
+function extractLineItems(b: any) {
+  const lines = Array.isArray(b?.order?.order_lines) ? b.order.order_lines : [];
+  return lines.map((l: any) => ({
+    name: String(l?.description ?? l?.name ?? l?.title ?? 'Item'),
+    quantity: n(l?.quantity ?? 1),
+    amount_gross: n(l?.amount_gross?.amount ?? l?.amount ?? 0),
+    currency: l?.currency ?? b?.order?.currency ?? 'NOK',
+    // convenience
+    is_discount: Boolean(l?.is_discount === true || l?.is_coupon_discount === true),
+    is_fee: Boolean(l?.is_delivery_fee === true)
+  }));
+}
+
+function extractMoney(b: any) {
+  const cur = pickCurrency(b);
+  const gross = n(b?.order?.amount_gross?.amount);
+  const net = n(b?.order?.amount_net?.amount);
+  const vat = n(b?.order?.amount_vat?.amount);
+  const paid = n(b?.order?.amount_paid?.amount);
+  const outst = n(b?.order?.amount_outstanding?.amount);
+
+  const paid_state: 'paid' | 'partially_paid' | 'unpaid' | 'unknown' =
+    b?.order?.is_fully_paid ? 'paid' :
+    b?.order?.is_partially_paid ? 'partially_paid' :
+    (outst > 0 ? 'unpaid' : 'unknown');
+
+  return { currency: cur, gross, net, vat, paid, outstanding: outst, paid_state };
 }
 
 function extractOrderSummary(b: any) {
@@ -476,6 +550,12 @@ function buildResponse(params: {
   const hasLines = Array.isArray(order_summary?.lines) && order_summary.lines.length > 0;
   const partner_urls = buildPartnerUrls(safeUserGroupId, priority_booking);
 
+  // NEW money + unable fields for v1.6
+  const unable_to_complete = isUnableToComplete(priority_booking);
+  const unable_label = unableLabel(priority_booking);
+  const order_lines = extractLineItems(priority_booking); // array (can be empty)
+  const money = extractMoney(priority_booking);           // {currency,gross,net,vat,paid,outstanding,paid_state}
+
   return {
     ok: true,
     source,
@@ -502,9 +582,13 @@ function buildResponse(params: {
         service_title,
         order_summary: hasLines ? order_summary : undefined, // Only include if has lines
         order_tags,
+        order_lines,
+        money,
+        unable_to_complete,
+        unable_label,
         partner_urls,
         timezone: "Europe/Oslo",
-        version: "noddi-edge-1.5",
+        version: "noddi-edge-1.6",
         source
       }
     }
@@ -527,6 +611,12 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
   const order_tags = Array.isArray(cacheRow.cached_order_tags) ? cacheRow.cached_order_tags : extractOrderTags(priorityBooking);
   const hasLines = Array.isArray(order_summary?.lines) && order_summary.lines.length > 0;
   const partner_urls = buildPartnerUrls(cacheRow.user_group_id, priorityBooking);
+
+  // NEW money + unable fields for cache path v1.6
+  const unable_to_complete = isUnableToComplete(priorityBooking);
+  const unable_label = unableLabel(priorityBooking);
+  const order_lines = extractLineItems(priorityBooking);
+  const money = extractMoney(priorityBooking);
   
   return {
     ok: true,
@@ -559,10 +649,14 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
           service_title,
           order_summary: hasLines ? order_summary : undefined, // Only include if has lines
           order_tags,
+          order_lines,
+          money,
+          unable_to_complete,
+          unable_label,
           partner_urls,
           timezone: "Europe/Oslo",
-        version: "noddi-edge-1.5",
-        source: "cache" as const,
+          version: "noddi-edge-1.6",
+          source: "cache" as const,
         }
     }
   };
