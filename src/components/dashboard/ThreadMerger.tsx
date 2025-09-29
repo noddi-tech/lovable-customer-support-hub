@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import { extractMessageIds, normalizeSubject, canonicalizeEmail } from '@/lib/emailThreading';
 
 interface ThreadMergerProps {
   inboxId?: string;
@@ -19,6 +20,8 @@ interface SplitThread {
   conversationIds: string[];
   messageCount: number;
   subject: string;
+  matchType: 'email-headers' | 'helpscout' | 'subject-participants';
+  sampleMessageIds?: string[];
 }
 
 export const ThreadMerger: React.FC<ThreadMergerProps> = ({
@@ -33,16 +36,19 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
   const { data: splitThreads, isLoading: isDetecting } = useQuery({
     queryKey: ['split-threads', inboxId],
     queryFn: async () => {
-      // Fetch conversations with their messages
+      // Fetch ALL conversations with their messages and headers
       let query = supabase
         .from('conversations')
         .select(`
           id,
           subject,
           external_id,
-          messages!inner(id, email_message_id, email_thread_id, email_headers)
+          customer_id,
+          created_at,
+          customers(email),
+          messages(id, email_message_id, email_thread_id, email_headers, email_subject, created_at)
         `)
-        .not('external_id', 'is', null);
+        .order('created_at', { ascending: true });
 
       if (inboxId && inboxId !== 'all') {
         query = query.eq('inbox_id', inboxId);
@@ -51,23 +57,116 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
       const { data: conversations, error } = await query;
 
       if (error) throw error;
+      if (!conversations) return [];
 
-      // Group by HelpScout thread pattern (reply-{id1}-{id2})
-      const threadGroups = new Map<string, { conversationIds: string[], messageCount: number, subject: string }>();
+      // Build thread groups using multiple strategies
+      const threadGroups = new Map<string, { 
+        conversationIds: string[], 
+        messageCount: number, 
+        subject: string,
+        matchType: 'email-headers' | 'helpscout' | 'subject-participants',
+        sampleMessageIds?: string[]
+      }>();
 
-      conversations?.forEach(conv => {
-        // Extract HelpScout pattern from external_id
+      // Strategy 1: Email header-based threading (Message-ID, In-Reply-To, References)
+      const messageIdToConvId = new Map<string, string>();
+      const convToMessageIds = new Map<string, Set<string>>();
+      const convToReferences = new Map<string, Set<string>>();
+
+      conversations.forEach(conv => {
+        const messageIds = new Set<string>();
+        const references = new Set<string>();
+
+        conv.messages?.forEach((msg: any) => {
+          const threadInfo = extractMessageIds(msg.email_headers);
+          
+          if (threadInfo.messageId) {
+            messageIds.add(threadInfo.messageId);
+            messageIdToConvId.set(threadInfo.messageId, conv.id);
+          }
+          if (threadInfo.inReplyTo) {
+            references.add(threadInfo.inReplyTo);
+          }
+          threadInfo.references.forEach(ref => references.add(ref));
+        });
+
+        convToMessageIds.set(conv.id, messageIds);
+        convToReferences.set(conv.id, references);
+      });
+
+      // Find conversations that reference each other
+      const emailThreadGroups = new Map<string, Set<string>>();
+      
+      conversations.forEach(conv => {
+        const convRefs = convToReferences.get(conv.id) || new Set();
+        const convMsgIds = convToMessageIds.get(conv.id) || new Set();
+        
+        let threadRoot = conv.id;
+        const relatedConvs = new Set<string>([conv.id]);
+
+        // Find conversations we reply to
+        convRefs.forEach(refId => {
+          const referencedConvId = messageIdToConvId.get(refId);
+          if (referencedConvId && referencedConvId !== conv.id) {
+            relatedConvs.add(referencedConvId);
+            threadRoot = referencedConvId < threadRoot ? referencedConvId : threadRoot;
+          }
+        });
+
+        // Find conversations that reply to us
+        conversations.forEach(otherConv => {
+          if (otherConv.id === conv.id) return;
+          const otherRefs = convToReferences.get(otherConv.id) || new Set();
+          
+          convMsgIds.forEach(msgId => {
+            if (otherRefs.has(msgId)) {
+              relatedConvs.add(otherConv.id);
+              threadRoot = otherConv.id < threadRoot ? otherConv.id : threadRoot;
+            }
+          });
+        });
+
+        if (relatedConvs.size > 1) {
+          if (!emailThreadGroups.has(threadRoot)) {
+            emailThreadGroups.set(threadRoot, new Set());
+          }
+          relatedConvs.forEach(id => emailThreadGroups.get(threadRoot)!.add(id));
+        }
+      });
+
+      // Add email thread groups to results
+      emailThreadGroups.forEach((convIds, threadRoot) => {
+        if (convIds.size > 1) {
+          const firstConv = conversations.find(c => c.id === threadRoot);
+          const sampleMessageIds = Array.from(convToMessageIds.get(threadRoot) || []).slice(0, 2);
+          
+          threadGroups.set(`email-${threadRoot}`, {
+            conversationIds: Array.from(convIds),
+            messageCount: Array.from(convIds).reduce((sum, id) => {
+              const conv = conversations.find(c => c.id === id);
+              return sum + (conv?.messages?.length || 0);
+            }, 0),
+            subject: firstConv?.subject || 'No subject',
+            matchType: 'email-headers',
+            sampleMessageIds
+          });
+        }
+      });
+
+      // Strategy 2: HelpScout pattern (existing logic)
+      conversations.forEach(conv => {
         const helpScoutPattern = /reply-(\d+)-(\d+)/;
         const match = conv.external_id?.match(helpScoutPattern);
         
         if (match) {
-          const threadId = `reply-${match[1]}-${match[2]}`;
+          const threadId = `helpscout-${match[1]}-${match[2]}`;
           
           if (!threadGroups.has(threadId)) {
             threadGroups.set(threadId, {
               conversationIds: [],
               messageCount: 0,
-              subject: conv.subject || 'No subject'
+              subject: conv.subject || 'No subject',
+              matchType: 'helpscout'
             });
           }
           
@@ -77,7 +176,58 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
         }
       });
 
-      // Filter to only split threads (multiple conversations)
+      // Strategy 3: Subject + Participants fallback
+      const subjectGroups = new Map<string, any[]>();
+      
+      conversations.forEach(conv => {
+        if (!conv.subject) return;
+        
+        const normalizedSub = normalizeSubject(conv.subject);
+        const customerEmail = (conv.customers as any)?.email;
+        
+        if (normalizedSub && customerEmail) {
+          const key = `${normalizedSub}|||${canonicalizeEmail(customerEmail)}`;
+          
+          if (!subjectGroups.has(key)) {
+            subjectGroups.set(key, []);
+          }
+          subjectGroups.get(key)!.push(conv);
+        }
+      });
+
+      // Add subject-based groups (within 90 days)
+      subjectGroups.forEach((convs, key) => {
+        if (convs.length > 1) {
+          const cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - 90);
+          
+          const recentConvs = convs.filter(c => new Date(c.created_at) >= cutoff);
+          
+          if (recentConvs.length > 1) {
+            const threadId = `subject-${recentConvs[0].id}`;
+            const convIds = recentConvs.map(c => c.id);
+            
+            // Only add if not already in email thread group
+            const alreadyGrouped = Array.from(threadGroups.values()).some(g => 
+              convIds.some(id => g.conversationIds.includes(id))
+            );
+            
+            if (!alreadyGrouped) {
+              threadGroups.set(threadId, {
+                conversationIds: convIds,
+                messageCount: convIds.reduce((sum, id) => {
+                  const conv = conversations.find(c => c.id === id);
+                  return sum + (conv?.messages?.length || 0);
+                }, 0),
+                subject: recentConvs[0].subject || 'No subject',
+                matchType: 'subject-participants'
+              });
+            }
+          }
+        }
+      });
+
+      // Convert to array format
       const splits: SplitThread[] = [];
       threadGroups.forEach((group, threadId) => {
         if (group.conversationIds.length > 1) {
@@ -85,7 +235,9 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
             threadId,
             conversationIds: group.conversationIds,
             messageCount: group.messageCount,
-            subject: group.subject
+            subject: group.subject,
+            matchType: group.matchType,
+            sampleMessageIds: group.sampleMessageIds
           });
         }
       });
@@ -276,9 +428,25 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{thread.subject}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Thread: {thread.threadId.substring(0, 40)}...
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge 
+                      variant={
+                        thread.matchType === 'email-headers' ? 'default' :
+                        thread.matchType === 'helpscout' ? 'secondary' : 
+                        'outline'
+                      }
+                      className="text-xs"
+                    >
+                      {thread.matchType === 'email-headers' ? '✉️ Email headers' :
+                       thread.matchType === 'helpscout' ? '🔧 HelpScout' :
+                       '📝 Subject + participants'}
+                    </Badge>
+                  </div>
+                  {thread.sampleMessageIds && thread.sampleMessageIds.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                      Message-ID: {thread.sampleMessageIds[0].substring(0, 40)}...
+                    </p>
+                  )}
                   <div className="flex gap-2 mt-2">
                     <Badge variant="secondary" className="text-xs">
                       {thread.conversationIds.length} conversations
