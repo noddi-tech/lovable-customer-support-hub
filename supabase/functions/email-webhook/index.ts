@@ -35,6 +35,35 @@ serve(async (req: Request) => {
     const getThreadId = (messageId: string, inReplyTo?: string, references?: string): string => {
       const cleanId = (id: string) => id?.replace(/[<>]/g, '').trim();
       
+      // Check for HelpScout pattern first (reply-{id1}-{id2}-*@helpscout.net)
+      const helpScoutPattern = /reply-(\d+)-(\d+)(-\d+)?@helpscout\.net/;
+      const messageIdMatch = messageId?.match(helpScoutPattern);
+      if (messageIdMatch) {
+        const helpScoutThreadId = `reply-${messageIdMatch[1]}-${messageIdMatch[2]}`;
+        console.log('Detected HelpScout email, using conversation ID:', helpScoutThreadId);
+        return helpScoutThreadId;
+      }
+      
+      // Check In-Reply-To for HelpScout pattern
+      if (inReplyTo) {
+        const inReplyToMatch = inReplyTo.match(helpScoutPattern);
+        if (inReplyToMatch) {
+          const helpScoutThreadId = `reply-${inReplyToMatch[1]}-${inReplyToMatch[2]}`;
+          console.log('Detected HelpScout in In-Reply-To, using conversation ID:', helpScoutThreadId);
+          return helpScoutThreadId;
+        }
+      }
+      
+      // Check References for HelpScout pattern
+      if (references) {
+        const referencesMatch = references.match(helpScoutPattern);
+        if (referencesMatch) {
+          const helpScoutThreadId = `reply-${referencesMatch[1]}-${referencesMatch[2]}`;
+          console.log('Detected HelpScout in References, using conversation ID:', helpScoutThreadId);
+          return helpScoutThreadId;
+        }
+      }
+      
       // PRIORITY 1: References header (first Message-ID is the thread root)
       if (references) {
         const messageIds = references.match(/<[^>]+>/g);

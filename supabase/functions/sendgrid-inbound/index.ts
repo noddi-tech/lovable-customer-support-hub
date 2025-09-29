@@ -24,6 +24,39 @@ function getThreadKey(headersRaw?: string | null): string | null {
   const inReply = parseHeaderValue(headersRaw, "In-Reply-To");
   const messageId = parseHeaderValue(headersRaw, "Message-ID") || parseHeaderValue(headersRaw, "Message-Id");
   
+  // Check for HelpScout pattern first (reply-{id1}-{id2}-*@helpscout.net)
+  const helpScoutPattern = /reply-(\d+)-(\d+)(-\d+)?@helpscout\.net/;
+  
+  // Check Message-ID for HelpScout
+  if (messageId) {
+    const match = messageId.match(helpScoutPattern);
+    if (match) {
+      const helpScoutThreadId = `reply-${match[1]}-${match[2]}`;
+      console.log(`[SendGrid-Inbound] Detected HelpScout Message-ID: ${helpScoutThreadId}`);
+      return helpScoutThreadId;
+    }
+  }
+  
+  // Check In-Reply-To for HelpScout
+  if (inReply) {
+    const match = inReply.match(helpScoutPattern);
+    if (match) {
+      const helpScoutThreadId = `reply-${match[1]}-${match[2]}`;
+      console.log(`[SendGrid-Inbound] Detected HelpScout In-Reply-To: ${helpScoutThreadId}`);
+      return helpScoutThreadId;
+    }
+  }
+  
+  // Check References for HelpScout
+  if (references) {
+    const match = references.match(helpScoutPattern);
+    if (match) {
+      const helpScoutThreadId = `reply-${match[1]}-${match[2]}`;
+      console.log(`[SendGrid-Inbound] Detected HelpScout References: ${helpScoutThreadId}`);
+      return helpScoutThreadId;
+    }
+  }
+  
   // PRIORITY 1: First Message-ID from References (thread root)
   const refFirst = references ? (references.match(/<[^>]+>/g)?.[0] || references) : null;
   
@@ -217,7 +250,9 @@ serve(async (req: Request) => {
     const contentType = html ? "html" : (text ? "text" : "html");
 
     const headersObj = headersRaw ? { raw: headersRaw } : null;
-    console.log(`[SendGrid-Inbound] Inserting message - Content type: ${contentType}, Length: ${contentHtml.length}`);
+    const emailMessageId = parseHeaderValue(headersRaw, "Message-ID") || parseHeaderValue(headersRaw, "Message-Id");
+    
+    console.log(`[SendGrid-Inbound] Inserting message - Content type: ${contentType}, Length: ${contentHtml.length}, Message-ID: ${emailMessageId}`);
     
     const { error: msgErr } = await supabase
       .from("messages")
@@ -229,6 +264,8 @@ serve(async (req: Request) => {
         content_type: contentType,
         email_subject: subject || null,
         email_headers: headersObj,
+        email_message_id: emailMessageId,
+        email_thread_id: threadKey,
         external_id: threadKey,
       });
     if (msgErr) throw msgErr;
