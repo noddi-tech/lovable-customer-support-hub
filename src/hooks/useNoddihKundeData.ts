@@ -69,7 +69,7 @@ export type NoddiLookupResponse = {
         booking_id: number | null;
       };
       timezone?: string;
-      version: string;
+      version: "noddi-edge-1.5" | string;
       source: "cache" | "live";
     };
   };

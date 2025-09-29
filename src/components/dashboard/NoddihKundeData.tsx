@@ -227,6 +227,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   };
   const showV13 = verNum(version) >= 1.3;
   const showV14 = verNum(version) >= 1.4;
+  const showV15 = verNum(version) >= 1.5;
   const tags: string[] = Array.isArray(meta?.order_tags) ? meta.order_tags : [];
   
   const name = meta?.display_name || "Unknown Customer";
@@ -367,15 +368,13 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           </div>
         )}
 
-        {/* Service tags - only show if available and v1.4+ */}
-        {showV14 && tags.length > 0 && (
+        {/* Service tags - only show if available and v1.5+ */}
+        {showV15 && tags.length > 0 && (
           <div className="mt-3">
             <div className="text-xs font-medium text-muted-foreground mb-1">Service Tags</div>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((t, i) => (
-                <span key={`${t}-${i}`} className="px-2 py-0.5 rounded-full text-xs border">
-                  {t}
-                </span>
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map(t => (
+                <span key={t} className="px-2 py-0.5 text-xs rounded-full bg-muted">{t}</span>
               ))}
             </div>
           </div>

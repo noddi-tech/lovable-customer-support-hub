@@ -174,12 +174,12 @@ function primaryBookingDateIso(booking:any, type:"upcoming"|"completed"|null|und
   );
 }
 
-function norm(input: any): string {
-  if (!input) return "";
-  return String(input)
+function norm(s: any): string {
+  return String(s ?? "")
     .normalize("NFKD")
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")  // strip punctuation, keep letters (incl. æøå) & digits
+    .replace(/\p{M}/gu, "")               // strip diacritics
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")    // drop punctuation, keep letters & digits
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -259,14 +259,10 @@ function pickAmount(...vals: any[]): number {
 }
 
 function extractOrderSummary(b: any) {
-  const linesRaw = b?.order?.lines ?? b?.order_lines ?? b?.lines ?? 
-                   b?.items ?? b?.booking_lines ?? [];
-  const lines = Array.isArray(linesRaw) ? linesRaw : [];
-
-  // Only return order summary when we have real line items
+  const raw = b?.order?.order_lines ?? b?.order?.lines ?? b?.order_lines ?? [];
+  const lines = Array.isArray(raw) ? raw : [];
   if (lines.length === 0) return null;
 
-  // Normalize line items with PII cleanup and discount handling
   const normLines = lines.map((l: any) => {
     const isDiscount = /discount/i.test(String(l?.type ?? l?.name ?? ""));
     const subtotal = pickAmount(l?.subtotal, l?.amount, l?.total);
@@ -275,10 +271,10 @@ function extractOrderSummary(b: any) {
     
     return {
       kind: isDiscount ? ("discount" as const) : ("line" as const),
-      name: String(l?.name ?? l?.title ?? "Item"), // Only safe display fields
+      name: String(l?.name ?? l?.title ?? "Item"),
       quantity,
       unit_amount: unitAmount,
-      subtotal: isDiscount ? -Math.abs(subtotal || unitAmount * quantity) : (subtotal || unitAmount * quantity), // Make discounts negative
+      subtotal: isDiscount ? -Math.abs(subtotal || unitAmount * quantity) : (subtotal || unitAmount * quantity),
     };
   });
 
@@ -293,47 +289,55 @@ function extractOrderSummary(b: any) {
   };
 }
 
-const TAG_RULES: Array<{label: string; rx: RegExp[]}> = [
-  { label: "Dekkhotell", rx: [/dekkhotell/, /tire(s)?\s*(hotel|storage)/] },
-  { label: "Dekkskift",  rx: [/dekkskift/, /tire(s)?\s*(change|swap)/] },
-  { label: "Hjemlevert dekkskift", rx: [/hjem(levert)?\s*dekkskift/, /home\s*(tire\s*)?(change|service)/] },
-  { label: "Henting/Levering", rx: [/hent(ing)?/, /lever(ing)?/, /\bpick[-\s]?up\b/, /\bdelivery\b/] },
-  { label: "Hjelp bære dekk", rx: [/hjelp.*b(æ|ae)re.*dekk/, /carry\s*tires?/] },
-  { label: "Felgvask", rx: [/felg(vask)?/, /rim(s)?\s*(wash|clean)/] },
-  { label: "Balansering", rx: [/balanser(ing)?/, /\b(balance|balancing)\b/] },
-  { label: "TPMS/Ventil", rx: [/tpms|ventil/, /sensor(s)?|valve(s)?/] },
+const TAG_RULES: Array<[string, RegExp]> = [
+  ["Dekkhotell", /\b(dekkhotell|tire\s*(hotel|storage)|renew(al)?\s+av\s+dekkhotell)\b/u],
+  ["Dekkskift", /\b(dekkskift|hjulskift|tire\s*(change|swap))\b/u],
+  ["Hjemlevering", /\b(hjemlever(t|ing)|home\s*(delivery|service))\b/u],
+  ["Henting/Levering", /\b(henting|levering|pickup|delivery)\b/u],
+  ["Bærehjelp", /\b(b(æ|ae)re(hjelp| hjelp)|carry(ing)?\s*tires?)\b/u],
+  ["Felgvask", /\b(felgvask|rim\s*wash)\b/u],
+  ["Balansering", /\b(balanser(ing)?|wheel\s*balanc(ing|e))\b/u],
+  ["TPMS/Ventil", /\b(tpms|ventil|sensor)\b/u],
+  ["Punktering", /\b(punkter(ing)?|puncture|repair|reparasjon)\b/u]
 ];
 
 function textFromBooking(b: any): string {
-  const parts: string[] = [];
-  const push = (v: any) => v && parts.push(String(v));
+  const p: string[] = [];
+  const push = (v: any) => { if (v != null && v !== "") p.push(String(v)); };
 
-  // High-signal fields
+  // common
   push(b?.service?.name); push(b?.service_name); push(b?.title); push(b?.name); push(b?.description);
 
-  // Vehicle/notes/meta can contain service wording
-  push(b?.vehicle_label);
-  push(b?.vehicle?.label); push(b?.vehicle?.name);
+  // vehicle/notes
+  push(b?.vehicle_label); push(b?.vehicle?.label); push(b?.vehicle?.name);
   push(b?.car?.label); push(b?.car?.make); push(b?.car?.model); push(b?.car?.notes);
   push(b?.booking_reference); push(b?.metadata?.summary); push(b?.notes);
 
-  // Lines across shapes
-  const lines = b?.order?.lines ?? b?.order_lines ?? b?.lines ?? b?.items ?? b?.services ?? [];
+  // lines
+  const lines = b?.order?.order_lines ?? b?.order?.lines ?? b?.order_lines ?? b?.lines ?? b?.items ?? b?.services ?? [];
   for (const l of (Array.isArray(lines) ? lines : [])) {
     push(l?.name); push(l?.title); push(l?.description); push(l?.type); push(l?.sku);
   }
 
-  return norm(parts.join(" • "));
+  // categories
+  for (const c of (Array.isArray(b?.service_categories) ? b?.service_categories : [])) {
+    push(c?.name); push(c?.type); push(c?.title);
+  }
+
+  return norm(p.join(" • "));
 }
 
 function extractOrderTags(b: any): string[] {
-  const hay = textFromBooking(b);
-  if (!hay) return [];
-  const set = new Set<string>();
-  for (const rule of TAG_RULES) {
-    if (rule.rx.some(rx => rx.test(hay))) set.add(rule.label);
+  const h = textFromBooking(b);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const [label, re] of TAG_RULES) {
+    if (re.test(h) && !seen.has(label)) { 
+      seen.add(label); 
+      out.push(label); 
+    }
   }
-  return [...set].sort();
+  return out;
 }
 
 function buildPartnerUrls(userGroupId: number | null, booking: any) {
@@ -500,7 +504,7 @@ function buildResponse(params: {
         order_tags,
         partner_urls,
         timezone: "Europe/Oslo",
-        version: "noddi-edge-1.4",
+        version: "noddi-edge-1.5",
         source
       }
     }
@@ -557,8 +561,8 @@ function mapCacheRowToUnified(cacheRow: any, email: string, remainingTtl: number
           order_tags,
           partner_urls,
           timezone: "Europe/Oslo",
-          version: "noddi-edge-1.4",
-          source: "cache" as const,
+        version: "noddi-edge-1.5",
+        source: "cache" as const,
         }
     }
   };
