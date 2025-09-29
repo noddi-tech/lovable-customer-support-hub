@@ -57,7 +57,7 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
 
       conversations?.forEach(conv => {
         // Extract HelpScout pattern from external_id
-        const helpScoutPattern = /reply-(\\d+)-(\\d+)/;
+        const helpScoutPattern = /reply-(\d+)-(\d+)/;
         const match = conv.external_id?.match(helpScoutPattern);
         
         if (match) {
