@@ -1,16 +1,23 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageCircle, RefreshCw, GitMerge } from 'lucide-react';
+import { MessageCircle, RefreshCw, GitMerge, Filter, Move, CheckCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { VoiceInterface } from './VoiceInterface';
 import { ThreadMerger } from './ThreadMerger';
+import { ConversationMigrator } from './ConversationMigrator';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useTranslation } from "react-i18next";
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
 import { ConversationSidebar } from './ConversationSidebar';
@@ -68,6 +75,10 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const navigation = useInteractionsNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [showMerger, setShowMerger] = useState(false);
+  const [showMigrator, setShowMigrator] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const queryClient = useQueryClient();
   
   // Dev-only performance monitoring
   useEffect(() => {
@@ -165,25 +176,128 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     return <VoiceInterface />;
   }
 
+  // Mark all as read mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ is_read: true })
+        .eq('inbox_id', effectiveInboxId)
+        .eq('is_read', false);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
+      toast.success('All conversations marked as read');
+    },
+    onError: (error) => {
+      console.error('Error marking all as read:', error);
+      toast.error('Failed to mark all as read');
+    },
+  });
+
+  const unreadCount = useMemo(() => {
+    return conversations?.filter(c => c.unread).length || 0;
+  }, [conversations]);
+
   // Render inbox list with search
   const renderInboxList = () => (
     <div className="space-y-4">
-      {/* Search Input and Merge Button */}
-      <div className="px-2 space-y-2">
+      {/* Search Input */}
+      <div className="px-2">
         <Input
           placeholder="Search conversations..."
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="bg-background border-border focus-visible:ring-ring"
         />
+      </div>
+
+      {/* Action Buttons Row */}
+      <div className="px-2 flex flex-wrap gap-2">
+        {/* Filters Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="flex-1 min-w-0">
+              <Filter className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Filters</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="start">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Priority</label>
+                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priority</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Merge Button */}
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowMerger(true)}
-          className="w-full"
+          className="flex-1 min-w-0"
         >
           <GitMerge className="h-4 w-4 mr-2" />
-          Merge Split Threads
+          <span className="hidden sm:inline">Merge</span>
+        </Button>
+
+        {/* Migrate Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowMigrator(true)}
+          className="flex-1 min-w-0"
+        >
+          <Move className="h-4 w-4 mr-2" />
+          <span className="hidden sm:inline">Migrate</span>
+        </Button>
+
+        {/* Mark All Read Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => markAllAsReadMutation.mutate()}
+          disabled={unreadCount === 0 || markAllAsReadMutation.isPending}
+          className="flex-1 min-w-0 relative"
+        >
+          <CheckCheck className="h-4 w-4 mr-2" />
+          <span className="hidden sm:inline">Mark Read</span>
+          {unreadCount > 0 && (
+            <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1 text-xs">
+              {unreadCount}
+            </Badge>
+          )}
         </Button>
       </div>
       
@@ -357,6 +471,19 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
           <ThreadMerger 
             inboxId={effectiveInboxId}
             onMergeComplete={() => setShowMerger(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Conversation Migrator Dialog */}
+      <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Migrate Conversations</DialogTitle>
+          </DialogHeader>
+          <ConversationMigrator 
+            sourceInboxId={effectiveInboxId}
+            onMigrationComplete={() => setShowMigrator(false)}
           />
         </DialogContent>
       </Dialog>
