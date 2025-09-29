@@ -207,15 +207,18 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
             const threadId = `subject-${recentConvs[0].id}`;
             const convIds = recentConvs.map(c => c.id);
             
-            // Only add if not already in email thread group
-            const alreadyGrouped = Array.from(threadGroups.values()).some(g => 
-              convIds.some(id => g.conversationIds.includes(id))
+            // Filter out conversations that are already in other groups
+            const ungroupedConvIds = convIds.filter(id => 
+              !Array.from(threadGroups.values()).some(g => 
+                g.conversationIds.includes(id)
+              )
             );
             
-            if (!alreadyGrouped) {
+            // Only create a group if we have 2+ ungrouped conversations
+            if (ungroupedConvIds.length > 1) {
               threadGroups.set(threadId, {
-                conversationIds: convIds,
-                messageCount: convIds.reduce((sum, id) => {
+                conversationIds: ungroupedConvIds,
+                messageCount: ungroupedConvIds.reduce((sum, id) => {
                   const conv = conversations.find(c => c.id === id);
                   return sum + (conv?.messages?.length || 0);
                 }, 0),
