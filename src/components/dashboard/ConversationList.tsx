@@ -72,23 +72,21 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
         showAlert={hasSessionError && filteredConversations.length === 0}
       />
       
-      {/* Header - only show when onToggleCollapse is provided */}
-      {onToggleCollapse && (
-        <ConversationListHeader 
-          onToggleCollapse={onToggleCollapse} 
-          selectedInboxId={selectedInboxId}
-          onInboxChange={(inboxId) => {
-            // Update URL with new inbox selection
-            const url = new URL(window.location.href);
-            if (inboxId === 'all') {
-              url.searchParams.delete('inbox');
-            } else {
-              url.searchParams.set('inbox', inboxId);
-            }
-            window.history.pushState({}, '', url.toString());
-          }}
-        />
-      )}
+      {/* Header - always visible for Search, Filters, Merge, etc. */}
+      <ConversationListHeader 
+        onToggleCollapse={onToggleCollapse} 
+        selectedInboxId={selectedInboxId}
+        onInboxChange={(inboxId) => {
+          // Update URL with new inbox selection
+          const url = new URL(window.location.href);
+          if (inboxId === 'all') {
+            url.searchParams.delete('inbox');
+          } else {
+            url.searchParams.set('inbox', inboxId);
+          }
+          window.history.pushState({}, '', url.toString());
+        }}
+      />
       
       {/* Conversation List - Card-based layout */}
       <div className="pane flex-1 overflow-y-auto min-h-0">
