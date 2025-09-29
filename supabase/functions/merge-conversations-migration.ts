@@ -13,13 +13,18 @@ interface Message {
   id: string;
   conversation_id: string;
   email_message_id: string;
-  email_headers: {
-    from: string;
-    to: string;
-    inReplyTo?: string;
-    references?: string;
-  } | null;
+  email_headers: Array<{
+    name: string;
+    value: string;
+  }> | null;
   created_at: string;
+}
+
+// Helper to extract header value from array
+function getHeaderValue(headers: Array<{name: string; value: string}> | null, headerName: string): string | undefined {
+  if (!headers) return undefined;
+  const header = headers.find(h => h.name.toLowerCase() === headerName.toLowerCase());
+  return header?.value;
 }
 
 interface Conversation {
@@ -88,10 +93,13 @@ async function migrateConversations() {
   const threadGroups = new Map<string, Message[]>();
 
   for (const msg of messages as Message[]) {
+    const inReplyTo = getHeaderValue(msg.email_headers, 'In-Reply-To');
+    const references = getHeaderValue(msg.email_headers, 'References');
+    
     const canonicalThreadId = getCanonicalThreadId(
       msg.email_message_id,
-      msg.email_headers?.inReplyTo,
-      msg.email_headers?.references
+      inReplyTo,
+      references
     );
 
     if (!threadGroups.has(canonicalThreadId)) {

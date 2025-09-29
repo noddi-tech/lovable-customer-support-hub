@@ -28,24 +28,39 @@ A migration script has been created to merge existing split conversations:
 
 ## Running the Migration
 
+**⚠️ IMPORTANT:** This migration script must be run manually on your local machine or server. It is NOT an edge function and will NOT be deployed automatically. You must execute it yourself using Deno.
+
 ### Prerequisites
 
-1. **Set Environment Variables:**
-```bash
-export SUPABASE_URL="https://qgfaycwsangsqzpveoup.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
-```
-
-2. **Install Deno** (if not already installed):
+1. **Install Deno** (if not already installed):
 ```bash
 curl -fsSL https://deno.land/install.sh | sh
 ```
 
+2. **Get Service Role Key:**
+   - Go to Supabase Dashboard → Project Settings → API
+   - Copy the `service_role` key (NOT the anon/public key)
+   - This key bypasses RLS policies for administrative tasks
+
 ### Execute Migration
 
+1. **Set Environment Variables:**
 ```bash
+export SUPABASE_URL="https://qgfaycwsangsqzpveoup.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.your-actual-service-role-key-here"
+```
+
+2. **Run the Script:**
+```bash
+# Navigate to your project directory
+cd /path/to/customerhub
+
+# Run the migration
 deno run --allow-net --allow-env supabase/functions/merge-conversations-migration.ts
 ```
+
+3. **Monitor Output:**
+The script will display real-time progress and detailed logs.
 
 ### What the Migration Does
 
