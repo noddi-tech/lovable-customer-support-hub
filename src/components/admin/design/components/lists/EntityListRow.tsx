@@ -220,7 +220,7 @@ export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
                             <User className="w-3 h-3" />
                             {item.label}:
                           </span>
-                          <span>{item.value}</span>
+                          <span className="font-semibold">{item.value}</span>
                         </>
                       ) : (
                         <>
