@@ -11,7 +11,10 @@ export function useThreadMessagesList(conversationId?: string, context?: Normali
   const seen = new Set<string>();
   const messages = raw.filter(m => {
     const key = m.dedupKey || m.id;
-    if (seen.has(key)) return false;
+    if (seen.has(key)) {
+      console.log('[Dedup] Removing duplicate:', key, m);
+      return false;
+    }
     seen.add(key);
     return true;
   }).sort((a,b) => {

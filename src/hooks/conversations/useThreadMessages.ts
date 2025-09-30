@@ -4,7 +4,7 @@ import { createNormalizationContext, normalizeMessage, NormalizedMessage } from 
 import { canonicalizeEmail, normalizeSubject, extractMessageIds } from "@/lib/emailThreading";
 import { useAuth } from "@/hooks/useAuth";
 
-const INITIAL = 3;
+const INITIAL = 20;
 const PAGE = 25;
 
 /**

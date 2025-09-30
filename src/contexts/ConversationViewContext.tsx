@@ -205,7 +205,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       }, (payload) => {
         console.log('Real-time message update:', payload);
         queryClient.invalidateQueries({ 
-          queryKey: ['messages', conversationId, user.id] 
+          queryKey: ['thread-messages', conversationId, user.id] 
         });
       })
       .subscribe();
