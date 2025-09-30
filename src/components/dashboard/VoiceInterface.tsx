@@ -15,13 +15,13 @@ import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
 import { CallsList } from './voice/CallsList';
 import { VoiceSidebar } from './voice/VoiceSidebar';
+import { VoiceCustomerSidebar } from './voice/VoiceCustomerSidebar';
 import { RealTimeIndicator } from './voice/RealTimeIndicator';
 import { CallNotificationCenter } from './voice/CallNotificationCenter';
 import { CallDetailsDialog } from './voice/CallDetailsDialog';
 import { CallActionButton } from './voice/CallActionButton';
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
-import { ReplySidebar } from '@/components/admin/design/components/detail/ReplySidebar';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -130,18 +130,24 @@ export const VoiceInterface = () => {
       return data.map(call => ({
         id: call.id,
         type: 'call',
-        subject: call.customer_phone || 'Unknown Number',
+        subject: call.customers?.full_name || call.customer_phone || 'Unknown Number',
         preview: call.direction === 'inbound' ? 'Incoming call' : 'Outgoing call',
         customer: {
+          id: call.customers?.id,
           phone: call.customer_phone || 'Unknown',
-          initials: 'UC'
+          email: call.customers?.email,
+          full_name: call.customers?.full_name,
+          initials: call.customers?.full_name 
+            ? call.customers.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
+            : 'UC'
         },
         status: call.status,
         direction: call.direction,
         duration: call.duration_seconds,
         endedAt: call.ended_at,
         agentPhone: call.agent_phone,
-        metadata: call.metadata
+        metadata: call.metadata,
+        rawCall: call
       }));
     } else if (type === 'callbacks') {
       return data.map(callback => ({
@@ -563,22 +569,16 @@ export const VoiceInterface = () => {
     );
   };
 
-  // Render actions sidebar
-  const renderActionsSidebar = () => {
-    if (!selectedEntity) return null;
-
-    const placeholder = selectedEntity.type === 'call' ? 'Add call notes...' :
-                       selectedEntity.type === 'callback' ? 'Add callback notes...' :
-                       selectedEntity.type === 'voicemail' ? 'Add voicemail notes...' :
-                       'Add notes...';
+  // Render customer sidebar
+  const renderCustomerSidebar = () => {
+    if (!selectedEntity || selectedEntity.type !== 'call') return null;
+    
+    const call = calls?.find(c => c.id === selectedEntity.id);
+    if (!call) return null;
 
     return (
-      <ReplySidebar
-        conversationId={selectedEntity.id}
-        onSendReply={handleAddCallNote}
-        placeholder={placeholder}
-        showMetadata={false}
-        showActions={true}
+      <VoiceCustomerSidebar
+        call={call}
       />
     );
   };
@@ -589,14 +589,14 @@ export const VoiceInterface = () => {
         left={renderVoiceSidebar()}
         center={renderCallList()}
         detailLeft={renderDetails()}
-        detailRight={renderActionsSidebar()}
+        detailRight={renderCustomerSidebar()}
         isDetail={isDetail}
         onBack={handleBack}
         backButtonLabel="Back to Voice"
         leftPaneLabel="Voice filters"
         centerPaneLabel="Voice items"
         detailLeftLabel="Details"
-        detailRightLabel="Actions"
+        detailRightLabel="Customer Info"
       />
       
       {/* Call Details Dialog */}

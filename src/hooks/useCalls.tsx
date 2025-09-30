@@ -11,6 +11,7 @@ export interface Call {
   provider: string;
   customer_phone?: string;
   agent_phone?: string;
+  customer_id?: string;
   status: 'ringing' | 'answered' | 'missed' | 'busy' | 'failed' | 'completed' | 'transferred' | 'on_hold' | 'voicemail';
   direction: 'inbound' | 'outbound';
   started_at: string;
@@ -27,6 +28,14 @@ export interface Call {
   availability_status?: string;
   hangup_cause?: string;
   enriched_details?: any;
+  // Linked customer data
+  customers?: {
+    id: string;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    metadata?: any;
+  };
 }
 
 export interface CallEvent {
@@ -50,7 +59,16 @@ export function useCalls() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('calls')
-        .select('*')
+        .select(`
+          *,
+          customers (
+            id,
+            full_name,
+            email,
+            phone,
+            metadata
+          )
+        `)
         .order('started_at', { ascending: false });
 
       if (error) throw error;

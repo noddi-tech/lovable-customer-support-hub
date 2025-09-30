@@ -102,6 +102,7 @@ export type Database = {
           agent_phone: string | null
           availability_status: string | null
           created_at: string
+          customer_id: string | null
           customer_phone: string | null
           direction: Database["public"]["Enums"]["call_direction"]
           duration_seconds: number | null
@@ -125,6 +126,7 @@ export type Database = {
           agent_phone?: string | null
           availability_status?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_phone?: string | null
           direction: Database["public"]["Enums"]["call_direction"]
           duration_seconds?: number | null
@@ -148,6 +150,7 @@ export type Database = {
           agent_phone?: string | null
           availability_status?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_phone?: string | null
           direction?: Database["public"]["Enums"]["call_direction"]
           duration_seconds?: number | null
@@ -167,7 +170,15 @@ export type Database = {
           updated_at?: string
           webhook_event_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "calls_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
