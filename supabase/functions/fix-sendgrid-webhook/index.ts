@@ -69,8 +69,8 @@ serve(async (req: Request) => {
     const currentSettings = await getResp.json();
     console.log("📋 Current SendGrid settings:", JSON.stringify(currentSettings, null, 2));
     
-    // Find the webhook for hei@inbound.noddi.no
-    const targetHostname = "hei.inbound.noddi.no";
+    // Find the webhook for inbound.noddi.no
+    const targetHostname = "inbound.noddi.no";
     const existingWebhook = currentSettings.result?.find((webhook: any) => 
       webhook.hostname === targetHostname
     );
@@ -148,7 +148,7 @@ serve(async (req: Request) => {
     const { error: dbError } = await supabase
       .from('inbound_routes')
       .update({ secret_token: inboundToken })
-      .eq('address', 'hei@inbound.noddi.no');
+      .like('address', '%@inbound.noddi.no');
 
     if (dbError) {
       console.error("Database update error:", dbError);

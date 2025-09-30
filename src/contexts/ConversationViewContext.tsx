@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -190,6 +190,30 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     staleTime: 10 * 60 * 1000, // 10 minutes - longer cache
     gcTime: 15 * 60 * 1000, // 15 minutes - keep in memory longer
   });
+
+  // Real-time subscription for messages
+  useEffect(() => {
+    if (!conversationId || !user) return;
+    
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
+      }, (payload) => {
+        console.log('Real-time message update:', payload);
+        queryClient.invalidateQueries({ 
+          queryKey: ['messages', conversationId, user.id] 
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, user?.id, queryClient]);
 
   // Fetch users for assignment
   const { data: assignUsers = [] } = useQuery({
