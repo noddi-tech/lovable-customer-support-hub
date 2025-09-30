@@ -252,7 +252,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
               meta={[
                 { label: 'From', value: conversation.fromName || 'Unknown' },
                 { label: 'Channel', value: conversation.channel },
-                { label: 'Updated', value: formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true }) }
+                { label: 'Waiting', value: formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true }) }
               ]}
             />
           ))}

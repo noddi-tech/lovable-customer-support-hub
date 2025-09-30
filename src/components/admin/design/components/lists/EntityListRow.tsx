@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { User } from 'lucide-react';
 
 interface EntityMeta {
   label: string;
@@ -202,16 +203,37 @@ export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
             <>
               <Separator className="my-1.5" />
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                {allMeta.map((item, index) => (
-                  <div
-                    key={index}
-                    className={cn("flex items-center gap-1", item.className)}
-                    title={`${item.label}: ${item.value}`}
-                  >
-                    <span className="font-medium">{item.label}:</span>
-                    <span>{item.value}</span>
-                  </div>
-                ))}
+                {allMeta.map((item, index) => {
+                  // Special styling for "From" label
+                  const isFromLabel = item.label.toLowerCase() === 'from';
+                  const isWaitingLabel = item.label.toLowerCase() === 'waiting';
+                  
+                  return (
+                    <div
+                      key={index}
+                      className={cn("flex items-center gap-1", item.className)}
+                      title={`${item.label}: ${item.value}`}
+                    >
+                      {isFromLabel ? (
+                        <>
+                          <span className="inline-flex items-center gap-1 font-semibold text-primary">
+                            <User className="w-3 h-3" />
+                            {item.label}:
+                          </span>
+                          <span>{item.value}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className={cn(
+                            "font-medium",
+                            isWaitingLabel && "font-medium"
+                          )}>{item.label}:</span>
+                          <span>{item.value}</span>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
