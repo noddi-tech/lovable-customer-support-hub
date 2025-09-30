@@ -90,6 +90,12 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
           threadInfo.references.forEach(ref => references.add(ref));
         });
 
+        // Use external_id as fallback Message-ID if it looks like one
+        if (conv.external_id && conv.external_id.includes('@') && messageIds.size === 0) {
+          messageIds.add(conv.external_id);
+          messageIdToConvId.set(conv.external_id, conv.id);
+        }
+
         convToMessageIds.set(conv.id, messageIds);
         convToReferences.set(conv.id, references);
       });
@@ -185,8 +191,11 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
         const normalizedSub = normalizeSubject(conv.subject);
         const customerEmail = (conv.customers as any)?.email;
         
-        if (normalizedSub && customerEmail) {
-          const key = `${normalizedSub}|||${canonicalizeEmail(customerEmail)}`;
+        // For empty normalized subjects (like "Re:"), use the original subject
+        const groupKey = normalizedSub || conv.subject.toLowerCase();
+        
+        if (groupKey && customerEmail) {
+          const key = `${groupKey}|||${canonicalizeEmail(customerEmail)}`;
           
           if (!subjectGroups.has(key)) {
             subjectGroups.set(key, []);

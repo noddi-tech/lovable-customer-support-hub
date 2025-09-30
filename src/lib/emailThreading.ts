@@ -54,6 +54,48 @@ export function extractMessageIds(headers: any): MessageThreadInfo {
         references = parseReferences(value);
       }
     }
+  } else if (headers.raw && typeof headers.raw === 'string') {
+    // Parse raw header text (line by line)
+    const lines = headers.raw.split('\n');
+    let currentHeader = '';
+    let currentValue = '';
+    
+    for (const line of lines) {
+      // Check if line starts a new header (doesn't start with whitespace)
+      if (line.match(/^[a-z-]+:/i)) {
+        // Process previous header
+        if (currentHeader && currentValue) {
+          const headerLower = currentHeader.toLowerCase();
+          if (headerLower === 'message-id') {
+            messageId = cleanMessageId(currentValue);
+          } else if (headerLower === 'in-reply-to') {
+            inReplyTo = cleanMessageId(currentValue);
+          } else if (headerLower === 'references') {
+            references = parseReferences(currentValue);
+          }
+        }
+        
+        // Start new header
+        const colonIndex = line.indexOf(':');
+        currentHeader = line.substring(0, colonIndex).trim();
+        currentValue = line.substring(colonIndex + 1).trim();
+      } else if (currentHeader) {
+        // Continuation of previous header (folded line)
+        currentValue += ' ' + line.trim();
+      }
+    }
+    
+    // Process last header
+    if (currentHeader && currentValue) {
+      const headerLower = currentHeader.toLowerCase();
+      if (headerLower === 'message-id') {
+        messageId = cleanMessageId(currentValue);
+      } else if (headerLower === 'in-reply-to') {
+        inReplyTo = cleanMessageId(currentValue);
+      } else if (headerLower === 'references') {
+        references = parseReferences(currentValue);
+      }
+    }
   } else {
     // Headers as object
     messageId = cleanMessageId(headers['Message-ID'] || headers['Message-Id'] || headers['message-id']);
