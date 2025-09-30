@@ -27,7 +27,7 @@ export const ProgressiveMessagesList = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
-  const [allCollapsed, setAllCollapsed] = useState(true);
+  const [collapsedMessageIds, setCollapsedMessageIds] = useState<Set<string>>(new Set());
   
   // Create conversation-specific normalization context
   const normalizationCtx = useMemo(() => createNormalizationContext({
@@ -51,6 +51,17 @@ export const ProgressiveMessagesList = ({
     isLoading,
     error
   } = useThreadMessagesList(conversationId, normalizationCtx);
+
+  // Initialize collapsed state - collapse messages beyond the first 2
+  useEffect(() => {
+    const idsToCollapse = new Set<string>();
+    messages.forEach((msg, index) => {
+      if (index >= 2) {
+        idsToCollapse.add(msg.dedupKey || msg.id);
+      }
+    });
+    setCollapsedMessageIds(idsToCollapse);
+  }, [messages.map(m => m.dedupKey || m.id).join(',')]);
 
   // Auto-scroll to bottom when messages change (for new messages)
   useEffect(() => {
@@ -211,7 +222,7 @@ export const ProgressiveMessagesList = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setAllCollapsed(false)}
+                  onClick={() => setCollapsedMessageIds(new Set())}
                   className="text-xs"
                 >
                   <ChevronDown className="w-3 h-3 mr-1" />
@@ -220,7 +231,7 @@ export const ProgressiveMessagesList = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setAllCollapsed(true)}
+                  onClick={() => setCollapsedMessageIds(new Set(messages.map(m => m.dedupKey || m.id)))}
                   className="text-xs"
                 >
                   <ChevronUp className="w-3 h-3 mr-1" />
@@ -259,12 +270,12 @@ export const ProgressiveMessagesList = ({
               <p>{t('conversation.noMessages')}</p>
             </div>
           ) : (
-              messages.map((message) => (
+              messages.map((message, index) => (
                 <MessageCard
                   key={message.dedupKey || message.id}
                   message={message}
                   conversation={conversation}
-                  defaultCollapsed={allCollapsed}
+                  defaultCollapsed={index >= 2}
                   onEdit={onEditMessage}
                   onDelete={onDeleteMessage}
                 />
