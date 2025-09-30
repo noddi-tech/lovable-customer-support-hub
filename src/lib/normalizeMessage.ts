@@ -309,12 +309,13 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
  * Generate stable dedup key with 3-step fallback chain
  */
 function generateStableDedupKey(raw: any, norm: NormalizedMessage): string {
-  // Prefer IDs in your stored headers JSON
+  // Prefer IDs in your stored headers JSON - prioritize email_message_id as it's unique per message
   const hdr = raw.email_headers || raw.headers || {};
   const explicit =
-    raw.external_id ||
+    raw.email_message_id ||
+    hdr['Message-ID'] || hdr['Message-Id'] || hdr['X-Message-Id'] ||
     raw.message_id ||
-    hdr['Message-ID'] || hdr['Message-Id'] || hdr['X-Message-Id'] || raw.email_message_id;
+    raw.external_id; // external_id is often a thread ID, not unique per message
   if (explicit) return `id:${String(explicit)}`;
 
   // Fallback: content hash + author + 2-min bucket
