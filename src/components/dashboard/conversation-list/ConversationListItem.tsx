@@ -134,7 +134,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
             
             <ResponsiveFlex alignment="center" gap="2">
               <span className="text-xs text-muted-foreground">
-                {computedValues.formattedTime}
+                <span className="font-medium">Waiting:</span> {computedValues.formattedTime}
               </span>
               {!conversation.is_read && (
                 <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
@@ -178,7 +178,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
           <ResponsiveFlex alignment="center" justify="between">
             <ResponsiveFlex alignment="center" gap="2">
               <span className="text-xs text-muted-foreground">
-                {computedValues.customerEmail ? `From: ${computedValues.customerEmail}` : 'No email'}
+                {computedValues.customerEmail ? <><span className="font-semibold text-foreground">From:</span> {computedValues.customerEmail}</> : 'No email'}
               </span>
               {/* Inbox Indicator */}
               <div className="flex items-center gap-1">
@@ -236,7 +236,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
             
             <ResponsiveFlex alignment="center" gap="1">
               <span className="text-xs text-muted-foreground">
-                {computedValues.formattedTime}
+                <span className="font-medium">Waiting:</span> {computedValues.formattedTime}
               </span>
               {!conversation.is_read && (
                 <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
@@ -280,7 +280,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
           <ResponsiveFlex alignment="center" justify="between" className="pl-7">
             <ResponsiveFlex alignment="center" gap="2">
               <span className="text-xs text-muted-foreground">
-                {computedValues.customerEmail ? `From: ${computedValues.customerEmail}` : 'No email'}
+                {computedValues.customerEmail ? <><span className="font-semibold text-foreground">From:</span> {computedValues.customerEmail}</> : 'No email'}
               </span>
               {/* Inbox Indicator */}
               <div className="flex items-center gap-1">
