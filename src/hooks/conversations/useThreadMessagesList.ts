@@ -12,10 +12,21 @@ export function useThreadMessagesList(conversationId?: string, context?: Normali
   const messages = raw.filter(m => {
     const key = m.dedupKey || m.id;
     if (seen.has(key)) {
-      console.log('[Dedup] Removing duplicate:', key, m);
+      console.log('[Dedup] ❌ REMOVING duplicate:', {
+        key,
+        messageId: m.id,
+        dedupKey: m.dedupKey,
+        subject: m.subject
+      });
       return false;
     }
     seen.add(key);
+    console.log('[Dedup] ✅ KEEPING message:', {
+      key,
+      messageId: m.id,
+      dedupKey: m.dedupKey,
+      subject: m.subject
+    });
     return true;
   }).sort((a,b) => {
     const ta = +new Date(a.createdAt);

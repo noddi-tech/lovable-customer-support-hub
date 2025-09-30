@@ -72,7 +72,7 @@ export function useThreadMessages(conversationId?: string) {
       // 2) Build base query (DESC newest first); add cursor for older pages
       let base = supabase
         .from("messages")
-        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), inbox_id)")
+        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), inbox_id)")
         .eq("conversation_id", conversationId) // Filter by conversation first
         .order("created_at", { ascending: false })
         .limit(pageParam ? PAGE : INITIAL);
@@ -91,6 +91,18 @@ export function useThreadMessages(conversationId?: string) {
 
       const { data: rows, error } = await base;
       if (error) throw error;
+
+      // Debug logging - track raw DB response
+      console.log('[useThreadMessages] Raw DB response:', {
+        conversationId,
+        rowCount: rows?.length,
+        messageIds: rows?.map(r => ({
+          id: r.id,
+          email_message_id: r.email_message_id,
+          external_id: r.external_id,
+          created_at: r.created_at
+        }))
+      });
 
       // Debug logging for pagination
       if (isDebugMode && rows) {
