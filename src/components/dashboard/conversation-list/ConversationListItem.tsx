@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Archive, Trash2, Star, Clock, MessageCircle, MoreVertical, Inbox } from "lucide-react";
+import { MoreHorizontal, Archive, Trash2, Star, Clock, MessageCircle, MoreVertical, Inbox, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
@@ -178,7 +178,15 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
           <ResponsiveFlex alignment="center" justify="between">
             <ResponsiveFlex alignment="center" gap="2">
               <span className="text-xs text-muted-foreground">
-                {computedValues.customerEmail ? <><span className="font-semibold text-foreground">From:</span> {computedValues.customerEmail}</> : 'No email'}
+                {computedValues.customerEmail ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 font-semibold text-primary">
+                      <User className="w-3 h-3" />
+                      From:
+                    </span>{' '}
+                    {computedValues.customerEmail}
+                  </>
+                ) : 'No email'}
               </span>
               {/* Inbox Indicator */}
               <div className="flex items-center gap-1">
@@ -280,7 +288,15 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
           <ResponsiveFlex alignment="center" justify="between" className="pl-7">
             <ResponsiveFlex alignment="center" gap="2">
               <span className="text-xs text-muted-foreground">
-                {computedValues.customerEmail ? <><span className="font-semibold text-foreground">From:</span> {computedValues.customerEmail}</> : 'No email'}
+                {computedValues.customerEmail ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 font-semibold text-primary">
+                      <User className="w-3 h-3" />
+                      From:
+                    </span>{' '}
+                    {computedValues.customerEmail}
+                  </>
+                ) : 'No email'}
               </span>
               {/* Inbox Indicator */}
               <div className="flex items-center gap-1">
