@@ -173,11 +173,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             setError(null);
             reconnectAttempts.current = 0;
             
-            // Hide workspace after successful login (minimize to phone bar)
-            setTimeout(() => {
-              aircallPhone.hideWorkspace();
-              console.log('[AircallProvider] Workspace minimized after login');
-            }, 1000);
+            // SDK with size: 'small' automatically minimizes after login
+            console.log('[AircallProvider] Login successful, SDK will auto-minimize');
             
             // Start grace period
             if (loginGracePeriodRef.current) {
