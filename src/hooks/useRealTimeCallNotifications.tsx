@@ -8,6 +8,7 @@ import { Phone, PhoneCall, PhoneOff, Voicemail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useCallCustomerContext } from './useCallCustomerContext';
 import type { Call } from './useCalls';
 
 interface CallEvent {
@@ -25,6 +26,7 @@ export const useRealTimeCallNotifications = () => {
   const queryClient = useQueryClient();
   const { createManagedSubscription } = useRealtimeConnectionManager();
   const navigate = useNavigate();
+  const { setCallContext, clearContext } = useCallCustomerContext();
   const aircallIntegration = getIntegrationByProvider('aircall');
   const processedEventsRef = useRef(new Set<string>());
   
@@ -256,7 +258,6 @@ export const useRealTimeCallNotifications = () => {
     const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
     
     // Trigger modal for ANY new inbound call that hasn't explicitly ended
-    // This catches calls even if they transition quickly from ringing -> completed
     const shouldShowModal = 
       call.direction === 'inbound' && 
       call.status !== 'completed' && 
@@ -265,13 +266,57 @@ export const useRealTimeCallNotifications = () => {
     console.log('[CallNotifications] 🎯 Should show modal?', shouldShowModal);
     
     if (shouldShowModal) {
-      console.log('[CallNotifications] 🚀 Opening incoming call modal with customer data fetch...');
+      console.log('[CallNotifications] 🚀 Opening incoming call modal with customer data pre-fetch...');
       
-      // Show modal for incoming calls - VoiceCustomerSidebar will auto-fetch Noddi data
+      // Pre-fetch customer data and set context BEFORE showing modal
+      let customer = call.customers ? {
+        id: call.customers.id,
+        full_name: call.customers.full_name,
+        email: call.customers.email,
+        phone: call.customers.phone || call.customer_phone,
+      } : null;
+
+      // If no customer exists, create temp one for Noddi lookup
+      if (!customer && call.customer_phone) {
+        customer = {
+          id: `temp-${call.customer_phone}`,
+          phone: call.customer_phone,
+          full_name: undefined,
+          email: undefined
+        };
+      }
+
+      // Set call context to trigger Noddi data pre-fetch
+      if (customer) {
+        setCallContext(call.id, customer);
+        
+        // Start pre-fetching Noddi data in background
+        if (customer.email || customer.phone) {
+          console.log('[CallNotifications] 🔄 Pre-fetching Noddi data...', {
+            email: customer.email,
+            phone: customer.phone
+          });
+          
+          // Trigger background fetch via edge function
+          supabase.functions.invoke('noddi-customer-lookup', {
+            body: {
+              email: customer.email,
+              phone: customer.phone,
+              customerId: customer.id,
+            }
+          }).then(({ data }) => {
+            console.log('[CallNotifications] ✅ Noddi data pre-fetched');
+          }).catch(err => {
+            console.error('[CallNotifications] ❌ Noddi pre-fetch failed:', err);
+          });
+        }
+      }
+      
+      // Show modal for incoming calls
       setIncomingCall(call);
       setIsIncomingCallModalOpen(true);
       
-      // Also show a toast for quick notification
+      // Show a toast for quick notification
       const title = '📞 New Incoming Call';
       const description = `Call from ${call.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ''}`;
       
@@ -282,6 +327,11 @@ export const useRealTimeCallNotifications = () => {
       });
     } else if (call.direction === 'inbound') {
       console.log('[CallNotifications] ⏭️ Skipping modal (call already ended):', call.status);
+    }
+    
+    // Clear context when call ends
+    if (call.status === 'completed' || call.status === 'failed') {
+      clearContext();
     }
   };
 

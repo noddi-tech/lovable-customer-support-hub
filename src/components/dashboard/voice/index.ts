@@ -22,3 +22,4 @@ export { IncomingCallModal } from './IncomingCallModal';
 export { CallNotesSection } from './CallNotesSection';
 export { AgentAssignmentSelect } from './AgentAssignmentSelect';
 export { ManualEndCallDialog } from './ManualEndCallDialog';
+export { ActiveCallContext } from './ActiveCallContext';

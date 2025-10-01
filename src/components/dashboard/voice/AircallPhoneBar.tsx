@@ -5,10 +5,12 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Phone, PhoneOff, PhoneMissed, Volume2, VolumeX, Users, Clock } from 'lucide-react';
+import { Phone, PhoneOff, PhoneMissed, Volume2, VolumeX, Users, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
+import { useCallCustomerContext } from '@/hooks/useCallCustomerContext';
+import { ActiveCallContext } from './ActiveCallContext';
 import { cn } from '@/lib/utils';
 
 export const AircallPhoneBar = () => {
@@ -23,6 +25,8 @@ export const AircallPhoneBar = () => {
   
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [showContext, setShowContext] = useState(false);
+  const { customer } = useCallCustomerContext();
 
   // Update call duration every second
   useEffect(() => {
@@ -76,9 +80,21 @@ export const AircallPhoneBar = () => {
     <div className={cn(
       "fixed bottom-0 left-0 right-0 z-50",
       "border-t border-border bg-card shadow-lg backdrop-blur-sm",
-      "transition-transform duration-300",
+      "transition-all duration-300",
       currentCall ? "translate-y-0" : "translate-y-full"
     )}>
+      {/* Expandable Customer Context Panel */}
+      {showContext && currentCall && customer && (
+        <div className="border-b border-border bg-muted/50 max-h-[400px] overflow-y-auto">
+          <div className="container max-w-7xl mx-auto px-4 py-3">
+            <ActiveCallContext 
+              callId={currentCall.id?.toString() || ''} 
+              customerPhone={currentCall.phone_number}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="container max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Left: Call Status */}
@@ -176,13 +192,35 @@ export const AircallPhoneBar = () => {
             </div>
           )}
 
-          {/* Right: Additional Info */}
-          {!currentCall && isConnected && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
-              Ready for calls
-            </div>
-          )}
+          {/* Right: Context Toggle & Additional Info */}
+          <div className="flex items-center gap-2">
+            {currentCall && customer && (
+              <Button
+                onClick={() => setShowContext(!showContext)}
+                size="sm"
+                variant="ghost"
+                className="text-xs"
+              >
+                {showContext ? (
+                  <>
+                    <ChevronDown className="h-3 w-3 mr-1" />
+                    Hide Context
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="h-3 w-3 mr-1" />
+                    Show Context
+                  </>
+                )}
+              </Button>
+            )}
+            {!currentCall && isConnected && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Users className="h-3.5 w-3.5" />
+                Ready for calls
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
