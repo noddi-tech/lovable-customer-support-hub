@@ -45,6 +45,22 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const aircallConfig = getIntegrationByProvider('aircall');
   const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere;
 
+  // Store connection metadata for state preservation
+  const saveConnectionMetadata = useCallback(() => {
+    localStorage.setItem('aircall_connection_timestamp', Date.now().toString());
+    localStorage.setItem('aircall_connection_attempts', reconnectAttempts.current.toString());
+    console.log('[useAircallPhone] 💾 Saved connection metadata');
+  }, []);
+  
+  const getConnectionMetadata = useCallback(() => {
+    const timestamp = localStorage.getItem('aircall_connection_timestamp');
+    const attempts = localStorage.getItem('aircall_connection_attempts');
+    return {
+      timestamp: timestamp ? parseInt(timestamp) : null,
+      attempts: attempts ? parseInt(attempts) : 0
+    };
+  }, []);
+
   // Exponential backoff reconnection logic
   const attemptReconnect = useCallback(async () => {
     if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
@@ -142,6 +158,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
           onLogin: () => {
             console.log('[useAircallPhone] ✅ Logged in via callback');
             aircallPhone.setLoginStatus(true);
+            saveConnectionMetadata();
             setIsConnected(true);
             setShowLoginModal(false);
             setError(null);
@@ -190,24 +207,44 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
         setIsInitialized(true);
         console.log('[useAircallPhone] ✅ Initialization complete');
         
+        // Check for recent valid connection
+        const metadata = getConnectionMetadata();
+        const now = Date.now();
+        const recentConnection = metadata.timestamp && (now - metadata.timestamp) < 300000; // 5 minutes
+        
         // Check localStorage for persisted login status
         const wasLoggedIn = aircallPhone.getLoginStatus();
         console.log('[useAircallPhone] Restored login status from localStorage:', wasLoggedIn);
+        console.log('[useAircallPhone] Recent connection metadata:', metadata);
         
         if (wasLoggedIn) {
+          // If we had a recent connection, restore attempt count
+          if (recentConnection) {
+            console.log('[useAircallPhone] 🔄 Recent connection detected, restoring state...');
+            reconnectAttempts.current = metadata.attempts;
+          }
+          
           // Verify with SDK
           aircallPhone.checkLoginStatus((isLoggedIn) => {
             console.log('[useAircallPhone] SDK login status verification:', isLoggedIn);
             if (isLoggedIn) {
+              saveConnectionMetadata();
               setIsConnected(true);
               setShowLoginModal(false);
               toast({
                 title: 'Aircall Connected',
                 description: 'Phone system is ready',
               });
+            } else if (recentConnection && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
+              // Recent connection but not logged in - try silent reconnection
+              console.log('[useAircallPhone] 🔄 Attempting silent reconnection...');
+              attemptReconnect();
             } else {
               // localStorage was stale, clear it and show modal
+              console.log('[useAircallPhone] ❌ Verification failed - clearing stale state');
               aircallPhone.clearLoginStatus();
+              localStorage.removeItem('aircall_connection_timestamp');
+              localStorage.removeItem('aircall_connection_attempts');
               setIsConnected(false);
               setShowLoginModal(true);
             }
@@ -241,7 +278,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
         setIsConnected(false);
       }
     };
-  }, [everywhereConfig, toast, handleDisconnection]);
+  }, [everywhereConfig, toast, handleDisconnection, saveConnectionMetadata, getConnectionMetadata, attemptReconnect]);
 
 
   /**

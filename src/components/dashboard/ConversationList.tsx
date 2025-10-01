@@ -15,6 +15,7 @@ import { useMemoryLeakPrevention } from "@/hooks/useMemoryLeakPrevention";
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ConversationListProps {
   selectedTab: string;
@@ -29,6 +30,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
   const { user } = useAuth();
   const { t } = useTranslation();
   const [showSessionBanner, setShowSessionBanner] = useState(false);
+  const queryClient = useQueryClient();
 
   // Memory leak prevention for this component
   const memoryUtils = useMemoryLeakPrevention('ConversationList', {
@@ -66,8 +68,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       <SessionSyncButton 
         onSyncSuccess={() => {
           setShowSessionBanner(false);
-          // Trigger a window reload to refresh all data after successful session sync
-          window.location.reload();
+          // Invalidate all queries to refresh data without reloading the page
+          queryClient.invalidateQueries();
         }}
         showAlert={hasSessionError && filteredConversations.length === 0}
       />

@@ -45,7 +45,8 @@ export function useSessionSync() {
         console.log('❌ Session refresh failed, forcing re-login');
         await supabase.auth.signOut();
         toast.error('Session expired. Please log in again.');
-        window.location.href = '/auth';
+        // Use replace to avoid adding to history
+        window.location.replace('/auth');
         return false;
       }
 
