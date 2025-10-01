@@ -17,6 +17,12 @@ export interface VoiceIntegrationConfig {
       description: string;
       enabled: boolean;
     }>;
+    aircallEverywhere?: {
+      enabled: boolean;
+      apiId: string;
+      apiToken: string;
+      domainName?: string;
+    };
   };
 }
 

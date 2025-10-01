@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube } from 'lucide-react';
+import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +47,12 @@ export const AircallSettings = () => {
   const [isAddingPhone, setIsAddingPhone] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  
+  // Aircall Everywhere settings
+  const [everywhereEnabled, setEverywhereEnabled] = useState(false);
+  const [everywhereApiId, setEverywhereApiId] = useState('');
+  const [everywhereApiToken, setEverywhereApiToken] = useState('');
+  const [everywhereDomain, setEverywhereDomain] = useState('');
 
   // Load existing configuration when it changes
   useEffect(() => {
@@ -58,6 +64,15 @@ export const AircallSettings = () => {
       const savedEvents = existingConfig.configuration.callEvents;
       if (savedEvents) {
         setCallEvents(savedEvents);
+      }
+      
+      // Load Aircall Everywhere settings
+      const everywhereConfig = existingConfig.configuration.aircallEverywhere;
+      if (everywhereConfig) {
+        setEverywhereEnabled(everywhereConfig.enabled || false);
+        setEverywhereApiId(everywhereConfig.apiId || '');
+        setEverywhereApiToken(everywhereConfig.apiToken || '');
+        setEverywhereDomain(everywhereConfig.domainName || '');
       }
     } else {
       // Set default phone number if no config exists
@@ -156,7 +171,13 @@ export const AircallSettings = () => {
     const configuration = {
       phoneNumbers,
       callEvents,
-      enabledEvents: callEvents.filter(event => event.enabled).map(event => event.eventType)
+      enabledEvents: callEvents.filter(event => event.enabled).map(event => event.eventType),
+      aircallEverywhere: {
+        enabled: everywhereEnabled,
+        apiId: everywhereApiId,
+        apiToken: everywhereApiToken,
+        domainName: everywhereDomain || window.location.hostname
+      }
     };
 
     saveIntegration({
@@ -381,6 +402,94 @@ export const AircallSettings = () => {
               <Plus className="h-4 w-4" />
               Add Phone Number
             </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Aircall Everywhere (Embedded Phone) Configuration */}
+      <Card className="bg-gradient-surface border-border/50 shadow-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <PhoneCall className="w-5 h-5" />
+            Aircall Everywhere - Embedded Phone
+          </CardTitle>
+          <CardDescription>
+            Enable embedded calling directly in the browser for agents. Requires Aircall Everywhere API credentials.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="everywhere-enabled" className="text-sm font-medium">
+                Enable Aircall Everywhere
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Allow agents to answer calls directly in the platform
+              </p>
+            </div>
+            <Switch
+              id="everywhere-enabled"
+              checked={everywhereEnabled}
+              onCheckedChange={setEverywhereEnabled}
+            />
+          </div>
+
+          {everywhereEnabled && (
+            <>
+              <Separator />
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="everywhere-api-id">API ID</Label>
+                  <Input
+                    id="everywhere-api-id"
+                    type="text"
+                    placeholder="Enter your Aircall Everywhere API ID"
+                    value={everywhereApiId}
+                    onChange={(e) => setEverywhereApiId(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Found in your Aircall Dashboard under Integrations → Aircall Everywhere
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="everywhere-api-token">API Token</Label>
+                  <Input
+                    id="everywhere-api-token"
+                    type="password"
+                    placeholder="Enter your Aircall Everywhere API Token"
+                    value={everywhereApiToken}
+                    onChange={(e) => setEverywhereApiToken(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Keep this token secure. It's used to authenticate agents with Aircall.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="everywhere-domain">Domain Name (Optional)</Label>
+                  <Input
+                    id="everywhere-domain"
+                    type="text"
+                    placeholder={window.location.hostname}
+                    value={everywhereDomain}
+                    onChange={(e) => setEverywhereDomain(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank to use current domain: {window.location.hostname}
+                  </p>
+                </div>
+              </div>
+
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  Aircall Everywhere enables in-app calling with full agent controls. 
+                  Make sure your API credentials are configured correctly in Aircall Dashboard.
+                </AlertDescription>
+              </Alert>
+            </>
           )}
         </CardContent>
       </Card>
