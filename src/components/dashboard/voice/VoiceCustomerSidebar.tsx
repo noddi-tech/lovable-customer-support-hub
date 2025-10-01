@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Phone, Clock, User, MessageSquare, RefreshCw, Mail, UserPlus, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Phone, Clock, MessageSquare, Mail, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
 import { CustomerNotes } from '@/components/dashboard/CustomerNotes';
@@ -29,9 +27,7 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // State for forms
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [newCustomerEmail, setNewCustomerEmail] = useState('');
+  // State for email form
   const [emailToAdd, setEmailToAdd] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -44,20 +40,13 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
     phone: call.customers.phone || call.customer_phone,
   } : undefined;
 
-  // Check for multiple customers with same phone
-  const { data: multipleCustomers, isLoading: isCheckingMultiple } = useQuery({
-    queryKey: ['customers-by-phone', customerPhone],
-    queryFn: async () => {
-      if (!customerPhone) return [];
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('phone', customerPhone);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !customer && !!customerPhone,
-  });
+  // Create minimal customer object for Noddi lookup when we only have a phone number
+  const customerForNoddi = customer || (customerPhone ? {
+    id: `temp-${customerPhone}`,
+    phone: customerPhone,
+    email: undefined,
+    full_name: undefined
+  } : undefined);
 
   // Real-time subscription for customer updates
   useSimpleRealtimeSubscriptions(
@@ -78,61 +67,6 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
       </div>
     );
   }
-
-  // Create customer mutation
-  const createCustomerMutation = useMutation({
-    mutationFn: async (data: { full_name: string; email?: string; phone: string }) => {
-      // Get organization_id from profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-      
-      if (!profile?.organization_id) throw new Error('Organization not found');
-      
-      const { data: newCustomer, error } = await supabase
-        .from('customers')
-        .insert([{
-          full_name: data.full_name,
-          email: data.email || null,
-          phone: data.phone,
-          organization_id: profile.organization_id,
-        }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      // Link to call if available
-      if (call?.id) {
-        const { error: updateError } = await supabase
-          .from('calls')
-          .update({ customer_id: newCustomer.id })
-          .eq('id', call.id);
-        
-        if (updateError) throw updateError;
-      }
-      
-      return newCustomer;
-    },
-    onSuccess: () => {
-      toast({ title: 'Customer created successfully' });
-      queryClient.invalidateQueries({ queryKey: ['calls'] });
-      setNewCustomerName('');
-      setNewCustomerEmail('');
-      setError(null);
-    },
-    onError: (err: any) => {
-      const errorMsg = err.message || 'Failed to create customer';
-      setError(errorMsg);
-      toast({ 
-        title: 'Error creating customer', 
-        description: errorMsg,
-        variant: 'destructive' 
-      });
-    },
-  });
 
   // Update email mutation
   const updateEmailMutation = useMutation({
@@ -163,31 +97,6 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
     },
   });
 
-  // Link existing customer mutation
-  const linkCustomerMutation = useMutation({
-    mutationFn: async (customerId: string) => {
-      if (!call?.id) throw new Error('No call to link to');
-      
-      const { error } = await supabase
-        .from('calls')
-        .update({ customer_id: customerId })
-        .eq('id', call.id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: 'Customer linked successfully' });
-      queryClient.invalidateQueries({ queryKey: ['calls'] });
-    },
-    onError: (err: any) => {
-      toast({ 
-        title: 'Error linking customer', 
-        description: err.message,
-        variant: 'destructive' 
-      });
-    },
-  });
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'answered':
@@ -211,18 +120,6 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleCreateCustomer = () => {
-    if (!newCustomerName.trim() || !customerPhone) {
-      setError('Name and phone are required');
-      return;
-    }
-    createCustomerMutation.mutate({
-      full_name: newCustomerName.trim(),
-      email: newCustomerEmail.trim() || undefined,
-      phone: customerPhone,
-    });
-  };
-
   const handleUpdateEmail = () => {
     if (!emailToAdd.trim()) {
       setError('Email is required');
@@ -242,98 +139,13 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
           </Alert>
         )}
 
-        {/* Multiple Customers Selection */}
-        {!customer && multipleCustomers && multipleCustomers.length > 1 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Select Customer ({multipleCustomers.length} found)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {multipleCustomers.map((cust) => (
-                <Button
-                  key={cust.id}
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => linkCustomerMutation.mutate(cust.id)}
-                  disabled={linkCustomerMutation.isPending}
-                >
-                  <div className="text-left">
-                    <div className="font-medium">{cust.full_name}</div>
-                    {cust.email && (
-                      <div className="text-xs text-muted-foreground">{cust.email}</div>
-                    )}
-                  </div>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Create Customer Form */}
-        {!customer && (!multipleCustomers || multipleCustomers.length === 0) && !isCheckingMultiple && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <UserPlus className="h-4 w-4" />
-                Create Customer
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="customer-name">Full Name *</Label>
-                <Input
-                  id="customer-name"
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                  placeholder="Enter customer name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="customer-email">Email (optional)</Label>
-                <Input
-                  id="customer-email"
-                  type="email"
-                  value={newCustomerEmail}
-                  onChange={(e) => setNewCustomerEmail(e.target.value)}
-                  placeholder="customer@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input value={customerPhone || ''} disabled />
-              </div>
-              <Button
-                onClick={handleCreateCustomer} 
-                className="w-full"
-                disabled={createCustomerMutation.isPending || !newCustomerName.trim()}
-              >
-                {createCustomerMutation.isPending ? 'Creating...' : 'Create Customer'}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Loading State */}
-        {isCheckingMultiple && (
-          <Card>
-            <CardContent className="pt-6 space-y-3">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-4 w-2/3" />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Customer Information */}
-        {customer && customer.id && (
+        {/* Customer Information - always show for phone lookup */}
+        {customerForNoddi && (
           <>
-            <NoddihKundeData customer={customer} />
+            <NoddihKundeData customer={customerForNoddi} />
 
-            {/* Email Capture Card */}
-            {!customer.email && (
+            {/* Email Capture Card - only show if we have a real customer without email */}
+            {customer && !customer.email && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -425,7 +237,7 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
           </Card>
         )}
 
-        {/* Call Notes Section */}
+        {/* Call Notes Section - only show if we have a real customer */}
         {customer && customer.id && (
           <Card>
             <CardHeader className="pb-3">
