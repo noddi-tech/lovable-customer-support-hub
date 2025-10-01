@@ -2,7 +2,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
@@ -20,8 +19,6 @@ import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import "@/lib/i18n";
 import "@/styles/controls.css";
-
-const queryClient = new QueryClient();
 
 const AppContent = () => (
   <BrowserRouter>
@@ -78,21 +75,19 @@ const AppContent = () => (
 
 const App = () => (
   <GlobalErrorBoundary suppressAnalyticsErrors suppressIframeErrors>
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <AuthProvider>
-          <DesignSystemProvider>
-            <TooltipProvider>
-              <I18nWrapper>
-                <AppContent />
-              </I18nWrapper>
-              <Toaster />
-              <Sonner />
-            </TooltipProvider>
-          </DesignSystemProvider>
-        </AuthProvider>
-      </ErrorBoundary>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <DesignSystemProvider>
+          <TooltipProvider>
+            <I18nWrapper>
+              <AppContent />
+            </I18nWrapper>
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </DesignSystemProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </GlobalErrorBoundary>
 );
 
