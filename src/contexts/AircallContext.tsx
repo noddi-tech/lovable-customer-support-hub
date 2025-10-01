@@ -293,6 +293,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     if (!isInitialized) return;
 
     console.log('[AircallProvider] 📡 Registering event handlers');
+    console.log('[AircallProvider] SDK ready state:', aircallPhone.isReady());
+    console.log('[AircallProvider] Has profile:', !!profile, 'Has org_id:', !!profile?.organization_id);
 
     const handleIncomingCall = async (call: AircallCall) => {
       const shouldProcess = aircallEventBridge.processSDKEvent({
@@ -303,12 +305,26 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
       if (shouldProcess) {
         console.log('[AircallProvider] 📞 Incoming call (SDK):', call);
+        console.log('[AircallProvider] Profile state:', { 
+          hasProfile: !!profile, 
+          hasOrgId: !!profile?.organization_id,
+          orgId: profile?.organization_id 
+        });
         setCurrentCall(call);
         
         // Sync to database to trigger IncomingCallModal
-        if (profile?.organization_id) {
-          try {
-            const { data: existingCall } = await supabase
+        if (!profile?.organization_id) {
+          console.error('[AircallProvider] ❌ Cannot sync call - missing profile or organization_id');
+          toast({
+            title: 'Call Sync Failed',
+            description: 'Unable to save call data. Please refresh the page.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        try {
+          const { data: existingCall } = await supabase
               .from('calls')
               .select('id')
               .eq('external_id', String(call.call_id))
@@ -333,10 +349,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               } else {
                 console.log('[AircallProvider] ✅ Incoming call synced to database');
               }
-            }
-          } catch (err) {
-            console.error('[AircallProvider] Error syncing incoming call:', err);
           }
+        } catch (err) {
+          console.error('[AircallProvider] Error syncing incoming call:', err);
         }
       }
     };
@@ -426,13 +441,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     const unsubIncoming = aircallPhone.on('incoming_call', handleIncomingCall);
     const unsubEnded = aircallPhone.on('call_ended', handleCallEnded);
     const unsubOutgoing = aircallPhone.on('outgoing_call', handleOutgoingCall);
+    
+    console.log('[AircallProvider] ✅ Event handlers registered successfully');
 
     return () => {
+      console.log('[AircallProvider] 🧹 Unregistering event handlers');
       unsubIncoming();
       unsubEnded();
       unsubOutgoing();
     };
-  }, [isInitialized]);
+  }, [isInitialized, profile]);
 
   // Manage modal visibility with grace period
   useEffect(() => {
