@@ -141,6 +141,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
           domainName: everywhereConfig.domainName || window.location.hostname,
           onLogin: () => {
             console.log('[useAircallPhone] ✅ Logged in via callback');
+            aircallPhone.setLoginStatus(true);
             setIsConnected(true);
             setShowLoginModal(false);
             setError(null);
