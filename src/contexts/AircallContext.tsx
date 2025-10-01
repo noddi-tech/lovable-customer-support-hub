@@ -161,31 +161,26 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     console.log('[AircallProvider] 🚀 Initializing Aircall Everywhere (single instance)');
     initAttemptedRef.current = true;
 
-    // Wait for container to be available in DOM
-    const waitForContainer = async (maxAttempts = 10): Promise<HTMLElement | null> => {
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        const container = document.querySelector('#aircall-workspace-container');
-        if (container) {
-          console.log(`[AircallProvider] ✅ Container found on attempt ${attempt}`);
-          return container as HTMLElement;
-        }
-        console.log(`[AircallProvider] ⏳ Container not found, attempt ${attempt}/${maxAttempts}`);
-        await new Promise(resolve => setTimeout(resolve, 200 * attempt)); // Exponential backoff
-      }
-      return null;
-    };
-
     const initialize = async () => {
       try {
-        // Wait for container before initialization
-        console.log('[AircallProvider] Waiting for container...');
-        const container = await waitForContainer();
+        // Container is guaranteed to exist in HTML - direct check
+        let container = document.querySelector('#aircall-workspace-container') as HTMLElement;
         
         if (!container) {
-          throw new Error('Aircall container not found after multiple attempts');
+          // Fallback: Create container imperatively if somehow missing
+          console.warn('[AircallProvider] Container missing - creating imperatively');
+          container = document.createElement('div');
+          container.id = 'aircall-workspace-container';
+          container.className = 'aircall-visible';
+          document.body.appendChild(container);
+        } else {
+          // Ensure container is visible for SDK initialization
+          container.classList.add('aircall-visible');
+          container.classList.remove('aircall-hidden');
+          console.log('[AircallProvider] ✅ Container ready in DOM');
         }
         
-        console.log('[AircallProvider] Container ready, initializing SDK...');
+        console.log('[AircallProvider] Initializing SDK...');
         
         await aircallPhone.initialize({
           apiId,
@@ -200,8 +195,18 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             setError(null);
             reconnectAttempts.current = 0;
             
-            // SDK with size: 'small' automatically minimizes after login
-            console.log('[AircallProvider] Login successful, SDK will auto-minimize');
+            // Keep container visible for 5 seconds, then auto-hide
+            const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+            if (container) {
+              container.classList.add('aircall-visible');
+              container.classList.remove('aircall-hidden');
+              
+              setTimeout(() => {
+                container.classList.add('aircall-hidden');
+                container.classList.remove('aircall-visible');
+                console.log('[AircallProvider] Container auto-hidden after login');
+              }, 5000);
+            }
             
             // Start grace period
             if (loginGracePeriodRef.current) {
@@ -232,9 +237,17 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               console.log('[AircallProvider] Handling disconnection, keeping login state');
               handleDisconnection();
             } else {
-              console.log('[AircallProvider] Confirmed logout, showing modal');
+              console.log('[AircallProvider] Confirmed logout, showing container for re-login');
               aircallPhone.clearLoginStatus();
               setShowLoginModal(true);
+              
+              // Show container again for re-login
+              const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+              if (container) {
+                container.classList.add('aircall-visible');
+                container.classList.remove('aircall-hidden');
+              }
+              
               handleDisconnection();
             }
           }

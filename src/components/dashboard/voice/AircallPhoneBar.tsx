@@ -108,15 +108,9 @@ export const AircallPhoneBar = () => {
     });
   }, [isInitialized, isConnected, currentCall]);
 
-  // Check if container exists
-  const containerExists = document.querySelector('#aircall-workspace-container');
-  
-  // Show connection status if SDK not initialized or container missing
-  if (!isInitialized || !containerExists) {
-    console.log('[AircallPhoneBar] SDK not initialized or container missing - showing connection status', {
-      isInitialized,
-      containerExists: !!containerExists
-    });
+  // Show connection status only if SDK not initialized
+  if (!isInitialized) {
+    console.log('[AircallPhoneBar] SDK not initialized - showing connection status');
     return (
       <div className="fixed bottom-4 left-4 bg-yellow-50 border border-yellow-200 px-4 py-2 rounded-lg shadow-lg z-[100]">
         <div className="flex items-center gap-2 text-sm text-yellow-800">

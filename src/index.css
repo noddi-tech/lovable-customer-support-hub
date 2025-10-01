@@ -485,6 +485,31 @@ Optimized for accessibility with WCAG AA compliance.
     }
   }
   
+  /* Aircall Workspace Container Visibility */
+  #aircall-workspace-container {
+    position: fixed;
+    width: 350px;
+    height: 500px;
+    z-index: 9999;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Hidden state - moves off-screen but maintains dimensions */
+  #aircall-workspace-container.aircall-hidden {
+    bottom: -600px;
+    right: 20px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Visible state - on screen */
+  #aircall-workspace-container.aircall-visible {
+    bottom: 20px;
+    right: 20px;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .pane, .card__body {
     overflow: auto;
     -webkit-overflow-scrolling: touch;

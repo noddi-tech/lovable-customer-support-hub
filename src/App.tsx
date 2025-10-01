@@ -12,6 +12,7 @@ import { I18nWrapper } from "@/components/i18n/I18nWrapper";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { ControlDoctor } from "@/dev/ControlDoctor";
 import { useAircallPhone } from "@/hooks/useAircallPhone";
+import React from "react";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -76,25 +77,27 @@ const AppContent = () => (
 );
 
 /**
- * Global Aircall Container Component
- * Must be inside AircallProvider to access showLoginModal state
+ * Aircall Workspace Manager
+ * Controls visibility of the container via CSS classes
  */
-const GlobalAircallContainer = () => {
-  const { showLoginModal } = useAircallPhone();
+const AircallWorkspaceManager = () => {
+  const { showLoginModal, isInitialized } = useAircallPhone();
   
-  return (
-    <div 
-      id="aircall-workspace-container"
-      className="fixed z-[50] w-[350px] h-[500px] bottom-4 right-4 transition-all duration-300 ease-in-out"
-      style={{
-        visibility: showLoginModal ? 'visible' : 'hidden',
-        opacity: showLoginModal ? 1 : 0,
-        pointerEvents: showLoginModal ? 'auto' : 'none'
-      }}
-    >
-      {/* Aircall SDK will automatically inject its login/workspace iframe into this container */}
-    </div>
-  );
+  React.useEffect(() => {
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    if (!container) return;
+    
+    // Show container if login modal needed OR if not yet initialized
+    if (showLoginModal || !isInitialized) {
+      container.classList.add('aircall-visible');
+      container.classList.remove('aircall-hidden');
+    } else {
+      container.classList.add('aircall-hidden');
+      container.classList.remove('aircall-visible');
+    }
+  }, [showLoginModal, isInitialized]);
+  
+  return null; // This component doesn't render anything
 };
 
 const App = () => (
@@ -106,8 +109,8 @@ const App = () => (
             <TooltipProvider>
               <I18nWrapper>
                 <AppContent />
-                {/* Global Aircall Container - Always in DOM for SDK initialization */}
-                <GlobalAircallContainer />
+                {/* Aircall Workspace Manager - Controls container visibility */}
+                <AircallWorkspaceManager />
               </I18nWrapper>
               <Toaster />
               <Sonner />
