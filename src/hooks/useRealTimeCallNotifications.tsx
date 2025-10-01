@@ -7,6 +7,7 @@ import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { Phone, PhoneCall, PhoneOff, Voicemail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import type { Call } from './useCalls';
 
 interface CallEvent {
@@ -23,6 +24,7 @@ export const useRealTimeCallNotifications = () => {
   const { getIntegrationByProvider } = useVoiceIntegrations();
   const queryClient = useQueryClient();
   const { createManagedSubscription } = useRealtimeConnectionManager();
+  const navigate = useNavigate();
   const aircallIntegration = getIntegrationByProvider('aircall');
   const processedEventsRef = useRef(new Set<string>());
   
@@ -327,9 +329,8 @@ export const useRealTimeCallNotifications = () => {
   };
 
   const navigateToCall = (callId: string) => {
-    // Navigate to call details - you can implement this based on your routing
-    console.log('Navigate to call:', callId);
-    // Example: navigate(`/voice/calls/${callId}`);
+    console.log('[CallNotifications] 📍 Navigating to call:', callId);
+    navigate(`/voice?c=${callId}`);
   };
 
   const handleCallbackAction = async (callId: string) => {
