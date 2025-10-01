@@ -186,9 +186,58 @@ class AircallPhoneManager {
       console.log('[AircallWorkspace] ✅ Event listeners registered');
       console.log('[AircallWorkspace] ✅ Workspace created successfully');
       
-      // CRITICAL: Mark as initialized AFTER workspace creation, NOT after login
+      // Phase 1 & 2: Fix iframe permissions and reload
+      console.log('[AircallWorkspace] 🔧 Starting iframe permission fix...');
+      await this.fixIframePermissions();
+      
+      // Phase 3: Wait for workspace to be identified
+      const isIdentified = await this.waitForWorkspaceIdentified();
+      
+      if (!isIdentified) {
+        console.error('[AircallWorkspace] ❌ Workspace failed to be identified');
+        console.error('[AircallWorkspace] 💡 Troubleshooting:');
+        console.error('[AircallWorkspace]    1. Check browser console for SDK errors');
+        console.error('[AircallWorkspace]    2. Verify API credentials are correct');
+        console.error('[AircallWorkspace]    3. Try manually reloading the page');
+        
+        // Phase 5: Try one more time by recreating workspace
+        console.log('[AircallWorkspace] 🔄 Attempting to recreate workspace...');
+        this.workspace = null;
+        
+        this.workspace = new AircallWorkspace({
+          domToLoadWorkspace: '#aircall-workspace-container',
+          onLogin: (workspaceSettings) => {
+            console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
+            settings.onLogin?.();
+          },
+          onLogout: () => {
+            console.log('[AircallWorkspace] 🚪 User logged out');
+            this.isInitialized = false;
+            settings.onLogout?.();
+          },
+          size: 'small',
+          debug: true,
+        });
+        
+        // Re-register event listeners
+        this.workspace.on('incoming_call', this.handleIncomingCall.bind(this));
+        this.workspace.on('call_end_ringtone', this.handleCallEndRingtone.bind(this));
+        this.workspace.on('outgoing_call', this.handleOutgoingCall.bind(this));
+        this.workspace.on('outgoing_answered', this.handleOutgoingAnswered.bind(this));
+        this.workspace.on('call_ended', this.handleCallEnded.bind(this));
+        this.workspace.on('comment_saved', this.handleCommentSaved.bind(this));
+        
+        await this.fixIframePermissions();
+        const retryIdentified = await this.waitForWorkspaceIdentified();
+        
+        if (!retryIdentified) {
+          throw new Error('Failed to initialize Aircall workspace - iframe not identified after retry');
+        }
+      }
+      
+      // Phase 4: Mark as initialized only after workspace is ready
       this.isInitialized = true;
-      console.log('[AircallWorkspace] ✅ Workspace initialized (ready for login)');
+      console.log('[AircallWorkspace] ✅ Workspace fully initialized and identified');
       console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
     } catch (error) {
       console.error('[AircallWorkspace] ❌ Initialization failed:', error);
@@ -410,6 +459,120 @@ class AircallPhoneManager {
       };
       
       checkReady();
+    });
+  }
+
+  /**
+   * Phase 1: Fix iframe permissions by removing blocked HID permission
+   */
+  private async fixIframePermissions(): Promise<void> {
+    console.log('[AircallWorkspace] 🔧 Phase 1: Fixing iframe permissions (removing HID)');
+    
+    // Wait for iframe to exist
+    const isReady = await this.waitForWorkspaceReady(5000);
+    
+    if (!isReady) {
+      console.warn('[AircallWorkspace] ⚠️ Cannot fix permissions - iframe not found');
+      return;
+    }
+    
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
+    
+    if (!iframe) {
+      console.warn('[AircallWorkspace] ⚠️ Cannot fix permissions - iframe not found');
+      return;
+    }
+    
+    // Get current allow attribute
+    const currentAllow = iframe.getAttribute('allow') || '';
+    console.log('[AircallWorkspace] 📋 Current iframe permissions:', currentAllow);
+    
+    // Remove HID permission (it's blocked by browser and causes issues)
+    const permissions = currentAllow.split(';').map(p => p.trim()).filter(p => p);
+    const filteredPermissions = permissions.filter(p => !p.includes('hid'));
+    const newAllow = filteredPermissions.join('; ');
+    
+    if (currentAllow !== newAllow) {
+      iframe.setAttribute('allow', newAllow);
+      console.log('[AircallWorkspace] ✅ Removed HID permission. New permissions:', newAllow);
+      
+      // Phase 2: Force reload after permission fix
+      console.log('[AircallWorkspace] 🔄 Phase 2: Reloading iframe after permission fix');
+      const currentSrc = iframe.src;
+      
+      // Set to blank first
+      iframe.src = 'about:blank';
+      
+      // Wait for reload, then restore with cache-busting
+      await new Promise<void>((resolve) => {
+        setTimeout(() => {
+          const cacheBuster = `timestamp=${Date.now()}`;
+          const newSrc = currentSrc.includes('?') 
+            ? `${currentSrc}&${cacheBuster}`
+            : `${currentSrc}?${cacheBuster}`;
+          
+          iframe.src = newSrc;
+          
+          // Wait for iframe to load
+          iframe.onload = () => {
+            console.log('[AircallWorkspace] ✅ Iframe reloaded successfully');
+            resolve();
+          };
+          
+          // Fallback timeout
+          setTimeout(() => resolve(), 3000);
+        }, 100);
+      });
+    } else {
+      console.log('[AircallWorkspace] ℹ️  No HID permission found, skipping fix');
+    }
+  }
+
+  /**
+   * Phase 3: Wait for workspace to be identified (ready to receive commands)
+   */
+  private async waitForWorkspaceIdentified(timeout: number = 10000): Promise<boolean> {
+    console.log('[AircallWorkspace] ⏳ Phase 3: Waiting for workspace to be identified');
+    
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      let attempts = 0;
+      
+      const checkIdentified = () => {
+        attempts++;
+        
+        if (!this.workspace) {
+          console.warn('[AircallWorkspace] ⚠️ Workspace instance not available');
+          resolve(false);
+          return;
+        }
+        
+        // Try to call isLoggedIn as a test - if it works without "not identified" error, we're ready
+        try {
+          this.workspace.isLoggedIn((isLoggedIn) => {
+            console.log(`[AircallWorkspace] ✅ Workspace identified! (attempt ${attempts}, logged in: ${isLoggedIn})`);
+            resolve(true);
+          });
+        } catch (error) {
+          const errorMsg = String(error);
+          
+          if (Date.now() - startTime > timeout) {
+            console.error('[AircallWorkspace] ❌ Timeout waiting for workspace to be identified');
+            console.error('[AircallWorkspace] Last error:', errorMsg);
+            resolve(false);
+            return;
+          }
+          
+          // Workspace not identified yet, try again
+          if (attempts % 5 === 0) {
+            console.log(`[AircallWorkspace] ⏳ Still waiting for identification (attempt ${attempts})...`);
+          }
+          setTimeout(checkIdentified, 1000);
+        }
+      };
+      
+      checkIdentified();
     });
   }
 
