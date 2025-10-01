@@ -19,6 +19,8 @@ interface CallsListProps {
   showTimeFilter?: boolean;
   dateFilter?: 'today' | 'yesterday';
   onNavigateToEvents?: (callId: string) => void;
+  onSelectCall?: (call: any) => void;
+  selectedCallId?: string;
 }
 
 // Component to get notes count for a call
@@ -35,7 +37,7 @@ const CallNotesCount = ({ callId }: { callId: string }) => {
   ) : null;
 };
 
-export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvents }: CallsListProps) => {
+export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvents, onSelectCall, selectedCallId }: CallsListProps) => {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<string>('all');
@@ -357,7 +359,19 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
       ) : (
         <div className="space-y-1">
           {filteredCalls.map((call) => (
-            <Card key={call.id} className="transition-all duration-200 hover:shadow-md">
+            <Card 
+              key={call.id} 
+              className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
+                selectedCallId === call.id ? 'ring-2 ring-primary ring-offset-2' : ''
+              }`}
+              onClick={(e) => {
+                // Only trigger selection if clicking the card, not interactive elements
+                if ((e.target as HTMLElement).closest('button, select')) {
+                  return;
+                }
+                onSelectCall?.(call);
+              }}
+            >
               <CardContent className="px-2 py-1">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-1.5 flex-1">

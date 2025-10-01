@@ -43,9 +43,11 @@ interface CallbackRequestCardProps {
   onAssign: (id: string, agentId: string) => void;
   isUpdating: boolean;
   isAssigning: boolean;
+  onSelect?: (request: any) => void;
+  isSelected?: boolean;
 }
 
-const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, isAssigning }: CallbackRequestCardProps) => {
+const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, isAssigning, onSelect, isSelected }: CallbackRequestCardProps) => {
   const { t } = useTranslation();
   const config = statusConfig[request.status as keyof typeof statusConfig];
   const StatusIcon = config.icon;
@@ -57,7 +59,18 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
   };
 
   return (
-    <Card className="transition-all duration-200 hover:shadow-md">
+    <Card 
+      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
+        isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
+      }`}
+      onClick={(e) => {
+        // Only trigger selection if clicking the card, not interactive elements
+        if ((e.target as HTMLElement).closest('button, select')) {
+          return;
+        }
+        onSelect?.(request);
+      }}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -169,9 +182,11 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
 
 interface CallbackRequestsListProps {
   statusFilter?: string;
+  onSelectCallback?: (callback: any) => void;
+  selectedCallbackId?: string;
 }
 
-export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ statusFilter }) => {
+export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ statusFilter, onSelectCallback, selectedCallbackId }) => {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<string>(statusFilter || 'all');
   
@@ -277,6 +292,8 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
               onAssign={(id, agentId) => assignCallback({ callbackId: id, agentId })}
               isUpdating={isUpdating}
               isAssigning={isAssigning}
+              onSelect={onSelectCallback}
+              isSelected={selectedCallbackId === request.id}
             />
           ))}
         </div>

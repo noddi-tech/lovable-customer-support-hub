@@ -174,20 +174,29 @@ export const VoiceInterface = () => {
         metadata: callback.metadata
       }));
     } else if (type === 'voicemails') {
-      return data.map(voicemail => ({
-        id: voicemail.id,
-        type: 'voicemail',
-        subject: voicemail.caller_phone || 'Unknown Number',
-        preview: `Voicemail • ${voicemail.status}`,
-        customer: {
-          phone: voicemail.caller_phone || 'Unknown',
-          initials: 'UC'
-        },
-        status: voicemail.status,
-        duration: voicemail.duration,
-        receivedAt: voicemail.created_at,
-        metadata: voicemail.metadata
-      }));
+      return data.map(voicemail => {
+        // Extract phone from available fields (priority order)
+        const phone = voicemail.customer_phone || 
+                      voicemail.calls?.customer_phone || 
+                      voicemail.event_data?.customer_phone || 
+                      'Unknown Number';
+        
+        return {
+          id: voicemail.id,
+          type: 'voicemail',
+          subject: phone,
+          preview: `Voicemail • ${voicemail.status}`,
+          customer: {
+            phone: phone,
+            initials: phone !== 'Unknown Number' ? phone.substring(0, 2).toUpperCase() : 'UC'
+          },
+          status: voicemail.status,
+          call_id: voicemail.call_id,
+          duration: voicemail.event_data?.duration || 0,
+          receivedAt: voicemail.created_at,
+          metadata: voicemail.event_data || {}
+        };
+      });
     } else if (type === 'events') {
       return data.map(event => ({
         id: event.id,
@@ -275,6 +284,62 @@ export const VoiceInterface = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Entity transformation helpers
+  const transformCallToEntity = (call: any) => ({
+    id: call.id,
+    type: 'call' as const,
+    subject: formatPhoneNumber(call.customer_phone),
+    preview: `${call.direction === 'inbound' ? 'Incoming' : 'Outgoing'} call • ${call.status}`,
+    customer: {
+      phone: call.customer_phone || 'Unknown',
+      initials: call.customer_phone ? call.customer_phone.substring(0, 2).toUpperCase() : 'UC'
+    },
+    status: call.status,
+    direction: call.direction,
+    duration: call.duration_seconds,
+    endedAt: call.ended_at,
+    receivedAt: call.started_at,
+    metadata: call.metadata
+  });
+
+  const transformCallbackToEntity = (callback: any) => ({
+    id: callback.id,
+    type: 'callback' as const,
+    subject: formatPhoneNumber(callback.customer_phone),
+    preview: `Callback request • ${callback.status}`,
+    customer: {
+      phone: callback.customer_phone || 'Unknown',
+      initials: callback.customer_phone ? callback.customer_phone.substring(0, 2).toUpperCase() : 'UC'
+    },
+    status: callback.status,
+    call_id: callback.call_id,
+    receivedAt: callback.created_at,
+    metadata: callback.event_data || {}
+  });
+
+  const transformVoicemailToEntity = (voicemail: any) => {
+    const phone = voicemail.customer_phone || 
+                  voicemail.calls?.customer_phone || 
+                  voicemail.event_data?.customer_phone || 
+                  'Unknown Number';
+    
+    return {
+      id: voicemail.id,
+      type: 'voicemail' as const,
+      subject: phone,
+      preview: `Voicemail • ${voicemail.status}`,
+      customer: {
+        phone: phone,
+        initials: phone !== 'Unknown Number' ? phone.substring(0, 2).toUpperCase() : 'UC'
+      },
+      status: voicemail.status,
+      call_id: voicemail.call_id,
+      duration: voicemail.event_data?.duration || 0,
+      receivedAt: voicemail.created_at,
+      metadata: voicemail.event_data || {}
+    };
+  };
+
   // Render sidebar with voice-specific filters
   const renderVoiceSidebar = () => (
     <VoiceSidebar
@@ -294,6 +359,8 @@ export const VoiceInterface = () => {
             handleSectionChange('events-log');
             // Additional logic could be added here to filter events by call ID
           }}
+          onSelectCall={(call) => handleEntitySelect(transformCallToEntity(call))}
+          selectedCallId={conversationId}
         />
       );
     }
@@ -315,6 +382,8 @@ export const VoiceInterface = () => {
           onNavigateToEvents={(callId) => {
             handleSectionChange('events-log');
           }}
+          onSelectCall={(call) => handleEntitySelect(transformCallToEntity(call))}
+          selectedCallId={conversationId}
         />
       );
     }
@@ -327,6 +396,8 @@ export const VoiceInterface = () => {
           onNavigateToEvents={(callId) => {
             handleSectionChange('events-log');
           }}
+          onSelectCall={(call) => handleEntitySelect(transformCallToEntity(call))}
+          selectedCallId={conversationId}
         />
       );
     }
@@ -340,6 +411,8 @@ export const VoiceInterface = () => {
       return (
         <CallbackRequestsList
           statusFilter={statusFilter}
+          onSelectCallback={(callback) => handleEntitySelect(transformCallbackToEntity(callback))}
+          selectedCallbackId={conversationId}
         />
       );
     }
@@ -353,6 +426,8 @@ export const VoiceInterface = () => {
       return (
         <VoicemailsList
           statusFilter={statusFilter}
+          onSelectVoicemail={(voicemail) => handleEntitySelect(transformVoicemailToEntity(voicemail))}
+          selectedVoicemailId={conversationId}
         />
       );
     }

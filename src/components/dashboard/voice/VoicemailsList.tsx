@@ -19,9 +19,11 @@ interface VoicemailCardProps {
   onAssign: (id: string, agentId: string) => void;
   isDownloading: boolean;
   isAssigning: boolean;
+  onSelect?: (voicemail: any) => void;
+  isSelected?: boolean;
 }
 
-const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign, isDownloading, isAssigning }: VoicemailCardProps) => {
+const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign, isDownloading, isAssigning, onSelect, isSelected }: VoicemailCardProps) => {
   const { t } = useTranslation();
 
   const formatPhoneNumber = (phone?: string) => {
@@ -42,7 +44,18 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
   const hasTranscription = !!voicemail.event_data?.transcription;
 
   return (
-    <Card className="transition-all duration-200 hover:shadow-md">
+    <Card 
+      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
+        isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
+      }`}
+      onClick={(e) => {
+        // Only trigger selection if clicking the card, not interactive elements
+        if ((e.target as HTMLElement).closest('button, select, audio')) {
+          return;
+        }
+        onSelect?.(voicemail);
+      }}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -149,9 +162,11 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
 
 interface VoicemailsListProps {
   statusFilter?: string;
+  onSelectVoicemail?: (voicemail: any) => void;
+  selectedVoicemailId?: string;
 }
 
-export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) => {
+export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter, onSelectVoicemail, selectedVoicemailId }) => {
   const [filter, setFilter] = useState<string>(statusFilter || 'all');
   
   const {
@@ -242,6 +257,8 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter }) 
               onAssign={(id, agentId) => assignVoicemail({ voicemailId: id, agentId })}
               isDownloading={isAudioLoading}
               isAssigning={isAssigning}
+              onSelect={onSelectVoicemail}
+              isSelected={selectedVoicemailId === voicemail.id}
             />
           ))}
         </div>
