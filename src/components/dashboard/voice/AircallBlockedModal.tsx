@@ -16,6 +16,7 @@ interface AircallBlockedModalProps {
   issues: string[];
   onRetry: () => void;
   onOpenIncognito: () => void;
+  onSkip: () => void;
 }
 
 const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
@@ -23,6 +24,7 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
   issues,
   onRetry,
   onOpenIncognito,
+  onSkip,
 }) => {
   const hasNetworkBlock = issues.includes('network_blocked') || issues.includes('resources_blocked');
 
@@ -132,6 +134,21 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
             <div className="mt-1">Required Permissions: microphone, camera (optional)</div>
           </div>
         </details>
+
+        {/* Phase 6: Emergency Escape Hatch */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <Button
+            onClick={onSkip}
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground hover:text-foreground"
+          >
+            Skip Phone Integration for This Session
+          </Button>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            You can enable it later by refreshing the page
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

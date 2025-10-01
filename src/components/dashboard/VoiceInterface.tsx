@@ -753,6 +753,7 @@ export const VoiceInterface = () => {
         isConnected={isConnected}
         isWaitingForWorkspace={initializationPhase === 'diagnostics' || initializationPhase === 'creating-workspace'}
         onManualLoginConfirm={handleManualLoginConfirm}
+        onSkip={() => sessionStorage.setItem('aircall_opted_out', 'true')}
       />
       
       <AircallBlockedModal
@@ -760,6 +761,7 @@ export const VoiceInterface = () => {
         issues={diagnosticIssues}
         onRetry={retryConnection}
         onOpenIncognito={openIncognito}
+        onSkip={() => sessionStorage.setItem('aircall_opted_out', 'true')}
       />
       
       <IncomingCallModal

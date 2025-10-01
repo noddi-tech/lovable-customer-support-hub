@@ -58,50 +58,107 @@ class AircallPhoneManager {
   private static STORAGE_KEY = 'aircall_login_status';
 
   /**
-   * Phase 1: Diagnostic check for browser environment issues
+   * Phase 1: BULLETPROOF diagnostic check for browser environment issues
    */
   async diagnoseEnvironment(): Promise<{ hasIssues: boolean; issues: string[] }> {
     const issues: string[] = [];
+    console.log('[AircallWorkspace] 🔍 Phase 1: Running ENHANCED environment diagnostics...');
 
-    console.log('[AircallWorkspace] 🔍 Phase 1: Running environment diagnostics...');
-
-    // Check 1: Test network request to Aircall domain
+    // Check 1: Multiple test requests with timeout
     try {
-      const testUrl = 'https://phone.aircall.io/favicon.ico';
-      const response = await fetch(testUrl, { method: 'HEAD', mode: 'no-cors' });
-      console.log('[AircallWorkspace] ✅ Network test passed');
-    } catch (error) {
+      const testUrls = [
+        'https://phone.aircall.io/favicon.ico',
+        'https://api.aircall.io/favicon.ico',
+      ];
+      
+      const testPromises = testUrls.map(url => 
+        Promise.race([
+          fetch(url, { method: 'HEAD', mode: 'no-cors' }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ])
+      );
+      
+      await Promise.all(testPromises);
+      console.log('[AircallWorkspace] ✅ Network tests passed');
+    } catch (error: any) {
       console.error('[AircallWorkspace] ❌ Network test failed:', error);
-      issues.push('network_blocked');
+      if (error.message === 'Failed to fetch' || error.message.includes('ERR_BLOCKED')) {
+        issues.push('network_blocked');
+      }
     }
 
-    // Check 2: Look for blocked requests in console
-    const perfEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-    const blockedAircall = perfEntries.some(entry => 
-      entry.name.includes('aircall') && entry.transferSize === 0
-    );
-    if (blockedAircall) {
-      console.warn('[AircallWorkspace] ⚠️ Detected blocked Aircall resources');
-      issues.push('resources_blocked');
+    // Check 2: Performance API - look for blocked resources
+    try {
+      const perfEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+      const blockedAircall = perfEntries.some(entry => 
+        entry.name.includes('aircall') && entry.transferSize === 0 && entry.duration === 0
+      );
+      if (blockedAircall) {
+        console.warn('[AircallWorkspace] ⚠️ Detected blocked Aircall resources in Performance API');
+        issues.push('resources_blocked');
+      }
+    } catch (error) {
+      console.warn('[AircallWorkspace] Could not check performance entries:', error);
     }
 
-    // Check 3: iframe sandbox support
-    const testIframe = document.createElement('iframe');
-    testIframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms');
-    if (!testIframe.sandbox) {
-      console.warn('[AircallWorkspace] ⚠️ iframe sandbox not supported');
-      issues.push('sandbox_unsupported');
+    // Check 3: Console error detection
+    const originalConsoleError = console.error;
+    let hasBlockedError = false;
+    console.error = (...args: any[]) => {
+      const message = args.join(' ');
+      if (message.includes('ERR_BLOCKED_BY_CLIENT') || message.includes('blocked by client')) {
+        hasBlockedError = true;
+        issues.push('console_blocked_errors');
+      }
+      originalConsoleError.apply(console, args);
+    };
+    
+    // Restore after 1 second
+    setTimeout(() => {
+      console.error = originalConsoleError;
+    }, 1000);
+
+    // Check 4: iframe loading test
+    try {
+      const testIframe = document.createElement('iframe');
+      testIframe.src = 'https://phone.aircall.io/';
+      testIframe.style.display = 'none';
+      document.body.appendChild(testIframe);
+      
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          document.body.removeChild(testIframe);
+          reject(new Error('iframe load timeout'));
+        }, 3000);
+        
+        testIframe.onload = () => {
+          clearTimeout(timeout);
+          document.body.removeChild(testIframe);
+          resolve(true);
+        };
+        
+        testIframe.onerror = () => {
+          clearTimeout(timeout);
+          document.body.removeChild(testIframe);
+          reject(new Error('iframe load error'));
+        };
+      });
+      
+      console.log('[AircallWorkspace] ✅ iframe loading test passed');
+    } catch (error) {
+      console.error('[AircallWorkspace] ❌ iframe loading test failed:', error);
+      issues.push('iframe_blocked');
     }
 
     if (issues.length > 0) {
-      console.warn('[AircallWorkspace] ⚠️ Environment issues detected:', issues);
+      console.error('[AircallWorkspace] ❌ BLOCKING DETECTED:', issues);
     } else {
-      console.log('[AircallWorkspace] ✅ Environment diagnostics passed');
+      console.log('[AircallWorkspace] ✅ All diagnostics passed');
     }
 
     return {
       hasIssues: issues.length > 0,
-      issues
+      issues: Array.from(new Set(issues)) // Remove duplicates
     };
   }
 
@@ -204,38 +261,60 @@ class AircallPhoneManager {
       
       console.log('[AircallWorkspace] Container found, creating workspace instance...');
       
-      // Phase 2: Set up MutationObserver to intercept iframe IMMEDIATELY
-      let iframeFound = false;
-      const observer = new MutationObserver((mutations) => {
-        if (iframeFound) return;
+      // Phase 3: INTERCEPT IFRAME CREATION - prevent hid permission from ever being set
+      const originalCreateElement = document.createElement.bind(document);
+      let iframeIntercepted = false;
+      
+      // @ts-ignore - Temporarily override createElement
+      document.createElement = function(tagName: string, options?: any) {
+        const element = originalCreateElement(tagName, options);
         
+        if (tagName.toLowerCase() === 'iframe' && !iframeIntercepted) {
+          console.log('[AircallWorkspace] 🔧 Phase 3: Intercepted iframe creation!');
+          iframeIntercepted = true;
+          
+          // Monitor allow attribute changes
+          const originalSetAttribute = element.setAttribute.bind(element);
+          element.setAttribute = function(name: string, value: string) {
+            if (name === 'allow') {
+              // Remove hid permission immediately
+              const permissions = value.split(';').map(p => p.trim()).filter(p => p && !p.includes('hid'));
+              const cleanValue = permissions.join('; ');
+              console.log('[AircallWorkspace] ✅ Phase 3: Cleaned allow attribute:', cleanValue);
+              return originalSetAttribute(name, cleanValue);
+            }
+            return originalSetAttribute(name, value);
+          };
+          
+          // Restore original createElement after this iframe
+          setTimeout(() => {
+            document.createElement = originalCreateElement;
+          }, 100);
+        }
+        
+        return element;
+      };
+      
+      // Fallback: Aggressive setInterval check
+      const iframeFixInterval = setInterval(() => {
         const container = document.querySelector('#aircall-workspace-container');
         const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
         
-        if (iframe && !iframeFound) {
-          iframeFound = true;
-          console.log('[AircallWorkspace] 🔧 Phase 2: Iframe detected, fixing permissions immediately');
-          
-          // Fix permissions synchronously before first request
+        if (iframe) {
           const currentAllow = iframe.getAttribute('allow') || '';
-          const permissions = currentAllow.split(';').map(p => p.trim()).filter(p => p);
-          const filteredPermissions = permissions.filter(p => !p.includes('hid'));
-          const newAllow = filteredPermissions.join('; ');
-          
-          if (currentAllow !== newAllow) {
-            iframe.setAttribute('allow', newAllow);
-            console.log('[AircallWorkspace] ✅ Phase 2: Removed HID permission before first load');
+          if (currentAllow.includes('hid')) {
+            const permissions = currentAllow.split(';').map(p => p.trim()).filter(p => p && !p.includes('hid'));
+            iframe.setAttribute('allow', permissions.join('; '));
+            console.log('[AircallWorkspace] 🔧 Fallback: Fixed hid permission');
           }
-          
-          observer.disconnect();
         }
-      });
+      }, 50);
       
-      // Start observing
-      const container = document.querySelector('#aircall-workspace-container');
-      if (container) {
-        observer.observe(container, { childList: true, subtree: true });
-      }
+      // Stop checking after 10 seconds
+      setTimeout(() => {
+        clearInterval(iframeFixInterval);
+        document.createElement = originalCreateElement; // Ensure restored
+      }, 10000);
       
       // Create AircallWorkspace instance
       this.workspace = new AircallWorkspace({
@@ -267,56 +346,9 @@ class AircallPhoneManager {
       console.log('[AircallWorkspace] ✅ Event listeners registered');
       console.log('[AircallWorkspace] ✅ Workspace created successfully');
       
-      // Disconnect observer after workspace creation
-      observer.disconnect();
-      
-      // Phase 3: Wait for workspace to be identified (improved with readiness probe)
-      const isIdentified = await this.waitForWorkspaceIdentified();
-      
-      if (!isIdentified) {
-        console.error('[AircallWorkspace] ❌ Workspace failed to be identified');
-        console.error('[AircallWorkspace] 💡 Troubleshooting:');
-        console.error('[AircallWorkspace]    1. Check browser console for SDK errors');
-        console.error('[AircallWorkspace]    2. Verify API credentials are correct');
-        console.error('[AircallWorkspace]    3. Try manually reloading the page');
-        
-        // Phase 5: Try one more time by recreating workspace
-        console.log('[AircallWorkspace] 🔄 Attempting to recreate workspace...');
-        this.workspace = null;
-        
-        this.workspace = new AircallWorkspace({
-          domToLoadWorkspace: '#aircall-workspace-container',
-          onLogin: (workspaceSettings) => {
-            console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
-            settings.onLogin?.();
-          },
-          onLogout: () => {
-            console.log('[AircallWorkspace] 🚪 User logged out');
-            this.isInitialized = false;
-            settings.onLogout?.();
-          },
-          size: 'small',
-          debug: true,
-        });
-        
-        // Re-register event listeners
-        this.workspace.on('incoming_call', this.handleIncomingCall.bind(this));
-        this.workspace.on('call_end_ringtone', this.handleCallEndRingtone.bind(this));
-        this.workspace.on('outgoing_call', this.handleOutgoingCall.bind(this));
-        this.workspace.on('outgoing_answered', this.handleOutgoingAnswered.bind(this));
-        this.workspace.on('call_ended', this.handleCallEnded.bind(this));
-        this.workspace.on('comment_saved', this.handleCommentSaved.bind(this));
-        
-        const retryIdentified = await this.waitForWorkspaceIdentified();
-        
-        if (!retryIdentified) {
-          throw new Error('Failed to initialize Aircall workspace - iframe not identified after retry');
-        }
-      }
-      
-      // Phase 4: Mark as initialized only after workspace is ready
+      // Phase 4: SIMPLIFIED - Just mark as initialized, let SDK handle readiness
       this.isInitialized = true;
-      console.log('[AircallWorkspace] ✅ Workspace fully initialized and identified');
+      console.log('[AircallWorkspace] ✅ Workspace initialized - waiting for user login');
       console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
     } catch (error) {
       console.error('[AircallWorkspace] ❌ Initialization failed:', error);
