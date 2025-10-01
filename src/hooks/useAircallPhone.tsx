@@ -135,7 +135,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
           apiToken,
           domainName: everywhereConfig.domainName || window.location.hostname,
           onLogin: () => {
-            console.log('[useAircallPhone] ✅ Logged in');
+            console.log('[useAircallPhone] ✅ Logged in via callback');
             setIsConnected(true);
             setError(null);
             reconnectAttempts.current = 0;
@@ -153,6 +153,18 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
 
         setIsInitialized(true);
         console.log('[useAircallPhone] ✅ Initialization complete');
+        
+        // Check if user is already logged in (e.g., from previous session)
+        aircallPhone.checkLoginStatus((isLoggedIn) => {
+          console.log('[useAircallPhone] Initial login status:', isLoggedIn);
+          if (isLoggedIn) {
+            setIsConnected(true);
+            toast({
+              title: 'Aircall Connected',
+              description: 'Phone system is ready',
+            });
+          }
+        });
       } catch (err) {
         console.error('[useAircallPhone] ❌ Initialization failed:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize');
@@ -177,6 +189,36 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
       }
     };
   }, [everywhereConfig, toast, handleDisconnection]);
+
+  /**
+   * Periodically check login status after initialization
+   * This handles cases where user logs in via the workspace UI
+   */
+  useEffect(() => {
+    if (!isInitialized || isConnected) return;
+
+    console.log('[useAircallPhone] 🔄 Starting login status polling');
+    
+    const checkInterval = setInterval(() => {
+      aircallPhone.checkLoginStatus((isLoggedIn) => {
+        if (isLoggedIn && !isConnected) {
+          console.log('[useAircallPhone] ✅ Login detected via polling');
+          setIsConnected(true);
+          setError(null);
+          
+          toast({
+            title: 'Aircall Connected',
+            description: 'Phone system is ready',
+          });
+        }
+      });
+    }, 2000); // Check every 2 seconds
+
+    return () => {
+      console.log('[useAircallPhone] 🛑 Stopping login status polling');
+      clearInterval(checkInterval);
+    };
+  }, [isInitialized, isConnected, toast]);
 
   /**
    * Register SDK event handlers
