@@ -13,7 +13,7 @@ import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { ControlDoctor } from "@/dev/ControlDoctor";
 import { useAircallPhone } from "@/hooks/useAircallPhone";
 import { AircallLoginModal } from "@/components/dashboard/voice/AircallLoginModal";
-import React from "react";
+import React, { useEffect } from "react";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -24,8 +24,18 @@ import NotFound from "./pages/NotFound";
 import "@/lib/i18n";
 import "@/styles/controls.css";
 
-const AppContent = () => (
-  <BrowserRouter>
+const AppContent = () => {
+  // Phase 5: Add navigation interceptor
+  useEffect(() => {
+    const logNavigation = () => {
+      console.log('🚀 [Navigation] Page changed to:', window.location.pathname);
+    };
+    window.addEventListener('popstate', logNavigation);
+    return () => window.removeEventListener('popstate', logNavigation);
+  }, []);
+
+  return (
+    <>
     {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <ControlDoctor />}
     <Routes>
       <Route path="/auth" element={<Auth />} />
@@ -74,8 +84,9 @@ const AppContent = () => (
       {/* Catch-all */}
       <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
     </Routes>
-  </BrowserRouter>
-);
+    </>
+  );
+};
 
 /**
  * Aircall Workspace Manager
@@ -111,21 +122,23 @@ const AircallWorkspaceManager = () => {
 const App = () => (
   <GlobalErrorBoundary suppressAnalyticsErrors suppressIframeErrors>
     <ErrorBoundary>
-      <AuthProvider>
-        <AircallProvider>
-          <DesignSystemProvider>
-            <TooltipProvider>
-              <I18nWrapper>
-                <AppContent />
-                {/* Aircall Workspace Manager - Controls container visibility */}
-                <AircallWorkspaceManager />
-              </I18nWrapper>
-              <Toaster />
-              <Sonner />
-            </TooltipProvider>
-          </DesignSystemProvider>
-        </AircallProvider>
-      </AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AircallProvider>
+            <DesignSystemProvider>
+              <TooltipProvider>
+                <I18nWrapper>
+                  <AppContent />
+                  {/* Aircall Workspace Manager - Controls container visibility */}
+                  <AircallWorkspaceManager />
+                </I18nWrapper>
+                <Toaster />
+                <Sonner />
+              </TooltipProvider>
+            </DesignSystemProvider>
+          </AircallProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </ErrorBoundary>
   </GlobalErrorBoundary>
 );

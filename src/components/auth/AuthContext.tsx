@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +24,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Verify Aircall keys are still present
       const aircallKeys = Object.keys(localStorage).filter(k => k.toLowerCase().includes('aircall'));
-      console.log('Preserved Aircall keys during signOut:', aircallKeys);
+      console.log('🚪 [AuthContext] Preserved Aircall keys:', aircallKeys);
       
       // Attempt global sign out
       try {
@@ -182,11 +184,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Continue even if this fails
       }
       
-      // Use replace to avoid polluting history
-      window.location.replace('/auth');
+      // Phase 1 & 5: Navigate without full page reload
+      console.log('🚪 [AuthContext] Signing out - navigating to /auth (no reload)');
+      navigate('/auth', { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
-      window.location.replace('/auth');
+      navigate('/auth', { replace: true });
     }
   };
 

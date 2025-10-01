@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface SessionHealthState {
   isHealthy: boolean;
@@ -27,6 +28,7 @@ const AIRCALL_STORAGE_KEYS = [
 const IS_DEV_MODE = import.meta.env.DEV;
 
 export function useAggressiveSessionRecovery() {
+  const navigate = useNavigate();
   const { user, session, refreshSession, validateSession, signOut } = useAuth();
   const [healthState, setHealthState] = useState<SessionHealthState>({
     isHealthy: false,
@@ -153,7 +155,8 @@ export function useAggressiveSessionRecovery() {
       toast.success('Session reset complete. Redirecting to login...');
       
       setTimeout(() => {
-        window.location.replace('/auth');
+        console.log('💥 [SessionRecovery] Nuclear reset complete - navigating to /auth (no reload)');
+        navigate('/auth', { replace: true });
       }, 1500);
       
       return true;

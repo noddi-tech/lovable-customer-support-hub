@@ -123,10 +123,14 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             Please refresh the page to continue.
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              console.log('🔄 [GlobalErrorBoundary] Attempting recovery without reload');
+              this.setState({ hasError: false, error: undefined });
+              window.dispatchEvent(new CustomEvent('global-error-reset'));
+            }}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
           >
-            Refresh Page
+            Try to Recover
           </button>
         </div>
       </div>

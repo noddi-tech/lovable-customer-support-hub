@@ -58,6 +58,7 @@ export class VoiceErrorBoundary extends Component<Props, State> {
   }
 
   handleReset = () => {
+    console.log('🔄 [VoiceErrorBoundary] Attempting recovery without reload');
     this.setState({
       hasError: false,
       error: null,
@@ -66,7 +67,13 @@ export class VoiceErrorBoundary extends Component<Props, State> {
   };
 
   handleReload = () => {
-    window.location.reload();
+    console.log('🔄 [VoiceErrorBoundary] Triggering voice system reset');
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    });
+    window.dispatchEvent(new CustomEvent('voice-error-reset'));
   };
 
   render() {
