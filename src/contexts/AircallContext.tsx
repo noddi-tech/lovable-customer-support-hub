@@ -3,6 +3,8 @@ import { aircallPhone, type AircallCall } from '@/lib/aircall-phone';
 import { aircallEventBridge } from '@/lib/aircall-event-bridge';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface AircallContextValue {
   isInitialized: boolean;
@@ -34,6 +36,7 @@ interface AircallProviderProps {
  */
 export const AircallProvider = ({ children }: AircallProviderProps) => {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const { getIntegrationByProvider } = useVoiceIntegrations();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isConnected, setIsConnected] = useState(() => aircallPhone.getLoginStatus());
@@ -291,7 +294,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
     console.log('[AircallProvider] 📡 Registering event handlers');
 
-    const handleIncomingCall = (call: AircallCall) => {
+    const handleIncomingCall = async (call: AircallCall) => {
       const shouldProcess = aircallEventBridge.processSDKEvent({
         type: 'incoming_call',
         call,
@@ -301,10 +304,44 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       if (shouldProcess) {
         console.log('[AircallProvider] 📞 Incoming call (SDK):', call);
         setCurrentCall(call);
+        
+        // Sync to database to trigger IncomingCallModal
+        if (profile?.organization_id) {
+          try {
+            const { data: existingCall } = await supabase
+              .from('calls')
+              .select('id')
+              .eq('external_id', String(call.call_id))
+              .maybeSingle();
+            
+            if (!existingCall) {
+              const { error } = await supabase
+                .from('calls')
+                .insert([{
+                  external_id: String(call.call_id),
+                  organization_id: profile.organization_id,
+                  direction: 'inbound' as const,
+                  status: 'ringing' as const,
+                  customer_phone: call.from || call.phone_number || '',
+                  agent_phone: call.to || '',
+                  started_at: new Date().toISOString(),
+                  metadata: call as any
+                }]);
+              
+              if (error) {
+                console.error('[AircallProvider] Failed to sync incoming call to DB:', error);
+              } else {
+                console.log('[AircallProvider] ✅ Incoming call synced to database');
+              }
+            }
+          } catch (err) {
+            console.error('[AircallProvider] Error syncing incoming call:', err);
+          }
+        }
       }
     };
 
-    const handleCallEnded = (call: AircallCall) => {
+    const handleCallEnded = async (call: AircallCall) => {
       const shouldProcess = aircallEventBridge.processSDKEvent({
         type: 'call_ended',
         call,
@@ -314,10 +351,32 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       if (shouldProcess) {
         console.log('[AircallProvider] 🔚 Call ended (SDK):', call);
         setCurrentCall(null);
+        
+        // Update database record
+        if (profile?.organization_id) {
+          try {
+            const { error } = await supabase
+              .from('calls')
+              .update({
+                status: 'completed',
+                ended_at: new Date().toISOString(),
+                duration_seconds: call.duration
+              })
+              .eq('external_id', String(call.call_id));
+            
+            if (error) {
+              console.error('[AircallProvider] Failed to update call end in DB:', error);
+            } else {
+              console.log('[AircallProvider] ✅ Call end synced to database');
+            }
+          } catch (err) {
+            console.error('[AircallProvider] Error updating call end:', err);
+          }
+        }
       }
     };
 
-    const handleOutgoingCall = (call: AircallCall) => {
+    const handleOutgoingCall = async (call: AircallCall) => {
       const shouldProcess = aircallEventBridge.processSDKEvent({
         type: 'outgoing_call',
         call,
@@ -327,6 +386,40 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       if (shouldProcess) {
         console.log('[AircallProvider] 📤 Outgoing call (SDK):', call);
         setCurrentCall(call);
+        
+        // Sync to database
+        if (profile?.organization_id) {
+          try {
+            const { data: existingCall } = await supabase
+              .from('calls')
+              .select('id')
+              .eq('external_id', String(call.call_id))
+              .maybeSingle();
+            
+            if (!existingCall) {
+              const { error } = await supabase
+                .from('calls')
+                .insert([{
+                  external_id: String(call.call_id),
+                  organization_id: profile.organization_id,
+                  direction: 'outbound' as const,
+                  status: 'ringing' as const,
+                  customer_phone: call.to || call.phone_number || '',
+                  agent_phone: call.from || '',
+                  started_at: new Date().toISOString(),
+                  metadata: call as any
+                }]);
+              
+              if (error) {
+                console.error('[AircallProvider] Failed to sync outgoing call to DB:', error);
+              } else {
+                console.log('[AircallProvider] ✅ Outgoing call synced to database');
+              }
+            }
+          } catch (err) {
+            console.error('[AircallProvider] Error syncing outgoing call:', err);
+          }
+        }
       }
     };
 

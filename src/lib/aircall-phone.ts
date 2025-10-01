@@ -337,7 +337,7 @@ class AircallPhoneManager {
 
   /**
    * Show the Aircall workspace UI
-   * With size: 'small', the SDK manages its own visibility
+   * Brings the container back on screen
    */
   showWorkspace(): void {
     if (!this.workspace) {
@@ -345,14 +345,17 @@ class AircallPhoneManager {
       return;
     }
     
-    // SDK with size: 'small' manages its own visibility
-    // This is a no-op but kept for API compatibility
-    console.log('[AircallWorkspace] 👁️  Workspace visibility managed by SDK');
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    if (container) {
+      container.style.bottom = '1rem';
+      container.style.right = '1rem';
+      console.log('[AircallWorkspace] 👁️  Workspace shown');
+    }
   }
 
   /**
    * Hide the Aircall workspace UI
-   * With size: 'small', the SDK manages its own visibility
+   * Moves the container off-screen
    */
   hideWorkspace(): void {
     if (!this.workspace) {
@@ -360,9 +363,12 @@ class AircallPhoneManager {
       return;
     }
     
-    // SDK with size: 'small' manages its own visibility
-    // This is a no-op but kept for API compatibility
-    console.log('[AircallWorkspace] 🙈 Workspace visibility managed by SDK');
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    if (container) {
+      container.style.bottom = '-100vh';
+      container.style.right = '-100vw';
+      console.log('[AircallWorkspace] 🙈 Workspace hidden');
+    }
   }
 
   /**

@@ -98,8 +98,19 @@ export const AircallPhoneBar = () => {
     setCompletedCall(null);
   };
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[AircallPhoneBar] State:', {
+      isInitialized,
+      isConnected,
+      hasCall: !!currentCall,
+      callStatus: currentCall?.status
+    });
+  }, [isInitialized, isConnected, currentCall]);
+
   // Don't show if SDK not initialized
   if (!isInitialized) {
+    console.log('[AircallPhoneBar] Not rendering - SDK not initialized');
     return null;
   }
 
@@ -118,7 +129,7 @@ export const AircallPhoneBar = () => {
 
   return (
     <div className={cn(
-      "fixed bottom-0 left-0 right-0 z-50",
+      "fixed bottom-0 left-0 right-0 z-[100]",
       "border-t border-border bg-card shadow-lg backdrop-blur-sm",
       "transition-all duration-300",
       currentCall ? "translate-y-0" : "translate-y-full"
