@@ -17,12 +17,30 @@ interface AircallLoginModalProps {
   onManualLoginConfirm?: () => void;
 }
 
-export const AircallLoginModal: React.FC<AircallLoginModalProps> = ({
+const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
   isOpen,
   isConnected,
   onManualLoginConfirm,
 }) => {
+  const [isChecking, setIsChecking] = React.useState(false);
+
   console.log('[AircallLoginModal] 🎯 Layer 4: Rendering modal', { isOpen, isConnected });
+  
+  const handleManualConfirm = async () => {
+    if (!onManualLoginConfirm) return;
+    
+    setIsChecking(true);
+    console.log('[AircallLoginModal] 🎯 Phase 4: User clicked manual confirm');
+    
+    try {
+      await onManualLoginConfirm();
+    } finally {
+      // Reset after delay
+      setTimeout(() => {
+        setIsChecking(false);
+      }, 3000);
+    }
+  };
   
   return (
     <Dialog open={isOpen}>
@@ -73,25 +91,35 @@ export const AircallLoginModal: React.FC<AircallLoginModalProps> = ({
               </p>
             </div>
             
-            {/* Layer 3: Manual Login Button */}
+            {/* Phase 4: Enhanced Manual Login Button */}
             {onManualLoginConfirm && (
-              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="p-5 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 shadow-lg">
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-6 w-6 text-primary mt-0.5 flex-shrink-0" />
                   <div className="flex-1 space-y-3">
                     <div>
-                      <p className="text-sm font-medium text-foreground">Already logged in?</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        If you've completed the login but this window hasn't closed, click the button below.
+                      <p className="text-base font-semibold text-foreground">Already completed the login?</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        If you've finished logging in but this window is still showing, click the button below to verify your connection.
                       </p>
                     </div>
                     <Button
-                      onClick={onManualLoginConfirm}
-                      size="sm"
-                      className="w-full"
+                      onClick={handleManualConfirm}
+                      size="lg"
+                      disabled={isChecking}
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                     >
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      I've Logged In
+                      {isChecking ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Verifying Connection...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-5 w-5 mr-2" />
+                          I've Logged In - Verify Now
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -103,3 +131,5 @@ export const AircallLoginModal: React.FC<AircallLoginModalProps> = ({
     </Dialog>
   );
 };
+
+export const AircallLoginModal = AircallLoginModalComponent;

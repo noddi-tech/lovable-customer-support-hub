@@ -385,6 +385,28 @@ class AircallPhoneManager {
   }
 
   /**
+   * Force refresh the workspace to sync authentication state
+   * Useful after OAuth redirect to trigger login state update
+   */
+  refreshWorkspace(): void {
+    if (!this.workspace) {
+      console.warn('[AircallWorkspace] Cannot refresh workspace - not initialized');
+      return;
+    }
+    
+    console.log('[AircallWorkspace] 🔄 Refreshing workspace to sync auth state');
+    
+    // Send refresh command to workspace
+    this.workspace.send('refresh', {}, (success, response) => {
+      if (success) {
+        console.log('[AircallWorkspace] ✅ Workspace refresh successful');
+      } else {
+        console.log('[AircallWorkspace] ℹ️ Workspace refresh response:', response);
+      }
+    });
+  }
+
+  /**
    * Get current call info
    */
   getCurrentCall(): AircallCall | null {
