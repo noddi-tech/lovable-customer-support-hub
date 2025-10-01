@@ -152,7 +152,9 @@ class AircallPhoneManager {
 
     try {
       // Wait for container to be available in the DOM
-      await this.waitForContainer('#aircall-workspace-container');
+      await this.waitForContainer('#aircall-workspace-container', 10000);
+      
+      console.log('[AircallWorkspace] Container found, creating workspace instance...');
       
       // Create AircallWorkspace instance
       this.workspace = new AircallWorkspace({

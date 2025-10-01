@@ -30,6 +30,7 @@ import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // Memoized loading fallback
 const LoadingFallback = memo(() => (
@@ -763,11 +764,44 @@ export const VoiceInterface = () => {
         onClose={() => setIsDetailsOpen(false)}
       />
       
-      {/* Aircall Login Modal */}
-      <AircallLoginModal
-        isOpen={showLoginModal}
-        isConnected={isConnected}
-      />
+      {/* Aircall Workspace Container - Always in DOM for SDK */}
+      <div 
+        id="aircall-workspace-container"
+        className={cn(
+          "fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm",
+          "flex items-center justify-center p-4",
+          "transition-opacity duration-300",
+          showLoginModal ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        style={{ display: showLoginModal ? 'flex' : 'none' }}
+      >
+        <div className="w-full max-w-2xl h-[90vh] max-h-[800px] rounded-lg border-2 border-primary shadow-2xl overflow-hidden bg-card">
+          {/* Header */}
+          <div className="p-4 border-b border-border bg-muted/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Phone className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Aircall Phone System</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isConnected ? 'Connected and ready' : 'Please log in to continue'}
+                  </p>
+                </div>
+              </div>
+              {isConnected && (
+                <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                  Connected
+                </Badge>
+              )}
+            </div>
+          </div>
+          
+          {/* Workspace Content Area - SDK injects iframe here */}
+          <div className="h-[calc(100%-5rem)] bg-muted/30" />
+        </div>
+      </div>
       
       {/* Aircall Phone Bar (fixed bottom) */}
       <AircallPhoneBar />

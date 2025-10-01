@@ -45,23 +45,19 @@ export const AircallLoginModal: React.FC<AircallLoginModalProps> = ({
           </div>
         </DialogHeader>
 
-        {/* Aircall Workspace Container */}
+        {/* Instructions */}
         <div className="mt-4 relative">
-          {!isConnected && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10 rounded-lg">
-              <div className="text-center space-y-3">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  Waiting for login...
+          <div className="min-h-[500px] max-h-[60vh] flex items-center justify-center rounded-lg border border-border bg-muted/30">
+            <div className="text-center space-y-4 p-8">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <div>
+                <p className="font-medium text-lg">Initializing Aircall Workspace</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  The Aircall login window will appear below
                 </p>
               </div>
             </div>
-          )}
-          
-          <div 
-            id="aircall-workspace-container"
-            className="min-h-[500px] max-h-[60vh] overflow-auto rounded-lg border border-border bg-muted/30"
-          />
+          </div>
         </div>
 
         {!isConnected && (
