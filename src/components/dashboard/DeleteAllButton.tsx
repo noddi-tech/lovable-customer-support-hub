@@ -5,10 +5,12 @@ import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const DeleteAllButton = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const handleDeleteAll = async () => {
     setIsDeleting(true);
@@ -25,9 +27,9 @@ export const DeleteAllButton = () => {
       } else {
         toast.success(t('dashboard.deleteAll.success'));
         
-        // Refresh the page after a short delay
+        // Invalidate queries to refresh data without page reload
         setTimeout(() => {
-          window.location.reload();
+          queryClient.invalidateQueries();
         }, 1000);
       }
     } catch (error) {

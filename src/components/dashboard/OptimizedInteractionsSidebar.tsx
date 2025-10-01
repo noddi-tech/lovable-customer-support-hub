@@ -134,25 +134,9 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
     <EnhancedLoadingSkeleton type="sidebar" count={6} />
   );
 
-  // Error state
+  // Error state - Don't show error UI, just log it
   if (error) {
-    return (
-      <Sidebar className="border-r border-sidebar-border text-sidebar-foreground">
-        <SidebarContent className="p-4">
-          <div className="text-center">
-            <p className="text-sm text-destructive">Error loading sidebar data</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2"
-              onClick={() => window.location.reload()}
-            >
-              Retry
-            </Button>
-          </div>
-        </SidebarContent>
-      </Sidebar>
-    );
+    console.error('Sidebar data error:', error);
   }
 
   return (

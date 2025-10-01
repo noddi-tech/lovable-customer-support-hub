@@ -154,26 +154,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      // Clean up auth state
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('dev_auto_login_email'); // Clean up dev flag
+      // Clean up ONLY Supabase-specific auth state, preserve Aircall
+      const keysToRemove: string[] = [];
+      
       Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          localStorage.removeItem(key);
+        // Only remove Supabase-related keys, NOT Aircall keys
+        if ((key.startsWith('supabase.auth.') || 
+             key.includes('sb-') || 
+             key === 'dev_auto_login_email') &&
+            !key.toLowerCase().includes('aircall')) {
+          keysToRemove.push(key);
         }
       });
+      
+      console.log('Removing Supabase auth keys:', keysToRemove.length);
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Verify Aircall keys are still present
+      const aircallKeys = Object.keys(localStorage).filter(k => k.toLowerCase().includes('aircall'));
+      console.log('Preserved Aircall keys during signOut:', aircallKeys);
       
       // Attempt global sign out
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
+        console.error('Supabase signOut error:', err);
         // Continue even if this fails
       }
       
-      // Force page reload for clean state
-      window.location.href = '/auth';
+      // Use replace to avoid polluting history
+      window.location.replace('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
+      window.location.replace('/auth');
     }
   };
 

@@ -39,7 +39,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
   const MAX_RECONNECT_ATTEMPTS = 5;
   const BASE_RECONNECT_DELAY = 1000; // Start with 1 second
-  const GRACE_PERIOD_MS = 10000; // 10 seconds grace period after login
+  const GRACE_PERIOD_MS = 30000; // 30 seconds grace period after login (increased)
 
   // Get Aircall integration config
   const aircallConfig = getIntegrationByProvider('aircall');
@@ -339,6 +339,37 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
       unsubOutgoing();
     };
   }, [isInitialized]);
+
+  // Manage modal visibility with grace period
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    // Give the SDK more time to establish connection before showing modal
+    const graceTimer = setTimeout(() => {
+      // Only show modal if we're not connected and not in a call
+      if (!isConnected && !currentCall) {
+        // Check if we recently had a valid connection
+        const metadata = getConnectionMetadata();
+        const timeSinceLastConnection = metadata.timestamp 
+          ? Date.now() - metadata.timestamp 
+          : Infinity;
+        
+        // Check if user recently logged in (within 5 minutes)
+        const recentlyLoggedIn = timeSinceLastConnection < 5 * 60 * 1000;
+        
+        // If we had a connection in the last 30 seconds, don't show modal yet
+        // This prevents modal flashing during brief disconnections
+        if (timeSinceLastConnection > 30000 && !recentlyLoggedIn) {
+          console.log('No connection after grace period, showing login modal');
+          setShowLoginModal(true);
+        } else if (recentlyLoggedIn) {
+          console.log('User recently logged in, suppressing modal');
+        }
+      }
+    }, 30000); // 30 second grace period (increased from 10)
+
+    return () => clearTimeout(graceTimer);
+  }, [isInitialized, isConnected, currentCall, getConnectionMetadata]);
 
   /**
    * Answer call
