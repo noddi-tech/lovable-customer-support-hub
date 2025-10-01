@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthContext";
+import { AircallProvider } from "@/contexts/AircallContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
@@ -77,15 +78,17 @@ const App = () => (
   <GlobalErrorBoundary suppressAnalyticsErrors suppressIframeErrors>
     <ErrorBoundary>
       <AuthProvider>
-        <DesignSystemProvider>
-          <TooltipProvider>
-            <I18nWrapper>
-              <AppContent />
-            </I18nWrapper>
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
-        </DesignSystemProvider>
+        <AircallProvider>
+          <DesignSystemProvider>
+            <TooltipProvider>
+              <I18nWrapper>
+                <AppContent />
+              </I18nWrapper>
+              <Toaster />
+              <Sonner />
+            </TooltipProvider>
+          </DesignSystemProvider>
+        </AircallProvider>
       </AuthProvider>
     </ErrorBoundary>
   </GlobalErrorBoundary>
