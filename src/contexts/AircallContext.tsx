@@ -665,9 +665,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     return () => clearTimeout(graceTimer);
   }, [isInitialized, isConnected, currentCall, getConnectionMetadata]);
 
-  // Phase 1: OAuth redirect detection
+  // Phase 1 & 3: OAuth redirect detection with workspace reload
   useEffect(() => {
-    const checkOAuthReturn = () => {
+    const checkOAuthReturn = async () => {
       const url = new URL(window.location.href);
       const params = url.searchParams;
       
@@ -686,76 +686,106 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         
         setIsPostOAuthSync(true);
         
-        // Phase 2: Force SDK refresh
-        console.log('[AircallProvider] 🔄 Phase 2: Triggering SDK refresh after OAuth');
-        aircallPhone.refreshWorkspace();
-        
         toast({
           title: 'Syncing Authentication...',
-          description: 'Detecting your Aircall login',
+          description: 'Reloading Aircall workspace to detect login',
           duration: 5000
         });
         
-        // Trigger aggressive polling
-        if (loginPollingRef.current) {
-          clearInterval(loginPollingRef.current);
-        }
+        // Phase 3: Wait for iframe to be ready, then force reload it
+        console.log('[AircallProvider] 🔄 Phase 3: Waiting for iframe load, then reloading...');
         
-        let aggressivePollAttempts = 0;
-        const AGGRESSIVE_MAX_ATTEMPTS = 30; // 30 seconds at 1s interval
-        
-        loginPollingRef.current = setInterval(() => {
-          aggressivePollAttempts++;
-          console.log(`[AircallProvider] 🚀 Phase 1: Aggressive OAuth polling (${aggressivePollAttempts}/${AGGRESSIVE_MAX_ATTEMPTS})`);
+        setTimeout(async () => {
+          // Phase 2: Force reload workspace iframe
+          await aircallPhone.reloadWorkspace();
           
-          aircallPhone.checkLoginStatus((isLoggedIn) => {
-            console.log(`[AircallProvider] 🚀 Phase 1: OAuth poll result: ${isLoggedIn}`);
+          console.log('[AircallProvider] ✅ Phase 3: Workspace reloaded, starting aggressive polling');
+          
+          // Phase 4: Fallback - Direct iframe manipulation if SDK reload fails
+          setTimeout(() => {
+            const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+            const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
             
-            if (isLoggedIn) {
-              console.log('[AircallProvider] 🎉 Phase 1: OAuth login confirmed!');
+            if (iframe && iframe.src) {
+              console.log('[AircallProvider] 🔄 Phase 4: Fallback iframe refresh');
+              const originalSrc = iframe.src;
+              iframe.src = originalSrc;
+            }
+          }, 1000);
+          
+          // Clear existing polling
+          if (loginPollingRef.current) {
+            clearInterval(loginPollingRef.current);
+          }
+          
+          let aggressivePollAttempts = 0;
+          const AGGRESSIVE_MAX_ATTEMPTS = 30; // 30 seconds at 1s interval
+          
+          loginPollingRef.current = setInterval(() => {
+            aggressivePollAttempts++;
+            console.log(`[AircallProvider] 🚀 Phase 1: Aggressive OAuth polling after reload (${aggressivePollAttempts}/${AGGRESSIVE_MAX_ATTEMPTS})`);
+            
+            aircallPhone.checkLoginStatus((isLoggedIn) => {
+              console.log(`[AircallProvider] 🚀 Phase 1: OAuth poll result: ${isLoggedIn}`);
               
+              if (isLoggedIn) {
+                console.log('[AircallProvider] 🎉 Phase 1: OAuth login confirmed after reload!');
+                
+                if (loginPollingRef.current) {
+                  clearInterval(loginPollingRef.current);
+                  loginPollingRef.current = null;
+                }
+                
+                setIsPostOAuthSync(false);
+                aircallPhone.setLoginStatus(true);
+                saveConnectionMetadata();
+                setIsConnected(true);
+                setShowLoginModal(false);
+                setError(null);
+                setInitializationPhase('logged-in');
+                
+                toast({
+                  title: '✅ Login Successful',
+                  description: 'Connected to Aircall',
+                });
+                
+                // Auto-hide container
+                const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+                if (container) {
+                  container.classList.add('aircall-visible');
+                  container.classList.remove('aircall-hidden');
+                  
+                  setTimeout(() => {
+                    container.classList.add('aircall-hidden');
+                    container.classList.remove('aircall-visible');
+                  }, 5000);
+                }
+              }
+            });
+            
+            if (aggressivePollAttempts >= AGGRESSIVE_MAX_ATTEMPTS) {
+              console.log('[AircallProvider] ⏱️ Phase 1: Aggressive polling timeout');
               if (loginPollingRef.current) {
                 clearInterval(loginPollingRef.current);
                 loginPollingRef.current = null;
               }
-              
               setIsPostOAuthSync(false);
-              aircallPhone.setLoginStatus(true);
-              saveConnectionMetadata();
-              setIsConnected(true);
-              setShowLoginModal(false);
-              setError(null);
-              setInitializationPhase('logged-in');
-              
-              toast({
-                title: '✅ Login Successful',
-                description: 'Connected to Aircall',
-              });
             }
-          });
-          
-          if (aggressivePollAttempts >= AGGRESSIVE_MAX_ATTEMPTS) {
-            console.log('[AircallProvider] ⏱️ Phase 1: Aggressive polling timeout');
-            if (loginPollingRef.current) {
-              clearInterval(loginPollingRef.current);
-              loginPollingRef.current = null;
-            }
-            setIsPostOAuthSync(false);
-          }
-        }, 1000); // Aggressive: every 1 second
+          }, 1000); // Aggressive: every 1 second
+        }, 2000); // Wait 2 seconds for iframe to load before reloading
       }
     };
     
     checkOAuthReturn();
     
-    // Phase 3: PostMessage listener for cross-origin auth messages
-    const handleAuthMessage = (event: MessageEvent) => {
+    // PostMessage listener for cross-origin auth messages
+    const handleAuthMessage = async (event: MessageEvent) => {
       // Only accept messages from Aircall domains
       if (!event.origin.includes('aircall.io')) {
         return;
       }
       
-      console.log('[AircallProvider] 🎯 Phase 3: Received postMessage from Aircall', {
+      console.log('[AircallProvider] 🎯 Received postMessage from Aircall', {
         origin: event.origin,
         data: event.data
       });
@@ -766,12 +796,12 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         event.data?.authenticated === true ||
         event.data?.status === 'logged_in'
       ) {
-        console.log('[AircallProvider] 🎉 Phase 3: Auth success detected via postMessage');
+        console.log('[AircallProvider] 🎉 Auth success detected via postMessage');
         
         setIsPostOAuthSync(true);
-        aircallPhone.refreshWorkspace();
+        await aircallPhone.reloadWorkspace();
         
-        // Trigger immediate check
+        // Trigger immediate check after reload
         setTimeout(() => {
           aircallPhone.checkLoginStatus((isLoggedIn) => {
             if (isLoggedIn) {
@@ -789,7 +819,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               });
             }
           });
-        }, 500);
+        }, 1000);
       }
     };
     
@@ -858,69 +888,76 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     setShowLoginModal(true);
   }, []);
 
-  // Phase 4: Enhanced manual login confirmation handler with retry
-  const handleManualLoginConfirm = useCallback(() => {
-    console.log('[AircallProvider] 🎯 Phase 4: Manual login confirmation clicked');
+  // Phase 5: Enhanced manual login confirmation handler with workspace reload
+  const handleManualLoginConfirm = useCallback(async () => {
+    console.log('[AircallProvider] 🎯 Phase 5: Manual login confirmation clicked');
     
     setIsPostOAuthSync(true);
     
-    // First, refresh workspace
-    aircallPhone.refreshWorkspace();
+    toast({
+      title: 'Verifying Login...',
+      description: 'Reloading workspace to sync authentication',
+      duration: 3000
+    });
     
-    // Immediate check
-    aircallPhone.checkLoginStatus((isLoggedIn) => {
-      console.log(`[AircallProvider] 🎯 Phase 4: Initial check - logged in: ${isLoggedIn}`);
-      
-      if (isLoggedIn) {
-        // Clear all timers
-        if (loginPollingRef.current) {
-          clearInterval(loginPollingRef.current);
-          loginPollingRef.current = null;
-        }
-        if (loginTimeoutWarningRef.current) {
-          clearTimeout(loginTimeoutWarningRef.current);
-          loginTimeoutWarningRef.current = null;
-        }
+    // Phase 5: Force reload workspace iframe
+    await aircallPhone.reloadWorkspace();
+    
+    // Wait for reload, then check
+    setTimeout(() => {
+      aircallPhone.checkLoginStatus((isLoggedIn) => {
+        console.log(`[AircallProvider] 🎯 Phase 5: Initial check after reload - logged in: ${isLoggedIn}`);
         
-        // Complete login flow
-        setIsPostOAuthSync(false);
-        aircallPhone.setLoginStatus(true);
-        saveConnectionMetadata();
-        setIsConnected(true);
-        setShowLoginModal(false);
-        setError(null);
-        setInitializationPhase('logged-in');
-        
-        // Auto-hide container
-        const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-        if (container) {
-          container.classList.add('aircall-visible');
-          container.classList.remove('aircall-hidden');
+        if (isLoggedIn) {
+          // Clear all timers
+          if (loginPollingRef.current) {
+            clearInterval(loginPollingRef.current);
+            loginPollingRef.current = null;
+          }
+          if (loginTimeoutWarningRef.current) {
+            clearTimeout(loginTimeoutWarningRef.current);
+            loginTimeoutWarningRef.current = null;
+          }
+          
+          // Complete login flow
+          setIsPostOAuthSync(false);
+          aircallPhone.setLoginStatus(true);
+          saveConnectionMetadata();
+          setIsConnected(true);
+          setShowLoginModal(false);
+          setError(null);
+          setInitializationPhase('logged-in');
+          
+          // Auto-hide container
+          const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+          if (container) {
+            container.classList.add('aircall-visible');
+            container.classList.remove('aircall-hidden');
+            
+            setTimeout(() => {
+              container.classList.add('aircall-hidden');
+              container.classList.remove('aircall-visible');
+            }, 5000);
+          }
+          
+          toast({
+            title: '✅ Login Confirmed',
+            description: 'You are now connected to Aircall',
+          });
+        } else {
+          // Phase 5: Auto-retry with delay
+          console.log('[AircallProvider] 🔄 Phase 5: First check failed, retrying in 2 seconds...');
+          
+          toast({
+            title: 'Still Checking...',
+            description: 'Verifying your connection',
+          });
           
           setTimeout(() => {
-            container.classList.add('aircall-hidden');
-            container.classList.remove('aircall-visible');
-          }, 5000);
-        }
-        
-        toast({
-          title: '✅ Login Confirmed',
-          description: 'You are now connected to Aircall',
-        });
-      } else {
-        // Phase 4: Auto-retry with delay
-        console.log('[AircallProvider] 🔄 Phase 4: First check failed, retrying in 2 seconds...');
-        
-        toast({
-          title: 'Checking Login Status...',
-          description: 'Please wait while we verify your connection',
-        });
-        
-        setTimeout(() => {
-          aircallPhone.checkLoginStatus((retryIsLoggedIn) => {
-            console.log(`[AircallProvider] 🎯 Phase 4: Retry check - logged in: ${retryIsLoggedIn}`);
-            
-            setIsPostOAuthSync(false);
+            aircallPhone.checkLoginStatus((retryIsLoggedIn) => {
+              console.log(`[AircallProvider] 🎯 Phase 5: Retry check - logged in: ${retryIsLoggedIn}`);
+              
+              setIsPostOAuthSync(false);
             
             if (retryIsLoggedIn) {
               // Clear all timers
@@ -966,7 +1003,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         }, 2000);
       }
     });
-  }, [saveConnectionMetadata, toast]);
+  }, 2000); // Wait 2 seconds for reload before checking
+}, [saveConnectionMetadata, toast]);
 
   const value: AircallContextValue = {
     isInitialized,

@@ -385,25 +385,74 @@ class AircallPhoneManager {
   }
 
   /**
-   * Force refresh the workspace to sync authentication state
-   * Useful after OAuth redirect to trigger login state update
+   * Phase 1: Wait for workspace iframe to be ready and identified
    */
-  refreshWorkspace(): void {
-    if (!this.workspace) {
-      console.warn('[AircallWorkspace] Cannot refresh workspace - not initialized');
+  private async waitForWorkspaceReady(timeout: number = 10000): Promise<boolean> {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      
+      const checkReady = () => {
+        const iframe = document.querySelector('#aircall-workspace-container iframe') as HTMLIFrameElement;
+        
+        if (iframe && iframe.contentWindow) {
+          console.log('[AircallWorkspace] ✅ Workspace iframe ready');
+          resolve(true);
+          return;
+        }
+        
+        if (Date.now() - startTime > timeout) {
+          console.warn('[AircallWorkspace] ⏱️ Timeout waiting for workspace iframe');
+          resolve(false);
+          return;
+        }
+        
+        setTimeout(checkReady, 200);
+      };
+      
+      checkReady();
+    });
+  }
+
+  /**
+   * Phase 2: Force reload the workspace iframe to pick up new authentication state
+   * This is more aggressive than refresh() and ensures the iframe fetches fresh auth
+   */
+  async reloadWorkspace(): Promise<void> {
+    console.log('[AircallWorkspace] 🔄 Phase 2: Force reloading workspace iframe for OAuth sync');
+    
+    // Wait for iframe to exist
+    const isReady = await this.waitForWorkspaceReady(5000);
+    
+    if (!isReady) {
+      console.warn('[AircallWorkspace] ⚠️ Workspace iframe not ready for reload');
       return;
     }
     
-    console.log('[AircallWorkspace] 🔄 Refreshing workspace to sync auth state');
+    // Find the Aircall workspace iframe
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
     
-    // Send refresh command to workspace
-    this.workspace.send('refresh', {}, (success, response) => {
-      if (success) {
-        console.log('[AircallWorkspace] ✅ Workspace refresh successful');
-      } else {
-        console.log('[AircallWorkspace] ℹ️ Workspace refresh response:', response);
-      }
-    });
+    if (!iframe) {
+      console.warn('[AircallWorkspace] ⚠️ Cannot reload - iframe not found');
+      return;
+    }
+    
+    console.log('[AircallWorkspace] 🔄 Reloading iframe to fetch fresh authentication state');
+    
+    // Force reload by resetting src
+    const currentSrc = iframe.src;
+    iframe.src = 'about:blank';
+    
+    // Wait a moment, then restore with cache-busting
+    setTimeout(() => {
+      const cacheBuster = `timestamp=${Date.now()}`;
+      const newSrc = currentSrc.includes('?') 
+        ? `${currentSrc}&${cacheBuster}`
+        : `${currentSrc}?${cacheBuster}`;
+      
+      iframe.src = newSrc;
+      console.log('[AircallWorkspace] ✅ Iframe reloaded with fresh auth state');
+    }, 100);
   }
 
   /**
