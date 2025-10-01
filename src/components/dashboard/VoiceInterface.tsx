@@ -21,7 +21,7 @@ import { CallNotificationCenter } from './voice/CallNotificationCenter';
 import { CallDetailsDialog } from './voice/CallDetailsDialog';
 import { CallActionButton } from './voice/CallActionButton';
 import { IncomingCallModal } from './voice/IncomingCallModal';
-import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
+import { VoiceLayout } from './voice/VoiceLayout';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -35,7 +35,6 @@ export const VoiceInterface = () => {
   
   // Get state from URL navigation
   const { conversationId } = navigation.currentState;
-  const isDetail = !!conversationId;
   
   const { 
     calls, 
@@ -423,40 +422,46 @@ export const VoiceInterface = () => {
           const renderEntityRow = () => {
             if (entity.type === 'call') {
               return (
-                <EntityListRow
+                <div
                   key={entity.id}
-                  subject={formatPhoneNumber(entity.customer.phone)}
-                  preview={`${entity.direction === 'inbound' ? 'Incoming' : 'Outgoing'} call • ${entity.status}`}
-                  avatar={{
-                    fallback: entity.customer.initials,
-                    alt: entity.customer.phone
-                  }}
-                  selected={entity.id === conversationId}
-                  onClick={() => handleEntitySelect(entity)}
-                  badges={[
-                    { 
-                      label: entity.direction === 'inbound' ? 'In' : 'Out', 
-                      variant: entity.direction === 'inbound' ? 'default' as const : 'secondary' as const 
-                    },
-                    { label: entity.status, variant: 'outline' as const }
-                  ]}
-                  meta={[
-                    { 
-                      label: 'Duration', 
-                      value: formatDuration(entity.duration) 
-                    },
-                    { 
-                      label: 'Time', 
-                      value: entity.endedAt ? 
-                        format(new Date(entity.endedAt), 'HH:mm') : 
-                        'Active'
-                    },
-                    ...(entity.agentPhone ? [{ 
-                      label: 'Agent', 
-                      value: formatPhoneNumber(entity.agentPhone) 
-                    }] : [])
-                  ]}
-                />
+                  className={`transition-colors ${
+                    entity.id === conversationId ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''
+                  }`}
+                >
+                  <EntityListRow
+                    subject={formatPhoneNumber(entity.customer.phone)}
+                    preview={`${entity.direction === 'inbound' ? 'Incoming' : 'Outgoing'} call • ${entity.status}`}
+                    avatar={{
+                      fallback: entity.customer.initials,
+                      alt: entity.customer.phone
+                    }}
+                    selected={entity.id === conversationId}
+                    onClick={() => handleEntitySelect(entity)}
+                    badges={[
+                      { 
+                        label: entity.direction === 'inbound' ? 'In' : 'Out', 
+                        variant: entity.direction === 'inbound' ? 'default' as const : 'secondary' as const 
+                      },
+                      { label: entity.status, variant: 'outline' as const }
+                    ]}
+                    meta={[
+                      { 
+                        label: 'Duration', 
+                        value: formatDuration(entity.duration) 
+                      },
+                      { 
+                        label: 'Time', 
+                        value: entity.endedAt ? 
+                          format(new Date(entity.endedAt), 'HH:mm') : 
+                          'Active'
+                      },
+                      ...(entity.agentPhone ? [{ 
+                        label: 'Agent', 
+                        value: formatPhoneNumber(entity.agentPhone) 
+                      }] : [])
+                    ]}
+                  />
+                </div>
               );
             }
             return null;
@@ -580,27 +585,60 @@ export const VoiceInterface = () => {
     );
   };
 
-  // Render customer sidebar
+  // Render customer sidebar (always visible)
   const renderCustomerSidebar = () => {
-    if (!selectedEntity) return null;
+    // Empty state when nothing is selected
+    if (!selectedEntity) {
+      return (
+        <Card className="border-dashed">
+          <CardContent className="p-6 text-center">
+            <User className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-sm font-medium text-muted-foreground mb-1">No Selection</p>
+            <p className="text-xs text-muted-foreground">
+              Select a call, callback, or voicemail to view customer details
+            </p>
+          </CardContent>
+        </Card>
+      );
+    }
     
     // For calls, find the full call data
     if (selectedEntity.type === 'call') {
       const call = calls?.find(c => c.id === selectedEntity.id);
-      if (!call) return null;
+      if (!call) {
+        return (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Call data not found</p>
+            </CardContent>
+          </Card>
+        );
+      }
       
       return <VoiceCustomerSidebar call={call} />;
     }
     
-    // For callbacks/voicemails, use phone lookup
+    // For callbacks/voicemails, derive customer phone
     const customerPhone = 'customer' in selectedEntity ? selectedEntity.customer?.phone : undefined;
-    if (!customerPhone) return null;
+    
+    if (!customerPhone) {
+      return (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No customer phone available</p>
+          </CardContent>
+        </Card>
+      );
+    }
     
     // Try to find linked call for callbacks/voicemails
-    const linkedCall = calls?.find(c => 
-      c.customer_phone === customerPhone && 
-      'call_id' in selectedEntity && (selectedEntity as any).call_id === c.id
-    );
+    const linkedCall = calls?.find(c => {
+      const matchesPhone = c.customer_phone === customerPhone;
+      const matchesCallId = 'call_id' in selectedEntity && (selectedEntity as any).call_id === c.id;
+      return matchesPhone || matchesCallId;
+    });
     
     return (
       <VoiceCustomerSidebar 
@@ -622,18 +660,13 @@ export const VoiceInterface = () => {
         }}
       />
       
-      <MasterDetailShell
-        left={renderVoiceSidebar()}
-        center={renderCallList()}
-        detailLeft={renderDetails()}
-        detailRight={renderCustomerSidebar()}
-        isDetail={isDetail}
-        onBack={handleBack}
-        backButtonLabel="Back to Voice"
-        leftPaneLabel="Voice filters"
-        centerPaneLabel="Voice items"
-        detailLeftLabel="Details"
-        detailRightLabel="Customer Info"
+      <VoiceLayout
+        leftPane={renderVoiceSidebar()}
+        centerPane={renderCallList()}
+        rightPane={renderCustomerSidebar()}
+        leftPaneLabel="Filters"
+        centerPaneLabel="Voice Items"
+        rightPaneLabel="Customer Info"
       />
       
       {/* Call Details Dialog */}
