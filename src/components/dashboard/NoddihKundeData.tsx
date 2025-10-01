@@ -74,65 +74,6 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     );
   }
 
-  if (hasPhoneOnly) {
-    return (
-      <Card>
-        <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <User className="h-5 w-5" />
-          Noddi Customer Data
-        </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              No Noddi data (needs email). Customer has phone: {customer.phone}
-            </AlertDescription>
-          </Alert>
-          
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Enter email to search Noddi:</p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter customer email..."
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                type="email"
-              />
-              <Button onClick={handleEmailSubmit} disabled={!emailInput}>
-                Search
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!hasEmail) {
-    return (
-      <Card>
-        <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <User className="h-5 w-5" />
-          Noddi Customer Data
-        </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {!isAuthenticated 
-                ? 'Authentication required to access Noddi data'
-                : 'No email or phone available for this customer'
-              }
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -190,7 +131,7 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
     );
   }
 
-  if (data?.notFound) {
+  if (data?.notFound || !data?.data?.found) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -211,16 +152,55 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Customer not found in Noddi system ({customer.email})
+              Customer not found in Noddi system
+              {customer.email && ` (${customer.email})`}
+              {!customer.email && customer.phone && ` (${customer.phone})`}
             </AlertDescription>
           </Alert>
+          
+          {hasPhoneOnly && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-medium">Try searching with email:</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter customer email..."
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  type="email"
+                />
+                <Button onClick={handleEmailSubmit} disabled={!emailInput}>
+                  Search
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
   }
 
-  if (!data) {
-    return null;
+  if (!data || !data.data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Noddi Customer Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {!isAuthenticated 
+                ? 'Authentication required to access Noddi data'
+                : 'No customer data available'
+              }
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
   }
 
   // Use ONLY ui_meta data for rendering - no fallbacks to old structure
