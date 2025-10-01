@@ -243,15 +243,13 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const answerCall = useCallback(async () => {
     try {
       await aircallPhone.answerCall();
-      console.log('[useAircallPhone] ✅ Call answered');
+      console.log('[useAircallPhone] ℹ️  User must answer via Aircall Workspace UI');
     } catch (err) {
-      console.error('[useAircallPhone] ❌ Failed to answer:', err);
+      // Expected - v2 doesn't support programmatic answer
       toast({
-        title: 'Failed to Answer Call',
-        description: err instanceof Error ? err.message : 'Unknown error',
-        variant: 'destructive'
+        title: 'Use Aircall Workspace to Answer',
+        description: 'Click "Show Aircall" button to interact with the call',
       });
-      throw err;
     }
   }, [toast]);
 
@@ -261,16 +259,13 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const rejectCall = useCallback(async () => {
     try {
       await aircallPhone.rejectCall();
-      console.log('[useAircallPhone] ✅ Call rejected');
-      setCurrentCall(null);
+      console.log('[useAircallPhone] ℹ️  User must reject via Aircall Workspace UI');
     } catch (err) {
-      console.error('[useAircallPhone] ❌ Failed to reject:', err);
+      // Expected - v2 doesn't support programmatic reject
       toast({
-        title: 'Failed to Reject Call',
-        description: err instanceof Error ? err.message : 'Unknown error',
-        variant: 'destructive'
+        title: 'Use Aircall Workspace to Reject',
+        description: 'Click "Show Aircall" button to interact with the call',
       });
-      throw err;
     }
   }, [toast]);
 
@@ -280,16 +275,13 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const hangUp = useCallback(async () => {
     try {
       await aircallPhone.hangUp();
-      console.log('[useAircallPhone] ✅ Call hung up');
-      setCurrentCall(null);
+      console.log('[useAircallPhone] ℹ️  User must hang up via Aircall Workspace UI');
     } catch (err) {
-      console.error('[useAircallPhone] ❌ Failed to hang up:', err);
+      // Expected - v2 doesn't support programmatic hangup
       toast({
-        title: 'Failed to Hang Up',
-        description: err instanceof Error ? err.message : 'Unknown error',
-        variant: 'destructive'
+        title: 'Use Aircall Workspace to End Call',
+        description: 'Click "Show Aircall" button to interact with the call',
       });
-      throw err;
     }
   }, [toast]);
 

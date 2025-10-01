@@ -32,6 +32,7 @@ export const AircallPhoneBar = () => {
   const [showContext, setShowContext] = useState(false);
   const [showPostCallActions, setShowPostCallActions] = useState(false);
   const [completedCall, setCompletedCall] = useState<any>(null);
+  const [showWorkspace, setShowWorkspace] = useState(false);
   const { customer } = useCallCustomerContext();
 
   // Keyboard shortcuts
@@ -71,6 +72,13 @@ export const AircallPhoneBar = () => {
       setShowPostCallActions(true);
     }
   }, [currentCall, completedCall]);
+
+  // Auto-show workspace when incoming call arrives
+  useEffect(() => {
+    if (currentCall && currentCall.status === 'ringing') {
+      setShowWorkspace(true);
+    }
+  }, [currentCall]);
 
   // Format duration as MM:SS
   const formatDuration = (seconds: number) => {
@@ -278,12 +286,29 @@ export const AircallPhoneBar = () => {
         onClose={handlePostCallClose}
       />
 
-      {/* Hidden workspace container for Aircall iframe */}
+      {/* Aircall Workspace Container - Shown when user needs to interact */}
       <div 
         id="aircall-workspace-container" 
-        className="hidden"
-        aria-hidden="true"
+        className={cn(
+          "fixed bottom-20 right-4 z-[100] transition-all duration-300",
+          "w-[400px] h-[600px] rounded-lg shadow-2xl overflow-hidden",
+          "border-2 border-primary",
+          showWorkspace ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        )}
       />
+      
+      {/* Workspace Toggle Button - Show when workspace is active */}
+      {isInitialized && (
+        <Button
+          onClick={() => setShowWorkspace(!showWorkspace)}
+          size="sm"
+          variant={showWorkspace ? "default" : "outline"}
+          className="fixed bottom-20 right-4 z-[99] shadow-lg"
+        >
+          <Phone className="h-4 w-4 mr-2" />
+          {showWorkspace ? "Hide" : "Show"} Aircall
+        </Button>
+      )}
     </div>
   );
 };

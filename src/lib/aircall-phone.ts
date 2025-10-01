@@ -196,28 +196,28 @@ class AircallPhoneManager {
 
   /**
    * Answer incoming call
-   * Note: v2 doesn't have direct answer/reject - user must use workspace UI
+   * Note: v2 SDK requires user interaction with workspace UI
    */
   async answerCall(): Promise<void> {
-    console.log('[AircallWorkspace] ℹ️  Answer call through workspace UI');
-    // v2 doesn't support programmatic answer - user must click in workspace
+    console.log('[AircallWorkspace] ℹ️  Please use Aircall Workspace UI to answer');
+    throw new Error('Answer call requires interaction with Aircall Workspace UI');
   }
 
   /**
-   * Reject incoming call
-   * Note: v2 doesn't have direct reject - user must use workspace UI
+   * Reject incoming call  
+   * Note: v2 SDK requires user interaction with workspace UI
    */
   async rejectCall(): Promise<void> {
-    console.log('[AircallWorkspace] ℹ️  Reject call through workspace UI');
-    // v2 doesn't support programmatic reject - user must click in workspace
+    console.log('[AircallWorkspace] ℹ️  Please use Aircall Workspace UI to reject');
+    throw new Error('Reject call requires interaction with Aircall Workspace UI');
   }
 
   /**
    * Hang up current call
-   * Note: v2 doesn't have direct hang up - user must use workspace UI
+   * Note: v2 SDK requires user interaction with workspace UI
    */
   async hangUp(): Promise<void> {
-    console.log('[AircallWorkspace] ℹ️  Hang up through workspace UI');
+    console.log('[AircallWorkspace] ℹ️  Please use Aircall Workspace UI to hang up');
     // v2 doesn't support programmatic hangup - user must click in workspace
   }
 
