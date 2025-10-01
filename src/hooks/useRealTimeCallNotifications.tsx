@@ -127,8 +127,18 @@ export const useRealTimeCallNotifications = () => {
     switch (callEvent.event_type) {
       case 'call_started':
         if (call.direction === 'inbound') {
+          console.log('[CallNotifications] 🎬 call_started event - triggering modal!', {
+            call_id: call.id,
+            status: call.status,
+            customer_phone: call.customer_phone
+          });
+          
+          // Trigger modal immediately on call_started event
+          setIncomingCall(call);
+          setIsIncomingCallModalOpen(true);
+          
           title = '📞 Incoming Call';
-          description = `Call to ${monitoredPhone?.phoneNumber.label || 'monitored line'}`;
+          description = `Call from ${call.customer_phone}`;
           icon = <PhoneCall className="h-4 w-4 text-green-600" />;
           shouldNotify = true;
         }
