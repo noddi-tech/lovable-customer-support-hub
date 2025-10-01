@@ -58,33 +58,46 @@ class AircallPhoneManager {
   private static STORAGE_KEY = 'aircall_login_status';
 
   /**
-   * Phase 1: BULLETPROOF diagnostic check for browser environment issues
+   * PHASE 3: IMPROVED diagnostic check - test actual iframe creation
    */
   async diagnoseEnvironment(): Promise<{ hasIssues: boolean; issues: string[] }> {
     const issues: string[] = [];
-    console.log('[AircallWorkspace] 🔍 Phase 1: Running ENHANCED environment diagnostics...');
+    console.log('[AircallWorkspace] 🔍 PHASE 3: Running BULLETPROOF environment diagnostics...');
 
-    // Check 1: Multiple test requests with timeout
+    // Check 1: CRITICAL - Test if iframe will be blocked
     try {
-      const testUrls = [
-        'https://phone.aircall.io/favicon.ico',
-        'https://api.aircall.io/favicon.ico',
-      ];
+      const testIframe = document.createElement('iframe');
+      testIframe.src = 'https://phone.aircall.io/';
+      testIframe.style.position = 'absolute';
+      testIframe.style.width = '1px';
+      testIframe.style.height = '1px';
+      testIframe.style.opacity = '0';
+      testIframe.style.pointerEvents = 'none';
+      document.body.appendChild(testIframe);
       
-      const testPromises = testUrls.map(url => 
-        Promise.race([
-          fetch(url, { method: 'HEAD', mode: 'no-cors' }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-        ])
-      );
+      const loadResult = await Promise.race([
+        new Promise<'success'>((resolve) => {
+          testIframe.onload = () => resolve('success');
+        }),
+        new Promise<'error'>((resolve) => {
+          testIframe.onerror = () => resolve('error');
+        }),
+        new Promise<'timeout'>((resolve) => {
+          setTimeout(() => resolve('timeout'), 3000);
+        })
+      ]);
       
-      await Promise.all(testPromises);
-      console.log('[AircallWorkspace] ✅ Network tests passed');
-    } catch (error: any) {
-      console.error('[AircallWorkspace] ❌ Network test failed:', error);
-      if (error.message === 'Failed to fetch' || error.message.includes('ERR_BLOCKED')) {
-        issues.push('network_blocked');
+      document.body.removeChild(testIframe);
+      
+      if (loadResult === 'error' || loadResult === 'timeout') {
+        console.error('[AircallWorkspace] ❌ iframe test failed:', loadResult);
+        issues.push('iframe_blocked');
+      } else {
+        console.log('[AircallWorkspace] ✅ iframe test passed');
       }
+    } catch (error: any) {
+      console.error('[AircallWorkspace] ❌ iframe test exception:', error);
+      issues.push('iframe_blocked');
     }
 
     // Check 2: Performance API - look for blocked resources
@@ -261,7 +274,8 @@ class AircallPhoneManager {
       
       console.log('[AircallWorkspace] Container found, creating workspace instance...');
       
-      // Phase 3: INTERCEPT IFRAME CREATION - prevent hid permission from ever being set
+      // PHASE 2: INTERCEPT IFRAME CREATION **BEFORE** workspace creation
+      console.log('[AircallWorkspace] 🔧 PHASE 2: Setting up iframe permission interceptor...');
       const originalCreateElement = document.createElement.bind(document);
       let iframeIntercepted = false;
       
@@ -270,7 +284,7 @@ class AircallPhoneManager {
         const element = originalCreateElement(tagName, options);
         
         if (tagName.toLowerCase() === 'iframe' && !iframeIntercepted) {
-          console.log('[AircallWorkspace] 🔧 Phase 3: Intercepted iframe creation!');
+          console.log('[AircallWorkspace] 🔧 PHASE 2: Intercepted iframe creation!');
           iframeIntercepted = true;
           
           // Monitor allow attribute changes

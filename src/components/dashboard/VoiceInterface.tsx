@@ -45,6 +45,7 @@ export const VoiceInterface = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigation = useInteractionsNavigation();
+  // PHASE 4: Add skipPhoneIntegration to destructuring
   const { 
     showLoginModal, 
     showBlockedModal,
@@ -54,6 +55,7 @@ export const VoiceInterface = () => {
     handleManualLoginConfirm,
     retryConnection,
     openIncognito,
+    skipPhoneIntegration,
   } = useAircallPhone();
   
   // Get state from URL navigation
@@ -748,12 +750,16 @@ export const VoiceInterface = () => {
 
   return (
     <>
+      {/* PHASE 6: Debug modal rendering */}
+      {showLoginModal && console.log('[VoiceInterface] 🔍 Rendering AircallLoginModal')}
+      {showBlockedModal && console.log('[VoiceInterface] 🔍 Rendering AircallBlockedModal')}
+      
       <AircallLoginModal
         isOpen={showLoginModal}
         isConnected={isConnected}
         isWaitingForWorkspace={initializationPhase === 'diagnostics' || initializationPhase === 'creating-workspace'}
         onManualLoginConfirm={handleManualLoginConfirm}
-        onSkip={() => sessionStorage.setItem('aircall_opted_out', 'true')}
+        onSkip={skipPhoneIntegration}
       />
       
       <AircallBlockedModal
@@ -761,7 +767,7 @@ export const VoiceInterface = () => {
         issues={diagnosticIssues}
         onRetry={retryConnection}
         onOpenIncognito={openIncognito}
-        onSkip={() => sessionStorage.setItem('aircall_opted_out', 'true')}
+        onSkip={skipPhoneIntegration}
       />
       
       <IncomingCallModal

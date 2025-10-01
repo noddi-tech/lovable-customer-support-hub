@@ -160,6 +160,15 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * Initialize Aircall Workspace (ONCE per app lifecycle)
    */
   useEffect(() => {
+    // PHASE 1: Check opt-out FIRST before ANY Aircall code runs
+    const isOptedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
+    if (isOptedOut) {
+      console.log('[AircallProvider] ⏭️  User opted out of phone integration');
+      setInitializationPhase('failed');
+      setError('Phone integration disabled for this session');
+      return;
+    }
+
     if (initAttemptedRef.current || !everywhereConfig?.enabled) {
       return;
     }
@@ -176,6 +185,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     initAttemptedRef.current = true;
 
     const initialize = async () => {
+      // PHASE 5: Wrap entire initialization in try-catch
       try {
         // Phase 1: STOP EVERYTHING if blocking detected
         console.log('[AircallProvider] 🚀 Phase 1: Running BULLETPROOF diagnostics...');
@@ -461,14 +471,21 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             }
           }, 30000);
         }
-      } catch (err) {
-        console.error('[AircallProvider] ❌ Initialization failed:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize');
+      } catch (initError: any) {
+        // PHASE 5: Permanent error state - don't let React retry
+        console.error('[AircallProvider] ❌ FATAL: Initialization failed permanently:', initError);
+        setInitializationPhase('failed');
+        setError(`Initialization failed: ${initError.message}`);
+        setIsInitialized(false);
+        
         toast({
-          title: 'Aircall Connection Failed',
-          description: 'Unable to connect to Aircall. Please check your settings.',
-          variant: 'destructive'
+          title: 'Phone Integration Failed',
+          description: 'Unable to initialize Aircall. You can skip this integration.',
+          variant: 'destructive',
+          duration: 10000,
         });
+        
+        return; // Exit permanently
       }
     };
 
