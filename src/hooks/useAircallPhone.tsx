@@ -14,6 +14,7 @@ export interface UseAircallPhoneReturn {
   dialNumber: (phoneNumber: string) => Promise<void>;
   error: string | null;
   isReconnecting: boolean;
+  isSDKLoaded: boolean;
 }
 
 /**
@@ -29,6 +30,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const [currentCall, setCurrentCall] = useState<AircallCall | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const initAttemptedRef = useRef(false);
   
   const reconnectAttempts = useRef(0);
@@ -110,10 +112,37 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   }, [attemptReconnect, toast]);
 
   /**
+   * Check if SDK script is loaded
+   */
+  useEffect(() => {
+    const checkSDK = setInterval(() => {
+      if (window.AircallPhone) {
+        console.log('[useAircallPhone] 📦 SDK script loaded');
+        setIsSDKLoaded(true);
+        clearInterval(checkSDK);
+      }
+    }, 100);
+    
+    // Timeout after 10 seconds
+    const timeout = setTimeout(() => {
+      clearInterval(checkSDK);
+      if (!window.AircallPhone) {
+        console.error('[useAircallPhone] ❌ SDK script failed to load');
+        setError('Aircall SDK failed to load. Please check your internet connection.');
+      }
+    }, 10000);
+    
+    return () => {
+      clearInterval(checkSDK);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  /**
    * Initialize SDK
    */
   useEffect(() => {
-    if (initAttemptedRef.current || !everywhereConfig?.enabled) {
+    if (initAttemptedRef.current || !everywhereConfig?.enabled || !isSDKLoaded) {
       return;
     }
 
@@ -320,6 +349,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
     hangUp,
     dialNumber,
     error,
-    isReconnecting
+    isReconnecting,
+    isSDKLoaded
   };
 };

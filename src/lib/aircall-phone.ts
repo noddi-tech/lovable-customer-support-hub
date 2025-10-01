@@ -4,9 +4,7 @@
  * Handles initialization, authentication, and event management for Aircall Everywhere
  */
 
-import AircallPhone from 'aircall-everywhere';
-
-export type AircallPhoneEvent = 
+export type AircallPhoneEvent =
   | 'incoming_call'
   | 'call_end_ringtone'
   | 'outgoing_call'
@@ -45,10 +43,36 @@ export interface AircallPhoneSettings {
 }
 
 class AircallPhoneManager {
-  private phone: typeof AircallPhone | null = null;
+  private phone: AircallPhoneSDK | null = null;
   private isInitialized = false;
   private eventHandlers: Map<AircallPhoneEvent, Set<(data: any) => void>> = new Map();
   private currentCall: AircallCall | null = null;
+
+  /**
+   * Wait for Aircall SDK to be available on window
+   */
+  private waitForSDK(timeout: number = 10000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      
+      const checkSDK = () => {
+        if (window.AircallPhone) {
+          console.log('[AircallPhone] ✅ SDK loaded from window');
+          resolve();
+          return;
+        }
+        
+        if (Date.now() - startTime > timeout) {
+          reject(new Error('Aircall SDK failed to load from CDN. Please check your internet connection.'));
+          return;
+        }
+        
+        setTimeout(checkSDK, 100);
+      };
+      
+      checkSDK();
+    });
+  }
 
   /**
    * Initialize the Aircall Everywhere SDK
@@ -66,7 +90,11 @@ class AircallPhoneManager {
     });
 
     try {
-      this.phone = AircallPhone;
+      // Wait for SDK to load from CDN
+      await this.waitForSDK();
+      
+      // Access global SDK object
+      this.phone = window.AircallPhone;
       
       await this.phone.on('incoming_call', this.handleIncomingCall.bind(this));
       await this.phone.on('call_end_ringtone', this.handleCallEndRingtone.bind(this));
