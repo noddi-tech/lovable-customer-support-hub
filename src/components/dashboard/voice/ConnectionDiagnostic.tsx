@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 interface ConnectionDiagnosticProps {
   isWebSocketBlocked?: boolean;
   isSDKFailed?: boolean;
+  initializationPhase?: 'idle' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed';
   onRetry?: () => void;
 }
 
@@ -18,26 +19,40 @@ interface ConnectionDiagnosticProps {
 export const ConnectionDiagnostic = ({ 
   isWebSocketBlocked, 
   isSDKFailed,
+  initializationPhase,
   onRetry 
 }: ConnectionDiagnosticProps) => {
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   useEffect(() => {
-    // Show diagnostic if either WebSocket is blocked OR SDK failed
-    if (isWebSocketBlocked || isSDKFailed) {
+    // Show diagnostic for various states
+    if (isWebSocketBlocked || isSDKFailed || 
+        initializationPhase === 'creating-workspace' || 
+        initializationPhase === 'workspace-ready' ||
+        initializationPhase === 'failed') {
       setShowDiagnostic(true);
+    } else if (initializationPhase === 'logged-in') {
+      // Hide diagnostic after 3 seconds when logged in
+      setTimeout(() => setShowDiagnostic(false), 3000);
     } else {
       setShowDiagnostic(false);
     }
-  }, [isWebSocketBlocked, isSDKFailed]);
+  }, [isWebSocketBlocked, isSDKFailed, initializationPhase]);
 
   if (!showDiagnostic) return null;
 
+  // Determine variant based on phase
+  const variant = initializationPhase === 'failed' || isSDKFailed ? 'destructive' : 
+                  initializationPhase === 'logged-in' ? 'default' : 
+                  'default';
+
   return (
-    <Alert variant="destructive" className="mb-4">
+    <Alert variant={variant} className="mb-4">
       <div className="flex items-start gap-3">
         {isWebSocketBlocked ? (
           <WifiOff className="h-5 w-5 mt-0.5" />
+        ) : initializationPhase === 'logged-in' ? (
+          <AlertTriangle className="h-5 w-5 mt-0.5 text-green-600" />
         ) : (
           <AlertTriangle className="h-5 w-5 mt-0.5" />
         )}
@@ -45,9 +60,36 @@ export const ConnectionDiagnostic = ({
           <AlertTitle>
             {isWebSocketBlocked 
               ? 'Connection Blocked' 
+              : initializationPhase === 'creating-workspace'
+              ? 'Initializing Aircall...'
+              : initializationPhase === 'workspace-ready'
+              ? 'Workspace Ready'
+              : initializationPhase === 'logged-in'
+              ? '✅ Connected Successfully'
+              : initializationPhase === 'failed'
+              ? 'Initialization Failed'
               : 'Phone System Connection Failed'}
           </AlertTitle>
           <AlertDescription className="space-y-2">
+            {initializationPhase === 'creating-workspace' && (
+              <p className="text-sm">
+                Setting up Aircall workspace...
+              </p>
+            )}
+            
+            {initializationPhase === 'workspace-ready' && (
+              <div className="text-sm space-y-1">
+                <p className="font-medium text-green-600">✅ Workspace is ready</p>
+                <p>Please log in through the Aircall interface to start receiving calls.</p>
+              </div>
+            )}
+            
+            {initializationPhase === 'logged-in' && (
+              <p className="text-sm text-green-600">
+                ✅ You are now connected and ready to receive calls!
+              </p>
+            )}
+            
             {isWebSocketBlocked && (
               <>
                 <p className="text-sm">
@@ -67,7 +109,7 @@ export const ConnectionDiagnostic = ({
               </>
             )}
             
-            {isSDKFailed && (
+            {(isSDKFailed || initializationPhase === 'failed') && (
               <>
                 <p className="text-sm">
                   Unable to connect to the phone system. This may be due to:

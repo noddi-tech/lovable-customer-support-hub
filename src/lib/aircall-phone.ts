@@ -184,11 +184,20 @@ class AircallPhoneManager {
       this.workspace.on('comment_saved', this.handleCommentSaved.bind(this));
 
       console.log('[AircallWorkspace] ✅ Event listeners registered');
+      console.log('[AircallWorkspace] ✅ Workspace created successfully');
       console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
     } catch (error) {
       console.error('[AircallWorkspace] ❌ Initialization failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Check if workspace is created (SDK initialized)
+   * This is separate from user login status
+   */
+  isWorkspaceCreated(): boolean {
+    return this.workspace !== null;
   }
 
   /**

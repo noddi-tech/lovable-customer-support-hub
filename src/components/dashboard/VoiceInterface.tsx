@@ -24,6 +24,7 @@ import { IncomingCallModal } from './voice/IncomingCallModal';
 import { VoiceLayout } from './voice/VoiceLayout';
 import { AircallPhoneBar } from './voice/AircallPhoneBar';
 import { AircallLoginModal } from './voice/AircallLoginModal';
+import { ConnectionDiagnostic } from './voice/ConnectionDiagnostic';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
@@ -44,7 +45,7 @@ export const VoiceInterface = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigation = useInteractionsNavigation();
-  const { showLoginModal, isConnected } = useAircallPhone();
+  const { showLoginModal, isConnected, initializationPhase } = useAircallPhone();
   
   // Get state from URL navigation
   const { conversationId } = navigation.currentState;
@@ -78,7 +79,7 @@ export const VoiceInterface = () => {
   const { voicemails } = useVoicemails();
   
   // Initialize real-time notifications
-  const { incomingCall, isIncomingCallModalOpen, closeIncomingCallModal } = useRealTimeCallNotifications();
+  const { incomingCall, isIncomingCallModalOpen, closeIncomingCallModal, isWebSocketBlocked } = useRealTimeCallNotifications();
   
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [selectedSection, setSelectedSection] = useState('ongoing-calls');
@@ -746,6 +747,13 @@ export const VoiceInterface = () => {
           closeIncomingCallModal();
           navigation.navigateToConversation(callId);
         }}
+      />
+      
+      <ConnectionDiagnostic
+        isWebSocketBlocked={isWebSocketBlocked}
+        isSDKFailed={initializationPhase === 'failed'}
+        initializationPhase={initializationPhase}
+        onRetry={() => window.location.reload()}
       />
       
       <VoiceLayout

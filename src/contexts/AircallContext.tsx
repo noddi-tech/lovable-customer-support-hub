@@ -20,6 +20,7 @@ export interface AircallContextValue {
   openLoginModal: () => void;
   showWorkspace: () => void;
   hideWorkspace: () => void;
+  initializationPhase: 'idle' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed';
 }
 
 const AircallContext = createContext<AircallContextValue | null>(null);
@@ -44,6 +45,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(() => !aircallPhone.getLoginStatus());
+  const [initializationPhase, setInitializationPhase] = useState<'idle' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed'>('idle');
   const initAttemptedRef = useRef(false);
   const loginGracePeriodRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -180,6 +182,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log('[AircallProvider] Initializing SDK...');
         
         console.log('[AircallProvider] 🚀 Starting SDK initialization...');
+        setInitializationPhase('creating-workspace');
         
         await aircallPhone.initialize({
           apiId,
@@ -192,6 +195,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             setIsConnected(true);
             setShowLoginModal(false);
             setError(null);
+            setInitializationPhase('logged-in');
             reconnectAttempts.current = 0;
             
             // Keep container visible for 5 seconds, then auto-hide
@@ -217,8 +221,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             }, GRACE_PERIOD_MS);
             
             toast({
-              title: 'Aircall Connected',
-              description: 'Phone system is ready',
+              title: '✅ Logged In Successfully',
+              description: 'You are now connected to Aircall',
             });
           },
           onLogout: () => {
@@ -252,24 +256,31 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           }
         });
 
-        // Verify SDK readiness
-        const isSDKReady = aircallPhone.isReady();
-        console.log('[AircallProvider] SDK ready check:', isSDKReady);
+        // Check if workspace was created (not if user is logged in yet)
+        const workspaceCreated = aircallPhone.isWorkspaceCreated();
+        console.log('[AircallProvider] Workspace created:', workspaceCreated);
         
-        if (isSDKReady) {
+        if (workspaceCreated) {
           setIsInitialized(true);
-          console.log('[AircallProvider] ✅ SDK verified ready');
-        } else {
-          console.error('[AircallProvider] ❌ SDK initialization failed verification');
-          setIsInitialized(false);
-          setError('SDK initialization failed');
+          setInitializationPhase('workspace-ready');
+          console.log('[AircallProvider] ✅ Aircall workspace initialized');
           
-          // Retry initialization after 3 seconds
-          setTimeout(() => {
-            console.log('[AircallProvider] 🔄 Retrying SDK initialization...');
-            initAttemptedRef.current = false;
-            initialize();
-          }, 3000);
+          // Show success toast
+          toast({
+            title: 'Aircall Ready',
+            description: 'Please log in through the workspace to start receiving calls',
+          });
+        } else {
+          console.error('[AircallProvider] ❌ Workspace creation failed');
+          setIsInitialized(false);
+          setInitializationPhase('failed');
+          setError('Workspace creation failed');
+          
+          toast({
+            title: 'Initialization Failed',
+            description: 'Unable to create Aircall workspace. Check your API credentials.',
+            variant: 'destructive'
+          });
           return;
         }
         
@@ -312,6 +323,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           });
         } else {
           setShowLoginModal(true);
+          
+          // Optional: Warn user if they don't log in within 30 seconds
+          setTimeout(() => {
+            if (!aircallPhone.getLoginStatus()) {
+              toast({
+                title: 'Login Reminder',
+                description: 'Please log in to Aircall to receive calls',
+              });
+            }
+          }, 30000);
         }
       } catch (err) {
         console.error('[AircallProvider] ❌ Initialization failed:', err);
@@ -606,6 +627,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     openLoginModal: () => setShowLoginModal(true),
     showWorkspace: () => aircallPhone.showWorkspace(),
     hideWorkspace: () => aircallPhone.hideWorkspace(),
+    initializationPhase,
   };
 
   return (

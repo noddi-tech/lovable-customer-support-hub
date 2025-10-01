@@ -25,3 +25,4 @@ export { ManualEndCallDialog } from './ManualEndCallDialog';
 export { ActiveCallContext } from './ActiveCallContext';
 export { PostCallActions } from './PostCallActions';
 export { VoiceErrorBoundary } from './VoiceErrorBoundary';
+export { ConnectionDiagnostic } from './ConnectionDiagnostic';
