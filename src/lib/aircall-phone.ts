@@ -57,6 +57,34 @@ class AircallPhoneManager {
   private currentCall: AircallCall | null = null;
 
   /**
+   * Wait for the DOM container to be available
+   */
+  private waitForContainer(selector: string, timeout: number = 5000): Promise<HTMLElement> {
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      
+      const checkElement = () => {
+        const element = document.querySelector(selector);
+        if (element) {
+          console.log('[AircallWorkspace] ✅ Container found:', selector);
+          resolve(element as HTMLElement);
+          return;
+        }
+        
+        if (Date.now() - startTime > timeout) {
+          reject(new Error(`Timeout waiting for container: ${selector}`));
+          return;
+        }
+        
+        // Check again in 100ms
+        setTimeout(checkElement, 100);
+      };
+      
+      checkElement();
+    });
+  }
+
+  /**
    * Initialize the Aircall Everywhere v2 SDK (AircallWorkspace)
    */
   async initialize(settings: AircallPhoneSettings): Promise<void> {
@@ -70,6 +98,9 @@ class AircallPhoneManager {
     });
 
     try {
+      // Wait for container to be available in the DOM
+      await this.waitForContainer('#aircall-workspace-container');
+      
       // Create AircallWorkspace instance
       this.workspace = new AircallWorkspace({
         domToLoadWorkspace: '#aircall-workspace-container',

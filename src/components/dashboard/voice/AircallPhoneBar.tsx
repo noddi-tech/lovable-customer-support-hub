@@ -80,6 +80,22 @@ export const AircallPhoneBar = () => {
     }
   }, [currentCall]);
 
+  // Control workspace container visibility via DOM
+  useEffect(() => {
+    const container = document.getElementById('aircall-workspace-container');
+    if (container) {
+      if (showWorkspace) {
+        container.style.opacity = '1';
+        container.style.transform = 'translateY(0)';
+        container.style.pointerEvents = 'auto';
+      } else {
+        container.style.opacity = '0';
+        container.style.transform = 'translateY(1rem)';
+        container.style.pointerEvents = 'none';
+      }
+    }
+  }, [showWorkspace]);
+
   // Format duration as MM:SS
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -284,17 +300,6 @@ export const AircallPhoneBar = () => {
         call={completedCall}
         isOpen={showPostCallActions}
         onClose={handlePostCallClose}
-      />
-
-      {/* Aircall Workspace Container - Shown when user needs to interact */}
-      <div 
-        id="aircall-workspace-container" 
-        className={cn(
-          "fixed bottom-20 right-4 z-[100] transition-all duration-300",
-          "w-[400px] h-[600px] rounded-lg shadow-2xl overflow-hidden",
-          "border-2 border-primary",
-          showWorkspace ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
-        )}
       />
       
       {/* Workspace Toggle Button - Show when workspace is active */}

@@ -760,6 +760,13 @@ export const VoiceInterface = () => {
         onClose={() => setIsDetailsOpen(false)}
       />
       
+      {/* Aircall Workspace Container - Always in DOM for SDK initialization */}
+      <div 
+        id="aircall-workspace-container" 
+        className="fixed bottom-20 right-4 z-[100] w-[400px] h-[600px] rounded-lg shadow-2xl overflow-hidden border-2 border-primary transition-all duration-300 opacity-0 pointer-events-none"
+        style={{ transform: 'translateY(1rem)' }}
+      />
+      
       {/* Aircall Phone Bar (fixed bottom) */}
       <AircallPhoneBar />
     </>
