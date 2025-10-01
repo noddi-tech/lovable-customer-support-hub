@@ -14,6 +14,7 @@ import { ControlDoctor } from "@/dev/ControlDoctor";
 import { useAircallPhone } from "@/hooks/useAircallPhone";
 import { AircallLoginModal } from "@/components/dashboard/voice/AircallLoginModal";
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -25,6 +26,8 @@ import "@/lib/i18n";
 import "@/styles/controls.css";
 
 const AppContent = () => {
+  const navigate = useNavigate();
+  
   // Phase 5: Add navigation interceptor
   useEffect(() => {
     const logNavigation = () => {
@@ -33,6 +36,17 @@ const AppContent = () => {
     window.addEventListener('popstate', logNavigation);
     return () => window.removeEventListener('popstate', logNavigation);
   }, []);
+
+  // Phase 1 & 2: Listen for auth navigation events
+  useEffect(() => {
+    const handleAuthNavigate = (event: CustomEvent<{ path: string }>) => {
+      console.log('🚀 [App] Auth navigation event received:', event.detail.path);
+      navigate(event.detail.path, { replace: true });
+    };
+    
+    window.addEventListener('auth-navigate', handleAuthNavigate as EventListener);
+    return () => window.removeEventListener('auth-navigate', handleAuthNavigate as EventListener);
+  }, [navigate]);
 
   return (
     <>
