@@ -177,8 +177,9 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
               console.log('[useAircallPhone] Handling disconnection, keeping login state');
               handleDisconnection();
             } else {
-              // Confirmed logout - show modal and handle disconnection
+              // Confirmed logout - clear login status and show modal
               console.log('[useAircallPhone] Confirmed logout, showing modal');
+              aircallPhone.clearLoginStatus();
               setShowLoginModal(true);
               handleDisconnection();
             }

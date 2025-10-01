@@ -60,7 +60,7 @@ class AircallPhoneManager {
   /**
    * Save login status to localStorage
    */
-  private setLoginStatus(isLoggedIn: boolean): void {
+  setLoginStatus(isLoggedIn: boolean): void {
     try {
       const data = {
         isLoggedIn,
@@ -162,13 +162,13 @@ class AircallPhoneManager {
         onLogin: (workspaceSettings) => {
           console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
           this.isInitialized = true;
-          this.setLoginStatus(true);
+          // Let the hook manage login status for proper grace period handling
           settings.onLogin?.();
         },
         onLogout: () => {
           console.log('[AircallWorkspace] 🚪 User logged out');
           this.isInitialized = false;
-          this.clearLoginStatus();
+          // Let the hook manage login status for proper grace period handling
           settings.onLogout?.();
         },
         size: 'big',
