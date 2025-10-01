@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneOff } from 'lucide-react';
+import { Phone, PhoneOff, PhoneCall } from 'lucide-react';
 import { VoiceCustomerSidebar } from './VoiceCustomerSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAircallPhone } from '@/hooks/useAircallPhone';
 import type { Call } from '@/hooks/useCalls';
 
 interface IncomingCallModalProps {
@@ -16,6 +17,7 @@ interface IncomingCallModalProps {
 
 export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: IncomingCallModalProps) => {
   const queryClient = useQueryClient();
+  const { answerCall, isInitialized: isAircallReady } = useAircallPhone();
   const [currentCall, setCurrentCall] = useState<Call | null>(call);
 
   // Update current call when prop changes
@@ -117,14 +119,30 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
 
           {/* Action Buttons */}
           <div className="flex gap-2">
+            {/* Answer via Aircall Everywhere (if enabled) */}
+            {isAircallReady && (
+              <Button
+                onClick={answerCall}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                size="lg"
+              >
+                <PhoneCall className="h-4 w-4 mr-2" />
+                Answer in Browser
+              </Button>
+            )}
+            
+            {/* View Full Context */}
             <Button
               onClick={() => onAnswerContext(currentCall.id)}
-              className="flex-1"
+              variant={isAircallReady ? "outline" : "default"}
+              className={isAircallReady ? "" : "flex-1"}
               size="lg"
             >
               <Phone className="h-4 w-4 mr-2" />
-              View Full Context
+              View Details
             </Button>
+            
+            {/* Dismiss */}
             <Button
               onClick={onClose}
               variant="outline"

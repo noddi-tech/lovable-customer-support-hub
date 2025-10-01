@@ -26,9 +26,10 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   const isMobile = useIsMobile();
 
   // Mobile layout with tabs
+  // Add bottom padding to account for fixed phone bar
   if (isMobile) {
     return (
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col pb-20">
         <Tabs defaultValue="center" className="flex-1 flex flex-col">
           <TabsList className="w-full grid grid-cols-3 flex-shrink-0">
             <TabsTrigger value="left">{leftPaneLabel}</TabsTrigger>
@@ -65,8 +66,9 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   }
 
   // Desktop layout with 3 columns always visible
+  // Add bottom padding to account for fixed phone bar
   return (
-    <div className="h-full grid grid-cols-[280px_minmax(0,1fr)_360px] gap-0 overflow-hidden">
+    <div className="h-full grid grid-cols-[280px_minmax(0,1fr)_360px] gap-0 overflow-hidden pb-20">
       {/* Left pane - Filters */}
       <div className="border-r border-border bg-muted/30 overflow-hidden">
         <ScrollArea className="h-full">

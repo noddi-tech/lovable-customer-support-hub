@@ -22,6 +22,7 @@ import { CallDetailsDialog } from './voice/CallDetailsDialog';
 import { CallActionButton } from './voice/CallActionButton';
 import { IncomingCallModal } from './voice/IncomingCallModal';
 import { VoiceLayout } from './voice/VoiceLayout';
+import { AircallPhoneBar } from './voice/AircallPhoneBar';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -750,6 +751,9 @@ export const VoiceInterface = () => {
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
       />
+      
+      {/* Aircall Phone Bar (fixed bottom) */}
+      <AircallPhoneBar />
     </>
   );
 };
