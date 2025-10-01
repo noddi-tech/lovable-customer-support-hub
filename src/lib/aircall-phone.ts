@@ -1,8 +1,10 @@
 /**
- * Aircall Everywhere SDK Manager
- * 
+ * Aircall Phone Manager
+ * Manages the Aircall Everywhere v2 SDK integration (AircallWorkspace)
  * Handles initialization, authentication, and event management for Aircall Everywhere
  */
+
+import AircallWorkspace from 'aircall-everywhere';
 
 export type AircallPhoneEvent =
   | 'incoming_call'
@@ -10,13 +12,23 @@ export type AircallPhoneEvent =
   | 'outgoing_call'
   | 'outgoing_answered'
   | 'call_ended'
-  | 'answer_call'
-  | 'reject_call';
+  | 'comment_saved'
+  | 'external_dial'
+  | 'powerdialer_updated'
+  | 'redirect_event';
 
 export interface AircallCall {
-  id: number;
-  direction: 'inbound' | 'outbound';
-  phone_number: string;
+  from: string;
+  to: string;
+  call_id: number;
+  direction?: 'inbound' | 'outbound';
+  phone_number?: string;
+  status?: 'ringing' | 'answered' | 'ongoing' | 'ended';
+  answer_status?: 'answered' | 'disconnected' | 'refused';
+  duration?: number;
+  started_at?: number;
+  answered_at?: number;
+  ended_at?: number;
   contact?: {
     id: number;
     first_name?: string;
@@ -28,10 +40,6 @@ export interface AircallCall {
     name: string;
     email: string;
   };
-  status: 'ringing' | 'answered' | 'ongoing' | 'ended';
-  started_at?: number;
-  answered_at?: number;
-  ended_at?: number;
 }
 
 export interface AircallPhoneSettings {
@@ -43,83 +51,74 @@ export interface AircallPhoneSettings {
 }
 
 class AircallPhoneManager {
-  private phone: AircallPhoneSDK | null = null;
+  private workspace: AircallWorkspace | null = null;
   private isInitialized = false;
   private eventHandlers: Map<AircallPhoneEvent, Set<(data: any) => void>> = new Map();
   private currentCall: AircallCall | null = null;
 
   /**
-   * Wait for Aircall SDK to be available on window
-   */
-  private waitForSDK(timeout: number = 10000): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      
-      const checkSDK = () => {
-        if (window.AircallPhone) {
-          console.log('[AircallPhone] ✅ SDK loaded from window');
-          resolve();
-          return;
-        }
-        
-        if (Date.now() - startTime > timeout) {
-          reject(new Error('Aircall SDK failed to load from CDN. Please check your internet connection.'));
-          return;
-        }
-        
-        setTimeout(checkSDK, 100);
-      };
-      
-      checkSDK();
-    });
-  }
-
-  /**
-   * Initialize the Aircall Everywhere SDK
+   * Initialize the Aircall Everywhere v2 SDK (AircallWorkspace)
    */
   async initialize(settings: AircallPhoneSettings): Promise<void> {
     if (this.isInitialized) {
-      console.log('[AircallPhone] Already initialized');
+      console.log('[AircallWorkspace] Already initialized');
       return;
     }
 
-    console.log('[AircallPhone] Initializing SDK with settings:', {
-      apiId: settings.apiId,
-      domainName: settings.domainName,
-      hasToken: !!settings.apiToken
+    console.log('[AircallWorkspace] 🚀 Initializing workspace...', {
+      domSelector: '#aircall-workspace-container',
     });
 
     try {
-      // Wait for SDK to load from CDN
-      await this.waitForSDK();
-      
-      // Access global SDK object
-      this.phone = window.AircallPhone;
-      
-      await this.phone.on('incoming_call', this.handleIncomingCall.bind(this));
-      await this.phone.on('call_end_ringtone', this.handleCallEndRingtone.bind(this));
-      await this.phone.on('outgoing_call', this.handleOutgoingCall.bind(this));
-      await this.phone.on('outgoing_answered', this.handleOutgoingAnswered.bind(this));
-      await this.phone.on('call_ended', this.handleCallEnded.bind(this));
+      // Create AircallWorkspace instance
+      this.workspace = new AircallWorkspace({
+        domToLoadWorkspace: '#aircall-workspace-container',
+        onLogin: (workspaceSettings) => {
+          console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
+          this.isInitialized = true;
+          settings.onLogin?.();
+        },
+        onLogout: () => {
+          console.log('[AircallWorkspace] 🚪 User logged out');
+          this.isInitialized = false;
+          settings.onLogout?.();
+        },
+        size: 'big',
+        debug: true,
+      });
 
-      this.isInitialized = true;
-      console.log('[AircallPhone] ✅ SDK initialized successfully');
+      // Register event listeners
+      this.workspace.on('incoming_call', this.handleIncomingCall.bind(this));
+      this.workspace.on('call_end_ringtone', this.handleCallEndRingtone.bind(this));
+      this.workspace.on('outgoing_call', this.handleOutgoingCall.bind(this));
+      this.workspace.on('outgoing_answered', this.handleOutgoingAnswered.bind(this));
+      this.workspace.on('call_ended', this.handleCallEnded.bind(this));
+      this.workspace.on('comment_saved', this.handleCommentSaved.bind(this));
 
-      // Trigger authentication
-      if (settings.onLogin) {
-        settings.onLogin();
-      }
+      console.log('[AircallWorkspace] ✅ Event listeners registered');
+      console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
     } catch (error) {
-      console.error('[AircallPhone] ❌ Failed to initialize:', error);
+      console.error('[AircallWorkspace] ❌ Initialization failed:', error);
       throw error;
     }
   }
 
   /**
-   * Check if SDK is initialized
+   * Check if workspace is ready and logged in
    */
   isReady(): boolean {
-    return this.isInitialized && this.phone !== null;
+    return this.isInitialized && this.workspace !== null;
+  }
+
+  /**
+   * Check login status
+   */
+  checkLoginStatus(callback: (isLoggedIn: boolean) => void): void {
+    if (!this.workspace) {
+      callback(false);
+      return;
+    }
+    this.workspace.isLoggedIn(callback);
   }
 
   /**
@@ -131,7 +130,7 @@ class AircallPhoneManager {
     }
     
     this.eventHandlers.get(event)!.add(handler);
-    console.log(`[AircallPhone] Registered handler for ${event}`);
+    console.log(`[AircallWorkspace] Registered handler for ${event}`);
 
     // Return cleanup function
     return () => {
@@ -149,7 +148,7 @@ class AircallPhoneManager {
         try {
           handler(data);
         } catch (error) {
-          console.error(`[AircallPhone] Error in ${event} handler:`, error);
+          console.error(`[AircallWorkspace] Error in ${event} handler:`, error);
         }
       });
     }
@@ -158,110 +157,94 @@ class AircallPhoneManager {
   // ============= Call Event Handlers =============
 
   private handleIncomingCall(callData: AircallCall): void {
-    console.log('[AircallPhone] 📞 Incoming call:', callData);
-    this.currentCall = callData;
-    this.emit('incoming_call', callData);
+    console.log('[AircallWorkspace] 📞 Incoming call:', callData);
+    this.currentCall = { ...callData, status: 'ringing', direction: 'inbound' };
+    this.emit('incoming_call', this.currentCall);
   }
 
   private handleCallEndRingtone(callData: AircallCall): void {
-    console.log('[AircallPhone] 📵 Call end ringtone:', callData);
+    console.log('[AircallWorkspace] 📵 Call end ringtone:', callData);
     this.emit('call_end_ringtone', callData);
   }
 
   private handleOutgoingCall(callData: AircallCall): void {
-    console.log('[AircallPhone] 📤 Outgoing call:', callData);
-    this.currentCall = callData;
-    this.emit('outgoing_call', callData);
+    console.log('[AircallWorkspace] 📤 Outgoing call:', callData);
+    this.currentCall = { ...callData, status: 'ringing', direction: 'outbound' };
+    this.emit('outgoing_call', this.currentCall);
   }
 
   private handleOutgoingAnswered(callData: AircallCall): void {
-    console.log('[AircallPhone] ✅ Outgoing call answered:', callData);
-    this.currentCall = callData;
+    console.log('[AircallWorkspace] ✅ Outgoing call answered:', callData);
+    if (this.currentCall) {
+      this.currentCall.status = 'ongoing';
+    }
     this.emit('outgoing_answered', callData);
   }
 
   private handleCallEnded(callData: AircallCall): void {
-    console.log('[AircallPhone] 🔚 Call ended:', callData);
+    console.log('[AircallWorkspace] 🔚 Call ended:', callData);
     this.currentCall = null;
     this.emit('call_ended', callData);
+  }
+
+  private handleCommentSaved(callData: any): void {
+    console.log('[AircallWorkspace] 💬 Comment saved:', callData);
+    this.emit('comment_saved', callData);
   }
 
   // ============= Call Control Methods =============
 
   /**
    * Answer incoming call
+   * Note: v2 doesn't have direct answer/reject - user must use workspace UI
    */
   async answerCall(): Promise<void> {
-    if (!this.phone || !this.currentCall) {
-      console.warn('[AircallPhone] Cannot answer: no active call');
-      return;
-    }
-
-    try {
-      console.log('[AircallPhone] 📞 Answering call:', this.currentCall.id);
-      await this.phone.send('answer_call', { call_id: this.currentCall.id });
-      this.emit('answer_call', this.currentCall);
-    } catch (error) {
-      console.error('[AircallPhone] ❌ Failed to answer call:', error);
-      throw error;
-    }
+    console.log('[AircallWorkspace] ℹ️  Answer call through workspace UI');
+    // v2 doesn't support programmatic answer - user must click in workspace
   }
 
   /**
    * Reject incoming call
+   * Note: v2 doesn't have direct reject - user must use workspace UI
    */
   async rejectCall(): Promise<void> {
-    if (!this.phone || !this.currentCall) {
-      console.warn('[AircallPhone] Cannot reject: no active call');
-      return;
-    }
-
-    try {
-      console.log('[AircallPhone] ❌ Rejecting call:', this.currentCall.id);
-      await this.phone.send('reject_call', { call_id: this.currentCall.id });
-      this.emit('reject_call', this.currentCall);
-      this.currentCall = null;
-    } catch (error) {
-      console.error('[AircallPhone] ❌ Failed to reject call:', error);
-      throw error;
-    }
+    console.log('[AircallWorkspace] ℹ️  Reject call through workspace UI');
+    // v2 doesn't support programmatic reject - user must click in workspace
   }
 
   /**
-   * Hang up active call
+   * Hang up current call
+   * Note: v2 doesn't have direct hang up - user must use workspace UI
    */
   async hangUp(): Promise<void> {
-    if (!this.phone || !this.currentCall) {
-      console.warn('[AircallPhone] Cannot hang up: no active call');
-      return;
-    }
-
-    try {
-      console.log('[AircallPhone] 📴 Hanging up call:', this.currentCall.id);
-      await this.phone.send('hang_up', { call_id: this.currentCall.id });
-      this.currentCall = null;
-    } catch (error) {
-      console.error('[AircallPhone] ❌ Failed to hang up:', error);
-      throw error;
-    }
+    console.log('[AircallWorkspace] ℹ️  Hang up through workspace UI');
+    // v2 doesn't support programmatic hangup - user must click in workspace
   }
 
   /**
-   * Make outbound call
+   * Dial a phone number
    */
   async dialNumber(phoneNumber: string): Promise<void> {
-    if (!this.phone) {
-      console.warn('[AircallPhone] Cannot dial: SDK not initialized');
-      return;
+    if (!this.isReady()) {
+      throw new Error('Aircall workspace not initialized');
     }
 
-    try {
-      console.log('[AircallPhone] 📞 Dialing:', phoneNumber);
-      await this.phone.send('dial_number', { phone_number: phoneNumber });
-    } catch (error) {
-      console.error('[AircallPhone] ❌ Failed to dial:', error);
-      throw error;
-    }
+    return new Promise((resolve, reject) => {
+      console.log('[AircallWorkspace] 📱 Dialing:', phoneNumber);
+      this.workspace!.send(
+        'dial_number',
+        { phone_number: phoneNumber },
+        (success, response) => {
+          if (success) {
+            console.log('[AircallWorkspace] ✅ Dial successful');
+            resolve();
+          } else {
+            console.error('[AircallWorkspace] ❌ Dial failed:', response);
+            reject(new Error(response?.message || 'Failed to dial'));
+          }
+        }
+      );
+    });
   }
 
   /**
@@ -272,14 +255,36 @@ class AircallPhoneManager {
   }
 
   /**
-   * Cleanup and disconnect
+   * Disconnect and cleanup
    */
   disconnect(): void {
-    console.log('[AircallPhone] 🔌 Disconnecting');
-    this.phone = null;
+    console.log('[AircallWorkspace] 🔌 Disconnecting');
+    
+    // Clean up event listeners
+    if (this.workspace) {
+      const events: AircallPhoneEvent[] = [
+        'incoming_call',
+        'call_end_ringtone',
+        'outgoing_call',
+        'outgoing_answered',
+        'call_ended',
+        'comment_saved',
+      ];
+      
+      events.forEach(event => {
+        const handlers = this.eventHandlers.get(event);
+        if (handlers) {
+          handlers.forEach(handler => {
+            this.workspace!.removeListener(event, handler);
+          });
+        }
+      });
+    }
+    
+    this.workspace = null;
     this.isInitialized = false;
-    this.currentCall = null;
     this.eventHandlers.clear();
+    this.currentCall = null;
   }
 }
 

@@ -125,8 +125,8 @@ export const AircallPhoneBar = () => {
         <div className="border-b border-border bg-muted/50 max-h-[400px] overflow-y-auto">
           <div className="container max-w-7xl mx-auto px-4 py-3">
             <ActiveCallContext 
-              callId={currentCall.id?.toString() || ''} 
-              customerPhone={currentCall.phone_number}
+              callId={currentCall.call_id?.toString() || ''} 
+              customerPhone={currentCall.from || currentCall.to}
             />
           </div>
         </div>
@@ -276,6 +276,13 @@ export const AircallPhoneBar = () => {
         call={completedCall}
         isOpen={showPostCallActions}
         onClose={handlePostCallClose}
+      />
+
+      {/* Hidden workspace container for Aircall iframe */}
+      <div 
+        id="aircall-workspace-container" 
+        className="hidden"
+        aria-hidden="true"
       />
     </div>
   );

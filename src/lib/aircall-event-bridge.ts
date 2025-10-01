@@ -99,7 +99,7 @@ class AircallEventBridge {
    * Process SDK event with deduplication
    */
   processSDKEvent(event: SDKEvent): boolean {
-    const callId = event.call.id || 'unknown';
+    const callId = event.call.call_id || 'unknown';
     const timestamp = event.timestamp;
     const eventId = this.generateEventId(event.type, callId, timestamp);
 
@@ -140,8 +140,10 @@ class AircallEventBridge {
       'outgoing_call': 'call.created',
       'outgoing_answered': 'call.answered',
       'call_ended': 'call.ended',
-      'answer_call': 'call.answered',
-      'reject_call': 'call.ended'
+      'comment_saved': 'comment.created',
+      'external_dial': 'call.dial',
+      'powerdialer_updated': 'powerdialer.updated',
+      'redirect_event': 'redirect.event'
     };
 
     return mapping[sdkType] || null;
