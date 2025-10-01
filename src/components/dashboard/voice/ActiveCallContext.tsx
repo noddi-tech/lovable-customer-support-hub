@@ -5,7 +5,7 @@
  * Persists throughout the call lifecycle without leaving the view
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,7 +24,79 @@ interface ActiveCallContextProps {
   className?: string;
 }
 
-export const ActiveCallContext: React.FC<ActiveCallContextProps> = ({
+// Memoized customer info display to prevent unnecessary re-renders
+const CustomerInfoDisplay = memo<{ uiMeta: any; priorityBooking: any }>(({ uiMeta, priorityBooking }) => (
+  <>
+    {/* Customer Name & Group */}
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-medium">{uiMeta?.display_name || 'Unknown Customer'}</span>
+      {uiMeta?.user_group_badge && (
+        <Badge variant="secondary" className="text-xs">
+          <Building2 className="h-3 w-3 mr-1" />
+          Group {uiMeta.user_group_badge}
+        </Badge>
+      )}
+    </div>
+
+    {/* Priority Booking */}
+    {priorityBooking && uiMeta?.status_label && (
+      <Alert className="py-2">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription className="text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">{uiMeta.status_label}</span>
+            {uiMeta.booking_date_iso && (
+              <Badge variant="outline" className="text-xs">
+                <Calendar className="h-3 w-3 mr-1" />
+                {new Date(uiMeta.booking_date_iso).toLocaleDateString()}
+              </Badge>
+            )}
+          </div>
+          {uiMeta.vehicle_label && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {uiMeta.vehicle_label}
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+    )}
+
+    {/* Unpaid Bookings Warning */}
+    {uiMeta?.unpaid_count > 0 && (
+      <Alert variant="destructive" className="py-2">
+        <Package className="h-4 w-4" />
+        <AlertDescription className="text-xs">
+          {uiMeta.unpaid_count} unpaid booking{uiMeta.unpaid_count > 1 ? 's' : ''}
+        </AlertDescription>
+      </Alert>
+    )}
+
+    {/* Money Info */}
+    {uiMeta?.money && (
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total:</span>
+          <span className="font-medium">
+            {uiMeta.money.currency} {uiMeta.money.gross}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Paid:</span>
+          <span className={cn(
+            "font-medium",
+            uiMeta.money.paid_state === 'paid' && "text-green-600",
+            uiMeta.money.paid_state === 'unpaid' && "text-red-600"
+          )}>
+            {uiMeta.money.currency} {uiMeta.money.paid}
+          </span>
+        </div>
+      </div>
+    )}
+  </>
+));
+CustomerInfoDisplay.displayName = 'CustomerInfoDisplay';
+
+export const ActiveCallContext: React.FC<ActiveCallContextProps> = memo(({
   callId,
   customerPhone,
   className
@@ -93,13 +165,18 @@ export const ActiveCallContext: React.FC<ActiveCallContextProps> = ({
     }
   };
 
+  // Memoize loading state and UI metadata
+  const isLoading = useMemo(
+    () => contextLoading || noddiQuery.isLoading,
+    [contextLoading, noddiQuery.isLoading]
+  );
+
+  const uiMeta = useMemo(() => noddiData?.data?.ui_meta, [noddiData]);
+  const priorityBooking = useMemo(() => noddiData?.data?.priority_booking, [noddiData]);
+
   if (!customer && !customerPhone) {
     return null;
   }
-
-  const isLoading = contextLoading || noddiQuery.isLoading;
-  const uiMeta = noddiData?.data?.ui_meta;
-  const priorityBooking = noddiData?.data?.priority_booking;
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -114,77 +191,11 @@ export const ActiveCallContext: React.FC<ActiveCallContextProps> = ({
         <CardContent className="space-y-2">
           {isLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading customer data...
-            </div>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading customer data...
+          </div>
           ) : noddiData?.data?.found ? (
-            <>
-              {/* Customer Name & Group */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{uiMeta?.display_name || 'Unknown Customer'}</span>
-                {uiMeta?.user_group_badge && (
-                  <Badge variant="secondary" className="text-xs">
-                    <Building2 className="h-3 w-3 mr-1" />
-                    Group {uiMeta.user_group_badge}
-                  </Badge>
-                )}
-              </div>
-
-              {/* Priority Booking */}
-              {priorityBooking && uiMeta?.status_label && (
-                <Alert className="py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{uiMeta.status_label}</span>
-                      {uiMeta.booking_date_iso && (
-                        <Badge variant="outline" className="text-xs">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {new Date(uiMeta.booking_date_iso).toLocaleDateString()}
-                        </Badge>
-                      )}
-                    </div>
-                    {uiMeta.vehicle_label && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {uiMeta.vehicle_label}
-                      </div>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Unpaid Bookings Warning */}
-              {uiMeta?.unpaid_count > 0 && (
-                <Alert variant="destructive" className="py-2">
-                  <Package className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    {uiMeta.unpaid_count} unpaid booking{uiMeta.unpaid_count > 1 ? 's' : ''}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Money Info */}
-              {uiMeta?.money && (
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total:</span>
-                    <span className="font-medium">
-                      {uiMeta.money.currency} {uiMeta.money.gross}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Paid:</span>
-                    <span className={cn(
-                      "font-medium",
-                      uiMeta.money.paid_state === 'paid' && "text-green-600",
-                      uiMeta.money.paid_state === 'unpaid' && "text-red-600"
-                    )}>
-                      {uiMeta.money.currency} {uiMeta.money.paid}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </>
+            <CustomerInfoDisplay uiMeta={uiMeta} priorityBooking={priorityBooking} />
           ) : (
             <div className="text-sm text-muted-foreground">
               No Noddi data available
@@ -268,4 +279,5 @@ export const ActiveCallContext: React.FC<ActiveCallContextProps> = ({
       )}
     </div>
   );
-};
+});
+ActiveCallContext.displayName = 'ActiveCallContext';

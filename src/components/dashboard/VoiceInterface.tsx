@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Phone, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownLeft, Clock, User, MessageSquare, Calendar } from 'lucide-react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
+import { Phone, AlertCircle, RefreshCw, ArrowUpRight, ArrowDownLeft, Clock, User, MessageSquare, Calendar, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,14 @@ import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, format } from 'date-fns';
+
+// Memoized loading fallback
+const LoadingFallback = memo(() => (
+  <div className="flex items-center justify-center h-full">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+));
+LoadingFallback.displayName = 'LoadingFallback';
 
 export const VoiceInterface = () => {
   const { t } = useTranslation();

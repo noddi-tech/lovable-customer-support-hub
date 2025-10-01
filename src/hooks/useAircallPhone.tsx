@@ -13,12 +13,13 @@ export interface UseAircallPhoneReturn {
   hangUp: () => Promise<void>;
   dialNumber: (phoneNumber: string) => Promise<void>;
   error: string | null;
+  isReconnecting: boolean;
 }
 
 /**
  * React hook for Aircall Everywhere SDK
  * 
- * Manages SDK lifecycle, authentication, and call controls
+ * Manages SDK lifecycle, authentication, reconnection, and call controls
  */
 export const useAircallPhone = (): UseAircallPhoneReturn => {
   const { toast } = useToast();
@@ -27,11 +28,86 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [currentCall, setCurrentCall] = useState<AircallCall | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const initAttemptedRef = useRef(false);
+  
+  const reconnectAttempts = useRef(0);
+  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  const BASE_RECONNECT_DELAY = 1000; // Start with 1 second
 
   // Get Aircall integration config
   const aircallConfig = getIntegrationByProvider('aircall');
   const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere;
+
+  // Exponential backoff reconnection logic
+  const attemptReconnect = useCallback(async () => {
+    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.error('[useAircallPhone] Max reconnection attempts reached');
+      setError('Unable to reconnect to Aircall. Please refresh the page.');
+      setIsReconnecting(false);
+      toast({
+        title: 'Connection Failed',
+        description: 'Unable to reconnect to phone system',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const delay = BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts.current);
+    reconnectAttempts.current++;
+    
+    console.log(`[useAircallPhone] Reconnection attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
+    
+    reconnectTimeout.current = setTimeout(async () => {
+      try {
+        if (!everywhereConfig?.apiId || !everywhereConfig?.apiToken) {
+          throw new Error('Missing API credentials');
+        }
+
+        await aircallPhone.initialize({
+          apiId: everywhereConfig.apiId,
+          apiToken: everywhereConfig.apiToken,
+          domainName: everywhereConfig.domainName || window.location.hostname,
+          onLogin: () => {
+            console.log('[useAircallPhone] ✅ Reconnected successfully');
+            setIsConnected(true);
+            setError(null);
+            setIsReconnecting(false);
+            reconnectAttempts.current = 0;
+            
+            toast({
+              title: 'Reconnected',
+              description: 'Phone system connection restored',
+            });
+          },
+          onLogout: () => {
+            console.warn('[useAircallPhone] Connection lost during reconnection');
+            setIsConnected(false);
+          }
+        });
+
+        setIsInitialized(true);
+      } catch (err: any) {
+        console.error('[useAircallPhone] Reconnection error:', err);
+        attemptReconnect();
+      }
+    }, delay);
+  }, [everywhereConfig, toast]);
+
+  // Handle disconnection
+  const handleDisconnection = useCallback(() => {
+    console.warn('[useAircallPhone] Connection lost, attempting reconnection...');
+    setIsConnected(false);
+    setIsReconnecting(true);
+    
+    toast({
+      title: 'Connection Lost',
+      description: 'Attempting to reconnect...',
+    });
+    
+    attemptReconnect();
+  }, [attemptReconnect, toast]);
 
   /**
    * Initialize SDK
@@ -62,10 +138,16 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
             console.log('[useAircallPhone] ✅ Logged in');
             setIsConnected(true);
             setError(null);
+            reconnectAttempts.current = 0;
+            
+            toast({
+              title: 'Aircall Connected',
+              description: 'Phone system is ready',
+            });
           },
           onLogout: () => {
             console.log('[useAircallPhone] 🔌 Logged out');
-            setIsConnected(false);
+            handleDisconnection();
           }
         });
 
@@ -85,13 +167,16 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
     initialize();
 
     return () => {
+      if (reconnectTimeout.current) {
+        clearTimeout(reconnectTimeout.current);
+      }
       if (aircallPhone.isReady()) {
         aircallPhone.disconnect();
         setIsInitialized(false);
         setIsConnected(false);
       }
     };
-  }, [everywhereConfig, toast]);
+  }, [everywhereConfig, toast, handleDisconnection]);
 
   /**
    * Register SDK event handlers
@@ -166,6 +251,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive'
       });
+      throw err;
     }
   }, [toast]);
 
@@ -184,6 +270,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive'
       });
+      throw err;
     }
   }, [toast]);
 
@@ -202,6 +289,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive'
       });
+      throw err;
     }
   }, [toast]);
 
@@ -219,6 +307,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive'
       });
+      throw err;
     }
   }, [toast]);
 
@@ -230,6 +319,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
     rejectCall,
     hangUp,
     dialNumber,
-    error
+    error,
+    isReconnecting
   };
 };
