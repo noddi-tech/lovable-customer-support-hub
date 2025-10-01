@@ -257,13 +257,26 @@ export const useRealTimeCallNotifications = () => {
 
     const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
     
-    // Trigger modal for ANY new inbound call that hasn't explicitly ended
+    // Calculate how long ago the call started
+    const callAge = new Date().getTime() - new Date(call.started_at).getTime();
+    const isRecentCall = callAge < 30000; // Less than 30 seconds old
+    
+    // Show modal for:
+    // 1. Active inbound calls (not completed/failed)
+    // 2. Recently ended calls (< 30 seconds old)
     const shouldShowModal = 
       call.direction === 'inbound' && 
-      call.status !== 'completed' && 
-      call.status !== 'failed';
+      (
+        (call.status !== 'completed' && call.status !== 'failed') || 
+        isRecentCall
+      );
     
-    console.log('[CallNotifications] 🎯 Should show modal?', shouldShowModal);
+    console.log('[CallNotifications] 🎯 Should show modal?', shouldShowModal, {
+      direction: call.direction,
+      status: call.status,
+      callAge,
+      isRecentCall
+    });
     
     if (shouldShowModal) {
       console.log('[CallNotifications] 🚀 Opening incoming call modal with customer data pre-fetch...');
@@ -316,13 +329,15 @@ export const useRealTimeCallNotifications = () => {
       setIncomingCall(call);
       setIsIncomingCallModalOpen(true);
       
-      // Show a toast for quick notification
-      const title = '📞 New Incoming Call';
-      const description = `Call from ${call.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ''}`;
-      
-      toast({
-        title,
-        description,
+    // Show a toast for quick notification
+    const title = isRecentCall && (call.status === 'completed' || call.status === 'failed')
+      ? '📞 Recent Call'
+      : '📞 New Incoming Call';
+    const description = `Call from ${call.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ''}`;
+    
+    toast({
+      title,
+      description,
         duration: 5000,
       });
     } else if (call.direction === 'inbound') {

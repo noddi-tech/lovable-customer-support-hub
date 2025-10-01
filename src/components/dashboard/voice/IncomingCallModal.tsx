@@ -54,12 +54,12 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
           
           setCurrentCall(updatedCall);
 
-          // Auto-close if call has ended (completed or failed)
+          // Auto-close if call has ended (completed or failed) - give user time to see who called
           if (updatedCall.status === 'completed' || updatedCall.status === 'failed') {
-            console.log('[IncomingCallModal] 🚪 Auto-closing modal - call ended');
+            console.log('[IncomingCallModal] 🚪 Auto-closing modal in 10s - call ended');
             setTimeout(() => {
               onClose();
-            }, 2000);
+            }, 10000); // 10 seconds to see who called
           }
 
           // Invalidate queries
@@ -121,8 +121,17 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               )}
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-muted-foreground">Ringing</span>
+              {currentCall.status === 'completed' || currentCall.status === 'failed' ? (
+                <>
+                  <div className="h-3 w-3 bg-gray-400 rounded-full" />
+                  <span className="text-sm font-medium text-muted-foreground">Call Ended</span>
+                </>
+              ) : (
+                <>
+                  <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-sm font-medium text-muted-foreground">Ringing</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -173,40 +182,67 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
-            {/* Answer via Aircall Everywhere (if enabled) */}
-            {isAircallReady && (
+          {currentCall.status !== 'completed' && currentCall.status !== 'failed' ? (
+            <div className="flex gap-2">
+              {/* Answer via Aircall Everywhere (if enabled) */}
+              {isAircallReady && (
+                <Button
+                  onClick={answerCall}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  size="lg"
+                >
+                  <PhoneCall className="h-4 w-4 mr-2" />
+                  Answer in Browser
+                </Button>
+              )}
+              
+              {/* View Full Context */}
               <Button
-                onClick={answerCall}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => onAnswerContext(currentCall.id)}
+                variant={isAircallReady ? "outline" : "default"}
+                className={isAircallReady ? "" : "flex-1"}
                 size="lg"
               >
-                <PhoneCall className="h-4 w-4 mr-2" />
-                Answer in Browser
+                <Phone className="h-4 w-4 mr-2" />
+                View Details
               </Button>
-            )}
-            
-            {/* View Full Context */}
-            <Button
-              onClick={() => onAnswerContext(currentCall.id)}
-              variant={isAircallReady ? "outline" : "default"}
-              className={isAircallReady ? "" : "flex-1"}
-              size="lg"
-            >
-              <Phone className="h-4 w-4 mr-2" />
-              View Details
-            </Button>
-            
-            {/* Dismiss */}
-            <Button
-              onClick={onClose}
-              variant="outline"
-              size="lg"
-            >
-              <PhoneOff className="h-4 w-4 mr-2" />
-              Dismiss
-            </Button>
-          </div>
+              
+              {/* Dismiss */}
+              <Button
+                onClick={onClose}
+                variant="outline"
+                size="lg"
+              >
+                <PhoneOff className="h-4 w-4 mr-2" />
+                Dismiss
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground text-center py-2">
+                This call has ended. Modal will close in a few seconds...
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => onAnswerContext(currentCall.id)}
+                  variant="outline"
+                  className="flex-1"
+                  size="lg"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  View Call Details
+                </Button>
+                <Button
+                  onClick={onClose}
+                  variant="outline"
+                  size="lg"
+                >
+                  <PhoneOff className="h-4 w-4 mr-2" />
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

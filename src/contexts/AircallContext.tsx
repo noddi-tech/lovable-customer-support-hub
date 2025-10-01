@@ -365,9 +365,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
       if (shouldProcess) {
         console.log('[AircallProvider] 🔚 Call ended (SDK):', call);
-        setCurrentCall(null);
         
-        // Update database record
+        // Keep currentCall visible for 5 seconds so users can see the phone bar
+        setTimeout(() => {
+          console.log('[AircallProvider] 🧹 Clearing currentCall after delay');
+          setCurrentCall(null);
+        }, 5000);
+        
+        // Update database record immediately
         if (profile?.organization_id) {
           try {
             const { error } = await supabase
