@@ -33,11 +33,13 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(() => !aircallPhone.getLoginStatus());
   const initAttemptedRef = useRef(false);
+  const loginGracePeriodRef = useRef<NodeJS.Timeout | null>(null);
   
   const reconnectAttempts = useRef(0);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
   const MAX_RECONNECT_ATTEMPTS = 5;
   const BASE_RECONNECT_DELAY = 1000; // Start with 1 second
+  const GRACE_PERIOD_MS = 10000; // 10 seconds grace period after login
 
   // Get Aircall integration config
   const aircallConfig = getIntegrationByProvider('aircall');
@@ -144,15 +146,42 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
             setError(null);
             reconnectAttempts.current = 0;
             
+            // Start grace period - during this time, don't treat disconnects as full logouts
+            if (loginGracePeriodRef.current) {
+              clearTimeout(loginGracePeriodRef.current);
+            }
+            loginGracePeriodRef.current = setTimeout(() => {
+              console.log('[useAircallPhone] Grace period ended');
+              loginGracePeriodRef.current = null;
+            }, GRACE_PERIOD_MS);
+            
             toast({
               title: 'Aircall Connected',
               description: 'Phone system is ready',
             });
           },
           onLogout: () => {
-            console.log('[useAircallPhone] 🔌 Logged out');
-            setShowLoginModal(true);
-            handleDisconnection();
+            console.log('[useAircallPhone] 🔌 Logout event received');
+            
+            // If we're in grace period, this is likely a network issue during auth flow
+            if (loginGracePeriodRef.current) {
+              console.log('[useAircallPhone] Ignoring logout during grace period - likely network issue');
+              return;
+            }
+            
+            // Check localStorage to see if user was actually logged in
+            const wasLoggedIn = aircallPhone.getLoginStatus();
+            
+            if (wasLoggedIn) {
+              // User was logged in, but got disconnected - try to reconnect without showing modal
+              console.log('[useAircallPhone] Handling disconnection, keeping login state');
+              handleDisconnection();
+            } else {
+              // Confirmed logout - show modal and handle disconnection
+              console.log('[useAircallPhone] Confirmed logout, showing modal');
+              setShowLoginModal(true);
+              handleDisconnection();
+            }
           }
         });
 
@@ -200,6 +229,9 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
     return () => {
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
+      }
+      if (loginGracePeriodRef.current) {
+        clearTimeout(loginGracePeriodRef.current);
       }
       if (aircallPhone.isReady()) {
         aircallPhone.disconnect();
