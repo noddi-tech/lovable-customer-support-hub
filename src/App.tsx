@@ -11,6 +11,7 @@ import { AdminRoute } from "@/components/auth/AdminRoute";
 import { I18nWrapper } from "@/components/i18n/I18nWrapper";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { ControlDoctor } from "@/dev/ControlDoctor";
+import { useAircallPhone } from "@/hooks/useAircallPhone";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
@@ -74,6 +75,28 @@ const AppContent = () => (
   </BrowserRouter>
 );
 
+/**
+ * Global Aircall Container Component
+ * Must be inside AircallProvider to access showLoginModal state
+ */
+const GlobalAircallContainer = () => {
+  const { showLoginModal } = useAircallPhone();
+  
+  return (
+    <div 
+      id="aircall-workspace-container"
+      className="fixed z-[50] w-[350px] h-[500px] bottom-4 right-4 transition-all duration-300 ease-in-out"
+      style={{
+        visibility: showLoginModal ? 'visible' : 'hidden',
+        opacity: showLoginModal ? 1 : 0,
+        pointerEvents: showLoginModal ? 'auto' : 'none'
+      }}
+    >
+      {/* Aircall SDK will automatically inject its login/workspace iframe into this container */}
+    </div>
+  );
+};
+
 const App = () => (
   <GlobalErrorBoundary suppressAnalyticsErrors suppressIframeErrors>
     <ErrorBoundary>
@@ -83,6 +106,8 @@ const App = () => (
             <TooltipProvider>
               <I18nWrapper>
                 <AppContent />
+                {/* Global Aircall Container - Always in DOM for SDK initialization */}
+                <GlobalAircallContainer />
               </I18nWrapper>
               <Toaster />
               <Sonner />

@@ -764,19 +764,7 @@ export const VoiceInterface = () => {
         onClose={() => setIsDetailsOpen(false)}
       />
       
-      {/* Aircall Workspace Container - SDK injects its iframe directly here */}
-      <div 
-        id="aircall-workspace-container"
-        className={cn(
-          "fixed z-[50] w-[350px] h-[500px]",
-          "transition-all duration-300 ease-in-out",
-          showLoginModal 
-            ? "bottom-4 right-4 opacity-100"
-            : "bottom-[-600px] right-4 opacity-0 pointer-events-none"
-        )}
-      >
-        {/* Aircall SDK will automatically inject its login/workspace iframe into this container */}
-      </div>
+      {/* Aircall container moved to App.tsx for global availability */}
       
       {/* Aircall Phone Bar (fixed bottom) */}
       <AircallPhoneBar />

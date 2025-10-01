@@ -161,8 +161,32 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     console.log('[AircallProvider] 🚀 Initializing Aircall Everywhere (single instance)');
     initAttemptedRef.current = true;
 
+    // Wait for container to be available in DOM
+    const waitForContainer = async (maxAttempts = 10): Promise<HTMLElement | null> => {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const container = document.querySelector('#aircall-workspace-container');
+        if (container) {
+          console.log(`[AircallProvider] ✅ Container found on attempt ${attempt}`);
+          return container as HTMLElement;
+        }
+        console.log(`[AircallProvider] ⏳ Container not found, attempt ${attempt}/${maxAttempts}`);
+        await new Promise(resolve => setTimeout(resolve, 200 * attempt)); // Exponential backoff
+      }
+      return null;
+    };
+
     const initialize = async () => {
       try {
+        // Wait for container before initialization
+        console.log('[AircallProvider] Waiting for container...');
+        const container = await waitForContainer();
+        
+        if (!container) {
+          throw new Error('Aircall container not found after multiple attempts');
+        }
+        
+        console.log('[AircallProvider] Container ready, initializing SDK...');
+        
         await aircallPhone.initialize({
           apiId,
           apiToken,
@@ -219,7 +243,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         setIsInitialized(true);
         console.log('[AircallProvider] ✅ Initialization complete');
         console.log('[AircallProvider] SDK ready check:', aircallPhone.isReady());
-        console.log('[AircallProvider] Container element:', document.querySelector('#aircall-workspace-container'));
+        console.log('[AircallProvider] Container element:', container);
         
         const metadata = getConnectionMetadata();
         const now = Date.now();
