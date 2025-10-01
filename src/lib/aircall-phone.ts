@@ -171,7 +171,7 @@ class AircallPhoneManager {
           // Let the hook manage login status for proper grace period handling
           settings.onLogout?.();
         },
-        size: 'big',
+        size: 'small',
         debug: true,
       });
 
@@ -333,6 +333,38 @@ class AircallPhoneManager {
         }
       );
     });
+  }
+
+  /**
+   * Show the Aircall workspace UI
+   */
+  showWorkspace(): void {
+    if (!this.workspace) {
+      console.warn('[AircallWorkspace] Cannot show workspace - not initialized');
+      return;
+    }
+    
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    if (container) {
+      container.style.display = 'block';
+      console.log('[AircallWorkspace] 👁️  Workspace shown');
+    }
+  }
+
+  /**
+   * Hide the Aircall workspace UI
+   */
+  hideWorkspace(): void {
+    if (!this.workspace) {
+      console.warn('[AircallWorkspace] Cannot hide workspace - not initialized');
+      return;
+    }
+    
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    if (container) {
+      container.style.display = 'none';
+      console.log('[AircallWorkspace] 🙈 Workspace hidden');
+    }
   }
 
   /**

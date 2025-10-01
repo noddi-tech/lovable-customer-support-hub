@@ -767,7 +767,7 @@ export const VoiceInterface = () => {
       {/* Aircall Workspace Container - SDK injects its iframe directly here */}
       <div 
         id="aircall-workspace-container"
-        className="fixed inset-0 z-[100]"
+        className="fixed inset-0 z-[50]"
         style={{ display: showLoginModal ? 'block' : 'none' }}
       >
         {/* Aircall SDK will automatically inject its login/workspace iframe into this container */}

@@ -16,6 +16,8 @@ export interface AircallContextValue {
   isReconnecting: boolean;
   showLoginModal: boolean;
   openLoginModal: () => void;
+  showWorkspace: () => void;
+  hideWorkspace: () => void;
 }
 
 const AircallContext = createContext<AircallContextValue | null>(null);
@@ -170,6 +172,12 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             setShowLoginModal(false);
             setError(null);
             reconnectAttempts.current = 0;
+            
+            // Hide workspace after successful login (minimize to phone bar)
+            setTimeout(() => {
+              aircallPhone.hideWorkspace();
+              console.log('[AircallProvider] Workspace minimized after login');
+            }, 1000);
             
             // Start grace period
             if (loginGracePeriodRef.current) {
@@ -427,6 +435,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     isReconnecting,
     showLoginModal,
     openLoginModal: () => setShowLoginModal(true),
+    showWorkspace: () => aircallPhone.showWorkspace(),
+    hideWorkspace: () => aircallPhone.hideWorkspace(),
   };
 
   return (

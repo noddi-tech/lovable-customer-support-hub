@@ -98,7 +98,7 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-[200]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Phone className="h-5 w-5 text-green-600 animate-pulse" />

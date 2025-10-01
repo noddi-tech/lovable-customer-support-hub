@@ -24,7 +24,8 @@ export const AircallPhoneBar = () => {
     answerCall, 
     rejectCall, 
     hangUp,
-    openLoginModal
+    showWorkspace,
+    hideWorkspace
   } = useAircallPhone();
   
   const [callDuration, setCallDuration] = useState(0);
@@ -268,7 +269,7 @@ export const AircallPhoneBar = () => {
                   Shortcuts
                 </Button>
                 <Button
-                  onClick={openLoginModal}
+                  onClick={() => showWorkspace()}
                   size="sm"
                   variant="ghost"
                   className="text-xs"
