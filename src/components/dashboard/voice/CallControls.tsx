@@ -1,213 +1,183 @@
 /**
  * Call Controls Component
  * 
- * Inline controls for active calls (transfer, hold, mute)
+ * Enhanced call control buttons with agent transfer selector
+ * Supports both compact and full variants
  */
 
-import React from 'react';
-import { PhoneForwarded, Pause, Play, Volume2, VolumeX, PhoneOff } from 'lucide-react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+import { Volume2, VolumeX, Pause, Play, PhoneOff, PhoneForwarded, Loader2, User } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface CallControlsProps {
-  callId: string;
-  isOnHold?: boolean;
-  isMuted?: boolean;
-  onHold?: () => void;
-  onResume?: () => void;
   onMute?: () => void;
-  onUnmute?: () => void;
+  onHold?: () => void;
   onTransfer?: (agentId: string) => void;
   onHangUp?: () => void;
-  availableAgents?: Array<{ id: string; name: string; available: boolean }>;
-  compact?: boolean;
+  isMuted?: boolean;
+  isOnHold?: boolean;
+  variant?: 'compact' | 'full';
+  className?: string;
 }
 
 export const CallControls: React.FC<CallControlsProps> = ({
-  callId,
-  isOnHold = false,
-  isMuted = false,
-  onHold,
-  onResume,
   onMute,
-  onUnmute,
+  onHold,
   onTransfer,
   onHangUp,
-  availableAgents = [],
-  compact = false
+  isMuted = false,
+  isOnHold = false,
+  variant = 'full',
+  className,
 }) => {
-  const handleTransferSelect = (agentId: string) => {
+  const { toast } = useToast();
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const isCompact = variant === 'compact';
+
+  // Fetch available agents for transfer
+  const { data: agents, isLoading: loadingAgents } = useQuery({
+    queryKey: ['available-agents'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, role')
+        .eq('is_active', true)
+        .in('role', ['agent', 'admin'])
+        .order('full_name');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: isTransferOpen,
+  });
+
+  const handleTransfer = (agentId: string, agentName: string) => {
     if (onTransfer) {
       onTransfer(agentId);
+      toast({
+        title: 'Transfer initiated',
+        description: `Transferring call to ${agentName}`,
+      });
     }
+    setIsTransferOpen(false);
   };
 
-  if (compact) {
-    return (
-      <div className="flex items-center gap-1">
-        {/* Mute/Unmute */}
-        <Button
-          onClick={isMuted ? onUnmute : onMute}
-          size="sm"
-          variant="ghost"
-          className={cn(
-            "h-8 w-8 p-0",
-            isMuted && "bg-red-500/10 text-red-600 hover:bg-red-500/20"
-          )}
-        >
-          {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-        </Button>
-
-        {/* Hold/Resume */}
-        <Button
-          onClick={isOnHold ? onResume : onHold}
-          size="sm"
-          variant="ghost"
-          className={cn(
-            "h-8 w-8 p-0",
-            isOnHold && "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20"
-          )}
-        >
-          {isOnHold ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-        </Button>
-
-        {/* Transfer */}
-        {availableAgents.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0"
-              >
-                <PhoneForwarded className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-card z-50">
-              <div className="px-2 py-1.5 text-sm font-semibold">Transfer to:</div>
-              <DropdownMenuSeparator />
-              {availableAgents.map((agent) => (
-                <DropdownMenuItem
-                  key={agent.id}
-                  onClick={() => handleTransferSelect(agent.id)}
-                  disabled={!agent.available}
-                  className="flex items-center justify-between"
-                >
-                  <span>{agent.name}</span>
-                  {agent.available ? (
-                    <Badge variant="secondary" className="text-xs">Available</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">Busy</Badge>
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-
-        {/* Hang Up */}
-        <Button
-          onClick={onHangUp}
-          size="sm"
-          variant="ghost"
-          className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
-        >
-          <PhoneOff className="h-4 w-4" />
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex items-center gap-2">
+    <div className={cn("flex items-center gap-2", className)}>
       {/* Mute/Unmute */}
-      <Button
-        onClick={isMuted ? onUnmute : onMute}
-        size="sm"
-        variant={isMuted ? "default" : "outline"}
-        className={isMuted ? "bg-red-600 hover:bg-red-700" : ""}
-      >
-        {isMuted ? (
-          <>
-            <VolumeX className="h-4 w-4 mr-2" />
-            Unmute
-          </>
-        ) : (
-          <>
-            <Volume2 className="h-4 w-4 mr-2" />
-            Mute
-          </>
-        )}
-      </Button>
+      {onMute && (
+        <Button
+          onClick={onMute}
+          size={isCompact ? "sm" : "default"}
+          variant={isMuted ? "destructive" : "outline"}
+          className={cn(
+            "gap-2",
+            isMuted && "bg-red-500/10 border-red-500/20 text-red-600 hover:bg-red-500/20"
+          )}
+        >
+          {isMuted ? (
+            <>
+              <VolumeX className={cn("h-4 w-4", isCompact && "h-3 w-3")} />
+              {!isCompact && "Unmute"}
+            </>
+          ) : (
+            <>
+              <Volume2 className={cn("h-4 w-4", isCompact && "h-3 w-3")} />
+              {!isCompact && "Mute"}
+            </>
+          )}
+        </Button>
+      )}
 
       {/* Hold/Resume */}
-      <Button
-        onClick={isOnHold ? onResume : onHold}
-        size="sm"
-        variant={isOnHold ? "default" : "outline"}
-        className={isOnHold ? "bg-amber-600 hover:bg-amber-700" : ""}
-      >
-        {isOnHold ? (
-          <>
-            <Play className="h-4 w-4 mr-2" />
-            Resume
-          </>
-        ) : (
-          <>
-            <Pause className="h-4 w-4 mr-2" />
-            Hold
-          </>
-        )}
-      </Button>
+      {onHold && (
+        <Button
+          onClick={onHold}
+          size={isCompact ? "sm" : "default"}
+          variant={isOnHold ? "default" : "outline"}
+          className="gap-2"
+        >
+          {isOnHold ? (
+            <>
+              <Play className={cn("h-4 w-4", isCompact && "h-3 w-3")} />
+              {!isCompact && "Resume"}
+            </>
+          ) : (
+            <>
+              <Pause className={cn("h-4 w-4", isCompact && "h-3 w-3")} />
+              {!isCompact && "Hold"}
+            </>
+          )}
+        </Button>
+      )}
 
-      {/* Transfer */}
-      {availableAgents.length > 0 && (
-        <DropdownMenu>
+      {/* Transfer with Agent Selector */}
+      {onTransfer && (
+        <DropdownMenu open={isTransferOpen} onOpenChange={setIsTransferOpen}>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline">
-              <PhoneForwarded className="h-4 w-4 mr-2" />
-              Transfer
+            <Button
+              size={isCompact ? "sm" : "default"}
+              variant="outline"
+              className="gap-2"
+            >
+              <PhoneForwarded className={cn("h-4 w-4", isCompact && "h-3 w-3")} />
+              {!isCompact && "Transfer"}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64 bg-card z-50">
-            <div className="px-2 py-1.5 text-sm font-semibold">Transfer call to:</div>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Transfer to Agent</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {availableAgents.map((agent) => (
-              <DropdownMenuItem
-                key={agent.id}
-                onClick={() => handleTransferSelect(agent.id)}
-                disabled={!agent.available}
-                className="flex items-center justify-between"
-              >
-                <span>{agent.name}</span>
-                {agent.available ? (
-                  <Badge variant="secondary" className="text-xs">Available</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs">Busy</Badge>
-                )}
-              </DropdownMenuItem>
-            ))}
+            {loadingAgents ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : agents && agents.length > 0 ? (
+              agents.map((agent) => (
+                <DropdownMenuItem
+                  key={agent.user_id}
+                  onClick={() => handleTransfer(agent.user_id, agent.full_name)}
+                  className="cursor-pointer"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{agent.full_name}</span>
+                    <span className="text-xs text-muted-foreground">{agent.email}</span>
+                  </div>
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                No agents available
+              </div>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
 
       {/* Hang Up */}
-      <Button
-        onClick={onHangUp}
-        size="sm"
-        variant="destructive"
-      >
-        <PhoneOff className="h-4 w-4 mr-2" />
-        End Call
-      </Button>
+      {onHangUp && (
+        <Button
+          onClick={onHangUp}
+          size={isCompact ? "sm" : "default"}
+          variant="destructive"
+          className="gap-2"
+        >
+          <PhoneOff className={cn("h-4 w-4", isCompact && "h-3 w-3")} />
+          {!isCompact && "End Call"}
+        </Button>
+      )}
     </div>
   );
 };

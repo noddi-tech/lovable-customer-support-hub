@@ -5,12 +5,15 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Phone, PhoneOff, PhoneMissed, Volume2, VolumeX, Users, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, PhoneOff, PhoneMissed, Volume2, VolumeX, Users, Clock, ChevronDown, ChevronUp, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useCallCustomerContext } from '@/hooks/useCallCustomerContext';
+import { useCallKeyboardShortcuts } from '@/hooks/useCallKeyboardShortcuts';
 import { ActiveCallContext } from './ActiveCallContext';
+import { PostCallActions } from './PostCallActions';
+import { CallControls } from './CallControls';
 import { cn } from '@/lib/utils';
 
 export const AircallPhoneBar = () => {
@@ -25,8 +28,21 @@ export const AircallPhoneBar = () => {
   
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [isOnHold, setIsOnHold] = useState(false);
   const [showContext, setShowContext] = useState(false);
+  const [showPostCallActions, setShowPostCallActions] = useState(false);
+  const [completedCall, setCompletedCall] = useState<any>(null);
   const { customer } = useCallCustomerContext();
+
+  // Keyboard shortcuts
+  const { showHelp } = useCallKeyboardShortcuts({
+    onAnswer: answerCall,
+    onHangUp: hangUp,
+    onMute: () => setIsMuted(!isMuted),
+    onHold: () => setIsOnHold(!isOnHold),
+    onAddNote: () => setShowContext(true),
+    isCallActive: !!currentCall && currentCall.status === 'ongoing',
+  });
 
   // Update call duration every second
   useEffect(() => {
@@ -45,6 +61,17 @@ export const AircallPhoneBar = () => {
     return () => clearInterval(interval);
   }, [currentCall]);
 
+  // Detect call completion for post-call actions
+  useEffect(() => {
+    if (currentCall?.status === 'ongoing') {
+      // Store the call for later when it completes
+      setCompletedCall(currentCall);
+    } else if (completedCall && !currentCall) {
+      // Call just ended, show post-call actions
+      setShowPostCallActions(true);
+    }
+  }, [currentCall, completedCall]);
+
   // Format duration as MM:SS
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -56,6 +83,16 @@ export const AircallPhoneBar = () => {
   const formatPhone = (phone?: string) => {
     if (!phone) return 'Unknown';
     return phone.replace(/(\+\d{1,3})(\d{3})(\d{3})(\d{4})/, '$1 ($2) $3-$4');
+  };
+
+  const handleTransfer = (agentId: string) => {
+    console.log('Transfer call to agent:', agentId);
+    // This would integrate with Aircall transfer API
+  };
+
+  const handlePostCallClose = () => {
+    setShowPostCallActions(false);
+    setCompletedCall(null);
   };
 
   // Don't show if SDK not initialized
@@ -164,31 +201,30 @@ export const AircallPhoneBar = () => {
                 </Button>
               )}
 
-              {/* Mute/Unmute (only for ongoing calls) */}
+              {/* Call Controls (only for ongoing calls) */}
               {callStatus.isOngoing && (
-                <Button
-                  onClick={() => setIsMuted(!isMuted)}
-                  size="sm"
-                  variant="outline"
-                  className={isMuted ? "bg-red-500/10 border-red-500/20 text-red-600" : ""}
-                >
-                  {isMuted ? (
-                    <VolumeX className="h-4 w-4" />
-                  ) : (
-                    <Volume2 className="h-4 w-4" />
-                  )}
-                </Button>
+                <CallControls
+                  onMute={() => setIsMuted(!isMuted)}
+                  onHold={() => setIsOnHold(!isOnHold)}
+                  onTransfer={handleTransfer}
+                  onHangUp={hangUp}
+                  isMuted={isMuted}
+                  isOnHold={isOnHold}
+                  variant="compact"
+                />
               )}
 
-              {/* Hang Up / Reject */}
-              <Button
-                onClick={callStatus.isRinging ? rejectCall : hangUp}
-                size="sm"
-                variant="destructive"
-              >
-                <PhoneOff className="h-4 w-4 mr-2" />
-                {callStatus.isRinging ? "Reject" : "End Call"}
-              </Button>
+              {/* Reject (only for ringing calls) */}
+              {callStatus.isRinging && (
+                <Button
+                  onClick={rejectCall}
+                  size="sm"
+                  variant="destructive"
+                >
+                  <PhoneOff className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
+              )}
             </div>
           )}
 
@@ -215,14 +251,32 @@ export const AircallPhoneBar = () => {
               </Button>
             )}
             {!currentCall && isConnected && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Users className="h-3.5 w-3.5" />
-                Ready for calls
-              </div>
+              <>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Users className="h-3.5 w-3.5" />
+                  Ready for calls
+                </div>
+                <Button
+                  onClick={showHelp}
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs"
+                >
+                  <Keyboard className="h-3 w-3 mr-1" />
+                  Shortcuts
+                </Button>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Post-Call Actions Dialog */}
+      <PostCallActions
+        call={completedCall}
+        isOpen={showPostCallActions}
+        onClose={handlePostCallClose}
+      />
     </div>
   );
 };
