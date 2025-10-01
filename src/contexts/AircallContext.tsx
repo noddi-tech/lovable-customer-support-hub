@@ -171,16 +171,15 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           console.warn('[AircallProvider] Container missing - creating imperatively');
           container = document.createElement('div');
           container.id = 'aircall-workspace-container';
-          container.className = 'aircall-visible';
+          container.className = 'aircall-hidden';
           document.body.appendChild(container);
-        } else {
-          // Ensure container is visible for SDK initialization
-          container.classList.add('aircall-visible');
-          container.classList.remove('aircall-hidden');
-          console.log('[AircallProvider] ✅ Container ready in DOM');
         }
         
+        console.log('[AircallProvider] ✅ Container ready in DOM');
+        
         console.log('[AircallProvider] Initializing SDK...');
+        
+        console.log('[AircallProvider] 🚀 Starting SDK initialization...');
         
         await aircallPhone.initialize({
           apiId,
@@ -253,10 +252,28 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           }
         });
 
-        setIsInitialized(true);
+        // Verify SDK readiness
+        const isSDKReady = aircallPhone.isReady();
+        console.log('[AircallProvider] SDK ready check:', isSDKReady);
+        
+        if (isSDKReady) {
+          setIsInitialized(true);
+          console.log('[AircallProvider] ✅ SDK verified ready');
+        } else {
+          console.error('[AircallProvider] ❌ SDK initialization failed verification');
+          setIsInitialized(false);
+          setError('SDK initialization failed');
+          
+          // Retry initialization after 3 seconds
+          setTimeout(() => {
+            console.log('[AircallProvider] 🔄 Retrying SDK initialization...');
+            initAttemptedRef.current = false;
+            initialize();
+          }, 3000);
+          return;
+        }
+        
         console.log('[AircallProvider] ✅ Initialization complete');
-        console.log('[AircallProvider] SDK ready check:', aircallPhone.isReady());
-        console.log('[AircallProvider] Container element:', container);
         
         const metadata = getConnectionMetadata();
         const now = Date.now();

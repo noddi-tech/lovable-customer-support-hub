@@ -87,15 +87,15 @@ const AircallWorkspaceManager = () => {
     const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
     if (!container) return;
     
-    // Show container if login modal needed OR if not yet initialized
-    if (showLoginModal || !isInitialized) {
+    // Show container ONLY when login modal explicitly needed
+    if (showLoginModal) {
       container.classList.add('aircall-visible');
       container.classList.remove('aircall-hidden');
     } else {
       container.classList.add('aircall-hidden');
       container.classList.remove('aircall-visible');
     }
-  }, [showLoginModal, isInitialized]);
+  }, [showLoginModal]);
   
   return null; // This component doesn't render anything
 };

@@ -33,13 +33,34 @@ export const useRealTimeCallNotifications = () => {
   // Modal state for incoming calls
   const [incomingCall, setIncomingCall] = useState<Call | null>(null);
   const [isIncomingCallModalOpen, setIsIncomingCallModalOpen] = useState(false);
+  
+  // WebSocket diagnostic state
+  const [isWebSocketBlocked, setIsWebSocketBlocked] = useState(false);
+  const wsErrorCountRef = useRef(0);
 
   console.log('🔍 useRealTimeCallNotifications hook initialized - CONSOLIDATING SUBSCRIPTIONS');
 
   useEffect(() => {
     console.log('📡 useRealTimeCallNotifications: Setting up subscriptions...');
     
-    // Create managed subscription for call events
+    // WebSocket error detection
+    const detectWebSocketBlock = () => {
+      wsErrorCountRef.current++;
+      console.warn('[RealTime] WebSocket error count:', wsErrorCountRef.current);
+      
+      if (wsErrorCountRef.current >= 3) {
+        console.error('[RealTime] ❌ WebSocket appears blocked - switching to polling mode');
+        setIsWebSocketBlocked(true);
+        
+        toast({
+          title: 'Connection Issue Detected',
+          description: 'Using polling mode due to blocked WebSocket. Some features may be delayed.',
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    // Create managed subscription for call events with error handling
     const unsubscribeCallEvents = createManagedSubscription(
       'call-events-notifications',
       (channel) => channel.on(
@@ -52,6 +73,10 @@ export const useRealTimeCallNotifications = () => {
         async (payload) => {
           console.log('New call event received:', payload);
           const callEvent = payload.new as CallEvent;
+          
+          // Reset error count on successful message
+          wsErrorCountRef.current = 0;
+          setIsWebSocketBlocked(false);
           
           // Prevent duplicate processing
           if (processedEventsRef.current.has(callEvent.id)) {
@@ -69,12 +94,14 @@ export const useRealTimeCallNotifications = () => {
 
             if (error) {
               console.error('Error fetching call data:', error);
+              detectWebSocketBlock();
               return;
             }
 
             await handleCallEventNotification(callEvent, call);
           } catch (error) {
             console.error('Error processing call event:', error);
+            detectWebSocketBlock();
           }
         }
       ),
@@ -435,6 +462,8 @@ export const useRealTimeCallNotifications = () => {
     incomingCall,
     isIncomingCallModalOpen,
     closeIncomingCallModal,
+    // Diagnostic state
+    isWebSocketBlocked,
     // Utility functions
     navigateToCall,
     handleCallbackAction,
