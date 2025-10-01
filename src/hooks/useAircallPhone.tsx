@@ -14,6 +14,8 @@ export interface UseAircallPhoneReturn {
   dialNumber: (phoneNumber: string) => Promise<void>;
   error: string | null;
   isReconnecting: boolean;
+  showLoginModal: boolean;
+  openLoginModal: () => void;
 }
 
 /**
@@ -25,10 +27,11 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
   const { toast } = useToast();
   const { getIntegrationByProvider } = useVoiceIntegrations();
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(() => aircallPhone.getLoginStatus());
   const [currentCall, setCurrentCall] = useState<AircallCall | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(() => !aircallPhone.getLoginStatus());
   const initAttemptedRef = useRef(false);
   
   const reconnectAttempts = useRef(0);
@@ -137,6 +140,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
           onLogin: () => {
             console.log('[useAircallPhone] ✅ Logged in via callback');
             setIsConnected(true);
+            setShowLoginModal(false);
             setError(null);
             reconnectAttempts.current = 0;
             
@@ -147,6 +151,7 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
           },
           onLogout: () => {
             console.log('[useAircallPhone] 🔌 Logged out');
+            setShowLoginModal(true);
             handleDisconnection();
           }
         });
@@ -154,17 +159,31 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
         setIsInitialized(true);
         console.log('[useAircallPhone] ✅ Initialization complete');
         
-        // Check if user is already logged in (e.g., from previous session)
-        aircallPhone.checkLoginStatus((isLoggedIn) => {
-          console.log('[useAircallPhone] Initial login status:', isLoggedIn);
-          if (isLoggedIn) {
-            setIsConnected(true);
-            toast({
-              title: 'Aircall Connected',
-              description: 'Phone system is ready',
-            });
-          }
-        });
+        // Check localStorage for persisted login status
+        const wasLoggedIn = aircallPhone.getLoginStatus();
+        console.log('[useAircallPhone] Restored login status from localStorage:', wasLoggedIn);
+        
+        if (wasLoggedIn) {
+          // Verify with SDK
+          aircallPhone.checkLoginStatus((isLoggedIn) => {
+            console.log('[useAircallPhone] SDK login status verification:', isLoggedIn);
+            if (isLoggedIn) {
+              setIsConnected(true);
+              setShowLoginModal(false);
+              toast({
+                title: 'Aircall Connected',
+                description: 'Phone system is ready',
+              });
+            } else {
+              // localStorage was stale, clear it and show modal
+              aircallPhone.clearLoginStatus();
+              setIsConnected(false);
+              setShowLoginModal(true);
+            }
+          });
+        } else {
+          setShowLoginModal(true);
+        }
       } catch (err) {
         console.error('[useAircallPhone] ❌ Initialization failed:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize');
@@ -190,35 +209,6 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
     };
   }, [everywhereConfig, toast, handleDisconnection]);
 
-  /**
-   * Periodically check login status after initialization
-   * This handles cases where user logs in via the workspace UI
-   */
-  useEffect(() => {
-    if (!isInitialized || isConnected) return;
-
-    console.log('[useAircallPhone] 🔄 Starting login status polling');
-    
-    const checkInterval = setInterval(() => {
-      aircallPhone.checkLoginStatus((isLoggedIn) => {
-        if (isLoggedIn && !isConnected) {
-          console.log('[useAircallPhone] ✅ Login detected via polling');
-          setIsConnected(true);
-          setError(null);
-          
-          toast({
-            title: 'Aircall Connected',
-            description: 'Phone system is ready',
-          });
-        }
-      });
-    }, 2000); // Check every 2 seconds
-
-    return () => {
-      console.log('[useAircallPhone] 🛑 Stopping login status polling');
-      clearInterval(checkInterval);
-    };
-  }, [isInitialized, isConnected, toast]);
 
   /**
    * Register SDK event handlers
@@ -354,6 +344,8 @@ export const useAircallPhone = (): UseAircallPhoneReturn => {
     hangUp,
     dialNumber,
     error,
-    isReconnecting
+    isReconnecting,
+    showLoginModal,
+    openLoginModal: () => setShowLoginModal(true),
   };
 };

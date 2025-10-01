@@ -23,7 +23,8 @@ export const AircallPhoneBar = () => {
     currentCall, 
     answerCall, 
     rejectCall, 
-    hangUp 
+    hangUp,
+    openLoginModal
   } = useAircallPhone();
   
   const [callDuration, setCallDuration] = useState(0);
@@ -32,7 +33,6 @@ export const AircallPhoneBar = () => {
   const [showContext, setShowContext] = useState(false);
   const [showPostCallActions, setShowPostCallActions] = useState(false);
   const [completedCall, setCompletedCall] = useState<any>(null);
-  const [showWorkspace, setShowWorkspace] = useState(false);
   const { customer } = useCallCustomerContext();
 
   // Keyboard shortcuts
@@ -73,28 +73,6 @@ export const AircallPhoneBar = () => {
     }
   }, [currentCall, completedCall]);
 
-  // Auto-show workspace when incoming call arrives
-  useEffect(() => {
-    if (currentCall && currentCall.status === 'ringing') {
-      setShowWorkspace(true);
-    }
-  }, [currentCall]);
-
-  // Control workspace container visibility via DOM
-  useEffect(() => {
-    const container = document.getElementById('aircall-workspace-container');
-    if (container) {
-      if (showWorkspace) {
-        container.style.opacity = '1';
-        container.style.transform = 'translateY(0)';
-        container.style.pointerEvents = 'auto';
-      } else {
-        container.style.opacity = '0';
-        container.style.transform = 'translateY(1rem)';
-        container.style.pointerEvents = 'none';
-      }
-    }
-  }, [showWorkspace]);
 
   // Format duration as MM:SS
   const formatDuration = (seconds: number) => {
@@ -289,6 +267,15 @@ export const AircallPhoneBar = () => {
                   <Keyboard className="h-3 w-3 mr-1" />
                   Shortcuts
                 </Button>
+                <Button
+                  onClick={openLoginModal}
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs"
+                >
+                  <Phone className="h-3 w-3 mr-1" />
+                  Show Aircall
+                </Button>
               </>
             )}
           </div>
@@ -301,19 +288,6 @@ export const AircallPhoneBar = () => {
         isOpen={showPostCallActions}
         onClose={handlePostCallClose}
       />
-      
-      {/* Workspace Toggle Button - Show when workspace is active */}
-      {isInitialized && (
-        <Button
-          onClick={() => setShowWorkspace(!showWorkspace)}
-          size="sm"
-          variant={showWorkspace ? "default" : "outline"}
-          className="fixed bottom-20 right-4 z-[99] shadow-lg"
-        >
-          <Phone className="h-4 w-4 mr-2" />
-          {showWorkspace ? "Hide" : "Show"} Aircall
-        </Button>
-      )}
     </div>
   );
 };

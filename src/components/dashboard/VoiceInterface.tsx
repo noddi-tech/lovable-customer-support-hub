@@ -23,7 +23,9 @@ import { CallActionButton } from './voice/CallActionButton';
 import { IncomingCallModal } from './voice/IncomingCallModal';
 import { VoiceLayout } from './voice/VoiceLayout';
 import { AircallPhoneBar } from './voice/AircallPhoneBar';
+import { AircallLoginModal } from './voice/AircallLoginModal';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
+import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,6 +43,7 @@ export const VoiceInterface = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigation = useInteractionsNavigation();
+  const { showLoginModal, isConnected } = useAircallPhone();
   
   // Get state from URL navigation
   const { conversationId } = navigation.currentState;
@@ -760,11 +763,10 @@ export const VoiceInterface = () => {
         onClose={() => setIsDetailsOpen(false)}
       />
       
-      {/* Aircall Workspace Container - Always in DOM for SDK initialization */}
-      <div 
-        id="aircall-workspace-container" 
-        className="fixed bottom-20 right-4 z-[100] w-[400px] h-[600px] rounded-lg shadow-2xl overflow-hidden border-2 border-primary transition-all duration-300 opacity-0 pointer-events-none"
-        style={{ transform: 'translateY(1rem)' }}
+      {/* Aircall Login Modal */}
+      <AircallLoginModal
+        isOpen={showLoginModal}
+        isConnected={isConnected}
       />
       
       {/* Aircall Phone Bar (fixed bottom) */}

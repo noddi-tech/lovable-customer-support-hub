@@ -55,6 +55,59 @@ class AircallPhoneManager {
   private isInitialized = false;
   private eventHandlers: Map<AircallPhoneEvent, Set<(data: any) => void>> = new Map();
   private currentCall: AircallCall | null = null;
+  private static STORAGE_KEY = 'aircall_login_status';
+
+  /**
+   * Save login status to localStorage
+   */
+  private setLoginStatus(isLoggedIn: boolean): void {
+    try {
+      const data = {
+        isLoggedIn,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(AircallPhoneManager.STORAGE_KEY, JSON.stringify(data));
+      console.log('[AircallWorkspace] 💾 Login status saved to localStorage:', isLoggedIn);
+    } catch (error) {
+      console.error('[AircallWorkspace] Failed to save login status:', error);
+    }
+  }
+
+  /**
+   * Get login status from localStorage
+   */
+  getLoginStatus(): boolean {
+    try {
+      const stored = localStorage.getItem(AircallPhoneManager.STORAGE_KEY);
+      if (!stored) return false;
+      
+      const data = JSON.parse(stored);
+      // Consider sessions older than 24 hours as expired
+      const isExpired = Date.now() - data.timestamp > 24 * 60 * 60 * 1000;
+      
+      if (isExpired) {
+        this.clearLoginStatus();
+        return false;
+      }
+      
+      return data.isLoggedIn;
+    } catch (error) {
+      console.error('[AircallWorkspace] Failed to read login status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clear login status from localStorage
+   */
+  clearLoginStatus(): void {
+    try {
+      localStorage.removeItem(AircallPhoneManager.STORAGE_KEY);
+      console.log('[AircallWorkspace] 🗑️  Login status cleared from localStorage');
+    } catch (error) {
+      console.error('[AircallWorkspace] Failed to clear login status:', error);
+    }
+  }
 
   /**
    * Wait for the DOM container to be available
@@ -107,11 +160,13 @@ class AircallPhoneManager {
         onLogin: (workspaceSettings) => {
           console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
           this.isInitialized = true;
+          this.setLoginStatus(true);
           settings.onLogin?.();
         },
         onLogout: () => {
           console.log('[AircallWorkspace] 🚪 User logged out');
           this.isInitialized = false;
+          this.clearLoginStatus();
           settings.onLogout?.();
         },
         size: 'big',
