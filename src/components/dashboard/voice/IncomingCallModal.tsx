@@ -27,6 +27,8 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
   useEffect(() => {
     if (!currentCall?.id) return;
 
+    console.log('[IncomingCallModal] 📡 Subscribing to real-time updates for call:', currentCall.id);
+
     const channel = supabase
       .channel(`incoming-call-${currentCall.id}`)
       .on(
@@ -39,10 +41,16 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
         },
         (payload) => {
           const updatedCall = payload.new as Call;
+          console.log('[IncomingCallModal] 🔄 Call updated:', {
+            old_status: currentCall.status,
+            new_status: updatedCall.status
+          });
+          
           setCurrentCall(updatedCall);
 
-          // Auto-close if call status changes from ringing
-          if (updatedCall.status !== 'ringing') {
+          // Auto-close if call has ended (completed or failed)
+          if (updatedCall.status === 'completed' || updatedCall.status === 'failed') {
+            console.log('[IncomingCallModal] 🚪 Auto-closing modal - call ended');
             setTimeout(() => {
               onClose();
             }, 2000);
@@ -59,13 +67,15 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
     };
   }, [currentCall?.id, onClose, queryClient]);
 
-  // Auto-close after 30 seconds
+  // Auto-close after 60 seconds if still open (safety timeout)
   useEffect(() => {
     if (!isOpen) return;
 
+    console.log('[IncomingCallModal] ⏱️ Setting safety timeout (60s)');
     const timer = setTimeout(() => {
+      console.log('[IncomingCallModal] ⏰ Safety timeout reached - closing modal');
       onClose();
-    }, 30000);
+    }, 60000);
 
     return () => clearTimeout(timer);
   }, [isOpen, onClose]);

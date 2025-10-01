@@ -233,10 +233,29 @@ export const useRealTimeCallNotifications = () => {
   };
 
   const handleNewCallNotification = async (call: Call) => {
+    console.log('[CallNotifications] 📞 New call detected:', {
+      id: call.id,
+      direction: call.direction,
+      status: call.status,
+      customer_phone: call.customer_phone,
+      created_at: call.created_at
+    });
+
     const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
     
-    if (call.direction === 'inbound' && call.status === 'ringing') {
-      // Show modal for incoming calls
+    // Trigger modal for ANY new inbound call that hasn't explicitly ended
+    // This catches calls even if they transition quickly from ringing -> completed
+    const shouldShowModal = 
+      call.direction === 'inbound' && 
+      call.status !== 'completed' && 
+      call.status !== 'failed';
+    
+    console.log('[CallNotifications] 🎯 Should show modal?', shouldShowModal);
+    
+    if (shouldShowModal) {
+      console.log('[CallNotifications] 🚀 Opening incoming call modal with customer data fetch...');
+      
+      // Show modal for incoming calls - VoiceCustomerSidebar will auto-fetch Noddi data
       setIncomingCall(call);
       setIsIncomingCallModalOpen(true);
       
@@ -249,6 +268,8 @@ export const useRealTimeCallNotifications = () => {
         description,
         duration: 5000,
       });
+    } else if (call.direction === 'inbound') {
+      console.log('[CallNotifications] ⏭️ Skipping modal (call already ended):', call.status);
     }
   };
 
