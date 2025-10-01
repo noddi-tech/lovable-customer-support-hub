@@ -161,7 +161,7 @@ class AircallPhoneManager {
         domToLoadWorkspace: '#aircall-workspace-container',
         onLogin: (workspaceSettings) => {
           console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
-          this.isInitialized = true;
+          console.log('[AircallWorkspace] 🎯 Layer 1: onLogin callback fired');
           // Let the hook manage login status for proper grace period handling
           settings.onLogin?.();
         },
@@ -185,6 +185,10 @@ class AircallPhoneManager {
 
       console.log('[AircallWorkspace] ✅ Event listeners registered');
       console.log('[AircallWorkspace] ✅ Workspace created successfully');
+      
+      // CRITICAL: Mark as initialized AFTER workspace creation, NOT after login
+      this.isInitialized = true;
+      console.log('[AircallWorkspace] ✅ Workspace initialized (ready for login)');
       console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
     } catch (error) {
       console.error('[AircallWorkspace] ❌ Initialization failed:', error);

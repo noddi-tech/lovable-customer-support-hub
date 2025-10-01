@@ -21,6 +21,7 @@ export interface AircallContextValue {
   showWorkspace: () => void;
   hideWorkspace: () => void;
   initializationPhase: 'idle' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed';
+  handleManualLoginConfirm: () => void;
 }
 
 const AircallContext = createContext<AircallContextValue | null>(null);
@@ -48,6 +49,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const [initializationPhase, setInitializationPhase] = useState<'idle' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed'>('idle');
   const initAttemptedRef = useRef(false);
   const loginGracePeriodRef = useRef<NodeJS.Timeout | null>(null);
+  const loginPollingRef = useRef<NodeJS.Timeout | null>(null);
+  const loginTimeoutWarningRef = useRef<NodeJS.Timeout | null>(null);
   
   const reconnectAttempts = useRef(0);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -189,7 +192,19 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           apiToken,
           domainName: everywhereConfig.domainName || window.location.hostname,
           onLogin: () => {
-            console.log('[AircallProvider] ✅ Logged in via callback');
+            console.log('[AircallProvider] 🎯 Layer 1: onLogin callback received');
+            
+            // Clear all polling/timeout timers
+            if (loginPollingRef.current) {
+              clearInterval(loginPollingRef.current);
+              loginPollingRef.current = null;
+              console.log('[AircallProvider] 🧹 Cleared login polling');
+            }
+            if (loginTimeoutWarningRef.current) {
+              clearTimeout(loginTimeoutWarningRef.current);
+              loginTimeoutWarningRef.current = null;
+            }
+            
             aircallPhone.setLoginStatus(true);
             saveConnectionMetadata();
             setIsConnected(true);
@@ -270,6 +285,81 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             title: 'Aircall Ready',
             description: 'Please log in through the workspace to start receiving calls',
           });
+          
+          // Layer 2: Start polling fallback to detect login
+          console.log('[AircallProvider] 🎯 Layer 2: Starting login detection polling');
+          let pollAttempts = 0;
+          const MAX_POLL_ATTEMPTS = 30; // 60 seconds total
+          
+          loginPollingRef.current = setInterval(() => {
+            pollAttempts++;
+            console.log(`[AircallProvider] 🔍 Layer 2: Polling login status (attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS})`);
+            
+            aircallPhone.checkLoginStatus((isLoggedIn) => {
+              console.log(`[AircallProvider] 🔍 Layer 2: Poll result - logged in: ${isLoggedIn}`);
+              
+              if (isLoggedIn) {
+                console.log('[AircallProvider] 🎯 Layer 2: Login detected via polling!');
+                
+                // Clear polling
+                if (loginPollingRef.current) {
+                  clearInterval(loginPollingRef.current);
+                  loginPollingRef.current = null;
+                }
+                if (loginTimeoutWarningRef.current) {
+                  clearTimeout(loginTimeoutWarningRef.current);
+                  loginTimeoutWarningRef.current = null;
+                }
+                
+                // Manually trigger login flow
+                aircallPhone.setLoginStatus(true);
+                saveConnectionMetadata();
+                setIsConnected(true);
+                setShowLoginModal(false);
+                setError(null);
+                setInitializationPhase('logged-in');
+                reconnectAttempts.current = 0;
+                
+                // Auto-hide container
+                const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+                if (container) {
+                  container.classList.add('aircall-visible');
+                  container.classList.remove('aircall-hidden');
+                  
+                  setTimeout(() => {
+                    container.classList.add('aircall-hidden');
+                    container.classList.remove('aircall-visible');
+                  }, 5000);
+                }
+                
+                toast({
+                  title: '✅ Login Detected',
+                  description: 'You are now connected to Aircall',
+                });
+              }
+            });
+            
+            // Stop polling after max attempts
+            if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+              console.log('[AircallProvider] ⏱️ Layer 2: Polling timeout reached');
+              if (loginPollingRef.current) {
+                clearInterval(loginPollingRef.current);
+                loginPollingRef.current = null;
+              }
+            }
+          }, 2000); // Check every 2 seconds
+          
+          // Layer 5: Timeout warning after 15 seconds
+          loginTimeoutWarningRef.current = setTimeout(() => {
+            if (!aircallPhone.getLoginStatus()) {
+              console.log('[AircallProvider] ⏰ Layer 5: Login timeout warning');
+              toast({
+                title: 'Still Waiting for Login',
+                description: 'Please log in through the Aircall window. Click "I\'ve Logged In" if you already did.',
+                duration: 8000,
+              });
+            }
+          }, 15000);
         } else {
           console.error('[AircallProvider] ❌ Workspace creation failed');
           setIsInitialized(false);
@@ -355,6 +445,12 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       }
       if (loginGracePeriodRef.current) {
         clearTimeout(loginGracePeriodRef.current);
+      }
+      if (loginPollingRef.current) {
+        clearInterval(loginPollingRef.current);
+      }
+      if (loginTimeoutWarningRef.current) {
+        clearTimeout(loginTimeoutWarningRef.current);
       }
       // Only disconnect when app actually unmounts
       if (aircallPhone.isReady()) {
@@ -613,6 +709,62 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     }
   }, [toast]);
 
+  const openLoginModal = useCallback(() => {
+    setShowLoginModal(true);
+  }, []);
+
+  // Layer 3: Manual login confirmation handler
+  const handleManualLoginConfirm = useCallback(() => {
+    console.log('[AircallProvider] 🎯 Layer 3: Manual login confirmation clicked');
+    
+    aircallPhone.checkLoginStatus((isLoggedIn) => {
+      console.log(`[AircallProvider] 🎯 Layer 3: Verified login status: ${isLoggedIn}`);
+      
+      if (isLoggedIn) {
+        // Clear all timers
+        if (loginPollingRef.current) {
+          clearInterval(loginPollingRef.current);
+          loginPollingRef.current = null;
+        }
+        if (loginTimeoutWarningRef.current) {
+          clearTimeout(loginTimeoutWarningRef.current);
+          loginTimeoutWarningRef.current = null;
+        }
+        
+        // Complete login flow
+        aircallPhone.setLoginStatus(true);
+        saveConnectionMetadata();
+        setIsConnected(true);
+        setShowLoginModal(false);
+        setError(null);
+        setInitializationPhase('logged-in');
+        
+        // Auto-hide container
+        const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+        if (container) {
+          container.classList.add('aircall-visible');
+          container.classList.remove('aircall-hidden');
+          
+          setTimeout(() => {
+            container.classList.add('aircall-hidden');
+            container.classList.remove('aircall-visible');
+          }, 5000);
+        }
+        
+        toast({
+          title: '✅ Login Confirmed',
+          description: 'You are now connected to Aircall',
+        });
+      } else {
+        toast({
+          title: 'Not Logged In',
+          description: 'Please log in through the Aircall window first',
+          variant: 'destructive',
+        });
+      }
+    });
+  }, [saveConnectionMetadata, toast]);
+
   const value: AircallContextValue = {
     isInitialized,
     isConnected,
@@ -624,10 +776,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     error,
     isReconnecting,
     showLoginModal,
-    openLoginModal: () => setShowLoginModal(true),
+    openLoginModal,
     showWorkspace: () => aircallPhone.showWorkspace(),
     hideWorkspace: () => aircallPhone.hideWorkspace(),
     initializationPhase,
+    handleManualLoginConfirm,
   };
 
   return (

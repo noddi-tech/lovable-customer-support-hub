@@ -12,6 +12,7 @@ import { I18nWrapper } from "@/components/i18n/I18nWrapper";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { ControlDoctor } from "@/dev/ControlDoctor";
 import { useAircallPhone } from "@/hooks/useAircallPhone";
+import { AircallLoginModal } from "@/components/dashboard/voice/AircallLoginModal";
 import React from "react";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
@@ -78,10 +79,10 @@ const AppContent = () => (
 
 /**
  * Aircall Workspace Manager
- * Controls visibility of the container via CSS classes
+ * Controls visibility of the container via CSS classes and renders the login modal
  */
 const AircallWorkspaceManager = () => {
-  const { showLoginModal, isInitialized } = useAircallPhone();
+  const { showLoginModal, isConnected, handleManualLoginConfirm } = useAircallPhone();
   
   React.useEffect(() => {
     const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
@@ -97,7 +98,14 @@ const AircallWorkspaceManager = () => {
     }
   }, [showLoginModal]);
   
-  return null; // This component doesn't render anything
+  // Render the login modal
+  return (
+    <AircallLoginModal
+      isOpen={showLoginModal}
+      isConnected={isConnected}
+      onManualLoginConfirm={handleManualLoginConfirm}
+    />
+  );
 };
 
 const App = () => (
