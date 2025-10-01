@@ -50,9 +50,10 @@ export interface CallEvent {
 export function useCalls() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { createManagedSubscription } = useRealtimeConnectionManager();
+  const { createManagedSubscription, isConnected } = useRealtimeConnectionManager();
 
-  console.log('🔍 useCalls hook initialized - CONSOLIDATING SUBSCRIPTIONS');
+  console.log('[useCalls] 🚀 Hook initialized - real-time + polling fallback enabled');
+  console.log('[useCalls] 📡 Real-time connected:', isConnected);
 
   const { data: calls = [], isLoading, error } = useQuery({
     queryKey: ['calls'],
@@ -86,20 +87,32 @@ export function useCalls() {
 
       return data as Call[];
     },
+    // Polling fallback: refetch every 15 seconds as backup to real-time
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
   });
 
   const { data: callEvents = [] } = useQuery({
     queryKey: ['call-events'],
     queryFn: async () => {
+      console.log('[useCalls] 🔍 Fetching call events at', new Date().toISOString());
       const { data, error } = await supabase
         .from('call_events')
         .select('*')
         .order('timestamp', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useCalls] ❌ Error fetching call events:', error);
+        throw error;
+      }
+      
+      console.log('[useCalls] ✅ Fetched call events:', data.length);
       return data as CallEvent[];
     },
+    // Polling fallback: refetch every 20 seconds as backup to real-time
+    refetchInterval: 20000,
+    refetchIntervalInBackground: true,
   });
 
   // Set up managed real-time subscriptions
