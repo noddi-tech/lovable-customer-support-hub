@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Phone, PhoneOff, PhoneMissed, Volume2, VolumeX, Users, Clock, ChevronDown, ChevronUp, Keyboard } from 'lucide-react';
+import { Phone, PhoneOff, PhoneMissed, Volume2, VolumeX, Users, Clock, ChevronDown, ChevronUp, Keyboard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
@@ -108,10 +108,17 @@ export const AircallPhoneBar = () => {
     });
   }, [isInitialized, isConnected, currentCall]);
 
-  // Don't show if SDK not initialized
+  // Show connection status if SDK not initialized
   if (!isInitialized) {
-    console.log('[AircallPhoneBar] Not rendering - SDK not initialized');
-    return null;
+    console.log('[AircallPhoneBar] SDK not initialized - showing connection status');
+    return (
+      <div className="fixed bottom-4 left-4 bg-yellow-50 border border-yellow-200 px-4 py-2 rounded-lg shadow-lg z-[100]">
+        <div className="flex items-center gap-2 text-sm text-yellow-800">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Connecting to phone system...</span>
+        </div>
+      </div>
+    );
   }
 
   // Get call status details

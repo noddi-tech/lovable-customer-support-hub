@@ -218,6 +218,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
         setIsInitialized(true);
         console.log('[AircallProvider] ✅ Initialization complete');
+        console.log('[AircallProvider] SDK ready check:', aircallPhone.isReady());
+        console.log('[AircallProvider] Container element:', document.querySelector('#aircall-workspace-container'));
         
         const metadata = getConnectionMetadata();
         const now = Date.now();
