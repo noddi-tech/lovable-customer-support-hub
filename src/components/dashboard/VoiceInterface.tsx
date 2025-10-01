@@ -20,10 +20,12 @@ import { RealTimeIndicator } from './voice/RealTimeIndicator';
 import { CallNotificationCenter } from './voice/CallNotificationCenter';
 import { CallDetailsDialog } from './voice/CallDetailsDialog';
 import { CallActionButton } from './voice/CallActionButton';
+import { IncomingCallModal } from './voice/IncomingCallModal';
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, format } from 'date-fns';
 
 export const VoiceInterface = () => {
@@ -45,6 +47,15 @@ export const VoiceInterface = () => {
     error 
   } = useCalls();
   
+  const { data: customers } = useQuery({
+    queryKey: ['customers'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('customers').select('*');
+      if (error) throw error;
+      return data;
+    }
+  });
+  
   const { 
     callbackRequests,
     pendingRequests,
@@ -55,7 +66,7 @@ export const VoiceInterface = () => {
   const { voicemails } = useVoicemails();
   
   // Initialize real-time notifications
-  useRealTimeCallNotifications();
+  const { incomingCall, isIncomingCallModalOpen, closeIncomingCallModal } = useRealTimeCallNotifications();
   
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [selectedSection, setSelectedSection] = useState('ongoing-calls');
@@ -571,20 +582,46 @@ export const VoiceInterface = () => {
 
   // Render customer sidebar
   const renderCustomerSidebar = () => {
-    if (!selectedEntity || selectedEntity.type !== 'call') return null;
+    if (!selectedEntity) return null;
     
-    const call = calls?.find(c => c.id === selectedEntity.id);
-    if (!call) return null;
-
+    // For calls, find the full call data
+    if (selectedEntity.type === 'call') {
+      const call = calls?.find(c => c.id === selectedEntity.id);
+      if (!call) return null;
+      
+      return <VoiceCustomerSidebar call={call} />;
+    }
+    
+    // For callbacks/voicemails, use phone lookup
+    const customerPhone = 'customer' in selectedEntity ? selectedEntity.customer?.phone : undefined;
+    if (!customerPhone) return null;
+    
+    // Try to find linked call for callbacks/voicemails
+    const linkedCall = calls?.find(c => 
+      c.customer_phone === customerPhone && 
+      'call_id' in selectedEntity && (selectedEntity as any).call_id === c.id
+    );
+    
     return (
-      <VoiceCustomerSidebar
-        call={call}
+      <VoiceCustomerSidebar 
+        call={linkedCall}
+        customerPhone={customerPhone}
       />
     );
   };
 
   return (
     <>
+      <IncomingCallModal
+        call={incomingCall}
+        isOpen={isIncomingCallModalOpen}
+        onClose={closeIncomingCallModal}
+        onAnswerContext={(callId) => {
+          closeIncomingCallModal();
+          navigation.navigateToConversation(callId);
+        }}
+      />
+      
       <MasterDetailShell
         left={renderVoiceSidebar()}
         center={renderCallList()}

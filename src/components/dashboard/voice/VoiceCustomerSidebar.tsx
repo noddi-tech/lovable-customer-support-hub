@@ -16,12 +16,14 @@ import { Call } from '@/hooks/useCalls';
 import { useSimpleRealtimeSubscriptions } from '@/hooks/useSimpleRealtimeSubscriptions';
 
 interface VoiceCustomerSidebarProps {
-  call: Call;
+  call?: Call;
+  customerPhone?: string;
   className?: string;
 }
 
 export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
   call,
+  customerPhone: propCustomerPhone,
   className,
 }) => {
   const { toast } = useToast();
@@ -33,8 +35,9 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
   const [emailToAdd, setEmailToAdd] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Extract customer from call
-  const customer = call.customers ? {
+  // Extract customer data - from call or use provided phone
+  const customerPhone = call?.customer_phone || propCustomerPhone;
+  const customer = call?.customers ? {
     id: call.customers.id,
     full_name: call.customers.full_name,
     email: call.customers.email,
@@ -43,17 +46,17 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
 
   // Check for multiple customers with same phone
   const { data: multipleCustomers, isLoading: isCheckingMultiple } = useQuery({
-    queryKey: ['customers-by-phone', call.customer_phone],
+    queryKey: ['customers-by-phone', customerPhone],
     queryFn: async () => {
-      if (!call.customer_phone) return [];
+      if (!customerPhone) return [];
       const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('phone', call.customer_phone);
+        .eq('phone', customerPhone);
       if (error) throw error;
       return data || [];
     },
-    enabled: !customer && !!call.customer_phone,
+    enabled: !customer && !!customerPhone,
   });
 
   // Real-time subscription for customer updates
@@ -61,6 +64,20 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
     customer?.id ? [{ table: 'customers', queryKey: 'calls' }] : [],
     !!customer?.id
   );
+
+  // Early return if no data
+  if (!call && !customerPhone) {
+    return (
+      <div className={className}>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No call or customer information available.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   // Create customer mutation
   const createCustomerMutation = useMutation({
@@ -87,13 +104,15 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
       
       if (error) throw error;
       
-      // Link to call
-      const { error: updateError } = await supabase
-        .from('calls')
-        .update({ customer_id: newCustomer.id })
-        .eq('id', call.id);
-      
-      if (updateError) throw updateError;
+      // Link to call if available
+      if (call?.id) {
+        const { error: updateError } = await supabase
+          .from('calls')
+          .update({ customer_id: newCustomer.id })
+          .eq('id', call.id);
+        
+        if (updateError) throw updateError;
+      }
       
       return newCustomer;
     },
@@ -147,6 +166,8 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
   // Link existing customer mutation
   const linkCustomerMutation = useMutation({
     mutationFn: async (customerId: string) => {
+      if (!call?.id) throw new Error('No call to link to');
+      
       const { error } = await supabase
         .from('calls')
         .update({ customer_id: customerId })
@@ -191,14 +212,14 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
   };
 
   const handleCreateCustomer = () => {
-    if (!newCustomerName.trim() || !call.customer_phone) {
+    if (!newCustomerName.trim() || !customerPhone) {
       setError('Name and phone are required');
       return;
     }
     createCustomerMutation.mutate({
       full_name: newCustomerName.trim(),
       email: newCustomerEmail.trim() || undefined,
-      phone: call.customer_phone,
+      phone: customerPhone,
     });
   };
 
@@ -282,9 +303,9 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
               </div>
               <div className="space-y-2">
                 <Label>Phone</Label>
-                <Input value={call.customer_phone || ''} disabled />
+                <Input value={customerPhone || ''} disabled />
               </div>
-              <Button 
+              <Button
                 onClick={handleCreateCustomer} 
                 className="w-full"
                 disabled={createCustomerMutation.isPending || !newCustomerName.trim()}
@@ -346,61 +367,63 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
         )}
 
         {/* Call Details Card */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Call Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Status</span>
-              <Badge variant="outline" className={getStatusColor(call.status)}>
-                {call.status.replace('_', ' ').toUpperCase()}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Direction</span>
-              <Badge variant="secondary">
-                {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'}
-              </Badge>
-            </div>
-            {call.duration_seconds !== undefined && (
+        {call && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Call Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Duration
-                </span>
-                <span className="text-sm font-medium">
-                  {formatDuration(call.duration_seconds)}
-                </span>
+                <span className="text-xs text-muted-foreground">Status</span>
+                <Badge variant="outline" className={getStatusColor(call.status)}>
+                  {call.status.replace('_', ' ').toUpperCase()}
+                </Badge>
               </div>
-            )}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Phone</span>
-              <span className="text-sm font-medium font-mono">
-                {call.customer_phone || 'Unknown'}
-              </span>
-            </div>
-            {call.agent_phone && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Agent</span>
+                <span className="text-xs text-muted-foreground">Direction</span>
+                <Badge variant="secondary">
+                  {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'}
+                </Badge>
+              </div>
+              {call.duration_seconds !== undefined && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Duration
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatDuration(call.duration_seconds)}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Phone</span>
                 <span className="text-sm font-medium font-mono">
-                  {call.agent_phone}
+                  {call.customer_phone || 'Unknown'}
                 </span>
               </div>
-            )}
-            {call.end_reason && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">End Reason</span>
-                <span className="text-sm">
-                  {call.end_reason.replace(/_/g, ' ')}
-                </span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              {call.agent_phone && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Agent</span>
+                  <span className="text-sm font-medium font-mono">
+                    {call.agent_phone}
+                  </span>
+                </div>
+              )}
+              {call.end_reason && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">End Reason</span>
+                  <span className="text-sm">
+                    {call.end_reason.replace(/_/g, ' ')}
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Call Notes Section */}
         {customer && customer.id && (

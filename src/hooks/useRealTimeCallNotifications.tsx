@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useVoiceIntegrations } from './useVoiceIntegrations';
@@ -7,6 +7,7 @@ import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { Phone, PhoneCall, PhoneOff, Voicemail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
+import type { Call } from './useCalls';
 
 interface CallEvent {
   id: string;
@@ -17,21 +18,6 @@ interface CallEvent {
   created_at: string;
 }
 
-interface Call {
-  id: string;
-  external_id: string;
-  provider: string;
-  customer_phone: string;
-  agent_phone?: string;
-  status: string;
-  direction: string;
-  started_at: string;
-  ended_at?: string;
-  duration_seconds?: number;
-  metadata: any;
-  organization_id: string;
-}
-
 export const useRealTimeCallNotifications = () => {
   const { toast } = useToast();
   const { getIntegrationByProvider } = useVoiceIntegrations();
@@ -39,6 +25,10 @@ export const useRealTimeCallNotifications = () => {
   const { createManagedSubscription } = useRealtimeConnectionManager();
   const aircallIntegration = getIntegrationByProvider('aircall');
   const processedEventsRef = useRef(new Set<string>());
+  
+  // Modal state for incoming calls
+  const [incomingCall, setIncomingCall] = useState<Call | null>(null);
+  const [isIncomingCallModalOpen, setIsIncomingCallModalOpen] = useState(false);
 
   console.log('🔍 useRealTimeCallNotifications hook initialized - CONSOLIDATING SUBSCRIPTIONS');
 
@@ -246,42 +236,18 @@ export const useRealTimeCallNotifications = () => {
     const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
     
     if (call.direction === 'inbound' && call.status === 'ringing') {
+      // Show modal for incoming calls
+      setIncomingCall(call);
+      setIsIncomingCallModalOpen(true);
+      
+      // Also show a toast for quick notification
       const title = '📞 New Incoming Call';
       const description = `Call from ${call.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ''}`;
       
       toast({
         title,
-        description: (
-          <div className="space-y-3">
-            <p>{description}</p>
-            <div className="text-sm text-muted-foreground">
-              Customer: {call.customer_phone}
-            </div>
-            {monitoredPhone && (
-              <div className="text-sm text-muted-foreground">
-                Line: {monitoredPhone.phoneNumber.label} ({monitoredPhone.type})
-              </div>
-            )}
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => navigateToCall(call.id)}
-                className="h-8"
-              >
-                View Call
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleQuickNote(call.id)}
-                className="h-8"
-              >
-                Add Note
-              </Button>
-            </div>
-          </div>
-        ),
-        duration: 15000, // Show longer for active calls
+        description,
+        duration: 5000,
       });
     }
   };
@@ -362,8 +328,17 @@ export const useRealTimeCallNotifications = () => {
     });
   };
 
+  const closeIncomingCallModal = () => {
+    setIsIncomingCallModalOpen(false);
+    setIncomingCall(null);
+  };
+
   return {
-    // You can return any utility functions here if needed
+    // Modal state
+    incomingCall,
+    isIncomingCallModalOpen,
+    closeIncomingCallModal,
+    // Utility functions
     navigateToCall,
     handleCallbackAction,
     handleVoicemailAction,
