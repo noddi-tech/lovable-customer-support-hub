@@ -57,6 +57,7 @@ export function useCalls() {
   const { data: calls = [], isLoading, error } = useQuery({
     queryKey: ['calls'],
     queryFn: async () => {
+      console.log('[useCalls] 🔍 Fetching calls from database at', new Date().toISOString());
       const { data, error } = await supabase
         .from('calls')
         .select(`
@@ -71,7 +72,18 @@ export function useCalls() {
         `)
         .order('started_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useCalls] ❌ Error fetching calls:', error);
+        throw error;
+      }
+
+      console.log('[useCalls] ✅ Fetched calls:', {
+        count: data.length,
+        statuses: data.map(c => ({ id: c.id, status: c.status, ended_at: c.ended_at })),
+        ringingCalls: data.filter(c => c.status === 'ringing').length,
+        timestamp: new Date().toISOString()
+      });
+
       return data as Call[];
     },
   });
@@ -92,7 +104,7 @@ export function useCalls() {
 
   // Set up managed real-time subscriptions
   useEffect(() => {
-    console.log('📡 useCalls: Setting up realtime subscriptions...');
+    console.log('[useCalls] 🔌 Setting up realtime subscriptions...');
     
     const unsubscribeCalls = createManagedSubscription(
       'calls-changes',
@@ -101,22 +113,36 @@ export function useCalls() {
         schema: 'public',
         table: 'calls'
       }, (payload) => {
-        console.log('Call change received:', payload);
+        console.log('[useCalls] 📞 Calls table event received:', {
+          eventType: payload.eventType,
+          table: payload.table,
+          new: payload.new,
+          old: payload.old,
+          timestamp: new Date().toISOString()
+        });
         
         // Show toast notification for new calls (only if not handled by main notifications)
         if (payload.eventType === 'INSERT') {
           const newCall = payload.new as Call;
+          console.log('[useCalls] 🆕 New call detected:', {
+            id: newCall.id,
+            status: newCall.status,
+            direction: newCall.direction,
+            customer_phone: newCall.customer_phone
+          });
+          
           if (newCall.direction === 'inbound') {
-            // This is now handled by useRealTimeCallNotifications
-            console.log('New incoming call detected in useCalls');
+            console.log('[useCalls] 📲 Incoming call - handled by useRealTimeCallNotifications');
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedCall = payload.new as Call;
-          if (payload.old?.status !== updatedCall.status) {
-            console.log(`Call status updated: ${updatedCall.status}`);
+          const oldCall = payload.old as Call;
+          if (oldCall?.status !== updatedCall.status) {
+            console.log(`[useCalls] 🔄 Call status updated: ${oldCall?.status} → ${updatedCall.status}`);
           }
         }
         
+        console.log('[useCalls] ♻️ Invalidating calls query');
         queryClient.invalidateQueries({ queryKey: ['calls'] });
       }),
       [createManagedSubscription, queryClient]
@@ -129,15 +155,22 @@ export function useCalls() {
         schema: 'public',
         table: 'call_events'
       }, (payload) => {
-        console.log('Call event received:', payload);
+        console.log('[useCalls] 📋 Call event received:', {
+          eventType: payload.eventType,
+          new: payload.new,
+          timestamp: new Date().toISOString()
+        });
         
-        // Let useRealTimeCallNotifications handle the main notifications
+        console.log('[useCalls] ♻️ Invalidating call-events query');
         queryClient.invalidateQueries({ queryKey: ['call-events'] });
       }),
       [createManagedSubscription, queryClient]
     );
 
+    console.log('[useCalls] ✅ Realtime subscriptions created');
+
     return () => {
+      console.log('[useCalls] 🔌 Cleaning up realtime subscriptions');
       unsubscribeCalls();
       unsubscribeEvents();
     };
@@ -147,6 +180,18 @@ export function useCalls() {
   const activeCalls = calls.filter(call => 
     ['ringing', 'answered', 'on_hold', 'transferred'].includes(call.status) && !call.ended_at
   );
+
+  console.log('[useCalls] 📊 Active calls computed:', {
+    totalCalls: calls.length,
+    activeCalls: activeCalls.length,
+    activeCallDetails: activeCalls.map(c => ({ 
+      id: c.id, 
+      status: c.status, 
+      ended_at: c.ended_at,
+      started_at: c.started_at 
+    })),
+    timestamp: new Date().toISOString()
+  });
 
   const recentCalls = calls.slice(0, 10);
 

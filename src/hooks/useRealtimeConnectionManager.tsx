@@ -235,7 +235,10 @@ export const useRealtimeConnectionManager = () => {
     dependencies: any[] = []
   ) => {
     const createSubscription = () => {
-      console.log(`🔌 Creating managed subscription: ${channelName}`);
+      console.log(`[RealtimeConnectionManager] 🔌 Creating managed subscription: ${channelName}`, {
+        timestamp: new Date().toISOString(),
+        existingSubscriptions: globalConnectionState.subscriptions.size
+      });
       
       const channel = subscriptionFn(supabase.channel(channelName));
       
@@ -245,9 +248,12 @@ export const useRealtimeConnectionManager = () => {
       );
       pendingSubscriptions.current.push(createSubscription);
 
-      console.log(`📡 Subscribing to channel: ${channelName}`);
+      console.log(`[RealtimeConnectionManager] 📡 Subscribing to channel: ${channelName}`);
       channel.subscribe((status: string) => {
-        console.log(`📡 Channel ${channelName} subscription status: ${status}`);
+        console.log(`[RealtimeConnectionManager] 🔄 Channel ${channelName} status: ${status}`, {
+          timestamp: new Date().toISOString(),
+          isConnected: globalConnectionState.isConnected
+        });
         handleConnectionStatus(status, channelName);
       });
 
@@ -256,8 +262,12 @@ export const useRealtimeConnectionManager = () => {
         subscriptions: new Map(prev.subscriptions.set(channelName, channel))
       }));
 
+      console.log(`[RealtimeConnectionManager] ✅ Subscription stored for: ${channelName}`, {
+        totalSubscriptions: globalConnectionState.subscriptions.size + 1
+      });
+
       return () => {
-        console.log(`🧹 Removing managed subscription: ${channelName}`);
+        console.log(`[RealtimeConnectionManager] 🧹 Removing managed subscription: ${channelName}`);
         supabase.removeChannel(channel);
         updateGlobalState(prev => {
           const newSubscriptions = new Map(prev.subscriptions);
