@@ -23,7 +23,7 @@ import { CallActionButton } from './voice/CallActionButton';
 import { IncomingCallModal } from './voice/IncomingCallModal';
 import { VoiceLayout } from './voice/VoiceLayout';
 import { AircallPhoneBar } from './voice/AircallPhoneBar';
-import { AircallLoginModal } from './voice/AircallLoginModal';
+import { AircallLoginModal, AircallBlockedModal } from './voice';
 import { ConnectionDiagnostic } from './voice/ConnectionDiagnostic';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
@@ -45,7 +45,16 @@ export const VoiceInterface = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigation = useInteractionsNavigation();
-  const { showLoginModal, isConnected, initializationPhase } = useAircallPhone();
+  const { 
+    showLoginModal, 
+    showBlockedModal,
+    diagnosticIssues,
+    isConnected, 
+    initializationPhase,
+    handleManualLoginConfirm,
+    retryConnection,
+    openIncognito,
+  } = useAircallPhone();
   
   // Get state from URL navigation
   const { conversationId } = navigation.currentState;
@@ -739,6 +748,20 @@ export const VoiceInterface = () => {
 
   return (
     <>
+      <AircallLoginModal
+        isOpen={showLoginModal}
+        isConnected={isConnected}
+        isWaitingForWorkspace={initializationPhase === 'diagnostics' || initializationPhase === 'creating-workspace'}
+        onManualLoginConfirm={handleManualLoginConfirm}
+      />
+      
+      <AircallBlockedModal
+        isOpen={showBlockedModal}
+        issues={diagnosticIssues}
+        onRetry={retryConnection}
+        onOpenIncognito={openIncognito}
+      />
+      
       <IncomingCallModal
         call={incomingCall}
         isOpen={isIncomingCallModalOpen}

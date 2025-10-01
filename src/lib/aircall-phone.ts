@@ -58,6 +58,54 @@ class AircallPhoneManager {
   private static STORAGE_KEY = 'aircall_login_status';
 
   /**
+   * Phase 1: Diagnostic check for browser environment issues
+   */
+  async diagnoseEnvironment(): Promise<{ hasIssues: boolean; issues: string[] }> {
+    const issues: string[] = [];
+
+    console.log('[AircallWorkspace] 🔍 Phase 1: Running environment diagnostics...');
+
+    // Check 1: Test network request to Aircall domain
+    try {
+      const testUrl = 'https://phone.aircall.io/favicon.ico';
+      const response = await fetch(testUrl, { method: 'HEAD', mode: 'no-cors' });
+      console.log('[AircallWorkspace] ✅ Network test passed');
+    } catch (error) {
+      console.error('[AircallWorkspace] ❌ Network test failed:', error);
+      issues.push('network_blocked');
+    }
+
+    // Check 2: Look for blocked requests in console
+    const perfEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+    const blockedAircall = perfEntries.some(entry => 
+      entry.name.includes('aircall') && entry.transferSize === 0
+    );
+    if (blockedAircall) {
+      console.warn('[AircallWorkspace] ⚠️ Detected blocked Aircall resources');
+      issues.push('resources_blocked');
+    }
+
+    // Check 3: iframe sandbox support
+    const testIframe = document.createElement('iframe');
+    testIframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms');
+    if (!testIframe.sandbox) {
+      console.warn('[AircallWorkspace] ⚠️ iframe sandbox not supported');
+      issues.push('sandbox_unsupported');
+    }
+
+    if (issues.length > 0) {
+      console.warn('[AircallWorkspace] ⚠️ Environment issues detected:', issues);
+    } else {
+      console.log('[AircallWorkspace] ✅ Environment diagnostics passed');
+    }
+
+    return {
+      hasIssues: issues.length > 0,
+      issues
+    };
+  }
+
+  /**
    * Save login status to localStorage
    */
   setLoginStatus(isLoggedIn: boolean): void {
@@ -156,6 +204,39 @@ class AircallPhoneManager {
       
       console.log('[AircallWorkspace] Container found, creating workspace instance...');
       
+      // Phase 2: Set up MutationObserver to intercept iframe IMMEDIATELY
+      let iframeFound = false;
+      const observer = new MutationObserver((mutations) => {
+        if (iframeFound) return;
+        
+        const container = document.querySelector('#aircall-workspace-container');
+        const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
+        
+        if (iframe && !iframeFound) {
+          iframeFound = true;
+          console.log('[AircallWorkspace] 🔧 Phase 2: Iframe detected, fixing permissions immediately');
+          
+          // Fix permissions synchronously before first request
+          const currentAllow = iframe.getAttribute('allow') || '';
+          const permissions = currentAllow.split(';').map(p => p.trim()).filter(p => p);
+          const filteredPermissions = permissions.filter(p => !p.includes('hid'));
+          const newAllow = filteredPermissions.join('; ');
+          
+          if (currentAllow !== newAllow) {
+            iframe.setAttribute('allow', newAllow);
+            console.log('[AircallWorkspace] ✅ Phase 2: Removed HID permission before first load');
+          }
+          
+          observer.disconnect();
+        }
+      });
+      
+      // Start observing
+      const container = document.querySelector('#aircall-workspace-container');
+      if (container) {
+        observer.observe(container, { childList: true, subtree: true });
+      }
+      
       // Create AircallWorkspace instance
       this.workspace = new AircallWorkspace({
         domToLoadWorkspace: '#aircall-workspace-container',
@@ -186,11 +267,10 @@ class AircallPhoneManager {
       console.log('[AircallWorkspace] ✅ Event listeners registered');
       console.log('[AircallWorkspace] ✅ Workspace created successfully');
       
-      // Phase 1 & 2: Fix iframe permissions and reload
-      console.log('[AircallWorkspace] 🔧 Starting iframe permission fix...');
-      await this.fixIframePermissions();
+      // Disconnect observer after workspace creation
+      observer.disconnect();
       
-      // Phase 3: Wait for workspace to be identified
+      // Phase 3: Wait for workspace to be identified (improved with readiness probe)
       const isIdentified = await this.waitForWorkspaceIdentified();
       
       if (!isIdentified) {
@@ -227,7 +307,6 @@ class AircallPhoneManager {
         this.workspace.on('call_ended', this.handleCallEnded.bind(this));
         this.workspace.on('comment_saved', this.handleCommentSaved.bind(this));
         
-        await this.fixIframePermissions();
         const retryIdentified = await this.waitForWorkspaceIdentified();
         
         if (!retryIdentified) {
@@ -531,13 +610,15 @@ class AircallPhoneManager {
 
   /**
    * Phase 3: Wait for workspace to be identified (ready to receive commands)
+   * Improved with exponential backoff and dedicated readiness probe
    */
-  private async waitForWorkspaceIdentified(timeout: number = 10000): Promise<boolean> {
-    console.log('[AircallWorkspace] ⏳ Phase 3: Waiting for workspace to be identified');
+  private async waitForWorkspaceIdentified(timeout: number = 30000): Promise<boolean> {
+    console.log('[AircallWorkspace] ⏳ Phase 3: Waiting for workspace to be identified (enhanced probe)');
     
     return new Promise((resolve) => {
       const startTime = Date.now();
       let attempts = 0;
+      let backoffDelay = 500; // Start with 500ms
       
       const checkIdentified = () => {
         attempts++;
@@ -548,27 +629,36 @@ class AircallPhoneManager {
           return;
         }
         
-        // Try to call isLoggedIn as a test - if it works without "not identified" error, we're ready
+        // Use send() as a readiness probe - it will fail with "not identified" if not ready
         try {
-          this.workspace.isLoggedIn((isLoggedIn) => {
-            console.log(`[AircallWorkspace] ✅ Workspace identified! (attempt ${attempts}, logged in: ${isLoggedIn})`);
+          this.workspace.send('ping', {}, (success, response) => {
+            // If send() completes without throwing "not identified", we're ready
+            console.log(`[AircallWorkspace] ✅ Workspace identified! (attempt ${attempts})`);
             resolve(true);
           });
-        } catch (error) {
+        } catch (error: any) {
           const errorMsg = String(error);
           
           if (Date.now() - startTime > timeout) {
-            console.error('[AircallWorkspace] ❌ Timeout waiting for workspace to be identified');
+            console.error('[AircallWorkspace] ❌ Timeout (30s) waiting for workspace to be identified');
             console.error('[AircallWorkspace] Last error:', errorMsg);
             resolve(false);
             return;
           }
           
-          // Workspace not identified yet, try again
-          if (attempts % 5 === 0) {
-            console.log(`[AircallWorkspace] ⏳ Still waiting for identification (attempt ${attempts})...`);
+          // Workspace not identified yet, try again with exponential backoff
+          if (errorMsg.includes('not identified') || errorMsg.includes('not ready')) {
+            if (attempts % 3 === 0) {
+              console.log(`[AircallWorkspace] ⏳ Still waiting for identification (attempt ${attempts})...`);
+            }
+            
+            // Exponential backoff: 500ms -> 1s -> 2s -> max 3s
+            backoffDelay = Math.min(backoffDelay * 2, 3000);
+            setTimeout(checkIdentified, backoffDelay);
+          } else {
+            // Different error, retry immediately
+            setTimeout(checkIdentified, 500);
           }
-          setTimeout(checkIdentified, 1000);
         }
       };
       

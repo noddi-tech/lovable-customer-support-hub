@@ -17,11 +17,15 @@ export interface AircallContextValue {
   error: string | null;
   isReconnecting: boolean;
   showLoginModal: boolean;
+  showBlockedModal: boolean;
+  diagnosticIssues: string[];
   openLoginModal: () => void;
   showWorkspace: () => void;
   hideWorkspace: () => void;
-  initializationPhase: 'idle' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed';
+  initializationPhase: 'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed';
   handleManualLoginConfirm: () => void;
+  retryConnection: () => void;
+  openIncognito: () => void;
 }
 
 const AircallContext = createContext<AircallContextValue | null>(null);
@@ -46,7 +50,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(() => !aircallPhone.getLoginStatus());
-  const [initializationPhase, setInitializationPhase] = useState<'idle' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed'>('idle');
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [diagnosticIssues, setDiagnosticIssues] = useState<string[]>([]);
+  const [initializationPhase, setInitializationPhase] = useState<'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed'>('idle');
   const initAttemptedRef = useRef(false);
   const loginGracePeriodRef = useRef<NodeJS.Timeout | null>(null);
   const loginPollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -169,6 +175,22 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
     const initialize = async () => {
       try {
+        // Phase 1: Run diagnostics first
+        console.log('[AircallProvider] 🚀 Phase 1: Running environment diagnostics...');
+        setInitializationPhase('diagnostics');
+        
+        const diagnostic = await aircallPhone.diagnoseEnvironment();
+        
+        if (diagnostic.hasIssues) {
+          console.warn('[AircallProvider] ⚠️ Environment issues detected:', diagnostic.issues);
+          setDiagnosticIssues(diagnostic.issues);
+          setShowBlockedModal(true);
+          setInitializationPhase('failed');
+          return;
+        }
+        
+        console.log('[AircallProvider] ✅ Diagnostics passed, continuing initialization');
+        
         // Container is guaranteed to exist in HTML - direct check
         let container = document.querySelector('#aircall-workspace-container') as HTMLElement;
         
@@ -182,8 +204,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         }
         
         console.log('[AircallProvider] ✅ Container ready in DOM');
-        
-        console.log('[AircallProvider] Initializing SDK...');
         
         console.log('[AircallProvider] 🚀 Starting SDK initialization...');
         setInitializationPhase('creating-workspace');
@@ -287,27 +307,24 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             description: 'Please log in through the workspace to start receiving calls',
           });
           
-          // Phase 5: Extended polling configuration
-          console.log('[AircallProvider] 🎯 Layer 2: Starting login detection polling');
+          // Phase 4: Simplified polling - no OAuth detection, just poll for 3 minutes
+          console.log('[AircallProvider] 🎯 Starting simplified login detection polling');
           let pollAttempts = 0;
-          const MAX_POLL_ATTEMPTS = 40; // 120 seconds total (40 * 3s)
-          let lastPolledStatus = false; // Track status to reduce noise
+          const MAX_POLL_ATTEMPTS = 60; // Phase 4: 180 seconds total (60 * 3s)
+          let lastPolledStatus = false;
           
           loginPollingRef.current = setInterval(() => {
             pollAttempts++;
-            console.log(`[AircallProvider] 🔍 Layer 2: Polling login status (attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS}) at ${new Date().toISOString()}`);
             
             aircallPhone.checkLoginStatus((isLoggedIn) => {
-              // Only log if status changed
               if (isLoggedIn !== lastPolledStatus) {
-                console.log(`[AircallProvider] 🔍 Layer 2: Poll result - logged in: ${isLoggedIn} (changed from ${lastPolledStatus})`);
+                console.log(`[AircallProvider] 🔍 Login status: ${isLoggedIn}`);
                 lastPolledStatus = isLoggedIn;
               }
               
               if (isLoggedIn) {
-                console.log('[AircallProvider] 🎯 Layer 2: Login detected via polling!');
+                console.log('[AircallProvider] ✅ Login detected via polling!');
                 
-                // Clear polling
                 if (loginPollingRef.current) {
                   clearInterval(loginPollingRef.current);
                   loginPollingRef.current = null;
@@ -317,10 +334,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
                   loginTimeoutWarningRef.current = null;
                 }
                 
-                // Clear post-OAuth sync state
-                setIsPostOAuthSync(false);
-                
-                // Manually trigger login flow
                 aircallPhone.setLoginStatus(true);
                 saveConnectionMetadata();
                 setIsConnected(true);
@@ -329,7 +342,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
                 setInitializationPhase('logged-in');
                 reconnectAttempts.current = 0;
                 
-                // Auto-hide container
                 const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
                 if (container) {
                   container.classList.add('aircall-visible');
@@ -348,16 +360,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               }
             });
             
-            // Stop polling after max attempts
             if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-              console.log('[AircallProvider] ⏱️ Layer 2: Polling timeout reached after 120 seconds');
+              console.log('[AircallProvider] ⏱️ Polling timeout reached after 180 seconds');
               if (loginPollingRef.current) {
                 clearInterval(loginPollingRef.current);
                 loginPollingRef.current = null;
               }
-              setIsPostOAuthSync(false);
             }
-          }, 3000); // Phase 5: Check every 3 seconds (increased frequency)
+          }, 3000);
           
           // Layer 5: Timeout warning after 30 seconds
           loginTimeoutWarningRef.current = setTimeout(() => {
@@ -1006,6 +1016,19 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, 2000); // Wait 2 seconds for reload before checking
 }, [saveConnectionMetadata, toast]);
 
+  const retryConnection = useCallback(() => {
+    console.log('[AircallProvider] 🔄 Retrying connection after fixing blocks');
+    setShowBlockedModal(false);
+    setDiagnosticIssues([]);
+    initAttemptedRef.current = false;
+    window.location.reload();
+  }, []);
+
+  const openIncognito = useCallback(() => {
+    console.log('[AircallProvider] 🔓 Opening in incognito mode');
+    window.open(window.location.href, '_blank');
+  }, []);
+
   const value: AircallContextValue = {
     isInitialized,
     isConnected,
@@ -1016,12 +1039,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     dialNumber,
     error,
     isReconnecting,
-    showLoginModal: showLoginModal && !isPostOAuthSync, // Hide modal during OAuth sync
+    showLoginModal: showLoginModal && !isPostOAuthSync,
+    showBlockedModal,
+    diagnosticIssues,
     openLoginModal,
     showWorkspace: () => aircallPhone.showWorkspace(),
     hideWorkspace: () => aircallPhone.hideWorkspace(),
     initializationPhase,
     handleManualLoginConfirm,
+    retryConnection,
+    openIncognito,
   };
 
   return (
