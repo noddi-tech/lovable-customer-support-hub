@@ -49,7 +49,7 @@ export const Auth: React.FC = () => {
 
       if (data?.magicLink) {
         setSuccess('Dev login link generated! Redirecting...');
-        // Redirect to the magic link to complete authentication
+        // Use window.location.href for magic links (external redirect required)
         window.location.href = data.magicLink;
       } else {
         throw new Error('No magic link received');
@@ -92,7 +92,7 @@ export const Auth: React.FC = () => {
       if (error) throw error;
       
       if (data.user) {
-        window.location.href = '/';
+        navigate('/', { replace: true });
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign in');
@@ -197,7 +197,7 @@ export const Auth: React.FC = () => {
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed, redirect to main app
           console.log('User immediately confirmed, redirecting...');
-          window.location.href = '/';
+          navigate('/', { replace: true });
         } else {
           console.log('User needs email confirmation');
           setSuccess('Account created! Please check your email for the confirmation link.');

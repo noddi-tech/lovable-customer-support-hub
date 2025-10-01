@@ -121,10 +121,13 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Fetch conversations
+  // Fetch conversations with optimized config
   const { data: conversations = [], isLoading, error } = useQuery({
     queryKey: ['conversations', user?.id],
     enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false, // Don't refetch on tab switch
+    gcTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       logger.info('Fetching conversations for user', { userId: user?.id }, 'ConversationListProvider');
       

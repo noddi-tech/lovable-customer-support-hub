@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface SessionRecoveryState {
   isRecovering: boolean;
@@ -10,6 +11,7 @@ interface SessionRecoveryState {
 
 export function useSessionRecovery() {
   const { refreshSession, validateSession } = useAuth();
+  const navigate = useNavigate();
   const [state, setState] = useState<SessionRecoveryState>({
     isRecovering: false,
     retryCount: 0,
@@ -68,9 +70,9 @@ export function useSessionRecovery() {
       // Show different messages based on retry count
       if (state.retryCount >= 3) {
         toast.error('Unable to restore session. Please log in again.');
-        // Redirect to auth after multiple failures
+        // Navigate to auth after multiple failures
         setTimeout(() => {
-          window.location.href = '/auth';
+          navigate('/auth', { replace: true });
         }, 2000);
       } else {
         toast.error(`Session recovery failed (attempt ${state.retryCount})`);

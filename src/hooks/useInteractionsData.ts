@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import {
   listAccessibleInboxes,
   getInboxCounts,
@@ -25,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export function useAccessibleInboxes() {
   const { user, loading: authLoading, refreshSession } = useAuth();
+  const navigate = useNavigate();
   
   return useQuery({
     queryKey: ['inboxes'],
@@ -46,8 +48,8 @@ export function useAccessibleInboxes() {
             return await listAccessibleInboxes();
           }
           
-          // If refresh fails, redirect to auth
-          window.location.href = '/auth';
+          // If refresh fails, navigate to auth
+          navigate('/auth', { replace: true });
           return [];
         }
         throw error;

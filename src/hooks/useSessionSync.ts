@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface SessionSyncState {
   isSyncing: boolean;
@@ -11,6 +12,7 @@ interface SessionSyncState {
 
 export function useSessionSync() {
   const { user, session, refreshSession, validateSession } = useAuth();
+  const navigate = useNavigate();
   const [state, setState] = useState<SessionSyncState>({
     isSyncing: false,
     lastSyncCheck: null,
@@ -45,8 +47,7 @@ export function useSessionSync() {
         console.log('❌ Session refresh failed, forcing re-login');
         await supabase.auth.signOut();
         toast.error('Session expired. Please log in again.');
-        // Use replace to avoid adding to history
-        window.location.replace('/auth');
+        navigate('/auth', { replace: true });
         return false;
       }
 
@@ -69,7 +70,7 @@ export function useSessionSync() {
       setState(prev => ({ ...prev, isSyncing: false }));
       return false;
     }
-  }, [validateSession, refreshSession, state.isSyncing]);
+  }, [validateSession, refreshSession, state.isSyncing, navigate]);
 
   const checkSessionHealth = useCallback(async (): Promise<boolean> => {
     try {

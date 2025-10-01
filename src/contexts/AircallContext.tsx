@@ -289,14 +289,19 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           // Layer 2: Start polling fallback to detect login
           console.log('[AircallProvider] 🎯 Layer 2: Starting login detection polling');
           let pollAttempts = 0;
-          const MAX_POLL_ATTEMPTS = 30; // 60 seconds total
+          const MAX_POLL_ATTEMPTS = 12; // 60 seconds total (12 * 5s)
+          let lastPolledStatus = false; // Track status to reduce noise
           
           loginPollingRef.current = setInterval(() => {
             pollAttempts++;
             console.log(`[AircallProvider] 🔍 Layer 2: Polling login status (attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS})`);
             
             aircallPhone.checkLoginStatus((isLoggedIn) => {
-              console.log(`[AircallProvider] 🔍 Layer 2: Poll result - logged in: ${isLoggedIn}`);
+              // Only log if status changed
+              if (isLoggedIn !== lastPolledStatus) {
+                console.log(`[AircallProvider] 🔍 Layer 2: Poll result - logged in: ${isLoggedIn}`);
+                lastPolledStatus = isLoggedIn;
+              }
               
               if (isLoggedIn) {
                 console.log('[AircallProvider] 🎯 Layer 2: Login detected via polling!');
@@ -347,19 +352,19 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
                 loginPollingRef.current = null;
               }
             }
-          }, 2000); // Check every 2 seconds
+          }, 5000); // Check every 5 seconds (reduced from 2s)
           
-          // Layer 5: Timeout warning after 15 seconds
+          // Layer 5: Timeout warning after 30 seconds
           loginTimeoutWarningRef.current = setTimeout(() => {
             if (!aircallPhone.getLoginStatus()) {
               console.log('[AircallProvider] ⏰ Layer 5: Login timeout warning');
               toast({
                 title: 'Still Waiting for Login',
-                description: 'Please log in through the Aircall window. Click "I\'ve Logged In" if you already did.',
+                description: 'Please log in through the Aircall window.',
                 duration: 8000,
               });
             }
-          }, 15000);
+          }, 30000); // Show warning after 30 seconds
         } else {
           console.error('[AircallProvider] ❌ Workspace creation failed');
           setIsInitialized(false);

@@ -4,10 +4,12 @@ import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const SyncButton = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -23,10 +25,10 @@ export const SyncButton = () => {
         console.log('Sync response:', data);
         toast.success(t('dashboard.sync.success'));
         
-        // Refresh the page after a short delay to see new messages
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
+        // Refresh data without page reload
+        await queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        await queryClient.invalidateQueries({ queryKey: ['inboxes'] });
+        await queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
       }
     } catch (error) {
       console.error('Sync error:', error);
