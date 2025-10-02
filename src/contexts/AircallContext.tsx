@@ -5,6 +5,7 @@ import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { detectBrowser } from '@/lib/browser-detection';
 
 export interface AircallContextValue {
   isInitialized: boolean;
@@ -189,6 +190,34 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     const initialize = async () => {
       // PHASE 5: Wrap entire initialization in try-catch
       try {
+        // Phase 0: Check browser compatibility FIRST
+        console.log('[AircallProvider] 🔍 Checking browser compatibility...');
+        const browserInfo = await detectBrowser();
+        console.log('[AircallProvider] Browser detected:', browserInfo.name, '| Supported:', browserInfo.isSupported, '| Requires config:', browserInfo.requiresConfiguration);
+        
+        if (!browserInfo.isSupported) {
+          console.error('[AircallProvider] ❌ UNSUPPORTED BROWSER - STOPPING INITIALIZATION');
+          console.error('[AircallProvider] Browser:', browserInfo.name);
+          console.error('[AircallProvider] Recommendation:', browserInfo.recommendation);
+          setDiagnosticIssues([`unsupported_browser_${browserInfo.type}`]);
+          setShowBlockedModal(true);
+          setInitializationPhase('failed');
+          
+          toast({
+            title: 'Browser Not Supported',
+            description: `Aircall requires Google Chrome. You're using ${browserInfo.name}.`,
+            variant: 'destructive',
+            duration: 15000,
+          });
+          
+          return; // DO NOT PROCEED
+        }
+        
+        if (browserInfo.requiresConfiguration) {
+          console.warn('[AircallProvider] ⚠️ Browser requires configuration:', browserInfo.name);
+          console.warn('[AircallProvider] Recommendation:', browserInfo.recommendation);
+        }
+        
         // Phase 1: Create AbortController for short-circuit capability
         abortControllerRef.current = new AbortController();
         

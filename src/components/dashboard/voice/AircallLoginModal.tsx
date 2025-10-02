@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, ExternalLink, Chrome, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
+import { detectBrowser, getChromeDownloadUrl, type BrowserInfo } from '@/lib/browser-detection';
 
 interface AircallLoginModalProps {
   isOpen: boolean;
@@ -25,6 +26,12 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'checking' | 'success' | 'error'>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [browserInfo, setBrowserInfo] = useState<BrowserInfo | null>(null);
+
+  // Detect browser on mount
+  useEffect(() => {
+    detectBrowser().then(setBrowserInfo);
+  }, []);
 
   // Track elapsed time for progressive messages
   useEffect(() => {
@@ -113,6 +120,41 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Unsupported Browser Warning (immediate) */}
+          {browserInfo && !browserInfo.isSupported && (
+            <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+              <Chrome className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="ml-2 space-y-2">
+                <div>
+                  <strong>{t('aircall.login.browser.unsupported', { browser: browserInfo.name })}</strong>
+                  <br />
+                  <span className="text-sm">{t('aircall.login.browser.useChrome')}</span>
+                </div>
+                <Button
+                  onClick={() => window.open(getChromeDownloadUrl(), '_blank')}
+                  size="sm"
+                  variant="default"
+                  className="w-full mt-2"
+                >
+                  <Chrome className="h-4 w-4 mr-2" />
+                  {t('aircall.login.browser.downloadChrome')}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Brave Warning (after 5 seconds) */}
+          {browserInfo?.type === 'brave' && elapsedTime >= 5 && (
+            <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
+              <Shield className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="ml-2">
+                <strong>{t('aircall.login.browser.braveDetected')}</strong>
+                <br />
+                <span className="text-sm">{t('aircall.login.browser.braveInstructions')}</span>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Status Message */}
           <div className="flex items-center gap-3 p-4 rounded-lg bg-muted">
             {verificationStatus === 'checking' ? (

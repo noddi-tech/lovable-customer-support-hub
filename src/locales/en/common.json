@@ -407,7 +407,14 @@
       "openInNewTab": "Open Aircall in New Tab",
       "afterLogin": "After logging in, return here and click verify below",
       "verifyButton": "I've Logged In - Verify Now",
-      "skipButton": "Skip for Now"
+      "skipButton": "Skip for Now",
+      "browser": {
+        "unsupported": "{{browser}} is not supported by Aircall",
+        "useChrome": "Aircall requires Google Chrome for full functionality",
+        "downloadChrome": "Download Google Chrome",
+        "braveDetected": "Brave Browser detected",
+        "braveInstructions": "You need to disable Brave Shields for this site. Click the lion icon in your address bar and toggle Shields OFF."
+      }
     },
     "blocked": {
       "title": "Connection Blocked",
@@ -426,6 +433,15 @@
       "step2Desc": "Common extensions that may cause issues:",
       "vpnExtensions": "Any VPN or firewall extensions",
       "step3Title": "After Fixing",
+      "browser": {
+        "unsupported": "{{browser}} is not supported",
+        "useChrome": "Aircall requires Google Chrome. Please download Chrome to use the phone integration.",
+        "step1Title": "Download Google Chrome",
+        "step1Desc": "Aircall officially supports Chrome for the best experience",
+        "downloadChrome": "Download Chrome",
+        "braveDetected": "Brave Browser Detected",
+        "braveNote": "Note: Brave users must disable Shields for this site"
+      },
       "step3Desc": "Once you've disabled blocking extensions, click the button below to retry",
       "retryButton": "I've Fixed It - Retry Connection",
       "copyReport": "Copy Debug Report",

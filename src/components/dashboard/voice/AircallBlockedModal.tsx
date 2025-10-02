@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertTriangle, Shield, ExternalLink, Copy } from 'lucide-react';
+import { AlertTriangle, Shield, ExternalLink, Copy, Chrome } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { aircallPhone } from '@/lib/aircall-phone';
+import { detectBrowser, getBrowserInstructions, getChromeDownloadUrl, type BrowserInfo } from '@/lib/browser-detection';
 
 interface AircallBlockedModalProps {
   isOpen: boolean;
@@ -24,9 +25,15 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const [browserInfo, setBrowserInfo] = useState<BrowserInfo | null>(null);
   const hasNetworkBlock = issues.includes('network_blocked') || issues.includes('resources_blocked');
   const hasIframeBlock = issues.includes('no_iframe') || issues.includes('iframe_blocked');
   const hasTimeout = issues.includes('timeout');
+
+  // Detect browser on mount
+  useEffect(() => {
+    detectBrowser().then(setBrowserInfo);
+  }, []);
 
   const handleQuickTest = () => {
     const testWindow = window.open('https://phone.aircall.io', '_blank');
@@ -106,15 +113,75 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
           </AlertDescription>
         </Alert>
 
+        {/* Browser-Specific Warning */}
+        {browserInfo && !browserInfo.isSupported && (
+          <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+            <Chrome className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="ml-2">
+              <strong>{t('aircall.blocked.browser.unsupported', { browser: browserInfo.name })}</strong>
+              <br />
+              {t('aircall.blocked.browser.useChrome')}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Brave-Specific Instructions */}
+        {browserInfo?.type === 'brave' && (
+          <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
+            <Shield className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="ml-2">
+              <strong>{t('aircall.blocked.browser.braveDetected')}</strong>
+              <div className="mt-2 space-y-1 text-sm">
+                {getBrowserInstructions('brave').map((instruction, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="text-orange-600 font-bold">{idx + 1}.</span>
+                    <span>{instruction}</span>
+                  </div>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Solution Steps */}
         <div className="space-y-4">
+          {/* Step 1: Use Chrome (if unsupported browser) */}
+          {browserInfo && !browserInfo.isSupported && (
+            <div>
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">1</span>
+                {t('aircall.blocked.browser.step1Title')}
+              </h4>
+              <p className="text-sm text-muted-foreground mb-3 ml-8">
+                {t('aircall.blocked.browser.step1Desc')}
+              </p>
+              <div className="ml-8">
+                <Button
+                  onClick={() => window.open(getChromeDownloadUrl(), '_blank')}
+                  variant="default"
+                >
+                  <Chrome className="h-4 w-4 mr-2" />
+                  {t('aircall.blocked.browser.downloadChrome')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Try Incognito/Private Mode */}
           <div>
             <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">1</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">
+                {browserInfo && !browserInfo.isSupported ? '2' : '1'}
+              </span>
               {t('aircall.blocked.step1Title')}
             </h4>
             <p className="text-sm text-muted-foreground mb-3 ml-8">
               {t('aircall.blocked.step1Desc')}
+              {browserInfo?.type === 'brave' && (
+                <span className="block mt-1 text-orange-600 font-medium">
+                  {t('aircall.blocked.browser.braveNote')}
+                </span>
+              )}
             </p>
             <div className="flex gap-2 ml-8">
               <Button
@@ -134,9 +201,12 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
             </div>
           </div>
 
+          {/* Step 3: Disable Ad Blockers */}
           <div>
             <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">2</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">
+                {browserInfo && !browserInfo.isSupported ? '3' : '2'}
+              </span>
               {t('aircall.blocked.step2Title')}
             </h4>
             <div className="text-sm text-muted-foreground space-y-1 ml-8">
@@ -151,9 +221,12 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
             </div>
           </div>
 
+          {/* Step 4: Retry */}
           <div>
             <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">3</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">
+                {browserInfo && !browserInfo.isSupported ? '4' : '3'}
+              </span>
               {t('aircall.blocked.step3Title')}
             </h4>
             <p className="text-sm text-muted-foreground mb-3 ml-8">
