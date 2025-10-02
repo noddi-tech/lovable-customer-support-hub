@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, XCircle, ExternalLink, Chrome, Shield } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, ExternalLink, Chrome, Shield, Cookie, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { detectBrowser, getChromeDownloadUrl, type BrowserInfo } from '@/lib/browser-detection';
+import { getCookieEnableInstructions } from '@/lib/cookie-detection';
 
 interface AircallLoginModalProps {
   isOpen: boolean;
@@ -190,27 +191,78 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
             </Alert>
           )}
 
-          {/* Troubleshooting Section (after 15s) */}
+          {/* Enhanced Troubleshooting Section (after 15s) */}
           {showTroubleshooting && (
-            <div className="space-y-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-              <h4 className="font-semibold text-sm text-amber-900 dark:text-amber-100">
-                {t('aircall.login.havingTrouble')}
-              </h4>
-              <p className="text-xs text-amber-800 dark:text-amber-200">
-                {t('aircall.login.troubleDesc')}
-              </p>
-              <Button
-                onClick={handleOpenNewTab}
-                variant="outline"
-                size="sm"
-                className="w-full"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                {t('aircall.login.openInNewTab')}
-              </Button>
-              <p className="text-xs text-amber-700 dark:text-amber-300 text-center">
-                {t('aircall.login.afterLogin')}
-              </p>
+            <div className="space-y-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 text-amber-600" />
+                <h4 className="font-semibold text-sm text-amber-900 dark:text-amber-100">
+                  {t('aircall.login.havingTrouble')}
+                </h4>
+              </div>
+
+              {/* Check 1: Cookies */}
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200">
+                  <Cookie className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                  <div>
+                    <strong className="block mb-1">Check: Third-Party Cookies</strong>
+                    <span>Aircall requires third-party cookies enabled.</span>
+                    {browserInfo && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer hover:underline font-medium">
+                          How to enable in {browserInfo.name}
+                        </summary>
+                        <div className="mt-2 space-y-1 pl-4">
+                          {getCookieEnableInstructions(browserInfo.type).map((instruction, idx) => (
+                            <div key={idx} className="flex gap-2">
+                              <span className="font-bold">{idx + 1}.</span>
+                              <span>{instruction}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Check 2: Credentials */}
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200">
+                  <Shield className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                  <div>
+                    <strong className="block mb-1">Check: API Credentials</strong>
+                    <span>Verify your Aircall Everywhere credentials in Admin Settings → Aircall.</span>
+                    <div className="mt-1">
+                      Use the <strong>"Test Credentials"</strong> button to validate.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Check 3: Login in New Tab */}
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200">
+                  <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                  <div>
+                    <strong className="block mb-1">Try: Login in New Tab</strong>
+                    <span>Sometimes logging in to Aircall in a separate tab helps establish the session.</span>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleOpenNewTab}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Aircall in New Tab
+                </Button>
+                <p className="text-xs text-amber-700 dark:text-amber-300 text-center">
+                  After logging in, return here and click "I'm Logged In"
+                </p>
+              </div>
             </div>
           )}
 

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertTriangle, Shield, ExternalLink, Copy, Chrome } from 'lucide-react';
+import { AlertTriangle, Shield, ExternalLink, Copy, Chrome, Cookie, Wifi, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { aircallPhone } from '@/lib/aircall-phone';
 import { detectBrowser, getBrowserInstructions, getChromeDownloadUrl, type BrowserInfo } from '@/lib/browser-detection';
+import { getCookieEnableInstructions } from '@/lib/cookie-detection';
 
 interface AircallBlockedModalProps {
   isOpen: boolean;
@@ -26,9 +27,14 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
   const { t } = useTranslation();
   const { toast } = useToast();
   const [browserInfo, setBrowserInfo] = useState<BrowserInfo | null>(null);
+  
+  // Categorize issues
+  const hasCookiesBlocked = issues.includes('cookies_blocked');
+  const hasAuthenticationFailed = issues.includes('authentication_failed');
   const hasNetworkBlock = issues.includes('network_blocked') || issues.includes('resources_blocked');
   const hasIframeBlock = issues.includes('no_iframe') || issues.includes('iframe_blocked');
   const hasTimeout = issues.includes('timeout');
+  const hasUnsupportedBrowser = issues.some(i => i.includes('unsupported_browser'));
 
   // Detect browser on mount
   useEffect(() => {
@@ -85,33 +91,88 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
           </div>
         </DialogHeader>
 
-        {/* Issue Explanation */}
-        <Alert className="border-destructive/50 bg-destructive/5">
-          <Shield className="h-4 w-4 text-destructive" />
-          <AlertDescription className="ml-2">
-            {hasNetworkBlock && (
-              <>
-                <strong>{t('aircall.blocked.networkTitle')}</strong>
-                <br />
-                {t('aircall.blocked.networkMessage')}
-              </>
-            )}
-            {hasIframeBlock && !hasNetworkBlock && (
-              <>
-                <strong>{t('aircall.blocked.iframeTitle')}</strong>
-                <br />
-                {t('aircall.blocked.iframeMessage')}
-              </>
-            )}
-            {hasTimeout && !hasNetworkBlock && !hasIframeBlock && (
-              <>
-                <strong>{t('aircall.blocked.timeoutTitle')}</strong>
-                <br />
-                {t('aircall.blocked.timeoutMessage')}
-              </>
-            )}
-          </AlertDescription>
-        </Alert>
+        {/* Issue Explanation - Priority Order: Cookies > Auth > Network > Iframe > Timeout */}
+        
+        {/* Cookies Blocked */}
+        {hasCookiesBlocked && (
+          <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
+            <Cookie className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="ml-2">
+              <strong>Third-Party Cookies Blocked</strong>
+              <br />
+              Aircall requires third-party cookies to function. Your browser is currently blocking them.
+              {browserInfo && (
+                <div className="mt-3 space-y-1 text-sm">
+                  <div className="font-semibold">How to enable cookies in {browserInfo.name}:</div>
+                  {getCookieEnableInstructions(browserInfo.type).map((instruction, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="text-orange-600 font-bold min-w-[20px]">{idx + 1}.</span>
+                      <span>{instruction}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Authentication Failed */}
+        {hasAuthenticationFailed && !hasCookiesBlocked && (
+          <Alert className="border-red-500/50 bg-red-50 dark:bg-red-950/20">
+            <Key className="h-4 w-4 text-red-600" />
+            <AlertDescription className="ml-2">
+              <strong>Authentication Failed (401)</strong>
+              <br />
+              Unable to authenticate with Aircall. This could be due to:
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                <li>Invalid API credentials - verify in Admin Settings</li>
+                <li>Third-party cookies blocked - check browser settings</li>
+                <li>Aircall session expired - try logging in again</li>
+                <li>Network/firewall blocking authentication</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Network Block */}
+        {hasNetworkBlock && !hasCookiesBlocked && !hasAuthenticationFailed && (
+          <Alert className="border-destructive/50 bg-destructive/5">
+            <Wifi className="h-4 w-4 text-destructive" />
+            <AlertDescription className="ml-2">
+              <strong>{t('aircall.blocked.networkTitle')}</strong>
+              <br />
+              {t('aircall.blocked.networkMessage')}
+              <div className="mt-2 text-sm">
+                Check that <code className="bg-muted px-1 rounded">phone.aircall.io</code> and{' '}
+                <code className="bg-muted px-1 rounded">api.aircall.io</code> are not blocked by your firewall or proxy.
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Iframe Block */}
+        {hasIframeBlock && !hasNetworkBlock && !hasCookiesBlocked && !hasAuthenticationFailed && (
+          <Alert className="border-destructive/50 bg-destructive/5">
+            <Shield className="h-4 w-4 text-destructive" />
+            <AlertDescription className="ml-2">
+              <strong>{t('aircall.blocked.iframeTitle')}</strong>
+              <br />
+              {t('aircall.blocked.iframeMessage')}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Timeout */}
+        {hasTimeout && !hasNetworkBlock && !hasIframeBlock && !hasCookiesBlocked && !hasAuthenticationFailed && (
+          <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="ml-2">
+              <strong>{t('aircall.blocked.timeoutTitle')}</strong>
+              <br />
+              {t('aircall.blocked.timeoutMessage')}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Browser-Specific Warning */}
         {browserInfo && !browserInfo.isSupported && (
