@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { detectBrowser } from '@/lib/browser-detection';
+import { detectThirdPartyCookies } from '@/lib/cookie-detection';
 
 export interface AircallContextValue {
   isInitialized: boolean;
@@ -190,7 +191,32 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     const initialize = async () => {
       // PHASE 5: Wrap entire initialization in try-catch
       try {
-        // Phase 0: Check browser compatibility FIRST
+        // Phase 0a: Check third-party cookies FIRST (before any SDK calls)
+        console.log('[AircallProvider] 🍪 Checking third-party cookie support...');
+        const cookieCheck = await detectThirdPartyCookies();
+        console.log('[AircallProvider] Cookie detection result:', cookieCheck);
+        
+        if (!cookieCheck.supported) {
+          console.error('[AircallProvider] ❌ THIRD-PARTY COOKIES BLOCKED - STOPPING INITIALIZATION');
+          console.error('[AircallProvider] Method:', cookieCheck.method);
+          console.error('[AircallProvider] Details:', cookieCheck.details);
+          setDiagnosticIssues(['cookies_blocked', cookieCheck.browserType]);
+          setShowBlockedModal(true);
+          setInitializationPhase('failed');
+          
+          toast({
+            title: 'Third-Party Cookies Blocked',
+            description: 'Aircall requires third-party cookies. Please enable them in your browser settings.',
+            variant: 'destructive',
+            duration: 15000,
+          });
+          
+          return; // DO NOT PROCEED
+        }
+        
+        console.log('[AircallProvider] ✅ Third-party cookies supported');
+        
+        // Phase 0b: Check browser compatibility
         console.log('[AircallProvider] 🔍 Checking browser compatibility...');
         const browserInfo = await detectBrowser();
         console.log('[AircallProvider] Browser detected:', browserInfo.name, '| Supported:', browserInfo.isSupported, '| Requires config:', browserInfo.requiresConfiguration);
@@ -221,9 +247,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         // Phase 1: Create AbortController for short-circuit capability
         abortControllerRef.current = new AbortController();
         
-        // Phase 2: Setup error listener BEFORE initialization
+        // Phase 2: Setup error listener BEFORE initialization (including 401 detection)
         blockingErrorListenerRef.current = (e: ErrorEvent) => {
           const errorMsg = e.message || '';
+          
+          // Check for network blocking
           if (errorMsg.includes('ERR_BLOCKED_BY_CLIENT') || errorMsg.includes('blocked by client')) {
             console.error('[AircallProvider] ❌ Network blocking detected via error event');
             setDiagnosticIssues(['network_blocked']);
@@ -236,6 +264,24 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             toast({
               title: 'Aircall Blocked',
               description: 'Network requests are being blocked. Please disable ad blockers.',
+              variant: 'destructive',
+              duration: 10000,
+            });
+          }
+          
+          // Check for authentication failures (401)
+          if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('authentication')) {
+            console.error('[AircallProvider] ❌ Authentication failed (401)');
+            setDiagnosticIssues(['authentication_failed']);
+            setShowBlockedModal(true);
+            setInitializationPhase('failed');
+            
+            // Short-circuit initialization
+            abortControllerRef.current?.abort();
+            
+            toast({
+              title: 'Authentication Failed',
+              description: 'Unable to authenticate with Aircall. Check credentials or cookie settings.',
               variant: 'destructive',
               duration: 10000,
             });
@@ -546,16 +592,45 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           blockingErrorListenerRef.current = null;
         }
         
+        // Detect specific error types
+        const errorMessage = initError.message || initError.toString();
+        let issues: string[] = [];
+        
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          console.error('[AircallProvider] ❌ 401 Authentication Error detected');
+          issues = ['authentication_failed'];
+          setDiagnosticIssues(issues);
+          setShowBlockedModal(true);
+          
+          toast({
+            title: 'Authentication Failed',
+            description: 'Invalid Aircall credentials or cookies blocked. Check Admin Settings.',
+            variant: 'destructive',
+            duration: 15000,
+          });
+        } else if (errorMessage.includes('network') || errorMessage.includes('blocked')) {
+          issues = ['network_blocked'];
+          setDiagnosticIssues(issues);
+          setShowBlockedModal(true);
+          
+          toast({
+            title: 'Network Blocked',
+            description: 'Aircall is being blocked by your network or firewall.',
+            variant: 'destructive',
+            duration: 15000,
+          });
+        } else {
+          toast({
+            title: 'Phone Integration Failed',
+            description: 'Unable to initialize Aircall. You can skip this integration.',
+            variant: 'destructive',
+            duration: 10000,
+          });
+        }
+        
         setInitializationPhase('failed');
         setError(`Initialization failed: ${initError.message}`);
         setIsInitialized(false);
-        
-        toast({
-          title: 'Phone Integration Failed',
-          description: 'Unable to initialize Aircall. You can skip this integration.',
-          variant: 'destructive',
-          duration: 10000,
-        });
         
         return; // Exit permanently
       }
