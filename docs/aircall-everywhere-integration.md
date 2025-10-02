@@ -184,27 +184,124 @@ The system implements automatic reconnection with exponential backoff:
 4. Multiple tabs open simultaneously
 5. Network instability
 
+## Browser Requirements
+
+### Supported Browsers
+
+**Fully Supported:**
+- Google Chrome (latest version) - **Recommended**
+- Microsoft Edge (Chromium-based)
+
+**Not Supported:**
+- Safari (all versions) - blocks third-party cookies by default
+- Firefox - Enhanced Tracking Protection blocks required features
+- Brave - Requires shields to be disabled
+- Internet Explorer - Not supported
+
+### Third-Party Cookies Requirement
+
+Aircall Everywhere **requires third-party cookies** to function. This is because:
+- The SDK runs in an embedded iframe from `phone.aircall.io`
+- Authentication tokens must be shared across domains
+- Real-time event synchronization needs cross-origin storage
+
+#### How to Enable Third-Party Cookies
+
+**Chrome:**
+1. Go to Settings → Privacy and Security → Cookies
+2. Select "Allow all cookies" OR
+3. Add `phone.aircall.io` to "Sites that can always use cookies"
+4. Restart Chrome
+
+**Edge:**
+1. Go to Settings → Cookies and site permissions
+2. Disable "Block third-party cookies"
+3. Restart Edge
+
+**Safari (Not Recommended):**
+- Safari blocks third-party cookies by default for privacy (ITP)
+- This cannot be disabled for individual sites
+- **Use Chrome instead for Aircall integration**
+
+**Firefox:**
+1. Go to Settings → Privacy & Security
+2. Set Enhanced Tracking Protection to "Standard"
+3. Restart Firefox
+
+**Brave:**
+1. Click Brave Shields icon in address bar
+2. Set to "Shields Down" for this site
+3. Alternatively, go to Settings and allow all cookies
+
+## Network and Firewall Requirements
+
+If your organization has strict firewall rules, ensure these domains are whitelisted:
+
+**Required Domains:**
+- `phone.aircall.io` - Aircall Everywhere SDK
+- `api.aircall.io` - Aircall REST API
+- `*.supabase.co` - Edge function for credential testing
+
+**Ports:**
+- HTTPS (443) - All Aircall communication
+- WSS (443) - WebSocket for real-time events
+
 ## Troubleshooting
 
 ### SDK Not Initializing
-- Check API credentials in Admin Settings
-- Verify browser compatibility
+- **Check API credentials** in Admin Settings → Aircall Everywhere
+- **Test credentials** using the "Test Credentials" button
+- Verify browser is Chrome or Edge (latest version)
 - Check console for initialization errors
+- Ensure third-party cookies are enabled
+
+### 401 Authentication Errors
+
+**Possible Causes:**
+
+1. **Invalid Credentials**
+   - API ID or API Token is incorrect
+   - Credentials expired or revoked
+   - **Solution:** Test credentials in Admin Settings, regenerate if needed
+
+2. **Third-Party Cookies Blocked**
+   - Browser blocking cross-origin cookies
+   - Privacy extensions interfering
+   - **Solution:** Enable third-party cookies (see above), disable privacy extensions
+
+3. **Session Expired**
+   - Aircall session timed out
+   - User logged out of Aircall
+   - **Solution:** Refresh page, re-authenticate with Aircall
+
+4. **Network/Firewall Blocking**
+   - Corporate firewall blocking `phone.aircall.io`
+   - Proxy interfering with authentication
+   - **Solution:** Whitelist required domains, check with IT
 
 ### Connection Lost
 - System automatically attempts reconnection
 - Check network connectivity
-- Refresh page if reconnection fails
+- Ensure `phone.aircall.io` is accessible
+- Refresh page if reconnection fails after 5 attempts
 
 ### Customer Data Not Loading
 - Verify Noddi API key is configured
-- Check customer email/phone exists
+- Check customer email/phone exists in database
 - Review edge function logs for errors
+- Ensure customer record is linked to call
 
 ### Call Controls Not Working
-- Ensure SDK is initialized (check connection indicator)
-- Verify browser permissions for audio
-- Check Aircall account has active lines
+- Ensure SDK is initialized (green indicator in phone bar)
+- Verify browser permissions for microphone/audio
+- Check Aircall account has active phone lines
+- Test credentials in Admin Settings
+
+### Cookie Detection Issues
+- Run the built-in cookie detection before SDK initialization
+- If detection fails, manually verify browser settings
+- Use Chrome for most reliable experience
+- Check for browser extensions blocking cookies
 
 ## Future Enhancements
 

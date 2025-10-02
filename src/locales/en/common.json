@@ -3,6 +3,14 @@
     "title": "Settings",
     "description": "Manage your account and application preferences",
     "backToDashboard": "Back to Dashboard",
+    "aircall": {
+      "testCredentials": "Test Credentials",
+      "testingCredentials": "Testing...",
+      "credentialsValid": "✓ Connected to",
+      "credentialsInvalid": "✗ Invalid credentials",
+      "credentialsError": "Error testing credentials",
+      "lastTested": "Last tested"
+    },
     "tabs": {
       "departments": "Departments",
       "general": "General",

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall } from 'lucide-react';
+import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +54,15 @@ export const AircallSettings = () => {
   const [everywhereApiId, setEverywhereApiId] = useState('');
   const [everywhereApiToken, setEverywhereApiToken] = useState('');
   const [everywhereDomain, setEverywhereDomain] = useState('');
+  
+  // Credential testing
+  const [isTestingCredentials, setIsTestingCredentials] = useState(false);
+  const [credentialTestResult, setCredentialTestResult] = useState<{
+    valid: boolean;
+    companyName?: string;
+    error?: string;
+    timestamp?: Date;
+  } | null>(null);
 
   // Load existing configuration when it changes
   useEffect(() => {
@@ -186,6 +196,67 @@ export const AircallSettings = () => {
       webhook_token: webhookToken,
       configuration
     });
+  };
+
+  const testCredentials = async () => {
+    if (!everywhereApiId || !everywhereApiToken) {
+      toast({
+        title: "Missing credentials",
+        description: "Please enter both API ID and API Token",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsTestingCredentials(true);
+    setCredentialTestResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('test-aircall-credentials', {
+        body: {
+          apiId: everywhereApiId,
+          apiToken: everywhereApiToken
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setCredentialTestResult({
+        valid: data.valid,
+        companyName: data.company?.name,
+        error: data.error,
+        timestamp: new Date()
+      });
+
+      if (data.valid) {
+        toast({
+          title: "Credentials valid",
+          description: `Successfully connected to ${data.company.name}`,
+        });
+      } else {
+        toast({
+          title: "Credentials invalid",
+          description: data.error || "Unable to authenticate with Aircall",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Credential test error:', error);
+      setCredentialTestResult({
+        valid: false,
+        error: error.message,
+        timestamp: new Date()
+      });
+      toast({
+        title: "Test failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsTestingCredentials(false);
+    }
   };
 
   const testWebhook = async () => {
@@ -480,6 +551,44 @@ export const AircallSettings = () => {
                     Leave blank to use current domain: {window.location.hostname}
                   </p>
                 </div>
+
+                <div className="space-y-3">
+                  <Button
+                    onClick={testCredentials}
+                    disabled={isTestingCredentials || !everywhereApiId || !everywhereApiToken}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <TestTube className="h-4 w-4 mr-2" />
+                    {isTestingCredentials ? t('settings.aircall.testingCredentials') : t('settings.aircall.testCredentials')}
+                  </Button>
+
+                  {credentialTestResult && (
+                    <Alert variant={credentialTestResult.valid ? "default" : "destructive"}>
+                      {credentialTestResult.valid ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4" />
+                      )}
+                      <AlertDescription>
+                        {credentialTestResult.valid ? (
+                          <>
+                            {t('settings.aircall.credentialsValid')} <strong>{credentialTestResult.companyName}</strong>
+                          </>
+                        ) : (
+                          <>
+                            {t('settings.aircall.credentialsInvalid')}: {credentialTestResult.error}
+                          </>
+                        )}
+                        {credentialTestResult.timestamp && (
+                          <div className="text-xs mt-1 opacity-70">
+                            {t('settings.aircall.lastTested')}: {credentialTestResult.timestamp.toLocaleTimeString()}
+                          </div>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
               </div>
 
               <Alert>
@@ -616,6 +725,16 @@ export const AircallSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Browser Requirements Alert */}
+      <Alert>
+        <Globe className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Browser Requirements:</strong> Aircall Everywhere requires Google Chrome or Edge. 
+          Third-party cookies must be enabled. Safari and Firefox are not supported.
+          Make sure to save your configuration and test credentials before enabling.
+        </AlertDescription>
+      </Alert>
 
       {/* Save Settings */}
       <div className="flex justify-end">
