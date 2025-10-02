@@ -75,3 +75,6 @@ verify_jwt = false
 
 [functions.test-aircall-webhook]
 verify_jwt = false
+
+[functions.test-aircall-credentials]
+verify_jwt = true
