@@ -757,9 +757,9 @@ export const VoiceInterface = () => {
       <AircallLoginModal
         isOpen={showLoginModal}
         isConnected={isConnected}
-        isWaitingForWorkspace={initializationPhase === 'diagnostics' || initializationPhase === 'creating-workspace'}
-        onManualLoginConfirm={handleManualLoginConfirm}
+        onLoginConfirm={handleManualLoginConfirm}
         onSkip={skipPhoneIntegration}
+        initializationPhase={initializationPhase}
       />
       
       <AircallBlockedModal

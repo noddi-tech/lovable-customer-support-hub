@@ -107,7 +107,7 @@ const AppContent = () => {
  * Controls visibility of the container via CSS classes and renders the login modal
  */
 const AircallWorkspaceManager = () => {
-  const { showLoginModal, isConnected, handleManualLoginConfirm } = useAircallPhone();
+  const { showLoginModal, isConnected, handleManualLoginConfirm, skipPhoneIntegration, initializationPhase } = useAircallPhone();
   
   React.useEffect(() => {
     const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
@@ -128,7 +128,9 @@ const AircallWorkspaceManager = () => {
     <AircallLoginModal
       isOpen={showLoginModal}
       isConnected={isConnected}
-      onManualLoginConfirm={handleManualLoginConfirm}
+      onLoginConfirm={handleManualLoginConfirm}
+      onSkip={skipPhoneIntegration}
+      initializationPhase={initializationPhase}
     />
   );
 };

@@ -59,6 +59,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const loginGracePeriodRef = useRef<NodeJS.Timeout | null>(null);
   const loginPollingRef = useRef<NodeJS.Timeout | null>(null);
   const loginTimeoutWarningRef = useRef<NodeJS.Timeout | null>(null);
+  const blockingErrorListenerRef = useRef<((e: ErrorEvent) => void) | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   const reconnectAttempts = useRef(0);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -187,6 +189,33 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     const initialize = async () => {
       // PHASE 5: Wrap entire initialization in try-catch
       try {
+        // Phase 1: Create AbortController for short-circuit capability
+        abortControllerRef.current = new AbortController();
+        
+        // Phase 2: Setup error listener BEFORE initialization
+        blockingErrorListenerRef.current = (e: ErrorEvent) => {
+          const errorMsg = e.message || '';
+          if (errorMsg.includes('ERR_BLOCKED_BY_CLIENT') || errorMsg.includes('blocked by client')) {
+            console.error('[AircallProvider] ❌ Network blocking detected via error event');
+            setDiagnosticIssues(['network_blocked']);
+            setShowBlockedModal(true);
+            setInitializationPhase('failed');
+            
+            // Short-circuit initialization
+            abortControllerRef.current?.abort();
+            
+            toast({
+              title: 'Aircall Blocked',
+              description: 'Network requests are being blocked. Please disable ad blockers.',
+              variant: 'destructive',
+              duration: 10000,
+            });
+          }
+        };
+        
+        // Attach error listener with capture phase
+        window.addEventListener('error', blockingErrorListenerRef.current, true);
+        
         // Phase 1: STOP EVERYTHING if blocking detected
         console.log('[AircallProvider] 🚀 Phase 1: Running BULLETPROOF diagnostics...');
         setInitializationPhase('diagnostics');
@@ -230,12 +259,19 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log('[AircallProvider] 🚀 Starting SDK initialization...');
         setInitializationPhase('creating-workspace');
         
+        // Phase 1: Pass onProgress callback to monitor initialization
         await aircallPhone.initialize({
           apiId,
           apiToken,
           domainName: everywhereConfig.domainName || window.location.hostname,
           onLogin: () => {
             console.log('[AircallProvider] 🎯 Layer 1: onLogin callback received');
+            
+            // Phase 5: Cleanup error listener on successful login
+            if (blockingErrorListenerRef.current) {
+              window.removeEventListener('error', blockingErrorListenerRef.current, true);
+              blockingErrorListenerRef.current = null;
+            }
             
             // Clear all polling/timeout timers
             if (loginPollingRef.current) {
@@ -312,7 +348,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               handleDisconnection();
             }
           }
-        });
+        }, abortControllerRef.current.signal); // Phase 1: Pass AbortSignal
 
         // Check if workspace was created (not if user is logged in yet)
         const workspaceCreated = aircallPhone.isWorkspaceCreated();
@@ -474,6 +510,13 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       } catch (initError: any) {
         // PHASE 5: Permanent error state - don't let React retry
         console.error('[AircallProvider] ❌ FATAL: Initialization failed permanently:', initError);
+        
+        // Phase 5: Cleanup error listener
+        if (blockingErrorListenerRef.current) {
+          window.removeEventListener('error', blockingErrorListenerRef.current, true);
+          blockingErrorListenerRef.current = null;
+        }
+        
         setInitializationPhase('failed');
         setError(`Initialization failed: ${initError.message}`);
         setIsInitialized(false);
@@ -494,6 +537,13 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     // ONLY cleanup on actual app unmount (browser close)
     return () => {
       console.log('[AircallProvider] 🛑 App unmounting, cleaning up Aircall');
+      
+      // Phase 5: Cleanup error listener
+      if (blockingErrorListenerRef.current) {
+        window.removeEventListener('error', blockingErrorListenerRef.current, true);
+        blockingErrorListenerRef.current = null;
+      }
+      
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
       }
@@ -902,6 +952,13 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
   const skipPhoneIntegration = useCallback(() => {
     console.log('[AircallProvider] 🚪 User opted to skip phone integration');
+    
+    // Phase 5: Cleanup error listener when opting out
+    if (blockingErrorListenerRef.current) {
+      window.removeEventListener('error', blockingErrorListenerRef.current, true);
+      blockingErrorListenerRef.current = null;
+    }
+    
     sessionStorage.setItem('aircall_opted_out', 'true');
     setShowLoginModal(false);
     setShowBlockedModal(false);
