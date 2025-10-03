@@ -28,8 +28,9 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
     answerCall, 
     rejectCall, 
     hangUp,
-    showWorkspace,
-    hideWorkspace
+    showAircallWorkspace,
+    hideAircallWorkspace,
+    workspaceVisible
   } = useAircallPhone();
   
   // Show bar if there's either a currentCall (SDK) OR an incomingCall (database)
@@ -282,7 +283,7 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
             {/* Show Aircall button - Always available when connected */}
             {isConnected && (
               <Button
-                onClick={() => showWorkspace()}
+                onClick={() => showAircallWorkspace()}
                 size="sm"
                 variant="ghost"
                 className="text-xs"

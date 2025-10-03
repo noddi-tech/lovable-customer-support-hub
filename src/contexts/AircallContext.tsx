@@ -30,6 +30,9 @@ export interface AircallContextValue {
   openIncognito: () => void;
   skipPhoneIntegration: () => void;
   isWaitingForWorkspace?: boolean;
+  workspaceVisible: boolean;
+  showAircallWorkspace: () => void;
+  hideAircallWorkspace: () => void;
 }
 
 const AircallContext = createContext<AircallContextValue | null>(null);
@@ -53,6 +56,12 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const [currentCall, setCurrentCall] = useState<AircallCall | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  
+  // Workspace visibility state with localStorage persistence
+  const [workspaceVisible, setWorkspaceVisible] = useState(() => {
+    const saved = localStorage.getItem('aircall_workspace_visible');
+    return saved ? saved === 'true' : true; // Default to visible after login
+  });
   
   // Only show modal if user hasn't opted out
   const [showLoginModal, setShowLoginModal] = useState(() => {
@@ -402,12 +411,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             setInitializationPhase('logged-in');
             reconnectAttempts.current = 0;
             
-            // Make container visible after login (user can hide via button)
+            // Make container visible after login - NO AUTO-HIDE
             const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
             if (container) {
               container.classList.add('aircall-visible');
               container.classList.remove('aircall-hidden');
-              console.log('[AircallProvider] ✅ Workspace visible and clickable after login');
+              setWorkspaceVisible(true);
+              localStorage.setItem('aircall_workspace_visible', 'true');
+              console.log('[AircallProvider] ✅ Workspace visible and clickable after login (persistent)');
             }
             
             // Start grace period
@@ -1004,16 +1015,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           setError(null);
           setInitializationPhase('logged-in');
           
-          // Auto-hide container
+          // Make workspace visible - NO AUTO-HIDE
           const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
           if (container) {
             container.classList.add('aircall-visible');
             container.classList.remove('aircall-hidden');
-            
-            setTimeout(() => {
-              container.classList.add('aircall-hidden');
-              container.classList.remove('aircall-visible');
-            }, 5000);
+            setWorkspaceVisible(true);
+            localStorage.setItem('aircall_workspace_visible', 'true');
+            console.log('[AircallProvider] ✅ Workspace visible (persistent, no auto-hide)');
           }
           
           toast({
@@ -1053,15 +1062,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               setError(null);
               setInitializationPhase('logged-in');
               
+              // Make workspace visible - NO AUTO-HIDE
               const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
               if (container) {
                 container.classList.add('aircall-visible');
                 container.classList.remove('aircall-hidden');
-                
-                setTimeout(() => {
-                  container.classList.add('aircall-hidden');
-                  container.classList.remove('aircall-visible');
-                }, 5000);
+                setWorkspaceVisible(true);
+                localStorage.setItem('aircall_workspace_visible', 'true');
+                console.log('[AircallProvider] ✅ Workspace visible (persistent, no auto-hide)');
               }
               
               toast({
@@ -1115,6 +1123,60 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     });
   }, [toast]);
 
+  /**
+   * SINGLE SOURCE OF TRUTH: Centralized workspace visibility management
+   */
+  const showAircallWorkspace = useCallback(() => {
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    if (!container) {
+      console.warn('[AircallProvider] Cannot show workspace - container not found');
+      return;
+    }
+    
+    container.classList.add('aircall-visible');
+    container.classList.remove('aircall-hidden');
+    setWorkspaceVisible(true);
+    localStorage.setItem('aircall_workspace_visible', 'true');
+    console.log('[AircallProvider] 👁️ Workspace shown (user preference saved)');
+  }, []);
+
+  const hideAircallWorkspace = useCallback(() => {
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    if (!container) {
+      console.warn('[AircallProvider] Cannot hide workspace - container not found');
+      return;
+    }
+    
+    container.classList.remove('aircall-visible');
+    container.classList.add('aircall-hidden');
+    setWorkspaceVisible(false);
+    localStorage.setItem('aircall_workspace_visible', 'false');
+    console.log('[AircallProvider] 🙈 Workspace hidden (user preference saved)');
+  }, []);
+
+  /**
+   * Listen for custom events from aircall-phone.ts
+   */
+  useEffect(() => {
+    const handleShowWorkspace = () => {
+      console.log('[AircallProvider] 📢 Received show-workspace event');
+      showAircallWorkspace();
+    };
+
+    const handleHideWorkspace = () => {
+      console.log('[AircallProvider] 📢 Received hide-workspace event');
+      hideAircallWorkspace();
+    };
+
+    window.addEventListener('aircall-show-workspace', handleShowWorkspace);
+    window.addEventListener('aircall-hide-workspace', handleHideWorkspace);
+
+    return () => {
+      window.removeEventListener('aircall-show-workspace', handleShowWorkspace);
+      window.removeEventListener('aircall-hide-workspace', handleHideWorkspace);
+    };
+  }, [showAircallWorkspace, hideAircallWorkspace]);
+
   const value: AircallContextValue = {
     isInitialized,
     isConnected,
@@ -1136,6 +1198,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     retryConnection,
     openIncognito,
     skipPhoneIntegration,
+    workspaceVisible,
+    showAircallWorkspace,
+    hideAircallWorkspace,
   };
 
   return (

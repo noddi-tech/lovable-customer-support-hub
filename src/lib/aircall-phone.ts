@@ -697,7 +697,7 @@ class AircallPhoneManager {
 
   /**
    * Show the Aircall workspace UI
-   * Brings the container back on screen
+   * Dispatches custom event for centralized management
    */
   showWorkspace(): void {
     if (!this.workspace) {
@@ -705,20 +705,13 @@ class AircallPhoneManager {
       return;
     }
     
-    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-    if (container) {
-      // Remove hidden class and add visible class for proper pointer-events
-      container.classList.remove('aircall-hidden');
-      container.classList.add('aircall-visible');
-      container.style.bottom = '1rem';
-      container.style.right = '1rem';
-      console.log('[AircallWorkspace] 👁️ Workspace shown and clickable');
-    }
+    console.log('[AircallWorkspace] 📢 Dispatching show-workspace event');
+    window.dispatchEvent(new CustomEvent('aircall-show-workspace'));
   }
 
   /**
    * Hide the Aircall workspace UI
-   * Moves the container off-screen
+   * Dispatches custom event for centralized management
    */
   hideWorkspace(): void {
     if (!this.workspace) {
@@ -726,15 +719,8 @@ class AircallPhoneManager {
       return;
     }
     
-    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-    if (container) {
-      // Remove visible class and add hidden class to disable pointer-events
-      container.classList.remove('aircall-visible');
-      container.classList.add('aircall-hidden');
-      container.style.bottom = '-100vh';
-      container.style.right = '-100vw';
-      console.log('[AircallWorkspace] 🙈 Workspace hidden');
-    }
+    console.log('[AircallWorkspace] 📢 Dispatching hide-workspace event');
+    window.dispatchEvent(new CustomEvent('aircall-hide-workspace'));
   }
 
   /**

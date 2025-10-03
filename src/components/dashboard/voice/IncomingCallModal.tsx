@@ -20,7 +20,7 @@ interface IncomingCallModalProps {
 
 export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: IncomingCallModalProps) => {
   const queryClient = useQueryClient();
-  const { answerCall, isInitialized: isAircallReady, showWorkspace } = useAircallPhone();
+  const { answerCall, isInitialized: isAircallReady, showAircallWorkspace } = useAircallPhone();
   const { noddiData } = useCallCustomerContext();
   const [currentCall, setCurrentCall] = useState<Call | null>(call);
 
@@ -187,7 +187,7 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               {/* Show Aircall Button - Always available */}
               <Button
                 onClick={() => {
-                  showWorkspace();
+                  showAircallWorkspace();
                   console.log('[IncomingCallModal] 📱 Opening Aircall workspace');
                 }}
                 variant="outline"

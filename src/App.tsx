@@ -114,14 +114,17 @@ const AircallWorkspaceManager = () => {
     if (!container) return;
     
     // Show container ONLY when login modal explicitly needed
+    // After login, AircallContext manages visibility (no auto-hide)
     if (showLoginModal) {
       container.classList.add('aircall-visible');
       container.classList.remove('aircall-hidden');
-    } else {
+    } else if (!isConnected) {
+      // Only hide if NOT connected (before first login)
       container.classList.add('aircall-hidden');
       container.classList.remove('aircall-visible');
     }
-  }, [showLoginModal]);
+    // If connected but modal closed, leave it as-is (context controls it)
+  }, [showLoginModal, isConnected]);
   
   // Render the login modal
   return (
