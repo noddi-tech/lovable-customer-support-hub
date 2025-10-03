@@ -13,6 +13,7 @@ import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { ControlDoctor } from "@/dev/ControlDoctor";
 import { useAircallPhone } from "@/hooks/useAircallPhone";
 import { AircallLoginModal } from "@/components/dashboard/voice/AircallLoginModal";
+import { AircallErrorFallback } from "@/components/dashboard/voice/AircallErrorFallback";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
@@ -147,19 +148,21 @@ const App = () => (
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <AircallProvider>
-            <DesignSystemProvider>
-              <TooltipProvider>
-                <I18nWrapper>
-                  <AppContent />
-                  {/* Aircall Workspace Manager - Controls container visibility */}
-                  <AircallWorkspaceManager />
-                </I18nWrapper>
-                <Toaster />
-                <Sonner />
-              </TooltipProvider>
-            </DesignSystemProvider>
-          </AircallProvider>
+          <ErrorBoundary fallback={<AircallErrorFallback />}>
+            <AircallProvider>
+              <DesignSystemProvider>
+                <TooltipProvider>
+                  <I18nWrapper>
+                    <AppContent />
+                    {/* Aircall Workspace Manager - Controls container visibility */}
+                    <AircallWorkspaceManager />
+                  </I18nWrapper>
+                  <Toaster />
+                  <Sonner />
+                </TooltipProvider>
+              </DesignSystemProvider>
+            </AircallProvider>
+          </ErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

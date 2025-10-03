@@ -29,3 +29,4 @@ export { ConnectionDiagnostic } from './ConnectionDiagnostic';
 export { AircallBlockedModal } from './AircallBlockedModal';
 export { AircallLoginModal } from './AircallLoginModal';
 export { AircallDebugPanel } from './AircallDebugPanel';
+export { AircallErrorFallback } from './AircallErrorFallback';

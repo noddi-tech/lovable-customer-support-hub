@@ -34,12 +34,12 @@ interface ReconnectionConfig {
 }
 
 const DEFAULT_CONFIG: ReconnectionConfig = {
-  maxRetries: 5,
+  maxRetries: 5, // Increased from 3 to 5
   baseDelay: 1000, // 1 second
   maxDelay: 30000, // 30 seconds
   backoffMultiplier: 2,
-  statusDebounceMs: 2000, // 2 seconds debounce for status changes
-  toastRateLimitMs: 5000, // Minimum 5 seconds between toasts
+  statusDebounceMs: 5000, // Increased from 2s to 5s to avoid flapping
+  toastRateLimitMs: 10000, // Increased from 5s to 10s to reduce toast spam
 };
 
 export const useRealtimeConnectionManager = () => {

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useCallCustomerContext } from '@/hooks/useCallCustomerContext';
 import { useCallKeyboardShortcuts } from '@/hooks/useCallKeyboardShortcuts';
+import { useToast } from '@/hooks/use-toast';
 import { ActiveCallContext } from './ActiveCallContext';
 import { PostCallActions } from './PostCallActions';
 import { CallControls } from './CallControls';
@@ -21,6 +22,7 @@ interface AircallPhoneBarProps {
 }
 
 export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => {
+  const { toast } = useToast();
   const { 
     isInitialized, 
     isConnected, 
@@ -30,7 +32,8 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
     hangUp,
     showAircallWorkspace,
     hideAircallWorkspace,
-    workspaceVisible
+    workspaceVisible,
+    isWorkspaceReady
   } = useAircallPhone();
   
   // Show bar if there's either a currentCall (SDK) OR an incomingCall (database)
@@ -165,18 +168,24 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
         <div className="flex items-center justify-between gap-4">
           {/* Left: Call Status */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            {/* Connection Indicator */}
+            {/* Connection Indicator with Workspace Readiness */}
             <div className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium",
-              isConnected 
+              isWorkspaceReady
                 ? "bg-green-500/10 text-green-600 dark:text-green-400" 
+                : isConnected
+                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
                 : "bg-muted text-muted-foreground"
             )}>
               <div className={cn(
                 "w-2 h-2 rounded-full",
-                isConnected ? "bg-green-500 animate-pulse" : "bg-muted-foreground"
+                isWorkspaceReady 
+                  ? "bg-green-500 animate-pulse" 
+                  : isConnected 
+                  ? "bg-yellow-500 animate-pulse"
+                  : "bg-muted-foreground"
               )} />
-              {isConnected ? "Connected" : "Disconnected"}
+              {isWorkspaceReady ? "Ready" : isConnected ? "Loading..." : "Disconnected"}
             </div>
 
             {/* Call Info */}
@@ -221,9 +230,26 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
               {/* Answer (only for ringing incoming calls) */}
               {callStatus.isRinging && callStatus.isIncoming && (
                 <Button
-                  onClick={answerCall}
+                  onClick={async () => {
+                    // SDK Readiness Guard
+                    if (!isWorkspaceReady) {
+                      console.warn('[AircallPhoneBar] SDK not ready:', { 
+                        isInitialized, 
+                        isWorkspaceReady
+                      });
+                      toast({
+                        title: "Aircall Not Ready",
+                        description: "Please wait for Aircall to finish loading",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    console.log('[AircallPhoneBar] Answering call via SDK');
+                    await answerCall();
+                  }}
                   size="sm"
                   className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={!isWorkspaceReady}
                 >
                   <Phone className="h-4 w-4 mr-2" />
                   Answer

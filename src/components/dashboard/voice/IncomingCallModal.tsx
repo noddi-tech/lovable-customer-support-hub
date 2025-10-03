@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useCallCustomerContext } from '@/hooks/useCallCustomerContext';
+import { useToast } from '@/hooks/use-toast';
 import type { Call } from '@/hooks/useCalls';
 
 interface IncomingCallModalProps {
@@ -20,7 +21,13 @@ interface IncomingCallModalProps {
 
 export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: IncomingCallModalProps) => {
   const queryClient = useQueryClient();
-  const { answerCall, isInitialized: isAircallReady, showAircallWorkspace } = useAircallPhone();
+  const { toast } = useToast();
+  const { 
+    answerCall, 
+    isInitialized: isAircallReady, 
+    showAircallWorkspace,
+    isWorkspaceReady 
+  } = useAircallPhone();
   const { noddiData } = useCallCustomerContext();
   const [currentCall, setCurrentCall] = useState<Call | null>(call);
 
@@ -201,9 +208,26 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               {/* Answer via Aircall Everywhere (if enabled) */}
               {isAircallReady && (
                 <Button
-                  onClick={answerCall}
+                  onClick={async () => {
+                    // SDK Readiness Guard
+                    if (!isWorkspaceReady) {
+                      console.warn('[IncomingCallModal] SDK not ready:', { 
+                        isAircallReady, 
+                        isWorkspaceReady
+                      });
+                      toast({
+                        title: "Aircall Not Ready",
+                        description: "Please wait for Aircall to finish loading",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    console.log('[IncomingCallModal] Answering call via SDK');
+                    await answerCall();
+                  }}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                   size="lg"
+                  disabled={!isWorkspaceReady}
                 >
                   <PhoneCall className="h-4 w-4 mr-2" />
                   Answer in Browser

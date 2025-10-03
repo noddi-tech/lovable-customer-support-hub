@@ -33,6 +33,8 @@ export interface AircallContextValue {
   workspaceVisible: boolean;
   showAircallWorkspace: () => void;
   hideAircallWorkspace: () => void;
+  workspace: any; // Aircall workspace object
+  isWorkspaceReady: boolean; // True when workspace exists and is ready
 }
 
 const AircallContext = createContext<AircallContextValue | null>(null);
@@ -84,8 +86,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   
   const reconnectAttempts = useRef(0);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const isReconnectingMutex = useRef(false); // Prevent simultaneous reconnection attempts
   const MAX_RECONNECT_ATTEMPTS = 5;
-  const BASE_RECONNECT_DELAY = 1000;
+  const BASE_RECONNECT_DELAY = 2000; // Increased from 1000ms to 2000ms
   const GRACE_PERIOD_MS = 30000;
   const [isPostOAuthSync, setIsPostOAuthSync] = useState(false);
 
@@ -109,12 +112,19 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     };
   }, []);
 
-  // Exponential backoff reconnection logic
+  // Exponential backoff reconnection logic with mutex
   const attemptReconnect = useCallback(async () => {
+    // MUTEX: Prevent multiple simultaneous reconnection attempts
+    if (isReconnectingMutex.current) {
+      console.log('[AircallProvider] Already reconnecting, skipping attempt');
+      return;
+    }
+    
     if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
       console.error('[AircallProvider] Max reconnection attempts reached');
       setError('Unable to reconnect to Aircall. Please refresh the page.');
       setIsReconnecting(false);
+      isReconnectingMutex.current = false;
       toast({
         title: 'Connection Failed',
         description: 'Unable to reconnect to phone system',
@@ -122,6 +132,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       });
       return;
     }
+    
+    isReconnectingMutex.current = true;
 
     const delay = BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts.current);
     reconnectAttempts.current++;
@@ -144,6 +156,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             setError(null);
             setIsReconnecting(false);
             reconnectAttempts.current = 0;
+            isReconnectingMutex.current = false; // Release mutex
             
             toast({
               title: 'Reconnected',
@@ -153,12 +166,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           onLogout: () => {
             console.warn('[AircallProvider] Connection lost during reconnection');
             setIsConnected(false);
+            isReconnectingMutex.current = false; // Release mutex
           }
         });
 
         setIsInitialized(true);
       } catch (err: any) {
         console.error('[AircallProvider] Reconnection error:', err);
+        isReconnectingMutex.current = false; // Release mutex before retry
         attemptReconnect();
       }
     }, delay);
@@ -1242,6 +1257,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     workspaceVisible,
     showAircallWorkspace,
     hideAircallWorkspace,
+    workspace: null, // Workspace is private, not exposed
+    isWorkspaceReady: aircallPhone.isReady(), // Use isReady() which checks workspace exists and is initialized
   }), [
     isInitialized,
     isConnected,
