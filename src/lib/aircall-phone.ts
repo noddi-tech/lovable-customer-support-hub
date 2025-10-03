@@ -707,9 +707,12 @@ class AircallPhoneManager {
     
     const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
     if (container) {
+      // Remove hidden class and add visible class for proper pointer-events
+      container.classList.remove('aircall-hidden');
+      container.classList.add('aircall-visible');
       container.style.bottom = '1rem';
       container.style.right = '1rem';
-      console.log('[AircallWorkspace] 👁️  Workspace shown');
+      console.log('[AircallWorkspace] 👁️ Workspace shown and clickable');
     }
   }
 
@@ -725,6 +728,9 @@ class AircallPhoneManager {
     
     const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
     if (container) {
+      // Remove visible class and add hidden class to disable pointer-events
+      container.classList.remove('aircall-visible');
+      container.classList.add('aircall-hidden');
       container.style.bottom = '-100vh';
       container.style.right = '-100vw';
       console.log('[AircallWorkspace] 🙈 Workspace hidden');

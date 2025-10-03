@@ -271,6 +271,21 @@ export const AircallPhoneBar = () => {
                 )}
               </Button>
             )}
+            
+            {/* Show Aircall button - Always available when connected */}
+            {isConnected && (
+              <Button
+                onClick={() => showWorkspace()}
+                size="sm"
+                variant="ghost"
+                className="text-xs"
+                title="Show Aircall phone interface"
+              >
+                <Phone className="h-3 w-3 mr-1" />
+                Show Aircall
+              </Button>
+            )}
+
             {!currentCall && isConnected && (
               <>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -285,15 +300,6 @@ export const AircallPhoneBar = () => {
                 >
                   <Keyboard className="h-3 w-3 mr-1" />
                   Shortcuts
-                </Button>
-                <Button
-                  onClick={() => showWorkspace()}
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs"
-                >
-                  <Phone className="h-3 w-3 mr-1" />
-                  Show Aircall
                 </Button>
               </>
             )}

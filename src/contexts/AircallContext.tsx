@@ -402,17 +402,12 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             setInitializationPhase('logged-in');
             reconnectAttempts.current = 0;
             
-            // Keep container visible for 5 seconds, then auto-hide
+            // Make container visible after login (user can hide via button)
             const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
             if (container) {
               container.classList.add('aircall-visible');
               container.classList.remove('aircall-hidden');
-              
-              setTimeout(() => {
-                container.classList.add('aircall-hidden');
-                container.classList.remove('aircall-visible');
-                console.log('[AircallProvider] Container auto-hidden after login');
-              }, 5000);
+              console.log('[AircallProvider] ✅ Workspace visible and clickable after login');
             }
             
             // Start grace period
