@@ -36,8 +36,42 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
     isWorkspaceReady
   } = useAircallPhone();
   
-  // Show bar if there's either a currentCall (SDK) OR an incomingCall (database)
-  const hasActiveCall = currentCall || incomingCall;
+  // Unified call data helper - prefers SDK but falls back to database
+  const getUnifiedCallData = () => {
+    if (currentCall) {
+      return {
+        source: 'sdk',
+        phone: currentCall.phone_number || currentCall.from || currentCall.to,
+        customerName: currentCall.contact?.first_name 
+          ? `${currentCall.contact.first_name} ${currentCall.contact.last_name}`
+          : null,
+        status: currentCall.status,
+        direction: currentCall.direction,
+        callId: currentCall.call_id?.toString(),
+        startTime: currentCall.answered_at || currentCall.started_at,
+        isRinging: currentCall.status === 'ringing',
+        isOngoing: currentCall.status === 'ongoing' || currentCall.status === 'answered',
+        isIncoming: currentCall.direction === 'inbound'
+      };
+    } else if (incomingCall) {
+      return {
+        source: 'database',
+        phone: incomingCall.customer_phone,
+        customerName: incomingCall.customers?.full_name,
+        status: incomingCall.status,
+        direction: incomingCall.direction,
+        callId: incomingCall.id,
+        startTime: incomingCall.started_at,
+        isRinging: incomingCall.status === 'ringing',
+        isOngoing: incomingCall.status === 'ongoing',
+        isIncoming: incomingCall.direction === 'inbound'
+      };
+    }
+    return null;
+  };
+
+  const unifiedCall = getUnifiedCallData();
+  const hasActiveCall = !!unifiedCall;
   
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -109,15 +143,16 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
     setCompletedCall(null);
   };
 
-  // Debug logging
+  // Enhanced debug logging with data sources
   useEffect(() => {
-    console.log('[AircallPhoneBar] State:', {
-      isInitialized,
-      isConnected,
-      hasCall: !!currentCall,
-      callStatus: currentCall?.status
+    console.log('[AircallPhoneBar] Data sources:', {
+      hasSDKCall: !!currentCall,
+      hasDatabaseCall: !!incomingCall,
+      unifiedSource: unifiedCall?.source,
+      unifiedCallData: unifiedCall,
+      isWorkspaceReady
     });
-  }, [isInitialized, isConnected, currentCall]);
+  }, [currentCall, incomingCall, unifiedCall, isWorkspaceReady]);
 
   // Show connection status only if SDK not initialized
   if (!isInitialized) {
@@ -188,13 +223,13 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
               {isWorkspaceReady ? "Ready" : isConnected ? "Loading..." : "Disconnected"}
             </div>
 
-            {/* Call Info */}
-            {currentCall && callStatus && (
+            {/* Call Info - Shows data from SDK or database */}
+            {unifiedCall && (
               <>
                 <div className="h-6 w-px bg-border" />
                 
                 <div className="flex items-center gap-2">
-                  {callStatus.isIncoming ? (
+                  {unifiedCall.isIncoming ? (
                     <Phone className="h-4 w-4 text-green-600 animate-pulse" />
                   ) : (
                     <Phone className="h-4 w-4 text-blue-600" />
@@ -202,12 +237,9 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
                   
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {currentCall.contact?.first_name && currentCall.contact?.last_name
-                        ? `${currentCall.contact.first_name} ${currentCall.contact.last_name}`
-                        : formatPhone(currentCall.phone_number)
-                      }
+                      {unifiedCall.customerName || formatPhone(unifiedCall.phone)}
                     </p>
-                    {callStatus.isOngoing && (
+                    {unifiedCall.isOngoing && (
                       <p className="text-xs text-muted-foreground">
                         <Clock className="inline h-3 w-3 mr-1" />
                         {formatDuration(callDuration)}
@@ -216,68 +248,88 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
                   </div>
                 </div>
 
-                {/* Call Status Badge */}
-                <Badge variant={callStatus.isRinging ? "default" : "secondary"} className="ml-2">
-                  {callStatus.isRinging ? "Ringing" : "Active"}
-                </Badge>
+                {/* Call Status Badge with Source Indicator */}
+                <div className="flex items-center gap-2 ml-2">
+                  <Badge variant={unifiedCall.isRinging ? "default" : "secondary"}>
+                    {unifiedCall.isRinging ? "Ringing" : "Active"}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {unifiedCall.source === 'sdk' ? 'SDK' : 'DB'}
+                  </Badge>
+                </div>
               </>
             )}
           </div>
 
-          {/* Center: Call Controls */}
-          {currentCall && callStatus && (
+          {/* Center: Call Controls - SDK or database mode */}
+          {unifiedCall && (
             <div className="flex items-center gap-2">
-              {/* Answer (only for ringing incoming calls) */}
-              {callStatus.isRinging && callStatus.isIncoming && (
+              {/* SDK Mode - Full controls when workspace is ready */}
+              {unifiedCall.source === 'sdk' && (
+                <>
+                  {/* Answer (only for ringing incoming calls) */}
+                  {unifiedCall.isRinging && unifiedCall.isIncoming && (
+                    <Button
+                      onClick={async () => {
+                        if (!isWorkspaceReady) {
+                          console.warn('[AircallPhoneBar] SDK not ready');
+                          toast({
+                            title: "Aircall Not Ready",
+                            description: "Please wait for Aircall to finish loading",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        await answerCall();
+                      }}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      disabled={!isWorkspaceReady}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Answer
+                    </Button>
+                  )}
+
+                  {/* Call Controls (only for ongoing calls) */}
+                  {unifiedCall.isOngoing && (
+                    <CallControls
+                      onMute={() => setIsMuted(!isMuted)}
+                      onHold={() => setIsOnHold(!isOnHold)}
+                      onTransfer={handleTransfer}
+                      onHangUp={hangUp}
+                      isMuted={isMuted}
+                      isOnHold={isOnHold}
+                      variant="compact"
+                    />
+                  )}
+
+                  {/* Reject (only for ringing calls) */}
+                  {unifiedCall.isRinging && (
+                    <Button
+                      onClick={rejectCall}
+                      size="sm"
+                      variant="destructive"
+                    >
+                      <PhoneOff className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* Database Mode - Show "Answer in Browser" to open Aircall */}
+              {unifiedCall.source === 'database' && unifiedCall.isRinging && (
                 <Button
-                  onClick={async () => {
-                    // SDK Readiness Guard
-                    if (!isWorkspaceReady) {
-                      console.warn('[AircallPhoneBar] SDK not ready:', { 
-                        isInitialized, 
-                        isWorkspaceReady
-                      });
-                      toast({
-                        title: "Aircall Not Ready",
-                        description: "Please wait for Aircall to finish loading",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    console.log('[AircallPhoneBar] Answering call via SDK');
-                    await answerCall();
+                  onClick={() => {
+                    console.log('[AircallPhoneBar] Opening Aircall for database call');
+                    showAircallWorkspace();
                   }}
                   size="sm"
                   className="bg-green-600 hover:bg-green-700 text-white"
-                  disabled={!isWorkspaceReady}
                 >
                   <Phone className="h-4 w-4 mr-2" />
-                  Answer
-                </Button>
-              )}
-
-              {/* Call Controls (only for ongoing calls) */}
-              {callStatus.isOngoing && (
-                <CallControls
-                  onMute={() => setIsMuted(!isMuted)}
-                  onHold={() => setIsOnHold(!isOnHold)}
-                  onTransfer={handleTransfer}
-                  onHangUp={hangUp}
-                  isMuted={isMuted}
-                  isOnHold={isOnHold}
-                  variant="compact"
-                />
-              )}
-
-              {/* Reject (only for ringing calls) */}
-              {callStatus.isRinging && (
-                <Button
-                  onClick={rejectCall}
-                  size="sm"
-                  variant="destructive"
-                >
-                  <PhoneOff className="h-4 w-4 mr-2" />
-                  Reject
+                  Answer in Browser
                 </Button>
               )}
             </div>
