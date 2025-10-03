@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe } from 'lucide-react';
+import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -186,7 +186,7 @@ export const AircallSettings = () => {
         enabled: everywhereEnabled,
         apiId: everywhereApiId,
         apiToken: everywhereApiToken,
-        domainName: everywhereDomain || window.location.hostname
+        domainName: everywhereDomain.trim() || undefined // Only store if explicitly provided
       }
     };
 
@@ -539,17 +539,38 @@ export const AircallSettings = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="everywhere-domain">Domain Name (Optional)</Label>
-                  <Input
-                    id="everywhere-domain"
-                    type="text"
-                    placeholder={window.location.hostname}
-                    value={everywhereDomain}
-                    onChange={(e) => setEverywhereDomain(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave blank to use current domain: {window.location.hostname}
-                  </p>
+                  <Label htmlFor="everywhere-domain">
+                    Domain Name (Optional)
+                  </Label>
+                  <div className="space-y-2">
+                    <Input
+                      id="everywhere-domain"
+                      type="text"
+                      placeholder="Leave blank for auto-detection"
+                      value={everywhereDomain}
+                      onChange={(e) => setEverywhereDomain(e.target.value)}
+                      disabled={!everywhereEnabled}
+                    />
+                    <div className="flex items-center gap-2 text-sm">
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {everywhereDomain.trim() || window.location.hostname}
+                      </Badge>
+                      <span className="text-muted-foreground text-xs">
+                        {everywhereDomain.trim() ? '← Custom domain' : '← Auto-detected (recommended)'}
+                      </span>
+                    </div>
+                    {everywhereDomain.trim() && everywhereDomain.trim() !== window.location.hostname && (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          <strong>Domain mismatch:</strong> Configured domain doesn't match current domain ({window.location.hostname}). This will prevent Aircall from loading.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Leave blank to automatically use the current domain. Only set a custom domain for production deployments with a fixed hostname.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
