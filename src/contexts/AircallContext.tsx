@@ -334,21 +334,38 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log('[AircallProvider] 🚀 Starting SDK initialization...');
         setInitializationPhase('creating-workspace');
         
-        // Phase 1: Pass onProgress callback to monitor initialization
+        // Phase 1: Enhanced domain debugging
         const runtimeDomain = everywhereConfig.domainName || window.location.hostname;
-        console.log('[AircallProvider] 🌐 Domain Configuration:', {
-          storedInDB: everywhereConfig.domainName || '(not set - auto-detect)',
-          currentHostname: window.location.hostname,
-          usingDomain: runtimeDomain,
-          match: !everywhereConfig.domainName || everywhereConfig.domainName === window.location.hostname
+        console.group('[AircallProvider] 🌐 DOMAIN DEBUG');
+        console.log('📦 Raw DB Config:', {
+          fullConfig: everywhereConfig,
+          domainField: everywhereConfig.domainName,
+          fieldType: typeof everywhereConfig.domainName,
+          isEmpty: !everywhereConfig.domainName || everywhereConfig.domainName === '',
         });
+        console.log('🌍 Runtime Environment:', {
+          hostname: window.location.hostname,
+          href: window.location.href,
+          protocol: window.location.protocol,
+        });
+        console.log('🎯 SDK Initialization:', {
+          domainToUse: runtimeDomain,
+          isAutoDetect: !everywhereConfig.domainName,
+          isDomainMatch: !everywhereConfig.domainName || everywhereConfig.domainName === window.location.hostname,
+          apiId,
+          hasToken: !!apiToken,
+        });
+        console.groupEnd();
         
         await aircallPhone.initialize({
           apiId,
           apiToken,
           domainName: runtimeDomain,
           onLogin: () => {
-            console.log('[AircallProvider] 🎯 Layer 1: onLogin callback received');
+            console.group('[AircallProvider] ✅ LOGIN CALLBACK FIRED');
+            console.log('Timestamp:', new Date().toISOString());
+            console.log('Current phase:', initializationPhase);
+            console.groupEnd();
             
             // Phase 5: Cleanup error listener on successful login
             if (blockingErrorListenerRef.current) {
@@ -403,7 +420,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             });
           },
           onLogout: () => {
-            console.log('[AircallProvider] 🔌 Logout event received');
+            console.group('[AircallProvider] 🚪 LOGOUT CALLBACK');
+            console.log('Timestamp:', new Date().toISOString());
+            console.groupEnd();
             
             // If in grace period, likely network issue
             if (loginGracePeriodRef.current) {
@@ -435,7 +454,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
         // Check if workspace was created (not if user is logged in yet)
         const workspaceCreated = aircallPhone.isWorkspaceCreated();
-        console.log('[AircallProvider] Workspace created:', workspaceCreated);
+        console.group('[AircallProvider] 📋 POST-INIT CHECK');
+        console.log('Workspace created:', workspaceCreated);
+        console.log('Iframe exists:', !!document.querySelector('#aircall-workspace-container iframe'));
+        console.log('Container classes:', document.querySelector('#aircall-workspace-container')?.className);
+        console.groupEnd();
         
         if (workspaceCreated) {
           setIsInitialized(true);
@@ -592,7 +615,12 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         }
       } catch (initError: any) {
         // PHASE 5: Permanent error state - don't let React retry
-        console.error('[AircallProvider] ❌ FATAL: Initialization failed permanently:', initError);
+        console.group('[AircallProvider] ❌ INITIALIZATION ERROR');
+        console.error('Error object:', initError);
+        console.error('Error message:', initError instanceof Error ? initError.message : 'Unknown error');
+        console.error('Stack:', initError instanceof Error ? initError.stack : 'No stack');
+        console.error('Domain that failed:', everywhereConfig.domainName || window.location.hostname);
+        console.groupEnd();
         
         // Phase 5: Cleanup error listener
         if (blockingErrorListenerRef.current) {
