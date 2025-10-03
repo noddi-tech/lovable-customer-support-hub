@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { createContext, useState, useEffect, useCallback, useRef, ReactNode, useMemo } from 'react';
 import { aircallPhone, type AircallCall } from '@/lib/aircall-phone';
 import { aircallEventBridge } from '@/lib/aircall-event-bridge';
 import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
@@ -177,6 +177,108 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     
     attemptReconnect();
   }, [attemptReconnect, toast]);
+
+  // ============================================================================
+  // PHASE 4: localStorage Wrapper Helpers
+  // ============================================================================
+  const WORKSPACE_VISIBILITY_KEY = 'aircall_workspace_visible';
+
+  const getWorkspaceVisiblePreference = useCallback((): boolean => {
+    const saved = localStorage.getItem(WORKSPACE_VISIBILITY_KEY);
+    return saved ? saved === 'true' : true;
+  }, []);
+
+  const setWorkspaceVisiblePreference = useCallback((visible: boolean): void => {
+    localStorage.setItem(WORKSPACE_VISIBILITY_KEY, visible.toString());
+  }, []);
+
+  // ============================================================================
+  // PHASE 1-3-5: BULLETPROOF Workspace Visibility Management
+  // Single Source of Truth with Idempotence, Race Condition Handling & JSDoc
+  // ============================================================================
+  
+  /**
+   * Shows the Aircall workspace with full idempotence and race condition handling.
+   * 
+   * @remarks
+   * - **No auto-hide**: Once shown, workspace remains visible until user explicitly hides it
+   * - **Idempotent**: Safe to call multiple times - skips if already visible
+   * - **Race condition safe**: Retries up to 3 times if container not yet in DOM
+   * - **Persistent**: Saves user preference to localStorage
+   * - **Single source of truth**: This is the ONLY function that should show the workspace
+   * 
+   * @example
+   * ```ts
+   * // From any component using useAircallPhone()
+   * const { showWorkspace } = useAircallPhone();
+   * showWorkspace(); // Safe to call repeatedly
+   * ```
+   */
+  const showAircallWorkspace = useCallback(() => {
+    // PHASE 1: Idempotence Guard - Skip if already visible
+    if (workspaceVisible) {
+      console.log('[AircallProvider] 👁️ Workspace already visible - skipping');
+      return;
+    }
+
+    // PHASE 5: Race Condition Retry Logic
+    let attempts = 0;
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 100;
+
+    const tryShow = () => {
+      const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+      
+      if (!container) {
+        attempts++;
+        if (attempts < MAX_ATTEMPTS) {
+          console.warn(`[AircallProvider] Container not found, retry ${attempts}/${MAX_ATTEMPTS} in ${RETRY_DELAY_MS}ms`);
+          setTimeout(tryShow, RETRY_DELAY_MS);
+          return;
+        } else {
+          console.error('[AircallProvider] Cannot show workspace - container not found after 3 attempts');
+          return;
+        }
+      }
+
+      // PHASE 3: Single DOM manipulation point
+      container.classList.add('aircall-visible');
+      container.classList.remove('aircall-hidden');
+      setWorkspaceVisible(true);
+      setWorkspaceVisiblePreference(true);
+      console.log('[AircallProvider] ✅ Workspace shown (persistent, no auto-hide)');
+    };
+
+    tryShow();
+  }, [workspaceVisible, setWorkspaceVisiblePreference]);
+
+  /**
+   * Hides the Aircall workspace with full idempotence.
+   * 
+   * @remarks
+   * - **Idempotent**: Safe to call multiple times - skips if already hidden
+   * - **Persistent**: Saves user preference to localStorage
+   * - **Single source of truth**: This is the ONLY function that should hide the workspace
+   */
+  const hideAircallWorkspace = useCallback(() => {
+    // PHASE 1: Idempotence Guard - Skip if already hidden
+    if (!workspaceVisible) {
+      console.log('[AircallProvider] 🙈 Workspace already hidden - skipping');
+      return;
+    }
+
+    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+    if (!container) {
+      console.warn('[AircallProvider] Cannot hide workspace - container not found');
+      return;
+    }
+    
+    container.classList.remove('aircall-visible');
+    container.classList.add('aircall-hidden');
+    setWorkspaceVisible(false);
+    setWorkspaceVisiblePreference(false);
+    console.log('[AircallProvider] 🙈 Workspace hidden (user preference saved)');
+  }, [workspaceVisible, setWorkspaceVisiblePreference]);
 
   /**
    * Initialize Aircall Workspace (ONCE per app lifecycle)
@@ -411,15 +513,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             setInitializationPhase('logged-in');
             reconnectAttempts.current = 0;
             
-            // Make container visible after login - NO AUTO-HIDE
-            const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-            if (container) {
-              container.classList.add('aircall-visible');
-              container.classList.remove('aircall-hidden');
-              setWorkspaceVisible(true);
-              localStorage.setItem('aircall_workspace_visible', 'true');
-              console.log('[AircallProvider] ✅ Workspace visible and clickable after login (persistent)');
-            }
+            // PHASE 3: Use centralized visibility function
+            showAircallWorkspace();
             
             // Start grace period
             if (loginGracePeriodRef.current) {
@@ -456,12 +551,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               aircallPhone.clearLoginStatus();
               setShowLoginModal(true);
               
-              // Show container again for re-login
-              const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-              if (container) {
-                container.classList.add('aircall-visible');
-                container.classList.remove('aircall-hidden');
-              }
+              // PHASE 3: Use centralized visibility function
+              showAircallWorkspace();
               
               handleDisconnection();
             }
@@ -522,16 +613,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
                 setInitializationPhase('logged-in');
                 reconnectAttempts.current = 0;
                 
-                const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-                if (container) {
-                  container.classList.add('aircall-visible');
-                  container.classList.remove('aircall-hidden');
-                  
-                  setTimeout(() => {
-                    container.classList.add('aircall-hidden');
-                    container.classList.remove('aircall-visible');
-                  }, 5000);
-                }
+                // PHASE 3: Use centralized visibility function (NO AUTO-HIDE TIMER!)
+                showAircallWorkspace();
                 
                 toast({
                   title: '✅ Login Detected',
@@ -717,7 +800,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         aircallPhone.disconnect();
       }
     };
-  }, [everywhereConfig, toast, handleDisconnection, saveConnectionMetadata, getConnectionMetadata, attemptReconnect]);
+  }, [everywhereConfig, toast, handleDisconnection, saveConnectionMetadata, getConnectionMetadata, attemptReconnect, showAircallWorkspace]);
 
   /**
    * Register SDK event handlers
@@ -1015,15 +1098,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           setError(null);
           setInitializationPhase('logged-in');
           
-          // Make workspace visible - NO AUTO-HIDE
-          const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-          if (container) {
-            container.classList.add('aircall-visible');
-            container.classList.remove('aircall-hidden');
-            setWorkspaceVisible(true);
-            localStorage.setItem('aircall_workspace_visible', 'true');
-            console.log('[AircallProvider] ✅ Workspace visible (persistent, no auto-hide)');
-          }
+          // PHASE 3: Use centralized visibility function
+          showAircallWorkspace();
           
           toast({
             title: '✅ Login Confirmed',
@@ -1062,15 +1138,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               setError(null);
               setInitializationPhase('logged-in');
               
-              // Make workspace visible - NO AUTO-HIDE
-              const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-              if (container) {
-                container.classList.add('aircall-visible');
-                container.classList.remove('aircall-hidden');
-                setWorkspaceVisible(true);
-                localStorage.setItem('aircall_workspace_visible', 'true');
-                console.log('[AircallProvider] ✅ Workspace visible (persistent, no auto-hide)');
-              }
+              // PHASE 3: Use centralized visibility function
+              showAircallWorkspace();
               
               toast({
                 title: '✅ Login Confirmed',
@@ -1124,37 +1193,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, [toast]);
 
   /**
-   * SINGLE SOURCE OF TRUTH: Centralized workspace visibility management
-   */
-  const showAircallWorkspace = useCallback(() => {
-    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-    if (!container) {
-      console.warn('[AircallProvider] Cannot show workspace - container not found');
-      return;
-    }
-    
-    container.classList.add('aircall-visible');
-    container.classList.remove('aircall-hidden');
-    setWorkspaceVisible(true);
-    localStorage.setItem('aircall_workspace_visible', 'true');
-    console.log('[AircallProvider] 👁️ Workspace shown (user preference saved)');
-  }, []);
-
-  const hideAircallWorkspace = useCallback(() => {
-    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-    if (!container) {
-      console.warn('[AircallProvider] Cannot hide workspace - container not found');
-      return;
-    }
-    
-    container.classList.remove('aircall-visible');
-    container.classList.add('aircall-hidden');
-    setWorkspaceVisible(false);
-    localStorage.setItem('aircall_workspace_visible', 'false');
-    console.log('[AircallProvider] 🙈 Workspace hidden (user preference saved)');
-  }, []);
-
-  /**
    * Listen for custom events from aircall-phone.ts
    */
   useEffect(() => {
@@ -1177,7 +1215,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     };
   }, [showAircallWorkspace, hideAircallWorkspace]);
 
-  const value: AircallContextValue = {
+  // ============================================================================
+  // PHASE 0: Memoize Context Value for Performance
+  // ============================================================================
+  const value: AircallContextValue = useMemo(() => ({
     isInitialized,
     isConnected,
     currentCall,
@@ -1201,7 +1242,30 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     workspaceVisible,
     showAircallWorkspace,
     hideAircallWorkspace,
-  };
+  }), [
+    isInitialized,
+    isConnected,
+    currentCall,
+    answerCall,
+    rejectCall,
+    hangUp,
+    dialNumber,
+    error,
+    isReconnecting,
+    showLoginModal,
+    isPostOAuthSync,
+    showBlockedModal,
+    diagnosticIssues,
+    openLoginModal,
+    initializationPhase,
+    handleManualLoginConfirm,
+    retryConnection,
+    openIncognito,
+    skipPhoneIntegration,
+    workspaceVisible,
+    showAircallWorkspace,
+    hideAircallWorkspace,
+  ]);
 
   return (
     <AircallContext.Provider value={value}>

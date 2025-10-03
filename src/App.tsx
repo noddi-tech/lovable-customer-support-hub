@@ -104,27 +104,31 @@ const AppContent = () => {
 
 /**
  * Aircall Workspace Manager
- * Controls visibility of the container via CSS classes and renders the login modal
+ * Manages workspace visibility via context methods and renders the login modal
  */
 const AircallWorkspaceManager = () => {
-  const { showLoginModal, isConnected, handleManualLoginConfirm, skipPhoneIntegration, initializationPhase } = useAircallPhone();
+  const { 
+    showLoginModal, 
+    isConnected, 
+    handleManualLoginConfirm, 
+    skipPhoneIntegration, 
+    initializationPhase,
+    showAircallWorkspace,
+    hideAircallWorkspace
+  } = useAircallPhone();
   
+  // PHASE 2: Replace direct DOM manipulation with context methods
   React.useEffect(() => {
-    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-    if (!container) return;
-    
-    // Show container ONLY when login modal explicitly needed
-    // After login, AircallContext manages visibility (no auto-hide)
+    // Show workspace when login modal is open
     if (showLoginModal) {
-      container.classList.add('aircall-visible');
-      container.classList.remove('aircall-hidden');
-    } else if (!isConnected) {
-      // Only hide if NOT connected (before first login)
-      container.classList.add('aircall-hidden');
-      container.classList.remove('aircall-visible');
+      showAircallWorkspace();
+    } 
+    // Hide workspace if not connected (before first login)
+    else if (!isConnected) {
+      hideAircallWorkspace();
     }
-    // If connected but modal closed, leave it as-is (context controls it)
-  }, [showLoginModal, isConnected]);
+    // If connected but modal closed, AircallContext controls visibility
+  }, [showLoginModal, isConnected, showAircallWorkspace, hideAircallWorkspace]);
   
   // Render the login modal
   return (
