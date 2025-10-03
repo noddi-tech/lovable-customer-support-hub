@@ -335,10 +335,18 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         setInitializationPhase('creating-workspace');
         
         // Phase 1: Pass onProgress callback to monitor initialization
+        const runtimeDomain = everywhereConfig.domainName || window.location.hostname;
+        console.log('[AircallProvider] 🌐 Domain Configuration:', {
+          storedInDB: everywhereConfig.domainName || '(not set - auto-detect)',
+          currentHostname: window.location.hostname,
+          usingDomain: runtimeDomain,
+          match: !everywhereConfig.domainName || everywhereConfig.domainName === window.location.hostname
+        });
+        
         await aircallPhone.initialize({
           apiId,
           apiToken,
-          domainName: everywhereConfig.domainName || window.location.hostname,
+          domainName: runtimeDomain,
           onLogin: () => {
             console.log('[AircallProvider] 🎯 Layer 1: onLogin callback received');
             

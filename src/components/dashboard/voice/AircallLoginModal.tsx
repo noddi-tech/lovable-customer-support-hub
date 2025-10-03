@@ -182,13 +182,29 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
             </div>
           </div>
 
-          {/* Instructions */}
+          {/* Instructions with Visual Indicator */}
           {!showTroubleshooting && (
-            <Alert>
-              <AlertDescription>
-                {t('aircall.login.instructions')}
-              </AlertDescription>
-            </Alert>
+            <div className="space-y-3">
+              <Alert>
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p>{t('aircall.login.instructions')}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
+                      <ExternalLink className="h-3 w-3" />
+                      <span>Look for a <strong>floating phone widget</strong> in the bottom-right corner ↘️</span>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+              
+              {/* Visual pointer to bottom-right */}
+              <div className="flex justify-end">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
+                  <span className="font-medium">Phone widget appears here</span>
+                  <span className="text-2xl">↘️</span>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Enhanced Troubleshooting Section (after 15s) */}
