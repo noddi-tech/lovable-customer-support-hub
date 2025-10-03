@@ -53,7 +53,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const [currentCall, setCurrentCall] = useState<AircallCall | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(() => !aircallPhone.getLoginStatus());
+  
+  // Only show modal if user hasn't opted out
+  const [showLoginModal, setShowLoginModal] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const optedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
+    const loggedIn = aircallPhone.getLoginStatus();
+    console.log('[AircallProvider] 📱 Initial modal state:', { optedOut, loggedIn, willShow: !loggedIn && !optedOut });
+    return !loggedIn && !optedOut;
+  });
+  
   const [showBlockedModal, setShowBlockedModal] = useState(false);
   const [diagnosticIssues, setDiagnosticIssues] = useState<string[]>([]);
   const [initializationPhase, setInitializationPhase] = useState<'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed'>('idle');
@@ -167,9 +176,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     // PHASE 1: Check opt-out FIRST before ANY Aircall code runs
     const isOptedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
     if (isOptedOut) {
-      console.log('[AircallProvider] ⏭️  User opted out of phone integration');
+      console.log('[AircallProvider] ⏭️ User opted out of phone integration');
       setInitializationPhase('failed');
       setError('Phone integration disabled for this session');
+      setShowLoginModal(false); // Ensure modal is hidden when opted out
       return;
     }
 
@@ -1100,12 +1110,13 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     }
     
     sessionStorage.setItem('aircall_opted_out', 'true');
+    console.log('[AircallProvider] 🚫 Opt-out flag set - integration disabled until manually re-enabled');
     setShowLoginModal(false);
     setShowBlockedModal(false);
     
     toast({
       title: 'Phone Integration Disabled',
-      description: 'Aircall integration disabled for this session',
+      description: 'You can re-enable it in Admin → Voice settings',
     });
   }, [toast]);
 

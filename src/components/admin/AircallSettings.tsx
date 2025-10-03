@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe, AlertTriangle } from 'lucide-react';
+import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe, AlertTriangle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -196,6 +196,19 @@ export const AircallSettings = () => {
       webhook_token: webhookToken,
       configuration
     });
+
+    // Clear opt-out flag when saving new configuration
+    sessionStorage.removeItem('aircall_opted_out');
+    console.log('[AircallSettings] 🔄 Cleared opt-out flag after configuration save');
+  };
+
+  const handleReEnableIntegration = () => {
+    sessionStorage.removeItem('aircall_opted_out');
+    toast({
+      title: "Phone integration re-enabled",
+      description: "Refresh the page to reconnect Aircall",
+    });
+    console.log('[AircallSettings] ✅ User manually re-enabled integration');
   };
 
   const testCredentials = async () => {
@@ -350,7 +363,7 @@ export const AircallSettings = () => {
             Monitor the connection status and configuration health
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
             <Badge variant="default" className="flex items-center gap-1">
               <CheckCircle className="h-3 w-3" />
@@ -363,6 +376,26 @@ export const AircallSettings = () => {
               }
             </span>
           </div>
+
+          {typeof window !== 'undefined' && sessionStorage.getItem('aircall_opted_out') === 'true' && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>
+                  <strong>Phone integration disabled</strong> - You clicked "Skip for Now" and Aircall is currently disabled.
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleReEnableIntegration}
+                  className="ml-4 flex items-center gap-2"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Re-enable & Refresh
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
