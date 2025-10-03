@@ -814,7 +814,7 @@ export const VoiceInterface = () => {
       {/* Aircall container moved to App.tsx for global availability */}
       
       {/* Aircall Phone Bar (fixed bottom) */}
-      <AircallPhoneBar />
+      <AircallPhoneBar incomingCall={incomingCall} />
     </>
   );
 };

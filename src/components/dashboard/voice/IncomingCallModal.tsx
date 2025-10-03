@@ -20,7 +20,7 @@ interface IncomingCallModalProps {
 
 export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: IncomingCallModalProps) => {
   const queryClient = useQueryClient();
-  const { answerCall, isInitialized: isAircallReady } = useAircallPhone();
+  const { answerCall, isInitialized: isAircallReady, showWorkspace } = useAircallPhone();
   const { noddiData } = useCallCustomerContext();
   const [currentCall, setCurrentCall] = useState<Call | null>(call);
 
@@ -184,6 +184,20 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
           {/* Action Buttons */}
           {currentCall.status !== 'completed' && currentCall.status !== 'failed' ? (
             <div className="flex gap-2">
+              {/* Show Aircall Button - Always available */}
+              <Button
+                onClick={() => {
+                  showWorkspace();
+                  console.log('[IncomingCallModal] 📱 Opening Aircall workspace');
+                }}
+                variant="outline"
+                size="lg"
+                title="Open Aircall phone interface"
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Show Aircall
+              </Button>
+              
               {/* Answer via Aircall Everywhere (if enabled) */}
               {isAircallReady && (
                 <Button
@@ -199,8 +213,7 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               {/* View Full Context */}
               <Button
                 onClick={() => onAnswerContext(currentCall.id)}
-                variant={isAircallReady ? "outline" : "default"}
-                className={isAircallReady ? "" : "flex-1"}
+                variant="outline"
                 size="lg"
               >
                 <Phone className="h-4 w-4 mr-2" />

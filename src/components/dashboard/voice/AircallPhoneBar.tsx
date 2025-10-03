@@ -16,7 +16,11 @@ import { PostCallActions } from './PostCallActions';
 import { CallControls } from './CallControls';
 import { cn } from '@/lib/utils';
 
-export const AircallPhoneBar = () => {
+interface AircallPhoneBarProps {
+  incomingCall?: any;
+}
+
+export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => {
   const { 
     isInitialized, 
     isConnected, 
@@ -27,6 +31,9 @@ export const AircallPhoneBar = () => {
     showWorkspace,
     hideWorkspace
   } = useAircallPhone();
+  
+  // Show bar if there's either a currentCall (SDK) OR an incomingCall (database)
+  const hasActiveCall = currentCall || incomingCall;
   
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -139,7 +146,7 @@ export const AircallPhoneBar = () => {
       "fixed bottom-0 left-0 right-0 z-[100]",
       "border-t border-border bg-card shadow-lg backdrop-blur-sm",
       "transition-all duration-300",
-      currentCall ? "translate-y-0" : "translate-y-full"
+      hasActiveCall ? "translate-y-0" : "translate-y-full"
     )}>
       {/* Expandable Customer Context Panel */}
       {showContext && currentCall && customer && (
