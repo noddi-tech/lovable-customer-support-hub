@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 interface ConnectionDiagnosticProps {
   isWebSocketBlocked?: boolean;
   isSDKFailed?: boolean;
-  initializationPhase?: 'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed';
+  initializationPhase?: 'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'needs-login' | 'failed';
   onRetry?: () => void;
 }
 

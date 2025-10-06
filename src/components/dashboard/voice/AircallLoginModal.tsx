@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, XCircle, ExternalLink, Chrome, Shield, Cookie, HelpCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, ExternalLink, Chrome, Shield, Cookie, HelpCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,7 @@ interface AircallLoginModalProps {
   onLoginConfirm: () => void;
   onSkip: () => void;
   initializationPhase?: string;
+  diagnosticIssues?: string[];
 }
 
 const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
@@ -20,7 +21,8 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
   isConnected,
   onLoginConfirm,
   onSkip,
-  initializationPhase = 'idle'
+  initializationPhase = 'idle',
+  diagnosticIssues = []
 }) => {
   const { t } = useTranslation();
   const [isChecking, setIsChecking] = useState(false);
@@ -240,6 +242,27 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
               )}
             </div>
           </div>
+
+          {/* Phase 5: Show diagnostic warnings if they exist */}
+          {diagnosticIssues && diagnosticIssues.length > 0 && (
+            <Alert className="border-amber-500/50 mb-4">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription>
+                <strong>Potential Issues Detected:</strong>
+                <ul className="list-disc ml-4 mt-2 text-sm">
+                  {diagnosticIssues.includes('resources_blocked_warning') && (
+                    <li>Some Aircall resources may be cached or blocked by extensions</li>
+                  )}
+                  {diagnosticIssues.includes('iframe_blocked') && (
+                    <li>Browser extension may be interfering with the Aircall iframe</li>
+                  )}
+                </ul>
+                <p className="mt-2 text-sm">
+                  If login doesn't work, try <strong>disabling browser extensions</strong> or use <strong>incognito mode</strong>.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Instructions with Visual Indicator */}
           {!showTroubleshooting && (

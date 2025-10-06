@@ -56,6 +56,7 @@ export const VoiceInterface = () => {
     retryConnection,
     openIncognito,
     skipPhoneIntegration,
+    forceInitialization,
   } = useAircallPhone();
   
   // Get state from URL navigation
@@ -760,12 +761,13 @@ export const VoiceInterface = () => {
         onLoginConfirm={handleManualLoginConfirm}
         onSkip={skipPhoneIntegration}
         initializationPhase={initializationPhase}
+        diagnosticIssues={diagnosticIssues}
       />
       
       <AircallBlockedModal
         isOpen={showBlockedModal}
         issues={diagnosticIssues}
-        onRetry={retryConnection}
+        onRetry={forceInitialization}
         onOpenIncognito={openIncognito}
         onSkip={skipPhoneIntegration}
       />

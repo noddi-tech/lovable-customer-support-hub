@@ -1,5 +1,6 @@
 import { useContext } from 'react';
-import { AircallContext, type AircallContextValue } from '@/contexts/AircallContext';
+import { AircallContext } from '@/contexts/AircallContext';
+import type { AircallContextValue } from '@/contexts/AircallContext';
 
 export type { AircallContextValue as UseAircallPhoneReturn };
 

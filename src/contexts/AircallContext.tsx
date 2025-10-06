@@ -24,7 +24,7 @@ export interface AircallContextValue {
   openLoginModal: () => void;
   showWorkspace: () => void;
   hideWorkspace: () => void;
-  initializationPhase: 'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed';
+  initializationPhase: 'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'needs-login' | 'failed';
   handleManualLoginConfirm: () => void;
   retryConnection: () => void;
   openIncognito: () => void;
@@ -76,7 +76,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   
   const [showBlockedModal, setShowBlockedModal] = useState(false);
   const [diagnosticIssues, setDiagnosticIssues] = useState<string[]>([]);
-  const [initializationPhase, setInitializationPhase] = useState<'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'failed'>('idle');
+  const [initializationPhase, setInitializationPhase] = useState<'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'needs-login' | 'failed'>('idle');
   const initAttemptedRef = useRef(false);
   const loginGracePeriodRef = useRef<NodeJS.Timeout | null>(null);
   const loginPollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -453,31 +453,31 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         // Attach error listener with capture phase
         window.addEventListener('error', blockingErrorListenerRef.current, true);
         
-        // Phase 1: STOP EVERYTHING if blocking detected
-        console.log('[AircallProvider] 🚀 Phase 1: Running BULLETPROOF diagnostics...');
+        // Phase 1: BULLETPROOF - Make diagnostics non-blocking warnings
+        console.log('[AircallProvider] 🚀 Phase 1: Running diagnostics...');
         setInitializationPhase('diagnostics');
         
         const diagnostic = await aircallPhone.diagnoseEnvironment();
+        console.log('[AircallProvider] Diagnostic result:', diagnostic);
+        setDiagnosticIssues(diagnostic.issues);
         
+        // Phase 1: Make diagnostics non-blocking - show warnings but continue
         if (diagnostic.hasIssues) {
-          console.error('[AircallProvider] ❌ BLOCKING DETECTED - STOPPING INITIALIZATION');
-          console.error('[AircallProvider] Issues:', diagnostic.issues);
-          setDiagnosticIssues(diagnostic.issues);
-          setShowBlockedModal(true);
-          setInitializationPhase('failed');
+          console.warn('[AircallProvider] ⚠️ Potential issues detected:', diagnostic.issues);
+          console.warn('[AircallProvider] Continuing initialization - will handle actual failures');
           
-          // Show toast immediately
+          // Show a non-blocking toast
           toast({
-            title: 'Aircall Blocked',
-            description: 'Browser extensions are blocking Aircall. Please follow the instructions.',
-            variant: 'destructive',
-            duration: 10000,
+            title: 'Browser Extension Detected',
+            description: 'Aircall may be affected by browser extensions. If login fails, try disabling them.',
+            variant: 'default', // Not destructive
+            duration: 8000,
           });
           
-          return; // DO NOT PROCEED
+          // DO NOT RETURN - let initialization continue
         }
         
-        console.log('[AircallProvider] ✅ Diagnostics passed, continuing initialization');
+        console.log('[AircallProvider] ✅ Proceeding with SDK initialization...');
         
         // Container is guaranteed to exist in HTML - direct check
         let container = document.querySelector('#aircall-workspace-container') as HTMLElement;
@@ -754,12 +754,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           }, 30000);
         }
       } catch (initError: any) {
-        // PHASE 5: Permanent error state - don't let React retry
         console.group('[AircallProvider] ❌ INITIALIZATION ERROR');
-        console.error('Error object:', initError);
-        console.error('Error message:', initError instanceof Error ? initError.message : 'Unknown error');
-        console.error('Stack:', initError instanceof Error ? initError.stack : 'No stack');
-        console.error('Domain that failed:', everywhereConfig.domainName || window.location.hostname);
+        console.error('Error:', initError);
+        console.error('Diagnostic issues detected earlier:', diagnosticIssues);
         console.groupEnd();
         
         // Phase 5: Cleanup error listener
@@ -768,46 +765,57 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           blockingErrorListenerRef.current = null;
         }
         
-        // Detect specific error types
         const errorMessage = initError.message || initError.toString();
-        let issues: string[] = [];
         
-        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-          console.error('[AircallProvider] ❌ 401 Authentication Error detected');
-          issues = ['authentication_failed'];
-          setDiagnosticIssues(issues);
+        // Phase 3: Determine if this is a blocking issue vs authentication issue
+        const isNetworkBlocked = errorMessage.includes('ERR_BLOCKED_BY_CLIENT') 
+          || errorMessage.includes('blocked by client')
+          || errorMessage.includes('net::')
+          || errorMessage.includes('timeout')
+          || diagnosticIssues.includes('iframe_blocked');
+        
+        const isAuthFailure = errorMessage.includes('401') 
+          || errorMessage.includes('Unauthorized')
+          || errorMessage.includes('authentication');
+        
+        if (isNetworkBlocked) {
+          // TRUE BLOCKING - show blocked modal
+          setDiagnosticIssues(['network_blocked', 'iframe_blocked']);
           setShowBlockedModal(true);
+          setInitializationPhase('failed');
           
           toast({
-            title: 'Authentication Failed',
-            description: 'Invalid Aircall credentials or cookies blocked. Check Admin Settings.',
+            title: 'Aircall Blocked',
+            description: 'Network requests are blocked. Please disable ad blockers or try incognito mode.',
             variant: 'destructive',
             duration: 15000,
           });
-        } else if (errorMessage.includes('network') || errorMessage.includes('blocked')) {
-          issues = ['network_blocked'];
-          setDiagnosticIssues(issues);
-          setShowBlockedModal(true);
+        } else if (isAuthFailure) {
+          // AUTHENTICATION ISSUE - show login modal instead
+          setDiagnosticIssues(['authentication_failed']);
+          setShowLoginModal(true); // Not blocked modal!
+          setInitializationPhase('needs-login');
           
           toast({
-            title: 'Network Blocked',
-            description: 'Aircall is being blocked by your network or firewall.',
-            variant: 'destructive',
-            duration: 15000,
+            title: 'Aircall Login Required',
+            description: 'Please log in to Aircall to continue.',
+            variant: 'default',
+            duration: 10000,
           });
         } else {
+          // UNKNOWN ERROR - give user options
+          setInitializationPhase('failed');
+          setError(`Initialization failed: ${errorMessage}`);
+          
           toast({
             title: 'Phone Integration Failed',
-            description: 'Unable to initialize Aircall. You can skip this integration.',
+            description: 'Unable to initialize Aircall. You can retry or skip this integration.',
             variant: 'destructive',
             duration: 10000,
           });
         }
         
-        setInitializationPhase('failed');
-        setError(`Initialization failed: ${initError.message}`);
         setIsInitialized(false);
-        
         return; // Exit permanently
       }
     };
@@ -1235,6 +1243,30 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     });
   }, [toast]);
 
+  // Phase 6: Add force retry escape hatch
+  const forceInitialization = useCallback(async () => {
+    console.log('[AircallProvider] 🚀 Force initialization requested by user');
+    
+    // Clear all diagnostic flags
+    setDiagnosticIssues([]);
+    setShowBlockedModal(false);
+    setShowLoginModal(false);
+    
+    // Reset initialization state
+    setInitializationPhase('idle');
+    setIsInitialized(false);
+    setError(null);
+    
+    // Clear opt-out if set
+    sessionStorage.removeItem('aircall_opted_out');
+    
+    // Give browser a moment to clear state
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Reload page to start fresh
+    window.location.reload();
+  }, []);
+
   /**
    * Listen for custom events from aircall-phone.ts
    */
@@ -1366,6 +1398,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     retryConnection,
     openIncognito,
     skipPhoneIntegration,
+    forceInitialization,
     workspaceVisible,
     showAircallWorkspace,
     hideAircallWorkspace,

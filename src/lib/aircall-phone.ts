@@ -239,15 +239,24 @@ class AircallPhoneManager {
       issues.push('iframe_blocked');
     }
 
-    // Check 2: Performance API - look for blocked resources
+    // Phase 2: Improve diagnostic accuracy - distinguish between blocked and cached resources
     try {
       const perfEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-      const blockedAircall = perfEntries.some(entry => 
-        entry.name.includes('aircall') && entry.transferSize === 0 && entry.duration === 0
-      );
+      const blockedAircall = perfEntries.some(entry => {
+        // Only flag if:
+        // 1. It's an Aircall resource
+        // 2. Has zero transfer AND zero duration
+        // 3. AND was NOT served from cache (important!)
+        const isAircall = entry.name.includes('aircall');
+        const isZeroBytes = entry.transferSize === 0 && entry.duration === 0;
+        const isFromCache = entry.transferSize === 0 && entry.duration > 0; // Cached resources have duration but no transfer
+        
+        return isAircall && isZeroBytes && !isFromCache;
+      });
+      
       if (blockedAircall) {
-        console.warn('[AircallWorkspace] ⚠️ Detected blocked Aircall resources in Performance API');
-        issues.push('resources_blocked');
+        console.warn('[AircallWorkspace] ⚠️ Detected potentially blocked Aircall resources');
+        issues.push('resources_blocked_warning'); // Changed to warning
       }
     } catch (error) {
       console.warn('[AircallWorkspace] Could not check performance entries:', error);
@@ -397,7 +406,7 @@ class AircallPhoneManager {
   /**
    * Initialize the Aircall Everywhere v2 SDK (AircallWorkspace)
    */
-  async initialize(settings: AircallPhoneSettings, signal?: AbortSignal): Promise<void> {
+   async initialize(settings: AircallPhoneSettings, signal?: AbortSignal): Promise<void> {
     if (this.isInitialized) {
       console.log('[AircallWorkspace] Already initialized');
       return;
@@ -410,15 +419,24 @@ class AircallPhoneManager {
       domSelector: '#aircall-workspace-container',
     });
 
+    // Phase 4: Add initialization timeout fallback
+    const initializationTimeout = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('SDK initialization timeout - iframe may be blocked'));
+      }, 15000); // 15 seconds
+    });
+
     try {
-      // Check if aborted early
-      if (signal?.aborted) {
-        throw new Error('Initialization aborted: blocking detected');
-      }
-      
-      // Wait for container to be available in the DOM
-      this.logInit('waiting_for_container');
-      await this.waitForContainer('#aircall-workspace-container', 10000);
+      await Promise.race([
+        (async () => {
+          // Check if aborted early
+          if (signal?.aborted) {
+            throw new Error('Initialization aborted: blocking detected');
+          }
+          
+          // Wait for container to be available in the DOM
+          this.logInit('waiting_for_container');
+          await this.waitForContainer('#aircall-workspace-container', 10000);
       
       console.log('[AircallWorkspace] Container found, creating workspace instance...');
       this.logInit('container_found');
@@ -540,12 +558,19 @@ class AircallPhoneManager {
         this.logInit('iframe_not_found_skipping_permission_fix');
       }
       
-      // Phase 4: SIMPLIFIED - Just mark as initialized, let SDK handle readiness
-      this.isInitialized = true;
-      this.logInit('initialization_complete');
-      console.log('[AircallWorkspace] ✅ Workspace initialized - waiting for user login');
-      console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
-    } catch (error) {
+          // Phase 4: SIMPLIFIED - Just mark as initialized, let SDK handle readiness
+          this.isInitialized = true;
+          this.logInit('initialization_complete');
+          console.log('[AircallWorkspace] ✅ Workspace initialized - waiting for user login');
+          console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
+        })(), // Close the async arrow function
+        initializationTimeout
+      ]);
+    } catch (error: any) {
+      // If timeout, throw with clear message
+      if (error.message && error.message.includes('timeout')) {
+        throw new Error('Aircall workspace failed to initialize. This usually indicates browser extensions are blocking the iframe.');
+      }
       this.logInit('initialization_failed', { error: String(error) });
       console.error('[AircallWorkspace] ❌ Initialization failed:', error);
       throw error;

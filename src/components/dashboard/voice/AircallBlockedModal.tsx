@@ -294,7 +294,7 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
               {t('aircall.blocked.step3Desc')}
             </p>
             <div className="flex gap-2 ml-8">
-              <Button onClick={onRetry}>
+              <Button onClick={onRetry} variant="default" className="w-full sm:w-auto">
                 {t('aircall.blocked.retryButton')}
               </Button>
               <Button onClick={handleCopyDebugReport} variant="outline">
