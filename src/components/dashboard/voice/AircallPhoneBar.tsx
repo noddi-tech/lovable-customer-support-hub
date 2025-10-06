@@ -179,13 +179,16 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
   };
 
   const callStatus = getCallStatus();
+  
+  // PHASE 2: Show bar if has active call OR workspace initialized but not logged in yet
+  const shouldShowBar = hasActiveCall || (isInitialized && !isConnected);
 
   return (
     <div className={cn(
       "fixed bottom-0 left-0 right-0 z-[100]",
       "border-t border-border bg-card shadow-lg backdrop-blur-sm",
       "transition-all duration-300",
-      hasActiveCall ? "translate-y-0" : "translate-y-full"
+      shouldShowBar ? "translate-y-0" : "translate-y-full"
     )}>
       {/* Expandable Customer Context Panel */}
       {showContext && currentCall && customer && (
@@ -203,60 +206,71 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
         <div className="flex items-center justify-between gap-4">
           {/* Left: Call Status */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            {/* Connection Indicator with Workspace Readiness */}
-            <div className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium",
-              isWorkspaceReady
-                ? "bg-green-500/10 text-green-600 dark:text-green-400" 
-                : isConnected
-                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-                : "bg-muted text-muted-foreground"
-            )}>
-              <div className={cn(
-                "w-2 h-2 rounded-full",
-                isWorkspaceReady 
-                  ? "bg-green-500 animate-pulse" 
-                  : isConnected 
-                  ? "bg-yellow-500 animate-pulse"
-                  : "bg-muted-foreground"
-              )} />
-              {isWorkspaceReady ? "Ready" : isConnected ? "Loading..." : "Disconnected"}
-            </div>
-
-            {/* Call Info - Shows data from SDK or database */}
-            {unifiedCall && (
+            {/* PHASE 2: Show login prompt when not connected, otherwise show normal status */}
+            {!isConnected ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                  <span>Awaiting Login</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Please log in to Aircall to start receiving calls
+                </p>
+              </div>
+            ) : (
               <>
-                <div className="h-6 w-px bg-border" />
-                
-                <div className="flex items-center gap-2">
-                  {unifiedCall.isIncoming ? (
-                    <Phone className="h-4 w-4 text-green-600 animate-pulse" />
-                  ) : (
-                    <Phone className="h-4 w-4 text-blue-600" />
-                  )}
-                  
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {unifiedCall.customerName || formatPhone(unifiedCall.phone)}
-                    </p>
-                    {unifiedCall.isOngoing && (
-                      <p className="text-xs text-muted-foreground">
-                        <Clock className="inline h-3 w-3 mr-1" />
-                        {formatDuration(callDuration)}
-                      </p>
-                    )}
-                  </div>
+                {/* Connection Indicator with Workspace Readiness */}
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium",
+                  isWorkspaceReady
+                    ? "bg-green-500/10 text-green-600 dark:text-green-400" 
+                    : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                )}>
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    isWorkspaceReady 
+                      ? "bg-green-500 animate-pulse" 
+                      : "bg-yellow-500 animate-pulse"
+                  )} />
+                  {isWorkspaceReady ? "Ready" : "Loading..."}
                 </div>
 
-                {/* Call Status Badge with Source Indicator */}
-                <div className="flex items-center gap-2 ml-2">
-                  <Badge variant={unifiedCall.isRinging ? "default" : "secondary"}>
-                    {unifiedCall.isRinging ? "Ringing" : "Active"}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {unifiedCall.source === 'sdk' ? 'SDK' : 'DB'}
-                  </Badge>
-                </div>
+                {/* Call Info - Shows data from SDK or database */}
+                {unifiedCall && (
+                  <>
+                    <div className="h-6 w-px bg-border" />
+                    
+                    <div className="flex items-center gap-2">
+                      {unifiedCall.isIncoming ? (
+                        <Phone className="h-4 w-4 text-green-600 animate-pulse" />
+                      ) : (
+                        <Phone className="h-4 w-4 text-blue-600" />
+                      )}
+                      
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {unifiedCall.customerName || formatPhone(unifiedCall.phone)}
+                        </p>
+                        {unifiedCall.isOngoing && (
+                          <p className="text-xs text-muted-foreground">
+                            <Clock className="inline h-3 w-3 mr-1" />
+                            {formatDuration(callDuration)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Call Status Badge with Source Indicator */}
+                    <div className="flex items-center gap-2 ml-2">
+                      <Badge variant={unifiedCall.isRinging ? "default" : "secondary"}>
+                        {unifiedCall.isRinging ? "Ringing" : "Active"}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {unifiedCall.source === 'sdk' ? 'SDK' : 'DB'}
+                      </Badge>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>

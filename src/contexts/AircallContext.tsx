@@ -236,15 +236,24 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       console.log('[AircallProvider] 🔓 FORCING workspace visible for login (bypassing all checks)');
       // Just show the container - no readiness checks needed
     } else {
-      // Normal flow - check readiness
-      if (!isInitialized || !isConnected) {
-        console.warn('[AircallProvider] ⚠️ Cannot show workspace - not ready yet');
+      // Normal flow - check readiness, but allow showing during login phase
+      if (!isInitialized) {
+        console.warn('[AircallProvider] ⚠️ Cannot show workspace - not initialized yet');
         toast({
-          title: "Aircall Loading",
-          description: "Please wait while Aircall initializes...",
+          title: "Aircall Initializing",
+          description: "Workspace is still being set up...",
           variant: "default"
         });
         return;
+      }
+      
+      // PHASE 3: Allow showing workspace if initialized, even if not connected (for login)
+      if (initializationPhase === 'needs-login') {
+        console.log('[AircallProvider] ✅ Showing workspace for login (initialized but not connected)');
+        // Continue to show workspace
+      } else if (!isConnected) {
+        console.warn('[AircallProvider] ⚠️ Workspace not ready for calls yet');
+        // Don't return - still show workspace
       }
     }
 
@@ -619,6 +628,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             title: 'Aircall Ready',
             description: 'Please log in through the workspace to start receiving calls',
           });
+          
+          // PHASE 1: Auto-show login modal since user isn't logged in yet
+          console.log('[AircallProvider] 🔐 Workspace ready but user not logged in - showing login modal');
+          setShowLoginModal(true);
+          setInitializationPhase('needs-login');
           
           // Phase 4: SIMPLIFIED - just 5-second polling for 2 minutes, NO OAUTH LOGIC
           console.log('[AircallProvider] 🎯 Phase 4: Starting SIMPLE login polling (5s intervals, 2min total)');
@@ -1124,7 +1138,23 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     
     // Phase 5: Force reload workspace iframe
     await aircallPhone.reloadWorkspace();
-    
+          
+          // PHASE 4: Immediately check login status when user clicks "Show Aircall"
+          setTimeout(() => {
+            aircallPhone.checkLoginStatus((isLoggedIn) => {
+              if (isLoggedIn) {
+                console.log('[AircallProvider] ✅ User was already logged in!');
+                aircallPhone.setLoginStatus(true);
+                setIsConnected(true);
+                setShowLoginModal(false);
+                setInitializationPhase('logged-in');
+                toast({
+                  title: '✅ Already Logged In',
+                  description: 'You are connected to Aircall',
+                });
+              }
+            });
+          }, 2000); // Give iframe time to load
     // Wait for reload, then check
     setTimeout(() => {
       aircallPhone.checkLoginStatus((isLoggedIn) => {
