@@ -36,6 +36,11 @@ export interface AircallContextValue {
   hideAircallWorkspace: () => void;
   workspace: any; // Aircall workspace object
   isWorkspaceReady: boolean; // True when workspace exists and is ready
+  // PHASE 4: Debug info for recursion guards
+  _debugRecursionGuards?: {
+    isShowing: boolean;
+    isHiding: boolean;
+  };
 }
 
 const AircallContext = createContext<AircallContextValue | null>(null);
@@ -98,6 +103,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const BASE_RECONNECT_DELAY = 2000;
   const GRACE_PERIOD_MS = 30000;
   const [isPostOAuthSync, setIsPostOAuthSync] = useState(false);
+  
+  // PHASE 1 CRITICAL: Recursion guards to prevent infinite loops
+  const isShowingWorkspaceRef = useRef(false);
+  const isHidingWorkspaceRef = useRef(false);
 
   // Get Aircall integration config
   const aircallConfig = getIntegrationByProvider('aircall');
@@ -126,6 +135,18 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       console.log('[AircallProvider] Already reconnecting, skipping attempt');
       return;
     }
+    
+    // PHASE 3: Check if Realtime manager or another system recently reconnected (debounce)
+    const lastReconnectAttempt = localStorage.getItem('last_reconnect_attempt');
+    if (lastReconnectAttempt) {
+      const timeSince = Date.now() - parseInt(lastReconnectAttempt);
+      if (timeSince < 3000) { // 3 second debounce
+        console.log('[AircallProvider] 🔒 Recent reconnection attempt detected, waiting...');
+        return;
+      }
+    }
+    
+    localStorage.setItem('last_reconnect_attempt', Date.now().toString());
     
     if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
       console.error('[AircallProvider] Max reconnection attempts reached');
@@ -237,22 +258,32 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * ```
    */
   const showAircallWorkspace = useCallback((forLogin = false) => {
-    // PHASE 1 CRITICAL FIX: Check if workspace is ready using public method
-    if (!aircallPhone.isWorkspaceCreated()) {
-      console.error('[AircallProvider] ❌ Cannot show workspace - SDK not initialized');
-      if (!forLogin) {
-        toast({
-          title: 'Aircall Not Ready',
-          description: 'The phone system is still loading. Please wait...',
-          variant: 'destructive'
-        });
-      }
+    // PHASE 1 CRITICAL: RECURSION GUARD - Prevent infinite loop from event listeners
+    if (isShowingWorkspaceRef.current) {
+      console.log('[AircallProvider] 🔒 Already showing workspace, skipping recursive call');
       return;
     }
+    
+    isShowingWorkspaceRef.current = true;
+    
+    try {
+      // Check if workspace is ready using public method
+      if (!aircallPhone.isWorkspaceCreated()) {
+        console.error('[AircallProvider] ❌ Cannot show workspace - SDK not initialized');
+        if (!forLogin) {
+          toast({
+            title: 'Aircall Not Ready',
+            description: 'The phone system is still loading. Please wait...',
+            variant: 'destructive'
+          });
+        }
+        return;
+      }
 
-    console.log('[AircallProvider] 🚀 Calling SDK showWorkspace()');
-    // CRITICAL: This actually creates/mounts the Aircall iframe
-    aircallPhone.showWorkspace();
+      console.log('[AircallProvider] 🚀 Calling SDK showWorkspace()');
+      // CRITICAL: This actually creates/mounts the Aircall iframe
+      // This will dispatch an event, but our guard prevents recursion
+      aircallPhone.showWorkspace();
     
     // PHASE 1 FIX: Completely bypass all checks for login flow
     if (forLogin) {
@@ -324,6 +355,12 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     };
 
     tryShow();
+    } finally {
+      // Release the lock after a tick to allow the DOM to update
+      setTimeout(() => {
+        isShowingWorkspaceRef.current = false;
+      }, 100);
+    }
   }, [workspaceVisible, setWorkspaceVisiblePreference, isInitialized, isConnected, initializationPhase, toast, aircallPhone]);
 
   /**
@@ -335,29 +372,43 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * - **Single source of truth**: This is the ONLY function that should hide the workspace
    */
   const hideAircallWorkspace = useCallback(() => {
-    // PHASE 1: Idempotence Guard - Skip if already hidden
+    // PHASE 1 CRITICAL: RECURSION GUARD
+    if (isHidingWorkspaceRef.current) {
+      console.log('[AircallProvider] 🔒 Already hiding workspace, skipping recursive call');
+      return;
+    }
+    
+    // Idempotence Guard - Skip if already hidden
     if (!workspaceVisible) {
       console.log('[AircallProvider] 🙈 Workspace already hidden - skipping');
       return;
     }
-
-    // PHASE 1 CRITICAL FIX: Call the actual Aircall SDK to hide workspace
-    if (aircallPhone.isWorkspaceCreated()) {
-      console.log('[AircallProvider] 🙈 Calling SDK hideWorkspace()');
-      aircallPhone.hideWorkspace();
-    }
-
-    const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-    if (!container) {
-      console.warn('[AircallProvider] Cannot hide workspace - container not found');
-      return;
-    }
     
-    container.classList.remove('aircall-visible');
-    container.classList.add('aircall-hidden');
-    setWorkspaceVisible(false);
-    setWorkspaceVisiblePreference(false);
-    console.log('[AircallProvider] 🙈 Workspace hidden (user preference saved)');
+    isHidingWorkspaceRef.current = true;
+    
+    try {
+      // Call the actual Aircall SDK to hide workspace
+      if (aircallPhone.isWorkspaceCreated()) {
+        console.log('[AircallProvider] 🙈 Calling SDK hideWorkspace()');
+        aircallPhone.hideWorkspace();
+      }
+
+      const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+      if (!container) {
+        console.warn('[AircallProvider] Cannot hide workspace - container not found');
+        return;
+      }
+      
+      container.classList.remove('aircall-visible');
+      container.classList.add('aircall-hidden');
+      setWorkspaceVisible(false);
+      setWorkspaceVisiblePreference(false);
+      console.log('[AircallProvider] 🙈 Workspace hidden (user preference saved)');
+    } finally {
+      setTimeout(() => {
+        isHidingWorkspaceRef.current = false;
+      }, 100);
+    }
   }, [workspaceVisible, setWorkspaceVisiblePreference]);
 
   /**
@@ -1333,12 +1384,22 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    */
   useEffect(() => {
     const handleShowWorkspace = () => {
-      console.log('[AircallProvider] 📢 Received show-workspace event');
+      // PHASE 2: Don't handle event if we're already showing (prevents loops)
+      if (isShowingWorkspaceRef.current) {
+        console.log('[AircallProvider] 📢 Ignoring show-workspace event (already showing)');
+        return;
+      }
+      console.log('[AircallProvider] 📢 Received show-workspace event from external source');
       showAircallWorkspace();
     };
 
     const handleHideWorkspace = () => {
-      console.log('[AircallProvider] 📢 Received hide-workspace event');
+      // PHASE 2: Don't handle event if we're already hiding (prevents loops)
+      if (isHidingWorkspaceRef.current) {
+        console.log('[AircallProvider] 📢 Ignoring hide-workspace event (already hiding)');
+        return;
+      }
+      console.log('[AircallProvider] 📢 Received hide-workspace event from external source');
       hideAircallWorkspace();
     };
 
@@ -1440,6 +1501,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     hideAircallWorkspace,
     workspace: null, // Workspace is private in SDK
     isWorkspaceReady, // PHASE 2: Expose workspace readiness from state
+    // PHASE 4: Expose recursion guard states for debug panel
+    _debugRecursionGuards: {
+      isShowing: isShowingWorkspaceRef.current,
+      isHiding: isHidingWorkspaceRef.current,
+    },
   }), [
     isInitialized,
     isConnected,

@@ -12,7 +12,37 @@ Before troubleshooting Aircall integration issues, ensure you have:
 
 ## Common Issues
 
-### 1. Workspace Not Loading (401 Errors)
+### 1. Infinite Recursion / Stack Overflow (CRITICAL)
+
+**Symptoms:**
+- Browser freezes or becomes unresponsive
+- Console shows "Maximum call stack size exceeded"
+- Hundreds of identical log messages flooding the console
+- Page crashes or automatically reloads
+- Debug panel shows recursion guards stuck at 🔒
+
+**Cause:**
+The Aircall SDK dispatches events when `showWorkspace()` or `hideWorkspace()` are called. If these events trigger the same functions again, an infinite loop occurs.
+
+**Solution:**
+The integration now uses recursion guard flags (`isShowingWorkspaceRef`, `isHidingWorkspaceRef`) to prevent this:
+
+1. **Check Debug Panel:**
+   - Enable debug panel with `?debug=aircall`
+   - Look at "Recursion Guards" section
+   - "Showing (locked)" and "Hiding (locked)" should show ✅
+   - If showing 🔒 for more than 100ms, there's a guard issue
+
+2. **Immediate Fix:**
+   - Reload the page to clear recursion state
+   - Guards will reset automatically
+
+3. **If Problem Persists:**
+   - Verify no other code is calling `aircallPhone.showWorkspace()` directly
+   - Check event listeners for duplicate registrations
+   - Look for custom code that may bypass the context functions
+
+### 2. Workspace Not Loading (401 Errors)
 
 **Symptoms:**
 - Console shows "Workspace has not been identified yet"
@@ -154,10 +184,16 @@ Add `?debug=aircall` to your URL in any environment, or it's automatically enabl
 
 - **Real-time status indicators** - Visual badges for initialization, connection, and readiness
 - **Phase tracking** - Shows current initialization phase
+- **Recursion guard monitoring** - Shows 🔒 when functions are locked, ✅ when ready (should never stay locked >100ms)
 - **Current call info** - Displays active call ID if present
 - **DOM diagnostics** - Shows container, iframe, and pointer-events status
 - **Copy debug info** - Button to copy full diagnostic data to clipboard
 - **Force fix** - Button to reset pointer-events to auto (useful for stuck states)
+
+**Recursion Guard Indicators:**
+- **Showing (locked) = 🔒**: Currently executing `showWorkspace()`, will ignore new calls to prevent infinite loops
+- **Hiding (locked) = 🔒**: Currently executing `hideWorkspace()`, will ignore new calls to prevent infinite loops
+- Both should return to ✅ within ~100ms; if stuck at 🔒, there's a deadlock - reload the page
 
 ### Example Debug Info
 
@@ -216,3 +252,4 @@ If issues persist after trying these troubleshooting steps:
 
 - **v2.0.0** - Bulletproof visibility refactor with centralized workspace management
 - **v2.1.0** - Added comprehensive fix plan with SDK invocation, error boundary, and debug panel
+- **v2.2.0** - Fixed infinite recursion with guard flags, added reconnection debounce, enhanced debug panel

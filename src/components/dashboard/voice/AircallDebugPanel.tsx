@@ -16,6 +16,13 @@ import { useAircallPhone } from '@/hooks/useAircallPhone';
 export const AircallDebugPanel: React.FC = () => {
   const { toast } = useToast();
   const context = useAircallPhone();
+  
+  // PHASE 4: Force re-render every 100ms to show live recursion guard state
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+  React.useEffect(() => {
+    const interval = setInterval(forceUpdate, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   // Get real-time workspace container info
   const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
@@ -161,6 +168,25 @@ export const AircallDebugPanel: React.FC = () => {
           <Badge variant={context.workspaceVisible ? 'default' : 'secondary'} className="text-xs">
             {context.workspaceVisible ? 'Yes' : 'No'}
           </Badge>
+        </div>
+
+        {/* PHASE 4: Show recursion guard states */}
+        <div className="pt-2 border-t border-border">
+          <span className="text-muted-foreground block mb-1">Recursion Guards:</span>
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Showing (locked):</span>
+              <Badge variant="outline" className="text-xs">
+                {context._debugRecursionGuards?.isShowing ? '🔒' : '✅'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Hiding (locked):</span>
+              <Badge variant="outline" className="text-xs">
+                {context._debugRecursionGuards?.isHiding ? '🔒' : '✅'}
+              </Badge>
+            </div>
+          </div>
         </div>
 
         {container && (
