@@ -229,9 +229,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * showWorkspace(); // Safe to call repeatedly
    * ```
    */
-  const showAircallWorkspace = useCallback(() => {
-    // Check workspace readiness before showing
-    if (!isInitialized || !isConnected) {
+  const showAircallWorkspace = useCallback((forLogin = false) => {
+    // Allow showing workspace during login flow (bypass connection check)
+    if (!forLogin && (!isInitialized || !isConnected)) {
       console.warn('[AircallProvider] ⚠️ Cannot show workspace - not ready yet');
       toast({
         title: "Aircall Loading",
@@ -241,8 +241,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       return;
     }
 
+    // If for login, only check initialization (not connection)
+    if (forLogin && !isInitialized) {
+      console.warn('[AircallProvider] ⚠️ Workspace not initialized yet');
+      return;
+    }
+
     // PHASE 2 FIX: Always attempt to apply styles, even if marked visible
-    console.log('[AircallProvider] 🔧 Forcing workspace visibility and pointer-events');
+    console.log('[AircallProvider] 🔧 Forcing workspace visibility and pointer-events', { forLogin, isInitialized, isConnected });
 
     // PHASE 5: Race Condition Retry Logic
     let attempts = 0;
@@ -586,8 +592,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               aircallPhone.clearLoginStatus();
               setShowLoginModal(true);
               
-              // PHASE 3: Use centralized visibility function
-              showAircallWorkspace();
+              // PHASE 3: Use centralized visibility function with forLogin flag
+              showAircallWorkspace(true);
               
               handleDisconnection();
             }
@@ -1090,8 +1096,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, [toast]);
 
   const openLoginModal = useCallback(() => {
+    console.log('[AircallProvider] 🔓 Opening login modal and showing workspace');
     setShowLoginModal(true);
-  }, []);
+    showAircallWorkspace(true); // Show workspace for login
+  }, [showAircallWorkspace]);
 
   // Phase 5: Enhanced manual login confirmation handler with workspace reload
   const handleManualLoginConfirm = useCallback(async () => {
@@ -1249,6 +1257,30 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       window.removeEventListener('aircall-hide-workspace', handleHideWorkspace);
     };
   }, [showAircallWorkspace, hideAircallWorkspace]);
+
+  // ============================================================================
+  // PHASE 3: Workspace Ready Listener
+  // ============================================================================
+  useEffect(() => {
+    const checkWorkspace = () => {
+      const container = document.querySelector('#aircall-workspace-container');
+      const iframe = container?.querySelector('iframe');
+      
+      if (iframe) {
+        console.log('[AircallProvider] ✅ Workspace iframe detected and ready');
+      }
+    };
+
+    const observer = new MutationObserver(checkWorkspace);
+    const container = document.querySelector('#aircall-workspace-container');
+    
+    if (container) {
+      observer.observe(container, { childList: true, subtree: true });
+      checkWorkspace(); // Check immediately
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   // ============================================================================
   // PHASE 0: Memoize Context Value for Performance

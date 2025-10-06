@@ -73,6 +73,36 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     }
   }, [isConnected, isOpen]);
 
+  // Enhanced logging when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      console.group('[AircallLoginModal] 🔍 Modal Opened - Diagnostic Info');
+      console.log('Initialization Phase:', initializationPhase);
+      console.log('Is Connected:', isConnected);
+      
+      const container = document.querySelector('#aircall-workspace-container');
+      const iframe = container?.querySelector('iframe');
+      const dialogOverlay = document.querySelector('[data-radix-dialog-overlay]');
+      const dialogContent = document.querySelector('[data-radix-dialog-content]');
+      
+      console.log('Container:', {
+        exists: !!container,
+        classes: container?.className,
+        pointerEvents: container ? window.getComputedStyle(container).pointerEvents : 'N/A',
+        iframeExists: !!iframe
+      });
+      
+      console.log('Dialog Elements:', {
+        overlayExists: !!dialogOverlay,
+        overlayPointerEvents: dialogOverlay ? window.getComputedStyle(dialogOverlay).pointerEvents : 'N/A',
+        contentExists: !!dialogContent,
+        contentPointerEvents: dialogContent ? window.getComputedStyle(dialogContent).pointerEvents : 'N/A'
+      });
+      
+      console.groupEnd();
+    }
+  }, [isOpen, initializationPhase, isConnected]);
+
   const handleManualConfirm = async () => {
     setIsChecking(true);
     setVerificationStatus('checking');
