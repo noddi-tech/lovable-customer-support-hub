@@ -524,8 +524,17 @@ class AircallPhoneManager {
         const permissionsFixed = await this.fixIframePermissions();
         if (permissionsFixed) {
           this.logInit('permissions_fixed');
-          await this.waitForWorkspaceIdentified();
-          this.logInit('workspace_identified');
+          // PHASE 3 FIX: Make workspace identification optional and non-blocking
+          // Don't wait for it - let it happen in background
+          this.waitForWorkspaceIdentified().then((identified) => {
+            if (identified) {
+              this.logInit('workspace_identified');
+              console.log('[AircallWorkspace] ✅ Workspace identified in background');
+            } else {
+              this.logInit('workspace_identification_timeout');
+              console.warn('[AircallWorkspace] ⚠️ Workspace identification timed out (non-blocking)');
+            }
+          });
         }
       } else {
         this.logInit('iframe_not_found_skipping_permission_fix');

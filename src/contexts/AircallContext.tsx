@@ -230,21 +230,21 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * ```
    */
   const showAircallWorkspace = useCallback((forLogin = false) => {
-    // Allow showing workspace during login flow (bypass connection check)
-    if (!forLogin && (!isInitialized || !isConnected)) {
-      console.warn('[AircallProvider] ⚠️ Cannot show workspace - not ready yet');
-      toast({
-        title: "Aircall Loading",
-        description: "Please wait while Aircall initializes...",
-        variant: "default"
-      });
-      return;
-    }
-
-    // If for login, only check initialization (not connection)
-    if (forLogin && !isInitialized) {
-      console.warn('[AircallProvider] ⚠️ Workspace not initialized yet');
-      return;
+    // PHASE 1 FIX: Completely bypass all checks for login flow
+    if (forLogin) {
+      console.log('[AircallProvider] 🔓 FORCING workspace visible for login (bypassing all checks)');
+      // Just show the container - no readiness checks needed
+    } else {
+      // Normal flow - check readiness
+      if (!isInitialized || !isConnected) {
+        console.warn('[AircallProvider] ⚠️ Cannot show workspace - not ready yet');
+        toast({
+          title: "Aircall Loading",
+          description: "Please wait while Aircall initializes...",
+          variant: "default"
+        });
+        return;
+      }
     }
 
     // PHASE 2 FIX: Always attempt to apply styles, even if marked visible
@@ -1257,6 +1257,41 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       window.removeEventListener('aircall-hide-workspace', handleHideWorkspace);
     };
   }, [showAircallWorkspace, hideAircallWorkspace]);
+
+  // ============================================================================
+  // PHASE 2: Force Workspace Interactive During Login
+  // ============================================================================
+  useEffect(() => {
+    if (showLoginModal) {
+      console.log('[AircallProvider] 🔓 Login modal open - forcing workspace interactive');
+      
+      const forceInteractive = () => {
+        const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+        const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
+        
+        if (container) {
+          container.style.pointerEvents = 'auto';
+          container.style.display = 'block';
+          container.style.visibility = 'visible';
+          container.style.opacity = '1';
+          console.log('[AircallProvider] ✅ Container forced interactive');
+        }
+        
+        if (iframe) {
+          iframe.style.pointerEvents = 'auto';
+          console.log('[AircallProvider] ✅ Iframe forced interactive');
+        }
+      };
+      
+      // Force immediately
+      forceInteractive();
+      
+      // Keep forcing every 100ms while login modal is open
+      const interval = setInterval(forceInteractive, 100);
+      
+      return () => clearInterval(interval);
+    }
+  }, [showLoginModal]);
 
   // ============================================================================
   // PHASE 3: Workspace Ready Listener

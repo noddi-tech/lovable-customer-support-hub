@@ -73,10 +73,10 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     }
   }, [isConnected, isOpen]);
 
-  // Enhanced logging when modal opens
+  // PHASE 5: Enhanced real-time workspace monitoring
   useEffect(() => {
     if (isOpen) {
-      console.group('[AircallLoginModal] 🔍 Modal Opened - Diagnostic Info');
+      console.group('[AircallLoginModal] 🔍 Modal Opened - Real-Time Diagnostic');
       console.log('Initialization Phase:', initializationPhase);
       console.log('Is Connected:', isConnected);
       
@@ -89,8 +89,18 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
         exists: !!container,
         classes: container?.className,
         pointerEvents: container ? window.getComputedStyle(container).pointerEvents : 'N/A',
+        display: container ? window.getComputedStyle(container).display : 'N/A',
+        visibility: container ? window.getComputedStyle(container).visibility : 'N/A',
         iframeExists: !!iframe
       });
+      
+      if (iframe) {
+        console.log('Iframe:', {
+          src: iframe.src,
+          pointerEvents: window.getComputedStyle(iframe).pointerEvents,
+          display: window.getComputedStyle(iframe).display
+        });
+      }
       
       console.log('Dialog Elements:', {
         overlayExists: !!dialogOverlay,
@@ -100,6 +110,25 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
       });
       
       console.groupEnd();
+      
+      // Real-time monitoring every 500ms while modal is open
+      const monitorInterval = setInterval(() => {
+        const currentContainer = document.querySelector('#aircall-workspace-container') as HTMLElement;
+        const currentIframe = currentContainer?.querySelector('iframe');
+        
+        if (currentIframe && !iframe) {
+          console.log('[AircallLoginModal] ✅ Iframe appeared!');
+        }
+        
+        if (currentContainer) {
+          const styles = window.getComputedStyle(currentContainer);
+          if (styles.pointerEvents !== 'auto') {
+            console.warn('[AircallLoginModal] ⚠️ Container pointer-events not auto:', styles.pointerEvents);
+          }
+        }
+      }, 500);
+      
+      return () => clearInterval(monitorInterval);
     }
   }, [isOpen, initializationPhase, isConnected]);
 
