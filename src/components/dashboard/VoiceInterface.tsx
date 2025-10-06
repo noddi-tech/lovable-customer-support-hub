@@ -25,6 +25,8 @@ import { VoiceLayout } from './voice/VoiceLayout';
 import { AircallPhoneBar } from './voice/AircallPhoneBar';
 import { AircallLoginModal, AircallBlockedModal } from './voice';
 import { ConnectionDiagnostic } from './voice/ConnectionDiagnostic';
+import { AircallDebugPanel } from './voice/AircallDebugPanel';
+import { AircallErrorBoundary } from '@/components/error/AircallErrorBoundary';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
@@ -751,72 +753,73 @@ export const VoiceInterface = () => {
 
   return (
     <>
-      {/* PHASE 6: Debug modal rendering */}
-      {showLoginModal && console.log('[VoiceInterface] 🔍 Rendering AircallLoginModal')}
-      {showBlockedModal && console.log('[VoiceInterface] 🔍 Rendering AircallBlockedModal')}
-      
-      <AircallLoginModal
-        isOpen={showLoginModal}
-        isConnected={isConnected}
-        onLoginConfirm={handleManualLoginConfirm}
-        onSkip={skipPhoneIntegration}
-        initializationPhase={initializationPhase}
-        diagnosticIssues={diagnosticIssues}
-      />
-      
-      <AircallBlockedModal
-        isOpen={showBlockedModal}
-        issues={diagnosticIssues}
-        onRetry={forceInitialization}
-        onOpenIncognito={openIncognito}
-        onSkip={skipPhoneIntegration}
-      />
-      
-      <IncomingCallModal
-        call={incomingCall}
-        isOpen={isIncomingCallModalOpen}
-        onClose={closeIncomingCallModal}
-        onAnswerContext={(callId) => {
-          closeIncomingCallModal();
-          navigation.navigateToConversation(callId);
-        }}
-      />
-      
-      <ConnectionDiagnostic
-        isWebSocketBlocked={isWebSocketBlocked}
-        isSDKFailed={initializationPhase === 'failed'}
-        initializationPhase={initializationPhase}
-        onRetry={() => {
-          console.log('🔄 [VoiceInterface] Retrying Aircall connection without reload');
-          // Invalidate queries to trigger re-fetch
-          queryClient.invalidateQueries({ queryKey: ['calls'] });
-          queryClient.invalidateQueries({ queryKey: ['voicemails'] });
-          queryClient.invalidateQueries({ queryKey: ['callbackRequests'] });
-          // Trigger voice error reset event for complete cleanup
-          window.dispatchEvent(new CustomEvent('voice-error-reset'));
-        }}
-      />
-      
-      <VoiceLayout
-        leftPane={renderVoiceSidebar()}
-        centerPane={renderCallList()}
-        rightPane={renderCustomerSidebar()}
-        leftPaneLabel="Filters"
-        centerPaneLabel="Voice Items"
-        rightPaneLabel="Customer Info"
-      />
-      
-      {/* Call Details Dialog */}
-      <CallDetailsDialog
-        call={selectedCall}
-        isOpen={isDetailsOpen}
-        onClose={() => setIsDetailsOpen(false)}
-      />
-      
-      {/* Aircall container moved to App.tsx for global availability */}
-      
-      {/* Aircall Phone Bar (fixed bottom) */}
-      <AircallPhoneBar incomingCall={incomingCall} />
+      <AircallErrorBoundary>
+        <AircallLoginModal
+          isOpen={showLoginModal}
+          isConnected={isConnected}
+          onLoginConfirm={handleManualLoginConfirm}
+          onSkip={skipPhoneIntegration}
+          initializationPhase={initializationPhase}
+          diagnosticIssues={diagnosticIssues}
+        />
+        
+        <AircallBlockedModal
+          isOpen={showBlockedModal}
+          issues={diagnosticIssues}
+          onRetry={forceInitialization}
+          onOpenIncognito={openIncognito}
+          onSkip={skipPhoneIntegration}
+        />
+        
+        <IncomingCallModal
+          call={incomingCall}
+          isOpen={isIncomingCallModalOpen}
+          onClose={closeIncomingCallModal}
+          onAnswerContext={(callId) => {
+            closeIncomingCallModal();
+            navigation.navigateToConversation(callId);
+          }}
+        />
+        
+        <ConnectionDiagnostic
+          isWebSocketBlocked={isWebSocketBlocked}
+          isSDKFailed={initializationPhase === 'failed'}
+          initializationPhase={initializationPhase}
+          onRetry={() => {
+            console.log('🔄 [VoiceInterface] Retrying Aircall connection without reload');
+            // Invalidate queries to trigger re-fetch
+            queryClient.invalidateQueries({ queryKey: ['calls'] });
+            queryClient.invalidateQueries({ queryKey: ['voicemails'] });
+            queryClient.invalidateQueries({ queryKey: ['callbackRequests'] });
+            // Trigger voice error reset event for complete cleanup
+            window.dispatchEvent(new CustomEvent('voice-error-reset'));
+          }}
+        />
+        
+        <VoiceLayout
+          leftPane={renderVoiceSidebar()}
+          centerPane={renderCallList()}
+          rightPane={renderCustomerSidebar()}
+          leftPaneLabel="Filters"
+          centerPaneLabel="Voice Items"
+          rightPaneLabel="Customer Info"
+        />
+        
+        {/* Call Details Dialog */}
+        <CallDetailsDialog
+          call={selectedCall}
+          isOpen={isDetailsOpen}
+          onClose={() => setIsDetailsOpen(false)}
+        />
+        
+        {/* Aircall container moved to App.tsx for global availability */}
+        
+        {/* Aircall Phone Bar (fixed bottom) */}
+        <AircallPhoneBar incomingCall={incomingCall} />
+        
+        {/* Debug Panel (Phase 5) */}
+        <AircallDebugPanel />
+      </AircallErrorBoundary>
     </>
   );
 };
