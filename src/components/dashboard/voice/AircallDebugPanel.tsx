@@ -17,16 +17,29 @@ export const AircallDebugPanel: React.FC = () => {
   const { toast } = useToast();
   const context = useAircallPhone();
 
+  // Get real-time workspace container info
+  const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+  const computedStyle = container ? window.getComputedStyle(container) : null;
+
   const debugInfo = {
     timestamp: new Date().toISOString(),
     initializationPhase: context.initializationPhase,
     isInitialized: context.isInitialized,
     isConnected: context.isConnected,
+    isWorkspaceReady: context.isWorkspaceReady,
+    workspaceVisible: context.workspaceVisible,
     hasCurrentCall: !!context.currentCall,
     error: context.error,
     diagnosticIssues: context.diagnosticIssues,
     showLoginModal: context.showLoginModal,
     showBlockedModal: context.showBlockedModal,
+    // Workspace container diagnostics
+    containerExists: !!container,
+    containerClasses: container?.className || 'N/A',
+    pointerEvents: computedStyle?.pointerEvents || 'N/A',
+    inlinePointerEvents: container?.style.pointerEvents || 'N/A',
+    zIndex: computedStyle?.zIndex || 'N/A',
+    iframeExists: !!container?.querySelector('iframe'),
   };
 
   const copyDebugInfo = () => {
@@ -83,6 +96,46 @@ export const AircallDebugPanel: React.FC = () => {
             {context.isConnected ? 'Yes' : 'No'}
           </Badge>
         </div>
+
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground">Workspace Ready:</span>
+          <Badge variant={context.isWorkspaceReady ? 'default' : 'secondary'} className="text-xs">
+            {context.isWorkspaceReady ? 'Yes' : 'No'}
+          </Badge>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground">Workspace Visible:</span>
+          <Badge variant={context.workspaceVisible ? 'default' : 'secondary'} className="text-xs">
+            {context.workspaceVisible ? 'Yes' : 'No'}
+          </Badge>
+        </div>
+
+        {container && (
+          <div className="pt-2 border-t border-border">
+            <span className="text-muted-foreground block mb-1">Container:</span>
+            <div className="text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Pointer Events:</span>
+                <span className="font-mono">{computedStyle?.pointerEvents}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Inline Style:</span>
+                <span className="font-mono">{container.style.pointerEvents || 'none'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Classes:</span>
+                <span className="font-mono text-xs">{container.className}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">iFrame:</span>
+                <Badge variant={container.querySelector('iframe') ? 'default' : 'secondary'} className="text-xs">
+                  {container.querySelector('iframe') ? 'Loaded' : 'Missing'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        )}
 
         {context.diagnosticIssues.length > 0 && (
           <div className="pt-2 border-t border-border">

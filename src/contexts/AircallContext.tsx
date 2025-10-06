@@ -236,6 +236,17 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       return;
     }
 
+    // Check workspace readiness before showing
+    if (!isInitialized || !isConnected) {
+      console.warn('[AircallProvider] ⚠️ Cannot show workspace - not ready yet');
+      toast({
+        title: "Aircall Loading",
+        description: "Please wait while Aircall initializes...",
+        variant: "default"
+      });
+      return;
+    }
+
     // PHASE 5: Race Condition Retry Logic
     let attempts = 0;
     const MAX_ATTEMPTS = 3;
@@ -256,16 +267,28 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         }
       }
 
-      // PHASE 3: Single DOM manipulation point
-      container.classList.add('aircall-visible');
+      // CRITICAL FIX: Force remove hidden class and add visible class
       container.classList.remove('aircall-hidden');
+      container.classList.add('aircall-visible');
+      
+      // DEFENSIVE: Force pointer-events as inline style to override any CSS issues
+      container.style.pointerEvents = 'auto';
+      
+      // Log for debugging
+      const computedStyle = window.getComputedStyle(container);
+      console.log('[AircallProvider] ✅ Workspace shown:', {
+        classList: container.className,
+        computedPointerEvents: computedStyle.pointerEvents,
+        inlinePointerEvents: container.style.pointerEvents,
+        zIndex: computedStyle.zIndex
+      });
+      
       setWorkspaceVisible(true);
       setWorkspaceVisiblePreference(true);
-      console.log('[AircallProvider] ✅ Workspace shown (persistent, no auto-hide)');
     };
 
     tryShow();
-  }, [workspaceVisible, setWorkspaceVisiblePreference]);
+  }, [workspaceVisible, setWorkspaceVisiblePreference, isInitialized, toast]);
 
   /**
    * Hides the Aircall workspace with full idempotence.
@@ -409,15 +432,15 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('authentication')) {
             console.error('[AircallProvider] ❌ Authentication failed (401)');
             setDiagnosticIssues(['authentication_failed']);
-            setShowBlockedModal(true);
+            setShowLoginModal(true); // Show login modal instead of blocked modal
             setInitializationPhase('failed');
             
             // Short-circuit initialization
             abortControllerRef.current?.abort();
             
             toast({
-              title: 'Authentication Failed',
-              description: 'Unable to authenticate with Aircall. Check credentials or cookie settings.',
+              title: 'Session Expired',
+              description: 'Please log in to Aircall again.',
               variant: 'destructive',
               duration: 10000,
             });
