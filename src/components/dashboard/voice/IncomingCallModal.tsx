@@ -80,6 +80,34 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
     };
   }, [currentCall?.id, onClose, queryClient]);
 
+  // PHASE 1: Force pointer-events on dialog to ensure it's interactive
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Force pointer-events on all dialog-related elements
+    const forcePointerEvents = () => {
+      // Find dialog overlay and content
+      const dialogOverlay = document.querySelector('[data-radix-dialog-overlay]') as HTMLElement;
+      const dialogContent = document.querySelector('[data-radix-dialog-content]') as HTMLElement;
+      
+      if (dialogOverlay) {
+        dialogOverlay.style.pointerEvents = 'auto';
+        console.log('[IncomingCallModal] ✅ Forced pointer-events on dialog overlay');
+      }
+      
+      if (dialogContent) {
+        dialogContent.style.pointerEvents = 'auto';
+        console.log('[IncomingCallModal] ✅ Forced pointer-events on dialog content');
+      }
+    };
+
+    // Apply immediately and after a short delay
+    forcePointerEvents();
+    const timer = setTimeout(forcePointerEvents, 100);
+
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
   // Auto-close after 60 seconds if still open (safety timeout)
   useEffect(() => {
     if (!isOpen) return;

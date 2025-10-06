@@ -507,7 +507,13 @@ Optimized for accessibility with WCAG AA compliance.
     bottom: 20px;
     right: 20px;
     opacity: 1;
-    pointer-events: auto;
+    pointer-events: auto !important; /* PHASE 4: Force pointer-events with !important */
+  }
+
+  /* PHASE 4: Ensure all dialog elements are interactive */
+  [data-radix-dialog-overlay],
+  [data-radix-dialog-content] {
+    pointer-events: auto !important;
   }
 
   .pane, .card__body {

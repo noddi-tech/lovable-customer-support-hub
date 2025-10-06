@@ -21,6 +21,12 @@ export const AircallDebugPanel: React.FC = () => {
   const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
   const computedStyle = container ? window.getComputedStyle(container) : null;
 
+  // PHASE 3: Monitor dialog pointer-events
+  const dialogOverlay = document.querySelector('[data-radix-dialog-overlay]') as HTMLElement;
+  const dialogContent = document.querySelector('[data-radix-dialog-content]') as HTMLElement;
+  const dialogOverlayStyle = dialogOverlay ? window.getComputedStyle(dialogOverlay) : null;
+  const dialogContentStyle = dialogContent ? window.getComputedStyle(dialogContent) : null;
+
   const debugInfo = {
     timestamp: new Date().toISOString(),
     initializationPhase: context.initializationPhase,
@@ -40,6 +46,11 @@ export const AircallDebugPanel: React.FC = () => {
     inlinePointerEvents: container?.style.pointerEvents || 'N/A',
     zIndex: computedStyle?.zIndex || 'N/A',
     iframeExists: !!container?.querySelector('iframe'),
+    // PHASE 3: Dialog diagnostics
+    dialogOverlayExists: !!dialogOverlay,
+    dialogOverlayPointerEvents: dialogOverlayStyle?.pointerEvents || 'N/A',
+    dialogContentExists: !!dialogContent,
+    dialogContentPointerEvents: dialogContentStyle?.pointerEvents || 'N/A',
   };
 
   const copyDebugInfo = () => {
@@ -48,6 +59,36 @@ export const AircallDebugPanel: React.FC = () => {
     toast({
       title: 'Debug Info Copied',
       description: 'Debug information copied to clipboard',
+    });
+  };
+
+  // PHASE 3: Force fix function to remove all pointer-events: none
+  const forceFix = () => {
+    let fixed = 0;
+    
+    // Fix workspace container
+    if (container) {
+      container.style.pointerEvents = 'auto';
+      container.classList.remove('aircall-hidden');
+      container.classList.add('aircall-visible');
+      fixed++;
+    }
+    
+    // Fix dialog overlay
+    if (dialogOverlay) {
+      dialogOverlay.style.pointerEvents = 'auto';
+      fixed++;
+    }
+    
+    // Fix dialog content
+    if (dialogContent) {
+      dialogContent.style.pointerEvents = 'auto';
+      fixed++;
+    }
+    
+    toast({
+      title: 'Force Fix Applied',
+      description: `Fixed ${fixed} elements to have pointer-events: auto`,
     });
   };
 
@@ -65,14 +106,25 @@ export const AircallDebugPanel: React.FC = () => {
           <Bug className="h-4 w-4 text-primary" />
           <h3 className="font-bold text-sm">Aircall Debug Panel</h3>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={copyDebugInfo}
-          className="h-7 w-7 p-0"
-        >
-          <Copy className="h-3 w-3" />
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={forceFix}
+            className="h-7 px-2 text-xs"
+            title="Force fix pointer-events on all elements"
+          >
+            Fix
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={copyDebugInfo}
+            className="h-7 w-7 p-0"
+          >
+            <Copy className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2 text-xs">
@@ -133,6 +185,31 @@ export const AircallDebugPanel: React.FC = () => {
                   {container.querySelector('iframe') ? 'Loaded' : 'Missing'}
                 </Badge>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* PHASE 3: Dialog diagnostics */}
+        {(dialogOverlay || dialogContent) && (
+          <div className="pt-2 border-t border-border">
+            <span className="text-muted-foreground block mb-1">Dialog:</span>
+            <div className="text-xs space-y-1">
+              {dialogOverlay && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Overlay Pointer:</span>
+                  <span className={`font-mono ${dialogOverlayStyle?.pointerEvents === 'none' ? 'text-destructive' : ''}`}>
+                    {dialogOverlayStyle?.pointerEvents}
+                  </span>
+                </div>
+              )}
+              {dialogContent && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Content Pointer:</span>
+                  <span className={`font-mono ${dialogContentStyle?.pointerEvents === 'none' ? 'text-destructive' : ''}`}>
+                    {dialogContentStyle?.pointerEvents}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}

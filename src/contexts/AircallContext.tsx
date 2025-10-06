@@ -230,12 +230,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * ```
    */
   const showAircallWorkspace = useCallback(() => {
-    // PHASE 1: Idempotence Guard - Skip if already visible
-    if (workspaceVisible) {
-      console.log('[AircallProvider] 👁️ Workspace already visible - skipping');
-      return;
-    }
-
     // Check workspace readiness before showing
     if (!isInitialized || !isConnected) {
       console.warn('[AircallProvider] ⚠️ Cannot show workspace - not ready yet');
@@ -246,6 +240,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       });
       return;
     }
+
+    // PHASE 2 FIX: Always attempt to apply styles, even if marked visible
+    console.log('[AircallProvider] 🔧 Forcing workspace visibility and pointer-events');
 
     // PHASE 5: Race Condition Retry Logic
     let attempts = 0;
