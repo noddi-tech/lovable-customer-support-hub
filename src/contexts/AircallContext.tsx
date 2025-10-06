@@ -29,6 +29,7 @@ export interface AircallContextValue {
   retryConnection: () => void;
   openIncognito: () => void;
   skipPhoneIntegration: () => void;
+  forceInitialization: () => Promise<void>;
   isWaitingForWorkspace?: boolean;
   workspaceVisible: boolean;
   showAircallWorkspace: () => void;
@@ -1373,6 +1374,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     retryConnection,
     openIncognito,
     skipPhoneIntegration,
+    forceInitialization,
     workspaceVisible,
     showAircallWorkspace,
     hideAircallWorkspace,
