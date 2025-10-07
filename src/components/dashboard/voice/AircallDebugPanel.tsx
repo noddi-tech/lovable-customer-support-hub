@@ -99,6 +99,30 @@ export const AircallDebugPanel: React.FC = () => {
     });
   };
 
+  // PHASE 7: Force reinitialize function
+  const forceReinitialize = () => {
+    // Clear all Aircall-related localStorage
+    const keysToRemove = [
+      'aircall_login_status',
+      'aircall_connection_timestamp',
+      'aircall_connection_attempts',
+      'last_reconnect_attempt',
+      'aircall_workspace_visible'
+    ];
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    toast({
+      title: 'Reinitializing Aircall',
+      description: 'Cleared cache and reloading page...',
+    });
+    
+    // Reload page after a short delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  };
+
   // Only show in development or with ?debug=aircall
   const shouldShow = 
     process.env.NODE_ENV === 'development' || 
@@ -122,6 +146,15 @@ export const AircallDebugPanel: React.FC = () => {
             title="Force fix pointer-events on all elements"
           >
             Fix
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={forceReinitialize}
+            className="h-7 px-2 text-xs"
+            title="Clear cache and reinitialize Aircall"
+          >
+            Reinit
           </Button>
           <Button
             size="sm"

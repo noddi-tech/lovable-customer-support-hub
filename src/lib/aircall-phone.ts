@@ -731,7 +731,7 @@ class AircallPhoneManager {
 
   /**
    * Show the Aircall workspace UI
-   * Dispatches custom event for centralized management
+   * CRITICAL FIX: Directly manipulates DOM to show workspace instead of dispatching event
    */
   showWorkspace(): void {
     if (!this.workspace) {
@@ -739,13 +739,25 @@ class AircallPhoneManager {
       return;
     }
     
-    console.log('[AircallWorkspace] 📢 Dispatching show-workspace event');
-    window.dispatchEvent(new CustomEvent('aircall-show-workspace'));
+    try {
+      console.log('[AircallWorkspace] ✅ Showing workspace via DOM manipulation');
+      const container = document.querySelector('[data-aircall-workspace]');
+      if (container instanceof HTMLElement) {
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        container.style.pointerEvents = 'auto';
+        console.log('[AircallWorkspace] ✅ Workspace container visible');
+      } else {
+        console.warn('[AircallWorkspace] Workspace container not found');
+      }
+    } catch (error) {
+      console.error('[AircallWorkspace] ❌ Error showing workspace:', error);
+    }
   }
 
   /**
    * Hide the Aircall workspace UI
-   * Dispatches custom event for centralized management
+   * CRITICAL FIX: Directly manipulates DOM to hide workspace instead of dispatching event
    */
   hideWorkspace(): void {
     if (!this.workspace) {
@@ -753,8 +765,20 @@ class AircallPhoneManager {
       return;
     }
     
-    console.log('[AircallWorkspace] 📢 Dispatching hide-workspace event');
-    window.dispatchEvent(new CustomEvent('aircall-hide-workspace'));
+    try {
+      console.log('[AircallWorkspace] ✅ Hiding workspace via DOM manipulation');
+      const container = document.querySelector('[data-aircall-workspace]');
+      if (container instanceof HTMLElement) {
+        container.style.display = 'none';
+        container.style.visibility = 'hidden';
+        container.style.pointerEvents = 'none';
+        console.log('[AircallWorkspace] ✅ Workspace container hidden');
+      } else {
+        console.warn('[AircallWorkspace] Workspace container not found');
+      }
+    } catch (error) {
+      console.error('[AircallWorkspace] ❌ Error hiding workspace:', error);
+    }
   }
 
   /**

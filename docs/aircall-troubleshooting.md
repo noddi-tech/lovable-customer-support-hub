@@ -12,35 +12,27 @@ Before troubleshooting Aircall integration issues, ensure you have:
 
 ## Common Issues
 
-### 1. Infinite Recursion / Stack Overflow (CRITICAL)
+### 1. Infinite Recursion / Event Loop (CRITICAL) - FIXED
 
 **Symptoms:**
 - Browser freezes or becomes unresponsive
 - Console shows "Maximum call stack size exceeded"
 - Hundreds of identical log messages flooding the console
 - Page crashes or automatically reloads
-- Debug panel shows recursion guards stuck at 🔒
+- Workspace never appears despite clicking "Show Aircall"
 
-**Cause:**
-The Aircall SDK dispatches events when `showWorkspace()` or `hideWorkspace()` are called. If these events trigger the same functions again, an infinite loop occurs.
+**Root Cause:**
+The `showWorkspace()` and `hideWorkspace()` methods in `src/lib/aircall-phone.ts` were dispatching custom events (`aircall-show-workspace` and `aircall-hide-workspace`), which were then caught by event listeners in `AircallContext.tsx` that called the same functions again, creating an infinite loop.
 
-**Solution:**
-The integration now uses recursion guard flags (`isShowingWorkspaceRef`, `isHidingWorkspaceRef`) to prevent this:
+**Fix Applied:**
+1. **Direct SDK Calls**: Modified `showWorkspace()` and `hideWorkspace()` to directly manipulate the DOM instead of dispatching events
+2. **Event Listeners Removed**: Removed the circular event listeners from `AircallContext.tsx`
+3. **Blocking Check Removed**: Removed `!aircallPhone.isWorkspaceCreated()` check that prevented SDK initialization
 
-1. **Check Debug Panel:**
-   - Enable debug panel with `?debug=aircall`
-   - Look at "Recursion Guards" section
-   - "Showing (locked)" and "Hiding (locked)" should show ✅
-   - If showing 🔒 for more than 100ms, there's a guard issue
-
-2. **Immediate Fix:**
-   - Reload the page to clear recursion state
-   - Guards will reset automatically
-
-3. **If Problem Persists:**
-   - Verify no other code is calling `aircallPhone.showWorkspace()` directly
-   - Check event listeners for duplicate registrations
-   - Look for custom code that may bypass the context functions
+**Verification:**
+- Check console logs for "✅ Showing workspace via DOM manipulation"
+- No more event dispatch messages
+- Workspace container should now be visible when clicking "Show Aircall"
 
 ### 2. Workspace Not Loading (401 Errors)
 
@@ -184,16 +176,24 @@ Add `?debug=aircall` to your URL in any environment, or it's automatically enabl
 
 - **Real-time status indicators** - Visual badges for initialization, connection, and readiness
 - **Phase tracking** - Shows current initialization phase
-- **Recursion guard monitoring** - Shows 🔒 when functions are locked, ✅ when ready (should never stay locked >100ms)
 - **Current call info** - Displays active call ID if present
 - **DOM diagnostics** - Shows container, iframe, and pointer-events status
 - **Copy debug info** - Button to copy full diagnostic data to clipboard
 - **Force fix** - Button to reset pointer-events to auto (useful for stuck states)
+- **Force Reinitialize** - Button to clear all Aircall cache and reload page (useful for stuck initialization)
 
-**Recursion Guard Indicators:**
-- **Showing (locked) = 🔒**: Currently executing `showWorkspace()`, will ignore new calls to prevent infinite loops
-- **Hiding (locked) = 🔒**: Currently executing `hideWorkspace()`, will ignore new calls to prevent infinite loops
-- Both should return to ✅ within ~100ms; if stuck at 🔒, there's a deadlock - reload the page
+**When to Use Force Reinitialize:**
+- Workspace is stuck at "Initializing" phase
+- 401 errors persist after credential updates
+- SDK appears to be in a corrupted state
+- After making changes to voice integration settings
+
+This clears all cached state:
+- `aircall_login_status`
+- `aircall_connection_timestamp`
+- `aircall_connection_attempts`
+- `last_reconnect_attempt`
+- `aircall_workspace_visible`
 
 ### Example Debug Info
 

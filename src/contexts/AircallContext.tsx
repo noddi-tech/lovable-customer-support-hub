@@ -136,11 +136,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       return;
     }
     
-    // PHASE 3: Check if Realtime manager or another system recently reconnected (debounce)
+    // PHASE 3: Check if Realtime manager or another system recently reconnected (debounce - increased to 5 seconds)
     const lastReconnectAttempt = localStorage.getItem('last_reconnect_attempt');
     if (lastReconnectAttempt) {
       const timeSince = Date.now() - parseInt(lastReconnectAttempt);
-      if (timeSince < 3000) { // 3 second debounce
+      if (timeSince < 5000) { // 5 second debounce (increased from 3)
         console.log('[AircallProvider] 🔒 Recent reconnection attempt detected, waiting...');
         return;
       }
@@ -258,7 +258,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * ```
    */
   const showAircallWorkspace = useCallback((forLogin = false) => {
-    // PHASE 1 CRITICAL: RECURSION GUARD - Prevent infinite loop from event listeners
+    // PHASE 1 CRITICAL: RECURSION GUARD - Prevent infinite loop
     if (isShowingWorkspaceRef.current) {
       console.log('[AircallProvider] 🔒 Already showing workspace, skipping recursive call');
       return;
@@ -267,22 +267,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     isShowingWorkspaceRef.current = true;
     
     try {
-      // Check if workspace is ready using public method
-      if (!aircallPhone.isWorkspaceCreated()) {
-        console.error('[AircallProvider] ❌ Cannot show workspace - SDK not initialized');
-        if (!forLogin) {
-          toast({
-            title: 'Aircall Not Ready',
-            description: 'The phone system is still loading. Please wait...',
-            variant: 'destructive'
-          });
-        }
-        return;
-      }
-
-      console.log('[AircallProvider] 🚀 Calling SDK showWorkspace()');
-      // CRITICAL: This actually creates/mounts the Aircall iframe
-      // This will dispatch an event, but our guard prevents recursion
+      // CRITICAL FIX: Removed blocking isWorkspaceCreated() check
+      // Let the SDK throw its own errors if it's not ready
+      console.log('[AircallProvider] 🚀 Calling SDK showWorkspace() directly');
       aircallPhone.showWorkspace();
     
     // PHASE 1 FIX: Completely bypass all checks for login flow
@@ -1379,38 +1366,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     window.location.reload();
   }, []);
 
-  /**
-   * Listen for custom events from aircall-phone.ts
-   */
-  useEffect(() => {
-    const handleShowWorkspace = () => {
-      // PHASE 2: Don't handle event if we're already showing (prevents loops)
-      if (isShowingWorkspaceRef.current) {
-        console.log('[AircallProvider] 📢 Ignoring show-workspace event (already showing)');
-        return;
-      }
-      console.log('[AircallProvider] 📢 Received show-workspace event from external source');
-      showAircallWorkspace();
-    };
-
-    const handleHideWorkspace = () => {
-      // PHASE 2: Don't handle event if we're already hiding (prevents loops)
-      if (isHidingWorkspaceRef.current) {
-        console.log('[AircallProvider] 📢 Ignoring hide-workspace event (already hiding)');
-        return;
-      }
-      console.log('[AircallProvider] 📢 Received hide-workspace event from external source');
-      hideAircallWorkspace();
-    };
-
-    window.addEventListener('aircall-show-workspace', handleShowWorkspace);
-    window.addEventListener('aircall-hide-workspace', handleHideWorkspace);
-
-    return () => {
-      window.removeEventListener('aircall-show-workspace', handleShowWorkspace);
-      window.removeEventListener('aircall-hide-workspace', handleHideWorkspace);
-    };
-  }, [showAircallWorkspace, hideAircallWorkspace]);
+  // REMOVED: Event listeners that created the recursion loop
+  // The SDK now calls show()/hide() directly instead of dispatching events
 
   // ============================================================================
   // PHASE 2: Force Workspace Interactive During Login
