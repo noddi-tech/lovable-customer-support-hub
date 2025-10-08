@@ -277,15 +277,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       console.log('[AircallProvider] 🔓 FORCING workspace visible for login (bypassing all checks)');
       // Just show the container - no readiness checks needed
     } else {
-      // Normal flow - check readiness, but allow showing during login phase
+      // Phase 2: Convert blocking check to warning - let SDK handle its own errors
       if (!isInitialized) {
-        console.warn('[AircallProvider] ⚠️ Cannot show workspace - not initialized yet');
-        toast({
-          title: "Aircall Initializing",
-          description: "Workspace is still being set up...",
-          variant: "default"
-        });
-        return;
+        console.warn('[AircallProvider] ⚠️ Workspace may not be fully initialized; trying to show anyway');
+        // DO NOT return - proceed with the call
       }
       
       // PHASE 3: Allow showing workspace if initialized, even if not connected (for login)
@@ -626,6 +621,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             aircallPhone.setLoginStatus(true);
             saveConnectionMetadata();
             setIsConnected(true);
+            
+            // Phase 3: Mark workspace as ready when user actually logs in
+            setIsWorkspaceReady(true);
+            console.log('[AircallProvider] ✅ Workspace marked as ready after login');
+            
             setShowLoginModal(false);
             setError(null);
             setInitializationPhase('logged-in');
@@ -658,6 +658,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               console.log('[AircallProvider] Ignoring logout during grace period');
               return;
             }
+            
+            // Phase 3: Mark workspace as not ready on logout
+            setIsWorkspaceReady(false);
+            console.log('[AircallProvider] ❌ Workspace marked as not ready after logout');
             
             const wasLoggedIn = aircallPhone.getLoginStatus();
             

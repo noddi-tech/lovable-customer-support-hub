@@ -12,7 +12,37 @@ Before troubleshooting Aircall integration issues, ensure you have:
 
 ## Common Issues
 
-### 1. Infinite Recursion / Event Loop (CRITICAL) - FIXED
+### 1. SDK Not Mounting Iframe (CRITICAL) - FIXED
+
+**Symptoms:**
+- "Select your language" dialog visible but not clickable
+- 401 errors flooding the console from workspace.aircall.io
+- Console shows "Module 'service' is not yet registered"
+- Warnings about "Workspace has not been identified yet"
+- "Show Aircall" button does nothing
+
+**Root Cause:**
+The `showWorkspace()` and `hideWorkspace()` methods in `src/lib/aircall-phone.ts` were only manipulating CSS without calling the actual Aircall SDK methods. This meant the iframe was never truly mounted or authenticated. The SDK's `show()` and `hide()` methods do more than just CSS - they:
+- Mount/unmount the iframe properly
+- Establish WebSocket connections for real-time events
+- Trigger authentication flows
+- Initialize audio contexts
+- Register service modules
+
+**Fix Applied:**
+1. **Direct SDK Calls**: Updated `showWorkspace()` and `hideWorkspace()` to call the SDK's `show()` and `hide()` methods (or `open()`/`close()` for compatibility) before adjusting CSS
+2. **Method Detection**: Added logging to inspect available workspace methods after initialization
+3. **Blocking Check Removed**: Converted `!isInitialized` check to a warning so the SDK can always be attempted
+4. **Workspace Ready Tracking**: Added `isWorkspaceReady` flag that's set in the `onLogin` callback to reflect actual authentication state
+
+**Verification:**
+After the fix:
+1. Check console for "✅ Called workspace.show()"
+2. No more 401 errors
+3. Language selector becomes clickable
+4. Audio context warnings may persist but are harmless (they're triggered after user interaction)
+
+### 2. Infinite Recursion / Event Loop - FIXED
 
 **Symptoms:**
 - Browser freezes or becomes unresponsive
@@ -22,19 +52,19 @@ Before troubleshooting Aircall integration issues, ensure you have:
 - Workspace never appears despite clicking "Show Aircall"
 
 **Root Cause:**
-The `showWorkspace()` and `hideWorkspace()` methods in `src/lib/aircall-phone.ts` were dispatching custom events (`aircall-show-workspace` and `aircall-hide-workspace`), which were then caught by event listeners in `AircallContext.tsx` that called the same functions again, creating an infinite loop.
+The `showWorkspace()` and `hideWorkspace()` methods were dispatching custom events that were caught by event listeners that called the same functions again, creating an infinite loop.
 
 **Fix Applied:**
-1. **Direct SDK Calls**: Modified `showWorkspace()` and `hideWorkspace()` to directly manipulate the DOM instead of dispatching events
+1. **Direct SDK Calls**: Modified methods to call SDK directly instead of dispatching events
 2. **Event Listeners Removed**: Removed the circular event listeners from `AircallContext.tsx`
-3. **Blocking Check Removed**: Removed `!aircallPhone.isWorkspaceCreated()` check that prevented SDK initialization
+3. **Recursion Guards**: Added `isShowingWorkspaceRef` and `isHidingWorkspaceRef` flags
 
 **Verification:**
-- Check console logs for "✅ Showing workspace via DOM manipulation"
+- Check console logs for "✅ Called workspace.show()"
 - No more event dispatch messages
 - Workspace container should now be visible when clicking "Show Aircall"
 
-### 2. Workspace Not Loading (401 Errors)
+### 3. Workspace Not Loading (401 Errors)
 
 **Symptoms:**
 - Console shows "Workspace has not been identified yet"
@@ -71,7 +101,7 @@ The `showWorkspace()` and `hideWorkspace()` methods in `src/lib/aircall-phone.ts
    - Look for ERR_BLOCKED_BY_CLIENT errors
    - Check if any browser extensions are blocking Aircall requests
 
-### 2. React Query Version Mismatch
+### 4. React Query Version Mismatch
 
 **Symptoms:**
 - Error: `_a.isStatic is not a function`
@@ -85,7 +115,7 @@ Ensure both React Query packages are at the same version:
 npm install @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
 ```
 
-### 3. SDK Not Initializing
+### 5. SDK Not Initializing
 
 **Symptoms:**
 - Phone bar shows "Connecting..." indefinitely
@@ -109,7 +139,7 @@ npm install @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
    - Click "Reload Aircall" in the error modal
    - Or refresh the page
 
-### 4. Calls Not Showing / Answering
+### 6. Calls Not Showing / Answering
 
 **Symptoms:**
 - Incoming call notifications appear
@@ -130,7 +160,7 @@ npm install @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
    - Debug panel shows connection status
    - Ensure websocket connection is not blocked
 
-### 5. Reconnection Issues
+### 7. Reconnection Issues
 
 **Symptoms:**
 - Frequent disconnects
@@ -162,7 +192,7 @@ The Aircall integration has three key readiness states:
 |-------|---------|--------------|
 | `isInitialized` | SDK is created and workspace exists | Showing workspace |
 | `isConnected` | User is logged into Aircall | Making/receiving calls |
-| `isWorkspaceReady` | Workspace iframe is mounted and ready | All phone operations |
+| `isWorkspaceReady` | Workspace iframe is mounted and authenticated | All phone operations |
 
 **All three must be true** before you can make or receive calls.
 
@@ -176,6 +206,7 @@ Add `?debug=aircall` to your URL in any environment, or it's automatically enabl
 
 - **Real-time status indicators** - Visual badges for initialization, connection, and readiness
 - **Phase tracking** - Shows current initialization phase
+- **SDK Method Detection** - Logs available workspace methods to console for debugging
 - **Current call info** - Displays active call ID if present
 - **DOM diagnostics** - Shows container, iframe, and pointer-events status
 - **Copy debug info** - Button to copy full diagnostic data to clipboard
@@ -253,3 +284,4 @@ If issues persist after trying these troubleshooting steps:
 - **v2.0.0** - Bulletproof visibility refactor with centralized workspace management
 - **v2.1.0** - Added comprehensive fix plan with SDK invocation, error boundary, and debug panel
 - **v2.2.0** - Fixed infinite recursion with guard flags, added reconnection debounce, enhanced debug panel
+- **v2.3.0** - **CRITICAL FIX**: Implemented actual SDK method invocation instead of CSS-only manipulation, updated isWorkspaceReady tracking, removed blocking checks

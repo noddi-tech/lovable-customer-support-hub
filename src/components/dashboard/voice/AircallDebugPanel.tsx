@@ -174,6 +174,13 @@ export const AircallDebugPanel: React.FC = () => {
             {context.initializationPhase}
           </Badge>
         </div>
+        
+        <div className="pt-2 border-t border-border">
+          <span className="text-muted-foreground block mb-1 text-xs">SDK Method Detection:</span>
+          <div className="text-xs text-muted-foreground">
+            Check console for available workspace methods after initialization
+          </div>
+        </div>
 
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Initialized:</span>

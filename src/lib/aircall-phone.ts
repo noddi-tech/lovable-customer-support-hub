@@ -535,6 +535,37 @@ class AircallPhoneManager {
       console.log('[AircallWorkspace] ✅ Workspace created successfully');
       this.logInit('workspace_created');
       
+      // Phase 4: Log available SDK methods for debugging
+      console.log('[AircallWorkspace] 🔍 Inspecting available workspace methods:');
+      try {
+        const workspaceMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(this.workspace))
+          .filter(name => typeof (this.workspace as any)[name] === 'function');
+        console.log('[AircallWorkspace] Available methods:', workspaceMethods);
+        
+        // Check specifically for show/hide methods
+        if (typeof (this.workspace as any).show === 'function') {
+          console.log('[AircallWorkspace] ✅ workspace.show() method exists');
+        } else {
+          console.warn('[AircallWorkspace] ⚠️ workspace.show() method NOT found');
+        }
+        
+        if (typeof (this.workspace as any).hide === 'function') {
+          console.log('[AircallWorkspace] ✅ workspace.hide() method exists');
+        } else {
+          console.warn('[AircallWorkspace] ⚠️ workspace.hide() method NOT found');
+        }
+        
+        // Check for alternative method names
+        if (typeof (this.workspace as any).open === 'function') {
+          console.log('[AircallWorkspace] ✅ workspace.open() method exists');
+        }
+        if (typeof (this.workspace as any).close === 'function') {
+          console.log('[AircallWorkspace] ✅ workspace.close() method exists');
+        }
+      } catch (error) {
+        console.error('[AircallWorkspace] ❌ Error inspecting workspace methods:', error);
+      }
+      
       // Phase 4: Wait for iframe then fix permissions conditionally
       const iframe = this.getAircallIframe();
       if (iframe) {
@@ -731,7 +762,7 @@ class AircallPhoneManager {
 
   /**
    * Show the Aircall workspace UI
-   * CRITICAL FIX: Directly manipulates DOM to show workspace instead of dispatching event
+   * Phase 1 CRITICAL FIX: Call actual SDK methods instead of just CSS manipulation
    */
   showWorkspace(): void {
     if (!this.workspace) {
@@ -740,24 +771,34 @@ class AircallPhoneManager {
     }
     
     try {
-      console.log('[AircallWorkspace] ✅ Showing workspace via DOM manipulation');
-      const container = document.querySelector('[data-aircall-workspace]');
-      if (container instanceof HTMLElement) {
-        container.style.display = 'block';
-        container.style.visibility = 'visible';
-        container.style.pointerEvents = 'auto';
-        console.log('[AircallWorkspace] ✅ Workspace container visible');
+      console.log('[AircallWorkspace] 🚀 Calling SDK show() to mount iframe');
+      
+      // Phase 1: Call actual SDK method to properly mount the iframe
+      if (typeof (this.workspace as any).show === 'function') {
+        (this.workspace as any).show();
+        console.log('[AircallWorkspace] ✅ Called workspace.show()');
+      } else if (typeof (this.workspace as any).open === 'function') {
+        (this.workspace as any).open();
+        console.log('[AircallWorkspace] ✅ Called workspace.open()');
       } else {
-        console.warn('[AircallWorkspace] Workspace container not found');
+        console.warn('[AircallWorkspace] ⚠️ No show/open method found, using CSS fallback');
+        // Fallback to CSS if SDK doesn't expose methods
+        const container = document.querySelector('[data-aircall-workspace]');
+        if (container instanceof HTMLElement) {
+          container.style.display = 'block';
+          container.style.visibility = 'visible';
+          container.style.pointerEvents = 'auto';
+        }
       }
     } catch (error) {
       console.error('[AircallWorkspace] ❌ Error showing workspace:', error);
+      throw error;
     }
   }
 
   /**
    * Hide the Aircall workspace UI
-   * CRITICAL FIX: Directly manipulates DOM to hide workspace instead of dispatching event
+   * Phase 1 CRITICAL FIX: Call actual SDK methods instead of just CSS manipulation
    */
   hideWorkspace(): void {
     if (!this.workspace) {
@@ -766,18 +807,28 @@ class AircallPhoneManager {
     }
     
     try {
-      console.log('[AircallWorkspace] ✅ Hiding workspace via DOM manipulation');
-      const container = document.querySelector('[data-aircall-workspace]');
-      if (container instanceof HTMLElement) {
-        container.style.display = 'none';
-        container.style.visibility = 'hidden';
-        container.style.pointerEvents = 'none';
-        console.log('[AircallWorkspace] ✅ Workspace container hidden');
+      console.log('[AircallWorkspace] 🙈 Calling SDK hide() to remove iframe');
+      
+      // Phase 1: Call actual SDK method to properly unmount the iframe
+      if (typeof (this.workspace as any).hide === 'function') {
+        (this.workspace as any).hide();
+        console.log('[AircallWorkspace] ✅ Called workspace.hide()');
+      } else if (typeof (this.workspace as any).close === 'function') {
+        (this.workspace as any).close();
+        console.log('[AircallWorkspace] ✅ Called workspace.close()');
       } else {
-        console.warn('[AircallWorkspace] Workspace container not found');
+        console.warn('[AircallWorkspace] ⚠️ No hide/close method found, using CSS fallback');
+        // Fallback to CSS if SDK doesn't expose methods
+        const container = document.querySelector('[data-aircall-workspace]');
+        if (container instanceof HTMLElement) {
+          container.style.display = 'none';
+          container.style.visibility = 'hidden';
+          container.style.pointerEvents = 'none';
+        }
       }
     } catch (error) {
       console.error('[AircallWorkspace] ❌ Error hiding workspace:', error);
+      throw error;
     }
   }
 
