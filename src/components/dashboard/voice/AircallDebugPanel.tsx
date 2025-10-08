@@ -34,6 +34,31 @@ export const AircallDebugPanel: React.FC = () => {
   const dialogOverlayStyle = dialogOverlay ? window.getComputedStyle(dialogOverlay) : null;
   const dialogContentStyle = dialogContent ? window.getComputedStyle(dialogContent) : null;
 
+  // PHASE 5: Enhanced diagnostics
+  const aircallIframe = document.querySelector('iframe[id*="aircall"]') as HTMLIFrameElement | null;
+  const iframeAllow = aircallIframe?.getAttribute('allow') || '';
+  const hasHidPermission = iframeAllow.includes('hid');
+  
+  // Check third-party cookies
+  const canAccessThirdPartyCookies = navigator.cookieEnabled;
+  
+  // Get CSP violations from console
+  const cspViolations: string[] = [];
+  const originalConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    const message = args.join(' ');
+    if (message.includes('Content-Security-Policy') || message.includes('CSP')) {
+      cspViolations.push(message);
+    }
+    originalConsoleError.apply(console, args);
+  };
+
+  // Check current origin vs expected
+  const currentOrigin = window.location.origin;
+  const isLocalhost = currentOrigin.includes('localhost');
+  const isPreviewDomain = currentOrigin.includes('lovableproject.com');
+  const needsDomainWhitelist = isLocalhost || isPreviewDomain;
+
   const debugInfo = {
     timestamp: new Date().toISOString(),
     initializationPhase: context.initializationPhase,
@@ -47,6 +72,11 @@ export const AircallDebugPanel: React.FC = () => {
     showLoginModal: context.showLoginModal,
     showBlockedModal: context.showBlockedModal,
     localStorageLoginStatus: localStorage.getItem('aircall_login_status'),
+    // PHASE 5: Origin & OAuth diagnostics
+    currentOrigin,
+    isLocalhost,
+    isPreviewDomain,
+    needsDomainWhitelist,
     // Workspace container diagnostics
     containerExists: !!container,
     containerClasses: container?.className || 'N/A',
@@ -55,10 +85,15 @@ export const AircallDebugPanel: React.FC = () => {
     zIndex: computedStyle?.zIndex || 'N/A',
     iframeExists: !!container?.querySelector('iframe'),
     iframeInfo: {
-      exists: !!document.querySelector('iframe[id*="aircall"]'),
-      src: document.querySelector('iframe[id*="aircall"]')?.getAttribute('src') || 'N/A',
-      visible: (document.querySelector('iframe[id*="aircall"]') as HTMLIFrameElement | null)?.style?.display !== 'none',
+      exists: !!aircallIframe,
+      src: aircallIframe?.getAttribute('src') || 'N/A',
+      visible: aircallIframe?.style?.display !== 'none',
+      allowAttribute: iframeAllow || 'N/A',
+      hasHidPermission,
     },
+    // Security diagnostics
+    thirdPartyCookiesEnabled: canAccessThirdPartyCookies,
+    cspViolations,
     // PHASE 3: Dialog diagnostics
     dialogOverlayExists: !!dialogOverlay,
     dialogOverlayPointerEvents: dialogOverlayStyle?.pointerEvents || 'N/A',
@@ -253,6 +288,45 @@ export const AircallDebugPanel: React.FC = () => {
           </div>
         </div>
 
+        {/* PHASE 5: Origin & OAuth Diagnostics */}
+        <div className="pt-2 border-t border-border">
+          <span className="text-muted-foreground block mb-1">Origin & OAuth:</span>
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Current Origin:</span>
+              <span className="font-mono text-xs truncate max-w-[200px]">{debugInfo.currentOrigin}</span>
+            </div>
+            {debugInfo.needsDomainWhitelist && (
+              <div className="text-xs text-destructive mt-1">
+                ⚠️ {debugInfo.isLocalhost ? 'Localhost' : 'Preview domain'} detected - Google OAuth will fail. Deploy to production domain and whitelist in Aircall admin.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* PHASE 5: Security Diagnostics */}
+        <div className="pt-2 border-t border-border">
+          <span className="text-muted-foreground block mb-1">Security:</span>
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Third-Party Cookies:</span>
+              <Badge variant={debugInfo.thirdPartyCookiesEnabled ? 'default' : 'destructive'} className="text-xs">
+                {debugInfo.thirdPartyCookiesEnabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </div>
+            {!debugInfo.thirdPartyCookiesEnabled && (
+              <div className="text-xs text-destructive mt-1">
+                ⚠️ Enable third-party cookies for [*.]aircall.io and [*.]google.com
+              </div>
+            )}
+            {debugInfo.cspViolations.length > 0 && (
+              <div className="text-xs text-destructive mt-1">
+                ⚠️ CSP violations detected: {debugInfo.cspViolations.length}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Iframe Diagnostics */}
         {debugInfo.iframeInfo.exists && (
           <div className="pt-2 border-t border-border">
@@ -268,9 +342,25 @@ export const AircallDebugPanel: React.FC = () => {
                   {debugInfo.iframeInfo.visible ? 'Yes' : 'No'}
                 </Badge>
               </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">HID Permission:</span>
+                <Badge variant={debugInfo.iframeInfo.hasHidPermission ? 'default' : 'destructive'} className="text-xs">
+                  {debugInfo.iframeInfo.hasHidPermission ? '✅ Present' : '❌ Missing'}
+                </Badge>
+              </div>
+              {!debugInfo.iframeInfo.hasHidPermission && (
+                <div className="text-xs text-destructive mt-1">
+                  ⚠️ iframe missing 'hid' permission - WebHID API required for hardware integration
+                </div>
+              )}
               {debugInfo.iframeInfo.src !== 'N/A' && (
                 <div className="text-xs text-muted-foreground truncate">
                   Src: {debugInfo.iframeInfo.src.substring(0, 50)}...
+                </div>
+              )}
+              {debugInfo.iframeInfo.allowAttribute !== 'N/A' && (
+                <div className="text-xs text-muted-foreground truncate">
+                  Allow: {debugInfo.iframeInfo.allowAttribute.substring(0, 50)}...
                 </div>
               )}
             </div>

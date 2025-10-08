@@ -6,13 +6,103 @@ Before troubleshooting Aircall integration issues, ensure you have:
 
 - **React Query 5.90.2+** - Version mismatch can cause initialization failures
 - **Chrome browser** - Recommended for best compatibility
-- **Third-party cookies enabled** - Required for Aircall SDK
+- **Third-party cookies enabled** - Required for Aircall SDK and Google OAuth
 - **No ad blockers** - Can interfere with aircall.io domains
 - **Valid API credentials** - API ID and API Token from Aircall dashboard
+- **HTTPS domain** - Google OAuth requires HTTPS (not localhost or temporary preview URLs)
+- **Domain whitelisted in Aircall** - Your production domain must be registered in Aircall Voice Integration settings
 
 ## Common Issues
 
-### 1. SDK Not Mounting Iframe (CRITICAL) - FIXED
+### 1. Google OAuth "Origin Not Allowed" Error (CRITICAL)
+
+**Symptoms:**
+- Error in console: "origin is not allowed"
+- Language selector appears but is unclickable
+- Google Sign-In fails to load
+- 401 Unauthorized errors from workspace.aircall.io
+- "resources_blocked_warning" in browser console
+
+**Root Cause:**
+Aircall Everywhere uses Google OAuth for authentication. Google's OAuth service **strictly validates** that the requesting origin (your website's domain) is whitelisted in the OAuth client configuration. This is managed through Aircall's Voice Integration settings.
+
+**Why localhost/preview domains fail:**
+- `localhost:3000` - Google OAuth rejects localhost origins
+- `https://xxxx.lovableproject.com` - Temporary preview URLs change frequently and can't be reliably whitelisted
+- Google checks the exact `Origin` header: `https://example.com` ≠ `https://www.example.com`
+
+**Fix Required:**
+
+1. **Deploy to Production Domain:**
+   - Deploy your app to a stable HTTPS domain (e.g., `https://app.noddi.co`)
+   - Ensure it's using HTTPS (required for OAuth)
+   
+2. **Whitelist Domain in Aircall Admin Panel:**
+   - Log into Aircall admin dashboard
+   - Navigate to your Voice Integration settings (where you got your API ID)
+   - Look for field labeled "Domain", "Allowed Origins", or "JavaScript Origins"
+   - Add your **exact domain** with scheme:
+     ```
+     https://app.noddi.co
+     https://staging.noddi.co
+     ```
+   - **DO NOT** add trailing slashes or wildcards
+   - **Save** and **wait 10-15 minutes for propagation**
+
+3. **For Development (temporary solution):**
+   - Use **ngrok** with fixed subdomain (paid): `ngrok http 3000 --subdomain=yourcompany-aircall`
+   - Use **localtunnel**: `lt --port 3000 --subdomain yourcompany-aircall`
+   - Add tunnel URL to Aircall settings (note: changes frequently, not recommended for production)
+
+**Verification After Fix:**
+```bash
+# In browser console
+console.log(window.location.origin); // Should match whitelisted domain exactly
+```
+
+**⚠️ Propagation Delay:**
+After adding domains to Aircall settings, changes can take **10-15 minutes** to propagate to Google's OAuth servers. Clear browser cache and test in incognito mode after waiting.
+
+**If Issues Persist:**
+- Contact Aircall support at `developer@aircall.io` with:
+  - Your API ID
+  - Exact domain(s) you need whitelisted
+  - Screenshot of "origin is not allowed" error from console
+
+---
+
+### 2. Iframe Missing Required Permissions (CRITICAL) - FIXED
+
+**Symptoms:**
+- "resources_blocked_warning" in console
+- WebHID API errors
+- Hardware integration features don't work
+- Headset controls unresponsive
+
+**Root Cause:**
+The Aircall SDK creates an iframe with specific `allow` attributes that enable hardware integration:
+```html
+<iframe allow="microphone; autoplay; clipboard-read; clipboard-write; hid">
+```
+
+The `hid` permission is **critical** for WebHID API (hardware integration with headsets/phones). If your code intercepts iframe creation or modifies the `allow` attribute, these features will break.
+
+**Fix Applied:**
+- Removed custom iframe interceptor in `src/lib/aircall-phone.ts` (lines 449-504)
+- Removed `fixIframePermissions()` method that was stripping `hid` permission
+- Let SDK manage iframe creation without interference
+
+**Verification:**
+```javascript
+// In browser console
+const iframe = document.querySelector('iframe[id*="aircall"]');
+console.log(iframe.getAttribute('allow'));
+// Should output: "microphone; autoplay; clipboard-read; clipboard-write; hid"
+```
+
+---
+
+### 3. SDK Not Mounting Iframe - FIXED
 
 **Symptoms:**
 - "Select your language" dialog visible but not clickable
@@ -247,17 +337,153 @@ This clears all cached state:
 }
 ```
 
+## Content Security Policy (CSP) Configuration
+
+If your application uses Content Security Policy headers, you **must** allow Aircall and Google domains. Missing CSP directives will block the SDK from loading.
+
+### Required CSP Directives
+
+Add these to your CSP headers (in your hosting platform or server configuration):
+
+```
+Content-Security-Policy: 
+  frame-src https://workspace.aircall.io https://phone.aircall.io https://accounts.google.com https://accounts.google.com/gsi/;
+  script-src 'self' https://workspace.aircall.io https://accounts.google.com https://accounts.google.com/gsi/;
+  connect-src 'self' https://api.aircall.io https://workspace.aircall.io wss://workspace.aircall.io;
+  frame-ancestors 'self';
+  img-src 'self' https://accounts.google.com https://www.gstatic.com data:;
+  style-src 'self' 'unsafe-inline' https://accounts.google.com;
+```
+
+### Common CSP Errors
+
+**Error: "Refused to frame 'https://workspace.aircall.io/'"**
+- **Cause:** Missing `frame-src` directive for Aircall
+- **Fix:** Add `frame-src https://workspace.aircall.io https://phone.aircall.io`
+
+**Error: "Refused to load script from 'https://accounts.google.com/gsi/'"**
+- **Cause:** Missing `script-src` directive for Google OAuth
+- **Fix:** Add `script-src https://accounts.google.com https://accounts.google.com/gsi/`
+
+**Error: "Refused to connect to 'wss://workspace.aircall.io'"**
+- **Cause:** Missing `connect-src` directive for WebSocket
+- **Fix:** Add `connect-src wss://workspace.aircall.io`
+
+### Debugging CSP Issues
+
+Check browser console for CSP violation reports:
+```javascript
+// Monitor CSP violations in real-time
+document.addEventListener('securitypolicyviolation', (e) => {
+  console.error('CSP Violation:', {
+    blockedURI: e.blockedURI,
+    violatedDirective: e.violatedDirective,
+    originalPolicy: e.originalPolicy
+  });
+});
+```
+
+---
+
+## Development Workflow
+
+### Option 1: Production Domain (Recommended)
+
+Deploy to a stable HTTPS domain for development:
+- Use staging subdomain: `https://staging.yourdomain.com`
+- Whitelist in Aircall settings
+- Most reliable for team development
+
+### Option 2: Secure Tunnels (For Local Development)
+
+**Using ngrok (Recommended for tunnels):**
+```bash
+# Free tier (URL changes each time)
+ngrok http 3000
+
+# Paid tier (fixed subdomain - RECOMMENDED)
+ngrok http 3000 --subdomain=yourcompany-aircall
+```
+
+**Using localtunnel:**
+```bash
+npm install -g localtunnel
+lt --port 3000 --subdomain yourcompany-aircall
+```
+
+**After setting up tunnel:**
+1. Note the HTTPS URL (e.g., `https://yourcompany-aircall.ngrok.io`)
+2. Add to Aircall Voice Integration settings
+3. Wait 10-15 minutes for propagation
+4. Test in incognito mode
+
+**⚠️ Tunnel Limitations:**
+- Free ngrok URLs change on each restart (must update Aircall settings each time)
+- Can have latency/performance issues
+- Not suitable for production
+- Some corporate firewalls block tunnel services
+
+---
+
+## Third-Party Cookies Configuration
+
+Aircall SDK **requires** third-party cookies for Google OAuth and workspace authentication.
+
+### Chrome (Recommended)
+
+1. Open `chrome://settings/cookies`
+2. Option A: Set to "Allow all cookies" (easiest)
+3. Option B: Keep "Block third-party cookies" on, but add exceptions:
+   - Click "Add" under "Sites that can always use cookies"
+   - Add these domains:
+     ```
+     [*.]aircall.io
+     [*.]workspace.aircall.io
+     [*.]accounts.google.com
+     [*.]gstatic.com
+     ```
+
+### Firefox
+
+1. Open `about:preferences#privacy`
+2. Set "Enhanced Tracking Protection" to "Standard"
+3. Or add exceptions for `aircall.io` and `google.com`
+
+### Edge
+
+1. Open `edge://settings/content/cookies`
+2. Ensure "Block third-party cookies" is **OFF**
+3. Or add site exceptions as in Chrome
+
+### Testing Cookie Settings
+
+```javascript
+// In browser console
+console.log('Cookies enabled:', navigator.cookieEnabled);
+
+// Test third-party cookie access
+fetch('https://workspace.aircall.io', { credentials: 'include' })
+  .then(() => console.log('Third-party cookies working'))
+  .catch(() => console.error('Third-party cookies blocked'));
+```
+
+---
+
 ## Browser Compatibility
 
 ### Recommended
-- **Chrome 90+** - Best compatibility
-- **Edge 90+** - Good compatibility
+- **Chrome 90+** - Best compatibility, recommended for Aircall
+- **Edge 90+** - Good compatibility (Chromium-based)
 - **Firefox 88+** - Good compatibility
 
-### Not Recommended
-- Safari (WebRTC limitations)
-- Internet Explorer (not supported)
-- Mobile browsers (limited support)
+### Limited Support
+- **Safari** - WebRTC limitations, third-party cookie restrictions
+- **Brave** - Privacy features may block Aircall by default
+- **Mobile browsers** - Limited WebRTC support
+
+### Not Supported
+- **Internet Explorer** - Not supported by Aircall SDK
+- **Opera Mini** - Proxy architecture incompatible
 
 ## Error Boundary
 
@@ -285,3 +511,4 @@ If issues persist after trying these troubleshooting steps:
 - **v2.1.0** - Added comprehensive fix plan with SDK invocation, error boundary, and debug panel
 - **v2.2.0** - Fixed infinite recursion with guard flags, added reconnection debounce, enhanced debug panel
 - **v2.3.0** - **CRITICAL FIX**: Implemented actual SDK method invocation instead of CSS-only manipulation, updated isWorkspaceReady tracking, removed blocking checks
+- **v2.4.0** - **CRITICAL FIX**: Removed iframe interceptor and permission stripping that broke Google OAuth. Added comprehensive documentation for domain whitelisting, CSP configuration, and development workflows
