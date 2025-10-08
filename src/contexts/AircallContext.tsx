@@ -32,7 +32,7 @@ export interface AircallContextValue {
   forceInitialization: () => Promise<void>;
   isWaitingForWorkspace?: boolean;
   workspaceVisible: boolean;
-  showAircallWorkspace: () => void;
+  showAircallWorkspace: (forLogin?: boolean) => void;
   hideAircallWorkspace: () => void;
   workspace: any; // Aircall workspace object
   isWorkspaceReady: boolean; // True when workspace exists and is ready

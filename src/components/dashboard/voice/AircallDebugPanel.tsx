@@ -46,6 +46,7 @@ export const AircallDebugPanel: React.FC = () => {
     diagnosticIssues: context.diagnosticIssues,
     showLoginModal: context.showLoginModal,
     showBlockedModal: context.showBlockedModal,
+    localStorageLoginStatus: localStorage.getItem('aircall_login_status'),
     // Workspace container diagnostics
     containerExists: !!container,
     containerClasses: container?.className || 'N/A',
@@ -53,6 +54,11 @@ export const AircallDebugPanel: React.FC = () => {
     inlinePointerEvents: container?.style.pointerEvents || 'N/A',
     zIndex: computedStyle?.zIndex || 'N/A',
     iframeExists: !!container?.querySelector('iframe'),
+    iframeInfo: {
+      exists: !!document.querySelector('iframe[id*="aircall"]'),
+      src: document.querySelector('iframe[id*="aircall"]')?.getAttribute('src') || 'N/A',
+      visible: (document.querySelector('iframe[id*="aircall"]') as HTMLIFrameElement | null)?.style?.display !== 'none',
+    },
     // PHASE 3: Dialog diagnostics
     dialogOverlayExists: !!dialogOverlay,
     dialogOverlayPointerEvents: dialogOverlayStyle?.pointerEvents || 'N/A',
@@ -123,15 +129,16 @@ export const AircallDebugPanel: React.FC = () => {
     }, 500);
   };
 
-  // Only show in development or with ?debug=aircall
+  // Always show debug panel when Aircall is initializing or has issues
   const shouldShow = 
     process.env.NODE_ENV === 'development' || 
-    new URLSearchParams(window.location.search).get('debug') === 'aircall';
+    new URLSearchParams(window.location.search).get('debug') === 'aircall' ||
+    window.location.pathname.includes('/voice'); // Always show on voice page
 
   if (!shouldShow) return null;
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 p-4 shadow-lg border-2 border-primary/20 z-50">
+    <Card className="fixed bottom-4 right-4 w-96 p-4 shadow-lg border-2 border-primary/20 z-[9999]">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Bug className="h-4 w-4 text-primary" />
@@ -155,6 +162,18 @@ export const AircallDebugPanel: React.FC = () => {
             title="Clear cache and reinitialize Aircall"
           >
             Reinit
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              console.log('[AircallDebug] Forcing showWorkspace() call');
+              context.showAircallWorkspace?.(true);
+            }}
+            className="h-7 px-2 text-xs"
+            title="Force show workspace (for login)"
+          >
+            Show
           </Button>
           <Button
             size="sm"
@@ -209,6 +228,54 @@ export const AircallDebugPanel: React.FC = () => {
             {context.workspaceVisible ? 'Yes' : 'No'}
           </Badge>
         </div>
+
+        {/* LocalStorage vs Actual State Check */}
+        <div className="pt-2 border-t border-border">
+          <span className="text-muted-foreground block mb-1">Login State:</span>
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Cached (localStorage):</span>
+              <Badge variant={localStorage.getItem('aircall_login_status') === 'true' ? 'default' : 'secondary'} className="text-xs">
+                {localStorage.getItem('aircall_login_status') === 'true' ? 'Logged In' : 'Not Logged In'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Actual (context):</span>
+              <Badge variant={context.isConnected ? 'default' : 'secondary'} className="text-xs">
+                {context.isConnected ? 'Connected' : 'Not Connected'}
+              </Badge>
+            </div>
+            {localStorage.getItem('aircall_login_status') === 'true' && !context.isConnected && (
+              <div className="text-xs text-destructive mt-1">
+                ⚠️ Mismatch: Cached as logged in but not connected
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Iframe Diagnostics */}
+        {debugInfo.iframeInfo.exists && (
+          <div className="pt-2 border-t border-border">
+            <span className="text-muted-foreground block mb-1">Iframe Status:</span>
+            <div className="text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Exists:</span>
+                <Badge variant="default" className="text-xs">Yes</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Visible:</span>
+                <Badge variant={debugInfo.iframeInfo.visible ? 'default' : 'secondary'} className="text-xs">
+                  {debugInfo.iframeInfo.visible ? 'Yes' : 'No'}
+                </Badge>
+              </div>
+              {debugInfo.iframeInfo.src !== 'N/A' && (
+                <div className="text-xs text-muted-foreground truncate">
+                  Src: {debugInfo.iframeInfo.src.substring(0, 50)}...
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* PHASE 4: Show recursion guard states */}
         <div className="pt-2 border-t border-border">
