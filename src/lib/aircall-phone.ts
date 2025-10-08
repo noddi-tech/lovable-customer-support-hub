@@ -446,62 +446,6 @@ class AircallPhoneManager {
         throw new Error('Initialization aborted: blocking detected');
       }
       
-      // PHASE 2: INTERCEPT IFRAME CREATION **BEFORE** workspace creation
-      console.log('[AircallWorkspace] 🔧 PHASE 2: Setting up iframe permission interceptor...');
-      this.logInit('iframe_interceptor_setup');
-      const originalCreateElement = document.createElement.bind(document);
-      let iframeIntercepted = false;
-      
-      // @ts-ignore - Temporarily override createElement
-      document.createElement = function(tagName: string, options?: any) {
-        const element = originalCreateElement(tagName, options);
-        
-        if (tagName.toLowerCase() === 'iframe' && !iframeIntercepted) {
-          console.log('[AircallWorkspace] 🔧 PHASE 2: Intercepted iframe creation!');
-          iframeIntercepted = true;
-          
-          // Monitor allow attribute changes
-          const originalSetAttribute = element.setAttribute.bind(element);
-          element.setAttribute = function(name: string, value: string) {
-            if (name === 'allow') {
-              // Remove hid permission immediately
-              const permissions = value.split(';').map(p => p.trim()).filter(p => p && !p.includes('hid'));
-              const cleanValue = permissions.join('; ');
-              console.log('[AircallWorkspace] ✅ Phase 3: Cleaned allow attribute:', cleanValue);
-              return originalSetAttribute(name, cleanValue);
-            }
-            return originalSetAttribute(name, value);
-          };
-          
-          // Restore original createElement after this iframe
-          setTimeout(() => {
-            document.createElement = originalCreateElement;
-          }, 100);
-        }
-        
-        return element;
-      };
-      
-      // Fallback: Aggressive setInterval check
-      const iframeFixInterval = setInterval(() => {
-        const container = document.querySelector('#aircall-workspace-container');
-        const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
-        
-        if (iframe) {
-          const currentAllow = iframe.getAttribute('allow') || '';
-          if (currentAllow.includes('hid')) {
-            const permissions = currentAllow.split(';').map(p => p.trim()).filter(p => p && !p.includes('hid'));
-            iframe.setAttribute('allow', permissions.join('; '));
-            console.log('[AircallWorkspace] 🔧 Fallback: Fixed hid permission');
-          }
-        }
-      }, 50);
-      
-      // Stop checking after 10 seconds
-      setTimeout(() => {
-        clearInterval(iframeFixInterval);
-        document.createElement = originalCreateElement; // Ensure restored
-      }, 10000);
       
       // Create AircallWorkspace instance
       this.logInit('creating_workspace');
@@ -566,28 +510,6 @@ class AircallPhoneManager {
         console.error('[AircallWorkspace] ❌ Error inspecting workspace methods:', error);
       }
       
-      // Phase 4: Wait for iframe then fix permissions conditionally
-      const iframe = this.getAircallIframe();
-      if (iframe) {
-        this.logInit('iframe_exists_fixing_permissions');
-        const permissionsFixed = await this.fixIframePermissions();
-        if (permissionsFixed) {
-          this.logInit('permissions_fixed');
-          // PHASE 3 FIX: Make workspace identification optional and non-blocking
-          // Don't wait for it - let it happen in background
-          this.waitForWorkspaceIdentified().then((identified) => {
-            if (identified) {
-              this.logInit('workspace_identified');
-              console.log('[AircallWorkspace] ✅ Workspace identified in background');
-            } else {
-              this.logInit('workspace_identification_timeout');
-              console.warn('[AircallWorkspace] ⚠️ Workspace identification timed out (non-blocking)');
-            }
-          });
-        }
-      } else {
-        this.logInit('iframe_not_found_skipping_permission_fix');
-      }
       
           // Phase 4: SIMPLIFIED - Just mark as initialized, let SDK handle readiness
           this.isInitialized = true;
@@ -861,81 +783,6 @@ class AircallPhoneManager {
     });
   }
 
-  /**
-   * Phase 1: Fix iframe permissions by removing blocked HID permission
-   * Phase 4: Now returns boolean and includes guards
-   */
-  private async fixIframePermissions(): Promise<boolean> {
-    console.log('[AircallWorkspace] 🔧 Phase 1: Fixing iframe permissions (removing HID)');
-    this.logInit('fixing_permissions');
-    
-    // Phase 4: Guard - only proceed if iframe exists
-    const iframe = this.getAircallIframe();
-    if (!iframe) {
-      console.warn('[AircallWorkspace] ⚠️ Cannot fix permissions - iframe not found');
-      this.logInit('permission_fix_skipped_no_iframe');
-      return false;
-    }
-    
-    // Wait for iframe to be ready
-    const isReady = await this.waitForWorkspaceReady(5000);
-    
-    if (!isReady) {
-      console.warn('[AircallWorkspace] ⚠️ Cannot fix permissions - iframe not ready');
-      this.logInit('permission_fix_skipped_not_ready');
-      return false;
-    }
-    
-    // Get current allow attribute
-    const currentAllow = iframe.getAttribute('allow') || '';
-    console.log('[AircallWorkspace] 📋 Current iframe permissions:', currentAllow);
-    this.logInit('current_permissions', { currentAllow });
-    
-    // Remove HID permission (it's blocked by browser and causes issues)
-    const permissions = currentAllow.split(';').map(p => p.trim()).filter(p => p);
-    const filteredPermissions = permissions.filter(p => !p.includes('hid'));
-    const newAllow = filteredPermissions.join('; ');
-    
-    if (currentAllow !== newAllow) {
-      iframe.setAttribute('allow', newAllow);
-      console.log('[AircallWorkspace] ✅ Removed HID permission. New permissions:', newAllow);
-      this.logInit('permissions_updated', { newAllow });
-      
-      // Phase 2: Force reload after permission fix
-      console.log('[AircallWorkspace] 🔄 Phase 2: Reloading iframe after permission fix');
-      const currentSrc = iframe.src;
-      
-      // Set to blank first
-      iframe.src = 'about:blank';
-      
-      // Wait for reload, then restore with cache-busting
-      await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          const cacheBuster = `timestamp=${Date.now()}`;
-          const newSrc = currentSrc.includes('?') 
-            ? `${currentSrc}&${cacheBuster}`
-            : `${currentSrc}?${cacheBuster}`;
-          
-          iframe.src = newSrc;
-          
-          // Wait for iframe to load
-          iframe.onload = () => {
-            console.log('[AircallWorkspace] ✅ Iframe reloaded successfully');
-            resolve();
-          };
-          
-          // Fallback timeout
-          setTimeout(() => resolve(), 3000);
-        }, 100);
-      });
-      
-      return true;
-    } else {
-      console.log('[AircallWorkspace] ℹ️  No HID permission found, skipping fix');
-      this.logInit('no_hid_permission_found');
-      return true;
-    }
-  }
 
   /**
    * Phase 3: Wait for workspace to be identified (ready to receive commands)
