@@ -705,7 +705,7 @@ class AircallPhoneManager {
       } else {
         console.warn('[AircallWorkspace] ⚠️ No show/open method found, using CSS fallback');
         // Fallback to CSS if SDK doesn't expose methods
-        const container = document.querySelector('[data-aircall-workspace]');
+        const container = document.querySelector('#aircall-workspace-container');
         if (container instanceof HTMLElement) {
           container.style.display = 'block';
           container.style.visibility = 'visible';
@@ -741,7 +741,7 @@ class AircallPhoneManager {
       } else {
         console.warn('[AircallWorkspace] ⚠️ No hide/close method found, using CSS fallback');
         // Fallback to CSS if SDK doesn't expose methods
-        const container = document.querySelector('[data-aircall-workspace]');
+        const container = document.querySelector('#aircall-workspace-container');
         if (container instanceof HTMLElement) {
           container.style.display = 'none';
           container.style.visibility = 'hidden';
