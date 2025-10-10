@@ -88,64 +88,54 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     }
   }, [isConnected, isOpen]);
 
-  // PHASE 5: Enhanced real-time workspace monitoring
+  // Move Aircall workspace container into modal when opened
   useEffect(() => {
     if (isOpen) {
-      console.group('[AircallLoginModal] 🔍 Modal Opened - Real-Time Diagnostic');
-      console.log('Initialization Phase:', initializationPhase);
-      console.log('Is Connected:', isConnected);
+      const aircallContainer = document.querySelector('#aircall-workspace-container') as HTMLElement;
+      const modalIframeContainer = document.querySelector('#modal-aircall-container') as HTMLElement;
       
-      const container = document.querySelector('#aircall-workspace-container');
-      const iframe = container?.querySelector('iframe');
-      const dialogOverlay = document.querySelector('[data-radix-dialog-overlay]');
-      const dialogContent = document.querySelector('[data-radix-dialog-content]');
-      
-      console.log('Container:', {
-        exists: !!container,
-        classes: container?.className,
-        pointerEvents: container ? window.getComputedStyle(container).pointerEvents : 'N/A',
-        display: container ? window.getComputedStyle(container).display : 'N/A',
-        visibility: container ? window.getComputedStyle(container).visibility : 'N/A',
-        iframeExists: !!iframe
-      });
-      
-      if (iframe) {
-        console.log('Iframe:', {
-          src: iframe.src,
-          pointerEvents: window.getComputedStyle(iframe).pointerEvents,
-          display: window.getComputedStyle(iframe).display
+      if (aircallContainer && modalIframeContainer) {
+        console.log('[AircallLoginModal] 📦 Moving Aircall workspace into modal');
+        
+        // Store original parent to restore later
+        const originalParent = aircallContainer.parentElement;
+        
+        // Move the Aircall container into the modal
+        modalIframeContainer.appendChild(aircallContainer);
+        
+        // Force visibility
+        aircallContainer.style.display = 'block';
+        aircallContainer.style.visibility = 'visible';
+        aircallContainer.style.pointerEvents = 'auto';
+        aircallContainer.style.position = 'relative';
+        aircallContainer.style.width = '100%';
+        aircallContainer.style.height = '100%';
+        aircallContainer.style.zIndex = '1';
+        aircallContainer.classList.remove('aircall-hidden');
+        aircallContainer.classList.add('aircall-visible');
+        
+        const iframe = aircallContainer.querySelector('iframe') as HTMLElement;
+        if (iframe) {
+          iframe.style.pointerEvents = 'auto';
+          iframe.style.display = 'block';
+          console.log('[AircallLoginModal] ✅ Iframe found and made visible');
+        }
+        
+        // Restore on cleanup
+        return () => {
+          if (originalParent && aircallContainer.parentElement === modalIframeContainer) {
+            console.log('[AircallLoginModal] 🔙 Restoring Aircall workspace to original position');
+            originalParent.appendChild(aircallContainer);
+          }
+        };
+      } else {
+        console.warn('[AircallLoginModal] ⚠️ Could not find containers:', {
+          aircallContainer: !!aircallContainer,
+          modalIframeContainer: !!modalIframeContainer
         });
       }
-      
-      console.log('Dialog Elements:', {
-        overlayExists: !!dialogOverlay,
-        overlayPointerEvents: dialogOverlay ? window.getComputedStyle(dialogOverlay).pointerEvents : 'N/A',
-        contentExists: !!dialogContent,
-        contentPointerEvents: dialogContent ? window.getComputedStyle(dialogContent).pointerEvents : 'N/A'
-      });
-      
-      console.groupEnd();
-      
-      // Real-time monitoring every 500ms while modal is open
-      const monitorInterval = setInterval(() => {
-        const currentContainer = document.querySelector('#aircall-workspace-container') as HTMLElement;
-        const currentIframe = currentContainer?.querySelector('iframe');
-        
-        if (currentIframe && !iframe) {
-          console.log('[AircallLoginModal] ✅ Iframe appeared!');
-        }
-        
-        if (currentContainer) {
-          const styles = window.getComputedStyle(currentContainer);
-          if (styles.pointerEvents !== 'auto') {
-            console.warn('[AircallLoginModal] ⚠️ Container pointer-events not auto:', styles.pointerEvents);
-          }
-        }
-      }, 500);
-      
-      return () => clearInterval(monitorInterval);
     }
-  }, [isOpen, initializationPhase, isConnected]);
+  }, [isOpen]);
 
   const handleManualConfirm = async () => {
     console.log('[AircallLoginModal] Verifying login status');
@@ -317,11 +307,10 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
                 </AlertDescription>
               </Alert>
               
-              {/* Aircall Workspace Container - This is where the SDK iframe will be injected */}
+              {/* Container for the moved Aircall workspace */}
               <div 
-                id="aircall-workspace-container" 
+                id="modal-aircall-container" 
                 className="w-full h-[400px] rounded-lg border bg-background overflow-hidden"
-                style={{ pointerEvents: 'auto' }}
               />
               
               <Button
