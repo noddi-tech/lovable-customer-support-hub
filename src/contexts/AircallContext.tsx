@@ -463,6 +463,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     const isOptedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
     if (isOptedOut) {
       console.log('[AircallProvider] ⏭️ User opted out of phone integration');
+      console.log('💡 To re-enable: Use the "Re-enable Phone Integration" button or run: sessionStorage.removeItem("aircall_opted_out"); location.reload();');
       setInitializationPhase('failed');
       setError('Phone integration disabled for this session');
       setShowLoginModal(false); // Ensure modal is hidden when opted out

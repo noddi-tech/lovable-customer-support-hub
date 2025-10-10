@@ -781,11 +781,12 @@ export const VoiceInterface = () => {
           }}
         />
         
-        <ConnectionDiagnostic
+        <ConnectionDiagnostic 
           isWebSocketBlocked={isWebSocketBlocked}
           isSDKFailed={initializationPhase === 'failed'}
           initializationPhase={initializationPhase}
           onRetry={retryConnection}
+          isOptedOut={error?.message?.includes('disabled for this session') || sessionStorage.getItem('aircall_opted_out') === 'true'}
         />
         
         <VoiceLayout

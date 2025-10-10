@@ -8,6 +8,7 @@ interface ConnectionDiagnosticProps {
   isSDKFailed?: boolean;
   initializationPhase?: 'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'needs-login' | 'failed';
   onRetry?: () => void;
+  isOptedOut?: boolean;
 }
 
 /**
@@ -20,13 +21,14 @@ export const ConnectionDiagnostic = ({
   isWebSocketBlocked, 
   isSDKFailed,
   initializationPhase,
-  onRetry 
+  onRetry,
+  isOptedOut
 }: ConnectionDiagnosticProps) => {
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   useEffect(() => {
     // Show diagnostic for various states
-    if (isWebSocketBlocked || isSDKFailed || 
+    if (isWebSocketBlocked || isSDKFailed || isOptedOut ||
         initializationPhase === 'creating-workspace' || 
         initializationPhase === 'workspace-ready' ||
         initializationPhase === 'failed') {
@@ -37,14 +39,20 @@ export const ConnectionDiagnostic = ({
     } else {
       setShowDiagnostic(false);
     }
-  }, [isWebSocketBlocked, isSDKFailed, initializationPhase]);
+  }, [isWebSocketBlocked, isSDKFailed, initializationPhase, isOptedOut]);
 
   if (!showDiagnostic) return null;
 
   // Determine variant based on phase
-  const variant = initializationPhase === 'failed' || isSDKFailed ? 'destructive' : 
+  const variant = initializationPhase === 'failed' || isSDKFailed || isOptedOut ? 'destructive' : 
                   initializationPhase === 'logged-in' ? 'default' : 
                   'default';
+  
+  const handleReEnable = () => {
+    console.log('🔄 Re-enabling Aircall integration');
+    sessionStorage.removeItem('aircall_opted_out');
+    window.location.reload();
+  };
 
   return (
     <Alert variant={variant} className="mb-4">
@@ -58,7 +66,9 @@ export const ConnectionDiagnostic = ({
         )}
         <div className="flex-1 space-y-2">
           <AlertTitle>
-            {isWebSocketBlocked 
+            {isOptedOut
+              ? 'Phone Integration Disabled'
+              : isWebSocketBlocked 
               ? 'Connection Blocked' 
               : initializationPhase === 'creating-workspace'
               ? 'Initializing Aircall...'
@@ -71,6 +81,24 @@ export const ConnectionDiagnostic = ({
               : 'Phone System Connection Failed'}
           </AlertTitle>
           <AlertDescription className="space-y-2">
+            {isOptedOut && (
+              <>
+                <p className="text-sm">
+                  You have disabled the phone integration for this session. 
+                  To use Aircall features again, you need to re-enable the integration.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleReEnable}
+                  className="mt-2"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Re-enable Phone Integration
+                </Button>
+              </>
+            )}
+            
             {initializationPhase === 'creating-workspace' && (
               <p className="text-sm">
                 Setting up Aircall workspace...
