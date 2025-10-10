@@ -649,31 +649,24 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           apiToken,
           domainName: runtimeDomain,
           onLogin: () => {
-            console.group('[AircallProvider] ✅ LOGIN CALLBACK FIRED');
+            console.group('[AircallProvider] ✅ LOGIN CALLBACK FIRED (Workspace Ready)');
             console.log('Timestamp:', new Date().toISOString());
             console.log('Current phase:', initializationPhase);
-            console.log('Workspace settings received');
+            console.groupEnd();
             
-            // CRITICAL FIX: Verify actual login status before proceeding
-            aircallPhone.checkLoginStatus((isActuallyLoggedIn) => {
-              console.log('Actual login status:', isActuallyLoggedIn);
-              console.groupEnd();
-              
-              if (!isActuallyLoggedIn) {
-                console.log('[AircallProvider] ⚠️ Workspace ready but user NOT logged in yet');
-                console.log('[AircallProvider] Waiting for actual login...');
-                
-                // Mark workspace as ready for login, but don't show success
-                setInitializationPhase('needs-login');
-                setIsWorkspaceReady(true);
-                return;
-              }
-              
-              console.log('[AircallProvider] ✅ User is ACTUALLY logged in');
-              
-              // Call centralized success handler
-              handleSuccessfulLogin();
-            });
+            // CRITICAL FIX: DO NOT auto-login - SDK checkLoginStatus() returns false positives
+            // The onLogin callback only means the workspace iframe is ready, NOT that user is logged in
+            console.log('[AircallProvider] 🔐 Workspace ready - waiting for user to log in via popup');
+            
+            // Mark workspace as ready for login, but DON'T show success
+            setInitializationPhase('needs-login');
+            setIsWorkspaceReady(true);
+            
+            // Clear error listener since workspace loaded successfully
+            if (blockingErrorListenerRef.current) {
+              window.removeEventListener('error', blockingErrorListenerRef.current, true);
+              blockingErrorListenerRef.current = null;
+            }
           },
           onLogout: () => {
             console.group('[AircallProvider] 🚪 LOGOUT CALLBACK');
@@ -802,53 +795,26 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         const recentConnection = metadata.timestamp && (now - metadata.timestamp) < 300000;
         
         const wasLoggedIn = aircallPhone.getLoginStatus();
-        console.log('[AircallProvider] Restored login status:', wasLoggedIn);
+        console.log('[AircallProvider] Previous login status from localStorage:', wasLoggedIn);
         
-        if (wasLoggedIn) {
-          if (recentConnection) {
-            console.log('[AircallProvider] 🔄 Recent connection detected, restoring state...');
-            reconnectAttempts.current = metadata.attempts;
+        // CRITICAL FIX: Don't trust cached login status - always require fresh login
+        // The SDK's checkLoginStatus() returns false positives from stale cookies
+        console.log('[AircallProvider] 🔐 Clearing stale login status - user must log in fresh');
+        aircallPhone.clearLoginStatus();
+        localStorage.removeItem('aircall_connection_timestamp');
+        localStorage.removeItem('aircall_connection_attempts');
+        setIsConnected(false);
+        setShowLoginModal(true);
+        
+        // Optional: Warn user if they don't log in within 30 seconds
+        setTimeout(() => {
+          if (!aircallPhone.getLoginStatus()) {
+            toast({
+              title: 'Login Reminder',
+              description: 'Please log in to Aircall to receive calls',
+            });
           }
-          
-        aircallPhone.checkLoginStatus((isLoggedIn) => {
-            console.log('[AircallProvider] SDK login status verification:', isLoggedIn);
-            if (isLoggedIn) {
-              // Call centralized success handler (but without showing workspace again)
-              aircallPhone.setLoginStatus(true);
-              saveConnectionMetadata();
-              setIsConnected(true);
-              setIsWorkspaceReady(true);
-              setShowLoginModal(false);
-              setInitializationPhase('logged-in');
-              toast({
-                title: 'Aircall Connected',
-                description: 'Phone system is ready',
-              });
-            } else if (recentConnection && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
-              console.log('[AircallProvider] 🔄 Attempting silent reconnection...');
-              attemptReconnect();
-            } else {
-              console.log('[AircallProvider] ❌ Verification failed - clearing stale state');
-              aircallPhone.clearLoginStatus();
-              localStorage.removeItem('aircall_connection_timestamp');
-              localStorage.removeItem('aircall_connection_attempts');
-              setIsConnected(false);
-              setShowLoginModal(true);
-            }
-          });
-        } else {
-          setShowLoginModal(true);
-          
-          // Optional: Warn user if they don't log in within 30 seconds
-          setTimeout(() => {
-            if (!aircallPhone.getLoginStatus()) {
-              toast({
-                title: 'Login Reminder',
-                description: 'Please log in to Aircall to receive calls',
-              });
-            }
-          }, 30000);
-        }
+        }, 30000);
       } catch (initError: any) {
         console.group('[AircallProvider] ❌ INITIALIZATION ERROR');
         console.error('Error:', initError);
