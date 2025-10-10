@@ -401,6 +401,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const handleSuccessfulLogin = useCallback(() => {
     console.log('[AircallProvider] ✅ Handling successful login');
     
+    // PHASE 3: Verify SDK actually reports logged in
+    const sdkLoginStatus = aircallPhone.getLoginStatus();
+    console.log('[AircallProvider] SDK login status:', sdkLoginStatus);
+    
+    if (!sdkLoginStatus) {
+      console.warn('[AircallProvider] ⚠️ handleSuccessfulLogin called but SDK reports not logged in - proceeding anyway');
+    }
+    
     // Clear polling
     if (loginPollingRef.current) {
       clearInterval(loginPollingRef.current);
@@ -650,10 +658,18 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           apiToken,
           domainName: runtimeDomain,
           onLogin: () => {
+            // PHASE 3: Enhanced logging for state synchronization debugging
             console.group('[AircallProvider] ✅ LOGIN CALLBACK FIRED - User logged in!');
             console.log('Timestamp:', new Date().toISOString());
-            console.log('Current phase:', initializationPhase);
+            console.log('Current initializationPhase:', initializationPhase);
+            console.log('Current isConnected:', isConnected);
             console.groupEnd();
+            
+            // Prevent duplicate firing
+            if (isConnected) {
+              console.warn('[AircallProvider] Already connected, ignoring duplicate onLogin');
+              return;
+            }
             
             // The onLogin callback fires when user successfully logs in via iframe
             handleSuccessfulLogin();
@@ -746,23 +762,28 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         
         console.log('[AircallProvider] ✅ Initialization complete');
         
-        // CRITICAL FIX: Don't trust cached login status - always show modal for fresh login
-        console.log('[AircallProvider] 🔐 Requiring fresh login on every page load');
-        aircallPhone.clearLoginStatus();
-        localStorage.removeItem('aircall_connection_timestamp');
-        localStorage.removeItem('aircall_connection_attempts');
-        setIsConnected(false);
-        setShowLoginModal(true);
+        // PHASE 4: Check if cached login is recent (within 24 hours)
+        const loginTimestamp = localStorage.getItem('aircall_connection_timestamp');
+        const isLoginRecent = loginTimestamp && 
+          (Date.now() - parseInt(loginTimestamp)) < 24 * 60 * 60 * 1000;
         
-        // Optional: Warn user if they don't log in within 30 seconds
-        setTimeout(() => {
-          if (!aircallPhone.getLoginStatus()) {
-            toast({
-              title: 'Login Reminder',
-              description: 'Please log in to Aircall to receive calls',
-            });
-          }
-        }, 30000);
+        if (!isLoginRecent) {
+          console.log('[AircallProvider] 🔐 Requiring fresh login (cached login expired or missing)');
+          aircallPhone.clearLoginStatus();
+          localStorage.removeItem('aircall_connection_timestamp');
+          localStorage.removeItem('aircall_connection_attempts');
+          setIsConnected(false);
+          setShowLoginModal(true);
+        } else {
+          console.log('[AircallProvider] ✅ Recent login found, attempting to restore session');
+          // Let the onLogin callback handle success, or show modal if it doesn't fire within 5s
+          setTimeout(() => {
+            if (!aircallPhone.getLoginStatus()) {
+              console.log('[AircallProvider] Session restore failed, showing login modal');
+              setShowLoginModal(true);
+            }
+          }, 5000);
+        }
       } catch (initError: any) {
         console.group('[AircallProvider] ❌ INITIALIZATION ERROR');
         console.error('Error:', initError);

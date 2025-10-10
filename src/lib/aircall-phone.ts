@@ -479,14 +479,57 @@ class AircallPhoneManager {
       console.log('[AircallWorkspace] ✅ Workspace created successfully');
       this.logInit('workspace_created');
       
-      // Ensure iframe has correct permissions after SDK creates it
-      setTimeout(() => {
-        const iframe = this.getAircallIframe();
-        if (iframe && !iframe.getAttribute('allow')?.includes('hid')) {
+      // PHASE 1: Immediately set iframe permissions and add observer for robustness
+      const setIframePermissions = (iframe: HTMLIFrameElement) => {
+        if (!iframe.getAttribute('allow')?.includes('hid')) {
           iframe.setAttribute('allow', 'microphone; autoplay; clipboard-read; clipboard-write; hid');
-          console.log('[AircallWorkspace] ✅ Updated iframe allow attribute with HID permission');
+          console.log('[AircallWorkspace] ✅ Set iframe permissions with HID support');
         }
-      }, 1000);
+      };
+      
+      // Try immediate set
+      const iframe = this.getAircallIframe();
+      if (iframe) {
+        setIframePermissions(iframe);
+      }
+      
+      // PHASE 1: Add MutationObserver to catch SDK iframe recreation
+      const container = document.querySelector('#aircall-workspace-container');
+      if (container) {
+        const observer = new MutationObserver(() => {
+          const iframe = this.getAircallIframe();
+          if (iframe) {
+            setIframePermissions(iframe);
+          }
+        });
+        
+        observer.observe(container, { childList: true, subtree: true });
+        console.log('[AircallWorkspace] ✅ MutationObserver attached to monitor iframe permissions');
+        
+        // Clean up observer after 5 seconds (iframe should be stable by then)
+        setTimeout(() => observer.disconnect(), 5000);
+      }
+      
+      // PHASE 5: Listen for OAuth/authentication errors from iframe
+      window.addEventListener('message', (event) => {
+        // Only listen to messages from Aircall domain
+        if (!event.origin.includes('aircall.io')) return;
+        
+        const data = event.data;
+        if (data?.type === 'oauth_error' || 
+            data?.error?.includes('origin') ||
+            data?.error?.includes('client_id') ||
+            data?.error?.includes('not allowed')) {
+          console.error('[AircallWorkspace] 🚨 OAuth Error Detected:', data);
+          
+          // Notify via onLogout callback
+          settings.onLogout?.();
+          
+          // Show user-friendly error
+          const errorMsg = 'OAuth authentication failed. Please ensure your domain is whitelisted in Aircall dashboard (Integrations → Aircall Everywhere → Authorized domains).';
+          console.error('[AircallWorkspace]', errorMsg);
+        }
+      }, false);
       
       // Phase 4: Log available SDK methods for debugging
       console.log('[AircallWorkspace] 🔍 Inspecting available workspace methods:');
