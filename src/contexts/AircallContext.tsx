@@ -726,54 +726,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           setShowLoginModal(true);
           setInitializationPhase('needs-login');
           
-          // Phase 4: SIMPLIFIED - just 5-second polling for 2 minutes, NO OAUTH LOGIC
-          console.log('[AircallProvider] 🎯 Phase 4: Starting SIMPLE login polling (5s intervals, 2min total)');
-          let pollAttempts = 0;
-          const MAX_POLL_ATTEMPTS = 24; // 2 minutes (24 * 5s)
-          let lastPolledStatus = false;
-          
-          loginPollingRef.current = setInterval(() => {
-            pollAttempts++;
-            
-            aircallPhone.checkLoginStatus((isLoggedIn) => {
-              if (isLoggedIn !== lastPolledStatus) {
-                console.log(`[AircallProvider] 🔍 Login status: ${isLoggedIn}`);
-                lastPolledStatus = isLoggedIn;
-              }
-              
-              if (isLoggedIn) {
-                console.log('[AircallProvider] 🎉 Login detected via polling!');
-                
-                // Call centralized success handler
-                handleSuccessfulLogin();
-              }
-            });
-            
-            if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-              console.log('[AircallProvider] ⏱️ Polling timeout reached after 2 minutes');
-              if (loginPollingRef.current) {
-                clearInterval(loginPollingRef.current);
-                loginPollingRef.current = null;
-              }
-              toast({
-                title: 'Manual Login Available',
-                description: 'Click the verification button in the login modal',
-                duration: 10000,
-              });
-            }
-          }, 5000);
-          
-          // Layer 5: Timeout warning after 30 seconds
-          loginTimeoutWarningRef.current = setTimeout(() => {
-            if (!aircallPhone.getLoginStatus()) {
-              console.log('[AircallProvider] ⏰ Layer 5: Login timeout warning');
-              toast({
-                title: 'Still Waiting for Login',
-                description: 'Please log in through the Aircall window.',
-                duration: 8000,
-              });
-            }
-          }, 30000); // Show warning after 30 seconds
+          // CRITICAL FIX: NO automatic polling - only the modal's popup polling should run
+          // The modal will handle login detection when user clicks the popup button
+          console.log('[AircallProvider] ℹ️ Login modal will handle authentication via popup');
         } else {
           console.error('[AircallProvider] ❌ Workspace creation failed');
           setIsInitialized(false);
@@ -1173,120 +1128,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
   // Phase 5: Enhanced manual login confirmation handler with workspace reload
   const handleManualLoginConfirm = useCallback(async () => {
-    console.log('[AircallProvider] 🎯 Phase 5: Manual login confirmation clicked');
+    console.log('[AircallProvider] 🎯 Login confirmation received from modal');
     
-    setIsPostOAuthSync(true);
+    // CRITICAL FIX: Modal already verified login, just trigger success flow
+    // Don't check login status again as it returns false positives
+    console.log('[AircallProvider] ✅ Triggering success flow (modal already verified login)');
     
-    toast({
-      title: 'Verifying Login...',
-      description: 'Reloading workspace to sync authentication',
-      duration: 3000
-    });
-    
-    // Phase 5: Force reload workspace iframe
-    await aircallPhone.reloadWorkspace();
-          
-          // PHASE 4: Immediately check login status when user clicks "Show Aircall"
-          setTimeout(() => {
-            aircallPhone.checkLoginStatus((isLoggedIn) => {
-              if (isLoggedIn) {
-                console.log('[AircallProvider] ✅ User was already logged in!');
-                aircallPhone.setLoginStatus(true);
-                setIsConnected(true);
-                setShowLoginModal(false);
-                setInitializationPhase('logged-in');
-                toast({
-                  title: '✅ Already Logged In',
-                  description: 'You are connected to Aircall',
-                });
-              }
-            });
-          }, 2000); // Give iframe time to load
-    // Wait for reload, then check
-    setTimeout(() => {
-      aircallPhone.checkLoginStatus((isLoggedIn) => {
-        console.log(`[AircallProvider] 🎯 Phase 5: Initial check after reload - logged in: ${isLoggedIn}`);
-        
-        if (isLoggedIn) {
-          // Clear all timers
-          if (loginPollingRef.current) {
-            clearInterval(loginPollingRef.current);
-            loginPollingRef.current = null;
-          }
-          if (loginTimeoutWarningRef.current) {
-            clearTimeout(loginTimeoutWarningRef.current);
-            loginTimeoutWarningRef.current = null;
-          }
-          
-          // Complete login flow
-          setIsPostOAuthSync(false);
-          aircallPhone.setLoginStatus(true);
-          saveConnectionMetadata();
-          setIsConnected(true);
-          setShowLoginModal(false);
-          setError(null);
-          setInitializationPhase('logged-in');
-          
-          // PHASE 3: Use centralized visibility function
-          showAircallWorkspace();
-          
-          toast({
-            title: '✅ Login Confirmed',
-            description: 'You are now connected to Aircall',
-          });
-        } else {
-          // Phase 5: Auto-retry with delay
-          console.log('[AircallProvider] 🔄 Phase 5: First check failed, retrying in 2 seconds...');
-          
-          toast({
-            title: 'Still Checking...',
-            description: 'Verifying your connection',
-          });
-          
-          setTimeout(() => {
-            aircallPhone.checkLoginStatus((retryIsLoggedIn) => {
-              console.log(`[AircallProvider] 🎯 Phase 5: Retry check - logged in: ${retryIsLoggedIn}`);
-              
-              setIsPostOAuthSync(false);
-            
-            if (retryIsLoggedIn) {
-              // Clear all timers
-              if (loginPollingRef.current) {
-                clearInterval(loginPollingRef.current);
-                loginPollingRef.current = null;
-              }
-              if (loginTimeoutWarningRef.current) {
-                clearTimeout(loginTimeoutWarningRef.current);
-                loginTimeoutWarningRef.current = null;
-              }
-              
-              aircallPhone.setLoginStatus(true);
-              saveConnectionMetadata();
-              setIsConnected(true);
-              setShowLoginModal(false);
-              setError(null);
-              setInitializationPhase('logged-in');
-              
-              // PHASE 3: Use centralized visibility function
-              showAircallWorkspace();
-              
-              toast({
-                title: '✅ Login Confirmed',
-                description: 'You are now connected to Aircall',
-              });
-            } else {
-              toast({
-                title: 'Not Logged In Yet',
-                description: 'Please complete the login in the Aircall window, then try again',
-                variant: 'destructive',
-              });
-            }
-          });
-        }, 2000);
-      }
-    });
-  }, 2000); // Wait 2 seconds for reload before checking
-}, [saveConnectionMetadata, toast]);
+    handleSuccessfulLogin();
+  }, [handleSuccessfulLogin]);
 
   const retryConnection = useCallback(() => {
     console.log('[AircallProvider] 🔄 Retrying connection after fixing blocks');
