@@ -630,8 +630,26 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log('[AircallProvider] 🚀 Starting SDK initialization...');
         setInitializationPhase('creating-workspace');
         
-        // Phase 1: Enhanced domain debugging
-        const runtimeDomain = everywhereConfig.domainName || window.location.hostname;
+        // Phase 1: Smart domain detection for dev vs production
+        const getSmartDomain = () => {
+          // 1. Always prefer explicit database configuration
+          if (everywhereConfig.domainName && everywhereConfig.domainName !== '') {
+            return everywhereConfig.domainName;
+          }
+          
+          // 2. Detect if we're in preview/dev environment
+          const currentHostname = window.location.hostname;
+          const isPreview = currentHostname.includes('lovableproject.com');
+          
+          // 3. In preview, use published domain; otherwise use current domain
+          if (isPreview) {
+            return 'lovable-customer-support-hub.lovable.app';
+          }
+          
+          return currentHostname;
+        };
+        
+        const runtimeDomain = getSmartDomain();
         console.group('[AircallProvider] 🌐 DOMAIN DEBUG');
         console.log('📦 Raw DB Config:', {
           fullConfig: everywhereConfig,
