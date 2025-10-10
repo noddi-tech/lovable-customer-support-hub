@@ -395,6 +395,58 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, [workspaceVisible, setWorkspaceVisiblePreference]);
 
   /**
+   * Handles successful login - centralized logic to avoid duplication
+   */
+  const handleSuccessfulLogin = useCallback(() => {
+    console.log('[AircallProvider] ✅ Handling successful login');
+    
+    // Clear polling
+    if (loginPollingRef.current) {
+      clearInterval(loginPollingRef.current);
+      loginPollingRef.current = null;
+    }
+    
+    // Clear other timers
+    if (loginTimeoutWarningRef.current) {
+      clearTimeout(loginTimeoutWarningRef.current);
+      loginTimeoutWarningRef.current = null;
+    }
+    
+    if (blockingErrorListenerRef.current) {
+      window.removeEventListener('error', blockingErrorListenerRef.current, true);
+      blockingErrorListenerRef.current = null;
+    }
+    
+    // Update state
+    aircallPhone.setLoginStatus(true);
+    saveConnectionMetadata();
+    setIsConnected(true);
+    setIsWorkspaceReady(true);
+    setShowLoginModal(false);
+    setError(null);
+    setInitializationPhase('logged-in');
+    reconnectAttempts.current = 0;
+    
+    // Show workspace
+    showAircallWorkspace();
+    
+    // Start grace period
+    if (loginGracePeriodRef.current) {
+      clearTimeout(loginGracePeriodRef.current);
+    }
+    loginGracePeriodRef.current = setTimeout(() => {
+      console.log('[AircallProvider] Grace period ended');
+      loginGracePeriodRef.current = null;
+    }, GRACE_PERIOD_MS);
+    
+    // Show success toast
+    toast({
+      title: '✅ Logged In Successfully',
+      description: 'You are now connected to Aircall',
+    });
+  }, [aircallPhone, saveConnectionMetadata, showAircallWorkspace, toast, GRACE_PERIOD_MS]);
+
+  /**
    * Initialize Aircall Workspace (ONCE per app lifecycle)
    */
   useEffect(() => {
@@ -600,53 +652,27 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             console.group('[AircallProvider] ✅ LOGIN CALLBACK FIRED');
             console.log('Timestamp:', new Date().toISOString());
             console.log('Current phase:', initializationPhase);
-            console.groupEnd();
+            console.log('Workspace settings received');
             
-            // Phase 5: Cleanup error listener on successful login
-            if (blockingErrorListenerRef.current) {
-              window.removeEventListener('error', blockingErrorListenerRef.current, true);
-              blockingErrorListenerRef.current = null;
-            }
-            
-            // Clear all polling/timeout timers
-            if (loginPollingRef.current) {
-              clearInterval(loginPollingRef.current);
-              loginPollingRef.current = null;
-              console.log('[AircallProvider] 🧹 Cleared login polling');
-            }
-            if (loginTimeoutWarningRef.current) {
-              clearTimeout(loginTimeoutWarningRef.current);
-              loginTimeoutWarningRef.current = null;
-            }
-            
-            aircallPhone.setLoginStatus(true);
-            saveConnectionMetadata();
-            setIsConnected(true);
-            
-            // Phase 3: Mark workspace as ready when user actually logs in
-            setIsWorkspaceReady(true);
-            console.log('[AircallProvider] ✅ Workspace marked as ready after login');
-            
-            setShowLoginModal(false);
-            setError(null);
-            setInitializationPhase('logged-in');
-            reconnectAttempts.current = 0;
-            
-            // PHASE 3: Use centralized visibility function
-            showAircallWorkspace();
-            
-            // Start grace period
-            if (loginGracePeriodRef.current) {
-              clearTimeout(loginGracePeriodRef.current);
-            }
-            loginGracePeriodRef.current = setTimeout(() => {
-              console.log('[AircallProvider] Grace period ended');
-              loginGracePeriodRef.current = null;
-            }, GRACE_PERIOD_MS);
-            
-            toast({
-              title: '✅ Logged In Successfully',
-              description: 'You are now connected to Aircall',
+            // CRITICAL FIX: Verify actual login status before proceeding
+            aircallPhone.checkLoginStatus((isActuallyLoggedIn) => {
+              console.log('Actual login status:', isActuallyLoggedIn);
+              console.groupEnd();
+              
+              if (!isActuallyLoggedIn) {
+                console.log('[AircallProvider] ⚠️ Workspace ready but user NOT logged in yet');
+                console.log('[AircallProvider] Waiting for actual login...');
+                
+                // Mark workspace as ready for login, but don't show success
+                setInitializationPhase('needs-login');
+                setIsWorkspaceReady(true);
+                return;
+              }
+              
+              console.log('[AircallProvider] ✅ User is ACTUALLY logged in');
+              
+              // Call centralized success handler
+              handleSuccessfulLogin();
             });
           },
           onLogout: () => {
@@ -723,32 +749,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               }
               
               if (isLoggedIn) {
-                console.log('[AircallProvider] ✅ Login detected via polling!');
+                console.log('[AircallProvider] 🎉 Login detected via polling!');
                 
-                if (loginPollingRef.current) {
-                  clearInterval(loginPollingRef.current);
-                  loginPollingRef.current = null;
-                }
-                if (loginTimeoutWarningRef.current) {
-                  clearTimeout(loginTimeoutWarningRef.current);
-                  loginTimeoutWarningRef.current = null;
-                }
-                
-                aircallPhone.setLoginStatus(true);
-                saveConnectionMetadata();
-                setIsConnected(true);
-                setShowLoginModal(false);
-                setError(null);
-                setInitializationPhase('logged-in');
-                reconnectAttempts.current = 0;
-                
-                // PHASE 3: Use centralized visibility function (NO AUTO-HIDE TIMER!)
-                showAircallWorkspace();
-                
-                toast({
-                  title: '✅ Login Detected',
-                  description: 'You are now connected to Aircall',
-                });
+                // Call centralized success handler
+                handleSuccessfulLogin();
               }
             });
             
@@ -806,12 +810,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             reconnectAttempts.current = metadata.attempts;
           }
           
-          aircallPhone.checkLoginStatus((isLoggedIn) => {
+        aircallPhone.checkLoginStatus((isLoggedIn) => {
             console.log('[AircallProvider] SDK login status verification:', isLoggedIn);
             if (isLoggedIn) {
+              // Call centralized success handler (but without showing workspace again)
+              aircallPhone.setLoginStatus(true);
               saveConnectionMetadata();
               setIsConnected(true);
+              setIsWorkspaceReady(true);
               setShowLoginModal(false);
+              setInitializationPhase('logged-in');
               toast({
                 title: 'Aircall Connected',
                 description: 'Phone system is ready',
@@ -937,7 +945,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         aircallPhone.disconnect();
       }
     };
-  }, [everywhereConfig, toast, handleDisconnection, saveConnectionMetadata, getConnectionMetadata, attemptReconnect, showAircallWorkspace]);
+  }, [everywhereConfig, toast, handleDisconnection, saveConnectionMetadata, getConnectionMetadata, attemptReconnect, showAircallWorkspace, handleSuccessfulLogin]);
 
   /**
    * Register SDK event handlers
