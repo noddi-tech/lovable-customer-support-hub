@@ -4,8 +4,9 @@ import { ResponsiveGrid, LayoutItem } from '@/components/admin/design/components
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, Download, Phone, PhoneCall } from 'lucide-react';
+import { Play, Download, Phone, PhoneCall, PhoneIncoming } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useAircallPhone } from '@/hooks/useAircallPhone';
 
 // Mock data for voice calls
 const mockVoiceCalls = [
@@ -111,6 +112,18 @@ const mockCallDetails = {
 };
 
 const VoiceInboxPage: React.FC = () => {
+  const { isInitialized, isConnected, initializePhone, showAircallWorkspace, hideAircallWorkspace } = useAircallPhone();
+
+  const handleLoadPhone = async () => {
+    await initializePhone();
+  };
+
+  const handleTogglePhone = () => {
+    if (isConnected) {
+      showAircallWorkspace();
+    }
+  };
+
   const renderDetail = (callId: string) => {
     const call = mockCallDetails[callId as keyof typeof mockCallDetails];
     
@@ -237,13 +250,42 @@ const VoiceInboxPage: React.FC = () => {
   };
 
   return (
-    <InboxLayout
-      conversations={mockVoiceCalls}
-      renderDetail={renderDetail}
-      title="Voice Inbox"
-      onReply={handleReply}
-      showReplyBox={true}
-    />
+    <div className="relative">
+      {/* Aircall Phone System Controls */}
+      <div className="fixed top-20 right-6 z-50 flex flex-col gap-2">
+        {!isInitialized ? (
+          <Button
+            onClick={handleLoadPhone}
+            size="lg"
+            className="shadow-lg"
+          >
+            <PhoneIncoming className="h-5 w-5 mr-2" />
+            Load Phone System
+          </Button>
+        ) : isConnected ? (
+          <Button
+            onClick={handleTogglePhone}
+            size="icon"
+            variant="default"
+            className="h-12 w-12 rounded-full shadow-lg"
+          >
+            <Phone className="h-5 w-5" />
+          </Button>
+        ) : (
+          <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+            <p className="text-sm text-muted-foreground">Connecting...</p>
+          </div>
+        )}
+      </div>
+
+      <InboxLayout
+        conversations={mockVoiceCalls}
+        renderDetail={renderDetail}
+        title="Voice Inbox"
+        onReply={handleReply}
+        showReplyBox={true}
+      />
+    </div>
   );
 };
 

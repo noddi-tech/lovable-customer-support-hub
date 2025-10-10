@@ -493,8 +493,7 @@ Optimized for accessibility with WCAG AA compliance.
     width: 350px;
     height: 500px;
     z-index: 9999;
-    opacity: 1;
-    pointer-events: auto;
+    display: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -508,6 +507,7 @@ Optimized for accessibility with WCAG AA compliance.
 
   /* Visible state - on screen */
   #aircall-workspace-container.aircall-visible {
+    display: block;
     bottom: 20px;
     right: 20px;
     opacity: 1;

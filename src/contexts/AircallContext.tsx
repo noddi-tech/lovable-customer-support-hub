@@ -37,6 +37,7 @@ export interface AircallContextValue {
   workspace: any; // Aircall workspace object
   isWorkspaceReady: boolean; // True when workspace exists and is ready
   checkLoginStatus: () => Promise<boolean>; // Check if user is logged into Aircall
+  initializePhone: () => Promise<void>; // Manual initialization
   // PHASE 4: Debug info for recursion guards
   _debugRecursionGuards?: {
     isShowing: boolean;
@@ -456,21 +457,33 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, [aircallPhone, saveConnectionMetadata, showAircallWorkspace, toast, GRACE_PERIOD_MS]);
 
   /**
-   * Initialize Aircall Workspace (ONCE per app lifecycle)
+   * Manual initialization function for button-based approach
    */
-  useEffect(() => {
-    // PHASE 1: Check opt-out FIRST before ANY Aircall code runs
+  const initializePhone = useCallback(async () => {
+    // Check opt-out FIRST
     const isOptedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
     if (isOptedOut) {
       console.log('[AircallProvider] ⏭️ User opted out of phone integration');
-      console.log('💡 To re-enable: Use the "Re-enable Phone Integration" button or run: sessionStorage.removeItem("aircall_opted_out"); location.reload();');
-      setInitializationPhase('failed');
-      setError('Phone integration disabled for this session');
-      setShowLoginModal(false); // Ensure modal is hidden when opted out
+      toast({
+        title: 'Phone Integration Disabled',
+        description: 'Phone integration was previously disabled.',
+        variant: 'destructive'
+      });
       return;
     }
 
-    if (initAttemptedRef.current || !everywhereConfig?.enabled) {
+    if (initAttemptedRef.current) {
+      console.log('[AircallProvider] Already initialized or initializing');
+      return;
+    }
+
+    if (!everywhereConfig?.enabled) {
+      console.log('[AircallProvider] Aircall integration not enabled');
+      toast({
+        title: 'Not Configured',
+        description: 'Aircall integration is not configured',
+        variant: 'destructive'
+      });
       return;
     }
 
@@ -479,10 +492,15 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
     if (!apiId || !apiToken) {
       console.warn('[AircallProvider] Missing API credentials');
+      toast({
+        title: 'Configuration Error',
+        description: 'Aircall API credentials are missing',
+        variant: 'destructive'
+      });
       return;
     }
 
-    console.log('[AircallProvider] 🚀 Initializing Aircall Everywhere (single instance)');
+    console.log('[AircallProvider] 🚀 Manual initialization triggered');
     initAttemptedRef.current = true;
 
     const initialize = async () => {
@@ -870,7 +888,15 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       }
     };
 
-    initialize();
+    await initialize();
+  }, [everywhereConfig, toast, handleSuccessfulLogin, handleDisconnection, showAircallWorkspace, aircallPhone, saveConnectionMetadata]);
+
+  /**
+   * Initialize on mount - DISABLED for button-based approach
+   */
+  useEffect(() => {
+    // Do NOT auto-initialize - wait for user to click button
+    console.log('[AircallProvider] Provider mounted - waiting for manual initialization');
 
     // ONLY cleanup on actual app unmount (browser close)
     return () => {
@@ -1334,6 +1360,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     workspace: null, // Workspace is private in SDK
     isWorkspaceReady, // PHASE 2: Expose workspace readiness from state
     checkLoginStatus,
+    initializePhone,
     // PHASE 4: Expose recursion guard states for debug panel
     _debugRecursionGuards: {
       isShowing: isShowingWorkspaceRef.current,
@@ -1362,10 +1389,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     forceInitialization,
     workspaceVisible,
     showAircallWorkspace,
-    hideAircallWorkspace,
-    isWorkspaceReady,
-    checkLoginStatus,
-  ]);
+      hideAircallWorkspace,
+      isWorkspaceReady,
+      checkLoginStatus,
+      initializePhone,
+    ]);
 
   return (
     <AircallContext.Provider value={value}>
