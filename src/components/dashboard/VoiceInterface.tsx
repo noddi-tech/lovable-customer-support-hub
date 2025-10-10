@@ -785,15 +785,7 @@ export const VoiceInterface = () => {
           isWebSocketBlocked={isWebSocketBlocked}
           isSDKFailed={initializationPhase === 'failed'}
           initializationPhase={initializationPhase}
-          onRetry={() => {
-            console.log('🔄 [VoiceInterface] Retrying Aircall connection without reload');
-            // Invalidate queries to trigger re-fetch
-            queryClient.invalidateQueries({ queryKey: ['calls'] });
-            queryClient.invalidateQueries({ queryKey: ['voicemails'] });
-            queryClient.invalidateQueries({ queryKey: ['callbackRequests'] });
-            // Trigger voice error reset event for complete cleanup
-            window.dispatchEvent(new CustomEvent('voice-error-reset'));
-          }}
+          onRetry={retryConnection}
         />
         
         <VoiceLayout

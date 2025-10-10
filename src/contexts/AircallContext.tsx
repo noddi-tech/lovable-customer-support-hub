@@ -834,13 +834,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             duration: 10000,
           });
         } else {
-          // UNKNOWN ERROR - give user options
+          // UNKNOWN ERROR - show login modal to let user try anyway
           setInitializationPhase('failed');
+          setShowLoginModal(true); // Show login modal to allow login attempt
           setError(`Initialization failed: ${errorMessage}`);
           
           toast({
             title: 'Phone Integration Failed',
-            description: 'Unable to initialize Aircall. You can retry or skip this integration.',
+            description: 'Unable to initialize Aircall. You can try logging in or retry the connection.',
             variant: 'destructive',
             duration: 10000,
           });
