@@ -211,11 +211,18 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
                   <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                  <span>Awaiting Login</span>
+                  <span>Not Logged In</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Please log in to Aircall to start receiving calls
                 </p>
+                <Button
+                  onClick={() => showAircallWorkspace(true)}
+                  size="sm"
+                  variant="outline"
+                >
+                  Show Aircall Workspace
+                </Button>
               </div>
             ) : (
               <>

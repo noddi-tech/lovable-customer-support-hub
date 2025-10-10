@@ -148,86 +148,12 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
   }, [isOpen, initializationPhase, isConnected]);
 
   const handleManualConfirm = async () => {
-    console.log('[AircallLoginModal] Manual verification clicked - reloading workspace');
+    console.log('[AircallLoginModal] Verifying login status');
     setIsChecking(true);
     setVerificationStatus('checking');
     
-    // Show immediate feedback
-    toast({
-      title: "Syncing Login...",
-      description: "Reloading Aircall workspace to sync your session",
-      duration: 3000,
-    });
-    
-    // CRITICAL FIX: Reload Aircall iframe to sync with popup session
-    const container = document.querySelector('#aircall-workspace-container');
-    const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
-    
-    if (!iframe) {
-      setIsChecking(false);
-      setVerificationStatus('error');
-      toast({
-        title: "Error",
-        description: "Aircall workspace not found. Please refresh the page.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      console.log('[AircallLoginModal] 🔄 Starting iframe reload...');
-      const currentSrc = iframe.src;
-      
-      // Force complete reload
-      iframe.src = 'about:blank';
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Restore src to trigger reload
-      iframe.src = currentSrc;
-      console.log('[AircallLoginModal] 📡 Iframe src restored, waiting for load...');
-      
-      // Wait for iframe to load (using load event is more reliable)
-      const loadPromise = new Promise<void>((resolve) => {
-        const onLoad = () => {
-          console.log('[AircallLoginModal] ✅ Iframe loaded');
-          iframe.removeEventListener('load', onLoad);
-          resolve();
-        };
-        iframe.addEventListener('load', onLoad);
-        
-        // Fallback timeout in case load event doesn't fire
-        setTimeout(() => {
-          iframe.removeEventListener('load', onLoad);
-          console.log('[AircallLoginModal] ⏱️ Load timeout, proceeding anyway');
-          resolve();
-        }, 8000);
-      });
-      
-      await loadPromise;
-      
-      // Additional wait for Aircall to initialize within iframe
-      console.log('[AircallLoginModal] ⏳ Waiting for Aircall to initialize...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Now check login status with retry logic
-      let isLoggedIn = false;
-      let attempts = 0;
-      const maxAttempts = 3;
-      
-      while (attempts < maxAttempts && !isLoggedIn) {
-        attempts++;
-        console.log(`[AircallLoginModal] 🔍 Login check attempt ${attempts}/${maxAttempts}`);
-        
-        isLoggedIn = await checkLoginStatus();
-        
-        if (!isLoggedIn && attempts < maxAttempts) {
-          console.log('[AircallLoginModal] ❌ Not logged in yet, retrying in 2 seconds...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      }
-      
-      console.log('[AircallLoginModal] 📊 Final verification result:', isLoggedIn);
+      const isLoggedIn = await checkLoginStatus();
       
       if (isLoggedIn) {
         setVerificationStatus('success');
@@ -242,7 +168,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
         setIsChecking(false);
         toast({
           title: "Not Logged In",
-          description: "Please ensure you completed login in the Aircall popup window",
+          description: "Please log in through the Aircall workspace below",
           variant: "destructive",
           duration: 8000,
         });
@@ -257,61 +183,6 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
         variant: "destructive",
       });
     }
-  };
-
-  const handleOpenNewTab = () => {
-    console.log('[AircallLoginModal] Opening login popup');
-    
-    // Open Aircall in a centered popup window
-    const width = 800;
-    const height = 700;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    
-    const popup = window.open(
-      'https://phone.aircall.io',
-      'aircall-login',
-      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-    );
-
-    if (!popup) {
-      console.error('[AircallLoginModal] Popup blocked by browser');
-      toast({
-        title: "Popup Blocked",
-        description: "Please allow popups and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    console.log('[AircallLoginModal] Popup opened - waiting for user to log in');
-    setVerificationStatus('checking');
-    
-    // CRITICAL FIX: Don't auto-poll for login - Aircall cookies cause false positives
-    // User must click "I've Logged In - Verify Now" after logging in
-    
-    // Just monitor if popup closes
-    const checkPopupClosed = setInterval(() => {
-      if (popup.closed) {
-        console.log('[AircallLoginModal] Popup closed by user');
-        clearInterval(checkPopupClosed);
-        setVerificationStatus('idle');
-        
-        toast({
-          title: "Login Window Closed",
-          description: "After logging in to Aircall, click 'I've Logged In - Verify Now'",
-          duration: 8000,
-        });
-      }
-    }, 1000);
-    
-    // Cleanup after 10 minutes
-    setTimeout(() => {
-      clearInterval(checkPopupClosed);
-      if (!popup.closed) {
-        popup.close();
-      }
-    }, 600000);
   };
 
   const getStatusMessage = () => {
@@ -434,20 +305,20 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
             </Alert>
           )}
 
-          {/* Primary Login Button */}
+          {/* Iframe Login Instructions */}
           {!showTroubleshooting && (
             <div className="space-y-3">
               <Alert>
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p><strong>Click below to log in to Aircall via popup window</strong></p>
-                    <p className="text-sm text-muted-foreground">The popup will close automatically once you're logged in.</p>
+                    <p><strong>Please log in through the Aircall workspace below</strong></p>
+                    <p className="text-sm text-muted-foreground">Once logged in, click "Verify Login" to confirm your connection.</p>
                   </div>
                 </AlertDescription>
               </Alert>
               
               <Button
-                onClick={handleOpenNewTab}
+                onClick={handleManualConfirm}
                 variant="default"
                 size="lg"
                 className="w-full"
@@ -456,7 +327,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
                 {verificationStatus === 'checking' ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Waiting for login...
+                    Verifying...
                   </>
                 ) : verificationStatus === 'success' ? (
                   <>
@@ -465,8 +336,8 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <ExternalLink className="mr-2 h-5 w-5" />
-                    Login with Popup
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    Verify Login
                   </>
                 )}
               </Button>
@@ -523,39 +394,24 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
                 </div>
               </div>
 
-              {/* Check 3: Login via Popup */}
+              {/* Check 3: Login in New Tab */}
               <div className="space-y-2">
                 <div className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200">
                   <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
                   <div>
-                    <strong className="block mb-1">Try: Login via Popup</strong>
-                    <span>Log into Aircall in a popup window to bypass iframe restrictions.</span>
+                    <strong className="block mb-1">Try: Login in New Tab</strong>
+                    <span>Open Aircall in a new tab if the workspace iframe is not responding.</span>
                   </div>
                 </div>
                 <Button
-                  onClick={handleOpenNewTab}
+                  onClick={() => window.open('https://phone.aircall.io', '_blank')}
                   variant="default"
                   size="sm"
                   className="w-full"
-                  disabled={verificationStatus === 'checking'}
                 >
-                  {verificationStatus === 'checking' ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Waiting for login...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Login with Popup
-                    </>
-                  )}
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Aircall in New Tab
                 </Button>
-                {verificationStatus === 'checking' && (
-                  <p className="text-xs text-amber-700 dark:text-amber-300 text-center">
-                    Complete login in the popup window. It will close automatically.
-                  </p>
-                )}
               </div>
             </div>
           )}

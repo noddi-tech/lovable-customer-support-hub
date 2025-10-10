@@ -479,6 +479,15 @@ class AircallPhoneManager {
       console.log('[AircallWorkspace] ✅ Workspace created successfully');
       this.logInit('workspace_created');
       
+      // Ensure iframe has correct permissions after SDK creates it
+      setTimeout(() => {
+        const iframe = this.getAircallIframe();
+        if (iframe && !iframe.getAttribute('allow')?.includes('hid')) {
+          iframe.setAttribute('allow', 'microphone; autoplay; clipboard-read; clipboard-write; hid');
+          console.log('[AircallWorkspace] ✅ Updated iframe allow attribute with HID permission');
+        }
+      }, 1000);
+      
       // Phase 4: Log available SDK methods for debugging
       console.log('[AircallWorkspace] 🔍 Inspecting available workspace methods:');
       try {

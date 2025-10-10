@@ -650,20 +650,15 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           apiToken,
           domainName: runtimeDomain,
           onLogin: () => {
-            console.group('[AircallProvider] ✅ LOGIN CALLBACK FIRED (Workspace Ready)');
+            console.group('[AircallProvider] ✅ LOGIN CALLBACK FIRED - User logged in!');
             console.log('Timestamp:', new Date().toISOString());
             console.log('Current phase:', initializationPhase);
             console.groupEnd();
             
-            // CRITICAL FIX: DO NOT auto-login - SDK checkLoginStatus() returns false positives
-            // The onLogin callback only means the workspace iframe is ready, NOT that user is logged in
-            console.log('[AircallProvider] 🔐 Workspace ready - waiting for user to log in via popup');
+            // The onLogin callback fires when user successfully logs in via iframe
+            handleSuccessfulLogin();
             
-            // Mark workspace as ready for login, but DON'T show success
-            setInitializationPhase('needs-login');
-            setIsWorkspaceReady(true);
-            
-            // Clear error listener since workspace loaded successfully
+            // Clear error listener since login successful
             if (blockingErrorListenerRef.current) {
               window.removeEventListener('error', blockingErrorListenerRef.current, true);
               blockingErrorListenerRef.current = null;
@@ -722,14 +717,19 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             description: 'Please log in through the workspace to start receiving calls',
           });
           
-          // PHASE 1: Auto-show login modal since user isn't logged in yet
-          console.log('[AircallProvider] 🔐 Workspace ready but user not logged in - showing login modal');
+          // Auto-show workspace for iframe-first login
+          console.log('[AircallProvider] 🔐 Workspace ready - showing for login');
           setShowLoginModal(true);
           setInitializationPhase('needs-login');
           
-          // CRITICAL FIX: NO automatic polling - only the modal's popup polling should run
-          // The modal will handle login detection when user clicks the popup button
-          console.log('[AircallProvider] ℹ️ Login modal will handle authentication via popup');
+          // Show workspace automatically so users can log in directly
+          setTimeout(() => {
+            showAircallWorkspace(true);
+            toast({
+              title: 'Please Log In',
+              description: 'Log in through the Aircall workspace below to start receiving calls',
+            });
+          }, 500);
         } else {
           console.error('[AircallProvider] ❌ Workspace creation failed');
           setIsInitialized(false);
