@@ -488,9 +488,13 @@ Optimized for accessibility with WCAG AA compliance.
   /* Aircall Workspace Container Visibility */
   #aircall-workspace-container {
     position: fixed;
+    bottom: 20px;
+    right: 20px;
     width: 350px;
     height: 500px;
     z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 

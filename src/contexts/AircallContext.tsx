@@ -622,7 +622,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           console.warn('[AircallProvider] Container missing - creating imperatively');
           container = document.createElement('div');
           container.id = 'aircall-workspace-container';
-          container.className = 'aircall-hidden';
           document.body.appendChild(container);
         }
         
