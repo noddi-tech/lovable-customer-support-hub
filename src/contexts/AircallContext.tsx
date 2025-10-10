@@ -61,7 +61,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const { profile } = useAuth();
   const { getIntegrationByProvider } = useVoiceIntegrations();
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isConnected, setIsConnected] = useState(() => aircallPhone.getLoginStatus());
+  // CRITICAL FIX: Never trust localStorage on initial load - always require fresh login
+  const [isConnected, setIsConnected] = useState(false);
   const [currentCall, setCurrentCall] = useState<AircallCall | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -76,9 +77,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const [showLoginModal, setShowLoginModal] = useState(() => {
     if (typeof window === 'undefined') return false;
     const optedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
-    const loggedIn = aircallPhone.getLoginStatus();
-    console.log('[AircallProvider] 📱 Initial modal state:', { optedOut, loggedIn, willShow: !loggedIn && !optedOut });
-    return !loggedIn && !optedOut;
+    // CRITICAL FIX: Always start with modal hidden, let initialization flow control it
+    console.log('[AircallProvider] 📱 Initial modal state:', { optedOut, willShow: false });
+    return false;
   });
   
   const [showBlockedModal, setShowBlockedModal] = useState(false);
@@ -745,16 +746,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         
         console.log('[AircallProvider] ✅ Initialization complete');
         
-        const metadata = getConnectionMetadata();
-        const now = Date.now();
-        const recentConnection = metadata.timestamp && (now - metadata.timestamp) < 300000;
-        
-        const wasLoggedIn = aircallPhone.getLoginStatus();
-        console.log('[AircallProvider] Previous login status from localStorage:', wasLoggedIn);
-        
-        // CRITICAL FIX: Don't trust cached login status - always require fresh login
-        // The SDK's checkLoginStatus() returns false positives from stale cookies
-        console.log('[AircallProvider] 🔐 Clearing stale login status - user must log in fresh');
+        // CRITICAL FIX: Don't trust cached login status - always show modal for fresh login
+        console.log('[AircallProvider] 🔐 Requiring fresh login on every page load');
         aircallPhone.clearLoginStatus();
         localStorage.removeItem('aircall_connection_timestamp');
         localStorage.removeItem('aircall_connection_attempts');
