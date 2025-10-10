@@ -317,6 +317,13 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
                 </AlertDescription>
               </Alert>
               
+              {/* Aircall Workspace Container - This is where the SDK iframe will be injected */}
+              <div 
+                id="aircall-workspace-container" 
+                className="w-full h-[400px] rounded-lg border bg-background overflow-hidden"
+                style={{ pointerEvents: 'auto' }}
+              />
+              
               <Button
                 onClick={handleManualConfirm}
                 variant="default"
