@@ -148,18 +148,61 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
   }, [isOpen, initializationPhase, isConnected]);
 
   const handleManualConfirm = async () => {
+    console.log('[AircallLoginModal] Manual verification clicked - reloading workspace');
     setIsChecking(true);
     setVerificationStatus('checking');
     
-    try {
-      await onLoginConfirm();
-      setVerificationStatus('success');
-    } catch (err) {
-      setVerificationStatus('error');
+    // CRITICAL FIX: Reload Aircall iframe to sync with popup session
+    const container = document.querySelector('#aircall-workspace-container');
+    const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
+    
+    if (iframe) {
+      // Reload iframe to pick up new session
+      const currentSrc = iframe.src;
+      iframe.src = 'about:blank';
+      
       setTimeout(() => {
-        setVerificationStatus('idle');
-        setIsChecking(false);
-      }, 3000);
+        iframe.src = currentSrc;
+        console.log('[AircallLoginModal] Workspace reloaded, verifying in 4 seconds...');
+        
+        // Wait for iframe to fully load
+        setTimeout(async () => {
+          try {
+            const isLoggedIn = await checkLoginStatus();
+            console.log('[AircallLoginModal] Verification result:', isLoggedIn);
+            
+            if (isLoggedIn) {
+              setVerificationStatus('success');
+              setIsChecking(false);
+              toast({
+                title: "Login Verified!",
+                description: "You're now connected to Aircall",
+              });
+              await onLoginConfirm();
+            } else {
+              setVerificationStatus('error');
+              setIsChecking(false);
+              toast({
+                title: "Not Logged In Yet",
+                description: "Please complete login in the Aircall popup first",
+                variant: "destructive",
+              });
+            }
+          } catch (err) {
+            console.error('[AircallLoginModal] Verification error:', err);
+            setVerificationStatus('error');
+            setIsChecking(false);
+          }
+        }, 4000);
+      }, 100);
+    } else {
+      setIsChecking(false);
+      setVerificationStatus('error');
+      toast({
+        title: "Error",
+        description: "Aircall workspace not found",
+        variant: "destructive",
+      });
     }
   };
 
@@ -188,58 +231,34 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
       return;
     }
 
-    console.log('[AircallLoginModal] Popup opened, starting to poll for login');
-    // Update status to show we're waiting for login
+    console.log('[AircallLoginModal] Popup opened - waiting for user to log in');
     setVerificationStatus('checking');
-
-    // Poll for login status
-    const pollInterval = setInterval(async () => {
-      try {
-        // Check if popup is closed
-        if (popup.closed) {
-          console.log('[AircallLoginModal] Popup closed by user');
-          clearInterval(pollInterval);
-          setVerificationStatus('idle');
-          return;
-        }
-
-        // Check login status via the context's checkLoginStatus
-        const isLoggedIn = await checkLoginStatus();
-        console.log('[AircallLoginModal] Login status check:', isLoggedIn);
-        
-        if (isLoggedIn) {
-          console.log('[AircallLoginModal] ✅ Login detected! Closing popup');
-          clearInterval(pollInterval);
-          popup.close();
-          setVerificationStatus('success');
-          
-          toast({
-            title: "Login Successful",
-            description: "You're now connected to Aircall",
-          });
-          
-          // Trigger the login confirmation
-          await onLoginConfirm();
-        }
-      } catch (error) {
-        console.error('[AircallLoginModal] Login check error:', error);
-      }
-    }, 2000); // Check every 2 seconds
-
-    // Cleanup after 5 minutes
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      if (!popup.closed) {
-        console.warn('[AircallLoginModal] Login timeout - closing popup');
-        popup.close();
+    
+    // CRITICAL FIX: Don't auto-poll for login - Aircall cookies cause false positives
+    // User must click "I've Logged In - Verify Now" after logging in
+    
+    // Just monitor if popup closes
+    const checkPopupClosed = setInterval(() => {
+      if (popup.closed) {
+        console.log('[AircallLoginModal] Popup closed by user');
+        clearInterval(checkPopupClosed);
         setVerificationStatus('idle');
+        
         toast({
-          title: "Login Timeout",
-          description: "Please try logging in again.",
-          variant: "destructive",
+          title: "Login Window Closed",
+          description: "After logging in to Aircall, click 'I've Logged In - Verify Now'",
+          duration: 8000,
         });
       }
-    }, 300000); // 5 minutes
+    }, 1000);
+    
+    // Cleanup after 10 minutes
+    setTimeout(() => {
+      clearInterval(checkPopupClosed);
+      if (!popup.closed) {
+        popup.close();
+      }
+    }, 600000);
   };
 
   const getStatusMessage = () => {
