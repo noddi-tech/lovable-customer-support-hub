@@ -152,55 +152,108 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     setIsChecking(true);
     setVerificationStatus('checking');
     
+    // Show immediate feedback
+    toast({
+      title: "Syncing Login...",
+      description: "Reloading Aircall workspace to sync your session",
+      duration: 3000,
+    });
+    
     // CRITICAL FIX: Reload Aircall iframe to sync with popup session
     const container = document.querySelector('#aircall-workspace-container');
     const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
     
-    if (iframe) {
-      // Reload iframe to pick up new session
-      const currentSrc = iframe.src;
-      iframe.src = 'about:blank';
-      
-      setTimeout(() => {
-        iframe.src = currentSrc;
-        console.log('[AircallLoginModal] Workspace reloaded, verifying in 4 seconds...');
-        
-        // Wait for iframe to fully load
-        setTimeout(async () => {
-          try {
-            const isLoggedIn = await checkLoginStatus();
-            console.log('[AircallLoginModal] Verification result:', isLoggedIn);
-            
-            if (isLoggedIn) {
-              setVerificationStatus('success');
-              setIsChecking(false);
-              toast({
-                title: "Login Verified!",
-                description: "You're now connected to Aircall",
-              });
-              await onLoginConfirm();
-            } else {
-              setVerificationStatus('error');
-              setIsChecking(false);
-              toast({
-                title: "Not Logged In Yet",
-                description: "Please complete login in the Aircall popup first",
-                variant: "destructive",
-              });
-            }
-          } catch (err) {
-            console.error('[AircallLoginModal] Verification error:', err);
-            setVerificationStatus('error');
-            setIsChecking(false);
-          }
-        }, 4000);
-      }, 100);
-    } else {
+    if (!iframe) {
       setIsChecking(false);
       setVerificationStatus('error');
       toast({
         title: "Error",
-        description: "Aircall workspace not found",
+        description: "Aircall workspace not found. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log('[AircallLoginModal] 🔄 Starting iframe reload...');
+      const currentSrc = iframe.src;
+      
+      // Force complete reload
+      iframe.src = 'about:blank';
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Restore src to trigger reload
+      iframe.src = currentSrc;
+      console.log('[AircallLoginModal] 📡 Iframe src restored, waiting for load...');
+      
+      // Wait for iframe to load (using load event is more reliable)
+      const loadPromise = new Promise<void>((resolve) => {
+        const onLoad = () => {
+          console.log('[AircallLoginModal] ✅ Iframe loaded');
+          iframe.removeEventListener('load', onLoad);
+          resolve();
+        };
+        iframe.addEventListener('load', onLoad);
+        
+        // Fallback timeout in case load event doesn't fire
+        setTimeout(() => {
+          iframe.removeEventListener('load', onLoad);
+          console.log('[AircallLoginModal] ⏱️ Load timeout, proceeding anyway');
+          resolve();
+        }, 8000);
+      });
+      
+      await loadPromise;
+      
+      // Additional wait for Aircall to initialize within iframe
+      console.log('[AircallLoginModal] ⏳ Waiting for Aircall to initialize...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Now check login status with retry logic
+      let isLoggedIn = false;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts && !isLoggedIn) {
+        attempts++;
+        console.log(`[AircallLoginModal] 🔍 Login check attempt ${attempts}/${maxAttempts}`);
+        
+        isLoggedIn = await checkLoginStatus();
+        
+        if (!isLoggedIn && attempts < maxAttempts) {
+          console.log('[AircallLoginModal] ❌ Not logged in yet, retrying in 2 seconds...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      console.log('[AircallLoginModal] 📊 Final verification result:', isLoggedIn);
+      
+      if (isLoggedIn) {
+        setVerificationStatus('success');
+        setIsChecking(false);
+        toast({
+          title: "✅ Login Verified!",
+          description: "You're now connected to Aircall",
+        });
+        await onLoginConfirm();
+      } else {
+        setVerificationStatus('error');
+        setIsChecking(false);
+        toast({
+          title: "Not Logged In",
+          description: "Please ensure you completed login in the Aircall popup window",
+          variant: "destructive",
+          duration: 8000,
+        });
+      }
+    } catch (err) {
+      console.error('[AircallLoginModal] ❌ Verification error:', err);
+      setVerificationStatus('error');
+      setIsChecking(false);
+      toast({
+        title: "Verification Failed",
+        description: "An error occurred during verification. Please try again.",
         variant: "destructive",
       });
     }
