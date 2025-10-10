@@ -39,6 +39,16 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     detectBrowser().then(setBrowserInfo);
   }, []);
 
+  // Debug: Log when modal state changes
+  useEffect(() => {
+    console.log('[AircallLoginModal] State changed:', {
+      isOpen,
+      isConnected,
+      shouldShow: isOpen && !isConnected,
+      verificationStatus
+    });
+  }, [isOpen, isConnected, verificationStatus]);
+
   // Track elapsed time for progressive messages
   useEffect(() => {
     if (!isOpen || isConnected) {
@@ -154,6 +164,8 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
   };
 
   const handleOpenNewTab = () => {
+    console.log('[AircallLoginModal] Opening login popup');
+    
     // Open Aircall in a centered popup window
     const width = 800;
     const height = 700;
@@ -167,6 +179,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     );
 
     if (!popup) {
+      console.error('[AircallLoginModal] Popup blocked by browser');
       toast({
         title: "Popup Blocked",
         description: "Please allow popups and try again.",
@@ -175,6 +188,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
       return;
     }
 
+    console.log('[AircallLoginModal] Popup opened, starting to poll for login');
     // Update status to show we're waiting for login
     setVerificationStatus('checking');
 
@@ -183,6 +197,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
       try {
         // Check if popup is closed
         if (popup.closed) {
+          console.log('[AircallLoginModal] Popup closed by user');
           clearInterval(pollInterval);
           setVerificationStatus('idle');
           return;
@@ -190,8 +205,10 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
 
         // Check login status via the context's checkLoginStatus
         const isLoggedIn = await checkLoginStatus();
+        console.log('[AircallLoginModal] Login status check:', isLoggedIn);
         
         if (isLoggedIn) {
+          console.log('[AircallLoginModal] ✅ Login detected! Closing popup');
           clearInterval(pollInterval);
           popup.close();
           setVerificationStatus('success');
@@ -205,7 +222,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
           await onLoginConfirm();
         }
       } catch (error) {
-        console.error('Login check error:', error);
+        console.error('[AircallLoginModal] Login check error:', error);
       }
     }, 2000); // Check every 2 seconds
 
@@ -213,6 +230,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     setTimeout(() => {
       clearInterval(pollInterval);
       if (!popup.closed) {
+        console.warn('[AircallLoginModal] Login timeout - closing popup');
         popup.close();
         setVerificationStatus('idle');
         toast({
@@ -237,10 +255,20 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     return t('aircall.login.statusTakingLonger');
   };
 
+  const shouldShowModal = isOpen && !isConnected;
+  
+  console.log('[AircallLoginModal] Render:', {
+    isOpen,
+    isConnected,
+    shouldShowModal,
+    verificationStatus
+  });
+
   return (
-    <Dialog open={isOpen && !isConnected}>
+    <Dialog open={shouldShowModal}>
       <DialogContent 
         className="sm:max-w-md"
+        style={{ zIndex: 10001 }}
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >

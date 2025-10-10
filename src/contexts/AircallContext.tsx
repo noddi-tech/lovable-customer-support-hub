@@ -1379,33 +1379,31 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   // ============================================================================
   useEffect(() => {
     if (showLoginModal) {
-      console.log('[AircallProvider] 🔓 Login modal open - forcing workspace interactive');
+      console.log('[AircallProvider] 🔓 Login modal open - hiding workspace to avoid z-index conflicts');
       
-      const forceInteractive = () => {
+      const hideWorkspaceForModal = () => {
         const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-        const iframe = container?.querySelector('iframe') as HTMLIFrameElement;
         
         if (container) {
-          container.style.pointerEvents = 'auto';
-          container.style.display = 'block';
-          container.style.visibility = 'visible';
-          container.style.opacity = '1';
-          console.log('[AircallProvider] ✅ Container forced interactive');
-        }
-        
-        if (iframe) {
-          iframe.style.pointerEvents = 'auto';
-          console.log('[AircallProvider] ✅ Iframe forced interactive');
+          // Hide workspace completely during login to avoid z-index conflicts
+          container.style.zIndex = '1'; // Lower than modal (10000+)
+          container.style.opacity = '0';
+          container.style.pointerEvents = 'none';
+          console.log('[AircallProvider] ✅ Workspace hidden for modal');
         }
       };
       
-      // Force immediately
-      forceInteractive();
+      // Hide immediately
+      hideWorkspaceForModal();
       
-      // Keep forcing every 100ms while login modal is open
-      const interval = setInterval(forceInteractive, 100);
-      
-      return () => clearInterval(interval);
+      return () => {
+        // Restore workspace z-index when modal closes
+        const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+        if (container) {
+          container.style.zIndex = '9999';
+          console.log('[AircallProvider] ✅ Workspace z-index restored');
+        }
+      };
     }
   }, [showLoginModal]);
 
