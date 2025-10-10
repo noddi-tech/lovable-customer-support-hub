@@ -36,6 +36,7 @@ export interface AircallContextValue {
   hideAircallWorkspace: () => void;
   workspace: any; // Aircall workspace object
   isWorkspaceReady: boolean; // True when workspace exists and is ready
+  checkLoginStatus: () => Promise<boolean>; // Check if user is logged into Aircall
   // PHASE 4: Debug info for recursion guards
   _debugRecursionGuards?: {
     isShowing: boolean;
@@ -1433,6 +1434,22 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, []);
 
   // ============================================================================
+  // Check Login Status (for popup login polling)
+  // ============================================================================
+  const checkLoginStatus = useCallback(async (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (!aircallPhone.isWorkspaceCreated()) {
+        resolve(false);
+        return;
+      }
+      
+      aircallPhone.checkLoginStatus((isLoggedIn) => {
+        resolve(isLoggedIn);
+      });
+    });
+  }, []);
+
+  // ============================================================================
   // PHASE 0: Memoize Context Value for Performance
   // ============================================================================
   const value: AircallContextValue = useMemo(() => ({
@@ -1462,6 +1479,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     hideAircallWorkspace,
     workspace: null, // Workspace is private in SDK
     isWorkspaceReady, // PHASE 2: Expose workspace readiness from state
+    checkLoginStatus,
     // PHASE 4: Expose recursion guard states for debug panel
     _debugRecursionGuards: {
       isShowing: isShowingWorkspaceRef.current,
@@ -1492,6 +1510,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     showAircallWorkspace,
     hideAircallWorkspace,
     isWorkspaceReady,
+    checkLoginStatus,
   ]);
 
   return (
