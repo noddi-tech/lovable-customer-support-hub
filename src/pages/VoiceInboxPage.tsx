@@ -297,13 +297,16 @@ const VoiceInboxPage: React.FC = () => {
         </div>
       )}
 
-      <InboxLayout
-        conversations={mockVoiceCalls}
-        renderDetail={renderDetail}
-        title="Voice Inbox"
-        onReply={handleReply}
-        showReplyBox={true}
-      />
+      {/* InboxLayout - Only shown when connected */}
+      {isConnected && (
+        <InboxLayout
+          conversations={mockVoiceCalls}
+          renderDetail={renderDetail}
+          title="Voice Inbox"
+          onReply={handleReply}
+          showReplyBox={true}
+        />
+      )}
     </div>
   );
 };
