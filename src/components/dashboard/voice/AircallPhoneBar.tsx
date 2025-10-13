@@ -154,14 +154,19 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
     });
   }, [currentCall, incomingCall, unifiedCall, isWorkspaceReady]);
 
-  // Show connection status only if SDK not initialized
+  // Don't show "Connecting..." message when not initialized
+  // The Load Phone System button in VoiceInboxPage handles that state
   if (!isInitialized) {
-    console.log('[AircallPhoneBar] SDK not initialized - showing connection status');
+    return null;
+  }
+
+  // Show "Waiting for login" if initialized but not connected
+  if (isInitialized && !isConnected && !hasActiveCall) {
     return (
-      <div className="fixed bottom-4 left-4 bg-yellow-50 border border-yellow-200 px-4 py-2 rounded-lg shadow-lg z-[100]">
-        <div className="flex items-center gap-2 text-sm text-yellow-800">
+      <div className="fixed bottom-4 left-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 px-4 py-2 rounded-lg shadow-lg z-[100]">
+        <div className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Connecting to phone system...</span>
+          <span>Waiting for Aircall login...</span>
         </div>
       </div>
     );

@@ -17,6 +17,17 @@ export const AircallDebugPanel: React.FC = () => {
   const { toast } = useToast();
   const context = useAircallPhone();
   
+  // Minimize state
+  const [isMinimized, setIsMinimized] = React.useState(() => {
+    return localStorage.getItem('aircall_debug_minimized') === 'true';
+  });
+
+  const toggleMinimize = () => {
+    const newState = !isMinimized;
+    setIsMinimized(newState);
+    localStorage.setItem('aircall_debug_minimized', String(newState));
+  };
+  
   // PHASE 4: Force re-render every 100ms to show live recursion guard state
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   React.useEffect(() => {
@@ -172,6 +183,22 @@ export const AircallDebugPanel: React.FC = () => {
 
   if (!shouldShow) return null;
 
+  // Render minimized version
+  if (isMinimized) {
+    return (
+      <Button
+        onClick={toggleMinimize}
+        className="fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-lg z-[9999]"
+        size="icon"
+        variant="outline"
+        title="Show Aircall Debug Panel"
+      >
+        <Bug className="h-5 w-5" />
+      </Button>
+    );
+  }
+
+  // Render full panel
   return (
     <Card className="fixed bottom-4 right-4 w-96 p-4 shadow-lg border-2 border-primary/20 z-[9999]">
       <div className="flex items-center justify-between mb-3">
@@ -180,6 +207,15 @@ export const AircallDebugPanel: React.FC = () => {
           <h3 className="font-bold text-sm">Aircall Debug Panel</h3>
         </div>
         <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={toggleMinimize}
+            className="h-7 px-2 text-xs"
+            title="Minimize debug panel"
+          >
+            Minimize
+          </Button>
           <Button
             size="sm"
             variant="ghost"

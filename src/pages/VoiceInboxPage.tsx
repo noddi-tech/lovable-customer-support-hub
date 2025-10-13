@@ -250,33 +250,52 @@ const VoiceInboxPage: React.FC = () => {
   };
 
   return (
-    <div className="relative">
-      {/* Aircall Phone System Controls */}
-      <div className="fixed top-20 right-6 z-50 flex flex-col gap-2">
-        {!isInitialized ? (
-          <Button
-            onClick={handleLoadPhone}
-            size="lg"
-            className="shadow-lg"
-          >
-            <PhoneIncoming className="h-5 w-5 mr-2" />
-            Load Phone System
-          </Button>
-        ) : isConnected ? (
-          <Button
-            onClick={handleTogglePhone}
-            size="icon"
-            variant="default"
-            className="h-12 w-12 rounded-full shadow-lg"
-          >
-            <Phone className="h-5 w-5" />
-          </Button>
-        ) : (
-          <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-            <p className="text-sm text-muted-foreground">Connecting...</p>
-          </div>
-        )}
-      </div>
+    <div className="relative min-h-screen">
+      {/* Load Phone System Card */}
+      {!isInitialized && (
+        <div className="container max-w-7xl mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <Phone className="h-16 w-16 mx-auto text-primary" />
+                <h2 className="text-2xl font-bold">Initialize Aircall Phone System</h2>
+                <p className="text-muted-foreground">
+                  Load the Aircall phone interface to make and receive calls directly in your browser.
+                </p>
+                <Button onClick={handleLoadPhone} size="lg" className="mt-4">
+                  <Phone className="h-5 w-5 mr-2" />
+                  Load Phone System
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Login Required Card */}
+      {isInitialized && !isConnected && (
+        <div className="container max-w-7xl mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <Phone className="h-16 w-16 mx-auto text-yellow-600 dark:text-yellow-400" />
+                <h2 className="text-xl font-bold text-yellow-900 dark:text-yellow-100">Login Required</h2>
+                <p className="text-yellow-800 dark:text-yellow-200">
+                  The Aircall workspace has been loaded. Please log in using the phone interface in the bottom-right corner.
+                </p>
+                <Button 
+                  onClick={handleTogglePhone} 
+                  variant="outline"
+                  className="border-yellow-600 text-yellow-900 dark:text-yellow-100 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Show Aircall Login
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <InboxLayout
         conversations={mockVoiceCalls}
