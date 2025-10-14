@@ -985,6 +985,29 @@ class AircallPhoneManager {
     this.eventHandlers.clear();
     this.currentCall = null;
   }
+
+  /**
+   * Cleanup workspace container and reset state
+   * Used to force fresh initialization
+   */
+  cleanup(): void {
+    console.log('[AircallWorkspace] 🧹 Cleaning up workspace');
+    
+    // Clear workspace container
+    const container = document.getElementById('aircall-workspace-container');
+    if (container) {
+      container.innerHTML = '';
+      console.log('[AircallWorkspace] ✅ Cleared workspace container');
+    }
+    
+    // Reset internal state
+    this.workspace = null;
+    this.isInitialized = false;
+    this.eventHandlers.clear();
+    this.currentCall = null;
+    
+    console.log('[AircallWorkspace] ✅ Workspace cleanup complete');
+  }
 }
 
 // Export singleton instance

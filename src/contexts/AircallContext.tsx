@@ -460,6 +460,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * Manual initialization function for button-based approach
    */
   const initializePhone = useCallback(async () => {
+    // Mark that user explicitly initiated setup
+    sessionStorage.setItem('aircall_user_initiated', 'true');
+    console.log('[AircallProvider] 🚀 User initiated phone setup');
+    
     // Check opt-out FIRST
     const isOptedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
     if (isOptedOut) {
@@ -892,11 +896,53 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, [everywhereConfig, toast, handleSuccessfulLogin, handleDisconnection, showAircallWorkspace, aircallPhone, saveConnectionMetadata]);
 
   /**
-   * Initialize on mount - DISABLED for button-based approach
+   * Initialize on mount - Check for user-initiated setup
    */
   useEffect(() => {
-    // Do NOT auto-initialize - wait for user to click button
-    console.log('[AircallProvider] Provider mounted - waiting for manual initialization');
+    // Check if user initiated setup this session
+    const userInitiated = sessionStorage.getItem('aircall_user_initiated') === 'true';
+    
+    if (!userInitiated) {
+      console.log('[AircallProvider] 🧹 No user initiation detected - cleaning up stale SDK state');
+      
+      // Clear any persisted Aircall workspace/iframe
+      const container = document.getElementById('aircall-workspace-container');
+      if (container) {
+        container.innerHTML = ''; // Clear any leftover iframes
+      }
+      
+      // Force SDK to clean state
+      aircallPhone.cleanup();
+      
+      // Ensure we start fresh
+      setIsInitialized(false);
+      setIsConnected(false);
+      setInitializationPhase('idle');
+      
+      console.log('[AircallProvider] ✅ Waiting for user to click Load Phone System');
+      return; // Exit early - don't auto-initialize
+    }
+    
+    console.log('[AircallProvider] 🔄 User initiation detected - checking SDK state');
+    
+    // Only check SDK state if user explicitly initialized
+    if (aircallPhone.isWorkspaceCreated()) {
+      console.log('[AircallProvider] 🔄 Workspace exists - attempting to restore session');
+      setIsInitialized(true);
+      setInitializationPhase('workspace-ready');
+      
+      // Check login status
+      aircallPhone.checkLoginStatus((isLoggedIn) => {
+        if (isLoggedIn) {
+          console.log('[AircallProvider] ✅ Session restored - user is logged in');
+          setIsConnected(true);
+          setInitializationPhase('logged-in');
+        } else {
+          console.log('[AircallProvider] ⚠️ Workspace exists but user not logged in');
+          setInitializationPhase('needs-login');
+        }
+      });
+    }
 
     // ONLY cleanup on actual app unmount (browser close)
     return () => {
@@ -925,7 +971,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         aircallPhone.disconnect();
       }
     };
-  }, [everywhereConfig, toast, handleDisconnection, saveConnectionMetadata, getConnectionMetadata, attemptReconnect, showAircallWorkspace, handleSuccessfulLogin]);
+  }, []);
 
   /**
    * Register SDK event handlers
