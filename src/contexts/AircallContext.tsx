@@ -588,18 +588,18 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             });
           }
           
-          // Check for authentication failures (401)
+          // Check for authentication failures (401) - normal during init
           if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('authentication')) {
-            console.error('[AircallProvider] ❌ Authentication failed (401)');
+            console.log('[AircallProvider] 🔐 Authentication needed - showing workspace for login');
             setDiagnosticIssues(['authentication_failed']);
-            setShowLoginModal(true); // Show login modal instead of blocked modal
-            setInitializationPhase('failed');
+            setInitializationPhase('needs-login');
+            showAircallWorkspace(true);
             
             // Short-circuit initialization
             abortControllerRef.current?.abort();
             
             toast({
-              title: 'Session Expired',
+              title: 'Aircall Login Required',
               description: 'Please log in to Aircall again.',
               variant: 'destructive',
               duration: 10000,
@@ -741,12 +741,18 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
               console.log('[AircallProvider] Handling disconnection, keeping login state');
               handleDisconnection();
             } else {
-              console.log('[AircallProvider] Confirmed logout, showing container for re-login');
+              console.log('[AircallProvider] Confirmed logout, showing workspace for re-login');
               aircallPhone.clearLoginStatus();
-              setShowLoginModal(true);
+              setInitializationPhase('needs-login');
               
-              // PHASE 3: Use centralized visibility function with forLogin flag
+              // Show workspace for re-login
               showAircallWorkspace(true);
+              
+              toast({
+                title: 'Logged Out',
+                description: 'Log in through the Aircall widget to continue',
+                duration: 5000,
+              });
               
               handleDisconnection();
             }
@@ -806,14 +812,28 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           localStorage.removeItem('aircall_connection_timestamp');
           localStorage.removeItem('aircall_connection_attempts');
           setIsConnected(false);
-          setShowLoginModal(true);
+          setInitializationPhase('needs-login');
+          showAircallWorkspace(true);
+          
+          toast({
+            title: 'Session Expired',
+            description: 'Please log in through the Aircall widget',
+            duration: 5000,
+          });
         } else {
           console.log('[AircallProvider] ✅ Recent login found, attempting to restore session');
-          // Let the onLogin callback handle success, or show modal if it doesn't fire within 5s
+          // Let the onLogin callback handle success, or show workspace if it doesn't fire within 5s
           setTimeout(() => {
             if (!aircallPhone.getLoginStatus()) {
-              console.log('[AircallProvider] Session restore failed, showing login modal');
-              setShowLoginModal(true);
+              console.log('[AircallProvider] Session restore failed, showing workspace for login');
+              setInitializationPhase('needs-login');
+              showAircallWorkspace(true);
+              
+              toast({
+                title: 'Login Required',
+                description: 'Please log in through the Aircall widget',
+                duration: 5000,
+              });
             }
           }, 5000);
         }
@@ -869,9 +889,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             duration: 10000,
           });
         } else {
-          // UNKNOWN ERROR - show login modal to let user try anyway
-          setInitializationPhase('failed');
-          setShowLoginModal(true); // Show login modal to allow login attempt
+          // UNKNOWN ERROR - show workspace to let user try logging in
+          setInitializationPhase('needs-login');
+          showAircallWorkspace(true);
           setError(`Initialization failed: ${errorMessage}`);
           
           toast({
@@ -1153,8 +1173,15 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         const recentlyLoggedIn = timeSinceLastConnection < 5 * 60 * 1000;
         
         if (timeSinceLastConnection > 30000 && !recentlyLoggedIn) {
-          console.log('[AircallProvider] No connection after grace period, showing login modal');
-          setShowLoginModal(true);
+          console.log('[AircallProvider] No connection after grace period, showing workspace for login');
+          setInitializationPhase('needs-login');
+          showAircallWorkspace(true);
+          
+          toast({
+            title: 'Connection Lost',
+            description: 'Please log in through the Aircall widget',
+            duration: 5000,
+          });
         } else if (recentlyLoggedIn) {
           console.log('[AircallProvider] User recently logged in, suppressing modal');
         }
@@ -1221,10 +1248,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, [toast]);
 
   const openLoginModal = useCallback(() => {
-    console.log('[AircallProvider] 🔓 Opening login modal and showing workspace');
-    setShowLoginModal(true);
-    showAircallWorkspace(true); // Show workspace for login
-  }, [showAircallWorkspace]);
+    console.log('[AircallProvider] 🔓 Showing workspace for login');
+    setInitializationPhase('needs-login');
+    showAircallWorkspace(true);
+    
+    toast({
+      title: 'Aircall Widget Ready',
+      description: 'Log in through the Aircall widget in the bottom-right corner',
+      duration: 8000,
+    });
+  }, [showAircallWorkspace, toast]);
 
   // Phase 5: Enhanced manual login confirmation handler with workspace reload
   const handleManualLoginConfirm = useCallback(async () => {
