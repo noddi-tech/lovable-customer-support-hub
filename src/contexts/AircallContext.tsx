@@ -767,25 +767,18 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           setInitializationPhase('workspace-ready');
           console.log('[AircallProvider] ✅ Aircall workspace initialized and ready');
           
-          // Show success toast
-          toast({
-            title: 'Aircall Ready',
-            description: 'Please log in through the workspace to start receiving calls',
-          });
-          
           // Auto-show workspace for iframe-first login
           console.log('[AircallProvider] 🔐 Workspace ready - showing for login');
-          setShowLoginModal(true);
           setInitializationPhase('needs-login');
           
           // Show workspace automatically so users can log in directly
-          setTimeout(() => {
-            showAircallWorkspace(true);
-            toast({
-              title: 'Please Log In',
-              description: 'Log in through the Aircall workspace below to start receiving calls',
-            });
-          }, 500);
+          showAircallWorkspace(true);
+          
+          toast({
+            title: 'Aircall Widget Loaded',
+            description: 'Log in through the Aircall widget in the bottom-right corner',
+            duration: 8000,
+          });
         } else {
           console.error('[AircallProvider] ❌ Workspace creation failed');
           setIsInitialized(false);
@@ -862,14 +855,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             duration: 15000,
           });
         } else if (isAuthFailure) {
-          // AUTHENTICATION ISSUE - show login modal instead
+          // AUTHENTICATION ISSUE - show workspace for login
           setDiagnosticIssues(['authentication_failed']);
-          setShowLoginModal(true); // Not blocked modal!
           setInitializationPhase('needs-login');
+          
+          // Show workspace so user can log in
+          showAircallWorkspace(true);
           
           toast({
             title: 'Aircall Login Required',
-            description: 'Please log in to Aircall to continue.',
+            description: 'Log in through the Aircall widget in the bottom-right corner',
             variant: 'default',
             duration: 10000,
           });
