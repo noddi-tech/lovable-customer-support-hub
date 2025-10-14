@@ -120,11 +120,15 @@ export const Auth: React.FC = () => {
       });
       
       if (error) {
-        console.error('Google OAuth error:', error);
+        if (import.meta.env.DEV) {
+          console.error('Google OAuth error:', error);
+        }
         throw error;
       }
       
-      console.log('Google OAuth initiated:', data);
+      if (import.meta.env.DEV) {
+        console.log('Google OAuth initiated:', data);
+      }
     } catch (error: any) {
       console.error('Google sign in error:', error);
       setError(error.message || 'An error occurred during Google sign in. Please ensure Google OAuth is configured in Supabase.');
@@ -165,7 +169,9 @@ export const Auth: React.FC = () => {
     try {
       cleanupAuthState();
       
-      console.log('Starting signup process...');
+      if (import.meta.env.DEV) {
+        console.log('Starting signup process...');
+      }
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -177,10 +183,14 @@ export const Auth: React.FC = () => {
         }
       });
       
-      console.log('Signup response:', { data, error });
+      if (import.meta.env.DEV) {
+        console.log('Signup response:', { data, error });
+      }
       
       if (error) {
-        console.error('Signup error:', error);
+        if (import.meta.env.DEV) {
+          console.error('Signup error:', error);
+        }
         // Handle user already registered case
         if (error.message.includes('already registered')) {
           setError('This email is already registered. Please sign in instead.');
@@ -191,15 +201,21 @@ export const Auth: React.FC = () => {
       
       // Check if user was created and is immediately confirmed
       if (data.user) {
-        console.log('User created:', data.user);
-        console.log('Email confirmed at:', data.user.email_confirmed_at);
+        if (import.meta.env.DEV) {
+          console.log('User created:', data.user);
+          console.log('Email confirmed at:', data.user.email_confirmed_at);
+        }
         
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed, redirect to main app
-          console.log('User immediately confirmed, redirecting...');
+          if (import.meta.env.DEV) {
+            console.log('User immediately confirmed, redirecting...');
+          }
           navigate('/', { replace: true });
         } else {
-          console.log('User needs email confirmation');
+          if (import.meta.env.DEV) {
+            console.log('User needs email confirmation');
+          }
           setSuccess('Account created! Please check your email for the confirmation link.');
         }
       }

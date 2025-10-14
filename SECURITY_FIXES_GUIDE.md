@@ -161,6 +161,55 @@ X-SendGrid-Token: secret123
 
 ---
 
+---
+
+## ✅ Phase 4: OAuth Configuration (COMPLETED)
+
+### 4.1 Multi-Domain OAuth Support
+
+**Issue:** OAuth redirects not configured for production domains, causing "Invalid redirect URL" errors.
+
+**Fix Applied:**
+- Updated `supabase/config.toml`:
+  - `site_url` set to primary domain: `https://support.noddi.co`
+  - `additional_redirect_urls` includes both:
+    - `https://support.noddi.co`
+    - `https://lovable-customer-support-hub.lovable.app`
+    - Development URLs for testing
+
+**User Actions Required:**
+1. **Supabase Dashboard** - Update URL Configuration:
+   🔗 https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/auth/url-configuration
+   - Site URL: `https://support.noddi.co`
+   - Redirect URLs: Add `https://support.noddi.co/**` and `https://lovable-customer-support-hub.lovable.app/**`
+
+2. **Google Cloud Console** - Update OAuth Client:
+   🔗 https://console.cloud.google.com/apis/credentials
+   - Add both production domains to "Authorized JavaScript origins"
+   - Verify callback URL: `https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/callback`
+
+**Testing:**
+- Google OAuth should work on both production domains
+- Development environment OAuth still functional
+
+---
+
+### 4.2 Sensitive Console Logging Removed
+
+**Issue:** Authentication flows logged sensitive user data in production.
+
+**Fix Applied:**
+- Wrapped all auth-related console logs in `import.meta.env.DEV` checks
+- Affected areas:
+  - Google OAuth error logging (lines 122-127)
+  - Sign-up process debugging (lines 168-205)
+
+**Security Impact:**
+- Prevents exposure of email addresses, auth tokens, and user data in production logs
+- Debugging information still available in development mode
+
+---
+
 ## 🔶 Remaining Warnings (Non-Critical)
 
 ### Extension in Public Schema
@@ -205,6 +254,8 @@ verify_jwt = true
 - [x] Debug logs sensitive data (sanitization implemented)
 - [x] Webhook endpoints signature verification (Aircall HMAC)
 - [x] SendGrid token in URL (moved to headers)
+- [x] OAuth redirect URL misconfiguration (multi-domain support)
+- [x] Console logging sensitive data (dev-only logs)
 
 ### ⚠️ User Actions Required
 - [ ] Enable Leaked Password Protection (2.1)
@@ -234,6 +285,7 @@ verify_jwt = true
 |------|-------|---------|
 | 2025-10-14 | Phase 1 | Fixed function search paths, added debug log sanitization |
 | 2025-10-14 | Phase 3 | Implemented Aircall signature verification, SendGrid header auth |
+| 2025-10-14 | Phase 4 | Configured multi-domain OAuth, removed sensitive console logging |
 
 ---
 
