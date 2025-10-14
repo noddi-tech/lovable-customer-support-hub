@@ -25,7 +25,6 @@ import { VoiceLayout } from './voice/VoiceLayout';
 import { AircallPhoneBar } from './voice/AircallPhoneBar';
 import { AircallLoginModal, AircallBlockedModal } from './voice';
 import { ConnectionDiagnostic } from './voice/ConnectionDiagnostic';
-import { AircallDebugPanel } from './voice/AircallDebugPanel';
 import { AircallErrorBoundary } from '@/components/error/AircallErrorBoundary';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
@@ -870,9 +869,6 @@ export const VoiceInterface = () => {
           
           {/* Aircall Phone Bar (fixed bottom) */}
           <AircallPhoneBar incomingCall={incomingCall} />
-          
-          {/* Debug Panel (Phase 5) */}
-          <AircallDebugPanel />
         </AircallErrorBoundary>
       )}
     </>

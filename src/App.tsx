@@ -161,13 +161,14 @@ const AircallWorkspaceManager = () => {
         onSkip={skipPhoneIntegration}
         initializationPhase={initializationPhase}
       />
-      <AircallFloatingButton
-        isConnected={isConnected}
-        workspaceVisible={workspaceVisible}
-        showAircallWorkspace={showAircallWorkspace}
-        currentCall={currentCall}
-        isWorkspaceReady={initializationPhase === 'workspace-ready'}
-      />
+        <AircallFloatingButton
+          isConnected={isConnected}
+          workspaceVisible={workspaceVisible}
+          showAircallWorkspace={showAircallWorkspace}
+          hideAircallWorkspace={hideAircallWorkspace}
+          currentCall={currentCall}
+          isWorkspaceReady={initializationPhase === 'workspace-ready'}
+        />
     </>
   );
 };
