@@ -436,7 +436,7 @@ class AircallPhoneManager {
           
           // Wait for container to be available in the DOM
           this.logInit('waiting_for_container');
-          await this.waitForContainer('#aircall-workspace-container', 10000);
+          await this.waitForContainer('#aircall-workspace', 10000);
       
       console.log('[AircallWorkspace] Container found, creating workspace instance...');
       this.logInit('container_found');
@@ -450,7 +450,7 @@ class AircallPhoneManager {
       // Create AircallWorkspace instance
       this.logInit('creating_workspace');
       this.workspace = new AircallWorkspace({
-        domToLoadWorkspace: '#aircall-workspace-container',
+        domToLoadWorkspace: '#aircall-workspace',
         onLogin: (workspaceSettings) => {
           console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
           console.log('[AircallWorkspace] 🎯 Layer 1: onLogin callback fired');
