@@ -493,7 +493,7 @@ Optimized for accessibility with WCAG AA compliance.
     width: 350px;
     height: 500px;
     z-index: 9999;
-    display: none;
+    display: block !important; /* Always display - visibility controlled by classes */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -503,14 +503,16 @@ Optimized for accessibility with WCAG AA compliance.
     right: 20px;
     opacity: 0;
     pointer-events: none;
+    visibility: hidden;
   }
 
   /* Visible state - on screen */
   #aircall-workspace-container.aircall-visible {
-    display: block;
+    display: block !important;
     bottom: 20px;
     right: 20px;
     opacity: 1;
+    visibility: visible;
     pointer-events: auto !important; /* PHASE 4: Force pointer-events with !important */
   }
 

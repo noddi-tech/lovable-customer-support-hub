@@ -743,7 +743,8 @@ class AircallPhoneManager {
 
   /**
    * Show the Aircall workspace UI
-   * Phase 1 CRITICAL FIX: Call actual SDK methods instead of just CSS manipulation
+   * CRITICAL FIX: Only call SDK show() ONCE during initialization
+   * After that, use CSS only to avoid unmounting the iframe
    */
   showWorkspace(): void {
     if (!this.workspace) {
@@ -752,24 +753,29 @@ class AircallPhoneManager {
     }
     
     try {
-      console.log('[AircallWorkspace] 🚀 Calling SDK show() to mount iframe');
+      // Check if iframe already exists (SDK already called show())
+      const iframe = this.getAircallIframe();
       
-      // Phase 1: Call actual SDK method to properly mount the iframe
-      if (typeof (this.workspace as any).show === 'function') {
-        (this.workspace as any).show();
-        console.log('[AircallWorkspace] ✅ Called workspace.show()');
-      } else if (typeof (this.workspace as any).open === 'function') {
-        (this.workspace as any).open();
-        console.log('[AircallWorkspace] ✅ Called workspace.open()');
-      } else {
-        console.warn('[AircallWorkspace] ⚠️ No show/open method found, using CSS fallback');
-        // Fallback to CSS if SDK doesn't expose methods
-        const container = document.querySelector('#aircall-workspace-container');
-        if (container instanceof HTMLElement) {
-          container.style.display = 'block';
-          container.style.visibility = 'visible';
-          container.style.pointerEvents = 'auto';
+      if (!iframe) {
+        // First time - call SDK show() to mount the iframe
+        console.log('[AircallWorkspace] 🚀 Calling SDK show() to mount iframe (FIRST TIME)');
+        if (typeof (this.workspace as any).show === 'function') {
+          (this.workspace as any).show();
+          console.log('[AircallWorkspace] ✅ Called workspace.show() - iframe should be mounted');
+        } else {
+          console.warn('[AircallWorkspace] ⚠️ No show method found on workspace');
         }
+      } else {
+        // Iframe already mounted - just show via CSS
+        console.log('[AircallWorkspace] ✅ Iframe already mounted, showing via CSS only');
+      }
+      
+      // Always update CSS visibility
+      const container = document.querySelector('#aircall-workspace-container');
+      if (container instanceof HTMLElement) {
+        container.classList.remove('aircall-hidden');
+        container.classList.add('aircall-visible');
+        console.log('[AircallWorkspace] ✅ Workspace shown via CSS');
       }
     } catch (error) {
       console.error('[AircallWorkspace] ❌ Error showing workspace:', error);
@@ -779,7 +785,8 @@ class AircallPhoneManager {
 
   /**
    * Hide the Aircall workspace UI
-   * Phase 1 CRITICAL FIX: Call actual SDK methods instead of just CSS manipulation
+   * CRITICAL FIX: Don't call SDK hide() - it removes the iframe!
+   * Just use CSS to control visibility instead
    */
   hideWorkspace(): void {
     if (!this.workspace) {
@@ -788,24 +795,15 @@ class AircallPhoneManager {
     }
     
     try {
-      console.log('[AircallWorkspace] 🙈 Calling SDK hide() to remove iframe');
+      console.log('[AircallWorkspace] 🙈 Hiding workspace via CSS only (NOT calling SDK hide - keeps iframe mounted)');
       
-      // Phase 1: Call actual SDK method to properly unmount the iframe
-      if (typeof (this.workspace as any).hide === 'function') {
-        (this.workspace as any).hide();
-        console.log('[AircallWorkspace] ✅ Called workspace.hide()');
-      } else if (typeof (this.workspace as any).close === 'function') {
-        (this.workspace as any).close();
-        console.log('[AircallWorkspace] ✅ Called workspace.close()');
-      } else {
-        console.warn('[AircallWorkspace] ⚠️ No hide/close method found, using CSS fallback');
-        // Fallback to CSS if SDK doesn't expose methods
-        const container = document.querySelector('#aircall-workspace-container');
-        if (container instanceof HTMLElement) {
-          container.style.display = 'none';
-          container.style.visibility = 'hidden';
-          container.style.pointerEvents = 'none';
-        }
+      // CRITICAL: Do NOT call workspace.hide() - it removes the iframe from DOM!
+      // Just use CSS to control visibility while keeping iframe mounted
+      const container = document.querySelector('#aircall-workspace-container');
+      if (container instanceof HTMLElement) {
+        container.classList.remove('aircall-visible');
+        container.classList.add('aircall-hidden');
+        console.log('[AircallWorkspace] ✅ Workspace hidden via CSS, iframe still mounted');
       }
     } catch (error) {
       console.error('[AircallWorkspace] ❌ Error hiding workspace:', error);
