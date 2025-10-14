@@ -72,18 +72,36 @@ serve(async (req: Request) => {
   console.log(`[SendGrid-Inbound] ${new Date().toISOString()} - Incoming webhook request`);
 
   try {
-    const url = new URL(req.url);
-    const token = url.searchParams.get("token");
+    // Authenticate the request using header-based token (improved security)
     const expected = Deno.env.get("SENDGRID_INBOUND_TOKEN");
+    if (!expected) {
+      console.error(`[SendGrid-Inbound] SENDGRID_INBOUND_TOKEN not configured`);
+      return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Check for token in Authorization header (preferred) or X-SendGrid-Token header
+    const authHeader = req.headers.get('Authorization');
+    const tokenHeader = req.headers.get('X-SendGrid-Token');
+    const providedToken = authHeader?.replace('Bearer ', '') || tokenHeader;
     
-    console.log(`[SendGrid-Inbound] Authentication check - Token provided: ${!!token}, Expected token configured: ${!!expected}`);
+    // Fallback to URL query parameter for backward compatibility (will be deprecated)
+    const url = new URL(req.url);
+    const queryToken = url.searchParams.get("token");
     
-    if (!expected || token !== expected) {
+    const finalToken = providedToken || queryToken;
+    
+    console.log(`[SendGrid-Inbound] Authentication check - Header auth: ${!!providedToken}, Query auth: ${!!queryToken}`);
+    
+    if (finalToken !== expected) {
       console.log(`[SendGrid-Inbound] Authentication failed - Invalid token`);
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     
-    console.log(`[SendGrid-Inbound] Authentication successful`);
+    if (queryToken && !providedToken) {
+      console.warn(`[SendGrid-Inbound] ⚠️ Using deprecated query parameter authentication. Please migrate to header-based auth (Authorization: Bearer <token> or X-SendGrid-Token: <token>).`);
+    } else {
+      console.log(`[SendGrid-Inbound] ✅ Authentication successful (header-based)`);
+    }
 
     const form = await req.formData();
     const toRaw = String(form.get("to") || "");

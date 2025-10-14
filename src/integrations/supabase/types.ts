@@ -1571,6 +1571,10 @@ export type Database = {
         Args: { notification_id: string }
         Returns: undefined
       }
+      sanitize_debug_data: {
+        Args: { data: Json }
+        Returns: Json
+      }
       validate_session_context: {
         Args: Record<PropertyKey, never>
         Returns: {

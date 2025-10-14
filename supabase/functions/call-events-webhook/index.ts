@@ -4,8 +4,55 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aircall-signature',
 };
+
+// Verify Aircall webhook signature
+async function verifyAircallSignature(
+  payload: string,
+  signature: string | null,
+  token: string
+): Promise<boolean> {
+  if (!signature) {
+    console.warn('⚠️ No signature provided in webhook request');
+    return false;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(token),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const signatureBuffer = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(payload)
+    );
+
+    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const isValid = expectedSignature === signature;
+    
+    if (!isValid) {
+      console.error('❌ Signature mismatch:', {
+        expected: expectedSignature.substring(0, 20) + '...',
+        received: signature.substring(0, 20) + '...'
+      });
+    }
+
+    return isValid;
+  } catch (error) {
+    console.error('❌ Signature verification error:', error);
+    return false;
+  }
+}
 
 // Function to download and store voicemail in Supabase storage
 async function downloadAndStoreVoicemail(supabase: any, voicemailUrl: string, callUuid: string) {
@@ -402,7 +449,30 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Webhook received:', req.method, req.url);
+    console.log('🎯 Webhook received:', req.method, req.url);
+    
+    // Get the raw body for signature verification
+    const rawBody = await req.text();
+    const signature = req.headers.get('x-aircall-signature');
+    
+    // Verify signature if Aircall webhook token is configured
+    const aircallToken = Deno.env.get('AIRCALL_WEBHOOK_TOKEN');
+    if (aircallToken) {
+      const isValid = await verifyAircallSignature(rawBody, signature, aircallToken);
+      if (!isValid) {
+        console.error('❌ Invalid webhook signature - rejecting request');
+        return new Response(
+          JSON.stringify({ error: 'Invalid signature' }),
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      console.log('✅ Webhook signature verified');
+    } else {
+      console.warn('⚠️ AIRCALL_WEBHOOK_TOKEN not configured - skipping signature verification');
+    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -410,8 +480,8 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse webhook payload
-    const payload = await req.json();
-    console.log('Raw webhook payload:', JSON.stringify(payload, null, 2));
+    const payload = JSON.parse(rawBody);
+    console.log('📦 Raw webhook payload:', JSON.stringify(payload, null, 2));
 
     // Determine provider from URL path or payload
     const url = new URL(req.url);
