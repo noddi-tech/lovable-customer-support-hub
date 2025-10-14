@@ -52,13 +52,16 @@ export const VoiceInterface = () => {
     showLoginModal, 
     showBlockedModal,
     diagnosticIssues,
-    isConnected, 
+    isConnected,
+    isInitialized,
+    initializePhone,
     initializationPhase,
     handleManualLoginConfirm,
     retryConnection,
     openIncognito,
     skipPhoneIntegration,
     forceInitialization,
+    showAircallWorkspace,
   } = useAircallPhone();
   
   // Get state from URL navigation
@@ -269,6 +272,16 @@ export const VoiceInterface = () => {
     // In real app, save note to API
     await new Promise(resolve => setTimeout(resolve, 1000));
   }, []);
+
+  const handleLoadPhone = useCallback(async () => {
+    await initializePhone();
+  }, [initializePhone]);
+
+  const handleTogglePhone = useCallback(() => {
+    if (isConnected) {
+      showAircallWorkspace();
+    }
+  }, [isConnected, showAircallWorkspace]);
 
   if (error) {
     return (
@@ -753,66 +766,115 @@ export const VoiceInterface = () => {
 
   return (
     <>
-      <AircallErrorBoundary>
-        <AircallLoginModal
-          isOpen={showLoginModal}
-          isConnected={isConnected}
-          onLoginConfirm={handleManualLoginConfirm}
-          onSkip={skipPhoneIntegration}
-          initializationPhase={initializationPhase}
-          diagnosticIssues={diagnosticIssues}
-        />
-        
-        <AircallBlockedModal
-          isOpen={showBlockedModal}
-          issues={diagnosticIssues}
-          onRetry={forceInitialization}
-          onOpenIncognito={openIncognito}
-          onSkip={skipPhoneIntegration}
-        />
-        
-        <IncomingCallModal
-          call={incomingCall}
-          isOpen={isIncomingCallModalOpen}
-          onClose={closeIncomingCallModal}
-          onAnswerContext={(callId) => {
-            closeIncomingCallModal();
-            navigation.navigateToConversation(callId);
-          }}
-        />
-        
-        <ConnectionDiagnostic 
-          isWebSocketBlocked={isWebSocketBlocked}
-          isSDKFailed={initializationPhase === 'failed'}
-          initializationPhase={initializationPhase}
-          onRetry={retryConnection}
-          isOptedOut={error?.message?.includes('disabled for this session') || sessionStorage.getItem('aircall_opted_out') === 'true'}
-        />
-        
-        <VoiceLayout
-          leftPane={renderVoiceSidebar()}
-          centerPane={renderCallList()}
-          rightPane={renderCustomerSidebar()}
-          leftPaneLabel="Filters"
-          centerPaneLabel="Voice Items"
-          rightPaneLabel="Customer Info"
-        />
-        
-        {/* Call Details Dialog */}
-        <CallDetailsDialog
-          call={selectedCall}
-          isOpen={isDetailsOpen}
-          onClose={() => setIsDetailsOpen(false)}
-        />
-        
-        {/* Aircall container moved to App.tsx for global availability */}
-        
-        {/* Aircall Phone Bar (fixed bottom) */}
-        <AircallPhoneBar incomingCall={incomingCall} />
-        
-        {/* Debug Panel (Phase 5) */}
-        <AircallDebugPanel />
-      </AircallErrorBoundary>
+      {/* Load Phone System Card - shown when not initialized */}
+      {!isInitialized && (
+        <div className="container max-w-7xl mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <Phone className="h-16 w-16 mx-auto text-primary" />
+                <h2 className="text-2xl font-bold">Initialize Aircall Phone System</h2>
+                <p className="text-muted-foreground">
+                  Load the Aircall phone interface to make and receive calls directly in your browser.
+                </p>
+                <Button onClick={handleLoadPhone} size="lg" className="mt-4">
+                  <Phone className="h-5 w-5 mr-2" />
+                  Load Phone System
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Login Required Card - shown when initialized but not connected */}
+      {isInitialized && !isConnected && (
+        <div className="container max-w-7xl mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <Phone className="h-16 w-16 mx-auto text-yellow-600 dark:text-yellow-400" />
+                <h2 className="text-xl font-bold text-yellow-900 dark:text-yellow-100">Login Required</h2>
+                <p className="text-yellow-800 dark:text-yellow-200">
+                  The Aircall workspace has been loaded. Please log in using the phone interface in the bottom-right corner.
+                </p>
+                <Button 
+                  onClick={handleTogglePhone} 
+                  variant="outline"
+                  className="border-yellow-600 text-yellow-900 dark:text-yellow-100 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Show Aircall Login
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Only show VoiceLayout and modals when connected */}
+      {isConnected && (
+        <AircallErrorBoundary>
+          <AircallLoginModal
+            isOpen={showLoginModal}
+            isConnected={isConnected}
+            onLoginConfirm={handleManualLoginConfirm}
+            onSkip={skipPhoneIntegration}
+            initializationPhase={initializationPhase}
+            diagnosticIssues={diagnosticIssues}
+          />
+          
+          <AircallBlockedModal
+            isOpen={showBlockedModal}
+            issues={diagnosticIssues}
+            onRetry={forceInitialization}
+            onOpenIncognito={openIncognito}
+            onSkip={skipPhoneIntegration}
+          />
+          
+          <IncomingCallModal
+            call={incomingCall}
+            isOpen={isIncomingCallModalOpen}
+            onClose={closeIncomingCallModal}
+            onAnswerContext={(callId) => {
+              closeIncomingCallModal();
+              navigation.navigateToConversation(callId);
+            }}
+          />
+          
+          <ConnectionDiagnostic 
+            isWebSocketBlocked={isWebSocketBlocked}
+            isSDKFailed={initializationPhase === 'failed'}
+            initializationPhase={initializationPhase}
+            onRetry={retryConnection}
+            isOptedOut={error?.message?.includes('disabled for this session') || sessionStorage.getItem('aircall_opted_out') === 'true'}
+          />
+          
+          <VoiceLayout
+            leftPane={renderVoiceSidebar()}
+            centerPane={renderCallList()}
+            rightPane={renderCustomerSidebar()}
+            leftPaneLabel="Filters"
+            centerPaneLabel="Voice Items"
+            rightPaneLabel="Customer Info"
+          />
+          
+          {/* Call Details Dialog */}
+          <CallDetailsDialog
+            call={selectedCall}
+            isOpen={isDetailsOpen}
+            onClose={() => setIsDetailsOpen(false)}
+          />
+          
+          {/* Aircall container moved to App.tsx for global availability */}
+          
+          {/* Aircall Phone Bar (fixed bottom) */}
+          <AircallPhoneBar incomingCall={incomingCall} />
+          
+          {/* Debug Panel (Phase 5) */}
+          <AircallDebugPanel />
+        </AircallErrorBoundary>
+      )}
     </>
   );
 };
