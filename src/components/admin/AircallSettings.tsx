@@ -604,6 +604,19 @@ export const AircallSettings = () => {
                       Leave blank to automatically use the current domain. Only set a custom domain for production deployments with a fixed hostname.
                     </p>
                   </div>
+                  
+                  <Alert>
+                    <Globe className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      <strong>Important:</strong> You must whitelist your domain in Aircall Dashboard:
+                      <ol className="mt-2 ml-4 list-decimal space-y-1">
+                        <li>Go to Aircall Dashboard → Integrations → Aircall Everywhere</li>
+                        <li>Add <code className="px-1 py-0.5 bg-muted rounded text-xs">{window.location.hostname}</code> to "Authorized domains"</li>
+                        <li>Save and wait 1-2 minutes for OAuth changes to propagate</li>
+                      </ol>
+                      <p className="mt-2">Without this, you'll see "origin is not allowed" errors and login will fail.</p>
+                    </AlertDescription>
+                  </Alert>
                 </div>
 
                 <div className="space-y-3">

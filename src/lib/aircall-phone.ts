@@ -458,6 +458,7 @@ class AircallPhoneManager {
       this.logInit('creating_workspace');
       this.workspace = new AircallWorkspace({
         domToLoadWorkspace: '#aircall-workspace',
+        integrationToLoad: null, // CRITICAL: null for custom integrations (not Zendesk/HubSpot)
         onLogin: (workspaceSettings) => {
           console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
           console.log('[AircallWorkspace] 🎯 Layer 1: onLogin callback fired');
@@ -570,10 +571,20 @@ class AircallPhoneManager {
       }
       
       
-          // Phase 4: SIMPLIFIED - Just mark as initialized, let SDK handle readiness
+          // Phase 4: SIMPLIFIED - Mark as initialized
           this.isInitialized = true;
           this.logInit('initialization_complete');
-          console.log('[AircallWorkspace] ✅ Workspace initialized - waiting for user login');
+          
+          // CRITICAL: Call workspace.show() to mount and display the iframe
+          console.log('[AircallWorkspace] 🚀 Calling workspace.show() to make iframe visible');
+          if (typeof (this.workspace as any).show === 'function') {
+            (this.workspace as any).show();
+            console.log('[AircallWorkspace] ✅ workspace.show() called - iframe should now be visible');
+          } else {
+            console.warn('[AircallWorkspace] ⚠️ workspace.show() method not found - iframe may not display');
+          }
+          
+          console.log('[AircallWorkspace] ✅ Workspace initialized and shown - ready for user login');
           console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
         })(), // Close the async arrow function
         initializationTimeout
@@ -743,8 +754,8 @@ class AircallPhoneManager {
 
   /**
    * Show the Aircall workspace UI
-   * CRITICAL FIX: Only call SDK show() ONCE during initialization
-   * After that, use CSS only to avoid unmounting the iframe
+   * CRITICAL FIX: workspace.show() already called during initialization
+   * Now just control visibility with CSS
    */
   showWorkspace(): void {
     if (!this.workspace) {
@@ -753,24 +764,10 @@ class AircallPhoneManager {
     }
     
     try {
-      // Check if iframe already exists (SDK already called show())
-      const iframe = this.getAircallIframe();
+      // workspace.show() was already called during initialization
+      // Now just control visibility with CSS
+      console.log('[AircallWorkspace] 📺 Showing workspace via CSS (show() already called during init)');
       
-      if (!iframe) {
-        // First time - call SDK show() to mount the iframe
-        console.log('[AircallWorkspace] 🚀 Calling SDK show() to mount iframe (FIRST TIME)');
-        if (typeof (this.workspace as any).show === 'function') {
-          (this.workspace as any).show();
-          console.log('[AircallWorkspace] ✅ Called workspace.show() - iframe should be mounted');
-        } else {
-          console.warn('[AircallWorkspace] ⚠️ No show method found on workspace');
-        }
-      } else {
-        // Iframe already mounted - just show via CSS
-        console.log('[AircallWorkspace] ✅ Iframe already mounted, showing via CSS only');
-      }
-      
-      // Always update CSS visibility
       const container = document.querySelector('#aircall-workspace-container');
       if (container instanceof HTMLElement) {
         container.classList.remove('aircall-hidden');
