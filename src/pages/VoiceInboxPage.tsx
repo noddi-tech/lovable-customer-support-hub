@@ -124,6 +124,40 @@ const VoiceInboxPage: React.FC = () => {
     }
   };
 
+  const runAircallDiagnostics = () => {
+    console.group('🔍 AIRCALL IFRAME DIAGNOSTICS');
+    
+    const outer = document.querySelector('#aircall-workspace-container');
+    const inner = document.querySelector('#aircall-workspace');
+    const iframe = inner?.querySelector('iframe') || outer?.querySelector('iframe');
+    
+    console.log('Structure:', {
+      outerExists: !!outer,
+      innerExists: !!inner,
+      iframeExists: !!iframe,
+      outerClasses: outer?.className,
+      innerHTML: inner?.innerHTML?.substring(0, 200)
+    });
+    
+    if (iframe) {
+      const iframeEl = iframe as HTMLIFrameElement;
+      console.log('Iframe Details:', {
+        src: iframeEl.src,
+        allow: iframeEl.getAttribute('allow'),
+        display: window.getComputedStyle(iframeEl).display,
+        visibility: window.getComputedStyle(iframeEl).visibility,
+        width: window.getComputedStyle(iframeEl).width,
+        height: window.getComputedStyle(iframeEl).height,
+        opacity: window.getComputedStyle(iframeEl).opacity,
+        zIndex: window.getComputedStyle(iframeEl).zIndex
+      });
+    } else {
+      console.error('❌ NO IFRAME FOUND IN DOM');
+    }
+    
+    console.groupEnd();
+  };
+
   const renderDetail = (callId: string) => {
     const call = mockCallDetails[callId as keyof typeof mockCallDetails];
     
@@ -262,10 +296,15 @@ const VoiceInboxPage: React.FC = () => {
                 <p className="text-muted-foreground">
                   Load the Aircall phone interface to make and receive calls directly in your browser.
                 </p>
-                <Button onClick={handleLoadPhone} size="lg" className="mt-4">
-                  <Phone className="h-5 w-5 mr-2" />
-                  Load Phone System
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={handleLoadPhone} size="lg" className="mt-4">
+                    <Phone className="h-5 w-5 mr-2" />
+                    Load Phone System
+                  </Button>
+                  <Button onClick={runAircallDiagnostics} variant="outline" size="lg" className="mt-4">
+                    Debug Aircall
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -283,14 +322,19 @@ const VoiceInboxPage: React.FC = () => {
                 <p className="text-yellow-800 dark:text-yellow-200">
                   The Aircall workspace has been loaded. Please log in using the phone interface in the bottom-right corner.
                 </p>
-                <Button 
-                  onClick={handleTogglePhone} 
-                  variant="outline"
-                  className="border-yellow-600 text-yellow-900 dark:text-yellow-100 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
-                >
-                  <Phone className="h-4 w-4 mr-2" />
-                  Show Aircall Login
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button 
+                    onClick={handleTogglePhone} 
+                    variant="outline"
+                    className="border-yellow-600 text-yellow-900 dark:text-yellow-100 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
+                  >
+                    <Phone className="h-4 w-4 mr-2" />
+                    Show Aircall Login
+                  </Button>
+                  <Button onClick={runAircallDiagnostics} variant="outline" size="sm">
+                    Debug Aircall
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

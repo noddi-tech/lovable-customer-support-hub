@@ -767,6 +767,29 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log('Container classes:', document.querySelector('#aircall-workspace-container')?.className);
         console.groupEnd();
         
+        // PHASE 4: DETAILED IFRAME INSPECTION
+        console.group('[AircallProvider] 🔍 DETAILED IFRAME INSPECTION');
+        const outerContainer = document.querySelector('#aircall-workspace-container');
+        const innerWorkspace = document.querySelector('#aircall-workspace');
+        const iframeInner = innerWorkspace?.querySelector('iframe');
+        const iframeOuter = outerContainer?.querySelector('iframe');
+
+        console.log('Outer container exists:', !!outerContainer);
+        console.log('Inner workspace exists:', !!innerWorkspace);
+        console.log('Iframe in inner div:', !!iframeInner);
+        console.log('Iframe in outer div:', !!iframeOuter);
+
+        if (iframeInner) {
+          console.log('Iframe src:', (iframeInner as HTMLIFrameElement).src);
+          console.log('Iframe allow attr:', (iframeInner as HTMLIFrameElement).getAttribute('allow'));
+          console.log('Iframe display:', window.getComputedStyle(iframeInner as HTMLElement).display);
+          console.log('Iframe visibility:', window.getComputedStyle(iframeInner as HTMLElement).visibility);
+          console.log('Iframe opacity:', window.getComputedStyle(iframeInner as HTMLElement).opacity);
+        }
+
+        console.log('Inner workspace HTML:', innerWorkspace?.innerHTML?.substring(0, 200));
+        console.groupEnd();
+        
         if (workspaceCreated) {
           setIsInitialized(true);
           setIsWorkspaceReady(true); // PHASE 2: Mark workspace as ready

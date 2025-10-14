@@ -192,6 +192,13 @@ class AircallPhoneManager {
    * Phase 1: Get Aircall iframe element
    */
   private getAircallIframe(): HTMLIFrameElement | null {
+    // Look for iframe in the inner workspace div where SDK injects it
+    const workspace = document.querySelector('#aircall-workspace');
+    if (workspace) {
+      const iframe = workspace.querySelector('iframe') as HTMLIFrameElement | null;
+      if (iframe) return iframe;
+    }
+    // Fallback: search in outer container as well
     const container = document.querySelector('#aircall-workspace-container');
     return container?.querySelector('iframe') as HTMLIFrameElement | null;
   }
@@ -482,7 +489,7 @@ class AircallPhoneManager {
       // PHASE 1: Immediately set iframe permissions and add observer for robustness
       const setIframePermissions = (iframe: HTMLIFrameElement) => {
         if (!iframe.getAttribute('allow')?.includes('hid')) {
-          iframe.setAttribute('allow', 'microphone; autoplay; clipboard-read; clipboard-write; hid');
+          iframe.setAttribute('allow', 'microphone; autoplay; clipboard-read; clipboard-write; hid; identity-credentials-get');
           console.log('[AircallWorkspace] ✅ Set iframe permissions with HID support');
         }
       };
