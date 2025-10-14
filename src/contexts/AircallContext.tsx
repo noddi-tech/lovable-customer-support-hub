@@ -1362,37 +1362,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   // The SDK now calls show()/hide() directly instead of dispatching events
 
   // ============================================================================
-  // PHASE 2: Force Workspace Interactive During Login
+  // PHASE 2: Workspace Visibility During Login (REMOVED - CONFLICTED WITH LOGIN FLOW)
   // ============================================================================
-  useEffect(() => {
-    if (showLoginModal) {
-      console.log('[AircallProvider] 🔓 Login modal open - hiding workspace to avoid z-index conflicts');
-      
-      const hideWorkspaceForModal = () => {
-        const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-        
-        if (container) {
-          // Hide workspace completely during login to avoid z-index conflicts
-          container.style.zIndex = '1'; // Lower than modal (10000+)
-          container.style.opacity = '0';
-          container.style.pointerEvents = 'none';
-          console.log('[AircallProvider] ✅ Workspace hidden for modal');
-        }
-      };
-      
-      // Hide immediately
-      hideWorkspaceForModal();
-      
-      return () => {
-        // Restore workspace z-index when modal closes
-        const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-        if (container) {
-          container.style.zIndex = '9999';
-          console.log('[AircallProvider] ✅ Workspace z-index restored');
-        }
-      };
-    }
-  }, [showLoginModal]);
+  // REMOVED: This useEffect was hiding the workspace when login modal was shown
+  // This prevented users from seeing/interacting with the Aircall login iframe
+  // The workspace MUST be visible during login so users can authenticate through Aircall's interface
+  // If z-index conflicts occur with other modals in future, use z-index management WITHOUT opacity/pointer-events
+  
+  // Original code (lines 1367-1395) removed on 2025-10-14 to fix login visibility issue
 
   // ============================================================================
   // PHASE 3: Workspace Ready Listener
