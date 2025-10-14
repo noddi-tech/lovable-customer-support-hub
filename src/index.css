@@ -493,7 +493,7 @@ Optimized for accessibility with WCAG AA compliance.
     width: 376px;  /* Match Aircall's default 'big' size */
     height: 666px; /* Match Aircall's default 'big' size */
     z-index: 9999;
-    transition: opacity 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   /* Hidden state - just hide it, don't move it */
@@ -501,13 +501,42 @@ Optimized for accessibility with WCAG AA compliance.
     opacity: 0;
     pointer-events: none;
     visibility: hidden;
+    transform: scale(0.8) translateY(20px);
   }
 
-  /* Visible state */
+  /* Visible state with spring animation */
   #aircall-workspace-container.aircall-visible {
     opacity: 1;
     visibility: visible;
     pointer-events: auto !important;
+    transform: scale(1) translateY(0);
+  }
+
+  /* Aircall floating button pulse animation for active calls */
+  @keyframes aircall-pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+    }
+  }
+
+  .aircall-pulse-ring {
+    animation: aircall-pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Responsive positioning for floating button */
+  @media (max-width: 768px) {
+    .aircall-float-button {
+      bottom: 4rem !important;
+      right: 1rem !important;
+      width: 3rem !important;
+      height: 3rem !important;
+    }
   }
 
   /* Ensure the workspace div inside has proper dimensions */

@@ -175,11 +175,10 @@ export const AircallDebugPanel: React.FC = () => {
     }, 500);
   };
 
-  // Always show debug panel when Aircall is initializing or has issues
+  // Only show debug panel in development or with explicit debug URL param
   const shouldShow = 
     process.env.NODE_ENV === 'development' || 
-    new URLSearchParams(window.location.search).get('debug') === 'aircall' ||
-    window.location.pathname.includes('/voice'); // Always show on voice page
+    new URLSearchParams(window.location.search).get('debug') === 'aircall';
 
   if (!shouldShow) return null;
 

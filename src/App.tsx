@@ -13,6 +13,7 @@ import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { ControlDoctor } from "@/dev/ControlDoctor";
 import { useAircallPhone } from "@/hooks/useAircallPhone";
 import { AircallLoginModal } from "@/components/dashboard/voice/AircallLoginModal";
+import { AircallFloatingButton } from "@/components/dashboard/voice/AircallFloatingButton";
 import { AircallErrorFallback } from "@/components/dashboard/voice/AircallErrorFallback";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -115,7 +116,9 @@ const AircallWorkspaceManager = () => {
     skipPhoneIntegration, 
     initializationPhase,
     showAircallWorkspace,
-    hideAircallWorkspace
+    hideAircallWorkspace,
+    workspaceVisible,
+    currentCall
   } = useAircallPhone();
   
   // ============================================================================
@@ -148,15 +151,24 @@ const AircallWorkspaceManager = () => {
     // let AircallContext control visibility
   }, [showLoginModal, isConnected, initializationPhase, showAircallWorkspace, hideAircallWorkspace]);
   
-  // Render the login modal
+  // Render the login modal and floating button
   return (
-    <AircallLoginModal
-      isOpen={showLoginModal}
-      isConnected={isConnected}
-      onLoginConfirm={handleManualLoginConfirm}
-      onSkip={skipPhoneIntegration}
-      initializationPhase={initializationPhase}
-    />
+    <>
+      <AircallLoginModal
+        isOpen={showLoginModal}
+        isConnected={isConnected}
+        onLoginConfirm={handleManualLoginConfirm}
+        onSkip={skipPhoneIntegration}
+        initializationPhase={initializationPhase}
+      />
+      <AircallFloatingButton
+        isConnected={isConnected}
+        workspaceVisible={workspaceVisible}
+        showAircallWorkspace={showAircallWorkspace}
+        currentCall={currentCall}
+        isWorkspaceReady={initializationPhase === 'workspace-ready'}
+      />
+    </>
   );
 };
 
