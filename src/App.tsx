@@ -118,18 +118,35 @@ const AircallWorkspaceManager = () => {
     hideAircallWorkspace
   } = useAircallPhone();
   
-  // PHASE 2: Replace direct DOM manipulation with context methods
+  // ============================================================================
+  // Aircall Workspace Visibility Control
+  // ============================================================================
+  // CRITICAL: This useEffect controls workspace visibility ONLY for:
+  // - Showing workspace when login modal is explicitly requested
+  // - Hiding workspace when app is COMPLETELY IDLE (before any initialization)
+  //
+  // During initialization phases ('diagnostics', 'creating-workspace', 
+  // 'workspace-ready', 'needs-login'), the AircallContext OWNS visibility control.
+  //
+  // DO NOT modify this logic without understanding the initialization lifecycle!
+  // ============================================================================
   React.useEffect(() => {
     // Show workspace when login modal is open
     if (showLoginModal) {
       showAircallWorkspace();
     } 
-    // Hide workspace if not connected (before first login)
-    else if (!isConnected) {
+    // Only hide if disconnected AND not in any initialization phase
+    else if (!isConnected && initializationPhase === 'idle') {
+      console.log('[App] 🙈 Hiding workspace:', { 
+        isConnected, 
+        showLoginModal, 
+        initializationPhase 
+      });
       hideAircallWorkspace();
     }
-    // If connected but modal closed, AircallContext controls visibility
-  }, [showLoginModal, isConnected, showAircallWorkspace, hideAircallWorkspace]);
+    // In all other states ('diagnostics', 'creating-workspace', 'workspace-ready', 'needs-login'),
+    // let AircallContext control visibility
+  }, [showLoginModal, isConnected, initializationPhase, showAircallWorkspace, hideAircallWorkspace]);
   
   // Render the login modal
   return (
