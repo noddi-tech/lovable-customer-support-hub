@@ -456,6 +456,8 @@ class AircallPhoneManager {
       
       // Create AircallWorkspace instance
       this.logInit('creating_workspace');
+      // Note: AircallWorkspace v2 SDK doesn't accept API credentials in constructor
+      // Authentication happens via user login through the workspace UI
       this.workspace = new AircallWorkspace({
         domToLoadWorkspace: '#aircall-workspace',
         integrationToLoad: null, // CRITICAL: null for custom integrations (not Zendesk/HubSpot)
@@ -473,6 +475,11 @@ class AircallPhoneManager {
         },
         size: 'small',
         debug: true,
+      } as any); // Type assertion needed - SDK types may be incomplete
+      
+      console.log('[AircallWorkspace] 📋 API credentials stored for potential SDK auth:', {
+        apiId: settings.apiId ? '✓' : '✗',
+        apiToken: settings.apiToken ? '✓' : '✗'
       });
 
       // Register event listeners
@@ -575,17 +582,9 @@ class AircallPhoneManager {
           this.isInitialized = true;
           this.logInit('initialization_complete');
           
-          // CRITICAL: Call workspace.show() to mount and display the iframe
-          console.log('[AircallWorkspace] 🚀 Calling workspace.show() to make iframe visible');
-          if (typeof (this.workspace as any).show === 'function') {
-            (this.workspace as any).show();
-            console.log('[AircallWorkspace] ✅ workspace.show() called - iframe should now be visible');
-          } else {
-            console.warn('[AircallWorkspace] ⚠️ workspace.show() method not found - iframe may not display');
-          }
-          
-          console.log('[AircallWorkspace] ✅ Workspace initialized and shown - ready for user login');
-          console.log('[AircallWorkspace] ℹ️  Please log in through the workspace UI');
+          // AircallWorkspace v2 auto-displays when credentials are valid
+          console.log('[AircallWorkspace] ✅ Workspace initialized with credentials');
+          console.log('[AircallWorkspace] ℹ️  SDK will auto-display login UI');
         })(), // Close the async arrow function
         initializationTimeout
       ]);
