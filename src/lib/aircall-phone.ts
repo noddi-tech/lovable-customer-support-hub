@@ -456,30 +456,22 @@ class AircallPhoneManager {
       
       // Create AircallWorkspace instance
       this.logInit('creating_workspace');
-      // Note: AircallWorkspace v2 SDK doesn't accept API credentials in constructor
-      // Authentication happens via user login through the workspace UI
+      // Note: API credentials are for REST API only, not SDK authentication
+      // SDK uses OAuth - user will log in through the workspace UI
       this.workspace = new AircallWorkspace({
         domToLoadWorkspace: '#aircall-workspace',
-        integrationToLoad: null, // CRITICAL: null for custom integrations (not Zendesk/HubSpot)
         onLogin: (workspaceSettings) => {
-          console.log('[AircallWorkspace] ✅ User logged in:', workspaceSettings.user);
-          console.log('[AircallWorkspace] 🎯 Layer 1: onLogin callback fired');
-          // Let the hook manage login status for proper grace period handling
+          console.log('[AircallWorkspace] ✅ User logged in successfully', workspaceSettings);
+          console.log('[AircallWorkspace] User:', workspaceSettings.user);
           settings.onLogin?.();
         },
         onLogout: () => {
-          console.log('[AircallWorkspace] 🚪 User logged out');
+          console.log('[AircallWorkspace] 🚪 User logged out or session expired');
           this.isInitialized = false;
-          // Let the hook manage login status for proper grace period handling
           settings.onLogout?.();
         },
-        size: 'small',
+        size: 'big',
         debug: true,
-      } as any); // Type assertion needed - SDK types may be incomplete
-      
-      console.log('[AircallWorkspace] 📋 API credentials stored for potential SDK auth:', {
-        apiId: settings.apiId ? '✓' : '✗',
-        apiToken: settings.apiToken ? '✓' : '✗'
       });
 
       // Register event listeners
@@ -582,9 +574,49 @@ class AircallPhoneManager {
           this.isInitialized = true;
           this.logInit('initialization_complete');
           
-          // AircallWorkspace v2 auto-displays when credentials are valid
-          console.log('[AircallWorkspace] ✅ Workspace initialized with credentials');
-          console.log('[AircallWorkspace] ℹ️  SDK will auto-display login UI');
+          console.log('[AircallWorkspace] ✅ Workspace initialized successfully');
+          console.log('[AircallWorkspace] ℹ️  SDK will display login UI');
+          
+          // PHASE 1: Diagnostic check to verify iframe creation
+          setTimeout(() => {
+            const workspaceDiv = document.querySelector('#aircall-workspace');
+            const container = document.querySelector('#aircall-workspace-container');
+            const iframe = document.querySelector('#aircall-workspace iframe');
+            
+            console.group('[AircallWorkspace] 🔍 IFRAME DIAGNOSTIC');
+            console.log('Container exists:', !!container);
+            console.log('Workspace div exists:', !!workspaceDiv);
+            console.log('Iframe created by SDK:', !!iframe);
+            
+            if (iframe) {
+              const htmlIframe = iframe as HTMLIFrameElement;
+              console.log('Iframe src:', htmlIframe.src);
+              console.log('Iframe allow:', htmlIframe.getAttribute('allow'));
+              console.log('Iframe width:', htmlIframe.offsetWidth);
+              console.log('Iframe height:', htmlIframe.offsetHeight);
+              console.log('Iframe computed visibility:', window.getComputedStyle(htmlIframe).visibility);
+              console.log('Iframe computed display:', window.getComputedStyle(htmlIframe).display);
+              
+              // Check parent hierarchy
+              let parent = iframe.parentElement;
+              let depth = 0;
+              while (parent && depth < 5) {
+                console.log(`Parent ${depth}:`, {
+                  tag: parent.tagName,
+                  id: parent.id,
+                  class: parent.className,
+                  display: window.getComputedStyle(parent).display,
+                  visibility: window.getComputedStyle(parent).visibility
+                });
+                parent = parent.parentElement;
+                depth++;
+              }
+            } else {
+              console.error('❌ NO IFRAME CREATED - SDK initialization failed!');
+              console.log('Workspace div HTML:', workspaceDiv?.innerHTML || 'N/A');
+            }
+            console.groupEnd();
+          }, 3000);
         })(), // Close the async arrow function
         initializationTimeout
       ]);

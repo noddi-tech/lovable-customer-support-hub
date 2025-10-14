@@ -485,35 +485,45 @@ Optimized for accessibility with WCAG AA compliance.
     }
   }
   
-  /* Aircall Workspace Container Visibility */
+  /* PHASE 3: Simplified Aircall Workspace Container - No movement, just visibility */
   #aircall-workspace-container {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 350px;
-    height: 500px;
+    width: 376px;  /* Match Aircall's default 'big' size */
+    height: 666px; /* Match Aircall's default 'big' size */
     z-index: 9999;
-    display: block !important; /* Always display - visibility controlled by classes */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s ease;
   }
 
-  /* Hidden state - moves off-screen but maintains dimensions */
+  /* Hidden state - just hide it, don't move it */
   #aircall-workspace-container.aircall-hidden {
-    bottom: -600px;
-    right: 20px;
     opacity: 0;
     pointer-events: none;
     visibility: hidden;
   }
 
-  /* Visible state - on screen */
+  /* Visible state */
   #aircall-workspace-container.aircall-visible {
-    display: block !important;
-    bottom: 20px;
-    right: 20px;
     opacity: 1;
     visibility: visible;
-    pointer-events: auto !important; /* PHASE 4: Force pointer-events with !important */
+    pointer-events: auto !important;
+  }
+
+  /* Ensure the workspace div inside has proper dimensions */
+  #aircall-workspace {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  /* Ensure the iframe gets proper dimensions */
+  #aircall-workspace iframe {
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+    display: block !important;
+    visibility: visible !important;
   }
 
   /* PHASE 4: Ensure all dialog elements are interactive and above Aircall */

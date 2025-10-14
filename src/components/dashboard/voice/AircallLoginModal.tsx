@@ -88,51 +88,17 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
     }
   }, [isConnected, isOpen]);
 
-  // Move Aircall workspace container into modal when opened
+  // PHASE 2: Simplified - just make workspace visible without moving DOM elements
   useEffect(() => {
     if (isOpen) {
-      const aircallContainer = document.querySelector('#aircall-workspace-container') as HTMLElement;
-      const modalIframeContainer = document.querySelector('#modal-aircall-container') as HTMLElement;
-      
-      if (aircallContainer && modalIframeContainer) {
-        console.log('[AircallLoginModal] 📦 Moving Aircall workspace into modal');
-        
-        // Store original parent to restore later
-        const originalParent = aircallContainer.parentElement;
-        
-        // Move the Aircall container into the modal
-        modalIframeContainer.appendChild(aircallContainer);
-        
-        // Force visibility
-        aircallContainer.style.display = 'block';
-        aircallContainer.style.visibility = 'visible';
-        aircallContainer.style.pointerEvents = 'auto';
-        aircallContainer.style.position = 'relative';
-        aircallContainer.style.width = '100%';
-        aircallContainer.style.height = '100%';
-        aircallContainer.style.zIndex = '1';
-        aircallContainer.classList.remove('aircall-hidden');
-        aircallContainer.classList.add('aircall-visible');
-        
-        const iframe = aircallContainer.querySelector('iframe') as HTMLElement;
-        if (iframe) {
-          iframe.style.pointerEvents = 'auto';
-          iframe.style.display = 'block';
-          console.log('[AircallLoginModal] ✅ Iframe found and made visible');
-        }
-        
-        // Restore on cleanup
-        return () => {
-          if (originalParent && aircallContainer.parentElement === modalIframeContainer) {
-            console.log('[AircallLoginModal] 🔙 Restoring Aircall workspace to original position');
-            originalParent.appendChild(aircallContainer);
-          }
-        };
+      console.log('[AircallLoginModal] Modal opened - making workspace visible');
+      const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+      if (container) {
+        container.classList.remove('aircall-hidden');
+        container.classList.add('aircall-visible');
+        console.log('[AircallLoginModal] ✅ Workspace visibility toggled');
       } else {
-        console.warn('[AircallLoginModal] ⚠️ Could not find containers:', {
-          aircallContainer: !!aircallContainer,
-          modalIframeContainer: !!modalIframeContainer
-        });
+        console.warn('[AircallLoginModal] ⚠️ Workspace container not found');
       }
     }
   }, [isOpen]);

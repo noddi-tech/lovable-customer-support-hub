@@ -649,6 +649,14 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         
         console.log('[AircallProvider] ✅ Container ready in DOM');
         
+        // PHASE 5: Immediately make container visible so SDK can inject iframe
+        console.log('[AircallProvider] 🎨 Making container visible for SDK initialization...');
+        container.classList.remove('aircall-hidden');
+        container.classList.add('aircall-visible');
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        console.log('[AircallProvider] ✅ Container made visible for SDK');
+        
         console.log('[AircallProvider] 🚀 Starting SDK initialization...');
         setInitializationPhase('creating-workspace');
         
