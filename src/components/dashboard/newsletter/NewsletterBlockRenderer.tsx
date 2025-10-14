@@ -1,5 +1,6 @@
 import React from 'react';
 import { NewsletterBlock } from '../NewsletterBuilder';
+import { sanitizeNewsletterHTML } from '@/utils/htmlSanitizer';
 
 interface NewsletterBlockRendererProps {
   block: NewsletterBlock;
@@ -14,10 +15,12 @@ export const NewsletterBlockRenderer: React.FC<NewsletterBlockRendererProps> = (
     switch (block.type) {
       case 'text':
         const TextTag = block.content.tag || 'p';
+        // SECURITY: Sanitize newsletter HTML to prevent XSS
+        const sanitizedText = sanitizeNewsletterHTML(block.content.text);
         return (
           <TextTag 
             style={block.styles}
-            dangerouslySetInnerHTML={{ __html: block.content.text }}
+            dangerouslySetInnerHTML={{ __html: sanitizedText }}
           />
         );
 
@@ -75,17 +78,21 @@ export const NewsletterBlockRenderer: React.FC<NewsletterBlockRendererProps> = (
       case 'columns':
         return (
           <div style={block.styles}>
-            {block.content.columns.map((column: any, index: number) => (
-              <div 
-                key={index}
-                style={{ 
-                  width: column.width,
-                  flex: column.width === '50%' ? '1' : 'none'
-                }}
-              >
-                <div dangerouslySetInnerHTML={{ __html: column.content }} />
-              </div>
-            ))}
+            {block.content.columns.map((column: any, index: number) => {
+              // SECURITY: Sanitize column content
+              const sanitizedColumnContent = sanitizeNewsletterHTML(column.content);
+              return (
+                <div 
+                  key={index}
+                  style={{ 
+                    width: column.width,
+                    flex: column.width === '50%' ? '1' : 'none'
+                  }}
+                >
+                  <div dangerouslySetInnerHTML={{ __html: sanitizedColumnContent }} />
+                </div>
+              );
+            })}
           </div>
         );
 
@@ -173,10 +180,12 @@ export const NewsletterBlockRenderer: React.FC<NewsletterBlockRendererProps> = (
         );
 
       case 'html':
+        // SECURITY: Sanitize custom HTML blocks
+        const sanitizedHTML = sanitizeNewsletterHTML(block.content.html);
         return (
           <div 
             style={block.styles}
-            dangerouslySetInnerHTML={{ __html: block.content.html }}
+            dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
           />
         );
 

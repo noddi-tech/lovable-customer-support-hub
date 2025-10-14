@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
 import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
+import { sanitizeEmailHTML as sanitizeForXSS } from '@/utils/htmlSanitizer';
 
 interface EmailRenderProps {
   content: string;
@@ -221,12 +222,13 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       const collapsibleQuotes = tempDiv.querySelectorAll('.collapsible-quote');
       const collapsibleSignatures = tempDiv.querySelectorAll('.collapsible-signature');
       
-      // For now, render as-is with dangerouslySetInnerHTML
-      // In a more sophisticated implementation, you'd parse and create React elements
+      // SECURITY: Sanitize HTML content before rendering to prevent XSS attacks
+      const sanitizedContent = sanitizeForXSS(contentWithCollapsibleSections);
+      
       return (
         <div 
           className="email-render__html-content"
-          dangerouslySetInnerHTML={{ __html: contentWithCollapsibleSections }}
+          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       );
     } else {

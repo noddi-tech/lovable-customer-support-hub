@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { sanitizeTemplateHTML } from "@/utils/htmlSanitizer";
 
 interface EmailTemplate {
   id?: string;
@@ -157,7 +158,7 @@ export function EmailTemplateSettings() {
                     padding: '16px',
                     textAlign: 'center'
                   }}
-                  dangerouslySetInnerHTML={{ __html: template.header_content }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeTemplateHTML(template.header_content) }}
                 />
               )}
               <div 
@@ -173,7 +174,9 @@ export function EmailTemplateSettings() {
                 {template.signature_content && (
                   <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #E5E7EB' }}>
                     <div dangerouslySetInnerHTML={{ 
-                      __html: template.signature_content.replace('{{agent_name}}', template.include_agent_name ? 'Your Name' : 'Support Team')
+                      __html: sanitizeTemplateHTML(
+                        template.signature_content.replace('{{agent_name}}', template.include_agent_name ? 'Your Name' : 'Support Team')
+                      )
                     }} />
                   </div>
                 )}
@@ -187,7 +190,7 @@ export function EmailTemplateSettings() {
                     textAlign: 'center',
                     fontSize: '12px'
                   }}
-                  dangerouslySetInnerHTML={{ __html: template.footer_content }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeTemplateHTML(template.footer_content) }}
                 />
               )}
             </div>

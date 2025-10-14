@@ -58,8 +58,9 @@ enabled = true
 [functions.call-events-webhook]
 verify_jwt = false
 
+# SECURITY: download-voicemail now requires JWT authentication
 [functions.download-voicemail]
-verify_jwt = false
+verify_jwt = true
 
 [functions.fix-sendgrid-webhook]
 verify_jwt = true
@@ -67,6 +68,7 @@ verify_jwt = true
 [functions.manual-end-call]
 verify_jwt = true
 
+# SECURITY: Test functions should remain public for webhook testing
 [functions.test-basic]
 verify_jwt = false
 

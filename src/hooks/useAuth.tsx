@@ -18,7 +18,7 @@ export interface UserProfile {
 export const useAuth = () => {
   const { user, session, loading, signOut } = useSupabaseAuth();
 
-  // Fetch user profile data including role and organization
+  // Fetch user profile data
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
@@ -40,10 +40,34 @@ export const useAuth = () => {
     enabled: !!user?.id,
   });
 
-  const userRole: UserRole = profile?.role || 'agent';
-  const isAdmin = userRole === 'admin';
+  // SECURITY: Fetch user roles from user_roles table (server-side truth)
+  const { data: userRoles } = useQuery({
+    queryKey: ['user-roles', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching user roles:', error);
+        return [];
+      }
+
+      return data?.map(r => r.role) || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // SECURITY: Check permissions using server-validated roles
+  const isAdmin = userRoles?.includes('admin') ?? false;
   const canManageUsers = isAdmin;
   const canManageIntegrations = isAdmin;
+  
+  // Derive role from userRoles (prefer first role, fallback to profile or 'agent')
+  const userRole: UserRole = (userRoles?.[0] as UserRole) || profile?.role || 'agent';
 
   return {
     user,
