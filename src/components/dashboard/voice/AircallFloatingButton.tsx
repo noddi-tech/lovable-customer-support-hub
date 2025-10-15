@@ -44,7 +44,7 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
   
   // Position: floating when hidden, top-right of workspace when visible
   const positionClasses = workspaceVisible 
-    ? 'absolute top-2 right-2 z-[10000]' 
+    ? 'fixed top-[calc(100vh-666px-20px+8px)] right-[28px] z-[10000]' 
     : 'fixed bottom-24 right-6 z-[9998]';
   
   // Size and style: smaller and subtle when visible
