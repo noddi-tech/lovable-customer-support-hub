@@ -546,14 +546,14 @@ Optimized for accessibility with WCAG AA compliance.
     position: relative;
   }
 
-  /* Ensure the iframe gets proper dimensions */
-  #aircall-workspace iframe {
-    width: 100% !important;
-    height: 100% !important;
-    border: none;
-    display: block !important;
-    visibility: visible !important;
-  }
+/* Ensure the iframe gets proper dimensions */
+#aircall-workspace iframe {
+  width: 100% !important;
+  height: 100% !important;
+  border: none;
+  display: block !important;
+  visibility: visible;
+}
 
   /* PHASE 4: Ensure all dialog elements are interactive and above Aircall */
   [data-radix-dialog-overlay] {
