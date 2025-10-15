@@ -284,74 +284,13 @@ const VoiceInboxPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen">
-      {/* Load Phone System Card */}
-      {!isInitialized && (
-        <div className="container max-w-7xl mx-auto px-4 py-8">
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-4">
-                <Phone className="h-16 w-16 mx-auto text-primary" />
-                <h2 className="text-2xl font-bold">Initialize Aircall Phone System</h2>
-                <p className="text-muted-foreground">
-                  Load the Aircall phone interface to make and receive calls directly in your browser.
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button onClick={handleLoadPhone} size="lg" className="mt-4">
-                    <Phone className="h-5 w-5 mr-2" />
-                    Load Phone System
-                  </Button>
-                  <Button onClick={runAircallDiagnostics} variant="outline" size="lg" className="mt-4">
-                    Debug Aircall
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Login Required Card */}
-      {isInitialized && !isConnected && (
-        <div className="container max-w-7xl mx-auto px-4 py-8">
-          <Card className="max-w-2xl mx-auto border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-4">
-                <Phone className="h-16 w-16 mx-auto text-yellow-600 dark:text-yellow-400" />
-                <h2 className="text-xl font-bold text-yellow-900 dark:text-yellow-100">Login Required</h2>
-                <p className="text-yellow-800 dark:text-yellow-200">
-                  The Aircall workspace has been loaded. Please log in using the phone interface in the bottom-right corner.
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button 
-                    onClick={handleTogglePhone} 
-                    variant="outline"
-                    className="border-yellow-600 text-yellow-900 dark:text-yellow-100 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
-                  >
-                    <Phone className="h-4 w-4 mr-2" />
-                    Show Aircall Login
-                  </Button>
-                  <Button onClick={runAircallDiagnostics} variant="outline" size="sm">
-                    Debug Aircall
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* InboxLayout - Only shown when connected */}
-      {isConnected && (
-        <InboxLayout
-          conversations={mockVoiceCalls}
-          renderDetail={renderDetail}
-          title="Voice Inbox"
-          onReply={handleReply}
-          showReplyBox={true}
-        />
-      )}
-    </div>
+    <InboxLayout
+      conversations={mockVoiceCalls}
+      renderDetail={renderDetail}
+      title="Voice Inbox"
+      onReply={handleReply}
+      showReplyBox={true}
+    />
   );
 };
 
