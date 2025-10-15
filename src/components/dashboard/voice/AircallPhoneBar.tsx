@@ -185,8 +185,17 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
 
   const callStatus = getCallStatus();
   
-  // PHASE 2: Show bar if has active call OR workspace initialized but not logged in yet
-  const shouldShowBar = hasActiveCall || (isInitialized && !isConnected);
+  // PHASE 2: Show bar ONLY for ongoing calls (not ringing) OR when waiting for login
+  // This prevents overlap with IncomingCallModal which handles the ringing phase
+  const shouldShowBar = (hasActiveCall && callStatus?.isOngoing) || (isInitialized && !isConnected);
+  
+  console.log('[AircallPhoneBar] Visibility decision:', {
+    hasActiveCall,
+    isOngoing: callStatus?.isOngoing,
+    isRinging: callStatus?.isRinging,
+    shouldShowBar,
+    callStatus: currentCall?.status
+  });
 
   return (
     <div className={cn(
