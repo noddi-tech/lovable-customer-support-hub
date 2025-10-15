@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Phone, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -28,9 +28,55 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
   currentCall,
   isWorkspaceReady,
 }) => {
-  // Show button whenever workspace is ready, regardless of connection status
-  // This allows users to minimize/maximize the workspace even during login
-  if (!isWorkspaceReady) {
+  // Track whether Aircall workspace exists in DOM
+  const [hasWorkspaceInDOM, setHasWorkspaceInDOM] = useState(false);
+  
+  // Check for workspace existence in DOM and watch for changes
+  useEffect(() => {
+    const checkWorkspace = () => {
+      const workspace = document.querySelector('#aircall-workspace');
+      const workspaceExists = workspace !== null;
+      
+      console.log('[AircallFloatingButton] Checking workspace in DOM:', {
+        exists: workspaceExists,
+        hasWorkspaceInDOM,
+        isWorkspaceReady
+      });
+      
+      setHasWorkspaceInDOM(workspaceExists);
+    };
+    
+    // Initial check
+    checkWorkspace();
+    
+    // Set up MutationObserver to watch for workspace being added/removed
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        // Check if nodes were added or removed
+        if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
+          checkWorkspace();
+        }
+      });
+    });
+    
+    // Observe the body for changes to detect when #aircall-workspace is added/removed
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Also check periodically (fallback in case MutationObserver misses something)
+    const interval = setInterval(checkWorkspace, 1000);
+    
+    return () => {
+      observer.disconnect();
+      clearInterval(interval);
+    };
+  }, [hasWorkspaceInDOM, isWorkspaceReady]);
+  
+  // Only show button if workspace actually exists in DOM
+  if (!hasWorkspaceInDOM) {
+    console.log('[AircallFloatingButton] Not rendering: no workspace in DOM');
     return null;
   }
 
