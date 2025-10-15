@@ -132,7 +132,15 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
   const priorityBooking = noddiData?.data?.priority_booking;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        console.log('[IncomingCallModal] 🔄 Dialog onOpenChange triggered:', { open });
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-[200]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -221,7 +229,10 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
             <div className="flex gap-2">
               {/* Show Aircall Button - Always available */}
               <Button
-                onClick={() => {
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
                   showAircallWorkspace();
                   console.log('[IncomingCallModal] 📱 Opening Aircall workspace');
                 }}
@@ -236,7 +247,10 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               {/* Answer via Aircall - Opens workspace (SDK v2 requires manual interaction) */}
               {isAircallReady && (
                 <Button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
                     console.log('[IncomingCallModal] Opening Aircall workspace for user to answer');
                     showAircallWorkspace();
                     toast({
@@ -254,7 +268,12 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               
               {/* View Full Context */}
               <Button
-                onClick={() => onAnswerContext(currentCall.id)}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onAnswerContext(currentCall.id);
+                }}
                 variant="outline"
                 size="lg"
               >
@@ -264,7 +283,12 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               
               {/* Dismiss */}
               <Button
-                onClick={onClose}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onClose();
+                }}
                 variant="outline"
                 size="lg"
               >
@@ -279,7 +303,12 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               </div>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => onAnswerContext(currentCall.id)}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onAnswerContext(currentCall.id);
+                  }}
                   variant="outline"
                   className="flex-1"
                   size="lg"
@@ -288,7 +317,12 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
                   View Call Details
                 </Button>
                 <Button
-                  onClick={onClose}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onClose();
+                  }}
                   variant="outline"
                   size="lg"
                 >
