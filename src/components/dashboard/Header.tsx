@@ -10,18 +10,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette, Clock, Sidebar } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User, Menu, ArrowLeft, Palette, Clock, Sidebar, Phone, Loader2 } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { SyncButton } from '@/components/dashboard/SyncButton';
 import { DeleteAllButton } from '@/components/dashboard/DeleteAllButton';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useIsMobile } from '@/hooks/use-responsive';
+import { useAircallPhone } from '@/hooks/useAircallPhone';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface HeaderProps {
   organizationName?: string;
@@ -48,9 +50,22 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const { timezone, time } = useDateFormatting();
   const isMobile = useIsMobile();
+  
+  // Aircall phone integration
+  const { 
+    isInitialized, 
+    isConnected, 
+    initializePhone, 
+    initializationPhase,
+    showAircallWorkspace 
+  } = useAircallPhone();
+  
+  // Only show phone button on relevant routes
+  const showPhoneButton = location.pathname.startsWith('/voice') || location.pathname === '/dashboard';
 
   // Get unread conversation count for notifications
   const { data: unreadCount = 0 } = useQuery({
@@ -146,6 +161,50 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Notifications */}
         <NotificationDropdown />
+
+        {/* Phone System - Show on voice/dashboard routes */}
+        {showPhoneButton && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-muted-foreground hover:text-foreground relative hidden sm:flex"
+                  onClick={() => {
+                    if (!isInitialized) {
+                      initializePhone();
+                    } else if (isConnected) {
+                      showAircallWorkspace();
+                    } else {
+                      showAircallWorkspace(true);
+                    }
+                  }}
+                  disabled={initializationPhase === 'creating-workspace' || initializationPhase === 'diagnostics'}
+                >
+                  {initializationPhase === 'creating-workspace' || initializationPhase === 'diagnostics' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Phone className="h-4 w-4" />
+                  )}
+                  {/* Status indicator dot */}
+                  {isInitialized && !isConnected && initializationPhase === 'needs-login' && (
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-yellow-500 ring-2 ring-background" />
+                  )}
+                  {isConnected && (
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-green-500 ring-2 ring-background" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {!isInitialized && 'Load Phone System'}
+                {isInitialized && !isConnected && initializationPhase === 'needs-login' && 'Login Required'}
+                {isConnected && 'Phone Ready'}
+                {initializationPhase === 'creating-workspace' && 'Initializing...'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         {/* Settings - Hidden on mobile */}
         <Button 

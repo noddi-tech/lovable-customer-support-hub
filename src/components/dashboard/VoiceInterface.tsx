@@ -25,6 +25,7 @@ import { VoiceLayout } from './voice/VoiceLayout';
 import { AircallPhoneBar } from './voice/AircallPhoneBar';
 import { AircallLoginModal, AircallBlockedModal } from './voice';
 import { ConnectionDiagnostic } from './voice/ConnectionDiagnostic';
+import { AircallConnectionPrompt } from './voice/AircallConnectionPrompt';
 import { AircallErrorBoundary } from '@/components/error/AircallErrorBoundary';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
@@ -485,6 +486,15 @@ export const VoiceInterface = () => {
     if (selectedSection === 'ongoing-calls') {
       return (
         <div className="space-y-3">
+          {/* Aircall initialization prompt - only show when not initialized */}
+          {!isInitialized && (
+            <AircallConnectionPrompt
+              onLoadPhone={handleLoadPhone}
+              variant="inline"
+              message="Load the phone system to make and receive calls"
+            />
+          )}
+          
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">{getSectionTitle()}</h2>
             <RealTimeIndicator onRefresh={handleRefreshAll} />

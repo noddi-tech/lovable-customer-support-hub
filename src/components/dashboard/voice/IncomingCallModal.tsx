@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Phone, PhoneOff, PhoneCall, Calendar, AlertCircle, Package } from 'lucide-react';
+import { Phone, PhoneOff, PhoneCall, Calendar, AlertCircle, Package, Loader2 } from 'lucide-react';
 import { VoiceCustomerSidebar } from './VoiceCustomerSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,10 +26,12 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
     answerCall, 
     isInitialized: isAircallReady, 
     showAircallWorkspace,
-    isWorkspaceReady 
+    isWorkspaceReady,
+    initializePhone
   } = useAircallPhone();
   const { noddiData } = useCallCustomerContext();
   const [currentCall, setCurrentCall] = useState<Call | null>(call);
+  const [isLoadingPhone, setIsLoadingPhone] = useState(false);
 
   // Update current call when prop changes
   useEffect(() => {
@@ -230,41 +232,93 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               {/* Show Aircall Button - Always available */}
               <Button
                 type="button"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  showAircallWorkspace();
+                  
+                  if (!isWorkspaceReady && !isAircallReady) {
+                    setIsLoadingPhone(true);
+                    toast({
+                      title: "Initializing Phone System",
+                      description: "Please wait while we load Aircall..."
+                    });
+                    try {
+                      await initializePhone();
+                    } catch (error) {
+                      console.error('Failed to initialize phone:', error);
+                      toast({
+                        title: "Initialization Failed",
+                        description: "Please try again or refresh the page",
+                        variant: "destructive"
+                      });
+                    } finally {
+                      setIsLoadingPhone(false);
+                    }
+                  }
+                  
+                  showAircallWorkspace(true);
                   console.log('[IncomingCallModal] 📱 Opening Aircall workspace');
                 }}
                 variant="outline"
                 size="lg"
                 title="Open Aircall phone interface"
+                disabled={isLoadingPhone}
               >
-                <Phone className="h-4 w-4 mr-2" />
-                Show Aircall
+                {isLoadingPhone ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Phone className="h-4 w-4 mr-2" />
+                )}
+                {isLoadingPhone ? 'Loading...' : 'Show Aircall'}
               </Button>
               
               {/* Answer via Aircall - Opens workspace (SDK v2 requires manual interaction) */}
-              {isAircallReady && (
-                <Button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    console.log('[IncomingCallModal] Opening Aircall workspace for user to answer');
-                    showAircallWorkspace();
+              <Button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  
+                  if (!isWorkspaceReady && !isAircallReady) {
+                    setIsLoadingPhone(true);
+                    toast({
+                      title: "Initializing Phone System",
+                      description: "Loading Aircall so you can answer..."
+                    });
+                    try {
+                      await initializePhone();
+                    } catch (error) {
+                      console.error('Failed to initialize phone:', error);
+                      toast({
+                        title: "Initialization Failed",
+                        description: "Please try again or refresh the page",
+                        variant: "destructive"
+                      });
+                    } finally {
+                      setIsLoadingPhone(false);
+                    }
+                  }
+                  
+                  showAircallWorkspace(true);
+                  console.log('[IncomingCallModal] Opening Aircall workspace for user to answer');
+                  if (isAircallReady) {
                     toast({
                       title: "Answer in Aircall Phone",
                       description: "Click the green Answer button in the Aircall interface"
                     });
-                  }}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  size="lg"
-                >
+                  }
+                }}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                size="lg"
+                disabled={isLoadingPhone}
+              >
+                {isLoadingPhone ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
                   <PhoneCall className="h-4 w-4 mr-2" />
-                  Open Aircall to Answer
-                </Button>
-              )}
+                )}
+                {isLoadingPhone ? 'Loading Phone...' : 'Open Aircall to Answer'}
+              </Button>
               
               {/* View Full Context */}
               <Button
