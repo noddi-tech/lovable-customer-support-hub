@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Phone, PhoneOff, PhoneCall, Calendar, AlertCircle, Package, Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { VoiceCustomerSidebar } from './VoiceCustomerSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -32,6 +33,7 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
   const { noddiData } = useCallCustomerContext();
   const [currentCall, setCurrentCall] = useState<Call | null>(call);
   const [isLoadingPhone, setIsLoadingPhone] = useState(false);
+  const [quickNote, setQuickNote] = useState('');
 
   // Update current call when prop changes
   useEffect(() => {
@@ -220,6 +222,18 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Quick Note - Before Answering */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Quick Note (Optional)</label>
+            <Textarea
+              placeholder="Jot down context before answering..."
+              value={quickNote}
+              onChange={(e) => setQuickNote(e.target.value)}
+              rows={2}
+              className="resize-none text-sm"
+            />
+          </div>
 
           {/* Customer Sidebar Embedded */}
           <div className="border rounded-lg p-4 max-h-96 overflow-y-auto">

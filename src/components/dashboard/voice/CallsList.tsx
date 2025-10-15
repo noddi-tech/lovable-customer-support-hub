@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2, History } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2, History, PhoneCall, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { formatDistanceToNow, format, isAfter } from 'date-fns';
 import { CallDetailsDialog } from './CallDetailsDialog';
 import { CallActionButton } from './CallActionButton';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
+import { EnhancedCallCard } from './EnhancedCallCard';
 
 interface CallsListProps {
   showTimeFilter?: boolean;
@@ -94,6 +95,41 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     
     return true;
   });
+
+  // Smart grouping: Urgent, Active, Recent, Earlier
+  const groupedCalls = useMemo(() => {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const urgent: typeof filteredCalls = [];
+    const active: typeof filteredCalls = [];
+    const recent: typeof filteredCalls = [];
+    const earlier: typeof filteredCalls = [];
+    
+    filteredCalls.forEach(call => {
+      const callDate = new Date(call.started_at);
+      
+      // Active calls
+      if (call.status === 'ringing' || call.status === 'on_hold') {
+        active.push(call);
+      }
+      // Urgent: missed calls < 1 hour old
+      else if ((call.status === 'missed' || call.end_reason === 'not_answered') && callDate > oneHourAgo) {
+        urgent.push(call);
+      }
+      // Recent: calls from today
+      else if (callDate >= todayStart) {
+        recent.push(call);
+      }
+      // Earlier: older calls
+      else {
+        earlier.push(call);
+      }
+    });
+    
+    return { urgent, active, recent, earlier };
+  }, [filteredCalls]);
 
   const callsTimeRangePresets = [
     { id: '24h', label: 'Last 24 Hours', hours: 24 },
@@ -273,8 +309,161 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
 
   const getDirectionIcon = (direction: string) => {
     return direction === 'inbound' ? 
-      <ArrowDownLeft className="h-6 w-6 text-blue-600" /> : 
-      <ArrowUpRight className="h-6 w-6 text-green-600" />;
+      <ArrowDownLeft className="h-4 w-4" /> : 
+      <ArrowUpRight className="h-4 w-4" />;
+  };
+
+  const getBorderColor = (call: any) => {
+    // Missed/urgent = red, completed = green, pending/callback = yellow
+    if (call.status === 'missed' || call.end_reason === 'not_answered') return 'border-l-destructive';
+    if (call.status === 'completed' || call.status === 'answered') return 'border-l-success';
+    if (call.status === 'ringing' || call.status === 'on_hold') return 'border-l-warning';
+    return 'border-l-muted';
+  };
+
+  const getCallAge = (startedAt: string) => {
+    const now = new Date();
+    const callDate = new Date(startedAt);
+    const diffHours = (now.getTime() - callDate.getTime()) / (1000 * 60 * 60);
+    
+    if (diffHours > 24) return 'opacity-60';
+    if (diffHours > 12) return 'opacity-75';
+    if (diffHours > 6) return 'opacity-85';
+    return 'opacity-100';
+  };
+
+  const renderCallCard = (call: any) => (
+    <Card 
+      key={call.id} 
+      className={`group cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50 border-l-4 ${getBorderColor(call)} ${getCallAge(call.started_at)} ${
+        selectedCallId === call.id ? 'ring-2 ring-primary ring-offset-2' : ''
+      }`}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('button, select')) {
+          return;
+        }
+        onSelectCall?.(call);
+      }}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {/* Direction Icon */}
+            <div className="flex-shrink-0 mt-1 p-2 rounded-full bg-muted">
+              {getDirectionIcon(call.direction)}
+            </div>
+            
+            {/* Call Details */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-semibold text-lg truncate" style={{ fontFamily: 'var(--font-mono, monospace)' }}>
+                  {formatPhoneNumber(call.customer_phone)}
+                </span>
+                {(() => {
+                  const statusDetails = getStatusDetails(call);
+                  return (
+                    <Badge 
+                      variant={getStatusColor(call.status) as any} 
+                      className="text-xs shrink-0"
+                    >
+                      {statusDetails.label}
+                    </Badge>
+                  );
+                })()}
+              </div>
+              
+              {/* Customer Name if available */}
+              {call.customer?.full_name && (
+                <div className="text-sm text-foreground font-medium mb-1">
+                  {call.customer.full_name}
+                </div>
+              )}
+              
+              {/* Status Description */}
+              {(() => {
+                const statusDetails = getStatusDetails(call);
+                const hasAdditionalInfo = statusDetails.description && statusDetails.description !== `Status: ${call.status}`;
+                
+                return hasAdditionalInfo && (
+                  <div className="text-sm text-muted-foreground mb-2">
+                    {statusDetails.description}
+                  </div>
+                );
+              })()}
+              
+              {/* Metadata Row */}
+              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>{formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}</span>
+                </div>
+                {call.duration_seconds > 0 && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
+                    <Clock className="h-3 w-3" />
+                    <span className="font-medium">{formatDuration(call.duration_seconds)}</span>
+                  </div>
+                )}
+                <CallNotesCount callId={call.id} />
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions - Show on Hover */}
+          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                openCallDetails(call);
+              }}
+              title="View Details"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            {onNavigateToEvents && (
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigateToEvents(call.id);
+                }}
+                title="View Events"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderGroup = (title: string, calls: typeof filteredCalls, icon: React.ReactNode, defaultOpen = true) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    
+    if (calls.length === 0) return null;
+    
+    return (
+      <div className="space-y-2">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 w-full text-left px-2 py-1 hover:bg-muted/50 rounded-md transition-colors"
+        >
+          {icon}
+          <span className="font-semibold text-sm">{title}</span>
+          <Badge variant="secondary" className="ml-auto">
+            {calls.length}
+          </Badge>
+        </button>
+        {isOpen && (
+          <div className="space-y-2">
+            {calls.map(renderCallCard)}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const openCallDetails = (call: any) => {

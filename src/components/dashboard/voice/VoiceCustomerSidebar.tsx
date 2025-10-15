@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, Clock, MessageSquare, Mail, AlertCircle } from 'lucide-react';
+import { Phone, Clock, MessageSquare, Mail, AlertCircle, User, Calendar, TrendingUp, DollarSign, CheckCircle2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,9 @@ import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
 import { CustomerNotes } from '@/components/dashboard/CustomerNotes';
 import { Call } from '@/hooks/useCalls';
 import { useSimpleRealtimeSubscriptions } from '@/hooks/useSimpleRealtimeSubscriptions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 
 interface VoiceCustomerSidebarProps {
   call?: Call;
@@ -128,6 +131,17 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
     updateEmailMutation.mutate(emailToAdd.trim());
   };
 
+  // Get Noddi data
+  const { data: noddiData, isLoading: noddiLoading } = useNoddihKundeData(customerForNoddi);
+  
+  // Quick stats from Noddi data
+  const stats = noddiData?.data?.found ? {
+    totalBookings: (noddiData.data.unpaid_bookings?.length || 0) + 
+                   (noddiData.data.priority_booking ? 1 : 0),
+    unpaidBookings: noddiData.data.unpaid_count || 0,
+    hasPriority: !!noddiData.data.priority_booking,
+  } : null;
+
   return (
     <div className={className}>
       <div className="space-y-4">
@@ -139,12 +153,99 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
           </Alert>
         )}
 
-        {/* Customer Information - always show for phone lookup */}
+        {/* Hero Section - Customer Identity */}
         {customerForNoddi && (
-          <>
-            <NoddihKundeData customer={customerForNoddi} />
+          <Card className="border-2">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                    {customer?.full_name?.charAt(0)?.toUpperCase() || 
+                     customerPhone?.charAt(0) || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-bold truncate">
+                    {customer?.full_name || customerPhone || 'Unknown Customer'}
+                  </h3>
+                  {customerPhone && (
+                    <p className="text-sm text-muted-foreground font-mono">
+                      {customerPhone}
+                    </p>
+                  )}
+                  {customer?.email && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Mail className="h-3 w-3" />
+                      {customer.email}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-            {/* Email Capture Card - only show if we have a real customer without email */}
+              {/* Quick Stats Grid */}
+              {stats && (
+                <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {stats.totalBookings}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Bookings</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${stats.unpaidBookings > 0 ? 'text-destructive' : 'text-success'}`}>
+                      {stats.unpaidBookings}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Unpaid</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl">
+                      {stats.hasPriority ? '⭐' : '—'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Priority</div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Alert Banners */}
+        {noddiData?.data?.found && (
+          <>
+            {noddiData.data.priority_booking && (
+              <Alert className="border-warning bg-warning/10">
+                <AlertCircle className="h-4 w-4 text-warning" />
+                <AlertDescription className="text-sm font-medium">
+                  <strong>Priority Booking:</strong> {noddiData.data.priority_booking.booking_type}
+                </AlertDescription>
+              </Alert>
+            )}
+            {noddiData.data.unpaid_count > 0 && (
+              <Alert className="border-destructive bg-destructive/10">
+                <XCircle className="h-4 w-4 text-destructive" />
+                <AlertDescription className="text-sm font-medium">
+                  <strong>{noddiData.data.unpaid_count}</strong> unpaid booking(s)
+                </AlertDescription>
+              </Alert>
+            )}
+          </>
+        )}
+
+        {/* Tabbed Content */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="call">Call Info</TabsTrigger>
+            <TabsTrigger value="notes">Notes</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-4">
+            {customerForNoddi && (
+              <NoddihKundeData customer={customerForNoddi} />
+            )}
+            
+            {/* Email Capture Card */}
             {customer && !customer.email && (
               <Card>
                 <CardHeader className="pb-3">
@@ -155,16 +256,14 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-xs text-muted-foreground">
-                    Add an email address to see booking information from Noddi
+                    Add an email to see booking information
                   </p>
-                  <div className="space-y-2">
-                    <Input
-                      type="email"
-                      value={emailToAdd}
-                      onChange={(e) => setEmailToAdd(e.target.value)}
-                      placeholder="customer@example.com"
-                    />
-                  </div>
+                  <Input
+                    type="email"
+                    value={emailToAdd}
+                    onChange={(e) => setEmailToAdd(e.target.value)}
+                    placeholder="customer@example.com"
+                  />
                   <Button 
                     onClick={handleUpdateEmail} 
                     className="w-full"
@@ -175,82 +274,94 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
                 </CardContent>
               </Card>
             )}
-          </>
-        )}
+          </TabsContent>
 
-        {/* Call Details Card */}
-        {call && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Call Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Status</span>
-                <Badge variant="outline" className={getStatusColor(call.status)}>
-                  {call.status.replace('_', ' ').toUpperCase()}
-                </Badge>
+          {/* Call Info Tab */}
+          <TabsContent value="call" className="space-y-4">
+            {call ? (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Call Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <Badge variant="outline" className={getStatusColor(call.status)}>
+                      {call.status.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Direction</span>
+                    <Badge variant="secondary">
+                      {call.direction === 'inbound' ? '↓ Incoming' : '↑ Outgoing'}
+                    </Badge>
+                  </div>
+                  {call.duration_seconds !== undefined && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Duration
+                      </span>
+                      <span className="text-sm font-medium">
+                        {formatDuration(call.duration_seconds)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Customer Phone</span>
+                    <span className="text-sm font-medium font-mono">
+                      {call.customer_phone || 'Unknown'}
+                    </span>
+                  </div>
+                  {call.agent_phone && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Agent Phone</span>
+                      <span className="text-sm font-medium font-mono">
+                        {call.agent_phone}
+                      </span>
+                    </div>
+                  )}
+                  {call.end_reason && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">End Reason</span>
+                      <span className="text-sm">
+                        {call.end_reason.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No call selected
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Direction</span>
-                <Badge variant="secondary">
-                  {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'}
-                </Badge>
-              </div>
-              {call.duration_seconds !== undefined && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Duration
-                  </span>
-                  <span className="text-sm font-medium">
-                    {formatDuration(call.duration_seconds)}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Phone</span>
-                <span className="text-sm font-medium font-mono">
-                  {call.customer_phone || 'Unknown'}
-                </span>
-              </div>
-              {call.agent_phone && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Agent</span>
-                  <span className="text-sm font-medium font-mono">
-                    {call.agent_phone}
-                  </span>
-                </div>
-              )}
-              {call.end_reason && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">End Reason</span>
-                  <span className="text-sm">
-                    {call.end_reason.replace(/_/g, ' ')}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </TabsContent>
 
-        {/* Call Notes Section - only show if we have a real customer */}
-        {customer && customer.id && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Call Notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CustomerNotes customerId={customer.id} />
-            </CardContent>
-          </Card>
-        )}
+          {/* Notes Tab */}
+          <TabsContent value="notes" className="space-y-4">
+            {customer && customer.id ? (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Call Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CustomerNotes customerId={customer.id} />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No customer information available
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
