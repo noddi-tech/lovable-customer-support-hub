@@ -28,8 +28,9 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
   currentCall,
   isWorkspaceReady,
 }) => {
-  // Only show when SDK is connected and ready
-  if (!isConnected || !isWorkspaceReady) {
+  // Show button whenever workspace is ready, regardless of connection status
+  // This allows users to minimize/maximize the workspace even during login
+  if (!isWorkspaceReady) {
     return null;
   }
 

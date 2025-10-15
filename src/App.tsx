@@ -118,7 +118,8 @@ const AircallWorkspaceManager = () => {
     showAircallWorkspace,
     hideAircallWorkspace,
     workspaceVisible,
-    currentCall
+    currentCall,
+    isWorkspaceReady
   } = useAircallPhone();
   
   // ============================================================================
@@ -167,7 +168,7 @@ const AircallWorkspaceManager = () => {
           showAircallWorkspace={showAircallWorkspace}
           hideAircallWorkspace={hideAircallWorkspace}
           currentCall={currentCall}
-          isWorkspaceReady={initializationPhase === 'workspace-ready'}
+          isWorkspaceReady={isWorkspaceReady}
         />
     </>
   );

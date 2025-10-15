@@ -552,7 +552,7 @@ Optimized for accessibility with WCAG AA compliance.
   height: 100% !important;
   border: none;
   display: block !important;
-  visibility: visible;
+  visibility: inherit; /* Inherit visibility from parent container */
 }
 
   /* PHASE 4: Ensure all dialog elements are interactive and above Aircall */
