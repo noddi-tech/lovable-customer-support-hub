@@ -732,29 +732,35 @@ class AircallPhoneManager {
 
   /**
    * Answer incoming call
-   * Note: v2 SDK requires user interaction with workspace UI
+   * IMPORTANT: v2 SDK does NOT support programmatic answer
+   * Caller should show the workspace and let user click the native button
    */
   async answerCall(): Promise<void> {
-    console.log('[AircallWorkspace] ℹ️  Please use Aircall Workspace UI to answer');
-    throw new Error('Answer call requires interaction with Aircall Workspace UI');
+    console.log('[AircallWorkspace] ℹ️  SDK v2 does not support programmatic answer');
+    console.log('[AircallWorkspace] ℹ️  Please show workspace and let user click Answer button');
+    // Don't throw - just log. The UI should show the workspace instead.
   }
 
   /**
    * Reject incoming call  
-   * Note: v2 SDK requires user interaction with workspace UI
+   * IMPORTANT: v2 SDK does NOT support programmatic reject
+   * Caller should show the workspace and let user click the native button
    */
   async rejectCall(): Promise<void> {
-    console.log('[AircallWorkspace] ℹ️  Please use Aircall Workspace UI to reject');
-    throw new Error('Reject call requires interaction with Aircall Workspace UI');
+    console.log('[AircallWorkspace] ℹ️  SDK v2 does not support programmatic reject');
+    console.log('[AircallWorkspace] ℹ️  Please show workspace and let user click Reject button');
+    // Don't throw - just log. The UI should show the workspace instead.
   }
 
   /**
    * Hang up current call
-   * Note: v2 SDK requires user interaction with workspace UI
+   * IMPORTANT: v2 SDK does NOT support programmatic hangup
+   * Caller should show the workspace and let user click the native button
    */
   async hangUp(): Promise<void> {
-    console.log('[AircallWorkspace] ℹ️  Please use Aircall Workspace UI to hang up');
-    // v2 doesn't support programmatic hangup - user must click in workspace
+    console.log('[AircallWorkspace] ℹ️  SDK v2 does not support programmatic hangup');
+    console.log('[AircallWorkspace] ℹ️  Please show workspace and let user click End Call button');
+    // Don't throw - just log. The UI should show the workspace instead.
   }
 
   /**

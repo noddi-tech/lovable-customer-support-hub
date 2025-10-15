@@ -293,27 +293,22 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
               {/* SDK Mode - Full controls when workspace is ready */}
               {unifiedCall.source === 'sdk' && (
                 <>
-                  {/* Answer (only for ringing incoming calls) */}
+                  {/* Answer - Show Aircall Workspace (SDK v2 doesn't support programmatic answer) */}
                   {unifiedCall.isRinging && unifiedCall.isIncoming && (
                     <Button
-                      onClick={async () => {
-                        if (!isWorkspaceReady) {
-                          console.warn('[AircallPhoneBar] SDK not ready');
-                          toast({
-                            title: "Aircall Not Ready",
-                            description: "Please wait for Aircall to finish loading",
-                            variant: "destructive"
-                          });
-                          return;
-                        }
-                        await answerCall();
+                      onClick={() => {
+                        console.log('[AircallPhoneBar] Opening Aircall workspace to answer call');
+                        showAircallWorkspace();
+                        toast({
+                          title: "Answer in Aircall",
+                          description: "Click the green Answer button in the phone interface",
+                        });
                       }}
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white"
-                      disabled={!isWorkspaceReady}
                     >
                       <Phone className="h-4 w-4 mr-2" />
-                      Answer
+                      Answer in Aircall
                     </Button>
                   )}
 
@@ -330,15 +325,22 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
                     />
                   )}
 
-                  {/* Reject (only for ringing calls) */}
+                  {/* Reject - Show Aircall Workspace (SDK v2 doesn't support programmatic reject) */}
                   {unifiedCall.isRinging && (
                     <Button
-                      onClick={rejectCall}
+                      onClick={() => {
+                        console.log('[AircallPhoneBar] Opening Aircall workspace to reject call');
+                        showAircallWorkspace();
+                        toast({
+                          title: "Reject in Aircall",
+                          description: "Click the red Reject button in the phone interface",
+                        });
+                      }}
                       size="sm"
                       variant="destructive"
                     >
                       <PhoneOff className="h-4 w-4 mr-2" />
-                      Reject
+                      Reject in Aircall
                     </Button>
                   )}
                 </>

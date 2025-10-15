@@ -1233,28 +1233,24 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * Call control functions
    */
   const answerCall = useCallback(async () => {
-    try {
-      await aircallPhone.answerCall();
-      console.log('[AircallProvider] ℹ️  User must answer via Aircall Workspace UI');
-    } catch (err) {
-      toast({
-        title: 'Use Aircall Workspace to Answer',
-        description: 'Click "Show Aircall" button to interact with the call',
-      });
-    }
-  }, [toast]);
+    console.log('[AircallProvider] Showing workspace for user to answer call');
+    // SDK v2 doesn't support programmatic answer - show workspace instead
+    showAircallWorkspace();
+    toast({
+      title: 'Use Aircall Workspace to Answer',
+      description: 'Click the green Answer button in the Aircall phone',
+    });
+  }, [showAircallWorkspace, toast]);
 
   const rejectCall = useCallback(async () => {
-    try {
-      await aircallPhone.rejectCall();
-      console.log('[AircallProvider] ℹ️  User must reject via Aircall Workspace UI');
-    } catch (err) {
-      toast({
-        title: 'Use Aircall Workspace to Reject',
-        description: 'Click "Show Aircall" button to interact with the call',
-      });
-    }
-  }, [toast]);
+    console.log('[AircallProvider] Showing workspace for user to reject call');
+    // SDK v2 doesn't support programmatic reject - show workspace instead
+    showAircallWorkspace();
+    toast({
+      title: 'Use Aircall Workspace to Reject',
+      description: 'Click the red Reject button in the Aircall phone',
+    });
+  }, [showAircallWorkspace, toast]);
 
   const hangUp = useCallback(async () => {
     try {

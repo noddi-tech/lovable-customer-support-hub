@@ -233,32 +233,22 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
                 Show Aircall
               </Button>
               
-              {/* Answer via Aircall Everywhere (if enabled) */}
+              {/* Answer via Aircall - Opens workspace (SDK v2 requires manual interaction) */}
               {isAircallReady && (
                 <Button
-                  onClick={async () => {
-                    // SDK Readiness Guard
-                    if (!isWorkspaceReady) {
-                      console.warn('[IncomingCallModal] SDK not ready:', { 
-                        isAircallReady, 
-                        isWorkspaceReady
-                      });
-                      toast({
-                        title: "Aircall Not Ready",
-                        description: "Please wait for Aircall to finish loading",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    console.log('[IncomingCallModal] Answering call via SDK');
-                    await answerCall();
+                  onClick={() => {
+                    console.log('[IncomingCallModal] Opening Aircall workspace for user to answer');
+                    showAircallWorkspace();
+                    toast({
+                      title: "Answer in Aircall Phone",
+                      description: "Click the green Answer button in the Aircall interface"
+                    });
                   }}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                   size="lg"
-                  disabled={!isWorkspaceReady}
                 >
                   <PhoneCall className="h-4 w-4 mr-2" />
-                  Answer in Browser
+                  Open Aircall to Answer
                 </Button>
               )}
               
