@@ -98,7 +98,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
 
   return (
     <Card 
-      className={`group cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50 border-l-4 ${getBorderColor()} ${getCallAge()} ${
+      className={`group cursor-pointer border-l-4 ${getBorderColor()} ${getCallAge()} ${
         isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
       }`}
       onClick={(e) => {

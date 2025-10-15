@@ -27,7 +27,8 @@ export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData 
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Customer verified in Noddi</p>
+            <p className="font-medium">Customer Verified</p>
+            <p className="text-xs text-muted-foreground mt-1">This customer is registered in Noddi</p>
           </TooltipContent>
         </Tooltip>
 
@@ -41,7 +42,10 @@ export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData 
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{data.priority_booking_type === 'upcoming' ? 'Upcoming' : 'Completed'} booking</p>
+              <p className="font-medium">Active Booking Found</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Customer has {data.priority_booking_type === 'upcoming' ? 'an upcoming' : 'a recently completed'} booking
+              </p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -56,7 +60,10 @@ export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData 
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{unpaidCount} unpaid booking{unpaidCount !== 1 ? 's' : ''}</p>
+              <p className="font-medium">Payment Outstanding</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Customer has {unpaidCount} unpaid booking{unpaidCount !== 1 ? 's' : ''} requiring payment
+              </p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -71,7 +78,10 @@ export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData 
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Has upcoming booking</p>
+              <p className="font-medium">Priority Customer</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Customer has an upcoming booking and should receive priority service
+              </p>
             </TooltipContent>
           </Tooltip>
         )}

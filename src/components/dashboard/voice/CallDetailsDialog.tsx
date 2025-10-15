@@ -5,11 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Phone, Clock, Calendar, MapPin, User } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { CallNotesSection } from './CallNotesSection';
+import { NoddiCustomerDetails } from './NoddiCustomerDetails';
 
 interface Call {
   id: string;
   customer_phone?: string;
   agent_phone?: string;
+  customer_id?: string;
+  customers?: {
+    id: string;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+  };
   status: string;
   direction: 'inbound' | 'outbound';
   started_at: string;
@@ -71,6 +79,14 @@ export const CallDetailsDialog = ({ call, isOpen, onClose }: CallDetailsDialogPr
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Customer Information from Noddi */}
+          <NoddiCustomerDetails
+            customerId={call.customer_id}
+            customerEmail={call.customers?.email}
+            customerPhone={call.customer_phone}
+            customerName={call.customers?.full_name}
+          />
+
           {/* Call Overview */}
           <Card>
             <CardHeader>
