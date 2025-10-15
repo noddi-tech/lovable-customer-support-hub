@@ -17,7 +17,9 @@ import {
   Phone,
   Plus,
   Inbox,
-  Archive
+  Archive,
+  BarChart3,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +57,19 @@ export const InteractionsSidebar: React.FC = () => {
       title: 'Archive',
       icon: Archive,
       path: '/archive'
+    }
+  ];
+
+  const voiceTools = [
+    {
+      title: 'Voice Analytics',
+      icon: BarChart3,
+      path: '/voice/analytics'
+    },
+    {
+      title: 'Voice Settings',
+      icon: Settings,
+      path: '/voice/settings'
     }
   ];
 
@@ -109,6 +124,36 @@ export const InteractionsSidebar: React.FC = () => {
           <SidebarGroupLabel>Quick Filters</SidebarGroupLabel>
           <SidebarMenu>
             {quickFilters.map((item) => {
+              const Icon = item.icon;
+              const itemIsActive = isActive(item.path);
+              
+              return (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={itemIsActive}
+                  >
+                    <button
+                      onClick={() => navigate(item.path)}
+                      className={cn(
+                        "w-full justify-start gap-2",
+                        itemIsActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.title}
+                    </button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Voice Tools</SidebarGroupLabel>
+          <SidebarMenu>
+            {voiceTools.map((item) => {
               const Icon = item.icon;
               const itemIsActive = isActive(item.path);
               
