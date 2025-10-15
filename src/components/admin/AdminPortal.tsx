@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { ResponsiveContainer, ResponsiveGrid, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, LayoutItem, AdaptiveSection } from '@/components/admin/design/components/layouts';
 import { UserManagement } from './UserManagement';
 import { DepartmentManagement } from './DepartmentManagement';
-import { IntegrationSettings } from './IntegrationSettings';
+import { MessagingSettings } from './MessagingSettings';
 import { GeneralSettings } from './GeneralSettings';
 import { DesignLibrary } from './DesignLibrary';
 import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
@@ -101,22 +101,11 @@ export const AdminPortal = () => {
             </ResponsiveTabsContent>
             
             <ResponsiveTabsContent value="voice">
-              <ResponsiveTabs defaultValue="aircall" variant="pills" size="sm">
-                <ResponsiveTabsList>
-                  <ResponsiveTabsTrigger value="aircall">Aircall</ResponsiveTabsTrigger>
-                  <ResponsiveTabsTrigger value="integrations">All Providers</ResponsiveTabsTrigger>
-                </ResponsiveTabsList>
-                <ResponsiveTabsContent value="aircall">
-                  <AircallSettings />
-                </ResponsiveTabsContent>
-                <ResponsiveTabsContent value="integrations">
-                  <VoiceIntegrationsList />
-                </ResponsiveTabsContent>
-              </ResponsiveTabs>
+              <VoiceIntegrationsList />
             </ResponsiveTabsContent>
             
             <ResponsiveTabsContent value="messaging">
-              <IntegrationSettings />
+              <MessagingSettings />
             </ResponsiveTabsContent>
           </ResponsiveTabs>
         );
@@ -149,9 +138,7 @@ export const AdminPortal = () => {
               <ResponsiveTabs defaultValue="library" variant="pills" size="md" equalWidth>
                 <ResponsiveTabsList className="w-full">
                   <ResponsiveTabsTrigger value="library">Design Library</ResponsiveTabsTrigger>
-                  <ResponsiveTabsTrigger value="components">
-                    <a href="/admin/design/components" className="flex items-center">Components</a>
-                  </ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="components">Components</ResponsiveTabsTrigger>
                 </ResponsiveTabsList>
                 <ResponsiveTabsContent value="library">
                   <DesignLibrary />
