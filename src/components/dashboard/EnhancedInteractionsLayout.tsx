@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { VoiceInterface } from './VoiceInterface';
+import { VoiceDashboard } from './voice/VoiceDashboard';
 import { useTranslation } from "react-i18next";
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
@@ -153,9 +154,15 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     await replyMutation.mutateAsync(text);
   }, [conversationId, replyMutation]);
 
-  // Render VoiceInterface if active sub-tab is 'voice'
+  // Render VoiceDashboard if active sub-tab is 'voice'
   if (activeSubTab === 'voice') {
-    return <VoiceInterface />;
+    return <VoiceDashboard />;
+  }
+  
+  // Render specific voice pages
+  if (activeSubTab === 'voice-analytics' || activeSubTab === 'voice-settings') {
+    // These are handled at the Index.tsx level
+    return null;
   }
 
   // Render inbox list with search

@@ -41,3 +41,4 @@ export { CallAnalyticsDashboard } from './CallAnalyticsDashboard';
 export { CallMetricsCard } from './CallMetricsCard';
 export { CallVolumeChart } from './CallVolumeChart';
 export { AgentPerformanceTable } from './AgentPerformanceTable';
+export { VoiceDashboard } from './VoiceDashboard';
