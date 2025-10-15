@@ -349,7 +349,13 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     );
   };
 
-  const renderGroup = (title: string, calls: typeof filteredCalls, icon: React.ReactNode, defaultOpen = true) => {
+  // Convert renderGroup to a proper component to fix React hooks rule violation
+  const CallGroup = ({ title, calls, icon, defaultOpen = true }: { 
+    title: string; 
+    calls: typeof filteredCalls; 
+    icon: React.ReactNode; 
+    defaultOpen?: boolean;
+  }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     
     if (calls.length === 0) return null;
@@ -456,30 +462,30 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         </Card>
       ) : (
         <div className="space-y-6">
-          {renderGroup(
-            "Urgent",
-            groupedCalls.urgent,
-            <AlertCircle className="h-4 w-4 text-destructive" />,
-            true
-          )}
-          {renderGroup(
-            "Active Calls",
-            groupedCalls.active,
-            <PhoneCall className="h-4 w-4 text-success animate-pulse" />,
-            true
-          )}
-          {renderGroup(
-            "Recent (Today)",
-            groupedCalls.recent,
-            <Clock className="h-4 w-4 text-primary" />,
-            true
-          )}
-          {renderGroup(
-            "Earlier",
-            groupedCalls.earlier,
-            <History className="h-4 w-4 text-muted-foreground" />,
-            false
-          )}
+          <CallGroup
+            title="Urgent"
+            calls={groupedCalls.urgent}
+            icon={<AlertCircle className="h-4 w-4 text-destructive" />}
+            defaultOpen={true}
+          />
+          <CallGroup
+            title="Active Calls"
+            calls={groupedCalls.active}
+            icon={<PhoneCall className="h-4 w-4 text-success animate-pulse" />}
+            defaultOpen={true}
+          />
+          <CallGroup
+            title="Recent (Today)"
+            calls={groupedCalls.recent}
+            icon={<Clock className="h-4 w-4 text-primary" />}
+            defaultOpen={true}
+          />
+          <CallGroup
+            title="Earlier"
+            calls={groupedCalls.earlier}
+            icon={<History className="h-4 w-4 text-muted-foreground" />}
+            defaultOpen={false}
+          />
         </div>
       )}
 
