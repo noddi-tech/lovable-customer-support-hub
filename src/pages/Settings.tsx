@@ -128,9 +128,9 @@ export default function Settings() {
 
   if (isAdminMode) {
     return (
-      <UnifiedAppLayout>
+      <AdminPortalLayout>
         {renderAdminContent()}
-      </UnifiedAppLayout>
+      </AdminPortalLayout>
     );
   }
 
