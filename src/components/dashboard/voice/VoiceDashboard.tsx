@@ -18,21 +18,39 @@ import { CallbackRequestsList } from './CallbackRequestsList';
 import { VoicemailsList } from './VoicemailsList';
 import { CallMetricsCard } from './CallMetricsCard';
 import { LiveDataIndicator } from './LiveDataIndicator';
+import { AircallConnectionPrompt } from './AircallConnectionPrompt';
 import { useNavigate } from 'react-router-dom';
 import { useCallAnalytics } from '@/hooks/useCallAnalytics';
+import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { subDays } from 'date-fns';
 
 export const VoiceDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('recent');
+  const { isInitialized, isConnected, initializePhone, showAircallWorkspace } = useAircallPhone();
   
   const { metrics, isLoading } = useCallAnalytics({
     from: subDays(new Date(), 7),
     to: new Date(),
   });
 
+  const handleLoadPhone = async () => {
+    if (!isInitialized) {
+      await initializePhone();
+    }
+    showAircallWorkspace();
+  };
+
   return (
     <div className="space-y-6">
+      {/* Aircall Connection Prompt */}
+      {!isConnected && (
+        <AircallConnectionPrompt
+          onLoadPhone={handleLoadPhone}
+          variant="inline"
+          message="Load the Aircall phone system to make and receive calls"
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

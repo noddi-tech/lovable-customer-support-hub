@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { ModernLayout } from '@/components/layout/ModernLayout';
 import { CallAnalyticsDashboard } from '@/components/dashboard/voice/CallAnalyticsDashboard';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { LiveDataIndicator } from '@/components/dashboard/voice/LiveDataIndicator';
+import { useNavigate } from 'react-router-dom';
 
 export default function VoiceAnalyticsPage() {
+  const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
@@ -17,16 +18,26 @@ export default function VoiceAnalyticsPage() {
   const [isLive, setIsLive] = useState(true);
 
   return (
-    <ModernLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/interactions?tab=voice')}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Inbox
+          </Button>
           <div>
             <h1 className="text-3xl font-bold">Voice Analytics</h1>
             <p className="text-muted-foreground mt-1">
               Insights and performance metrics for your voice operations
             </p>
           </div>
+        </div>
 
           <div className="flex items-center gap-2">
             <LiveDataIndicator 
@@ -94,9 +105,8 @@ export default function VoiceAnalyticsPage() {
           </div>
         </div>
 
-        {/* Analytics Dashboard */}
-        <CallAnalyticsDashboard dateRange={dateRange} />
-      </div>
-    </ModernLayout>
+      {/* Analytics Dashboard */}
+      <CallAnalyticsDashboard dateRange={dateRange} />
+    </div>
   );
 }
