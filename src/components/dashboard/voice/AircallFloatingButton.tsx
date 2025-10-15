@@ -39,8 +39,26 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
   const statusLabel = hasActiveCall ? 'Active call' : 'Connected';
   
   const Icon = workspaceVisible ? ChevronDown : Phone;
-  const handleClick = workspaceVisible ? hideAircallWorkspace : showAircallWorkspace;
   const tooltipText = workspaceVisible ? 'Minimize Phone' : 'Show Aircall Phone';
+  
+  const handleClick = () => {
+    const container = document.querySelector('#aircall-workspace-container');
+    const domVisible = container?.classList.contains('aircall-visible');
+    
+    console.log('[AircallFloatingButton] Button clicked:', {
+      workspaceVisible,
+      domVisible,
+      isConnected,
+      isWorkspaceReady,
+      action: workspaceVisible ? 'hiding' : 'showing'
+    });
+    
+    if (workspaceVisible) {
+      hideAircallWorkspace();
+    } else {
+      showAircallWorkspace();
+    }
+  };
   
   // Position: floating when hidden, top-right of workspace when visible
   const positionClasses = workspaceVisible 

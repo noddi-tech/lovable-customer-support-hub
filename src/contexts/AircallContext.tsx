@@ -363,25 +363,30 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       return;
     }
     
-    // Idempotence Guard - Skip if already hidden
-    if (!workspaceVisible) {
-      console.log('[AircallProvider] 🙈 Workspace already hidden - skipping');
-      return;
-    }
-    
     isHidingWorkspaceRef.current = true;
     
     try {
+      const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+      
+      if (!container) {
+        console.warn('[AircallProvider] Cannot hide workspace - container not found');
+        return;
+      }
+      
+      // CHECK DOM STATE, NOT REACT STATE
+      const isActuallyVisible = container.classList.contains('aircall-visible');
+      
+      if (!isActuallyVisible) {
+        console.log('[AircallProvider] 🙈 Workspace already hidden in DOM - skipping');
+        // Sync React state if needed
+        if (workspaceVisible) setWorkspaceVisible(false);
+        return;
+      }
+      
       // Call the actual Aircall SDK to hide workspace
       if (aircallPhone.isWorkspaceCreated()) {
         console.log('[AircallProvider] 🙈 Calling SDK hideWorkspace()');
         aircallPhone.hideWorkspace();
-      }
-
-      const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-      if (!container) {
-        console.warn('[AircallProvider] Cannot hide workspace - container not found');
-        return;
       }
       
       container.classList.remove('aircall-visible');
@@ -394,7 +399,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         isHidingWorkspaceRef.current = false;
       }, 100);
     }
-  }, [workspaceVisible, setWorkspaceVisiblePreference]);
+  }, [workspaceVisible, setWorkspaceVisiblePreference, aircallPhone]);
 
   /**
    * Handles successful login - centralized logic to avoid duplication
@@ -1394,6 +1399,40 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
     return () => observer.disconnect();
   }, []);
+
+  // ============================================================================
+  // Auto-sync React state with DOM reality
+  // ============================================================================
+  useEffect(() => {
+    const container = document.querySelector('#aircall-workspace-container');
+    if (!container) return;
+
+    const syncStateWithDOM = () => {
+      const hasVisibleClass = container.classList.contains('aircall-visible');
+      const hasHiddenClass = container.classList.contains('aircall-hidden');
+      
+      // Update React state to match DOM reality
+      if (hasVisibleClass && !workspaceVisible) {
+        console.log('[AircallProvider] 🔄 Syncing state: DOM visible but React state false');
+        setWorkspaceVisible(true);
+      } else if (hasHiddenClass && workspaceVisible) {
+        console.log('[AircallProvider] 🔄 Syncing state: DOM hidden but React state true');
+        setWorkspaceVisible(false);
+      }
+    };
+
+    // Check immediately on mount
+    syncStateWithDOM();
+
+    // Watch for class changes
+    const observer = new MutationObserver(syncStateWithDOM);
+    observer.observe(container, { 
+      attributes: true, 
+      attributeFilter: ['class'] 
+    });
+
+    return () => observer.disconnect();
+  }, [workspaceVisible]);
 
   // ============================================================================
   // Check Login Status (for popup login polling)
