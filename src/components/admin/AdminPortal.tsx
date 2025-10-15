@@ -16,6 +16,7 @@ import { InboxManagement } from './InboxManagement';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { useTranslation } from 'react-i18next';
+import { Mail, Phone, Shield } from 'lucide-react';
 
 export const AdminPortal = () => {
   const { t } = useTranslation();
@@ -36,14 +37,10 @@ export const AdminPortal = () => {
                   <ResponsiveTabsTrigger value="departments">Departments</ResponsiveTabsTrigger>
                 </ResponsiveTabsList>
                 <ResponsiveTabsContent value="user-list">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <UserManagement />
-                  </AdaptiveSection>
+                  <UserManagement />
                 </ResponsiveTabsContent>
                 <ResponsiveTabsContent value="departments">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <DepartmentManagement />
-                  </AdaptiveSection>
+                  <DepartmentManagement />
                 </ResponsiveTabsContent>
               </ResponsiveTabs>
             </LayoutItem>
@@ -51,89 +48,98 @@ export const AdminPortal = () => {
         );
 
       case 'inboxes':
-        return (
-          <ResponsiveGrid cols={{ sm: '1', md: '2', lg: '3' }} gap="6">
-            <LayoutItem className="md:col-span-2 lg:col-span-3">
-              <AdaptiveSection spacing="4" className="max-h-[calc(100vh-300px)] overflow-y-auto">
-                <InboxManagement />
-              </AdaptiveSection>
-            </LayoutItem>
-          </ResponsiveGrid>
-        );
+        return <InboxManagement />;
 
       case 'integrations':
         return (
-          <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6">
-            <LayoutItem className="lg:col-span-2">
-              <ResponsiveTabs defaultValue="overview" variant="pills" size="md" equalWidth>
-                <ResponsiveTabsList className="w-full">
-                  <ResponsiveTabsTrigger value="overview">Overview</ResponsiveTabsTrigger>
-                  <ResponsiveTabsTrigger value="aircall">Aircall</ResponsiveTabsTrigger>
+          <ResponsiveTabs defaultValue="email" variant="pills" size="md" equalWidth>
+            <ResponsiveTabsList className="w-full">
+              <ResponsiveTabsTrigger value="email">
+                <Mail className="w-4 h-4 mr-2" />
+                Email & Routing
+              </ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="voice">
+                <Phone className="w-4 h-4 mr-2" />
+                Voice & Phone
+              </ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="messaging">
+                <Shield className="w-4 h-4 mr-2" />
+                Messaging
+              </ResponsiveTabsTrigger>
+            </ResponsiveTabsList>
+            
+            <ResponsiveTabsContent value="email">
+              <ResponsiveTabs defaultValue="sendgrid" variant="pills" size="sm">
+                <ResponsiveTabsList>
                   <ResponsiveTabsTrigger value="sendgrid">SendGrid</ResponsiveTabsTrigger>
                   <ResponsiveTabsTrigger value="google-groups">Google Groups</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="routes">Inbound Routes</ResponsiveTabsTrigger>
                 </ResponsiveTabsList>
-                <ResponsiveTabsContent value="overview">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <IntegrationSettings />
-                  </AdaptiveSection>
-                </ResponsiveTabsContent>
-                <ResponsiveTabsContent value="aircall">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <AircallSettings />
-                  </AdaptiveSection>
-                </ResponsiveTabsContent>
                 <ResponsiveTabsContent value="sendgrid">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <SendgridSetupWizard />
-                  </AdaptiveSection>
+                  <SendgridSetupWizard />
                 </ResponsiveTabsContent>
                 <ResponsiveTabsContent value="google-groups">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <Card className="bg-gradient-surface border-border/50 shadow-surface">
-                      <CardHeader>
-                        <CardTitle className="text-primary">Google Groups Setup</CardTitle>
-                        <CardDescription>
-                          Configure Google Groups for email routing
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <GoogleGroupSetup 
-                          alias="support" 
-                          domain="yourdomain.com" 
-                          parseSubdomain="inbound"
-                          inboxName="Support"
-                        />
-                      </CardContent>
-                    </Card>
-                  </AdaptiveSection>
+                  <Card className="bg-gradient-surface border-border/50 shadow-surface">
+                    <CardHeader>
+                      <CardTitle className="text-primary">Google Groups Setup</CardTitle>
+                      <CardDescription>Configure Google Groups for email routing</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <GoogleGroupSetup 
+                        alias="support" 
+                        domain="yourdomain.com" 
+                        parseSubdomain="inbound"
+                        inboxName="Support"
+                      />
+                    </CardContent>
+                  </Card>
+                </ResponsiveTabsContent>
+                <ResponsiveTabsContent value="routes">
+                  <InboundRoutesList />
                 </ResponsiveTabsContent>
               </ResponsiveTabs>
-            </LayoutItem>
-          </ResponsiveGrid>
+            </ResponsiveTabsContent>
+            
+            <ResponsiveTabsContent value="voice">
+              <ResponsiveTabs defaultValue="aircall" variant="pills" size="sm">
+                <ResponsiveTabsList>
+                  <ResponsiveTabsTrigger value="aircall">Aircall</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="integrations">All Providers</ResponsiveTabsTrigger>
+                </ResponsiveTabsList>
+                <ResponsiveTabsContent value="aircall">
+                  <AircallSettings />
+                </ResponsiveTabsContent>
+                <ResponsiveTabsContent value="integrations">
+                  <VoiceIntegrationsList />
+                </ResponsiveTabsContent>
+              </ResponsiveTabs>
+            </ResponsiveTabsContent>
+            
+            <ResponsiveTabsContent value="messaging">
+              <IntegrationSettings />
+            </ResponsiveTabsContent>
+          </ResponsiveTabs>
         );
 
       case 'voice':
+        // Redirect to integrations tab
         return (
-          <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6">
-            <LayoutItem className="lg:col-span-2">
-              <ResponsiveTabs defaultValue="integrations" variant="pills" size="md" equalWidth>
-                <ResponsiveTabsList className="w-full">
-                  <ResponsiveTabsTrigger value="integrations">Voice Integrations</ResponsiveTabsTrigger>
-                  <ResponsiveTabsTrigger value="routes">Inbound Routes</ResponsiveTabsTrigger>
-                </ResponsiveTabsList>
-                <ResponsiveTabsContent value="integrations">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <VoiceIntegrationsList />
-                  </AdaptiveSection>
-                </ResponsiveTabsContent>
-                <ResponsiveTabsContent value="routes">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <InboundRoutesList />
-                  </AdaptiveSection>
-                </ResponsiveTabsContent>
-              </ResponsiveTabs>
-            </LayoutItem>
-          </ResponsiveGrid>
+          <Card className="bg-gradient-surface border-border/50 shadow-surface">
+            <CardHeader>
+              <CardTitle>Voice settings moved</CardTitle>
+              <CardDescription>
+                Voice integrations are now under Integrations & Routing
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                All voice and phone configurations have been consolidated under the new Integrations & Routing section.
+              </p>
+              <a href="/admin/integrations" className="text-primary hover:underline">
+                Go to Integrations & Routing →
+              </a>
+            </CardContent>
+          </Card>
         );
 
       case 'design':
@@ -148,14 +154,10 @@ export const AdminPortal = () => {
                   </ResponsiveTabsTrigger>
                 </ResponsiveTabsList>
                 <ResponsiveTabsContent value="library">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <DesignLibrary />
-                  </AdaptiveSection>
+                  <DesignLibrary />
                 </ResponsiveTabsContent>
                 <ResponsiveTabsContent value="components">
-                  <AdaptiveSection spacing="4" className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <ComponentConfigurationPanel />
-                  </AdaptiveSection>
+                  <ComponentConfigurationPanel />
                 </ResponsiveTabsContent>
               </ResponsiveTabs>
             </LayoutItem>
@@ -164,15 +166,7 @@ export const AdminPortal = () => {
 
       case 'general':
       default:
-        return (
-          <ResponsiveGrid cols={{ sm: '1', md: '2', lg: '3' }} gap="6">
-            <LayoutItem className="md:col-span-2 lg:col-span-3">
-              <AdaptiveSection spacing="4" className="max-h-[calc(100vh-300px)] overflow-y-auto">
-                <GeneralSettings />
-              </AdaptiveSection>
-            </LayoutItem>
-          </ResponsiveGrid>
-        );
+        return <GeneralSettings />;
     }
   };
 

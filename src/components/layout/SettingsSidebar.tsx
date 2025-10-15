@@ -60,11 +60,6 @@ export const SettingsSidebar: React.FC = () => {
       title: t('settings.tabs.emailDesign', 'Email Templates'),
       icon: Palette,
       path: '/settings/email-templates'
-    },
-    {
-      title: t('settings.tabs.departments', 'Departments'),
-      icon: Building,
-      path: '/settings/departments'
     }
   ];
 
@@ -82,15 +77,9 @@ export const SettingsSidebar: React.FC = () => {
       permission: 'manage_settings' as const
     },
     {
-      title: 'Integrations',
+      title: 'Integrations & Routing',
       icon: LinkIcon,
       path: '/admin/integrations',
-      permission: 'manage_settings' as const
-    },
-    {
-      title: 'Voice',
-      icon: Phone,
-      path: '/admin/voice',
       permission: 'manage_settings' as const
     },
     {

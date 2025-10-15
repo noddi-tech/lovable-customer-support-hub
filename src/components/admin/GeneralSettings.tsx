@@ -128,8 +128,7 @@ const { isAdmin } = usePermissions();
   };
 
   return (
-    <div className="pane">
-      <div className="space-y-6">
+    <div className="space-y-6">
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
@@ -253,8 +252,6 @@ const { isAdmin } = usePermissions();
           </CardContent>
         </Card>
       )}
-
-      </div>
     </div>
   );
 };

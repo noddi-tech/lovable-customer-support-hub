@@ -13,8 +13,7 @@ export const IntegrationSettings = () => {
   const { t } = useTranslation();
   
   return (
-    <div className="pane">
-      <div className="space-y-6">
+    <div className="space-y-6">
       <ResponsiveTabs 
         defaultValue="email" 
         variant="pills" 
@@ -147,6 +146,5 @@ export const IntegrationSettings = () => {
         </ResponsiveTabsContent>
       </ResponsiveTabs>
     </div>
-  </div>
   );
 };

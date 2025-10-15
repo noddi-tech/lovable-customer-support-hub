@@ -13,11 +13,11 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { ResponsiveContainer } from '@/components/admin/design/components/layouts';
+import { PaneColumn, PaneScroll } from '@/components/layout';
 import { 
   Users, 
   Settings, 
-  Plug, 
+  Plug2, 
   Palette, 
   Phone, 
   Inbox, 
@@ -38,36 +38,42 @@ const AdminSidebar = () => {
   const location = useLocation();
   const { state } = useSidebar();
 
-  const mainNavItems = [
+  const organizationItems = [
     {
       title: t('admin.userManagement'),
       url: '/admin/users',
-      icon: Users
+      icon: Users,
+      group: 'organization'
     },
     {
       title: t('admin.inboxes'),
       url: '/admin/inboxes',
-      icon: Inbox
-    },
-    {
-      title: t('admin.integrations'),
-      url: '/admin/integrations',
-      icon: Plug
-    },
-    {
-      title: t('admin.voice'),
-      url: '/admin/voice',
-      icon: Phone
-    },
-    {
-      title: t('admin.design'),
-      url: '/admin/design',
-      icon: Palette
+      icon: Inbox,
+      group: 'organization'
     },
     {
       title: t('admin.general'),
       url: '/admin/general',
-      icon: Settings
+      icon: Settings,
+      group: 'organization'
+    }
+  ];
+
+  const integrationItems = [
+    {
+      title: 'Integrations & Routing',
+      url: '/admin/integrations',
+      icon: Plug2,
+      group: 'integrations'
+    }
+  ];
+
+  const customizationItems = [
+    {
+      title: t('admin.design'),
+      url: '/admin/design',
+      icon: Palette,
+      group: 'customization'
     }
   ];
 
@@ -96,11 +102,51 @@ const AdminSidebar = () => {
         
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70">
-            Administration
+            Organization
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
+              {organizationItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/70">
+            Integrations & Routing
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {integrationItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/70">
+            Customization
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {customizationItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <a href={item.url}>
@@ -137,17 +183,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
             </div>
           </header>
 
-          {/* Content area with responsive container and scrolling */}
-          <ResponsiveContainer 
-            className="flex-1 overflow-y-auto"
-            padding={{ sm: '4', md: '6' }}
-            maxWidth="full"
-            center={true}
-          >
-            <div className="h-full">
-              {children}
-            </div>
-          </ResponsiveContainer>
+          {/* Content area with proper pane scrolling */}
+          <PaneColumn className="flex-1 min-h-0">
+            <PaneScroll className="h-full">
+              <div className="p-6 max-w-7xl mx-auto">
+                {children}
+              </div>
+            </PaneScroll>
+          </PaneColumn>
         </main>
       </div>
     </SidebarProvider>

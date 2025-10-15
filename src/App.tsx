@@ -84,12 +84,14 @@ const AppContent = () => {
       {/* Admin Routes */}
       <Route path="/admin" element={<Navigate to="/admin/general" replace />} />
       <Route path="/admin/general" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
-      <Route path="/admin/email-design" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
-      <Route path="/admin/departments" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/email-design" element={<Navigate to="/settings/email-templates" replace />} />
+      <Route path="/settings/email-templates" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin/departments" element={<Navigate to="/admin/users" replace />} />
+      <Route path="/settings/departments" element={<Navigate to="/admin/users" replace />} />
       <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/inboxes" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/integrations" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
-      <Route path="/admin/voice" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/voice" element={<Navigate to="/admin/integrations" replace />} />
       <Route path="/admin/design" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/design/components" element={<ProtectedRoute><AdminRoute><AdminDesignComponentsPage /></AdminRoute></ProtectedRoute>} />
       
