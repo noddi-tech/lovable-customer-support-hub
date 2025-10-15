@@ -72,12 +72,12 @@ export const AdminPortal = () => {
             <ResponsiveTabsContent value="email">
               <ResponsiveTabs defaultValue="sendgrid" variant="pills" size="sm">
               <ResponsiveTabsList>
-                <ResponsiveTabsTrigger value="gmail-oauth">Gmail OAuth</ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="email-accounts">Email Accounts</ResponsiveTabsTrigger>
                 <ResponsiveTabsTrigger value="sendgrid">SendGrid</ResponsiveTabsTrigger>
                 <ResponsiveTabsTrigger value="google-groups">Google Groups</ResponsiveTabsTrigger>
                 <ResponsiveTabsTrigger value="routes">Inbound Routes</ResponsiveTabsTrigger>
               </ResponsiveTabsList>
-              <ResponsiveTabsContent value="gmail-oauth">
+              <ResponsiveTabsContent value="email-accounts">
                 <EmailAccountConnection />
               </ResponsiveTabsContent>
               <ResponsiveTabsContent value="sendgrid">
