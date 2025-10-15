@@ -10,6 +10,8 @@ import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
 import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
 import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
+import VoiceAnalyticsPage from '@/pages/VoiceAnalyticsPage';
+import VoiceSettingsPage from '@/pages/VoiceSettingsPage';
 
 
 const Index = () => {
@@ -24,6 +26,8 @@ const Index = () => {
 
   const getCurrentSubSection = () => {
     const path = location.pathname;
+    if (path.includes('/voice/analytics')) return 'voice-analytics';
+    if (path.includes('/voice/settings')) return 'voice-settings';
     if (path.includes('/voice')) return 'voice';
     if (path.includes('/newsletters')) return 'newsletters';
     if (path.includes('/tickets') || path === '/operations') return 'tickets';
@@ -41,6 +45,13 @@ const Index = () => {
 
     switch (section) {
       case 'interactions':
+        // Handle voice analytics and settings
+        if (subSection === 'voice-analytics') {
+          return <VoiceAnalyticsPage />;
+        }
+        if (subSection === 'voice-settings') {
+          return <VoiceSettingsPage />;
+        }
         // Always use EnhancedInteractionsLayout for interactions to preserve sidebar
         return (
           <EnhancedInteractionsLayout

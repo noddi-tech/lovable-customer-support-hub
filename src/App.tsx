@@ -81,6 +81,10 @@ const AppContent = () => {
       <Route path="/settings/profile" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/settings/notifications" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
+      {/* Voice Routes */}
+      <Route path="/voice/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/voice/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      
       {/* Admin Routes */}
       <Route path="/admin" element={<Navigate to="/admin/general" replace />} />
       <Route path="/admin/general" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
