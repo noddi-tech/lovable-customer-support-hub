@@ -120,26 +120,10 @@ export const NAV_ITEMS: NavItem[] = [
     group: "settings" 
   },
 
-  // Admin (RBAC)
-  { 
-    id: "admin-email-design", 
-    label: "Email Design", 
-    to: "/admin/email-design", 
-    icon: MailOpen, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-  { 
-    id: "admin-departments", 
-    label: "Departments", 
-    to: "/admin/departments", 
-    icon: Building2, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
+  // Admin (RBAC) - Consolidated modular items
   { 
     id: "admin-users", 
-    label: "Users", 
+    label: "Users & Teams", 
     to: "/admin/users", 
     icon: Users, 
     group: "admin", 
@@ -155,17 +139,9 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { 
     id: "admin-integrations", 
-    label: "Integrations", 
+    label: "Integrations & Routing", 
     to: "/admin/integrations", 
     icon: Workflow, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-  { 
-    id: "admin-voice", 
-    label: "Voice", 
-    to: "/admin/voice", 
-    icon: Phone, 
     group: "admin", 
     requiredRole: "admin" 
   },
@@ -179,7 +155,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { 
     id: "admin-general", 
-    label: "General", 
+    label: "General Settings", 
     to: "/admin/general", 
     icon: Cog, 
     group: "admin", 

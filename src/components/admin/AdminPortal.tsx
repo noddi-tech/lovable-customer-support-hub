@@ -10,6 +10,7 @@ import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
 import { AircallSettings } from './AircallSettings';
 import { SendgridSetupWizard } from './SendgridSetupWizard';
 import { GoogleGroupSetup } from './GoogleGroupSetup';
+import { EmailAccountConnection } from '@/components/dashboard/EmailAccountConnection';
 import { VoiceIntegrationsList } from './VoiceIntegrationsList';
 import { InboundRoutesList } from './InboundRoutesList';
 import { InboxManagement } from './InboxManagement';
@@ -70,15 +71,19 @@ export const AdminPortal = () => {
             
             <ResponsiveTabsContent value="email">
               <ResponsiveTabs defaultValue="sendgrid" variant="pills" size="sm">
-                <ResponsiveTabsList>
-                  <ResponsiveTabsTrigger value="sendgrid">SendGrid</ResponsiveTabsTrigger>
-                  <ResponsiveTabsTrigger value="google-groups">Google Groups</ResponsiveTabsTrigger>
-                  <ResponsiveTabsTrigger value="routes">Inbound Routes</ResponsiveTabsTrigger>
-                </ResponsiveTabsList>
-                <ResponsiveTabsContent value="sendgrid">
-                  <SendgridSetupWizard />
-                </ResponsiveTabsContent>
-                <ResponsiveTabsContent value="google-groups">
+              <ResponsiveTabsList>
+                <ResponsiveTabsTrigger value="gmail-oauth">Gmail OAuth</ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="sendgrid">SendGrid</ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="google-groups">Google Groups</ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="routes">Inbound Routes</ResponsiveTabsTrigger>
+              </ResponsiveTabsList>
+              <ResponsiveTabsContent value="gmail-oauth">
+                <EmailAccountConnection />
+              </ResponsiveTabsContent>
+              <ResponsiveTabsContent value="sendgrid">
+                <SendgridSetupWizard />
+              </ResponsiveTabsContent>
+              <ResponsiveTabsContent value="google-groups">
                   <Card className="bg-gradient-surface border-border/50 shadow-surface">
                     <CardHeader>
                       <CardTitle className="text-primary">Google Groups Setup</CardTitle>

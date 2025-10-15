@@ -126,11 +126,12 @@ export default function Settings() {
   }
 
 
+  // Always use UnifiedAppLayout for better UX - admin items show in main sidebar
   if (isAdminMode) {
     return (
-      <AdminPortalLayout>
+      <UnifiedAppLayout>
         {renderAdminContent()}
-      </AdminPortalLayout>
+      </UnifiedAppLayout>
     );
   }
 
