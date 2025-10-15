@@ -3,6 +3,7 @@
  * 
  * Provides keyboard shortcuts for power users during calls
  * Shortcuts are only active when a call is in progress
+ * Enhanced with better key detection and Space/Enter support
  */
 
 import { useEffect } from 'react';
@@ -31,13 +32,33 @@ export const useCallKeyboardShortcuts = ({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Only process shortcuts when Ctrl/Cmd + Shift are pressed
+      // Don't trigger shortcuts when typing in input fields (except Space/Enter for answer)
+      const target = event.target as HTMLElement;
+      const isInInputField = 
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable;
+
+      const key = event.key.toLowerCase();
       const isShortcut = (event.ctrlKey || event.metaKey) && event.shiftKey;
+
+      // Allow Space/Enter to answer call even when not in shortcut mode
+      if ((key === ' ' || key === 'enter') && onAnswer && !isCallActive && !isInInputField) {
+        event.preventDefault();
+        onAnswer();
+        toast({
+          title: 'Call answered',
+          description: `Keyboard shortcut: ${key === ' ' ? 'Space' : 'Enter'}`,
+          duration: 2000,
+        });
+        return;
+      }
       
+      // Only process Ctrl+Shift shortcuts when that combination is pressed
       if (!isShortcut) return;
 
       // Prevent default browser behavior for our shortcuts
-      const shortcutKey = event.key.toLowerCase();
+      const shortcutKey = key;
 
       switch (shortcutKey) {
         case 'a':
