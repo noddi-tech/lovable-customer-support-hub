@@ -30,7 +30,7 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
       // Fetch calls within date range
       const { data: calls } = await supabase
         .from('calls')
-        .select('*, internal_events!inner(agent_id)')
+        .select('*, internal_events!inner(assigned_to_id)')
         .eq('organization_id', profile.organization_id)
         .gte('created_at', startOfDay(range.from).toISOString())
         .lte('created_at', endOfDay(range.to).toISOString());
@@ -66,7 +66,7 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
       const agentStats = agents?.map(agent => {
         const agentCalls = calls.filter(c => {
           const events = Array.isArray(c.internal_events) ? c.internal_events : [c.internal_events];
-          return events.some((e: any) => e?.agent_id === agent.user_id);
+          return events.some((e: any) => e?.assigned_to_id === agent.user_id);
         });
         const agentAnswered = agentCalls.filter(c => c.status === 'completed');
         return {

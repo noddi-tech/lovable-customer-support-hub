@@ -15,6 +15,7 @@ import { CallDetailsDialog } from './CallDetailsDialog';
 import { CallActionButton } from './CallActionButton';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { EnhancedCallCard } from './EnhancedCallCard';
+import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
 
 interface CallsListProps {
   showTimeFilter?: boolean;
@@ -46,6 +47,15 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
+  // Advanced filters state
+  const [filters, setFilters] = useState<CallFilters>({
+    search: '',
+    status: [],
+    timeRange: 'all',
+    duration: '',
+    priority: [],
+  });
+  
   const { calls, isLoading, error } = useCalls();
   const { getIntegrationByProvider } = useVoiceIntegrations();
   const aircallIntegration = getIntegrationByProvider('aircall');
@@ -63,8 +73,29 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     );
   }
 
-  // Filter calls based on status, direction, and time range
+  // Filter calls based on all filters including advanced search
   const filteredCalls = calls.filter(call => {
+    // Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      const matchesPhone = call.customer_phone?.toLowerCase().includes(searchLower);
+      const matchesName = call.customers?.full_name?.toLowerCase().includes(searchLower);
+      const matchesId = call.id?.toLowerCase().includes(searchLower);
+      if (!matchesPhone && !matchesName && !matchesId) return false;
+    }
+    
+    // Status filters from advanced filters
+    if (filters.status.length > 0) {
+      const matchesStatus = filters.status.some(s => {
+        if (s === 'missed') return call.status === 'missed' || call.end_reason === 'not_answered';
+        if (s === 'completed') return call.status === 'completed' || call.status === 'answered';
+        if (s === 'ongoing') return call.status === 'ringing' || call.status === 'on_hold';
+        return false;
+      });
+      if (!matchesStatus) return false;
+    }
+    
+    // Legacy status filter (for backward compatibility)
     if (statusFilter !== 'all' && call.status !== statusFilter) return false;
     if (directionFilter !== 'all' && call.direction !== directionFilter) return false;
     
@@ -388,15 +419,28 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
 
   return (
     <div className="space-y-4">
+      {/* Advanced Search and Filters */}
+      <AdvancedCallFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        onClearFilters={() => setFilters({
+          search: '',
+          status: [],
+          timeRange: 'all',
+          duration: '',
+          priority: [],
+        })}
+      />
+      
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Call History</h3>
           <p className="text-sm text-muted-foreground">
-            Recent calls and their details
+            {filteredCalls.length} call{filteredCalls.length !== 1 ? 's' : ''} found
           </p>
         </div>
         
-        {/* Filters */}
+        {/* Legacy Filters */}
         <div className="flex items-center gap-3">
           <Filter className="h-4 w-4 text-muted-foreground" />
           

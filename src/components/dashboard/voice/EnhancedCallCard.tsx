@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Call } from '@/hooks/useCalls';
 import { SidebarCounter } from '@/components/ui/sidebar-counter';
+import { CallCustomerInfo } from './CallCustomerInfo';
 
 interface EnhancedCallCardProps {
   call: Call;
@@ -105,18 +106,18 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
         onSelect?.(call);
       }}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="flex items-start gap-2.5 flex-1 min-w-0">
             {/* Direction Icon */}
-            <div className="flex-shrink-0 mt-1 p-2 rounded-full bg-muted">
+            <div className="flex-shrink-0 mt-0.5 p-1.5 rounded-full bg-muted">
               {getDirectionIcon()}
             </div>
             
             {/* Call Details */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-lg truncate font-mono">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="font-semibold text-base truncate font-mono">
                   {formatPhoneNumber(call.customer_phone)}
                 </span>
                 <Badge 
@@ -127,28 +128,24 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
                 </Badge>
               </div>
               
-              {/* Customer Name if available */}
-              {call.customers?.full_name && (
-                <div className="text-sm font-medium mb-1">
-                  {call.customers.full_name}
-                </div>
-              )}
+              {/* Customer Info with Noddi Data */}
+              <CallCustomerInfo call={call} />
               
               {/* Status Description */}
               {getStatusDescription() && (
-                <div className="text-sm text-muted-foreground mb-2">
+                <div className="text-xs text-muted-foreground mb-1.5">
                   {getStatusDescription()}
                 </div>
               )}
               
               {/* Metadata Row */}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+              <div className="flex items-center gap-2.5 text-xs text-muted-foreground flex-wrap">
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   <span>{formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}</span>
                 </div>
                 {call.duration_seconds && call.duration_seconds > 0 && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted">
                     <Clock className="h-3 w-3" />
                     <span className="font-medium">{formatDuration(call.duration_seconds)}</span>
                   </div>
