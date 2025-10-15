@@ -6,17 +6,15 @@ import { NoddiLookupResponse } from '@/hooks/useNoddihKundeData';
 
 interface NoddiStatusBadgesProps {
   noddiData: NoddiLookupResponse;
-  compact?: boolean;
 }
 
-export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData, compact = false }) => {
+export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData }) => {
   if (!noddiData?.data?.found) return null;
 
   const { data } = noddiData;
   const unpaidCount = data.unpaid_count || 0;
   const isPriority = data.priority_booking_type === 'upcoming';
   const hasBooking = data.priority_booking != null;
-  const totalBookings = hasBooking ? 1 : 0;
 
   return (
     <TooltipProvider>
@@ -26,7 +24,6 @@ export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData,
           <TooltipTrigger asChild>
             <Badge variant="outline" className="h-5 px-1.5 text-xs border-success/50 bg-success/5">
               <CheckCircle2 className="h-3 w-3 text-success" />
-              {!compact && <span className="ml-1">Verified</span>}
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
@@ -40,7 +37,7 @@ export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData,
             <TooltipTrigger asChild>
               <Badge variant="outline" className="h-5 px-1.5 text-xs">
                 <Package className="h-3 w-3" />
-                {!compact && <span className="ml-1">Booking</span>}
+                <span className="ml-1">Booking</span>
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
@@ -70,7 +67,7 @@ export const NoddiStatusBadges: React.FC<NoddiStatusBadgesProps> = ({ noddiData,
             <TooltipTrigger asChild>
               <Badge variant="outline" className="h-5 px-1.5 text-xs border-warning/50 bg-warning/5">
                 <Star className="h-3 w-3 text-warning" />
-                {!compact && <span className="ml-1">Priority</span>}
+                <span className="ml-1">Priority</span>
               </Badge>
             </TooltipTrigger>
             <TooltipContent>

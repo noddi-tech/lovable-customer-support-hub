@@ -38,7 +38,7 @@ export const CallCustomerInfo: React.FC<CallCustomerInfoProps> = ({ call }) => {
 
       {/* Noddi Status Badges */}
       {noddiData && !isLoading && (
-        <NoddiStatusBadges noddiData={noddiData} compact />
+        <NoddiStatusBadges noddiData={noddiData} />
       )}
     </div>
   );
