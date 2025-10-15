@@ -332,113 +332,22 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     return 'opacity-100';
   };
 
-  const renderCallCard = (call: any) => (
-    <Card 
-      key={call.id} 
-      className={`group cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50 border-l-4 ${getBorderColor(call)} ${getCallAge(call.started_at)} ${
-        selectedCallId === call.id ? 'ring-2 ring-primary ring-offset-2' : ''
-      }`}
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest('button, select')) {
-          return;
-        }
-        onSelectCall?.(call);
-      }}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* Direction Icon */}
-            <div className="flex-shrink-0 mt-1 p-2 rounded-full bg-muted">
-              {getDirectionIcon(call.direction)}
-            </div>
-            
-            {/* Call Details */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-lg truncate" style={{ fontFamily: 'var(--font-mono, monospace)' }}>
-                  {formatPhoneNumber(call.customer_phone)}
-                </span>
-                {(() => {
-                  const statusDetails = getStatusDetails(call);
-                  return (
-                    <Badge 
-                      variant={getStatusColor(call.status) as any} 
-                      className="text-xs shrink-0"
-                    >
-                      {statusDetails.label}
-                    </Badge>
-                  );
-                })()}
-              </div>
-              
-              {/* Customer Name if available */}
-              {call.customer?.full_name && (
-                <div className="text-sm text-foreground font-medium mb-1">
-                  {call.customer.full_name}
-                </div>
-              )}
-              
-              {/* Status Description */}
-              {(() => {
-                const statusDetails = getStatusDetails(call);
-                const hasAdditionalInfo = statusDetails.description && statusDetails.description !== `Status: ${call.status}`;
-                
-                return hasAdditionalInfo && (
-                  <div className="text-sm text-muted-foreground mb-2">
-                    {statusDetails.description}
-                  </div>
-                );
-              })()}
-              
-              {/* Metadata Row */}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>{formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}</span>
-                </div>
-                {call.duration_seconds > 0 && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
-                    <Clock className="h-3 w-3" />
-                    <span className="font-medium">{formatDuration(call.duration_seconds)}</span>
-                  </div>
-                )}
-                <CallNotesCount callId={call.id} />
-              </div>
-            </div>
-          </div>
+  const renderCallCard = (call: any) => {
+    const { notes } = useCallNotes(call.id);
+    const notesCount = notes?.length || 0;
 
-          {/* Quick Actions - Show on Hover */}
-          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1">
-            <Button 
-              size="sm" 
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                openCallDetails(call);
-              }}
-              title="View Details"
-            >
-              <History className="h-4 w-4" />
-            </Button>
-            {onNavigateToEvents && (
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigateToEvents(call.id);
-                }}
-                title="View Events"
-              >
-                <MessageSquare className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+    return (
+      <EnhancedCallCard
+        key={call.id}
+        call={call}
+        isSelected={selectedCallId === call.id}
+        onSelect={onSelectCall}
+        onViewDetails={openCallDetails}
+        onNavigateToEvents={onNavigateToEvents}
+        notesCount={notesCount}
+      />
+    );
+  };
 
   const renderGroup = (title: string, calls: typeof filteredCalls, icon: React.ReactNode, defaultOpen = true) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -546,174 +455,31 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-1">
-          {filteredCalls.map((call) => (
-            <Card 
-              key={call.id} 
-              className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                selectedCallId === call.id ? 'ring-2 ring-primary ring-offset-2' : ''
-              }`}
-              onClick={(e) => {
-                // Only trigger selection if clicking the card, not interactive elements
-                if ((e.target as HTMLElement).closest('button, select')) {
-                  return;
-                }
-                onSelectCall?.(call);
-              }}
-            >
-              <CardContent className="px-2 py-1">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-1.5 flex-1">
-                    {/* Direction Icon */}
-                    <div className="flex-shrink-0 flex items-center">
-                      {getDirectionIcon(call.direction)}
-                    </div>
-                    
-                    {/* Call Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="font-medium text-sm">
-                          {formatPhoneNumber(call.customer_phone)}
-                        </span>
-                        {(() => {
-                          const statusDetails = getStatusDetails(call);
-                          return (
-                            <Badge 
-                              variant={getStatusColor(call.status) as any} 
-                              className="text-xs px-1 py-0 h-4"
-                              title={statusDetails.description}
-                            >
-                              <span className="mr-1">{statusDetails.icon}</span>
-                              {statusDetails.label}
-                            </Badge>
-                          );
-                        })()}
-                      </div>
-                      
-                      {/* Status Description & Additional Info */}
-                      {(() => {
-                        const statusDetails = getStatusDetails(call);
-                        const hasAdditionalInfo = statusDetails.description && statusDetails.description !== `Status: ${call.status}`;
-                        const availability = call.availability_status;
-                        const enrichedDetails = call.enriched_details || {};
-                        
-                        return (
-                          <div className="space-y-1">
-                            {hasAdditionalInfo && (
-                              <div className="text-xs text-muted-foreground italic">
-                                {statusDetails.description}
-                              </div>
-                            )}
-                            
-                            {/* Business Hours Indicator */}
-                            {availability && (
-                              <div className="flex items-center gap-1 text-xs">
-                                <span className={`w-2 h-2 rounded-full ${
-                                  availability === 'open' ? 'bg-green-500' : 'bg-red-500'
-                                }`} />
-                                <span className="text-muted-foreground">
-                                  {availability === 'open' ? 'During business hours' : 'Outside business hours'}
-                                </span>
-                              </div>
-                            )}
-                            
-                            {/* Agent Information */}
-                            {enrichedDetails.user_name && (
-                              <div className="text-xs text-muted-foreground">
-                                Agent: {enrichedDetails.user_name}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                      
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-0.5">
-                          <Calendar className="h-3 w-3" />
-                          <span>{format(new Date(call.started_at), 'MMM d, HH:mm')}</span>
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                          <Clock className="h-3 w-3" />
-                          <span>{formatDuration(call.duration_seconds)}</span>
-                        </div>
-                        {call.agent_phone && (
-                          <div className="flex items-center gap-0.5">
-                            <User className="h-3 w-3" />
-                            <span>{formatPhoneNumber(call.agent_phone)}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Show monitored phone number */}
-                      {(() => {
-                        const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration);
-                        if (monitoredPhone) {
-                          return (
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <div className="flex items-center gap-0.5 text-xs">
-                                <Building2 className="h-3 w-3 text-primary" />
-                                <span className="text-primary font-medium">
-                                  {monitoredPhone.phoneNumber.label}
-                                </span>
-                                <span className="text-muted-foreground">
-                                  ({monitoredPhone.phoneNumber.number})
-                                </span>
-                              </div>
-                              <Badge variant="outline" className="text-xs px-1 py-0 h-4">
-                                {monitoredPhone.type === 'company' ? 'Company Line' : 'Agent Line'}
-                              </Badge>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                      
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
-                      </p>
-                      
-                      {/* System ID */}
-                      <p className="text-[10px] text-muted-foreground/60 mt-1 font-mono">
-                        ID: {call.id}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <CallActionButton
-                      phoneNumber={call.customer_phone}
-                      size="sm"
-                      className="h-6 px-2 text-xs"
-                    />
-                    {onNavigateToEvents && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onNavigateToEvents(call.id)}
-                        className="flex items-center gap-1 h-6 px-2 text-xs"
-                        title="View call events history"
-                      >
-                        <History className="h-3 w-3" />
-                        Events
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openCallDetails(call)}
-                      className="flex items-center gap-1 h-6 px-2 text-xs"
-                      title="View call details and notes"
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                      Notes
-                      <CallNotesCount callId={call.id} />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-6">
+          {renderGroup(
+            "Urgent",
+            groupedCalls.urgent,
+            <AlertCircle className="h-4 w-4 text-destructive" />,
+            true
+          )}
+          {renderGroup(
+            "Active Calls",
+            groupedCalls.active,
+            <PhoneCall className="h-4 w-4 text-success animate-pulse" />,
+            true
+          )}
+          {renderGroup(
+            "Recent (Today)",
+            groupedCalls.recent,
+            <Clock className="h-4 w-4 text-primary" />,
+            true
+          )}
+          {renderGroup(
+            "Earlier",
+            groupedCalls.earlier,
+            <History className="h-4 w-4 text-muted-foreground" />,
+            false
+          )}
         </div>
       )}
 
