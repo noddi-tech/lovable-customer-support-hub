@@ -16,6 +16,7 @@ import { CallActionButton } from './CallActionButton';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { EnhancedCallCard } from './EnhancedCallCard';
 import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
+import { BadgeGuide } from './BadgeGuide';
 
 interface CallsListProps {
   showTimeFilter?: boolean;
@@ -431,6 +432,9 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
           priority: [],
         })}
       />
+      
+      {/* Badge Guide */}
+      <BadgeGuide />
       
       <div className="flex items-center justify-between">
         <div>

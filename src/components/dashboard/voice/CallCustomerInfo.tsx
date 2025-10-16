@@ -9,7 +9,7 @@ interface CallCustomerInfoProps {
   call: Call;
 }
 
-export const CallCustomerInfo: React.FC<CallCustomerInfoProps> = ({ call }) => {
+const CallCustomerInfoComponent: React.FC<CallCustomerInfoProps> = ({ call }) => {
   const customer = call.customers;
   const { data: noddiData, isLoading } = useNoddihKundeData({
     id: customer?.id || '',
@@ -33,7 +33,10 @@ export const CallCustomerInfo: React.FC<CallCustomerInfoProps> = ({ call }) => {
 
       {/* Loading State */}
       {isLoading && (
-        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+        <div className="flex gap-1">
+          <div className="h-4 w-16 bg-muted/50 animate-pulse rounded" />
+          <div className="h-4 w-16 bg-muted/50 animate-pulse rounded" />
+        </div>
       )}
 
       {/* Noddi Status Badges */}
@@ -43,3 +46,9 @@ export const CallCustomerInfo: React.FC<CallCustomerInfoProps> = ({ call }) => {
     </div>
   );
 };
+
+export const CallCustomerInfo = React.memo(CallCustomerInfoComponent, (prevProps, nextProps) => {
+  return prevProps.call.id === nextProps.call.id && 
+         prevProps.call.customer_phone === nextProps.call.customer_phone &&
+         prevProps.call.customers?.email === nextProps.call.customers?.email;
+});

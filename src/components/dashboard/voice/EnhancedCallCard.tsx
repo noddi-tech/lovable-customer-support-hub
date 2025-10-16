@@ -158,7 +158,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
           </div>
 
           {/* Quick Actions - Show on Hover */}
-          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1">
+          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex items-center gap-1">
             {onViewDetails && (
               <Button 
                 size="sm" 

@@ -112,7 +112,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
   const { profile } = useAuth();
 
   const lookupQuery = useQuery({
-    queryKey: ['noddi-customer-lookup', customer?.email, customer?.phone, profile?.organization_id],
+    queryKey: ['noddi-customer-lookup', customer?.email || customer?.phone, profile?.organization_id],
     queryFn: async (): Promise<NoddiLookupResponse | null> => {
       if ((!customer?.email && !customer?.phone) || !profile?.organization_id) {
         return null;
@@ -137,8 +137,10 @@ export const useNoddihKundeData = (customer: Customer | null) => {
       return data as NoddiLookupResponse;
     },
     enabled: (!!customer?.email || !!customer?.phone) && !!profile?.organization_id,
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    gcTime: 60 * 60 * 1000, // 1 hour
+    staleTime: 60 * 60 * 1000, // 60 minutes (increased from 30)
+    gcTime: 2 * 60 * 60 * 1000, // 2 hours (increased from 1)
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
       // Don't retry if customer not found or rate limited
       if (error.message?.includes('not found') || error.message?.includes('rate limited')) {
