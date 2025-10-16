@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star } from 'lucide-react';
+import { Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink } from 'lucide-react';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
@@ -68,6 +68,11 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const unpaidCount = data.unpaid_count || 0;
   const isPriority = data.priority_booking_type === 'upcoming';
   const hasBooking = data.priority_booking != null;
+  
+  // Extract partner URLs
+  const customerUrl = data.ui_meta?.partner_urls?.customer_url;
+  const bookingUrl = data.ui_meta?.partner_urls?.booking_url;
+  const bookingId = data.ui_meta?.partner_urls?.booking_id;
 
   return (
     <Card>
@@ -81,7 +86,19 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
         {/* Customer Name and Status */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <p className="font-semibold text-base">{customerDisplayName}</p>
+            {customerUrl ? (
+              <a 
+                href={customerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-base hover:text-primary hover:underline flex items-center gap-1"
+              >
+                {customerDisplayName}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : (
+              <p className="font-semibold text-base">{customerDisplayName}</p>
+            )}
             <Badge variant="outline" className="h-5 px-1.5 text-xs border-success/50 bg-success/5">
               <CheckCircle2 className="h-3 w-3 text-success mr-1" />
               Verified
@@ -114,9 +131,26 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           <div className="p-3 rounded-lg bg-muted">
             <div className="flex items-center gap-2 mb-2">
               <Package className="h-4 w-4" />
-              <p className="font-medium text-sm">
-                {data.priority_booking_type === 'upcoming' ? 'Upcoming' : 'Recent'} Booking
-              </p>
+              {bookingUrl ? (
+                <a
+                  href={bookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-sm hover:text-primary hover:underline flex items-center gap-1"
+                >
+                  {data.priority_booking_type === 'upcoming' ? 'Upcoming' : 'Recent'} Booking
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : (
+                <p className="font-medium text-sm">
+                  {data.priority_booking_type === 'upcoming' ? 'Upcoming' : 'Recent'} Booking
+                </p>
+              )}
+              {bookingId && (
+                <Badge variant="outline" className="text-xs">
+                  #{bookingId}
+                </Badge>
+              )}
             </div>
             {data.ui_meta?.booking_date_iso && (
               <p className="text-sm text-muted-foreground mb-2">
