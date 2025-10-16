@@ -92,12 +92,14 @@ export const VoiceDashboard = () => {
           value={metrics.totalCalls}
           trend={metrics.callsTrend}
           icon="phone"
+          periodLengthDays={1}
         />
         <CallMetricsCard
           title="Avg Duration"
           value={`${metrics.avgDuration}m`}
           trend={metrics.durationTrend}
           icon="clock"
+          periodLengthDays={1}
         />
         <CallMetricsCard
           title="Answer Rate"
@@ -105,6 +107,7 @@ export const VoiceDashboard = () => {
           trend={metrics.answerRateTrend}
           icon="check"
           variant="success"
+          periodLengthDays={1}
         />
         <CallMetricsCard
           title="Missed Today"
@@ -112,6 +115,7 @@ export const VoiceDashboard = () => {
           trend={metrics.missedTrend}
           icon="x"
           variant="warning"
+          periodLengthDays={1}
         />
       </div>
 

@@ -55,7 +55,7 @@ export const CallMetricsCard = ({
               <TrendingDown className="h-3 w-3 mr-1" />
             ) : null}
             <span>
-              {Math.abs(trend)}% from previous {periodLengthDays ? `${periodLengthDays} days` : 'period'}
+              {Math.abs(trend)}% from previous {periodLengthDays === 1 ? 'day' : periodLengthDays ? `${periodLengthDays} days` : 'period'}
             </span>
           </div>
         )}
