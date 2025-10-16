@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone, Clock, Calendar, MapPin, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Phone, Clock, Calendar, User, MessageSquare, Trash2, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { CallNotesSection } from './CallNotesSection';
 import { NoddiCustomerDetails } from './NoddiCustomerDetails';
 
@@ -31,10 +38,48 @@ interface CallDetailsDialogProps {
   call: Call | null;
   isOpen: boolean;
   onClose: () => void;
+  onNavigateToEvents?: (call: Call) => void;
+  onRemoveCall?: (callId: string) => void;
 }
 
-export const CallDetailsDialog = ({ call, isOpen, onClose }: CallDetailsDialogProps) => {
+export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, onRemoveCall }: CallDetailsDialogProps) => {
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
   if (!call) return null;
+
+  const handleRefreshCustomerData = async () => {
+    setIsRefreshing(true);
+    await queryClient.refetchQueries({
+      queryKey: ['noddi-customer-lookup', call.customers?.email || call.customer_phone],
+    });
+    setIsRefreshing(false);
+    toast({
+      title: 'Customer data refreshed',
+      description: 'Latest information has been loaded',
+    });
+  };
+
+  const handleNavigateToEvents = () => {
+    if (onNavigateToEvents) {
+      onNavigateToEvents(call);
+      onClose();
+    } else {
+      navigate(`/operations?tab=events&phone=${call.customer_phone}`);
+      onClose();
+    }
+  };
+
+  const handleRemoveCall = () => {
+    if (onRemoveCall) {
+      onRemoveCall(call.id);
+      setShowRemoveDialog(false);
+      onClose();
+    }
+  };
 
   const formatPhoneNumber = (phone?: string) => {
     if (!phone) return 'Unknown';
@@ -69,13 +114,44 @@ export const CallDetailsDialog = ({ call, isOpen, onClose }: CallDetailsDialogPr
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Phone className="h-5 w-5" />
-            Call Details
-          </DialogTitle>
-          <DialogDescription>
-            View call information and manage notes
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                <Phone className="h-5 w-5" />
+                Call Details
+              </DialogTitle>
+              <DialogDescription>
+                View call information and manage notes
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshCustomerData}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNavigateToEvents}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Events
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRemoveDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Remove
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -168,6 +244,22 @@ export const CallDetailsDialog = ({ call, isOpen, onClose }: CallDetailsDialogPr
           <CallNotesSection callId={call.id} />
         </div>
       </DialogContent>
+
+      {/* Remove Call Confirmation Dialog */}
+      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove call from history?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will hide the call from your call history. This action can be undone by contacting support.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveCall}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

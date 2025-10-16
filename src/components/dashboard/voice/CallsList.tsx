@@ -373,7 +373,6 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         key={call.id}
         call={call}
         isSelected={selectedCallId === call.id}
-        onSelect={onSelectCall}
         onViewDetails={openCallDetails}
         onNavigateToEvents={onNavigateToEvents}
         onRemoveCall={removeCall}
@@ -543,6 +542,8 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         call={selectedCall}
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
+        onNavigateToEvents={(call) => onNavigateToEvents?.(call.id)}
+        onRemoveCall={removeCall}
       />
     </div>
   );

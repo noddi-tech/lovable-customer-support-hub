@@ -137,10 +137,10 @@ export const useNoddihKundeData = (customer: Customer | null) => {
       return data as NoddiLookupResponse;
     },
     enabled: (!!customer?.email || !!customer?.phone) && !!profile?.organization_id,
-    staleTime: 60 * 60 * 1000, // 60 minutes (increased from 30)
-    gcTime: 2 * 60 * 60 * 1000, // 2 hours (increased from 1)
+    staleTime: 60 * 60 * 1000, // 60 minutes - historical data rarely changes
+    gcTime: 2 * 60 * 60 * 1000, // 2 hours
     refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false, // Disable automatic refetch on window focus
     retry: (failureCount, error) => {
       // Don't retry if customer not found or rate limited
       if (error.message?.includes('not found') || error.message?.includes('rate limited')) {

@@ -3,6 +3,8 @@ import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { queryClient, persister } from '@/lib/persistedQueryClient';
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { AircallProvider } from "@/contexts/AircallContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
@@ -183,25 +185,27 @@ const AircallWorkspaceManager = () => {
 const App = () => (
   <GlobalErrorBoundary suppressAnalyticsErrors suppressIframeErrors>
     <ErrorBoundary>
-      <BrowserRouter>
-        <AuthProvider>
-          <ErrorBoundary fallback={<AircallErrorFallback />}>
-            <AircallProvider>
-              <DesignSystemProvider>
-                <TooltipProvider>
-                  <I18nWrapper>
-                    <AppContent />
-                    {/* Aircall Workspace Manager - Controls container visibility */}
-                    <AircallWorkspaceManager />
-                  </I18nWrapper>
-                  <Toaster />
-                  <Sonner />
-                </TooltipProvider>
-              </DesignSystemProvider>
-            </AircallProvider>
-          </ErrorBoundary>
-        </AuthProvider>
-      </BrowserRouter>
+      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+        <BrowserRouter>
+          <AuthProvider>
+            <ErrorBoundary fallback={<AircallErrorFallback />}>
+              <AircallProvider>
+                <DesignSystemProvider>
+                  <TooltipProvider>
+                    <I18nWrapper>
+                      <AppContent />
+                      {/* Aircall Workspace Manager - Controls container visibility */}
+                      <AircallWorkspaceManager />
+                    </I18nWrapper>
+                    <Toaster />
+                    <Sonner />
+                  </TooltipProvider>
+                </DesignSystemProvider>
+              </AircallProvider>
+            </ErrorBoundary>
+          </AuthProvider>
+        </BrowserRouter>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   </GlobalErrorBoundary>
 );

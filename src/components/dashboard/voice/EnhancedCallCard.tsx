@@ -116,7 +116,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
       }`}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button')) return;
-        onSelect?.(call);
+        onViewDetails?.(call);
       }}
     >
       <CardContent className="p-2">
@@ -170,49 +170,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
             </div>
           </div>
 
-          {/* Quick Actions - Show on Hover */}
-          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex items-center gap-1 transform-gpu will-change-opacity">
-            {onViewDetails && (
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewDetails(call);
-                }}
-                title="See more"
-              >
-                <History className="h-4 w-4" />
-              </Button>
-            )}
-            {onNavigateToEvents && (
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigateToEvents(call.id);
-                }}
-                title="View Events"
-              >
-                <MessageSquare className="h-4 w-4" />
-              </Button>
-            )}
-            {onRemoveCall && (
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowDeleteDialog(true);
-                }}
-                title="Remove call"
-                className="hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          {/* No hover actions - card is fully clickable */}
         </div>
       </CardContent>
 
