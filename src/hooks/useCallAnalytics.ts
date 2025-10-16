@@ -16,6 +16,13 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['call-analytics', range.from, range.to],
     queryFn: async () => {
+      console.log('[useCallAnalytics] 🔍 Query started', {
+        from: range.from,
+        to: range.to,
+        fromISO: startOfDay(range.from).toISOString(),
+        toISO: endOfDay(range.to).toISOString()
+      });
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -27,13 +34,23 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
 
       if (!profile) throw new Error('Profile not found');
 
+      console.log('[useCallAnalytics] 👤 Profile found', { 
+        organization_id: profile.organization_id 
+      });
+
       // Fetch calls within date range
-      const { data: calls } = await supabase
+      const { data: calls, error } = await supabase
         .from('calls')
         .select('*')
         .eq('organization_id', profile.organization_id)
         .gte('created_at', startOfDay(range.from).toISOString())
         .lte('created_at', endOfDay(range.to).toISOString());
+
+      console.log('[useCallAnalytics] 📞 Calls fetched', { 
+        count: calls?.length || 0,
+        error: error?.message,
+        sampleCall: calls?.[0]
+      });
 
       if (!calls) return null;
 
