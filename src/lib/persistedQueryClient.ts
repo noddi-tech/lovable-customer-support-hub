@@ -5,7 +5,10 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       gcTime: 1000 * 60 * 60 * 24, // 24 hours
-      staleTime: 1000 * 60 * 5, // 5 minutes default
+      staleTime: 1000 * 60 * 10, // 10 minutes default
+      refetchOnWindowFocus: false, // Don't refetch when switching tabs
+      refetchOnMount: false, // Don't automatically refetch on mount
+      retry: 1, // Only retry once on failures
     },
   },
 });
