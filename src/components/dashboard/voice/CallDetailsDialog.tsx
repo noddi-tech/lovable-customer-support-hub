@@ -114,43 +114,40 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <Phone className="h-5 w-5" />
-                Call Details
-              </DialogTitle>
-              <DialogDescription>
-                View call information and manage notes
-              </DialogDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefreshCustomerData}
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNavigateToEvents}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Events
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowRemoveDialog(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Remove
-              </Button>
-            </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            Call Details
+          </DialogTitle>
+          <DialogDescription>
+            View call information and manage notes
+          </DialogDescription>
+          
+          <div className="flex items-center gap-2 pt-4 pr-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshCustomerData}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNavigateToEvents}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Events
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRemoveDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remove
+            </Button>
           </div>
         </DialogHeader>
 
