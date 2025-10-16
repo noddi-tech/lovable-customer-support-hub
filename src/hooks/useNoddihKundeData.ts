@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 
 interface NoddihCustomer {
   noddiUserId: number;
@@ -118,7 +119,12 @@ export const useNoddihKundeData = (customer: Customer | null) => {
         return null;
       }
 
-      console.log('Looking up Noddi customer data for:', { email: customer.email, phone: customer.phone });
+      console.log('[useNoddihKundeData] 🔄 FETCHING from API:', { 
+        email: customer.email, 
+        phone: customer.phone,
+        timestamp: new Date().toISOString(),
+        source: 'live-api'
+      });
       
       const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
         body: {
@@ -137,17 +143,22 @@ export const useNoddihKundeData = (customer: Customer | null) => {
       return data as NoddiLookupResponse;
     },
     enabled: (!!customer?.email || !!customer?.phone) && !!profile?.organization_id,
-    staleTime: 60 * 60 * 1000, // 60 minutes - historical data rarely changes
-    gcTime: 2 * 60 * 60 * 1000, // 2 hours
+    staleTime: Infinity, // CRITICAL: Never consider data stale (historical data)
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in cache even when inactive
     refetchOnMount: false,
-    refetchOnWindowFocus: false, // Disable automatic refetch on window focus
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false, // Don't refetch when network reconnects
     retry: (failureCount, error) => {
       // Don't retry if customer not found or rate limited
       if (error.message?.includes('not found') || error.message?.includes('rate limited')) {
         return false;
       }
-      return failureCount < 2;
-    }
+      return failureCount < 1; // Only retry once
+    },
+    // Show previous data while fetching (reduces loading states)
+    placeholderData: (previousData) => previousData,
+    // Use cached data aggressively
+    networkMode: 'offlineFirst',
   });
 
   const refreshMutation = useMutation({
@@ -174,8 +185,8 @@ export const useNoddihKundeData = (customer: Customer | null) => {
       return data;
     },
     onSuccess: (data) => {
-      // Update the cache with fresh data
-      queryClient.setQueryData(['noddi-customer-lookup', customer?.email, customer?.phone, profile?.organization_id], data);
+      // Update the cache with fresh data (must match query key structure)
+      queryClient.setQueryData(['noddi-customer-lookup', customer?.email || customer?.phone, profile?.organization_id], data);
       toast.success('Noddi customer data refreshed');
     },
     onError: (error) => {
@@ -183,6 +194,18 @@ export const useNoddihKundeData = (customer: Customer | null) => {
       toast.error(`Failed to refresh Noddi data: ${error.message}`);
     }
   });
+
+  // Debug cache usage
+  useEffect(() => {
+    if (lookupQuery.data) {
+      console.log('[useNoddihKundeData] ✅ Using cached data:', {
+        source: lookupQuery.data.source,
+        dataAge: lookupQuery.dataUpdatedAt,
+        isFetching: lookupQuery.isFetching,
+        isStale: lookupQuery.isStale,
+      });
+    }
+  }, [lookupQuery.data, lookupQuery.dataUpdatedAt, lookupQuery.isFetching, lookupQuery.isStale]);
 
   const hasEmail = !!customer?.email;
   const hasPhoneOnly = !!customer?.phone && !customer?.email;
