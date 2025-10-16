@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+import { getCustomerCacheKey } from '@/utils/customerCacheKey';
 
 interface NoddihCustomer {
   noddiUserId: number;
@@ -113,7 +114,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
   const { profile } = useAuth();
 
   const lookupQuery = useQuery({
-    queryKey: ['noddi-customer-lookup', customer?.email || customer?.phone, profile?.organization_id],
+    queryKey: ['noddi-customer-lookup', getCustomerCacheKey(customer), profile?.organization_id],
     queryFn: async (): Promise<NoddiLookupResponse | null> => {
       if ((!customer?.email && !customer?.phone) || !profile?.organization_id) {
         return null;
@@ -186,7 +187,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
     },
     onSuccess: (data) => {
       // Update the cache with fresh data (must match query key structure)
-      queryClient.setQueryData(['noddi-customer-lookup', customer?.email || customer?.phone, profile?.organization_id], data);
+      queryClient.setQueryData(['noddi-customer-lookup', getCustomerCacheKey(customer), profile?.organization_id], data);
       toast.success('Noddi customer data refreshed');
     },
     onError: (error) => {

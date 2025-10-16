@@ -26,7 +26,11 @@ window.addEventListener('voice-error-reset', () => {
 });
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+  import.meta.env.DEV ? (
+    <StrictMode>
+      <App />
+    </StrictMode>
+  ) : (
     <App />
-  </StrictMode>
+  )
 );
