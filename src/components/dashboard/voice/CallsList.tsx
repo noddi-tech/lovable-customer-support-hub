@@ -26,19 +26,6 @@ interface CallsListProps {
   selectedCallId?: string;
 }
 
-// Component to get notes count for a call
-const CallNotesCount = ({ callId }: { callId: string }) => {
-  const { notes } = useCallNotes(callId);
-  const notesCount = notes?.length || 0;
-  
-  return notesCount > 0 ? (
-    <SidebarCounter 
-      count={notesCount} 
-      variant="default" 
-      className="ml-1" 
-    />
-  ) : null;
-};
 
 export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvents, onSelectCall, selectedCallId }: CallsListProps) => {
   const { t } = useTranslation();
@@ -364,13 +351,13 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     return 'opacity-100';
   };
 
-  const renderCallCard = (call: any) => {
+  // Component to render a call card with notes
+  const CallCardWithNotes = ({ call }: { call: any }) => {
     const { notes } = useCallNotes(call.id);
     const notesCount = notes?.length || 0;
 
     return (
       <EnhancedCallCard
-        key={call.id}
         call={call}
         isSelected={selectedCallId === call.id}
         onViewDetails={openCallDetails}
@@ -406,7 +393,9 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         </button>
         {isOpen && (
           <div className="space-y-2">
-            {calls.map(renderCallCard)}
+            {calls.map(call => (
+              <CallCardWithNotes key={call.id} call={call} />
+            ))}
           </div>
         )}
       </div>
