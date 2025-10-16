@@ -154,9 +154,10 @@ export function useCalls() {
           if (oldCall?.status !== updatedCall.status) {
             console.log(`[useCalls] 🔄 Call status updated: ${oldCall?.status} → ${updatedCall.status}`);
             
-            // Invalidate Noddi cache when call completes to catch new bookings
-            if (updatedCall.status === 'completed' && oldCall?.status !== 'completed') {
-              console.log('[useCalls] 📝 Call completed - invalidating Noddi cache for customer');
+            // Invalidate Noddi cache when call ends (completed or missed) to catch new bookings
+            const terminalStatuses = ['completed', 'missed'];
+            if (terminalStatuses.includes(updatedCall.status) && !terminalStatuses.includes(oldCall?.status || '')) {
+              console.log('[useCalls] 📝 Call ended - invalidating Noddi cache for customer');
               queryClient.invalidateQueries({
                 queryKey: ['noddi-customer-lookup', updatedCall.customer_phone]
               });
