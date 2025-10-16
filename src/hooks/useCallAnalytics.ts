@@ -99,13 +99,20 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
 
       // Group by date for volume chart
       const volumeByDate = calls.reduce((acc, call) => {
-        const date = format(new Date(call.created_at), 'MMM dd');
-        if (!acc[date]) {
-          acc[date] = { date, inbound: 0, outbound: 0, missed: 0 };
+        const callDate = new Date(call.created_at);
+        const dateKey = format(callDate, 'MMM dd');
+        if (!acc[dateKey]) {
+          acc[dateKey] = { 
+            date: dateKey, 
+            timestamp: startOfDay(callDate).getTime(),
+            inbound: 0, 
+            outbound: 0, 
+            missed: 0 
+          };
         }
-        if (call.direction === 'inbound') acc[date].inbound++;
-        if (call.direction === 'outbound') acc[date].outbound++;
-        if (call.status === 'missed') acc[date].missed++;
+        if (call.direction === 'inbound') acc[dateKey].inbound++;
+        if (call.direction === 'outbound') acc[dateKey].outbound++;
+        if (call.status === 'missed') acc[dateKey].missed++;
         return acc;
       }, {} as Record<string, any>);
 
@@ -171,7 +178,9 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
           answerRateTrend: calculatePercentageChange(currentMetrics.answerRate, previousMetrics.answerRate),
           missedTrend: calculatePercentageChange(currentMetrics.missedCalls, previousMetrics.missedCalls),
         },
-        volumeData: Object.values(volumeByDate),
+        volumeData: Object.values(volumeByDate)
+          .sort((a: any, b: any) => a.timestamp - b.timestamp)
+          .map(({ timestamp, ...rest }: any) => rest),
         agentStats,
         periodLengthDays,
       };
