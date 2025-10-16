@@ -16,7 +16,7 @@ interface CallAnalyticsDashboardProps {
 export const CallAnalyticsDashboard = ({ dateRange }: CallAnalyticsDashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const { toast } = useToast();
-  const { metrics, volumeData, agentStats, isLoading, refetch } = useCallAnalytics(dateRange);
+  const { metrics, volumeData, agentStats, isLoading, refetch, periodLengthDays } = useCallAnalytics(dateRange);
 
   const handleExport = () => {
     toast({
@@ -56,18 +56,21 @@ export const CallAnalyticsDashboard = ({ dateRange }: CallAnalyticsDashboardProp
               value={metrics.totalCalls}
               trend={metrics.callsTrend}
               icon="phone"
+              periodLengthDays={periodLengthDays}
             />
             <CallMetricsCard
               title="Avg Duration"
               value={`${metrics.avgDuration}m`}
               trend={metrics.durationTrend}
               icon="clock"
+              periodLengthDays={periodLengthDays}
             />
             <CallMetricsCard
               title="Answer Rate"
               value={`${metrics.answerRate}%`}
               trend={metrics.answerRateTrend}
               icon="check"
+              periodLengthDays={periodLengthDays}
             />
             <CallMetricsCard
               title="Missed Calls"
@@ -75,6 +78,7 @@ export const CallAnalyticsDashboard = ({ dateRange }: CallAnalyticsDashboardProp
               trend={metrics.missedTrend}
               icon="x"
               variant="warning"
+              periodLengthDays={periodLengthDays}
             />
           </div>
 

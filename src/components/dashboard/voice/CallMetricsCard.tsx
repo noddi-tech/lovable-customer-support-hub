@@ -9,6 +9,7 @@ interface CallMetricsCardProps {
   trend?: number;
   icon?: 'phone' | 'clock' | 'check' | 'x';
   variant?: 'default' | 'warning' | 'success';
+  periodLengthDays?: number;
 }
 
 const iconMap = {
@@ -24,6 +25,7 @@ export const CallMetricsCard = ({
   trend,
   icon = 'phone',
   variant = 'default',
+  periodLengthDays,
 }: CallMetricsCardProps) => {
   const Icon = iconMap[icon];
   const isPositive = trend && trend > 0;
@@ -52,7 +54,9 @@ export const CallMetricsCard = ({
             ) : isNegative ? (
               <TrendingDown className="h-3 w-3 mr-1" />
             ) : null}
-            <span>{Math.abs(trend)}% from yesterday</span>
+            <span>
+              {Math.abs(trend)}% from previous {periodLengthDays ? `${periodLengthDays} days` : 'period'}
+            </span>
           </div>
         )}
       </CardContent>

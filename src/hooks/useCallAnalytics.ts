@@ -7,11 +7,40 @@ interface DateRange {
   to: Date;
 }
 
+// Helper to calculate percentage change
+const calculatePercentageChange = (current: number, previous: number): number => {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+};
+
+// Helper to calculate metrics for a period
+const calculatePeriodMetrics = (calls: any[]) => {
+  const totalCalls = calls.length;
+  const answeredCalls = calls.filter(c => c.status === 'completed').length;
+  const missedCalls = calls.filter(c => c.status === 'missed').length;
+  const avgDuration = calls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0) / totalCalls || 0;
+  const answerRate = totalCalls > 0 ? (answeredCalls / totalCalls) * 100 : 0;
+
+  return {
+    totalCalls,
+    avgDuration: Math.round(avgDuration / 60), // Convert to minutes
+    answerRate: Math.round(answerRate),
+    missedCalls,
+  };
+};
+
 export const useCallAnalytics = (dateRange?: DateRange) => {
   const range = dateRange || {
     from: subDays(new Date(), 30),
     to: new Date(),
   };
+
+  // Calculate period length and previous period dates
+  const periodLengthDays = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const previousFrom = new Date(range.from);
+  previousFrom.setDate(previousFrom.getDate() - periodLengthDays);
+  const previousTo = new Date(range.from);
+  previousTo.setDate(previousTo.getDate() - 1);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['call-analytics', range.from, range.to],
@@ -19,8 +48,9 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
       console.log('[useCallAnalytics] 🔍 Query started', {
         from: range.from,
         to: range.to,
-        fromISO: startOfDay(range.from).toISOString(),
-        toISO: endOfDay(range.to).toISOString()
+        periodLengthDays,
+        previousFrom,
+        previousTo,
       });
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -38,28 +68,34 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
         organization_id: profile.organization_id 
       });
 
-      // Fetch calls within date range
-      const { data: calls, error } = await supabase
+      // Fetch current period calls
+      const { data: currentCalls } = await supabase
         .from('calls')
         .select('*')
         .eq('organization_id', profile.organization_id)
         .gte('created_at', startOfDay(range.from).toISOString())
         .lte('created_at', endOfDay(range.to).toISOString());
 
+      // Fetch previous period calls
+      const { data: previousCalls } = await supabase
+        .from('calls')
+        .select('*')
+        .eq('organization_id', profile.organization_id)
+        .gte('created_at', startOfDay(previousFrom).toISOString())
+        .lte('created_at', endOfDay(previousTo).toISOString());
+
       console.log('[useCallAnalytics] 📞 Calls fetched', { 
-        count: calls?.length || 0,
-        error: error?.message,
-        sampleCall: calls?.[0]
+        currentCount: currentCalls?.length || 0,
+        previousCount: previousCalls?.length || 0,
       });
 
-      if (!calls) return null;
+      if (!currentCalls) return null;
 
-      // Calculate metrics
-      const totalCalls = calls.length;
-      const answeredCalls = calls.filter(c => c.status === 'completed').length;
-      const missedCalls = calls.filter(c => c.status === 'missed').length;
-      const avgDuration = calls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0) / totalCalls || 0;
-      const answerRate = totalCalls > 0 ? (answeredCalls / totalCalls) * 100 : 0;
+      const calls = currentCalls;
+
+      // Calculate metrics for current and previous periods
+      const currentMetrics = calculatePeriodMetrics(currentCalls);
+      const previousMetrics = calculatePeriodMetrics(previousCalls || []);
 
       // Group by date for volume chart
       const volumeByDate = calls.reduce((acc, call) => {
@@ -126,17 +162,18 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
 
       return {
         metrics: {
-          totalCalls,
-          avgDuration: Math.round(avgDuration),
-          answerRate: Math.round(answerRate),
-          missedCalls,
-          callsTrend: 12,
-          durationTrend: -5,
-          answerRateTrend: 8,
-          missedTrend: -15,
+          totalCalls: currentMetrics.totalCalls,
+          avgDuration: currentMetrics.avgDuration,
+          answerRate: currentMetrics.answerRate,
+          missedCalls: currentMetrics.missedCalls,
+          callsTrend: calculatePercentageChange(currentMetrics.totalCalls, previousMetrics.totalCalls),
+          durationTrend: calculatePercentageChange(currentMetrics.avgDuration, previousMetrics.avgDuration),
+          answerRateTrend: calculatePercentageChange(currentMetrics.answerRate, previousMetrics.answerRate),
+          missedTrend: calculatePercentageChange(currentMetrics.missedCalls, previousMetrics.missedCalls),
         },
         volumeData: Object.values(volumeByDate),
         agentStats,
+        periodLengthDays,
       };
     },
   });
@@ -154,6 +191,7 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
     },
     volumeData: data?.volumeData || [],
     agentStats: data?.agentStats || [],
+    periodLengthDays: data?.periodLengthDays || 30,
     isLoading,
     refetch,
   };
