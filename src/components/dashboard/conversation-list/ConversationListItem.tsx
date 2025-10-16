@@ -171,7 +171,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
           
           {/* Row 3: Preview Text */}
           <div className="text-xs text-muted-foreground truncate">
-            No preview available
+            {conversation.preview_text || 'No preview available'}
           </div>
           
           {/* Row 4: Receiving Email + Channel + Tags */}
@@ -281,7 +281,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
           
           {/* Row 3: Preview Text */}
           <div className="text-xs text-muted-foreground truncate pl-7">
-            No preview available
+            {conversation.preview_text || 'No preview available'}
           </div>
           
           {/* Row 4: Receiving Email + Channel + Tags */}

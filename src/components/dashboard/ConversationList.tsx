@@ -116,26 +116,14 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
                 <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
               </div>
             ) : (
-              <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {/* Conversation Cards */}
+              <div className="space-y-0">
                 {filteredConversations.map((conversation) => (
-                  <Card 
+                  <ConversationListItem 
                     key={conversation.id}
-                    className={`cursor-pointer border-border hover:shadow-md transition-all duration-200 ${
-                      selectedConversation?.id === conversation.id 
-                        ? 'ring-2 ring-ring bg-accent/50' 
-                        : 'hover:bg-card/80'
-                    }`}
-                    onClick={() => onSelectConversation(conversation)}
-                  >
-                    <CardContent className="p-4">
-                      <ConversationListItem 
-                        conversation={conversation}
-                        isSelected={selectedConversation?.id === conversation.id}
-                        onSelect={onSelectConversation}
-                      />
-                    </CardContent>
-                  </Card>
+                    conversation={conversation}
+                    isSelected={selectedConversation?.id === conversation.id}
+                    onSelect={onSelectConversation}
+                  />
                 ))}
               </div>
             )}

@@ -52,11 +52,12 @@ export const ProgressiveMessagesList = ({
     error
   } = useThreadMessagesList(conversationId, normalizationCtx);
 
-  // Initialize collapsed state - collapse messages beyond the first 2
+  // Initialize collapsed state - collapse all messages except the LAST one (newest)
   useEffect(() => {
     const idsToCollapse = new Set<string>();
     messages.forEach((msg, index) => {
-      if (index >= 2) {
+      // Collapse all except the first message (which is newest in DESC order)
+      if (index > 0) {
         idsToCollapse.add(msg.dedupKey || msg.id);
       }
     });
@@ -212,38 +213,33 @@ export const ProgressiveMessagesList = ({
       
       <ScrollArea className="h-full" ref={scrollAreaRef}>
         <div className="p-4 space-y-4">
-          {/* Expand/Collapse All Controls */}
-          {messages.length > 0 && (
-            <div className="flex justify-between items-center pb-2 border-b border-border">
-              <div className="text-sm text-muted-foreground">
-                {messages.length} message{messages.length > 1 ? 's' : ''}
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCollapsedMessageIds(new Set())}
-                  className="text-xs"
-                >
-                  <ChevronDown className="w-3 h-3 mr-1" />
-                  Expand all
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCollapsedMessageIds(new Set(messages.map(m => m.dedupKey || m.id)))}
-                  className="text-xs"
-                >
-                  <ChevronUp className="w-3 h-3 mr-1" />
-                  Collapse all
-                </Button>
-              </div>
-            </div>
-          )}
 
-          {/* Load older messages button */}
+          {/* Messages list - Cards in ASC order (oldest first, natural email reading) */}
+          {messages.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>{t('conversation.noMessages')}</p>
+            </div>
+          ) : (
+              // Reverse to show oldest first (ASC)
+              [...messages].reverse().map((message, index) => {
+                const actualIndex = messages.length - 1 - index; // Get actual index in original array
+                return (
+                  <MessageCard
+                    key={message.dedupKey || message.id}
+                    message={message}
+                    conversation={conversation}
+                    defaultCollapsed={collapsedMessageIds.has(message.dedupKey || message.id)}
+                    onEdit={onEditMessage}
+                    onDelete={onDeleteMessage}
+                  />
+                );
+              })
+          )}
+          
+          {/* Load older messages button at BOTTOM */}
           {(hasNextPage || isFetchingNextPage) && (
-            <div className="text-center pb-4">
+            <div className="text-center pt-4">
               <Button
                 variant="outline"
                 size="sm"
@@ -254,7 +250,7 @@ export const ProgressiveMessagesList = ({
                 {isFetchingNextPage ? (
                   <>
                     <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                    Loading...
+                    Loading older...
                   </>
                 ) : (
                   hasNextPage && remaining > 0 ? `Load older messages (${remaining} remaining)` : 'Load older messages'
@@ -262,42 +258,9 @@ export const ProgressiveMessagesList = ({
               </Button>
             </div>
           )}
-          
-          {/* Messages list - Cards in DESC order (newest first) */}
-          {messages.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>{t('conversation.noMessages')}</p>
-            </div>
-          ) : (
-              messages.map((message, index) => (
-                <MessageCard
-                  key={message.dedupKey || message.id}
-                  message={message}
-                  conversation={conversation}
-                  defaultCollapsed={index >= 2}
-                  onEdit={onEditMessage}
-                  onDelete={onDeleteMessage}
-                />
-              ))
-          )}
         </div>
       </ScrollArea>
       
-      {/* Scroll to bottom button */}
-      {!isNearTop && messages.length > 3 && (
-        <div className="absolute bottom-4 right-4 z-10">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={scrollToBottom}
-            className="rounded-full shadow-lg"
-          >
-            <ChevronUp className="w-4 h-4 mr-1 rotate-180" />
-            Newest
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
