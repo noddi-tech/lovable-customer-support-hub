@@ -97,24 +97,40 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
       const currentMetrics = calculatePeriodMetrics(currentCalls);
       const previousMetrics = calculatePeriodMetrics(previousCalls || []);
 
-      // Group by date for volume chart
-      const volumeByDate = calls.reduce((acc, call) => {
-        const callDate = new Date(call.created_at);
-        const dateKey = format(callDate, 'MMM dd');
-        if (!acc[dateKey]) {
-          acc[dateKey] = { 
-            date: dateKey, 
-            timestamp: startOfDay(callDate).getTime(),
-            inbound: 0, 
-            outbound: 0, 
-            missed: 0 
+      // Group by date for volume chart - Pre-populate all dates in range
+      const volumeByDate: Record<string, any> = {};
+
+      // Step 1: Create entries for ALL dates in the range with zero values
+      let currentDate = new Date(range.from);
+      while (currentDate <= range.to) {
+        const dateKey = format(currentDate, 'MMM dd');
+        const dateTimestamp = startOfDay(currentDate).getTime();
+        
+        // Only add if we haven't seen this date key yet (handles cross-month scenarios)
+        if (!volumeByDate[dateKey] || volumeByDate[dateKey].timestamp < dateTimestamp) {
+          volumeByDate[dateKey] = {
+            date: dateKey,
+            timestamp: dateTimestamp,
+            inbound: 0,
+            outbound: 0,
+            missed: 0
           };
         }
-        if (call.direction === 'inbound') acc[dateKey].inbound++;
-        if (call.direction === 'outbound') acc[dateKey].outbound++;
-        if (call.status === 'missed') acc[dateKey].missed++;
-        return acc;
-      }, {} as Record<string, any>);
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      // Step 2: Overlay actual call data
+      calls.forEach(call => {
+        const callDate = new Date(call.created_at);
+        const dateKey = format(callDate, 'MMM dd');
+        
+        if (volumeByDate[dateKey]) {
+          if (call.direction === 'inbound') volumeByDate[dateKey].inbound++;
+          if (call.direction === 'outbound') volumeByDate[dateKey].outbound++;
+          if (call.status === 'missed') volumeByDate[dateKey].missed++;
+        }
+      });
 
       // Agent stats - Extract from call metadata (Aircall agents)
       const agentEmailMap: Record<string, {
