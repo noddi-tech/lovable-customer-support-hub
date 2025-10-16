@@ -88,9 +88,12 @@ export function useCalls() {
 
       return data as Call[];
     },
-    // Polling fallback: refetch every 15 seconds as backup to real-time
-    refetchInterval: 15000,
-    refetchIntervalInBackground: true,
+    // Conservative polling fallback only - real-time handles most updates
+    refetchInterval: 1000 * 60 * 5, // 5 minutes fallback
+    staleTime: 1000 * 60 * 10, // 10 minutes - use cache aggressively
+    gcTime: 1000 * 60 * 60, // 1 hour cache retention
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: callEvents = [] } = useQuery({
@@ -111,9 +114,12 @@ export function useCalls() {
       console.log('[useCalls] ✅ Fetched call events:', data.length);
       return data as CallEvent[];
     },
-    // Polling fallback: refetch every 20 seconds as backup to real-time
-    refetchInterval: 20000,
-    refetchIntervalInBackground: true,
+    // Conservative polling fallback only
+    refetchInterval: 1000 * 60 * 5, // 5 minutes fallback
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 60, // 1 hour
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Set up managed real-time subscriptions
