@@ -17,6 +17,7 @@ interface AgentStat {
   avatar?: string;
   totalCalls: number;
   answeredCalls: number;
+  missedCalls: number;
   avgDuration: number;
   answerRate: number;
   satisfaction?: number;
@@ -46,6 +47,7 @@ export const AgentPerformanceTable = ({ data }: AgentPerformanceTableProps) => {
               <TableHead>Agent</TableHead>
               <TableHead className="text-right">Total Calls</TableHead>
               <TableHead className="text-right">Answered</TableHead>
+              <TableHead className="text-right">Missed</TableHead>
               <TableHead className="text-right">Avg Duration</TableHead>
               <TableHead className="text-right">Answer Rate</TableHead>
               <TableHead className="text-right">Performance</TableHead>
@@ -67,7 +69,8 @@ export const AgentPerformanceTable = ({ data }: AgentPerformanceTableProps) => {
                 </TableCell>
                 <TableCell className="text-right">{agent.totalCalls}</TableCell>
                 <TableCell className="text-right">{agent.answeredCalls}</TableCell>
-                <TableCell className="text-right">{agent.avgDuration}m</TableCell>
+                <TableCell className="text-right text-muted-foreground">{agent.missedCalls}</TableCell>
+                <TableCell className="text-right">{Math.floor(agent.avgDuration / 60)}m {agent.avgDuration % 60}s</TableCell>
                 <TableCell className="text-right">{agent.answerRate}%</TableCell>
                 <TableCell className="text-right">
                   {getPerformanceBadge(agent.answerRate)}

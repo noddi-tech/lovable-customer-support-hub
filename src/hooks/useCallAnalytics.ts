@@ -30,7 +30,7 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
       // Fetch calls within date range
       const { data: calls } = await supabase
         .from('calls')
-        .select('*, internal_events!inner(assigned_to_id)')
+        .select('*')
         .eq('organization_id', profile.organization_id)
         .gte('created_at', startOfDay(range.from).toISOString())
         .lte('created_at', endOfDay(range.to).toISOString());
@@ -59,26 +59,35 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
       // Agent stats
       const { data: agents } = await supabase
         .from('profiles')
-        .select('user_id, full_name, avatar_url')
+        .select('user_id, full_name, avatar_url, email')
         .eq('organization_id', profile.organization_id)
         .eq('role', 'agent');
 
       const agentStats = agents?.map(agent => {
+        // Match calls by agent email from metadata
         const agentCalls = calls.filter(c => {
-          const events = Array.isArray(c.internal_events) ? c.internal_events : [c.internal_events];
-          return events.some((e: any) => e?.assigned_to_id === agent.user_id);
+          const metadata = c.metadata as any;
+          const enrichedDetails = c.enriched_details as any;
+          const agentEmail = metadata?.user?.email || enrichedDetails?.user_email;
+          return agentEmail === agent.email;
         });
         const agentAnswered = agentCalls.filter(c => c.status === 'completed');
+        const agentMissed = agentCalls.filter(c => c.status === 'missed');
+        
         return {
           id: agent.user_id,
           name: agent.full_name,
           avatar: agent.avatar_url,
           totalCalls: agentCalls.length,
           answeredCalls: agentAnswered.length,
-          avgDuration: Math.round(agentCalls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0) / agentCalls.length) || 0,
+          missedCalls: agentMissed.length,
+          avgDuration: Math.round(
+            agentCalls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0) / 
+            (agentAnswered.length || 1)
+          ),
           answerRate: agentCalls.length > 0 ? Math.round((agentAnswered.length / agentCalls.length) * 100) : 0,
         };
-      }) || [];
+      }).filter(agent => agent.totalCalls > 0) || [];
 
       return {
         metrics: {
