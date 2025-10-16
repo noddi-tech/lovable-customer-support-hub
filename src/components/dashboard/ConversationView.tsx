@@ -9,6 +9,8 @@ import {
   RefreshCw,
   Loader2,
   ArrowLeft,
+  PanelRightOpen,
+  PanelRightClose,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,7 +18,9 @@ import { useIsMobile } from '@/hooks/use-responsive';
 import { useConversationMeta } from '@/hooks/conversations/useConversationMeta';
 import { ProgressiveMessagesList } from '@/components/conversations/ProgressiveMessagesList';
 import { AlwaysVisibleReplyArea } from '@/components/dashboard/conversation-view/AlwaysVisibleReplyArea';
+import { CustomerSidePanel } from '@/components/dashboard/conversation-view/CustomerSidePanel';
 import { ConversationViewProvider } from '@/contexts/ConversationViewContext';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 interface ConversationViewProps {
   conversationId: string | null;
@@ -28,9 +32,40 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const [showSidePanel, setShowSidePanel] = useState(!isMobile);
+  const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
 
   // Use optimized hooks for fast loading
   const { data: conversation, isLoading: conversationLoading, error: conversationError } = useConversationMeta(conversationId);
+
+  // Keyboard shortcuts - Phase 3
+  useKeyboardShortcuts([
+    {
+      key: 'r',
+      ctrl: true,
+      action: () => {
+        queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+        queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
+        toast.success('Conversation refreshed');
+      },
+      description: 'Refresh conversation',
+    },
+    {
+      key: 'i',
+      ctrl: true,
+      action: () => setShowSidePanel(!showSidePanel),
+      description: 'Toggle info panel',
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('c');
+        setSearchParams(newParams);
+      },
+      description: 'Back to inbox',
+    },
+  ]);
 
   if (!conversationId) {
     return (
@@ -66,9 +101,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   return (
     <ConversationViewProvider conversationId={conversationId}>
-      <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
+      <div className="flex-1 min-h-0 w-full flex bg-background">
         {/* Main Conversation Column */}
-        <div className="flex flex-col min-h-0 w-full bg-background">
+        <div className="flex flex-col min-h-0 flex-1 bg-background">
           {/* Enhanced Conversation Header - Phase 2 */}
           <div className="flex-shrink-0 p-4 border-b border-border bg-card">
             <div className="flex items-center justify-between gap-4">
@@ -125,10 +160,29 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     toast.success('Conversation refreshed');
                   }}
                   className="gap-2"
+                  title="Refresh (Ctrl+R)"
                 >
                   <RefreshCw className="h-4 w-4" />
                   {!isMobile && <span className="text-xs">Refresh</span>}
                 </Button>
+
+                {/* Toggle Side Panel Button - Phase 3 */}
+                {!isMobile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSidePanel(!showSidePanel)}
+                    className="gap-2"
+                    title="Toggle Info Panel (Ctrl+I)"
+                  >
+                    {showSidePanel ? (
+                      <PanelRightClose className="h-4 w-4" />
+                    ) : (
+                      <PanelRightOpen className="h-4 w-4" />
+                    )}
+                    {!isMobile && <span className="text-xs">Info</span>}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -143,6 +197,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
           </div>
         </div>
 
+        {/* Customer Side Panel - Phase 3 */}
+        {!isMobile && showSidePanel && (
+          <CustomerSidePanel 
+            conversation={conversation}
+            isCollapsed={sidePanelCollapsed}
+            onToggleCollapse={() => setSidePanelCollapsed(!sidePanelCollapsed)}
+            onClose={() => setShowSidePanel(false)}
+          />
+        )}
       </div>
     </ConversationViewProvider>
   );
