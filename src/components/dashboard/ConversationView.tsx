@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useConversationMeta } from '@/hooks/conversations/useConversationMeta';
 import { ProgressiveMessagesList } from '@/components/conversations/ProgressiveMessagesList';
-import { LazyReplyArea } from '@/components/conversations/LazyReplyArea';
+import { AlwaysVisibleReplyArea } from '@/components/dashboard/conversation-view/AlwaysVisibleReplyArea';
 import { ConversationViewProvider } from '@/contexts/ConversationViewContext';
 
 interface ConversationViewProps {
@@ -69,11 +69,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
       <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
         {/* Main Conversation Column */}
         <div className="flex flex-col min-h-0 w-full bg-background">
-          {/* Conversation Header */}
-          <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
-                {/* Back to Inbox Button */}
+          {/* Enhanced Conversation Header - Phase 2 */}
+          <div className="flex-shrink-0 p-4 border-b border-border bg-card">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left Section: Back + Customer Info */}
+              <div className="flex items-center space-x-4 min-w-0 flex-1">
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -82,43 +82,52 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                     newParams.delete('c');
                     setSearchParams(newParams);
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  {isMobile ? '' : 'Back to Inbox'}
+                  {!isMobile && <span className="text-sm">Back</span>}
                 </Button>
                 
-                {/* Customer Info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center space-x-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {(conversation.customer?.full_name || conversation.customer?.email || 'U').charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <h1 className="text-sm md:text-base font-semibold truncate">
-                        {conversation.customer?.full_name || 'Unknown Customer'}
-                      </h1>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {conversation.customer?.email}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="h-10 w-10 shrink-0">
+                    <AvatarFallback className="text-base">
+                      {(conversation.customer?.full_name || conversation.customer?.email || 'U').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <h1 className="text-base font-bold truncate">
+                      {conversation.customer?.full_name || 'Unknown Customer'}
+                    </h1>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {conversation.customer?.email}
+                    </p>
                   </div>
                 </div>
               </div>
+
+              {/* Center Section: Subject (if exists) */}
+              {conversation.subject && !isMobile && (
+                <div className="flex-1 min-w-0 text-center">
+                  <p className="text-sm text-muted-foreground truncate" title={conversation.subject}>
+                    {conversation.subject}
+                  </p>
+                </div>
+              )}
               
-              {/* Action buttons */}
-              <div className="flex items-center space-x-2">
+              {/* Right Section: Actions */}
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
                     queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
+                    toast.success('Conversation refreshed');
                   }}
+                  className="gap-2"
                 >
                   <RefreshCw className="h-4 w-4" />
+                  {!isMobile && <span className="text-xs">Refresh</span>}
                 </Button>
               </div>
             </div>
@@ -130,7 +139,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
               conversationId={conversationId} 
               conversation={conversation}
             />
-            <LazyReplyArea conversationId={conversationId} />
+            <AlwaysVisibleReplyArea conversationId={conversationId} />
           </div>
         </div>
 

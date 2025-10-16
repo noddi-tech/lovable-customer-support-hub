@@ -5,14 +5,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { 
   Send,
-  Smile,
   Sparkles,
   Loader2,
   Languages
 } from "lucide-react";
-import { EmojiAutocompleteInput } from "@/components/ui/emoji-autocomplete-input";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
+import { useIsMobile } from "@/hooks/use-responsive";
 import { cn } from "@/lib/utils";
 import { 
   Select,
@@ -36,6 +35,7 @@ export const ReplyArea = () => {
     translateText
   } = useConversationView();
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const replyRef = useRef<HTMLTextAreaElement>(null);
 
   // Available languages for translation
@@ -65,7 +65,7 @@ export const ReplyArea = () => {
     
     try {
       await sendReply(state.replyText, state.isInternalNote);
-      dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
+      dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
     } catch (error) {
       // Error handling is done in the context
     }
@@ -78,280 +78,236 @@ export const ReplyArea = () => {
     }
   };
 
-  const handleEmojiSelect = (emoji: string) => {
-    const textarea = replyRef.current;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newText = state.replyText.slice(0, start) + emoji + state.replyText.slice(end);
-      dispatch({ type: 'SET_REPLY_TEXT', payload: newText });
-      
-      // Restore cursor position
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
-      }, 0);
-    }
-  };
-
   const handleAiSuggestionSelect = (suggestion: string) => {
     dispatch({ type: 'SET_REPLY_TEXT', payload: suggestion });
-    dispatch({ type: 'SET_AI_STATE', payload: { open: false, loading: false, suggestions: [] } });
+  };
+
+  const handleGetAiSuggestions = async () => {
+    if (!state.replyText.trim()) return;
+    
+    try {
+      await getAiSuggestions();
+    } catch (error) {
+      // Error handling is done in the context
+    }
   };
 
   const handleTranslate = async () => {
     if (!state.replyText.trim()) return;
     
-    dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-      open: false, 
-      loading: true, 
-      sourceLanguage: state.sourceLanguage,
-      targetLanguage: state.targetLanguage
-    }});
-    
     try {
-      const translatedText = await translateText(
-        state.replyText,
-        state.sourceLanguage,
-        state.targetLanguage
-      );
-      
-      dispatch({ type: 'SET_REPLY_TEXT', payload: translatedText });
-      dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-        open: false, 
-        loading: false,
-        sourceLanguage: state.sourceLanguage,
-        targetLanguage: state.targetLanguage
-      }});
+      const translated = await translateText(state.replyText, state.sourceLanguage, state.targetLanguage);
+      if (translated) {
+        dispatch({ type: 'SET_REPLY_TEXT', payload: translated });
+        dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+          open: false, 
+          loading: false,
+          sourceLanguage: state.sourceLanguage,
+          targetLanguage: state.targetLanguage
+        }});
+      }
     } catch (error) {
-      dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-        open: false, 
-        loading: false,
-        sourceLanguage: state.sourceLanguage,
-        targetLanguage: state.targetLanguage
-      }});
+      // Error handling is done in the context
     }
   };
 
-  if (!state.showReplyArea) {
-    return (
-      <div className="p-4 border-t border-border bg-card">
-        <Button 
-          onClick={() => dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: true })}
-          className="w-full"
-        >
-          {t('conversation.reply')}
-        </Button>
-      </div>
-    );
-  }
-
+  // Phase 2: Always visible reply area with fixed position and better UX
   return (
-    <div className="border-t border-border bg-card">
-      <div className="p-4">
-        {/* AI Suggestions */}
+    <div className="border-t border-border bg-card shadow-lg">
+      <div className="p-4 space-y-3">
+        {/* AI Suggestions Section */}
         {state.aiSuggestions.length > 0 && (
-          <div className="mb-4 space-y-2">
-            <Label className="text-sm font-medium">{t('conversation.aiSuggestions')}</Label>
-            <div className="space-y-2">
-              {state.aiSuggestions.slice(0, 3).map((suggestion: any, index: number) => (
+          <div className="space-y-2">
+            <Label className="text-xs font-medium">{t('conversation.aiSuggestions')}</Label>
+            <div className="flex flex-wrap gap-2">
+              {state.aiSuggestions.map((suggestion, index) => (
                 <Button
                   key={index}
                   variant="outline"
                   size="sm"
-                  className="w-full text-left justify-start h-auto p-3"
-                  onClick={() => handleAiSuggestionSelect(suggestion.text)}
+                  onClick={() => handleAiSuggestionSelect(suggestion)}
+                  className="text-xs h-auto py-1.5 whitespace-normal text-left"
                 >
-                  <div className="text-sm">{suggestion.text}</div>
+                  {suggestion.length > 60 ? `${suggestion.slice(0, 60)}...` : suggestion}
                 </Button>
               ))}
             </div>
           </div>
         )}
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Switch
-                id="internal-note"
-                checked={state.isInternalNote}
-                onCheckedChange={(checked) => dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: checked })}
-                className="data-[state=checked]:bg-warning"
-              />
-              <Label htmlFor="internal-note" className="text-sm font-medium cursor-pointer">
-                {t('conversation.internalNote')}
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Popover open={state.translateOpen} onOpenChange={(open) => 
-                dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-                  open, 
-                  loading: state.translateLoading,
-                  sourceLanguage: state.sourceLanguage,
-                  targetLanguage: state.targetLanguage
-                }})
-              }>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={state.translateLoading || !state.replyText.trim()}
-                  >
-                    {state.translateLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Languages className="h-4 w-4" />
-                    )}
-                    <span className="hidden sm:inline ml-2">
-                      {t('conversation.translate')}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  <div className="space-y-4">
-                    <h4 className="font-medium leading-none">{t('conversation.translate')}</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <Label className="text-sm">{t('conversation.sourceLanguage')}</Label>
-                        <Select
-                          value={state.sourceLanguage}
-                          onValueChange={(value) => 
-                            dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-                              open: state.translateOpen,
-                              loading: state.translateLoading,
-                              sourceLanguage: value,
-                              targetLanguage: state.targetLanguage
-                            }})
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {languages.map((lang) => (
-                              <SelectItem key={lang.code} value={lang.code}>
-                                {lang.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-sm">{t('conversation.targetLanguage')}</Label>
-                        <Select
-                          value={state.targetLanguage}
-                          onValueChange={(value) => 
-                            dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-                              open: state.translateOpen,
-                              loading: state.translateLoading,
-                              sourceLanguage: state.sourceLanguage,
-                              targetLanguage: value
-                            }})
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {languages.filter(lang => lang.code !== 'auto').map((lang) => (
-                              <SelectItem key={lang.code} value={lang.code}>
-                                {lang.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button 
-                        onClick={handleTranslate}
-                        disabled={state.translateLoading || !state.replyText.trim() || state.sourceLanguage === state.targetLanguage}
-                        className="w-full"
-                      >
-                        {state.translateLoading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            {t('conversation.translating')}
-                          </>
-                        ) : (
-                          <>
-                            <Languages className="h-4 w-4 mr-2" />
-                            {t('conversation.translate')}
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={getAiSuggestions}
-                disabled={state.aiLoading}
-              >
-                {state.aiLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-                <span className="hidden sm:inline ml-2">
-                  {t('conversation.aiSuggest')}
-                </span>
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative">
-            <Textarea
-              ref={replyRef}
-              value={state.replyText}
-              onChange={(e) => dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value })}
-              onKeyDown={handleKeyPress}
-              placeholder={
-                state.isInternalNote 
-                  ? t('conversation.internalNotePlaceholder')
-                  : t('conversation.replyPlaceholder')
+        {/* Controls Row: Internal Note + AI + Translate */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="internal-note"
+              checked={state.isInternalNote}
+              onCheckedChange={(checked) => 
+                dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: checked })
               }
-              className={cn(
-                "min-h-[100px] resize-none",
-                state.isInternalNote && "border-orange-200 bg-orange-50/50"
-              )}
             />
+            <Label 
+              htmlFor="internal-note" 
+              className="text-sm cursor-pointer font-medium"
+            >
+              {t('conversation.internalNote')}
+            </Label>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* AI Suggestions Button */}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false })}
+              onClick={handleGetAiSuggestions}
+              disabled={state.aiLoading || !state.replyText.trim()}
+              className="gap-2"
+              title={t('conversation.getAiSuggestions')}
             >
-              {t('conversation.cancel')}
+              {state.aiLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {!isMobile && <span className="text-xs">AI</span>}
             </Button>
 
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-muted-foreground hidden sm:inline">
-                {t('conversation.ctrlEnterToSend')}
-              </span>
-              <Button 
-                onClick={handleSendReply}
-                disabled={!state.replyText.trim() || state.sendLoading}
-                className={cn(
-                  state.isInternalNote && "bg-orange-600 hover:bg-orange-700"
-                )}
-              >
-                {state.sendLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Send className="h-4 w-4 mr-2" />
-                )}
-                {state.isInternalNote 
-                  ? t('conversation.addNote')
-                  : t('conversation.sendReply')
-                }
-              </Button>
-            </div>
+            {/* Translation Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!state.replyText.trim()}
+                  className="gap-2"
+                  title={t('conversation.translate')}
+                >
+                  <Languages className="h-4 w-4" />
+                  {!isMobile && <span className="text-xs">Translate</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 bg-popover border border-border shadow-md z-50" align="end">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">{t('conversation.translate')}</h4>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs">{t('conversation.from')}</Label>
+                    <Select
+                      value={state.sourceLanguage}
+                      onValueChange={(value) => 
+                        dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+                          open: state.translateOpen,
+                          loading: state.translateLoading,
+                          sourceLanguage: value,
+                          targetLanguage: state.targetLanguage
+                        }})
+                      }
+                    >
+                      <SelectTrigger className="w-full bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border border-border shadow-md z-50">
+                        {languages.map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            {lang.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">{t('conversation.to')}</Label>
+                    <Select
+                      value={state.targetLanguage}
+                      onValueChange={(value) => 
+                        dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
+                          open: state.translateOpen,
+                          loading: state.translateLoading,
+                          sourceLanguage: state.sourceLanguage,
+                          targetLanguage: value
+                        }})
+                      }
+                    >
+                      <SelectTrigger className="w-full bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border border-border shadow-md z-50">
+                        {languages.filter(l => l.code !== 'auto').map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            {lang.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    onClick={handleTranslate}
+                    disabled={state.translateLoading || !state.replyText.trim()}
+                    className="w-full"
+                    size="sm"
+                  >
+                    {state.translateLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {t('conversation.translate')}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
+        </div>
+
+        {/* Text Input Area */}
+        <div className="space-y-2">
+          <Textarea
+            ref={replyRef}
+            value={state.replyText}
+            onChange={(e) => dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value })}
+            onKeyDown={handleKeyPress}
+            placeholder={state.isInternalNote 
+              ? t('conversation.writeInternalNote')
+              : t('conversation.typeYourReply')
+            }
+            className={cn(
+              "min-h-[120px] resize-none transition-colors",
+              state.isInternalNote && "bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
+            )}
+          />
+          <p className="text-xs text-muted-foreground">
+            Ctrl/⌘ + Enter to send
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
+              dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+            }}
+            disabled={state.sendLoading}
+          >
+            {t('conversation.cancel')}
+          </Button>
+
+          <Button
+            onClick={handleSendReply}
+            disabled={!state.replyText.trim() || state.sendLoading}
+            className="gap-2"
+          >
+            {state.sendLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t('conversation.sending')}
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                {state.isInternalNote ? t('conversation.addNote') : t('conversation.send')}
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>
