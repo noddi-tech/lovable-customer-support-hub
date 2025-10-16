@@ -20,19 +20,15 @@ import { CallMetricsCard } from './CallMetricsCard';
 import { LiveDataIndicator } from './LiveDataIndicator';
 import { AircallConnectionPrompt } from './AircallConnectionPrompt';
 import { useNavigate } from 'react-router-dom';
-import { useCallAnalytics } from '@/hooks/useCallAnalytics';
+import { useDailyCallMetrics } from '@/hooks/useDailyCallMetrics';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
-import { subDays } from 'date-fns';
 
 export const VoiceDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('recent');
   const { isInitialized, isConnected, initializePhone, showAircallWorkspace } = useAircallPhone();
   
-  const { metrics, isLoading } = useCallAnalytics({
-    from: subDays(new Date(), 7),
-    to: new Date(),
-  });
+  const { metrics, isLoading } = useDailyCallMetrics();
 
   const handleLoadPhone = async () => {
     if (!isInitialized) {
@@ -92,7 +88,7 @@ export const VoiceDashboard = () => {
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <CallMetricsCard
-          title="Recent Calls"
+          title="Calls Today"
           value={metrics.totalCalls}
           trend={metrics.callsTrend}
           icon="phone"
@@ -111,7 +107,7 @@ export const VoiceDashboard = () => {
           variant="success"
         />
         <CallMetricsCard
-          title="Missed Calls"
+          title="Missed Today"
           value={metrics.missedCalls}
           trend={metrics.missedTrend}
           icon="x"
