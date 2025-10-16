@@ -14,8 +14,11 @@ if (import.meta.env.DEV) {
 // Phase 3: Listen for error boundary reset events
 window.addEventListener('global-error-reset', () => {
   console.log('🔄 [ErrorBoundary] Global error reset triggered');
-  queryClient.clear();
-  queryClient.invalidateQueries();
+  // On error, only clear potentially corrupted queries
+  queryClient.removeQueries({ queryKey: ['conversations'] });
+  queryClient.removeQueries({ queryKey: ['inbox-counts'] });
+  queryClient.removeQueries({ queryKey: ['all-counts'] });
+  // Don't touch Noddi customer data - it's historical and doesn't get corrupted
 });
 
 window.addEventListener('voice-error-reset', () => {

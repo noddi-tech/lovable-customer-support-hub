@@ -68,8 +68,10 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       <SessionSyncButton 
         onSyncSuccess={() => {
           setShowSessionBanner(false);
-          // Invalidate all queries to refresh data without reloading the page
-          queryClient.invalidateQueries();
+          // Only refresh conversation-related queries
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
+          queryClient.invalidateQueries({ queryKey: ['all-counts'] });
         }}
         showAlert={hasSessionError && filteredConversations.length === 0}
       />

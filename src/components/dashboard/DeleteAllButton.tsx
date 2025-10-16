@@ -27,9 +27,12 @@ export const DeleteAllButton = () => {
       } else {
         toast.success(t('dashboard.deleteAll.success'));
         
-        // Invalidate queries to refresh data without page reload
+        // Only invalidate conversation-related queries
         setTimeout(() => {
-          queryClient.invalidateQueries();
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
+          queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
+          queryClient.invalidateQueries({ queryKey: ['all-counts'] });
         }, 1000);
       }
     } catch (error) {

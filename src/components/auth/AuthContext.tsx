@@ -119,10 +119,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(newUser);
         setLoading(false);
         
-        // Clear all cached data when authentication state changes
+        // Clear user-specific cached data when authentication state changes
         if (event === 'SIGNED_OUT' || (!previousUser && !newUser) || (previousUser?.id !== newUser?.id)) {
-          queryClient.clear();
-          console.log('Cleared query cache due to auth state change:', event);
+          // Only clear user-specific queries, preserve historical data like Noddi
+          queryClient.removeQueries({ queryKey: ['conversations'] });
+          queryClient.removeQueries({ queryKey: ['inbox-counts'] });
+          queryClient.removeQueries({ queryKey: ['all-counts'] });
+          queryClient.removeQueries({ queryKey: ['users'] });
+          queryClient.removeQueries({ queryKey: ['inboxes'] });
+          queryClient.removeQueries({ queryKey: ['notifications'] });
+          console.log('Cleared user-specific query cache due to auth state change:', event);
         }
         
         // Validate session after sign-in
