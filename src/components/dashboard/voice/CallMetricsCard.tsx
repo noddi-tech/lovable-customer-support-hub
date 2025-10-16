@@ -52,7 +52,7 @@ export const CallMetricsCard = ({
             ) : isNegative ? (
               <TrendingDown className="h-3 w-3 mr-1" />
             ) : null}
-            <span>{Math.abs(trend)}% from last period</span>
+            <span>{Math.abs(trend)}% from yesterday</span>
           </div>
         )}
       </CardContent>
