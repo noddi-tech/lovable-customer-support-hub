@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -24,6 +24,37 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   rightPaneLabel = 'Customer Info',
 }) => {
   const isMobile = useIsMobile();
+  const [workspaceVisible, setWorkspaceVisible] = useState(false);
+
+  // Detect Aircall workspace visibility
+  useEffect(() => {
+    const checkWorkspaceVisibility = () => {
+      const container = document.querySelector('#aircall-workspace-container');
+      if (container) {
+        const isVisible = container.classList.contains('aircall-visible');
+        setWorkspaceVisible(isVisible);
+      }
+    };
+
+    // Check immediately
+    checkWorkspaceVisibility();
+
+    // Set up MutationObserver to watch for class changes
+    const container = document.querySelector('#aircall-workspace-container');
+    if (container) {
+      const observer = new MutationObserver(checkWorkspaceVisibility);
+      observer.observe(container, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+
+      return () => observer.disconnect();
+    }
+
+    // Fallback: check periodically if container doesn't exist yet
+    const interval = setInterval(checkWorkspaceVisibility, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   // Mobile layout with tabs
   // Add bottom padding to account for fixed phone bar
@@ -67,6 +98,7 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
 
   // Desktop layout with 3 columns always visible
   // Add bottom padding to account for fixed phone bar
+  // Add right padding when workspace is visible to prevent overlap
   return (
     <div className="h-full grid grid-cols-[280px_minmax(0,1fr)_360px] gap-0 overflow-hidden pb-20">
       {/* Left pane - Filters */}
@@ -79,7 +111,9 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
       </div>
 
       {/* Center pane - List */}
-      <div className="border-r border-border bg-background overflow-hidden">
+      <div className={`border-r border-border bg-background overflow-hidden transition-[padding] duration-300 ease-in-out ${
+        workspaceVisible ? 'pr-[400px]' : ''
+      }`}>
         <ScrollArea className="h-full">
           <div className="p-4">
             {centerPane}

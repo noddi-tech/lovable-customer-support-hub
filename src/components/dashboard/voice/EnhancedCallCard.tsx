@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowUpRight, ArrowDownLeft, Clock, History, MessageSquare } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowUpRight, ArrowDownLeft, Clock, History, MessageSquare, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { Call } from '@/hooks/useCalls';
 import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { CallCustomerInfo } from './CallCustomerInfo';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface EnhancedCallCardProps {
   call: Call;
@@ -14,6 +24,7 @@ interface EnhancedCallCardProps {
   onSelect?: (call: Call) => void;
   onViewDetails?: (call: Call) => void;
   onNavigateToEvents?: (callId: string) => void;
+  onRemoveCall?: (callId: string) => void;
   notesCount?: number;
 }
 
@@ -23,8 +34,10 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
   onSelect,
   onViewDetails,
   onNavigateToEvents,
+  onRemoveCall,
   notesCount = 0,
 }) => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const formatPhoneNumber = (phone?: string) => {
     if (!phone) return 'Unknown';
     return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
@@ -158,7 +171,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
           </div>
 
           {/* Quick Actions - Show on Hover */}
-          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex items-center gap-1">
+          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto flex items-center gap-1 transform-gpu will-change-opacity">
             {onViewDetails && (
               <Button 
                 size="sm" 
@@ -167,7 +180,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
                   e.stopPropagation();
                   onViewDetails(call);
                 }}
-                title="View Details"
+                title="See more"
               >
                 <History className="h-4 w-4" />
               </Button>
@@ -185,9 +198,46 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
                 <MessageSquare className="h-4 w-4" />
               </Button>
             )}
+            {onRemoveCall && (
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteDialog(true);
+                }}
+                title="Remove call"
+                className="hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Call</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this call from your history? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onRemoveCall?.(call.id);
+                setShowDeleteDialog(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

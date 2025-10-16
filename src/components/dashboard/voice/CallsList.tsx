@@ -57,7 +57,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     priority: [],
   });
   
-  const { calls, isLoading, error } = useCalls();
+  const { calls, isLoading, error, removeCall } = useCalls();
   const { getIntegrationByProvider } = useVoiceIntegrations();
   const aircallIntegration = getIntegrationByProvider('aircall');
 
@@ -376,6 +376,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         onSelect={onSelectCall}
         onViewDetails={openCallDetails}
         onNavigateToEvents={onNavigateToEvents}
+        onRemoveCall={removeCall}
         notesCount={notesCount}
       />
     );
@@ -396,7 +397,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
       <div className="space-y-2">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 w-full text-left px-2 py-1 hover:bg-muted/50 rounded-md transition-colors"
+          className="flex items-center gap-2 w-full text-left px-2 py-1 hover:bg-muted/50 rounded-md"
         >
           {icon}
           <span className="font-semibold text-sm">{title}</span>

@@ -1,9 +1,10 @@
 import React from 'react';
-import { User, Loader2 } from 'lucide-react';
+import { User } from 'lucide-react';
 import { Call } from '@/hooks/useCalls';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { NoddiStatusBadges } from './NoddiStatusBadges';
 import { displayName } from '@/utils/noddiHelpers';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CallCustomerInfoProps {
   call: Call;
@@ -34,8 +35,8 @@ const CallCustomerInfoComponent: React.FC<CallCustomerInfoProps> = ({ call }) =>
       {/* Loading State */}
       {isLoading && (
         <div className="flex gap-1">
-          <div className="h-4 w-16 bg-muted/50 animate-pulse rounded" />
-          <div className="h-4 w-16 bg-muted/50 animate-pulse rounded" />
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-5 w-20" />
         </div>
       )}
 

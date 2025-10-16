@@ -111,6 +111,7 @@ export type Database = {
           enriched_details: Json | null
           external_id: string
           hangup_cause: string | null
+          hidden: boolean | null
           id: string
           ivr_interaction: Json | null
           metadata: Json | null
@@ -135,6 +136,7 @@ export type Database = {
           enriched_details?: Json | null
           external_id: string
           hangup_cause?: string | null
+          hidden?: boolean | null
           id?: string
           ivr_interaction?: Json | null
           metadata?: Json | null
@@ -159,6 +161,7 @@ export type Database = {
           enriched_details?: Json | null
           external_id?: string
           hangup_cause?: string | null
+          hidden?: boolean | null
           id?: string
           ivr_interaction?: Json | null
           metadata?: Json | null

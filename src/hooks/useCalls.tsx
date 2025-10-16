@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +71,7 @@ export function useCalls() {
             metadata
           )
         `)
+        .eq('hidden', false)
         .order('started_at', { ascending: false });
 
       if (error) {
@@ -213,6 +214,32 @@ export function useCalls() {
     return acc;
   }, {} as Record<string, number>);
 
+  const removeCallMutation = useMutation({
+    mutationFn: async (callId: string) => {
+      const { error } = await supabase
+        .from('calls')
+        .update({ hidden: true })
+        .eq('id', callId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calls'] });
+      toast({
+        title: 'Call removed',
+        description: 'The call has been removed from your history',
+      });
+    },
+    onError: (error) => {
+      console.error('Error removing call:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove call',
+        variant: 'destructive',
+      });
+    },
+  });
+
   return {
     calls,
     callEvents,
@@ -220,6 +247,7 @@ export function useCalls() {
     recentCalls,
     callsByStatus,
     isLoading,
-    error
+    error,
+    removeCall: removeCallMutation.mutate,
   };
 }
