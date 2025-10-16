@@ -56,38 +56,56 @@ export const useCallAnalytics = (dateRange?: DateRange) => {
         return acc;
       }, {} as Record<string, any>);
 
-      // Agent stats
-      const { data: agents } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, avatar_url, email')
-        .eq('organization_id', profile.organization_id)
-        .eq('role', 'agent');
+      // Agent stats - Extract from call metadata (Aircall agents)
+      const agentEmailMap: Record<string, {
+        email: string;
+        name: string;
+        calls: any[];
+        answered: any[];
+        missed: any[];
+      }> = {};
 
-      const agentStats = agents?.map(agent => {
-        // Match calls by agent email from metadata
-        const agentCalls = calls.filter(c => {
-          const metadata = c.metadata as any;
-          const enrichedDetails = c.enriched_details as any;
-          const agentEmail = metadata?.user?.email || enrichedDetails?.user_email;
-          return agentEmail === agent.email;
-        });
-        const agentAnswered = agentCalls.filter(c => c.status === 'completed');
-        const agentMissed = agentCalls.filter(c => c.status === 'missed');
-        
+      // Build agent map from calls
+      calls.forEach(call => {
+        const metadata = call.metadata as any;
+        const enrichedDetails = call.enriched_details as any;
+        const agentEmail = metadata?.user?.email || enrichedDetails?.user_email;
+        const agentName = metadata?.user?.name || enrichedDetails?.user_name;
+
+        // Skip calls without agent data (missed calls with no agent assigned)
+        if (!agentEmail) return;
+
+        if (!agentEmailMap[agentEmail]) {
+          agentEmailMap[agentEmail] = {
+            email: agentEmail,
+            name: agentName || agentEmail.split('@')[0],
+            calls: [],
+            answered: [],
+            missed: [],
+          };
+        }
+
+        agentEmailMap[agentEmail].calls.push(call);
+        if (call.status === 'completed') agentEmailMap[agentEmail].answered.push(call);
+        if (call.status === 'missed') agentEmailMap[agentEmail].missed.push(call);
+      });
+
+      // Convert to agent stats array
+      const agentStats = Object.values(agentEmailMap).map(agent => {
         return {
-          id: agent.user_id,
-          name: agent.full_name,
-          avatar: agent.avatar_url,
-          totalCalls: agentCalls.length,
-          answeredCalls: agentAnswered.length,
-          missedCalls: agentMissed.length,
+          id: agent.email, // Use email as ID since they're not platform users
+          name: agent.name,
+          avatar: null, // Aircall agents don't have avatars in platform
+          totalCalls: agent.calls.length,
+          answeredCalls: agent.answered.length,
+          missedCalls: agent.missed.length,
           avgDuration: Math.round(
-            agentCalls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0) / 
-            (agentAnswered.length || 1)
+            agent.calls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0) / 
+            (agent.answered.length || 1)
           ),
-          answerRate: agentCalls.length > 0 ? Math.round((agentAnswered.length / agentCalls.length) * 100) : 0,
+          answerRate: agent.calls.length > 0 ? Math.round((agent.answered.length / agent.calls.length) * 100) : 0,
         };
-      }).filter(agent => agent.totalCalls > 0) || [];
+      }).sort((a, b) => b.totalCalls - a.totalCalls);
 
       return {
         metrics: {
