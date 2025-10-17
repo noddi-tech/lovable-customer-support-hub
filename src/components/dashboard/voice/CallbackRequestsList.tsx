@@ -9,6 +9,7 @@ import { useCallbackRequests, CallbackRequest } from '@/hooks/useCallbackRequest
 import { AgentAssignmentSelect } from './AgentAssignmentSelect';
 import { CallActionButton } from './CallActionButton';
 import { formatDistanceToNow } from 'date-fns';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 
 const statusConfig = {
   pending: {
@@ -52,14 +53,8 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
   const config = statusConfig[request.status as keyof typeof statusConfig];
   const StatusIcon = config.icon;
 
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    // Basic phone formatting - can be enhanced
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-  };
-
   return (
-    <Card 
+    <Card
       className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
         isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
       }`}

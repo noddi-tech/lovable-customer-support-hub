@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { CallNotesSection } from './CallNotesSection';
 import { NoddiCustomerDetails } from './NoddiCustomerDetails';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 
 interface Call {
   id: string;
@@ -79,11 +80,6 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
       setShowRemoveDialog(false);
       onClose();
     }
-  };
-
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
   };
 
   const formatDuration = (seconds?: number) => {

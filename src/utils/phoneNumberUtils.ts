@@ -11,6 +11,43 @@ export function normalizePhoneNumber(phone: string): string {
   return phone.replace(/\D/g, '');
 }
 
+/**
+ * Format phone number for display (Norwegian format)
+ * Examples:
+ * - +4792444169 → +47 92 44 41 69
+ * - 92444169 → 92 44 41 69
+ * - +1234567890 → +1 234 567 890 (fallback for non-Norwegian)
+ */
+export function formatPhoneNumber(phone?: string): string {
+  if (!phone) return 'Unknown';
+  
+  // Remove all non-digit characters except leading +
+  const cleanPhone = phone.replace(/[^\d+]/g, '');
+  
+  // Handle Norwegian numbers (+47 or 47 prefix)
+  if (cleanPhone.startsWith('+47') || cleanPhone.startsWith('47')) {
+    const normalized = cleanPhone.replace(/^\+?47/, '');
+    
+    // Norwegian mobile numbers are 8 digits
+    if (normalized.length === 8) {
+      const pairs = normalized.match(/.{1,2}/g) || [];
+      return `+47 ${pairs.join(' ')}`;
+    }
+  }
+  
+  // For other formats, preserve the + and add spaces every 2-3 digits
+  if (cleanPhone.startsWith('+')) {
+    const countryCode = cleanPhone.slice(0, 3); // e.g., +47
+    const rest = cleanPhone.slice(3);
+    const groups = rest.match(/.{1,3}/g) || [];
+    return `${countryCode} ${groups.join(' ')}`;
+  }
+  
+  // Fallback: add spaces between digit pairs for local numbers
+  const groups = cleanPhone.match(/.{1,2}/g) || [];
+  return groups.join(' ');
+}
+
 export function findMonitoredPhoneNumber(
   phoneToMatch: string, 
   voiceIntegration?: VoiceIntegrationConfig

@@ -13,6 +13,7 @@ import { useCallCustomerContext } from '@/hooks/useCallCustomerContext';
 import { useCallKeyboardShortcuts } from '@/hooks/useCallKeyboardShortcuts';
 import { useToast } from '@/hooks/use-toast';
 import { ActiveCallContext } from './ActiveCallContext';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 import { PostCallActions } from './PostCallActions';
 import { CallControls } from './CallControls';
 import { cn } from '@/lib/utils';
@@ -125,12 +126,6 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Format phone number
-  const formatPhone = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\+\d{1,3})(\d{3})(\d{3})(\d{4})/, '$1 ($2) $3-$4');
   };
 
   const handleTransfer = (agentId: string) => {
@@ -270,7 +265,7 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
                       
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">
-                          {unifiedCall.customerName || formatPhone(unifiedCall.phone)}
+                          {unifiedCall.customerName || formatPhoneNumber(unifiedCall.phone)}
                         </p>
                         {unifiedCall.isOngoing && (
                           <p className="text-xs text-muted-foreground">

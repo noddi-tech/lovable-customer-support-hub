@@ -12,6 +12,7 @@ import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useCallCustomerContext } from '@/hooks/useCallCustomerContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Call } from '@/hooks/useCalls';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 
 interface IncomingCallModalProps {
   call: Call | null;
@@ -126,11 +127,6 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
   }, [isOpen, onClose]);
 
   if (!currentCall) return null;
-
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-  };
 
   const uiMeta = noddiData?.data?.ui_meta;
   const priorityBooking = noddiData?.data?.priority_booking;

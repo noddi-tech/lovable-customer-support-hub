@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { TimeRangeFilter } from '@/components/ui/timerange-filter';
 import { CallEvent } from '@/hooks/useCalls';
 import { formatDistanceToNow, format, isAfter } from 'date-fns';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 
 interface CallEventsListProps {
   events: CallEvent[];
@@ -68,11 +69,6 @@ const EventCard: React.FC<{ event: CallEvent; onFilter: (callId: string) => void
 
   const formatEventType = (eventType: string) => {
     return eventType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
   };
 
   const formatDuration = (seconds?: number) => {

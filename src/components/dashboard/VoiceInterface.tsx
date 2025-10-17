@@ -13,6 +13,7 @@ import { CallStatusCard } from './voice/CallStatusCard';
 import { CallEventsList } from './voice/CallEventsList';
 import { CallbackRequestsList } from './voice/CallbackRequestsList';
 import { VoicemailsList } from './voice/VoicemailsList';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 import { CallsList } from './voice/CallsList';
 import { VoiceSidebar } from './voice/VoiceSidebar';
 import { VoiceCustomerSidebar } from './voice/VoiceCustomerSidebar';
@@ -311,12 +312,6 @@ export const VoiceInterface = () => {
       </Card>
     );
   }
-
-  // Format phone number for display
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-  };
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '0:00';

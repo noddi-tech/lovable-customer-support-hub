@@ -10,6 +10,7 @@ import { useVoicemails, Voicemail } from '@/hooks/useVoicemails';
 import { AgentAssignmentSelect } from './AgentAssignmentSelect';
 import { CallActionButton } from './CallActionButton';
 import { formatDistanceToNow } from 'date-fns';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 
 
 interface VoicemailCardProps {
@@ -25,11 +26,6 @@ interface VoicemailCardProps {
 
 const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign, isDownloading, isAssigning, onSelect, isSelected }: VoicemailCardProps) => {
   const { t } = useTranslation();
-
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-  };
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return 'Unknown';

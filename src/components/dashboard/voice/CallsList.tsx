@@ -13,6 +13,7 @@ import { useCallNotes } from '@/hooks/useCallNotes';
 import { formatDistanceToNow, format, isAfter } from 'date-fns';
 import { CallDetailsDialog } from './CallDetailsDialog';
 import { CallActionButton } from './CallActionButton';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { EnhancedCallCard } from './EnhancedCallCard';
 import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
@@ -154,11 +155,6 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     { id: '24h', label: 'Last 24 Hours', hours: 24 },
     { id: '1w', label: 'Last Week', weeks: 1 }
   ];
-
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-  };
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '0:00';
