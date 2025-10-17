@@ -18,7 +18,6 @@ import { useIsMobile } from '@/hooks/use-responsive';
 import { useConversationMeta } from '@/hooks/conversations/useConversationMeta';
 import { ProgressiveMessagesList } from '@/components/conversations/ProgressiveMessagesList';
 import { AlwaysVisibleReplyArea } from '@/components/dashboard/conversation-view/AlwaysVisibleReplyArea';
-import { CustomerSidePanel } from '@/components/dashboard/conversation-view/CustomerSidePanel';
 import { ConversationViewProvider } from '@/contexts/ConversationViewContext';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
@@ -32,8 +31,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const [showSidePanel, setShowSidePanel] = useState(!isMobile);
-  const [sidePanelCollapsed, setSidePanelCollapsed] = useState(false);
 
   // Use optimized hooks for fast loading
   const { data: conversation, isLoading: conversationLoading, error: conversationError } = useConversationMeta(conversationId);
@@ -49,12 +46,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         toast.success('Conversation refreshed');
       },
       description: 'Refresh conversation',
-    },
-    {
-      key: 'i',
-      ctrl: true,
-      action: () => setShowSidePanel(!showSidePanel),
-      description: 'Toggle info panel',
     },
     {
       key: 'Escape',
@@ -101,111 +92,80 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   return (
     <ConversationViewProvider conversationId={conversationId}>
-      <div className="flex-1 min-h-0 w-full flex bg-background">
-        {/* Main Conversation Column */}
-        <div className="flex flex-col min-h-0 flex-1 bg-background">
-          {/* Enhanced Conversation Header - Phase 2 */}
-          <div className="flex-shrink-0 p-4 border-b border-border bg-card">
-            <div className="flex items-center justify-between gap-4">
-              {/* Left Section: Back + Customer Info */}
-              <div className="flex items-center space-x-4 min-w-0 flex-1">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    const newParams = new URLSearchParams(searchParams);
-                    newParams.delete('c');
-                    setSearchParams(newParams);
-                  }}
-                  className="flex items-center gap-2 shrink-0"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {!isMobile && <span className="text-sm">Back</span>}
-                </Button>
-                
-                <div className="flex items-center gap-3 min-w-0">
-                  <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarFallback className="text-base">
-                      {(conversation.customer?.full_name || conversation.customer?.email || 'U').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <h1 className="text-base font-bold truncate">
-                      {conversation.customer?.full_name || 'Unknown Customer'}
-                    </h1>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {conversation.customer?.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Center Section: Subject (if exists) */}
-              {conversation.subject && !isMobile && (
-                <div className="flex-1 min-w-0 text-center">
-                  <p className="text-sm text-muted-foreground truncate" title={conversation.subject}>
-                    {conversation.subject}
+      <div className="flex flex-col min-h-0 flex-1 bg-background">
+        {/* Enhanced Conversation Header - Phase 2 */}
+        <div className="flex-shrink-0 p-4 border-b border-border bg-card">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left Section: Back + Customer Info */}
+            <div className="flex items-center space-x-4 min-w-0 flex-1">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.delete('c');
+                  setSearchParams(newParams);
+                }}
+                className="flex items-center gap-2 shrink-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {!isMobile && <span className="text-sm">Back</span>}
+              </Button>
+              
+              <div className="flex items-center gap-3 min-w-0">
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarFallback className="text-base">
+                    {(conversation.customer?.full_name || conversation.customer?.email || 'U').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <h1 className="text-base font-bold truncate">
+                    {conversation.customer?.full_name || 'Unknown Customer'}
+                  </h1>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {conversation.customer?.email}
                   </p>
                 </div>
-              )}
-              
-              {/* Right Section: Actions */}
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
-                    queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
-                    toast.success('Conversation refreshed');
-                  }}
-                  className="gap-2"
-                  title="Refresh (Ctrl+R)"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  {!isMobile && <span className="text-xs">Refresh</span>}
-                </Button>
-
-                {/* Toggle Side Panel Button - Phase 3 */}
-                {!isMobile && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSidePanel(!showSidePanel)}
-                    className="gap-2"
-                    title="Toggle Info Panel (Ctrl+I)"
-                  >
-                    {showSidePanel ? (
-                      <PanelRightClose className="h-4 w-4" />
-                    ) : (
-                      <PanelRightOpen className="h-4 w-4" />
-                    )}
-                    {!isMobile && <span className="text-xs">Info</span>}
-                  </Button>
-                )}
               </div>
             </div>
-          </div>
 
-          {/* Messages Area with Progressive Loading */}
-          <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
-            <ProgressiveMessagesList 
-              conversationId={conversationId} 
-              conversation={conversation}
-            />
-            <AlwaysVisibleReplyArea conversationId={conversationId} />
+            {/* Center Section: Subject (if exists) */}
+            {conversation.subject && !isMobile && (
+              <div className="flex-1 min-w-0 text-center">
+                <p className="text-sm text-muted-foreground truncate" title={conversation.subject}>
+                  {conversation.subject}
+                </p>
+              </div>
+            )}
+            
+            {/* Right Section: Actions */}
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+                  queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
+                  toast.success('Conversation refreshed');
+                }}
+                className="gap-2"
+                title="Refresh (Ctrl+R)"
+              >
+                <RefreshCw className="h-4 w-4" />
+                {!isMobile && <span className="text-xs">Refresh</span>}
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Customer Side Panel - Phase 3 */}
-        {!isMobile && showSidePanel && (
-          <CustomerSidePanel 
+        {/* Messages Area with Progressive Loading */}
+        <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
+          <ProgressiveMessagesList 
+            conversationId={conversationId} 
             conversation={conversation}
-            isCollapsed={sidePanelCollapsed}
-            onToggleCollapse={() => setSidePanelCollapsed(!sidePanelCollapsed)}
-            onClose={() => setShowSidePanel(false)}
           />
-        )}
+          <AlwaysVisibleReplyArea conversationId={conversationId} />
+        </div>
       </div>
     </ConversationViewProvider>
   );

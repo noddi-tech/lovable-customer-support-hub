@@ -300,8 +300,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
             </div>
           </header>
 
-          {/* Main Content with gutters */}
-          <main className="min-h-0 w-full max-w-none overflow-auto px-4 sm:px-6 md:px-8">
+          {/* Main Content */}
+          <main className="min-h-0 w-full max-w-none overflow-auto">
             {children}
           </main>
         </div>
