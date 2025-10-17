@@ -42,28 +42,28 @@ function formatList(list: Addr[] = [], max = 3) {
   return { shown, extra };
 }
 
-// tone per direction (authorType)
+// tone per direction (authorType) - Pure white cards with colored accent bars
 function tone(authorType: 'agent' | 'customer' | 'system' = 'customer') {
   if (authorType === 'agent') {
     return {
       accentBar: 'bg-emerald-500',
-      border: 'border-emerald-200',
-      bg: 'bg-emerald-50/60',
+      border: 'border-gray-200',
+      bg: 'bg-white',
       chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
     };
   }
   if (authorType === 'customer') {
     return {
       accentBar: 'bg-indigo-500',
-      border: 'border-indigo-200',
-      bg: 'bg-indigo-50/60',
+      border: 'border-gray-200',
+      bg: 'bg-white',
       chip: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
     };
   }
   return {
     accentBar: 'bg-slate-400',
-    border: 'border-slate-200',
-    bg: 'bg-slate-50/60',
+    border: 'border-gray-200',
+    bg: 'bg-white',
     chip: 'bg-slate-50 text-slate-800 ring-slate-200',
   };
 }
@@ -160,8 +160,8 @@ export const MessageCard = ({
 
   return (
     <div className={cn(
-      "group relative rounded-xl border transition-all mb-4",
-      "shadow-sm hover:shadow-md",
+      "group relative rounded-xl border transition-all mb-6",
+      "shadow-md hover:shadow-lg bg-white",
       tne.border
     )}>
       <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-l-xl", tne.accentBar)} />

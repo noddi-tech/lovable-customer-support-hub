@@ -37,9 +37,13 @@ Optimized for accessibility with WCAG AA compliance.
 
 @layer base {
   :root {
-    /* Base colors - Clean, professional palette aligned with card-based design */
-    --background: 220 27% 98%; /* #F8F9FB - Clean light background */
+    /* Base colors - Pure white for clean, professional appearance */
+    --background: 0 0% 100%; /* Pure white for main background */
     --foreground: 224 71% 4%;
+    
+    /* Card colors - Pure white for cards */
+    --card: 0 0% 100%; /* Pure white for cards */
+    --card-foreground: 224 71% 4%;
 
     /* Popover and modal colors */
     --popover: 0 0% 100%; /* #FFFFFF */

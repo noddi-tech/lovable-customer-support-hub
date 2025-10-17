@@ -92,9 +92,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
   return (
     <ConversationViewProvider conversationId={conversationId}>
-      <div className="flex flex-col min-h-0 flex-1 bg-background">
+      <div className="flex flex-col min-h-0 flex-1 bg-white">
         {/* Enhanced Conversation Header - Phase 2 */}
-        <div className="flex-shrink-0 p-5 border-b border-border bg-muted/30 shadow-sm">
+        <div className="flex-shrink-0 p-5 border-b border-border bg-gray-50 shadow-sm">
           <div className="flex items-center gap-4">
             {/* Left Section: Back + Customer Info */}
             <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -160,7 +160,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
         </div>
 
         {/* Messages Area with Progressive Loading */}
-        <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
+        <div className="flex-1 min-h-0 w-full flex flex-col bg-white">
           <ProgressiveMessagesList 
             conversationId={conversationId} 
             conversation={conversation}

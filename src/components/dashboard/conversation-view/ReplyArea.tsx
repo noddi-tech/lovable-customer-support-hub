@@ -115,7 +115,7 @@ export const ReplyArea = () => {
 
   // Phase 3: Enhanced reply area with strong visual separation
   return (
-    <div className="border-t-2 border-border bg-muted/40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    <div className="border-t-2 border-border bg-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
       <div className="p-6 space-y-4">
         {/* AI Suggestions Section */}
         {state.aiSuggestions.length > 0 && (
