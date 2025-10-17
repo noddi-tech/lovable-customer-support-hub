@@ -117,31 +117,68 @@ export const useNoddihKundeData = (customer: Customer | null) => {
     queryKey: ['noddi-customer-lookup', getCustomerCacheKey(customer), profile?.organization_id],
     queryFn: async (): Promise<NoddiLookupResponse | null> => {
       if ((!customer?.email && !customer?.phone) || !profile?.organization_id) {
+        console.log('[Noddi API] ⚠️ Skipping lookup - missing required data:', {
+          hasEmail: !!customer?.email,
+          hasPhone: !!customer?.phone,
+          hasOrgId: !!profile?.organization_id
+        });
         return null;
       }
 
-      console.log('[useNoddihKundeData] 🔄 FETCHING from API:', { 
-        email: customer.email, 
+      const startTime = Date.now();
+      const timestamp = new Date().toISOString();
+      
+      console.log('[Noddi API] 🚀 Starting customer lookup:', {
+        customerId: customer.id,
+        email: customer.email,
         phone: customer.phone,
-        timestamp: new Date().toISOString(),
-        source: 'live-api'
+        organizationId: profile.organization_id,
+        timestamp
       });
       
-      const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
-        body: {
-          email: customer.email,
-          phone: customer.phone,
-          customerId: customer.id,
-          organizationId: profile.organization_id
+      try {
+        const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
+          body: {
+            email: customer.email,
+            phone: customer.phone,
+            customerId: customer.id,
+            organizationId: profile.organization_id
+          }
+        });
+
+        const duration = Date.now() - startTime;
+
+        if (error) {
+          console.error('[Noddi API] ❌ Lookup failed:', {
+            duration: `${duration}ms`,
+            error: error.message,
+            details: error,
+            timestamp: new Date().toISOString()
+          });
+          throw new Error(`Failed to lookup Noddi data: ${error.message}`);
         }
-      });
 
-      if (error) {
-        console.error('Noddi lookup error:', error);
-        throw new Error(`Failed to lookup Noddi data: ${error.message}`);
+        console.log('[Noddi API] ✅ Lookup completed successfully:', {
+          duration: `${duration}ms`,
+          source: data?.source || 'unknown',
+          found: data?.data?.found || false,
+          hasUser: !!data?.data?.user,
+          hasPriorityBooking: !!data?.data?.priority_booking,
+          unpaidCount: data?.data?.unpaid_count || 0,
+          timestamp: new Date().toISOString()
+        });
+
+        return data as NoddiLookupResponse;
+      } catch (err: any) {
+        const duration = Date.now() - startTime;
+        console.error('[Noddi API] 💥 Exception during lookup:', {
+          duration: `${duration}ms`,
+          error: err.message,
+          stack: err.stack,
+          timestamp: new Date().toISOString()
+        });
+        throw err;
       }
-
-      return data as NoddiLookupResponse;
     },
     enabled: (!!customer?.email || !!customer?.phone) && !!profile?.organization_id,
     staleTime: Infinity, // CRITICAL: Never consider data stale (historical data)
