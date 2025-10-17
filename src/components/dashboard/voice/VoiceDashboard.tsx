@@ -22,11 +22,15 @@ import { AircallConnectionPrompt } from './AircallConnectionPrompt';
 import { useNavigate } from 'react-router-dom';
 import { useDailyCallMetrics } from '@/hooks/useDailyCallMetrics';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
+import { useRealtimeConnectionManager } from '@/hooks/useRealtimeConnectionManager';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const VoiceDashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('recent');
   const { isInitialized, isConnected, initializePhone, showAircallWorkspace } = useAircallPhone();
+  const { isConnected: realtimeConnected, lastConnected } = useRealtimeConnectionManager();
   
   const { metrics, isLoading } = useDailyCallMetrics();
 
@@ -35,6 +39,14 @@ export const VoiceDashboard = () => {
       await initializePhone();
     }
     showAircallWorkspace();
+  };
+
+  const handleRefresh = () => {
+    console.log('[VoiceDashboard] 🔄 Manual refresh triggered');
+    queryClient.invalidateQueries({ queryKey: ['calls'] });
+    queryClient.invalidateQueries({ queryKey: ['call-events'] });
+    queryClient.invalidateQueries({ queryKey: ['callback-requests'] });
+    queryClient.invalidateQueries({ queryKey: ['voicemails'] });
   };
 
   return (
@@ -58,9 +70,9 @@ export const VoiceDashboard = () => {
         
         <div className="flex items-center gap-2">
           <LiveDataIndicator 
-            isLive={true} 
-            lastUpdated={new Date()}
-            onRefresh={() => window.location.reload()}
+            isLive={realtimeConnected} 
+            lastUpdated={lastConnected || new Date()}
+            onRefresh={handleRefresh}
           />
           
           <Button 

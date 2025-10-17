@@ -58,7 +58,8 @@ export function useCalls() {
   const { data: calls = [], isLoading, error } = useQuery({
     queryKey: ['calls'],
     queryFn: async () => {
-      console.log('[useCalls] 🔍 Fetching calls from database at', new Date().toISOString());
+      const timestamp = new Date().toISOString();
+      console.log(`[useCalls] 🔍 Fetching calls from database at ${timestamp}`);
       const { data, error } = await supabase
         .from('calls')
         .select(`
@@ -88,9 +89,9 @@ export function useCalls() {
 
       return data as Call[];
     },
-    // Conservative polling fallback only - real-time handles most updates
-    refetchInterval: 1000 * 60 * 5, // 5 minutes fallback
-    staleTime: 1000 * 60 * 10, // 10 minutes - use cache aggressively
+    // Aggressive polling fallback to ensure UI updates
+    refetchInterval: 1000 * 30, // 30 seconds fallback
+    staleTime: 1000 * 30, // 30 seconds - refresh more frequently
     gcTime: 1000 * 60 * 60, // 1 hour cache retention
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -114,9 +115,9 @@ export function useCalls() {
       console.log('[useCalls] ✅ Fetched call events:', data.length);
       return data as CallEvent[];
     },
-    // Conservative polling fallback only
-    refetchInterval: 1000 * 60 * 5, // 5 minutes fallback
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    // Aggressive polling fallback to ensure UI updates
+    refetchInterval: 1000 * 30, // 30 seconds fallback
+    staleTime: 1000 * 30, // 30 seconds - refresh more frequently
     gcTime: 1000 * 60 * 60, // 1 hour
     refetchOnWindowFocus: false,
     refetchOnMount: false,
