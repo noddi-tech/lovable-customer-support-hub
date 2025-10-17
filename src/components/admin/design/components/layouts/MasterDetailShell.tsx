@@ -171,7 +171,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           )}
           
           {/* Center: Conversation list */}
-          <div className="min-h-0 min-w-0">
+          <div className="min-h-0 min-w-0 bg-white">
             <ScrollArea className="h-full overflow-y-auto" aria-label={centerPaneLabel}>
               <div className="py-3 sm:py-4 px-0">
                 {center}

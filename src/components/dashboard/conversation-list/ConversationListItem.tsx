@@ -97,7 +97,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
   return (
     <div
       className={cn(
-        "bg-card border border-border rounded-lg p-4 mb-3",
+        "bg-white border border-border rounded-lg p-4 mb-3",
         "shadow-sm hover:shadow-md hover:border-primary/30",
         "transition-all duration-200 cursor-pointer",
         isSelected && "border-primary shadow-md",

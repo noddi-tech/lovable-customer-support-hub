@@ -93,7 +93,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       />
       
       {/* Conversation List - Card-based layout */}
-      <div className="pane flex-1 overflow-y-auto min-h-0">
+      <div className="pane flex-1 overflow-y-auto min-h-0 bg-white">
         {import.meta.env.DEV && <AuthContextDebugger />}
         {import.meta.env.DEV && <SessionDebugPanel />}
         
