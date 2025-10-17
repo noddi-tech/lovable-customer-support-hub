@@ -11,6 +11,7 @@ import { EntityListRow } from '@/components/admin/design/components/lists/Entity
 import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
 import { CustomerSidePanel } from './conversation-view/CustomerSidePanel';
 import { ConversationView } from './ConversationView';
+import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
 import type { ConversationRow } from '@/types/interactions';
@@ -156,7 +157,16 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   // Render VoiceDashboard if active sub-tab is 'voice'
   if (activeSubTab === 'voice') {
-    return <VoiceDashboard />;
+    return (
+      <ResponsiveContainer 
+        padding={{ sm: '4', md: '6', lg: '8' }}
+        maxWidth="7xl"
+        center={true}
+        className="py-6"
+      >
+        <VoiceDashboard />
+      </ResponsiveContainer>
+    );
   }
   
   // Render specific voice pages
