@@ -496,15 +496,15 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
       ) : (
         <div className="space-y-6">
           <CallGroup
-            title="Urgent"
-            calls={groupedCalls.urgent}
-            icon={<AlertCircle className="h-4 w-4 text-destructive" />}
-            defaultOpen={true}
-          />
-          <CallGroup
             title="Active Calls"
             calls={groupedCalls.active}
             icon={<PhoneCall className="h-4 w-4 text-success animate-pulse" />}
+            defaultOpen={true}
+          />
+          <CallGroup
+            title="Urgent"
+            calls={groupedCalls.urgent}
+            icon={<AlertCircle className="h-4 w-4 text-destructive" />}
             defaultOpen={true}
           />
           <CallGroup
