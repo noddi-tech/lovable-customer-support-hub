@@ -225,18 +225,24 @@ function adaptWebhookEvent(provider: string, payload: any): StandardCallEvent {
 }
 
 async function getOrganizationFromDomain(supabase: any, domain: string): Promise<string | null> {
-  // For now, map to demo org. Later we can add domain-based routing
+  // For now, map to noddi org. Later we can add domain-based routing
   const { data: org, error } = await supabase
     .from('organizations')
-    .select('id')
-    .eq('slug', 'demo')
+    .select('id, name, slug')
+    .eq('slug', 'noddi')
     .single();
     
   if (error) {
-    console.error('Error fetching organization:', error);
+    console.error('❌ Error fetching organization:', error);
     return null;
   }
   
+  if (!org) {
+    console.error('❌ Organization "noddi" not found in database');
+    return null;
+  }
+  
+  console.log('✅ Organization found:', org);
   return org.id;
 }
 
@@ -509,6 +515,25 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify organization exists at startup
+    console.log('🔍 Verifying organization exists...');
+    const { data: orgCheck, error: orgCheckError } = await supabase
+      .from('organizations')
+      .select('id, name, slug')
+      .eq('slug', 'noddi')
+      .single();
+    
+    if (orgCheckError || !orgCheck) {
+      console.error('❌ CRITICAL: Organization "noddi" not found!');
+      const { data: allOrgs } = await supabase
+        .from('organizations')
+        .select('slug');
+      console.log('Available organizations:', allOrgs?.map(o => o.slug) || []);
+      throw new Error('Organization "noddi" not found in database. Check organization configuration.');
+    }
+    
+    console.log('✅ Organization verified:', orgCheck);
+
     // Parse webhook payload
     const payload = JSON.parse(rawBody);
     console.log('📦 Raw webhook payload:', JSON.stringify(payload, null, 2));
@@ -524,11 +549,14 @@ serve(async (req) => {
     const standardEvent = adaptWebhookEvent(provider, payload);
     console.log('Converted to standard event:', JSON.stringify(standardEvent, null, 2));
 
-    // Get organization (for now using demo, later implement domain-based routing)
-    const organizationId = await getOrganizationFromDomain(supabase, 'demo');
+    // Get organization ID
+    const organizationId = await getOrganizationFromDomain(supabase, 'noddi');
     if (!organizationId) {
-      throw new Error('No organization found');
+      console.error('❌ Failed to get organization ID for "noddi"');
+      throw new Error('No organization found - check database for organization with slug "noddi"');
     }
+    
+    console.log('✅ Using organization ID:', organizationId);
 
     // Process the call event
     const result = await processCallEvent(supabase, standardEvent, organizationId);
