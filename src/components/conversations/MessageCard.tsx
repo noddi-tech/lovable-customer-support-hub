@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EmailRender } from "@/components/ui/email-render";
 import { 
@@ -159,28 +160,31 @@ export const MessageCard = ({
 
   return (
     <div className={cn(
-      "group relative rounded-xl border transition-colors",
-      tne.border,
-      !isCollapsed && tne.bg
+      "group relative rounded-xl border transition-all mb-4",
+      "shadow-sm hover:shadow-md",
+      tne.border
     )}>
       <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-l-xl", tne.accentBar)} />
       
       <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
-        <div className="p-4 pb-2">
+        {/* Card Header with background */}
+        <div className={cn("p-5", !isCollapsed && "bg-muted/20")}>
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3 min-w-0 flex-1">
-              <div className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium" title={message.from.email || message.from.name}>
-                {initial}
-              </div>
+              <Avatar className="h-9 w-9 ring-2 ring-border shrink-0">
+                <AvatarFallback className="text-sm font-medium">
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
               
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="font-medium truncate">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="font-semibold text-base">
                     {display}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
+                  </span>
+                  <span className="text-sm text-muted-foreground">
                     {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
-                  </div>
+                  </span>
                   
                   {message.originalMessage?.is_internal && (
                     <Badge variant="outline" className="text-xs">
@@ -197,46 +201,38 @@ export const MessageCard = ({
                    )}
                 </div>
 
-                {/* Participants chips */}
-                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-                  {toShown.length > 0 && (
-                    <>
-                      <span className="text-muted-foreground">{t('mail.to') || 'to'}</span>
-                      {toShown.map((name) => (
-                        <span
-                          key={`to-${name}`}
-                          className={cn(
-                            "px-2 py-0.5 rounded-full ring-1",
-                            tne.chip
-                          )}
-                          title={name}
-                        >
-                          {name}
-                        </span>
-                      ))}
-                      {toExtra > 0 && !showAllRecipients && (
-                        <button
-                          type="button"
-                          onClick={() => setShowAllRecipients(true)}
-                          className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
-                        >
-                          +{toExtra} {t('mail.more') || 'more'}
-                        </button>
-                      )}
-                    </>
+                {/* Recipients chips */}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="text-muted-foreground">{t('mail.to') || 'to'}</span>
+                  {toShown.length > 0 && toShown.map((name) => (
+                    <Badge
+                      key={`to-${name}`}
+                      variant="secondary"
+                      className="px-2 py-0.5"
+                    >
+                      {name}
+                    </Badge>
+                  ))}
+                  {toExtra > 0 && !showAllRecipients && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllRecipients(true)}
+                      className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
+                    >
+                      +{toExtra} {t('mail.more') || 'more'}
+                    </button>
                   )}
-
                   {ccShown.length > 0 && (
                     <>
                       <span className="ml-2 text-muted-foreground">{t('mail.cc') || 'cc'}</span>
                       {ccShown.map((name) => (
-                        <span
+                        <Badge
                           key={`cc-${name}`}
-                          className={cn("px-2 py-0.5 rounded-full ring-1", tne.chip)}
-                          title={name}
+                          variant="secondary"
+                          className="px-2 py-0.5"
                         >
                           {name}
-                        </span>
+                        </Badge>
                       ))}
                       {ccExtra > 0 && !showAllRecipients && (
                         <button
@@ -266,30 +262,30 @@ export const MessageCard = ({
                    </div>
                  )}
                 
+                {/* Subject line when collapsed - more prominent */}
+                {message.subject && isCollapsed && (
+                  <p className="text-sm font-medium text-foreground/80 mt-2">
+                    Re: {message.subject}
+                  </p>
+                )}
+                
                 {/* Preview line when collapsed */}
                 {isCollapsed && (
-                  <div className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                     {getPreviewText(message.visibleBody)}
-                  </div>
-                )}
-
-                {/* Subject line when collapsed */}
-                {message.subject && isCollapsed && (
-                  <div className="text-xs text-muted-foreground/70 mt-0.5 truncate">
-                    Re: {message.subject}
-                  </div>
+                  </p>
                 )}
               </div>
             </div>
             
-            <div className="flex items-center space-x-1">
-              {/* Expand/Collapse trigger */}
+            <div className="flex items-center space-x-1 shrink-0">
+              {/* Expand/Collapse trigger - clearer indicator */}
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                   {isCollapsed ? (
-                    <ChevronDown className="h-3 w-3" />
+                    <ChevronDown className="h-4 w-4" />
                   ) : (
-                    <ChevronUp className="h-3 w-3" />
+                    <ChevronUp className="h-4 w-4" />
                   )}
                 </Button>
               </CollapsibleTrigger>
@@ -298,8 +294,8 @@ export const MessageCard = ({
               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <MoreVertical className="h-3 w-3" />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -322,11 +318,12 @@ export const MessageCard = ({
         </div>
         
         <CollapsibleContent>
-          <div className="px-4 pb-4">
+          <div className="p-5 pt-4">
             {/* Subject line when expanded */}
             {message.subject && (
-              <div className="text-sm font-medium mb-3 pb-2 border-b border-border">
-                Subject: {message.subject}
+              <div className="mb-3 pb-3 border-b">
+                <span className="text-xs text-muted-foreground">Subject:</span>
+                <p className="text-sm font-semibold mt-1">{message.subject}</p>
               </div>
             )}
             

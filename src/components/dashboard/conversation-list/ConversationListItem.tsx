@@ -3,13 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Archive, Trash2, Star, Clock, MessageCircle, MoreVertical, Inbox, User } from "lucide-react";
+import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from "react-i18next";
-import { ResponsiveFlex, AdaptiveSection } from '@/components/admin/design/components/layouts';
 
 const priorityColors = {
   low: "bg-muted text-muted-foreground",
@@ -69,7 +68,9 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
     conversation.subject,
     conversation.updated_at,
     t,
-    formatConversationTime
+    formatConversationTime,
+    conversation.inbox_id,
+    inboxes
   ]);
 
   // Memoize event handlers to prevent unnecessary re-renders
@@ -93,239 +94,103 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
     e.stopPropagation();
   }, []);
 
-  // Memoize CSS classes
-  const desktopClasses = useMemo(() => cn(
-    "hidden md:block cursor-pointer hover:bg-accent/50 transition-colors border-b border-border/30",
-    isSelected && "bg-accent border-primary/20",
-    !conversation.is_read && "bg-accent/30"
-  ), [isSelected, conversation.is_read]);
-
-  const mobileClasses = useMemo(() => cn(
-    "block md:hidden cursor-pointer border border-border/30 rounded-lg p-3 mb-2 bg-card hover:bg-accent/50 transition-colors",
-    isSelected && "border-primary bg-accent",
-    !conversation.is_read && "bg-accent/30"
-  ), [isSelected, conversation.is_read]);
-
   return (
-    <>
-      {/* Desktop Layout - Ticket Format */}
-      <div
-        className={desktopClasses}
-        onClick={handleSelect}
-      >
-        <AdaptiveSection padding="3" spacing="1" className="py-2.5">
-          {/* Row 1: Customer + Status/Priority badges + Time + Menu */}
-          <ResponsiveFlex alignment="center" justify="between">
-            <ResponsiveFlex alignment="center" gap="2">
-              <span className="font-medium text-sm">
-                {computedValues.customerName}
-              </span>
-              <Badge 
-                className={cn("text-xs px-1.5 py-0.5 h-4", statusColors[conversation.status])}
+    <div
+      className={cn(
+        "bg-card border border-border rounded-lg p-4 mb-3",
+        "shadow-sm hover:shadow-md hover:border-primary/30",
+        "transition-all duration-200 cursor-pointer",
+        isSelected && "border-primary shadow-md",
+        !conversation.is_read && "ring-2 ring-primary/20"
+      )}
+      onClick={handleSelect}
+    >
+      {/* Row 1: Avatar + Name + Unread Badge + Status/Priority + Menu */}
+      <div className="flex items-center gap-3 mb-2">
+        <Avatar className="h-10 w-10 ring-2 ring-muted shrink-0">
+          <AvatarFallback className="text-base font-semibold">
+            {computedValues.customerInitial}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="font-semibold text-base truncate">
+              {computedValues.customerName}
+            </span>
+            {!conversation.is_read && (
+              <Badge className="bg-blue-500 text-white px-2 py-0.5">
+                Unread
+              </Badge>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge className={cn("px-2.5 py-1", statusColors[conversation.status])}>
+            {computedValues.statusLabel}
+          </Badge>
+          <Badge className={cn("px-2.5 py-1", priorityColors[conversation.priority])}>
+            {computedValues.priorityLabel}
+          </Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={handleDropdownClick}
               >
-                {computedValues.statusLabel}
-              </Badge>
-              <Badge 
-                className={cn("text-xs px-1.5 py-0.5 h-4", priorityColors[conversation.priority])}
-              >
-                {computedValues.priorityLabel}
-              </Badge>
-            </ResponsiveFlex>
-            
-            <ResponsiveFlex alignment="center" gap="2">
-              <span className="text-xs text-muted-foreground">
-                <span className="font-medium">Waiting:</span> {computedValues.formattedTime}
-              </span>
-              {!conversation.is_read && (
-                <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 w-6 p-0"
-                    onClick={handleDropdownClick}
-                  >
-                    <MoreHorizontal className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleArchive}>
-                    <Archive className="w-4 h-4 mr-2" />
-                    {t('dashboard.conversationList.archive', 'Archive')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    {t('dashboard.conversationList.delete', 'Delete')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </ResponsiveFlex>
-          </ResponsiveFlex>
-          
-          {/* Row 2: Subject */}
-          <div className="font-semibold text-sm truncate">
-            {computedValues.subjectText}
-          </div>
-          
-          {/* Row 3: Preview Text */}
-          <div className="text-xs text-muted-foreground truncate">
-            {conversation.preview_text || 'No preview available'}
-          </div>
-          
-          {/* Row 4: Receiving Email + Channel + Tags */}
-          <ResponsiveFlex alignment="center" justify="between">
-            <ResponsiveFlex alignment="center" gap="2">
-              <span className="text-xs text-muted-foreground">
-                {computedValues.customerEmail ? (
-                  <>
-                    <span className="inline-flex items-center gap-1 font-semibold text-primary">
-                      <User className="w-3 h-3" />
-                      From:
-                    </span>{' '}
-                    {computedValues.customerEmail}
-                  </>
-                ) : 'No email'}
-              </span>
-              {/* Inbox Indicator */}
-              <div className="flex items-center gap-1">
-                <div 
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: computedValues.inboxColor }}
-                />
-                <span className="text-xs text-muted-foreground">
-                  {computedValues.inboxName}
-                </span>
-              </div>
-            </ResponsiveFlex>
-            
-            <ResponsiveFlex alignment="center" gap="2">
-              <ResponsiveFlex alignment="center" gap="1">
-                <computedValues.ChannelIcon className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground capitalize">{conversation.channel}</span>
-              </ResponsiveFlex>
-              
-              {computedValues.isSnoozed && (
-                <Badge variant="outline" className="text-xs px-1 py-0 h-3.5">
-                  <Clock className="w-2.5 h-2.5 mr-0.5" />
-                  {t('conversation.snoozed', 'Snoozed')}
-                </Badge>
-              )}
-            </ResponsiveFlex>
-          </ResponsiveFlex>
-        </AdaptiveSection>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleArchive}>
+                <Archive className="w-4 h-4 mr-2" />
+                {t('dashboard.conversationList.archive', 'Archive')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />
+                {t('dashboard.conversationList.delete', 'Delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-
-      {/* Mobile Layout - Ticket Format */}
-      <div
-        className={mobileClasses}
-        onClick={handleSelect}
-      >
-        <AdaptiveSection spacing="1.5">
-          {/* Row 1: Customer + Badges + Time + Menu */}
-          <ResponsiveFlex alignment="center" justify="between">
-            <ResponsiveFlex alignment="center" gap="1.5">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-xs">
-                  {computedValues.customerInitial}
-                </AvatarFallback>
-              </Avatar>
-              <span className="font-medium text-sm">
-                {computedValues.customerName}
-              </span>
-              <Badge className={cn("text-xs px-1 py-0 h-3.5", statusColors[conversation.status])}>
-                {computedValues.statusLabel}
-              </Badge>
-              <Badge className={cn("text-xs px-1 py-0 h-3.5", priorityColors[conversation.priority])}>
-                {computedValues.priorityLabel}
-              </Badge>
-            </ResponsiveFlex>
-            
-            <ResponsiveFlex alignment="center" gap="1">
-              <span className="text-xs text-muted-foreground">
-                <span className="font-medium">Waiting:</span> {computedValues.formattedTime}
-              </span>
-              {!conversation.is_read && (
-                <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-5 w-5 p-0"
-                    onClick={handleDropdownClick}
-                  >
-                    <MoreVertical className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleArchive}>
-                    <Archive className="w-4 h-4 mr-2" />
-                    Archive
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </ResponsiveFlex>
-          </ResponsiveFlex>
-          
-          {/* Row 2: Subject */}
-          <div className="font-semibold text-sm truncate pl-7">
-            {computedValues.subjectText}
+      
+      {/* Row 2: Subject (bold and prominent) */}
+      <h4 className="font-semibold text-sm mb-1 truncate">
+        {computedValues.subjectText}
+      </h4>
+      
+      {/* Row 3: Preview (better contrast) */}
+      <p className="text-sm text-foreground/70 line-clamp-2 mb-2">
+        {conversation.preview_text || 'No preview available'}
+      </p>
+      
+      {/* Row 4: Metadata */}
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <User className="h-3.5 w-3.5" />
+            {computedValues.customerEmail || 'No email'}
+          </span>
+          <span className="flex items-center gap-1">
+            <computedValues.ChannelIcon className="h-3.5 w-3.5" />
+            {conversation.channel}
+          </span>
+          <div className="flex items-center gap-1">
+            <div 
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: computedValues.inboxColor }}
+            />
+            <span>{computedValues.inboxName}</span>
           </div>
-          
-          {/* Row 3: Preview Text */}
-          <div className="text-xs text-muted-foreground truncate pl-7">
-            {conversation.preview_text || 'No preview available'}
-          </div>
-          
-          {/* Row 4: Receiving Email + Channel + Tags */}
-          <ResponsiveFlex alignment="center" justify="between" className="pl-7">
-            <ResponsiveFlex alignment="center" gap="2">
-              <span className="text-xs text-muted-foreground">
-                {computedValues.customerEmail ? (
-                  <>
-                    <span className="inline-flex items-center gap-1 font-semibold text-primary">
-                      <User className="w-3 h-3" />
-                      From:
-                    </span>{' '}
-                    {computedValues.customerEmail}
-                  </>
-                ) : 'No email'}
-              </span>
-              {/* Inbox Indicator */}
-              <div className="flex items-center gap-1">
-                <div 
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: computedValues.inboxColor }}
-                />
-                <span className="text-xs text-muted-foreground">
-                  {computedValues.inboxName}
-                </span>
-              </div>
-            </ResponsiveFlex>
-            
-            <ResponsiveFlex alignment="center" gap="2">
-              <ResponsiveFlex alignment="center" gap="1">
-                <computedValues.ChannelIcon className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground capitalize">{conversation.channel}</span>
-              </ResponsiveFlex>
-              
-              {computedValues.isSnoozed && (
-                <Badge variant="outline" className="text-xs px-1 py-0 h-3.5">
-                  <Clock className="w-2.5 h-2.5 mr-0.5" />
-                  {t('conversation.snoozed', 'Snoozed')}
-                </Badge>
-              )}
-            </ResponsiveFlex>
-          </ResponsiveFlex>
-        </AdaptiveSection>
+        </div>
+        <span className="font-medium text-muted-foreground">
+          Waiting: {computedValues.formattedTime}
+        </span>
       </div>
-    </>
+    </div>
   );
 });

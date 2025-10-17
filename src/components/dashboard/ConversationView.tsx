@@ -94,10 +94,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
     <ConversationViewProvider conversationId={conversationId}>
       <div className="flex flex-col min-h-0 flex-1 bg-background">
         {/* Enhanced Conversation Header - Phase 2 */}
-        <div className="flex-shrink-0 p-4 border-b border-border bg-card">
-          <div className="flex items-center justify-between gap-4">
+        <div className="flex-shrink-0 p-5 border-b border-border bg-muted/30 shadow-sm">
+          <div className="flex items-center gap-4">
             {/* Left Section: Back + Customer Info */}
-            <div className="flex items-center space-x-4 min-w-0 flex-1">
+            <div className="flex items-center gap-4 min-w-0 flex-1">
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -112,17 +112,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
                 {!isMobile && <span className="text-sm">Back</span>}
               </Button>
               
-              <div className="flex items-center gap-3 min-w-0">
-                <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarFallback className="text-base">
+              <div className="flex items-center gap-4 min-w-0">
+                <Avatar className="h-14 w-14 ring-2 ring-border shrink-0">
+                  <AvatarFallback className="text-xl font-bold">
                     {(conversation.customer?.full_name || conversation.customer?.email || 'U').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0">
-                  <h1 className="text-base font-bold truncate">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-xl font-bold mb-1">
                     {conversation.customer?.full_name || 'Unknown Customer'}
                   </h1>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-sm text-muted-foreground">
                     {conversation.customer?.email}
                   </p>
                 </div>
@@ -131,10 +131,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
 
             {/* Center Section: Subject (if exists) */}
             {conversation.subject && !isMobile && (
-              <div className="flex-1 min-w-0 text-center">
-                <p className="text-sm text-muted-foreground truncate" title={conversation.subject}>
+              <div className="flex-1 text-center">
+                <p className="text-sm font-medium text-muted-foreground">Subject</p>
+                <h2 className="text-base font-semibold">
                   {conversation.subject}
-                </p>
+                </h2>
               </div>
             )}
             

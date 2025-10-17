@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -7,7 +8,8 @@ import {
   Send,
   Sparkles,
   Loader2,
-  Languages
+  Languages,
+  Lock
 } from "lucide-react";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
@@ -111,10 +113,10 @@ export const ReplyArea = () => {
     }
   };
 
-  // Phase 2: Always visible reply area with fixed position and better UX
+  // Phase 3: Enhanced reply area with strong visual separation
   return (
-    <div className="border-t border-border bg-card shadow-lg">
-      <div className="p-4 space-y-3">
+    <div className="border-t-2 border-border bg-muted/40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <div className="p-6 space-y-4">
         {/* AI Suggestions Section */}
         {state.aiSuggestions.length > 0 && (
           <div className="space-y-2">
@@ -137,20 +139,27 @@ export const ReplyArea = () => {
 
         {/* Controls Row: Internal Note + AI + Translate */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-3">
             <Switch
               id="internal-note"
               checked={state.isInternalNote}
               onCheckedChange={(checked) => 
                 dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: checked })
               }
+              className="data-[state=checked]:bg-amber-500"
             />
             <Label 
               htmlFor="internal-note" 
-              className="text-sm cursor-pointer font-medium"
+              className="text-sm cursor-pointer font-semibold"
             >
               {t('conversation.internalNote')}
             </Label>
+            {state.isInternalNote && (
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                <Lock className="h-3 w-3 mr-1" />
+                Only visible to team
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -168,7 +177,7 @@ export const ReplyArea = () => {
               ) : (
                 <Sparkles className="h-4 w-4" />
               )}
-              {!isMobile && <span className="text-xs">AI</span>}
+              {!isMobile && <span className="text-xs">AI Suggest</span>}
             </Button>
 
             {/* Translation Popover */}
@@ -268,20 +277,19 @@ export const ReplyArea = () => {
               : t('conversation.typeYourReply')
             }
             className={cn(
-              "min-h-[120px] resize-none transition-colors",
+              "min-h-[140px] resize-none transition-colors text-sm",
               state.isInternalNote && "bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
             )}
           />
           <p className="text-xs text-muted-foreground">
-            Ctrl/⌘ + Enter to send
+            Press <kbd className="px-2 py-1 bg-muted rounded border text-xs font-medium">Ctrl+Enter</kbd> to send
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-between items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
           <Button
             variant="ghost"
-            size="sm"
             onClick={() => {
               dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
               dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
@@ -294,7 +302,8 @@ export const ReplyArea = () => {
           <Button
             onClick={handleSendReply}
             disabled={!state.replyText.trim() || state.sendLoading}
-            className="gap-2"
+            size="lg"
+            className="gap-2 px-6"
           >
             {state.sendLoading ? (
               <>
