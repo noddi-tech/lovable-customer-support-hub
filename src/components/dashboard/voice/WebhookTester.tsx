@@ -31,7 +31,7 @@ export const WebhookTester: React.FC = () => {
       console.log('Testing webhook with payload:', testPayload);
 
       // Test direct webhook call
-      const webhookUrl = 'https://qgfaycwsangsqzpveoup.functions.supabase.co/call-events-webhook/aircall';
+      const webhookUrl = 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/call-events-webhook/aircall';
       
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -116,7 +116,7 @@ export const WebhookTester: React.FC = () => {
             <div>
               <strong>Webhook URL:</strong>
               <code className="block bg-muted p-1 rounded mt-1 text-xs break-all">
-                https://qgfaycwsangsqzpveoup.functions.supabase.co/call-events-webhook/aircall
+                https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/call-events-webhook/aircall
               </code>
             </div>
             <div>

@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Call } from '@/hooks/useCalls';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 
 interface ManualEndCallDialogProps {
   isOpen: boolean;
@@ -70,11 +71,6 @@ export const ManualEndCallDialog: React.FC<ManualEndCallDialogProps> = ({
     } finally {
       setIsEnding(false);
     }
-  };
-
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
   };
 
   return (

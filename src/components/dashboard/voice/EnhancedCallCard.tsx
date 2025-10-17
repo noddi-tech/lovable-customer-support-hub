@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Call } from '@/hooks/useCalls';
 import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { CallCustomerInfo } from './CallCustomerInfo';
+import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,10 +39,6 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
   notesCount = 0,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return 'Unknown';
-    return phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-  };
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '0:00';
