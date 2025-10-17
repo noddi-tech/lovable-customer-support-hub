@@ -136,7 +136,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           className="grid h-full min-h-0 w-full max-w-none grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] gap-6 md:gap-8"
         >
           {/* Detail left: Message thread */}
-          <div className="min-h-0 min-w-0 border-r border-border">
+          <div className="min-h-0 min-w-0 border-r border-border bg-white">
             <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
               <div className="py-3 sm:py-4 px-0">
                 {detailLeft}
@@ -145,7 +145,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           </div>
           
           {/* Detail right: Reply & Actions sidebar */}
-          <div className="min-h-0 min-w-0 bg-card">
+          <div className="min-h-0 min-w-0 bg-white">
             <ScrollArea className="h-full overflow-y-auto" aria-label={detailRightLabel}>
               <div className="py-3 sm:py-4 px-0">
                 {detailRight}
@@ -161,7 +161,7 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
         >
           {/* Left: Inbox list */}
           {left && (
-            <div className="min-h-0 min-w-0 border-r border-border bg-muted/30">
+            <div className="min-h-0 min-w-0 border-r border-border bg-white">
               <ScrollArea className="h-full overflow-y-auto" aria-label={leftPaneLabel}>
                 <div className="py-4 px-0">
                   {left}

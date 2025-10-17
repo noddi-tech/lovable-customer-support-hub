@@ -94,7 +94,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   return (
     <SidebarProvider>
       {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <UIProbe />}
-      <div className="h-svh flex w-full bg-background">
+      <div className="h-svh flex w-full bg-white">
         {/* Sidebar Navigation */}
         <AppMainNav />
 
@@ -301,7 +301,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
           </header>
 
           {/* Main Content */}
-          <main className="min-h-0 w-full max-w-none overflow-auto">
+          <main className="min-h-0 w-full max-w-none overflow-auto bg-white">
             {children}
           </main>
         </div>
