@@ -377,9 +377,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
   const filteredAndSortedConversations = conversations
     .filter((conversation) => {
-      const matchesSearch = conversation.subject.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-        conversation.customer?.full_name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-        conversation.customer?.email.toLowerCase().includes(state.searchQuery.toLowerCase());
+      const matchesSearch = 
+        (conversation.subject || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+        (conversation.customer?.full_name || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+        (conversation.customer?.email || '').toLowerCase().includes(state.searchQuery.toLowerCase());
       
       const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
