@@ -11,6 +11,7 @@ import { AircallSettings } from './AircallSettings';
 import { SendgridSetupWizard } from './SendgridSetupWizard';
 import { GoogleGroupSetup } from './GoogleGroupSetup';
 import { EmailAccountConnection } from '@/components/dashboard/EmailAccountConnection';
+import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { VoiceIntegrationsList } from './VoiceIntegrationsList';
 import { InboundRoutesList } from './InboundRoutesList';
 import { InboxManagement } from './InboxManagement';
@@ -144,12 +145,16 @@ export const AdminPortal = () => {
                 <ResponsiveTabsList className="w-full">
                   <ResponsiveTabsTrigger value="library">Design Library</ResponsiveTabsTrigger>
                   <ResponsiveTabsTrigger value="components">Components</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="email-templates">Email Templates</ResponsiveTabsTrigger>
                 </ResponsiveTabsList>
                 <ResponsiveTabsContent value="library">
                   <DesignLibrary />
                 </ResponsiveTabsContent>
                 <ResponsiveTabsContent value="components">
                   <ComponentConfigurationPanel />
+                </ResponsiveTabsContent>
+                <ResponsiveTabsContent value="email-templates">
+                  <EmailTemplateSettings />
                 </ResponsiveTabsContent>
               </ResponsiveTabs>
             </LayoutItem>

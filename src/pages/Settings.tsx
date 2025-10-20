@@ -110,9 +110,6 @@ export default function Settings() {
           </ResponsiveGrid>
         );
       
-      case '/settings/email-templates':
-        return <EmailTemplateSettings />;
-      
       case '/settings/departments':
         return <DepartmentManagement />;
       

@@ -55,11 +55,6 @@ export const SettingsSidebar: React.FC = () => {
       title: t('settings.tabs.notifications', 'Notifications'),
       icon: Bell,
       path: '/settings/notifications'
-    },
-    {
-      title: t('settings.tabs.emailDesign', 'Email Templates'),
-      icon: Palette,
-      path: '/settings/email-templates'
     }
   ];
 
