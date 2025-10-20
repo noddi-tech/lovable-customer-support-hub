@@ -37,6 +37,52 @@ const WROTE_HEADERS = [
   /^Skrev .+:$/i,
 ];
 
+// Common email list footer patterns to strip
+const EMAIL_LIST_FOOTERS = [
+  // Google Groups specific
+  /To unsubscribe from this group and stop receiving emails from it,?\s*send an email to .+?@.+?\./i,
+  /You received this message because you are subscribed to the Google Groups .+ group\./i,
+  /To view this discussion (?:on the web )?visit https?:\/\/groups\.google\.com\/.+/i,
+  /To post to this group, send email to .+?@.+?\./i,
+  
+  // Generic mailing list footers
+  /^--+\s*$/m, // Standard email signature delimiter
+  /To unsubscribe,?\s*(?:click here|visit|send an email to).+/i,
+  /^Unsubscribe:.+$/im,
+  /^You (?:are receiving|received) this (?:email|message) because.+$/im,
+  
+  // Other platforms
+  /Click here to unsubscribe/i,
+  /Update your email preferences/i,
+  /Manage (?:your )?subscription/i,
+];
+
+/**
+ * Remove email list footers from text content.
+ * Searches for the first matching footer pattern and removes everything from that point onward.
+ */
+function stripEmailListFooters(text: string): string {
+  let cleaned = text;
+  let earliestMatch: { index: number; pattern: RegExp } | null = null;
+  
+  // Find the earliest matching footer pattern
+  for (const pattern of EMAIL_LIST_FOOTERS) {
+    const match = cleaned.match(pattern);
+    if (match && match.index !== undefined) {
+      if (!earliestMatch || match.index < earliestMatch.index) {
+        earliestMatch = { index: match.index, pattern };
+      }
+    }
+  }
+  
+  // If we found a footer, cut at that point
+  if (earliestMatch) {
+    cleaned = cleaned.slice(0, earliestMatch.index).trim();
+  }
+  
+  return cleaned;
+}
+
 function stripHtmlComments(s: string) {
   return s.replace(/<!--[\s\S]*?-->/g, '');
 }
@@ -208,8 +254,11 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     }
   }
 
-  const visibleHTML = body.innerHTML.trim();
-  return { visibleHTML, quoted, quotedMessages };
+  // Strip email list footers from the visible content
+  const bodyText = body.innerText || '';
+  const cleanedText = stripEmailListFooters(bodyText);
+  
+  return { visibleHTML: cleanedText, quoted, quotedMessages };
 }
 
 /**
@@ -249,7 +298,10 @@ function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBl
     .filter(l => !l.trim().startsWith('>'))
     .join('\n');
 
-  return { visibleText: pruned.trim(), quoted, quotedMessages };
+  // Strip email list footers from the visible text
+  const cleanedVisible = stripEmailListFooters(pruned.trim());
+
+  return { visibleText: cleanedVisible, quoted, quotedMessages };
 }
 
 /**
