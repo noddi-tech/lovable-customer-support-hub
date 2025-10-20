@@ -105,7 +105,8 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       const alreadyWrapped = /class=\"email-render\"/.test(normalized);
       return alreadyWrapped ? normalized : sanitizeEmailHTML(normalized, attachments, true, messageId);
     } else {
-      return formatPlainTextEmail(normalized);
+      // For plain text, just return the normalized content to preserve line breaks
+      return normalized;
     }
   }, [content, isHTML, attachments, messageId, contentType]);
 
@@ -232,64 +233,12 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
         />
       );
     } else {
-      // Plain text with enhanced formatting
-      const lines = processedContent.split('\n');
-      const elements: React.ReactNode[] = [];
-      let currentQuoteLines: string[] = [];
-      let inQuote = false;
-      
-      lines.forEach((line, index) => {
-        const isQuoteLine = line.trimStart().startsWith('>');
-        
-        if (isQuoteLine && !inQuote) {
-          // Start of quote section
-          inQuote = true;
-          currentQuoteLines = [line];
-        } else if (isQuoteLine && inQuote) {
-          // Continue quote section
-          currentQuoteLines.push(line);
-        } else if (!isQuoteLine && inQuote) {
-          // End of quote section
-          inQuote = false;
-          elements.push(
-            <CollapsibleSection
-              key={`quote-${elements.length}`}
-              buttonText="Show quoted text"
-              id={`quote-${elements.length}`}
-            >
-              <pre className="email-render__quoted-text">
-                {currentQuoteLines.join('\n')}
-              </pre>
-            </CollapsibleSection>
-          );
-          currentQuoteLines = [];
-          
-          // Add current line if it's not empty
-          if (line.trim()) {
-            elements.push(<pre key={index} className="email-render__text-line">{line}</pre>);
-          }
-        } else {
-          // Regular line
-          elements.push(<pre key={index} className="email-render__text-line">{line}</pre>);
-        }
-      });
-      
-      // Handle any remaining quote at the end
-      if (inQuote && currentQuoteLines.length > 0) {
-        elements.push(
-          <CollapsibleSection
-            key={`quote-${elements.length}`}
-            buttonText="Show quoted text"
-            id={`quote-${elements.length}`}
-          >
-            <pre className="email-render__quoted-text">
-              {currentQuoteLines.join('\n')}
-            </pre>
-          </CollapsibleSection>
-        );
-      }
-      
-      return <div className="email-render__plain-content">{elements}</div>;
+      // Plain text - preserve line breaks exactly as they are
+      return (
+        <div className="email-render__plain-content">
+          <pre className="email-render__text-line">{processedContent}</pre>
+        </div>
+      );
     }
   };
 
