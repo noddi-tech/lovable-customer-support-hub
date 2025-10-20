@@ -318,7 +318,7 @@ export const MessageCard = ({
         </div>
         
         <CollapsibleContent>
-          <div className="p-5 pt-4">
+          <div className="p-5 pt-4 min-w-0 overflow-hidden">
             {/* Subject line when expanded */}
             {message.subject && (
               <div className="mb-3 pb-3 border-b">

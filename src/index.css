@@ -812,8 +812,26 @@ Optimized for accessibility with WCAG AA compliance.
 /* HTML Content Wrapper */
 .email-render__html-content {
   max-width: 100%;
+  min-width: 0;
   overflow-wrap: break-word;
   word-wrap: break-word;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+/* Ensure all nested elements wrap properly */
+.email-render__html-content * {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Special handling for pre and code elements */
+.email-render__html-content pre,
+.email-render__html-content code {
+  white-space: pre-wrap !important;
+  word-break: break-word;
+  overflow-x: auto;
 }
 
 /* Plain Text Content */
@@ -822,6 +840,10 @@ Optimized for accessibility with WCAG AA compliance.
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
   line-height: 1.5;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .email-render__text-line {
