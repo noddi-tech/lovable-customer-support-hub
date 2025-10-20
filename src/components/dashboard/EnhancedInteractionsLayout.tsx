@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
-import { CustomerSidePanel } from './conversation-view/CustomerSidePanel';
 import { ConversationView } from './ConversationView';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
@@ -315,23 +314,11 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
             </div>
             
             <div className="border-t border-border pt-4">
-              <ConversationView conversationId={conversationId} />
+              <ConversationView conversationId={conversationId} showSidePanel={true} />
             </div>
           </div>
         </CardContent>
       </Card>
-    );
-  };
-
-  // Render customer side panel
-  const renderCustomerSidePanel = () => {
-    if (!conversationId || !thread) return null;
-
-    return (
-      <CustomerSidePanel 
-        conversation={thread}
-        isCollapsed={false}
-      />
     );
   };
 
@@ -340,7 +327,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
       left={renderInboxList()}
       center={renderConversationList()}
       detailLeft={renderMessageThread()}
-      detailRight={renderCustomerSidePanel()}
+      detailRight={null}
       isDetail={isDetail}
       onBack={handleBack}
       backButtonLabel={t('interactions.backToInbox', 'Back to Inbox')}

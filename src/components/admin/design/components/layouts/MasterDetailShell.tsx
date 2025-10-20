@@ -130,13 +130,21 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
       className
     )}>
       {isDetail ? (
-        // Detail mode: Message thread + Reply sidebar
+        // Detail mode: Message thread + Reply sidebar (or just message thread if no detailRight)
         <div 
           data-testid="detail-grid" 
-          className="grid h-full min-h-0 w-full max-w-none grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] gap-6 md:gap-8"
+          className={cn(
+            "grid h-full min-h-0 w-full max-w-none gap-6 md:gap-8",
+            detailRight 
+              ? "grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]" 
+              : "grid-cols-1"
+          )}
         >
           {/* Detail left: Message thread */}
-          <div className="min-h-0 min-w-0 border-r border-border bg-white">
+          <div className={cn(
+            "min-h-0 min-w-0 bg-white",
+            detailRight && "border-r border-border"
+          )}>
             <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
               <div className="py-3 sm:py-4 px-0">
                 {detailLeft}
@@ -144,14 +152,16 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
             </ScrollArea>
           </div>
           
-          {/* Detail right: Reply & Actions sidebar */}
-          <div className="min-h-0 min-w-0 bg-white">
-            <ScrollArea className="h-full overflow-y-auto" aria-label={detailRightLabel}>
-              <div className="py-3 sm:py-4 px-0">
-                {detailRight}
-              </div>
-            </ScrollArea>
-          </div>
+          {/* Detail right: Reply & Actions sidebar (optional) */}
+          {detailRight && (
+            <div className="min-h-0 min-w-0 bg-white">
+              <ScrollArea className="h-full overflow-y-auto" aria-label={detailRightLabel}>
+                <div className="py-3 sm:py-4 px-0">
+                  {detailRight}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
         </div>
       ) : (
         // List mode: Inbox list + Conversation list  
