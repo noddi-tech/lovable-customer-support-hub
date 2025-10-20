@@ -1,4 +1,4 @@
-import { Search, Filter, Inbox, CheckCheck, ChevronDown, Move, Settings } from "lucide-react";
+import { Search, Filter, Inbox, CheckCheck, ChevronDown, Move, Settings, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,12 +18,16 @@ interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
   selectedInboxId: string;
   onInboxChange?: (inboxId: string) => void;
+  bulkSelectionMode?: boolean;
+  onToggleBulkMode?: () => void;
 }
 
 export const ConversationListHeader = ({ 
   onToggleCollapse, 
   selectedInboxId, 
-  onInboxChange 
+  onInboxChange,
+  bulkSelectionMode = false,
+  onToggleBulkMode
 }: ConversationListHeaderProps) => {
   const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead } = useConversationList();
   const { t } = useTranslation();
@@ -50,7 +54,7 @@ export const ConversationListHeader = ({
 
   return (
     <div className="flex-shrink-0 p-2 md:p-3 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
-      {/* Row 1: Inbox Switcher + Unread Count + Actions */}
+      {/* Row 1: Inbox Switcher + Unread Count + Select + Actions */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <InboxSwitcher 
@@ -61,6 +65,21 @@ export const ConversationListHeader = ({
           <Badge variant="destructive" className="h-4 px-1.5 text-xs">
             {unreadCount}
           </Badge>
+          
+          {/* Select Button for Bulk Operations */}
+          {onToggleBulkMode && (
+            <Button
+              variant={bulkSelectionMode ? "default" : "outline"}
+              size="sm"
+              onClick={onToggleBulkMode}
+              className="h-7 px-2 gap-1 text-xs"
+            >
+              <CheckSquare className="!w-3 !h-3" />
+              <span className="hidden sm:inline">
+                {bulkSelectionMode ? t('dashboard.conversationList.exitSelection', 'Exit') : t('dashboard.conversationList.select', 'Select')}
+              </span>
+            </Button>
+          )}
         </div>
         
         <div className="flex items-center gap-1.5">
