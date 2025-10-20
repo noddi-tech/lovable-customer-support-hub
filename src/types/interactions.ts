@@ -1,7 +1,28 @@
 export type StatusFilter = 'all' | 'unread' | 'assigned' | 'pending' | 'closed' | 'archived';
+export type PriorityFilter = 'all' | 'low' | 'normal' | 'high' | 'urgent';
 
 export type InboxId = string;
 export type ConversationId = string;
+
+export interface FilterPreset {
+  id: string;
+  name: string;
+  filters: {
+    status?: StatusFilter;
+    priority?: PriorityFilter;
+    assigneeId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    inboxId?: string;
+  };
+}
+
+export interface AdvancedFilters {
+  priority?: PriorityFilter;
+  assigneeId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
 
 export interface Inbox {
   id: InboxId;

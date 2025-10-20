@@ -134,6 +134,8 @@ interface ConversationListContextType {
   bulkChangeStatus: (status: string) => void;
   bulkArchive: () => void;
   bulkDelete: () => void;
+  bulkAssign: (assigneeId: string) => void;
+  agents: Array<{ id: string; name: string }>;
 }
 
 const ConversationListContext = createContext<ConversationListContextType | undefined>(undefined);
@@ -148,6 +150,26 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const [state, dispatch] = useReducer(conversationListReducer, initialState);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  // Fetch agents for assignment
+  const { data: agentsData = [] } = useQuery({
+    queryKey: ['agents', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .eq('is_active', true)
+        .order('full_name');
+      
+      if (error) throw error;
+      
+      return (data || []).map((profile: any) => ({
+        id: profile.user_id,
+        name: profile.full_name,
+      }));
+    },
+  });
 
   // Fetch conversations with optimized config
   const { data: conversations = [], isLoading, error } = useQuery({
@@ -521,6 +543,25 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     }
   };
 
+  const bulkAssign = async (assigneeId: string) => {
+    const ids = Array.from(state.selectedConversations);
+    if (ids.length === 0) return;
+
+    const { error } = await supabase
+      .from('conversations')
+      .update({ assigned_to_id: assigneeId })
+      .in('id', ids);
+    
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      const agent = agentsData.find(a => a.id === assigneeId);
+      toast.success(`Assigned ${ids.length} conversations to ${agent?.name || 'agent'}`);
+      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+    } else {
+      toast.error('Failed to assign conversations');
+    }
+  };
+
   const value = {
     state,
     dispatch,
@@ -537,6 +578,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     bulkChangeStatus,
     bulkArchive,
     bulkDelete,
+    bulkAssign,
+    agents: agentsData,
   };
 
   return (

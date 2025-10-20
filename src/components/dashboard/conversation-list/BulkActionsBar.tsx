@@ -1,4 +1,4 @@
-import { CheckSquare, XSquare, Archive, Trash2, MailCheck } from 'lucide-react';
+import { CheckSquare, XSquare, Archive, Trash2, MailCheck, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -16,6 +16,8 @@ interface BulkActionsBarProps {
   onChangeStatus: (status: string) => void;
   onArchive: () => void;
   onDelete: () => void;
+  onAssign: (assigneeId: string) => void;
+  agents: Array<{ id: string; name: string }>;
 }
 
 export function BulkActionsBar({
@@ -26,6 +28,8 @@ export function BulkActionsBar({
   onChangeStatus,
   onArchive,
   onDelete,
+  onAssign,
+  agents,
 }: BulkActionsBarProps) {
   if (selectedCount === 0) return null;
 
@@ -75,6 +79,22 @@ export function BulkActionsBar({
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select onValueChange={onAssign}>
+          <SelectTrigger className="h-8 w-[140px]">
+            <SelectValue placeholder="Assign To" />
+          </SelectTrigger>
+          <SelectContent>
+            {agents.map((agent) => (
+              <SelectItem key={agent.id} value={agent.id}>
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  {agent.name}
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

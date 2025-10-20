@@ -172,6 +172,10 @@ export async function listConversations(params: {
   q?: string;
   page?: number;
   cursor?: string;
+  priority?: string;
+  assigneeId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }): Promise<ConversationRow[]> {
   try {
     const { inboxId, status, q, page = 1 } = params;
@@ -286,6 +290,10 @@ function applyFilters(conversations: ConversationRow[], params: {
   status: StatusFilter;
   q?: string;
   page?: number;
+  priority?: string;
+  assigneeId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }): ConversationRow[] {
   let filtered = conversations;
   
@@ -313,6 +321,28 @@ function applyFilters(conversations: ConversationRow[], params: {
         filtered = filtered.filter(c => c.isArchived);
         break;
     }
+  }
+  
+  // Apply priority filter
+  if (params.priority && params.priority !== 'all') {
+    filtered = filtered.filter(c => c.priority === params.priority);
+  }
+  
+  // Apply assignee filter
+  if (params.assigneeId) {
+    filtered = filtered.filter(c => c.customerId === params.assigneeId);
+  }
+  
+  // Apply date range filter
+  if (params.dateFrom) {
+    const fromDate = new Date(params.dateFrom);
+    filtered = filtered.filter(c => new Date(c.updatedAt) >= fromDate);
+  }
+  
+  if (params.dateTo) {
+    const toDate = new Date(params.dateTo);
+    toDate.setHours(23, 59, 59, 999); // End of day
+    filtered = filtered.filter(c => new Date(c.updatedAt) <= toDate);
   }
   
   // Apply search
@@ -377,6 +407,72 @@ export async function getThread(conversationId: ConversationId): Promise<Convers
   } catch (error) {
     logger.error('Failed to get thread', error, 'getThread');
     return null;
+  }
+}
+
+/**
+ * Archive conversations
+ */
+export async function archiveConversations(conversationIds: ConversationId[]): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('conversations')
+      .update({ is_archived: true, updated_at: new Date().toISOString() })
+      .in('id', conversationIds);
+    
+    if (error) {
+      logger.error('Error archiving conversations', error, 'archiveConversations');
+      throw error;
+    }
+    
+    logger.info('Conversations archived successfully', { count: conversationIds.length }, 'archiveConversations');
+  } catch (error) {
+    logger.error('Failed to archive conversations', error, 'archiveConversations');
+    throw error;
+  }
+}
+
+/**
+ * Unarchive conversations
+ */
+export async function unarchiveConversations(conversationIds: ConversationId[]): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('conversations')
+      .update({ is_archived: false, updated_at: new Date().toISOString() })
+      .in('id', conversationIds);
+    
+    if (error) {
+      logger.error('Error unarchiving conversations', error, 'unarchiveConversations');
+      throw error;
+    }
+    
+    logger.info('Conversations unarchived successfully', { count: conversationIds.length }, 'unarchiveConversations');
+  } catch (error) {
+    logger.error('Failed to unarchive conversations', error, 'unarchiveConversations');
+    throw error;
+  }
+}
+
+/**
+ * Bulk assign conversations to an agent
+ */
+export async function bulkAssignConversations(conversationIds: ConversationId[], assigneeId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('conversations')
+      .update({ assigned_to_id: assigneeId, updated_at: new Date().toISOString() })
+      .in('id', conversationIds);
+    
+    if (error) {
+      logger.error('Error bulk assigning conversations', error, 'bulkAssignConversations');
+      throw error;
+    }
+    
+    logger.info('Conversations assigned successfully', { count: conversationIds.length, assigneeId }, 'bulkAssignConversations');
+  } catch (error) {
+    logger.error('Failed to bulk assign conversations', error, 'bulkAssignConversations');
+    throw error;
   }
 }
 

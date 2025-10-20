@@ -39,7 +39,9 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
     bulkMarkAsUnread,
     bulkChangeStatus,
     bulkArchive,
-    bulkDelete
+    bulkDelete,
+    bulkAssign,
+    agents
   } = useConversationList();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -129,6 +131,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
         onChangeStatus={bulkChangeStatus}
         onArchive={bulkArchive}
         onDelete={bulkDelete}
+        onAssign={bulkAssign}
+        agents={agents}
       />
       
       {/* Conversation List - Card-based layout */}
