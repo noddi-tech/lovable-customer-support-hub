@@ -12,16 +12,15 @@ export const ConversationListFilters = () => {
         value={state.statusFilter} 
         onValueChange={(value) => dispatch({ type: 'SET_STATUS_FILTER', payload: value })}
       >
-        <SelectTrigger className="w-32 h-9 text-xs md:text-sm">
-          <SelectValue placeholder={t('dashboard.conversationList.allStatus', 'All Status')} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{t('dashboard.conversationList.allStatus', 'All Status')}</SelectItem>
-          <SelectItem value="open">{t('dashboard.conversationList.open', 'Open')}</SelectItem>
-          <SelectItem value="pending">{t('dashboard.conversationList.pending', 'Pending')}</SelectItem>
-          <SelectItem value="resolved">{t('dashboard.conversationList.resolved', 'Resolved')}</SelectItem>
-          <SelectItem value="closed">{t('dashboard.conversationList.closed', 'Closed')}</SelectItem>
-        </SelectContent>
+      <SelectTrigger className="w-32 h-9 text-xs md:text-sm">
+        <SelectValue placeholder={t('dashboard.conversationList.allStatus', 'All Status')} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">{t('dashboard.conversationList.allStatus', 'All Status')}</SelectItem>
+        <SelectItem value="open">{t('dashboard.conversationList.open', 'Open')}</SelectItem>
+        <SelectItem value="pending">{t('dashboard.conversationList.pending', 'Pending')}</SelectItem>
+        <SelectItem value="closed">{t('dashboard.conversationList.closed', 'Closed')}</SelectItem>
+      </SelectContent>
       </Select>
       
       <Select 

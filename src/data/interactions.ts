@@ -365,7 +365,7 @@ export async function getThread(conversationId: ConversationId): Promise<Convers
 /**
  * Post a reply to a conversation
  */
-export async function postReply(conversationId: ConversationId, payload: { body: string }): Promise<void> {
+export async function postReply(conversationId: ConversationId, payload: { body: string; status?: string }): Promise<void> {
   try {
     const { error: insertError } = await supabase
       .from('messages')
@@ -382,7 +382,23 @@ export async function postReply(conversationId: ConversationId, payload: { body:
       throw insertError;
     }
     
-    logger.info('Reply posted successfully', { conversationId }, 'postReply');
+    // Update conversation status after agent reply
+    const newStatus = payload.status || 'pending';
+    const { error: updateError } = await supabase
+      .from('conversations')
+      .update({
+        status: newStatus,
+        is_read: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId);
+    
+    if (updateError) {
+      logger.error('Error updating conversation status', updateError, 'postReply');
+      // Don't throw - reply was successful, status update is secondary
+    }
+    
+    logger.info('Reply posted successfully', { conversationId, status: newStatus }, 'postReply');
   } catch (error) {
     logger.error('Failed to post reply', error, 'postReply');
     throw error;

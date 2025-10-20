@@ -261,6 +261,23 @@ serve(async (req: Request) => {
       console.log(`[SendGrid-Inbound] Created conversation with ID: ${conversation_id}`);
     } else {
       console.log(`[SendGrid-Inbound] Found existing conversation with ID: ${conversation_id}`);
+      
+      // Update existing conversation - reopen and mark as unread when customer replies
+      const { error: updateErr } = await supabase
+        .from("conversations")
+        .update({
+          status: "open",
+          is_read: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", conversation_id);
+      
+      if (updateErr) {
+        console.error(`[SendGrid-Inbound] Error updating conversation status:`, updateErr);
+        // Don't throw - message insertion is more critical
+      } else {
+        console.log(`[SendGrid-Inbound] Updated conversation to open/unread status`);
+      }
     }
 
     // Insert message

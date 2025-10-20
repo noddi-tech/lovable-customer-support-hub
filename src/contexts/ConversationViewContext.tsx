@@ -115,7 +115,7 @@ interface ConversationViewContextType {
   moveInboxes: any[];
   isLoading: boolean;
   messagesLoading: boolean;
-  sendReply: (content: string, isInternal: boolean) => Promise<void>;
+  sendReply: (content: string, isInternal: boolean, status?: string) => Promise<void>;
   assignConversation: (userId: string) => Promise<void>;
   moveConversation: (inboxId: string) => Promise<void>;
   updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
@@ -239,7 +239,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
 
   // Send reply mutation
   const sendReplyMutation = useMutation({
-    mutationFn: async ({ content, isInternal }: { content: string; isInternal: boolean }) => {
+    mutationFn: async ({ content, isInternal, status }: { content: string; isInternal: boolean; status?: string }) => {
       if (!conversationId) throw new Error('No conversation ID');
 
       const { data: message, error: insertError } = await supabase
@@ -255,6 +255,22 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
         .single();
 
       if (insertError) throw insertError;
+
+      // Update conversation status after agent reply (only for non-internal messages)
+      if (!isInternal && status) {
+        const { error: updateError } = await supabase
+          .from('conversations')
+          .update({
+            status,
+            is_read: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', conversationId);
+        
+        if (updateError) {
+          logger.warn('Failed to update conversation status', updateError, 'ConversationViewProvider');
+        }
+      }
 
       if (!isInternal) {
         const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
@@ -450,10 +466,10 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     },
   });
 
-  const sendReply = async (content: string, isInternal: boolean) => {
+  const sendReply = async (content: string, isInternal: boolean, status?: string) => {
     dispatch({ type: 'SET_SEND_LOADING', payload: true });
     try {
-      await sendReplyMutation.mutateAsync({ content, isInternal });
+      await sendReplyMutation.mutateAsync({ content, isInternal, status });
     } finally {
       dispatch({ type: 'SET_SEND_LOADING', payload: false });
     }

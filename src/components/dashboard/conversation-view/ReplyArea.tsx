@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,7 @@ export const ReplyArea = () => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const replyRef = useRef<HTMLTextAreaElement>(null);
+  const [replyStatus, setReplyStatus] = React.useState<string>('pending');
 
   // Available languages for translation
   const languages = [
@@ -66,7 +68,7 @@ export const ReplyArea = () => {
     if (!state.replyText.trim()) return;
     
     try {
-      await sendReply(state.replyText, state.isInternalNote);
+      await sendReply(state.replyText, state.isInternalNote, replyStatus);
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
     } catch (error) {
       // Error handling is done in the context
@@ -299,24 +301,38 @@ export const ReplyArea = () => {
             {t('conversation.cancel')}
           </Button>
 
-          <Button
-            onClick={handleSendReply}
-            disabled={!state.replyText.trim() || state.sendLoading}
-            size="lg"
-            className="gap-2 px-6"
-          >
-            {state.sendLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {t('conversation.sending')}
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                {state.isInternalNote ? t('conversation.addNote') : t('conversation.send')}
-              </>
+          <div className="flex items-center gap-2">
+            {!state.isInternalNote && (
+              <Select value={replyStatus} onValueChange={setReplyStatus}>
+                <SelectTrigger className="w-[160px] h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Send & Mark Pending</SelectItem>
+                  <SelectItem value="closed">Send & Close</SelectItem>
+                </SelectContent>
+              </Select>
             )}
-          </Button>
+            
+            <Button
+              onClick={handleSendReply}
+              disabled={!state.replyText.trim() || state.sendLoading}
+              size="lg"
+              className="gap-2 px-6"
+            >
+              {state.sendLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {t('conversation.sending')}
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  {state.isInternalNote ? t('conversation.addNote') : t('conversation.send')}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
