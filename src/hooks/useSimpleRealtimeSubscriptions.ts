@@ -36,7 +36,9 @@ export const useSimpleRealtimeSubscriptions = (
         },
         () => {
           console.log(`Realtime update for ${table}, invalidating ${queryKey}`);
-          queryClient.invalidateQueries({ queryKey: [queryKey] });
+          queryClient.invalidateQueries({ 
+            predicate: (query) => query.queryKey[0] === queryKey 
+          });
         }
       );
     });
