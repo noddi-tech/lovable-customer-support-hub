@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { 
@@ -6,26 +6,11 @@ import {
   Bell,
   User,
   RefreshCw,
-  Filter,
-  GitMerge,
-  Move,
-  CheckCheck,
   Menu
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ThreadMerger } from '@/components/dashboard/ThreadMerger';
-import { ConversationMigrator } from '@/components/dashboard/ConversationMigrator';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { AppMainNav } from './AppMainNav';
 import { UIProbe } from '@/dev/UIProbe';
-import { useSearchParams } from 'react-router-dom';
 
 interface UnifiedAppLayoutProps {
   children: React.ReactNode;
@@ -34,44 +19,7 @@ interface UnifiedAppLayoutProps {
 export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   children
 }) => {
-  const [searchParams] = useSearchParams();
-  const queryClient = useQueryClient();
-  
-  // State for dialogs and filters
-  const [showMerger, setShowMerger] = useState(false);
-  const [showMigrator, setShowMigrator] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // Get current inbox from URL
-  const currentInboxId = searchParams.get('inbox') || 'all';
-  
-  // Get unread count from conversations (simplified - you may want to use a proper hook)
-  const unreadCount = 0; // TODO: Connect to actual unread count
-  
-  // Mark all as read mutation
-  const markAllAsReadMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('conversations')
-        .update({ is_read: true })
-        .eq('inbox_id', currentInboxId)
-        .eq('is_read', false);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
-      toast.success('All conversations marked as read');
-      setMobileMenuOpen(false);
-    },
-    onError: (error) => {
-      console.error('Error marking all as read:', error);
-      toast.error('Failed to mark all as read');
-    },
-  });
 
   // (Optional) Keep this only for local dev and only when explicitly enabled
   // React.useEffect(() => {
@@ -116,82 +64,6 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
                 {/* Spacer */}
                 <div className="flex-1" />
 
-                {/* Desktop: Conversation Management Buttons */}
-                <div className="hidden md:flex items-center gap-2">
-                  {/* Filters Popover */}
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Filter className="h-4 w-4 mr-2" />
-                        Filters
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80" align="start">
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Status</label>
-                          <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="All Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Status</SelectItem>
-                              <SelectItem value="open">Open</SelectItem>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="resolved">Resolved</SelectItem>
-                              <SelectItem value="closed">Closed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Priority</label>
-                          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="All Priority" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Priority</SelectItem>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="normal">Normal</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                              <SelectItem value="urgent">Urgent</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  {/* Merge Button */}
-                  <Button variant="outline" size="sm" onClick={() => setShowMerger(true)}>
-                    <GitMerge className="h-4 w-4 mr-2" />
-                    Merge
-                  </Button>
-
-                  {/* Migrate Button */}
-                  <Button variant="outline" size="sm" onClick={() => setShowMigrator(true)}>
-                    <Move className="h-4 w-4 mr-2" />
-                    Migrate
-                  </Button>
-
-                  {/* Mark All Read Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => markAllAsReadMutation.mutate()}
-                    disabled={unreadCount === 0 || markAllAsReadMutation.isPending}
-                    className="relative"
-                  >
-                    <CheckCheck className="h-4 w-4 mr-2" />
-                    Mark Read
-                    {unreadCount > 0 && (
-                      <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1 text-xs">
-                        {unreadCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </div>
-
                 {/* Right side actions */}
                 <div className="hidden md:flex items-center gap-2">
                   <Button variant="ghost" size="sm">
@@ -222,55 +94,8 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
                       </SheetHeader>
                       
                       <div className="mt-6 space-y-4">
-                        {/* Conversation Actions Section */}
+                        {/* Actions */}
                         <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Conversation Management</p>
-                          
-                          <Button 
-                            variant="outline" 
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setShowMerger(true);
-                              setMobileMenuOpen(false);
-                            }}
-                          >
-                            <GitMerge className="h-4 w-4 mr-2" />
-                            Merge Threads
-                          </Button>
-                          
-                          <Button 
-                            variant="outline" 
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setShowMigrator(true);
-                              setMobileMenuOpen(false);
-                            }}
-                          >
-                            <Move className="h-4 w-4 mr-2" />
-                            Migrate Conversations
-                          </Button>
-                          
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => markAllAsReadMutation.mutate()}
-                            disabled={unreadCount === 0 || markAllAsReadMutation.isPending}
-                          >
-                            <CheckCheck className="h-4 w-4 mr-2" />
-                            Mark All Read
-                            {unreadCount > 0 && (
-                              <Badge variant="secondary" className="ml-auto h-5 min-w-5 px-1 text-xs">
-                                {unreadCount}
-                              </Badge>
-                            )}
-                          </Button>
-                        </div>
-
-                        <Separator />
-
-                        {/* Other Actions */}
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">General</p>
                           
                           <Button variant="outline" className="w-full justify-start">
                             <Search className="h-4 w-4 mr-2" />
@@ -306,39 +131,6 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
           </main>
         </div>
       </div>
-
-      {/* Thread Merger Dialog */}
-      <Dialog open={showMerger} onOpenChange={setShowMerger}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Merge Split Email Threads</DialogTitle>
-          </DialogHeader>
-          <ThreadMerger 
-            inboxId={currentInboxId}
-            onMergeComplete={() => {
-              setShowMerger(false);
-              queryClient.invalidateQueries({ queryKey: ['conversations'] });
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Conversation Migrator Dialog */}
-      <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Migrate Conversations</DialogTitle>
-          </DialogHeader>
-          <ConversationMigrator 
-            sourceInboxId={currentInboxId}
-            onMigrationComplete={() => {
-              setShowMigrator(false);
-              queryClient.invalidateQueries({ queryKey: ['conversations'] });
-              queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </SidebarProvider>
   );
 };

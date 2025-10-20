@@ -1,15 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { MessageCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { VoiceInterface } from './VoiceInterface';
 import { VoiceDashboard } from './voice/VoiceDashboard';
 import { useTranslation } from "react-i18next";
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
-import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
 import { ConversationView } from './ConversationView';
+import { ConversationList } from './ConversationList';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
@@ -197,83 +195,16 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     </div>
   );
 
-  // Render conversation list (single column only)
+  // Render conversation list with full functionality
   const renderConversationList = () => {
-    if (conversationsLoading) {
-      return (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
-          </div>
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="p-4 border border-border rounded-lg bg-card">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (conversations.length === 0) {
-      return (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
-          </div>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No conversations found</h3>
-            <p className="text-sm text-muted-foreground">
-              {effectiveSearch ? 'Try adjusting your search or filters.' : 'No conversations match the current filter.'}
-            </p>
-          </div>
-        </div>
-      );
-    }
-    
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Conversations</h2>
-          <span className="text-sm text-muted-foreground">{conversations.length} conversations</span>
-        </div>
-        
-        {/* Single column list - never a grid */}
-        <div className="space-y-2">
-          {conversations.map((conversation) => (
-            <EntityListRow
-              key={conversation.id}
-              subject={conversation.subject}
-              preview={conversation.preview}
-              avatar={{
-                fallback: conversation.fromName?.split(' ').map(n => n[0]).join('').toUpperCase() || '?',
-                alt: conversation.fromName || 'Unknown'
-              }}
-              selected={conversation.id === conversationId}
-              onClick={() => handleConversationSelect(conversation)}
-              badges={[
-                ...(conversation.unread ? [{ label: 'Unread', variant: 'default' as const }] : []),
-                ...(conversation.priority && conversation.priority !== 'normal' ? [{
-                  label: conversation.priority,
-                  variant: conversation.priority === 'urgent' ? 'destructive' as const : 'secondary' as const
-                }] : []),
-                { label: conversation.status, variant: 'outline' as const }
-              ]}
-              meta={[
-                { label: 'From', value: conversation.fromName || 'Unknown' },
-                { label: 'Channel', value: conversation.channel },
-                { label: 'Waiting', value: formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true }) }
-              ]}
-            />
-          ))}
-        </div>
-      </div>
+      <ConversationList
+        selectedTab={effectiveStatus}
+        onSelectConversation={(conversation) => handleConversationSelect(conversation as any)}
+        selectedConversation={selectedConversation as any}
+        selectedInboxId={effectiveInboxId}
+        onToggleCollapse={() => {}}
+      />
     );
   };
 
