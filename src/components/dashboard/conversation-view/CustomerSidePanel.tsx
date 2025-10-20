@@ -17,12 +17,14 @@ import {
   Loader2,
   AlertCircle,
   Package,
-  CheckCircle2
+  CheckCircle2,
+  CircleDot
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { cn } from '@/lib/utils';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
+import { useConversationView } from '@/contexts/ConversationViewContext';
 
 interface CustomerSidePanelProps {
   conversation: any;
@@ -39,6 +41,8 @@ export const CustomerSidePanel = ({
 }: CustomerSidePanelProps) => {
   const { t } = useTranslation();
   const { dateTime } = useDateFormatting();
+  const { dispatch, updateStatus } = useConversationView();
+  const [statusLoading, setStatusLoading] = useState(false);
   
   // Fetch Noddi customer data
   const { 
@@ -365,26 +369,125 @@ export const CustomerSidePanel = ({
         </div>
       </div>
 
-      {/* Quick Actions Footer */}
-      <div className="p-4 border-t border-border space-y-2">
+      {/* Status Management */}
+      <div className="p-4 border-t border-border space-y-3">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
+          Status & Actions
+        </h4>
+        
+        {/* Current Status Display */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Current Status:</span>
+          <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'}>
+            {conversation.status}
+          </Badge>
+        </div>
+        
+        {/* Status Change Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          {conversation.status !== 'open' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={async () => {
+                setStatusLoading(true);
+                await updateStatus({ status: 'open' });
+                setStatusLoading(false);
+              }}
+              disabled={statusLoading}
+              className="text-xs"
+            >
+              <CircleDot className="h-3 w-3 mr-1" />
+              Reopen
+            </Button>
+          )}
+          
+          {conversation.status !== 'pending' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={async () => {
+                setStatusLoading(true);
+                await updateStatus({ status: 'pending' });
+                setStatusLoading(false);
+              }}
+              disabled={statusLoading}
+              className="text-xs"
+            >
+              <Clock className="h-3 w-3 mr-1" />
+              Pending
+            </Button>
+          )}
+          
+          {conversation.status !== 'closed' && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={async () => {
+                setStatusLoading(true);
+                await updateStatus({ status: 'closed' });
+                setStatusLoading(false);
+              }}
+              disabled={statusLoading}
+              className="col-span-2 text-xs"
+            >
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Close Conversation
+            </Button>
+          )}
+        </div>
+        
+        <Separator className="my-3" />
+        
+        {/* Quick Actions */}
         <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h4>
         
-        <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start gap-2"
+          onClick={() => {
+            // TODO: Implement tag dialog
+            console.log('Add tag clicked');
+          }}
+        >
           <Tag className="h-4 w-4" />
           <span className="text-xs">Add Tag</span>
         </Button>
         
-        <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start gap-2"
+          onClick={() => {
+            dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: true, date: new Date(), time: '09:00' } });
+          }}
+        >
           <Clock className="h-4 w-4" />
           <span className="text-xs">Snooze</span>
         </Button>
         
-        <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start gap-2"
+          onClick={async () => {
+            await updateStatus({ isArchived: true });
+          }}
+        >
           <Archive className="h-4 w-4" />
           <span className="text-xs">Archive</span>
         </Button>
         
-        <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-destructive hover:text-destructive">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+          onClick={() => {
+            // TODO: Implement delete confirmation
+            console.log('Delete clicked');
+          }}
+        >
           <Trash2 className="h-4 w-4" />
           <span className="text-xs">Delete</span>
         </Button>

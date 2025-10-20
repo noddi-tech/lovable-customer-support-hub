@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ChevronLeft,
   MoreHorizontal,
@@ -12,7 +13,9 @@ import {
   CheckCircle,
   XCircle,
   Move,
-  RefreshCw
+  RefreshCw,
+  CircleDot,
+  CheckCircle2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -33,8 +36,8 @@ export const ConversationHeader = () => {
     await updateStatus({ isArchived: false });
   };
 
-  const handleMarkResolved = async () => {
-    await updateStatus({ status: 'resolved' });
+  const handleMarkClosed = async () => {
+    await updateStatus({ status: 'closed' });
   };
 
   const handleMarkOpen = async () => {
@@ -77,9 +80,36 @@ export const ConversationHeader = () => {
                 {conversation.subject}
               </h2>
               <div className="flex items-center space-x-2">
-                <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'} className="text-xs">
-                  {conversation.status}
-                </Badge>
+                {/* Status Dropdown for Quick Changes */}
+                <Select 
+                  value={conversation.status} 
+                  onValueChange={(status) => updateStatus({ status })}
+                >
+                  <SelectTrigger className="h-7 w-[110px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">
+                      <div className="flex items-center gap-2">
+                        <CircleDot className="h-3 w-3" />
+                        Open
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="pending">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        Pending
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="closed">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Closed
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                
                 <Badge variant={conversation.priority === 'high' || conversation.priority === 'urgent' ? 'destructive' : 'outline'} className="text-xs">
                   {conversation.priority}
                 </Badge>
@@ -125,10 +155,10 @@ export const ConversationHeader = () => {
                 {t('conversation.snooze')}
               </DropdownMenuItem>
               
-              {conversation.status !== 'resolved' ? (
-                <DropdownMenuItem onClick={handleMarkResolved}>
+              {conversation.status !== 'closed' ? (
+                <DropdownMenuItem onClick={handleMarkClosed}>
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  {t('conversation.markResolved')}
+                  {t('conversation.markClosed')}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={handleMarkOpen}>
