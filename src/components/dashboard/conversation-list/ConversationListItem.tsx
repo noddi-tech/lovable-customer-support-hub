@@ -2,6 +2,7 @@ import React, { memo, useMemo, useCallback } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,7 @@ import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from "react-i18next";
+import { SLABadge } from './SLABadge';
 
 const priorityColors = {
   low: "bg-muted text-muted-foreground",
@@ -37,9 +39,19 @@ interface ConversationListItemProps {
   conversation: Conversation;
   isSelected: boolean;
   onSelect: (conversation: Conversation) => void;
+  isBulkSelected?: boolean;
+  onBulkSelect?: (id: string, selected: boolean) => void;
+  showBulkCheckbox?: boolean;
 }
 
-export const ConversationListItem = memo<ConversationListItemProps>(({ conversation, isSelected, onSelect }) => {
+export const ConversationListItem = memo<ConversationListItemProps>(({ 
+  conversation, 
+  isSelected, 
+  onSelect, 
+  isBulkSelected = false,
+  onBulkSelect,
+  showBulkCheckbox = false
+}) => {
   const { dispatch, archiveConversation } = useConversationList();
   const { conversation: formatConversationTime } = useDateFormatting();
   const { inboxes } = useOptimizedCounts();
@@ -94,6 +106,12 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
     e.stopPropagation();
   }, []);
 
+  const handleCheckboxChange = useCallback((checked: boolean) => {
+    if (onBulkSelect) {
+      onBulkSelect(conversation.id, checked);
+    }
+  }, [onBulkSelect, conversation.id]);
+
   return (
     <div
       className={cn(
@@ -107,6 +125,15 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
     >
       {/* Row 1: Avatar + Name + Unread Badge + Status/Priority + Menu */}
       <div className="flex items-center gap-3 mb-2">
+        {showBulkCheckbox && (
+          <Checkbox
+            checked={isBulkSelected}
+            onCheckedChange={handleCheckboxChange}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0"
+          />
+        )}
+        
         <Avatar className="h-10 w-10 ring-2 ring-muted shrink-0">
           <AvatarFallback className="text-base font-semibold">
             {computedValues.customerInitial}
@@ -127,6 +154,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({ conversat
         </div>
         
         <div className="flex items-center gap-2 shrink-0">
+          <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
           <Badge className={cn("px-2.5 py-1", statusColors[conversation.status])}>
             {computedValues.statusLabel}
           </Badge>

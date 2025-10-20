@@ -186,6 +186,7 @@ export type Database = {
       conversations: {
         Row: {
           assigned_to_id: string | null
+          auto_close_days: number | null
           call_id: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
           created_at: string
@@ -193,6 +194,7 @@ export type Database = {
           department_id: string | null
           email_account_id: string | null
           external_id: string | null
+          first_response_at: string | null
           id: string
           inbox_id: string | null
           is_archived: boolean | null
@@ -201,6 +203,7 @@ export type Database = {
           organization_id: string
           priority: string
           received_at: string | null
+          sla_breach_at: string | null
           snooze_until: string | null
           snoozed_by_id: string | null
           status: string
@@ -209,6 +212,7 @@ export type Database = {
         }
         Insert: {
           assigned_to_id?: string | null
+          auto_close_days?: number | null
           call_id?: string | null
           channel: Database["public"]["Enums"]["communication_channel"]
           created_at?: string
@@ -216,6 +220,7 @@ export type Database = {
           department_id?: string | null
           email_account_id?: string | null
           external_id?: string | null
+          first_response_at?: string | null
           id?: string
           inbox_id?: string | null
           is_archived?: boolean | null
@@ -224,6 +229,7 @@ export type Database = {
           organization_id: string
           priority?: string
           received_at?: string | null
+          sla_breach_at?: string | null
           snooze_until?: string | null
           snoozed_by_id?: string | null
           status?: string
@@ -232,6 +238,7 @@ export type Database = {
         }
         Update: {
           assigned_to_id?: string | null
+          auto_close_days?: number | null
           call_id?: string | null
           channel?: Database["public"]["Enums"]["communication_channel"]
           created_at?: string
@@ -239,6 +246,7 @@ export type Database = {
           department_id?: string | null
           email_account_id?: string | null
           external_id?: string | null
+          first_response_at?: string | null
           id?: string
           inbox_id?: string | null
           is_archived?: boolean | null
@@ -247,6 +255,7 @@ export type Database = {
           organization_id?: string
           priority?: string
           received_at?: string | null
+          sla_breach_at?: string | null
           snooze_until?: string | null
           snoozed_by_id?: string | null
           status?: string
@@ -1412,6 +1421,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_close_inactive_conversations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          closed_count: number
+        }[]
+      }
+      calculate_sla_breach: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_test_notification: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1531,6 +1550,14 @@ export type Database = {
       }
       get_organization_by_email_domain: {
         Args: { email_domain: string }
+        Returns: string
+      }
+      get_sla_status: {
+        Args: {
+          conv_status: string
+          first_response: string
+          sla_breach: string
+        }
         Returns: string
       }
       get_user_department_id: {

@@ -1,10 +1,12 @@
 import { Clock, Inbox } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ConversationListProvider, useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { ConversationListHeader } from "./conversation-list/ConversationListHeader";
 import { ConversationListItem } from "./conversation-list/ConversationListItem";
 import { ConversationListDeleteDialog } from "./conversation-list/ConversationListDeleteDialog";
 import { VirtualizedConversationList } from "./conversation-list/VirtualizedConversationList";
+import { BulkActionsBar } from "./conversation-list/BulkActionsBar";
 import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
 import { SessionDebugPanel } from "@/components/conversations/SessionDebugPanel";
 import { AuthContextDebugger } from "@/components/conversations/AuthContextDebugger";
@@ -16,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { CheckSquare } from 'lucide-react';
 
 interface ConversationListProps {
   selectedTab: string;
@@ -26,7 +29,18 @@ interface ConversationListProps {
 }
 
 const ConversationListContent = ({ onSelectConversation, selectedConversation, onToggleCollapse, selectedInboxId }: Omit<ConversationListProps, 'selectedTab'>) => {
-  const { filteredConversations, isLoading, hasSessionError } = useConversationList();
+  const { 
+    filteredConversations, 
+    isLoading, 
+    hasSessionError, 
+    state, 
+    dispatch,
+    bulkMarkAsRead,
+    bulkMarkAsUnread,
+    bulkChangeStatus,
+    bulkArchive,
+    bulkDelete
+  } = useConversationList();
   const { user } = useAuth();
   const { t } = useTranslation();
   const [showSessionBanner, setShowSessionBanner] = useState(false);
@@ -77,19 +91,44 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       />
       
       {/* Header - always visible for Search, Filters, Merge, etc. */}
-      <ConversationListHeader 
-        onToggleCollapse={onToggleCollapse} 
-        selectedInboxId={selectedInboxId}
-        onInboxChange={(inboxId) => {
-          // Update URL with new inbox selection
-          const url = new URL(window.location.href);
-          if (inboxId === 'all') {
-            url.searchParams.delete('inbox');
-          } else {
-            url.searchParams.set('inbox', inboxId);
-          }
-          window.history.pushState({}, '', url.toString());
-        }}
+      <div className="flex items-center gap-2 px-4 py-2 border-b">
+        <Button
+          variant={state.bulkSelectionMode ? "default" : "ghost"}
+          size="sm"
+          onClick={() => dispatch({ type: 'TOGGLE_BULK_MODE' })}
+          className="h-8"
+        >
+          <CheckSquare className="w-4 h-4 mr-2" />
+          {state.bulkSelectionMode ? 'Exit Selection' : 'Select'}
+        </Button>
+        
+        <div className="flex-1">
+          <ConversationListHeader 
+            onToggleCollapse={onToggleCollapse} 
+            selectedInboxId={selectedInboxId}
+            onInboxChange={(inboxId) => {
+              // Update URL with new inbox selection
+              const url = new URL(window.location.href);
+              if (inboxId === 'all') {
+                url.searchParams.delete('inbox');
+              } else {
+                url.searchParams.set('inbox', inboxId);
+              }
+              window.history.pushState({}, '', url.toString());
+            }}
+          />
+        </div>
+      </div>
+      
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedCount={state.selectedConversations.size}
+        onClearSelection={() => dispatch({ type: 'CLEAR_BULK_SELECTION' })}
+        onMarkAsRead={bulkMarkAsRead}
+        onMarkAsUnread={bulkMarkAsUnread}
+        onChangeStatus={bulkChangeStatus}
+        onArchive={bulkArchive}
+        onDelete={bulkDelete}
       />
       
       {/* Conversation List - Card-based layout */}
@@ -123,6 +162,11 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
                     conversation={conversation}
                     isSelected={selectedConversation?.id === conversation.id}
                     onSelect={onSelectConversation}
+                    showBulkCheckbox={state.bulkSelectionMode}
+                    isBulkSelected={state.selectedConversations.has(conversation.id)}
+                    onBulkSelect={(id, selected) => {
+                      dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id, selected } });
+                    }}
                   />
                 ))}
               </div>

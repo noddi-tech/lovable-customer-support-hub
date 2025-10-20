@@ -43,6 +43,9 @@ export interface Conversation {
   email_account?: EmailAccount;
   snooze_until?: string;
   preview_text?: string;
+  first_response_at?: string;
+  sla_breach_at?: string;
+  slaStatus?: 'on_track' | 'at_risk' | 'breached' | 'met';
 }
 
 interface ConversationListState {
@@ -53,6 +56,8 @@ interface ConversationListState {
   deleteDialogOpen: boolean;
   conversationToDelete: string | null;
   showFilters: boolean;
+  selectedConversations: Set<string>;
+  bulkSelectionMode: boolean;
 }
 
 type ConversationListAction =
@@ -62,7 +67,10 @@ type ConversationListAction =
   | { type: 'SET_SORT_BY'; payload: SortBy }
   | { type: 'TOGGLE_FILTERS' }
   | { type: 'OPEN_DELETE_DIALOG'; payload: string }
-  | { type: 'CLOSE_DELETE_DIALOG' };
+  | { type: 'CLOSE_DELETE_DIALOG' }
+  | { type: 'TOGGLE_BULK_SELECTION'; payload: { id: string; selected: boolean } }
+  | { type: 'CLEAR_BULK_SELECTION' }
+  | { type: 'TOGGLE_BULK_MODE' };
 
 const initialState: ConversationListState = {
   searchQuery: '',
@@ -72,6 +80,8 @@ const initialState: ConversationListState = {
   deleteDialogOpen: false,
   conversationToDelete: null,
   showFilters: false,
+  selectedConversations: new Set(),
+  bulkSelectionMode: false,
 };
 
 function conversationListReducer(state: ConversationListState, action: ConversationListAction): ConversationListState {
@@ -90,6 +100,19 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, deleteDialogOpen: true, conversationToDelete: action.payload };
     case 'CLOSE_DELETE_DIALOG':
       return { ...state, deleteDialogOpen: false, conversationToDelete: null };
+    case 'TOGGLE_BULK_SELECTION': {
+      const newSelected = new Set(state.selectedConversations);
+      if (action.payload.selected) {
+        newSelected.add(action.payload.id);
+      } else {
+        newSelected.delete(action.payload.id);
+      }
+      return { ...state, selectedConversations: newSelected };
+    }
+    case 'CLEAR_BULK_SELECTION':
+      return { ...state, selectedConversations: new Set() };
+    case 'TOGGLE_BULK_MODE':
+      return { ...state, bulkSelectionMode: !state.bulkSelectionMode, selectedConversations: new Set() };
     default:
       return state;
   }
@@ -106,6 +129,11 @@ interface ConversationListContextType {
   markAllAsRead: () => void;
   isMarkingAllAsRead: boolean;
   filteredConversations: Conversation[];
+  bulkMarkAsRead: () => void;
+  bulkMarkAsUnread: () => void;
+  bulkChangeStatus: (status: string) => void;
+  bulkArchive: () => void;
+  bulkDelete: () => void;
 }
 
 const ConversationListContext = createContext<ConversationListContextType | undefined>(undefined);
@@ -390,6 +418,109 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       }
     });
 
+  // Bulk operations
+  const bulkMarkAsRead = async () => {
+    const ids = Array.from(state.selectedConversations);
+    if (ids.length === 0) return;
+
+    const { error } = await supabase
+      .from('conversations')
+      .update({ is_read: true })
+      .in('id', ids);
+    
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(`Marked ${ids.length} conversations as read`);
+      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+    } else {
+      toast.error('Failed to mark conversations as read');
+    }
+  };
+
+  const bulkMarkAsUnread = async () => {
+    const ids = Array.from(state.selectedConversations);
+    if (ids.length === 0) return;
+
+    const { error } = await supabase
+      .from('conversations')
+      .update({ is_read: false })
+      .in('id', ids);
+    
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(`Marked ${ids.length} conversations as unread`);
+      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+    } else {
+      toast.error('Failed to mark conversations as unread');
+    }
+  };
+
+  const bulkChangeStatus = async (status: string) => {
+    const ids = Array.from(state.selectedConversations);
+    if (ids.length === 0) return;
+
+    const { error } = await supabase
+      .from('conversations')
+      .update({ status })
+      .in('id', ids);
+    
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(`Changed status for ${ids.length} conversations`);
+      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+    } else {
+      toast.error('Failed to change status');
+    }
+  };
+
+  const bulkArchive = async () => {
+    const ids = Array.from(state.selectedConversations);
+    if (ids.length === 0) return;
+
+    const { error } = await supabase
+      .from('conversations')
+      .update({ is_archived: true, status: 'closed' })
+      .in('id', ids);
+    
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(`Archived ${ids.length} conversations`);
+      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+    } else {
+      toast.error('Failed to archive conversations');
+    }
+  };
+
+  const bulkDelete = async () => {
+    const ids = Array.from(state.selectedConversations);
+    if (ids.length === 0) return;
+
+    // First delete messages
+    const { error: messagesError } = await supabase
+      .from('messages')
+      .delete()
+      .in('conversation_id', ids);
+    
+    if (messagesError) {
+      toast.error('Failed to delete conversations');
+      return;
+    }
+
+    // Then delete conversations
+    const { error: conversationsError } = await supabase
+      .from('conversations')
+      .delete()
+      .in('id', ids);
+    
+    if (!conversationsError) {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(`Deleted ${ids.length} conversations`);
+      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+    } else {
+      toast.error('Failed to delete conversations');
+    }
+  };
+
   const value = {
     state,
     dispatch,
@@ -401,6 +532,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     markAllAsRead,
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
     filteredConversations: filteredAndSortedConversations,
+    bulkMarkAsRead,
+    bulkMarkAsUnread,
+    bulkChangeStatus,
+    bulkArchive,
+    bulkDelete,
   };
 
   return (

@@ -34,6 +34,9 @@ export interface ConversationRow {
   customerId?: string;
   inboxId?: string;
   isArchived?: boolean;
+  firstResponseAt?: string;
+  slaBreachAt?: string;
+  slaStatus?: 'on_track' | 'at_risk' | 'breached' | 'met';
 }
 
 export interface Message {

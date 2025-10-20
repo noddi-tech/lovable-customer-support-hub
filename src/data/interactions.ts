@@ -216,7 +216,16 @@ export async function listConversations(params: {
         assignee: conv.assigned_to?.full_name,
         customerId: conv.customer?.id,
         inboxId: conv.inbox_id,
-        isArchived: conv.is_archived
+        isArchived: conv.is_archived,
+        firstResponseAt: conv.first_response_at,
+        slaBreachAt: conv.sla_breach_at,
+        slaStatus: conv.first_response_at 
+          ? 'met' 
+          : conv.sla_breach_at && new Date(conv.sla_breach_at) < new Date()
+            ? 'breached'
+            : conv.sla_breach_at && new Date(conv.sla_breach_at).getTime() - new Date().getTime() < 2 * 60 * 60 * 1000
+              ? 'at_risk'
+              : 'on_track'
       })) as ConversationRow[];
       
       return applyFilters(conversations, params);
@@ -236,7 +245,16 @@ export async function listConversations(params: {
       assignee: conv.assigned_to?.full_name,
       customerId: conv.customer?.id,
       inboxId: conv.inbox_id,
-      isArchived: conv.is_archived
+      isArchived: conv.is_archived,
+      firstResponseAt: conv.first_response_at,
+      slaBreachAt: conv.sla_breach_at,
+      slaStatus: conv.first_response_at 
+        ? 'met' 
+        : conv.sla_breach_at && new Date(conv.sla_breach_at) < new Date()
+          ? 'breached'
+          : conv.sla_breach_at && new Date(conv.sla_breach_at).getTime() - new Date().getTime() < 2 * 60 * 60 * 1000
+            ? 'at_risk'
+            : 'on_track'
     })) as ConversationRow[];
     
     // Log session debugging info
