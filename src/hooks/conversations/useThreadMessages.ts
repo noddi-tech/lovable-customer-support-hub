@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createNormalizationContext, normalizeMessage, NormalizedMessage } from "@/lib/normalizeMessage";
 import { canonicalizeEmail, normalizeSubject, extractMessageIds } from "@/lib/emailThreading";
 import { useAuth } from "@/hooks/useAuth";
+import { useSimpleRealtimeSubscriptions } from "@/hooks/useSimpleRealtimeSubscriptions";
 
 const INITIAL = 20;
 const PAGE = 25;
@@ -29,6 +30,15 @@ export function useThreadMessages(conversationId?: string) {
 
   // Debug logging flag
   const isDebugMode = import.meta.env.VITE_UI_PROBE === '1';
+
+  // Real-time subscription for messages
+  useSimpleRealtimeSubscriptions(
+    conversationId ? [{ 
+      table: 'messages', 
+      queryKey: 'thread-messages'
+    }] : [],
+    !!conversationId
+  );
 
   return useInfiniteQuery({
     queryKey: ["thread-messages", conversationId, user?.id],
