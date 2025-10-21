@@ -388,10 +388,20 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       
       const matchesTab = (() => {
         const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
+        
+        // When viewing a specific inbox directly (not "all"), show ALL conversations in that inbox
+        // regardless of status, unless a specific status tab is selected
+        const isViewingSpecificInbox = selectedInboxId && selectedInboxId !== 'all';
+        
         switch (selectedTab) {
           case "snoozed":
             return isSnoozedActive;
           case "all":
+            // If viewing a specific inbox, show ALL conversations (including closed)
+            // Otherwise, filter out closed conversations from the "All Messages" view
+            if (isViewingSpecificInbox) {
+              return !isSnoozedActive;
+            }
             return conversation.status !== 'closed' && !isSnoozedActive;
           case "unread":
             return !conversation.is_read && !isSnoozedActive;
