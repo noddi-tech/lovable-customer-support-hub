@@ -11,6 +11,7 @@ import { useConversationList, type Conversation } from "@/contexts/ConversationL
 import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from "react-i18next";
 import { SLABadge } from './SLABadge';
+import { stripHtml } from '@/utils/stripHtml';
 
 const priorityColors = {
   low: "bg-muted text-muted-foreground",
@@ -71,7 +72,9 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
     formattedTime: formatConversationTime(conversation.updated_at),
     customerInitial: conversation.customer?.full_name?.[0] || 'C',
     inboxName: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.name || 'Unknown Inbox' : 'No Inbox',
-    inboxColor: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.color || '#6B7280' : '#6B7280'
+    inboxColor: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.color || '#6B7280' : '#6B7280',
+    // Strip HTML from preview text as a safety measure (database should already handle this)
+    previewText: stripHtml(conversation.preview_text) || 'No preview available'
   }), [
     conversation.channel,
     conversation.snooze_until,
@@ -81,6 +84,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
     conversation.priority,
     conversation.subject,
     conversation.updated_at,
+    conversation.preview_text,
     t,
     formatConversationTime,
     conversation.inbox_id,
@@ -196,7 +200,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
       
       {/* Row 3: Preview (better contrast) */}
       <p className="text-sm text-foreground/70 line-clamp-2 mb-2">
-        {conversation.preview_text || 'No preview available'}
+        {computedValues.previewText}
       </p>
       
       {/* Row 4: Metadata */}
