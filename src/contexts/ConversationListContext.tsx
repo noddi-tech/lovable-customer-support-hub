@@ -196,6 +196,15 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       }
       
       logger.info('Conversations fetched successfully', { count: data?.length }, 'ConversationListProvider');
+      console.log('🔍 [ConversationContext] Raw conversations fetched:', {
+        total: data?.length,
+        sample: data?.slice(0, 3).map((c: any) => ({ 
+          id: c.id, 
+          subject: c.subject, 
+          inbox_id: c.inbox_id,
+          status: c.status 
+        }))
+      });
       return (data || []).map((conv: any) => ({
         ...conv,
         customer: conv.customer as Customer,
@@ -421,6 +430,19 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       })();
 
       return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
+    })
+    .map((conv, index) => {
+      // Debug logging for first few conversations
+      if (index < 3) {
+        console.log('🔍 [ConversationContext] Filtered conversation:', {
+          id: conv.id,
+          subject: conv.subject,
+          inbox_id: conv.inbox_id,
+          status: conv.status,
+          filters: { effectiveInboxId, selectedTab, searchQuery: state.searchQuery }
+        });
+      }
+      return conv;
     })
     .sort((a, b) => {
       switch (state.sortBy) {

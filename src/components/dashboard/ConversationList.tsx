@@ -140,21 +140,32 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
                 <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {filteredConversations.map((conversation) => (
-                  <ConversationListItem 
-                    key={conversation.id}
-                    conversation={conversation}
-                    isSelected={selectedConversation?.id === conversation.id}
-                    onSelect={onSelectConversation}
-                    showBulkCheckbox={state.bulkSelectionMode}
-                    isBulkSelected={state.selectedConversations.has(conversation.id)}
-                    onBulkSelect={(id, selected) => {
-                      dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id, selected } });
-                    }}
-                  />
-                ))}
-              </div>
+              <>
+                {console.log('🔍 [ConversationList] Rendering conversations:', {
+                  filteredCount: filteredConversations.length,
+                  selectedInboxId,
+                  filters: {
+                    search: state.searchQuery,
+                    status: state.statusFilter,
+                    priority: state.priorityFilter,
+                  }
+                })}
+                <div className="space-y-3">
+                  {filteredConversations.map((conversation) => (
+                    <ConversationListItem 
+                      key={conversation.id}
+                      conversation={conversation}
+                      isSelected={selectedConversation?.id === conversation.id}
+                      onSelect={onSelectConversation}
+                      showBulkCheckbox={state.bulkSelectionMode}
+                      isBulkSelected={state.selectedConversations.has(conversation.id)}
+                      onBulkSelect={(id, selected) => {
+                        dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id, selected } });
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}

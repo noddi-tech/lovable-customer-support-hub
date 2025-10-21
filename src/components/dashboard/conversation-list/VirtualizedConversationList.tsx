@@ -12,7 +12,7 @@ interface VirtualizedConversationListProps {
   selectedConversation?: Conversation;
 }
 
-const ITEM_HEIGHT = 120; // Height of each conversation item in pixels (updated to match actual ConversationListItem height)
+const ITEM_HEIGHT = 136; // Height of each conversation item in pixels (120px card + 12px margin + buffer)
 const OVERSCAN_COUNT = 5; // Number of items to render outside visible area for smoother scrolling
 
 const VirtualizedConversationList = memo(({ onSelectConversation, selectedConversation }: VirtualizedConversationListProps) => {
