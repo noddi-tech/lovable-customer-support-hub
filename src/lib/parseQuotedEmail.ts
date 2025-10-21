@@ -199,7 +199,8 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   // The reply content is BEFORE the separator, quoted content is AFTER
   const outlookSeparators = [
     body.querySelector('#divRplyFwdMsg'),
-    body.querySelector('#ms-outlook-mobile-body-separator-line'),
+    // Note: #ms-outlook-mobile-body-separator-line appears BEFORE the reply, not after
+    // Note: #ms-outlook-mobile-signature is part of the reply, not a separator
     ...Array.from(body.querySelectorAll('hr[style*="display:inline-block"]')),
     ...Array.from(body.querySelectorAll('hr[style*="width:98"]'))
   ].filter(Boolean);
@@ -207,8 +208,13 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   console.log('[parseQuotedEmail] Found Outlook separators:', outlookSeparators.length);
 
   if (outlookSeparators.length > 0) {
-    // Find the first separator in document order
-    const firstSeparator = outlookSeparators[0] as Element;
+    // Sort separators by DOM position to find the TRUE first separator
+    const sortedSeparators = outlookSeparators.sort((a, b) => {
+      const position = (a as Element).compareDocumentPosition(b as Element);
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+    
+    const firstSeparator = sortedSeparators[0] as Element;
     
     console.log('[parseQuotedEmail] First separator:', (firstSeparator as HTMLElement).id || firstSeparator.tagName);
     
