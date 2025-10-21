@@ -1,5 +1,6 @@
 import { useThreadMessages } from "./useThreadMessages";
-import { NormalizationContext } from "@/lib/normalizeMessage";
+import { NormalizationContext, expandQuotedMessagesToCards } from "@/lib/normalizeMessage";
+import { ENABLE_QUOTED_EXTRACTION } from "@/lib/parseQuotedEmail";
 
 export function useThreadMessagesList(conversationId?: string, context?: NormalizationContext) {
   const q = useThreadMessages(conversationId);
@@ -9,7 +10,7 @@ export function useThreadMessagesList(conversationId?: string, context?: Normali
 
   // Dedup strictly by Message-ID/external_id/db id – normalizeMessage should supply dedupKey
   const seen = new Set<string>();
-  const messages = raw.filter(m => {
+  const dedupedMessages = raw.filter(m => {
     const key = m.dedupKey || m.id;
     if (seen.has(key)) {
       console.log('[Dedup] ❌ REMOVING duplicate:', {
@@ -28,7 +29,23 @@ export function useThreadMessagesList(conversationId?: string, context?: Normali
       subject: m.subject
     });
     return true;
-  }).sort((a,b) => {
+  });
+
+  // Optionally expand quoted messages into separate cards for thread view
+  const expandedMessages = ENABLE_QUOTED_EXTRACTION && context
+    ? expandQuotedMessagesToCards(dedupedMessages, context)
+    : dedupedMessages;
+
+  console.log('[Thread Expansion]', {
+    enabled: ENABLE_QUOTED_EXTRACTION,
+    hasContext: !!context,
+    originalCount: dedupedMessages.length,
+    expandedCount: expandedMessages.length,
+    added: expandedMessages.length - dedupedMessages.length
+  });
+
+  // Sort by creation time (newest first)
+  const messages = expandedMessages.sort((a,b) => {
     const ta = +new Date(a.createdAt);
     const tb = +new Date(b.createdAt);
     return tb - ta; // newest first

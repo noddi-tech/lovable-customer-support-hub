@@ -88,12 +88,14 @@ export const sanitizeEmailHTML = (
   const config = {
     ALLOWED_TAGS: [
       'a', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'img', 
-      'table', 'thead', 'tbody', 'tr', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+      'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
       'span', 'div', 'pre', 'code'
     ],
     ALLOWED_ATTR: [
       'href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan', 
-      'align', 'cellpadding', 'cellspacing', 'style', 'dir'
+      'align', 'cellpadding', 'cellspacing', 'style', 'dir',
+      'valign', 'border', 'bgcolor'
     ],
     ALLOWED_URI_REGEXP: /^(?:https:|data:|mailto:|tel:|#)/i,
     FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link', 'style'],

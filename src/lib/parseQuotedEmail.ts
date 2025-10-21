@@ -2,11 +2,14 @@
 // Returns the content that should be shown in the card (visibleContent)
 // and a list of quoted blocks (for optional "Show quoted history")
 
-// Never promote quoted blocks into cards
+// Feature flag: Enable thread extraction - expand quoted messages into separate cards
+export const ENABLE_QUOTED_EXTRACTION = false; // Set to true to enable thread view
+
+// Never promote quoted blocks into cards (deprecated, use ENABLE_QUOTED_EXTRACTION)
 export const ENABLE_QUOTED_SEGMENTATION = false;
 
 // Feature flag for showing quoted content in UI
-const SHOW_QUOTED = import.meta.env.VITE_QUOTED_SEGMENTATION === '1' && false;
+const SHOW_QUOTED = true; // Always parse quoted messages so they're available for extraction
 
 export type QuotedBlock = {
   kind: 'gmail' | 'outlook' | 'apple' | 'yahoo' | 'blockquote' | 'header' | 'plain';
@@ -380,8 +383,8 @@ export function parseQuotedEmail(input: Input): { visibleContent: string; quoted
     const { visibleHTML, quoted, quotedMessages } = extractFromHtml(content);
     return { 
       visibleContent: visibleHTML.trim(), 
-      quotedBlocks: SHOW_QUOTED ? quoted : [],
-      quotedMessages: SHOW_QUOTED ? quotedMessages : []
+      quotedBlocks: quoted,
+      quotedMessages: quotedMessages
     };
   }
 
@@ -389,7 +392,7 @@ export function parseQuotedEmail(input: Input): { visibleContent: string; quoted
   const { visibleText, quoted, quotedMessages } = extractFromPlain(normalizeWhitespace(content));
   return { 
     visibleContent: visibleText, 
-    quotedBlocks: SHOW_QUOTED ? quoted : [],
-    quotedMessages: SHOW_QUOTED ? quotedMessages : []
+    quotedBlocks: quoted,
+    quotedMessages: quotedMessages
   };
 }

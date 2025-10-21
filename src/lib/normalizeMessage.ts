@@ -309,6 +309,11 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
  * Generate stable dedup key with 3-step fallback chain
  */
 function generateStableDedupKey(raw: any, norm: NormalizedMessage): string {
+  // Special handling for quoted extracted messages
+  if (raw.is_quoted_extraction) {
+    return `quoted:${raw.parent_message_id}:${raw.quoted_index || 0}`;
+  }
+  
   // Prefer IDs in your stored headers JSON - prioritize email_message_id as it's unique per message
   const hdr = raw.email_headers || raw.headers || {};
   const explicit =
@@ -358,4 +363,79 @@ export function deduplicateMessages(messages: NormalizedMessage[]): NormalizedMe
   }
   
   return deduped;
+}
+
+/**
+ * Expand quoted messages into separate normalized message cards
+ * This creates a flat list showing the full thread conversation
+ */
+export function expandQuotedMessagesToCards(
+  messages: NormalizedMessage[], 
+  ctx: NormalizationContext
+): NormalizedMessage[] {
+  const expanded: NormalizedMessage[] = [];
+  
+  for (const message of messages) {
+    // Add the main message first
+    expanded.push(message);
+    
+    // Extract quoted messages if present
+    const quotedMessages = message.originalMessage._quotedMessages || [];
+    
+    for (let i = 0; i < quotedMessages.length; i++) {
+      const quoted = quotedMessages[i];
+      
+      // Skip if confidence is too low
+      if (quoted.confidence === 'low') {
+        console.log('[expandQuoted] Skipping low confidence quoted message', {
+          parentId: message.id,
+          index: i,
+          confidence: quoted.confidence
+        });
+        continue;
+      }
+      
+      // Parse sender information
+      const { name: fromName, email: fromEmail } = extractNameEmail(quoted.fromEmail || '');
+      
+      // Determine if this is an agent or customer
+      const isAgent = isAgentEmail(fromEmail, ctx);
+      
+      // Create a normalized message from the quoted content
+      const quotedNormalized: NormalizedMessage = {
+        id: `${message.id}-quoted-${i}`,
+        dedupKey: `quoted:${message.id}:${i}`,
+        createdAt: quoted.sentAtIso || message.createdAt,
+        channel: message.channel,
+        from: { name: fromName, email: fromEmail },
+        to: message.to,
+        subject: message.subject,
+        direction: isAgent ? 'outbound' : 'inbound',
+        authorType: isAgent ? 'agent' : 'customer',
+        authorLabel: fromName && fromEmail ? `${fromName} <${fromEmail}>` : (fromEmail || fromName || 'Unknown'),
+        avatarInitial: (fromName || fromEmail || 'U')[0].toUpperCase(),
+        visibleBody: quoted.bodyHtml || quoted.bodyText,
+        originalMessage: {
+          ...message.originalMessage,
+          content: quoted.bodyHtml || quoted.bodyText,
+          content_type: quoted.bodyHtml ? 'text/html' : 'text/plain',
+          is_quoted_extraction: true,
+          parent_message_id: message.id,
+          quoted_index: i
+        }
+      };
+      
+      console.log('[expandQuoted] Created quoted message card', {
+        id: quotedNormalized.id,
+        dedupKey: quotedNormalized.dedupKey,
+        authorType: quotedNormalized.authorType,
+        from: quotedNormalized.from,
+        confidence: quoted.confidence
+      });
+      
+      expanded.push(quotedNormalized);
+    }
+  }
+  
+  return expanded;
 }
