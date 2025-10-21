@@ -450,22 +450,40 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       if (error) throw error;
     },
     onSuccess: () => {
-      // Optimistically update conversation cache
+      // 1. Update all conversation list caches directly for immediate UI update
+      queryClient.setQueriesData(
+        { queryKey: ['conversations'], exact: false },
+        (oldData: any) => {
+          if (!oldData?.pages) return oldData;
+          
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              conversations: page.conversations.map((conv: any) =>
+                conv.id === conversationId 
+                  ? { ...conv, is_read: true }
+                  : conv
+              )
+            }))
+          };
+        }
+      );
+      
+      // 2. Update single conversation caches
       queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
         if (old) return { ...old, is_read: true };
         return old;
       });
       
-      // Also update conversation-meta cache
       queryClient.setQueryData(['conversation-meta', conversationId, user?.id], (old: any) => {
         if (old) return { ...old, isRead: true };
         return old;
       });
       
-      // Invalidate counts to update unread badge
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // 3. Force refetch counts for immediate update
+      queryClient.refetchQueries({ queryKey: ['all-counts'] });
+      queryClient.refetchQueries({ queryKey: ['conversation-counts'] });
     },
     onError: (error) => {
       logger.error('Failed to auto-mark as read', error, 'ConversationViewProvider');
