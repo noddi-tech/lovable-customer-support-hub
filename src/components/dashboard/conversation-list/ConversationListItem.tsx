@@ -42,6 +42,7 @@ interface ConversationListItemProps {
   isBulkSelected?: boolean;
   onBulkSelect?: (id: string, selected: boolean) => void;
   showBulkCheckbox?: boolean;
+  isVirtualized?: boolean;
 }
 
 export const ConversationListItem = memo<ConversationListItemProps>(({ 
@@ -50,7 +51,8 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
   onSelect, 
   isBulkSelected = false,
   onBulkSelect,
-  showBulkCheckbox = false
+  showBulkCheckbox = false,
+  isVirtualized = false
 }) => {
   const { dispatch, archiveConversation } = useConversationList();
   const { conversation: formatConversationTime } = useDateFormatting();
@@ -115,7 +117,8 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
   return (
     <div
       className={cn(
-        "bg-white border border-border rounded-lg p-4 mb-3",
+        "bg-white border border-border rounded-lg p-4",
+        isVirtualized ? "mb-0" : "mb-3",
         "shadow-sm hover:shadow-md hover:border-primary/30",
         "transition-all duration-200 cursor-pointer",
         isSelected && "border-primary shadow-md",
