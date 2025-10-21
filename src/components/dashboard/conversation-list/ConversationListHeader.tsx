@@ -1,4 +1,4 @@
-import { Search, Filter, Inbox, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X } from "lucide-react";
+import { Search, Filter, Inbox, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { ConversationListFilters } from "./ConversationListFilters";
 import { InboxSwitcher } from "../InboxSwitcher";
 import { ConversationMigrator } from "../ConversationMigrator";
 import { ThreadMerger } from "../ThreadMerger";
+import { NewConversationDialog } from "../NewConversationDialog";
 import { useConversationList } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
@@ -99,6 +100,20 @@ export const ConversationListHeader = ({
         </div>
         
         <div className="flex items-center gap-1.5">
+          {/* New Conversation Button */}
+          <NewConversationDialog>
+            <Button
+              variant="default"
+              size="sm"
+              className="h-7 px-2 gap-1 text-xs"
+            >
+              <Plus className="!w-3 !h-3" />
+              <span className="hidden sm:inline">
+                {t('dashboard.conversationList.new', 'New')}
+              </span>
+            </Button>
+          </NewConversationDialog>
+          
           {/* Filters Popover */}
           <Popover>
             <PopoverTrigger asChild>

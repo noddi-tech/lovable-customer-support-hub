@@ -132,6 +132,7 @@ interface ConversationListContextType {
   deleteConversation: (id: string) => void;
   markAllAsRead: () => void;
   isMarkingAllAsRead: boolean;
+  toggleConversationRead: (id: string, currentReadState: boolean) => void;
   filteredConversations: Conversation[];
   bulkMarkAsRead: () => void;
   bulkMarkAsUnread: () => void;
@@ -417,6 +418,31 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     markAllAsReadMutation.mutate();
   };
 
+  // Toggle individual conversation read/unread status
+  const toggleConversationReadMutation = useMutation({
+    mutationFn: async ({ id, currentReadState }: { id: string; currentReadState: boolean }) => {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ is_read: !currentReadState })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      toast.success(variables.currentReadState ? 'Marked as unread' : 'Marked as read');
+    },
+    onError: (error) => {
+      logger.error('Error toggling conversation read status', error, 'ConversationListProvider');
+      toast.error('Failed to update conversation');
+    }
+  });
+
+  const toggleConversationRead = (id: string, currentReadState: boolean) => {
+    toggleConversationReadMutation.mutate({ id, currentReadState });
+  };
+
   // Filter and sort conversations
   const effectiveInboxId = selectedTab.startsWith('inbox-')
     ? selectedTab.replace('inbox-', '')
@@ -686,6 +712,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     deleteConversation,
     markAllAsRead,
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
+    toggleConversationRead,
     filteredConversations: filteredAndSortedConversations,
     bulkMarkAsRead,
     bulkMarkAsUnread,

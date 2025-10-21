@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail } from "lucide-react";
+import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail, MailOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from "@/contexts/ConversationListContext";
@@ -55,7 +55,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
   showBulkCheckbox = false,
   isVirtualized = false
 }) => {
-  const { dispatch, archiveConversation } = useConversationList();
+  const { dispatch, archiveConversation, toggleConversationRead } = useConversationList();
   const { conversation: formatConversationTime } = useDateFormatting();
   const { inboxes } = useOptimizedCounts();
   const { t } = useTranslation();
@@ -117,6 +117,11 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
       onBulkSelect(conversation.id, checked);
     }
   }, [onBulkSelect, conversation.id]);
+
+  const handleToggleRead = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleConversationRead(conversation.id, conversation.is_read);
+  }, [toggleConversationRead, conversation.id, conversation.is_read]);
 
   return (
     <div
@@ -180,6 +185,19 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleToggleRead}>
+                {conversation.is_read ? (
+                  <>
+                    <MailOpen className="w-4 h-4 mr-2" />
+                    {t('dashboard.conversationList.markAsUnread', 'Mark as Unread')}
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    {t('dashboard.conversationList.markAsRead', 'Mark as Read')}
+                  </>
+                )}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleArchive}>
                 <Archive className="w-4 h-4 mr-2" />
                 {t('dashboard.conversationList.archive', 'Archive')}
