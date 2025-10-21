@@ -160,7 +160,7 @@ export const MessageCard = ({
 
   return (
     <div className={cn(
-      "group relative rounded-xl border transition-all duration-200 max-w-6xl mx-auto",
+      "group relative rounded-xl border transition-all duration-200",
       "shadow-sm hover:shadow-md bg-card",
       tne.border
     )}>
