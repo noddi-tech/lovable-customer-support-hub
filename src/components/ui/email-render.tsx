@@ -215,16 +215,38 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   }, [content, toast]);
 
   const renderContent = () => {
+    // If processed content is empty or too short, fall back to original
+    const contentToRender = processedContent.trim().length > 10 
+      ? processedContent 
+      : content;
+    
     if (isHTML) {
       // Parse the HTML and render with React components for collapsible sections
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = contentWithCollapsibleSections;
+      tempDiv.innerHTML = contentWithCollapsibleSections || contentToRender;
       
       const collapsibleQuotes = tempDiv.querySelectorAll('.collapsible-quote');
       const collapsibleSignatures = tempDiv.querySelectorAll('.collapsible-signature');
       
       // SECURITY: Sanitize HTML content before rendering to prevent XSS attacks
-      const sanitizedContent = sanitizeForXSS(contentWithCollapsibleSections);
+      const sanitizedContent = sanitizeForXSS(contentWithCollapsibleSections || contentToRender);
+      
+      // Additional check: if sanitized content is empty, show original as plain text
+      if (!sanitizedContent || sanitizedContent.trim().length < 10) {
+        console.warn('[EmailRender] HTML parsing resulted in empty content, falling back to plain text');
+        return (
+          <div className="email-render__plain-content">
+            <pre className="email-render__text-line" style={{
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              fontFamily: 'inherit',
+              fontSize: 'inherit',
+              margin: 0,
+              lineHeight: '1.6'
+            }}>{content}</pre>
+          </div>
+        );
+      }
       
       return (
         <div 
@@ -233,10 +255,17 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
         />
       );
     } else {
-      // Plain text - preserve line breaks exactly as they are
+      // Plain text - preserve line breaks and proper formatting
       return (
         <div className="email-render__plain-content">
-          <pre className="email-render__text-line">{processedContent}</pre>
+          <pre className="email-render__text-line" style={{
+            whiteSpace: 'pre-wrap',
+            wordWrap: 'break-word',
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            margin: 0,
+            lineHeight: '1.6'
+          }}>{contentToRender}</pre>
         </div>
       );
     }

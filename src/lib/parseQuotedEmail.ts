@@ -195,23 +195,50 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const doc = htmlToDocument(stripHtmlComments(html));
   const body = doc.body;
 
-  // Known quoted containers (Gmail/Outlook/Apple/Yahoo)
+  // STEP 1: Detect Outlook-specific separators and CUT everything after them
+  // This must happen BEFORE removing individual elements
+  const outlookSeparators = [
+    body.querySelector('#divRplyFwdMsg'),
+    body.querySelector('#ms-outlook-mobile-body-separator-line'),
+    ...Array.from(body.querySelectorAll('hr[style*="display:inline-block"]')),
+    ...Array.from(body.querySelectorAll('hr[style*="width:98"]'))
+  ].filter(Boolean);
+
+  if (outlookSeparators.length > 0) {
+    // Find the earliest separator
+    const firstSeparator = outlookSeparators[0];
+    
+    // Collect everything from separator onwards as quoted content
+    let quotedHTML = '';
+    let currentNode: Node | null = firstSeparator;
+    while (currentNode) {
+      quotedHTML += (currentNode as HTMLElement).outerHTML || currentNode.textContent || '';
+      const next = currentNode.nextSibling;
+      currentNode.parentNode?.removeChild(currentNode);
+      currentNode = next;
+    }
+    
+    if (quotedHTML) {
+      quoted.push({ kind: 'outlook', raw: quotedHTML });
+      const quotedMessage = parseQuotedHeaders(quotedHTML, 'outlook');
+      quotedMessages.push(quotedMessage);
+    }
+  }
+
+  // STEP 2: Remove other known quoted containers (Gmail, Yahoo, Apple, blockquotes)
   const selectors = [
     'div.gmail_quote', '.gmail_quote', '.gmail_extra', '.gmail_attr',
     '.yahoo_quoted', 'div.yahoo_quoted',
     '.AppleMailQuote', '.moz-cite-prefix', '.moz-signature',
     'blockquote[type="cite"]', 'blockquote',
-    // Outlook often wraps original with a top border container
     'div[style*="border-top:1px solid #ccc"]',
     'div[style*="border-top: 1px solid #ccc"]',
     'div[style*="border-top:1pt solid"]',
   ];
 
-  // Collect and remove nodes
   selectors.forEach(sel => {
     body.querySelectorAll(sel).forEach((node) => {
       const raw = (node as HTMLElement).outerHTML || node.textContent || '';
-      // classify best-effort
       const kind: QuotedBlock['kind'] =
         sel.includes('gmail') ? 'gmail'
       : sel.includes('yahoo') ? 'yahoo'
@@ -221,47 +248,54 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
       : sel.includes('border-top') ? 'outlook'
       : 'plain';
       
-      const quotedBlock = { kind, raw };
-      quoted.push(quotedBlock);
-      
-      // Parse into structured message
-      const quotedMessage = parseQuotedHeaders(raw, kind);
-      quotedMessages.push(quotedMessage);
+      if (raw.trim()) {
+        const quotedBlock = { kind, raw };
+        quoted.push(quotedBlock);
+        const quotedMessage = parseQuotedHeaders(raw, kind);
+        quotedMessages.push(quotedMessage);
+      }
       
       node.remove();
     });
   });
 
-  // Fallback: detect header markers inside remaining HTML text and split
+  // STEP 3: Plain text fallback detection for remaining content
   const remaining = body.innerText || '';
   const lines = remaining.split('\n');
   const headerIdx = lines.findIndex(line => WROTE_HEADERS.some(rx => rx.test(line.trim())));
   if (headerIdx > -1) {
     const raw = lines.slice(headerIdx).join('\n');
-    const quotedBlock = { kind: 'header' as const, raw };
-    quoted.push(quotedBlock);
-    
-    // Parse into structured message
-    const quotedMessage = parseQuotedHeaders(raw, 'header');
-    quotedMessages.push(quotedMessage);
-    
-    // remove that section from DOM text by cutting innerHTML after that marker
-    // Simple approach: cut body.innerHTML at the start of that line's text
-    const marker = lines[headerIdx].trim();
-    const idxInHtml = body.innerHTML.indexOf(marker);
-    if (idxInHtml >= 0) {
-      body.innerHTML = body.innerHTML.slice(0, idxInHtml);
+    if (raw.trim()) {
+      const quotedBlock = { kind: 'header' as const, raw };
+      quoted.push(quotedBlock);
+      const quotedMessage = parseQuotedHeaders(raw, 'header');
+      quotedMessages.push(quotedMessage);
+      
+      const marker = lines[headerIdx].trim();
+      const idxInHtml = body.innerHTML.indexOf(marker);
+      if (idxInHtml >= 0) {
+        body.innerHTML = body.innerHTML.slice(0, idxInHtml);
+      }
     }
   }
 
-  // Get the HTML content and also extract text for footer detection
-  const visibleHTML = body.innerHTML || '';
-  const bodyText = body.innerText || '';
+  // STEP 4: Get visible content with smart fallback
+  const visibleHTML = body.innerHTML.trim();
+  const bodyText = body.innerText.trim();
   const cleanedText = stripEmailListFooters(bodyText);
   
-  // Return HTML content (preferred) or fall back to cleaned text if HTML is empty
+  // Priority: HTML content > cleaned text > original text
+  const finalContent = visibleHTML || cleanedText || bodyText;
+  
+  console.log('[parseQuotedEmail] Result:', {
+    visibleHTMLLength: visibleHTML.length,
+    cleanedTextLength: cleanedText.length,
+    finalContentLength: finalContent.length,
+    quotedBlocksCount: quoted.length
+  });
+  
   return { 
-    visibleHTML: visibleHTML.trim() || cleanedText, 
+    visibleHTML: finalContent, 
     quoted, 
     quotedMessages 
   };
