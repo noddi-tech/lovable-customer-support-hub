@@ -483,7 +483,7 @@ export const fixEncodingIssues = (content: string): string => {
   // Fix HTML entities
   fixed = fixed
     .replace(/&amp;([a-zA-Z]+);/g, '&$1;')
-    .replace(/\s+/g, ' ')
+    .replace(/[^\S\r\n]+/g, ' ')
     .trim();
     
   return fixed;
