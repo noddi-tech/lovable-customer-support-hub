@@ -15,7 +15,8 @@ import {
   Building2,
   Workflow,
   Wrench,
-  Inbox
+  Inbox,
+  Bug
 } from "lucide-react";
 
 export type NavItem = {
@@ -158,6 +159,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: "General Settings", 
     to: "/admin/general", 
     icon: Cog, 
+    group: "admin", 
+    requiredRole: "admin" 
+  },
+  { 
+    id: "admin-debug", 
+    label: "Debug", 
+    to: "/admin/debug", 
+    icon: Bug, 
     group: "admin", 
     requiredRole: "admin" 
   },
