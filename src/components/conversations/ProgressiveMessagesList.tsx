@@ -248,7 +248,7 @@ export const ProgressiveMessagesList = ({
       )}
       
       <ScrollArea className="h-full" ref={scrollAreaRef}>
-        <div className="w-full max-w-5xl mx-auto px-6 py-8 space-y-6">
+        <div className="w-full max-w-[1400px] mx-auto px-8 py-8 space-y-6">
 
           {/* Messages list - Cards in ASC order (oldest first, natural email reading) */}
           {messages.length === 0 ? (
