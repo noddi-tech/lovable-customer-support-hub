@@ -99,7 +99,7 @@ export const sanitizeEmailHTML = (
     FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link', 'style'],
     FORBID_ATTR: ['javascript:', 'vbscript:', 'on*'],
     // Enhanced data URL filtering - only allow safe image data URLs
-    KEEP_CONTENT: true,
+    KEEP_CONTENT: false,
     ADD_ATTR: ['target', 'rel'],
     ALLOW_DATA_ATTR: false,
     // Custom hook to add security attributes to links
@@ -188,7 +188,10 @@ export const sanitizeEmailHTML = (
   // Build asset indexes for efficient lookups
   const { byContentId, byContentLocation } = buildAssetIndexes(attachments);
   
-  let processedContent = htmlContent;
+  // Strip style and script tag contents before sanitization
+  let processedContent = htmlContent
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   
   // Initial CID rewriting for immediate resolution
   processedContent = processedContent.replace(

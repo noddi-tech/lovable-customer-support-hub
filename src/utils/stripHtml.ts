@@ -5,9 +5,14 @@
 export function stripHtml(html: string | null | undefined): string {
   if (!html) return '';
   
+  // Remove style and script tags before parsing to prevent their content from appearing in text
+  const cleaned = html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  
   // Create a temporary div element to parse HTML
   const temp = document.createElement('div');
-  temp.innerHTML = html;
+  temp.innerHTML = cleaned;
   
   // Extract text content (automatically decodes HTML entities)
   let text = temp.textContent || temp.innerText || '';
