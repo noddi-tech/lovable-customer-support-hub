@@ -37,14 +37,38 @@ const VirtualizedConversationList = memo(({ onSelectConversation, selectedConver
     const conversation = conversations[index];
     
     if (!conversation) {
-      // Loading skeleton
+      // Enhanced loading skeleton matching card design
       return (
-        <div style={style} className="px-4 py-3 border-b border-border animate-pulse">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 bg-muted rounded-full"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-3 bg-muted rounded w-1/2"></div>
+        <div style={style} className="p-3 md:px-4 md:py-3">
+          <div className="bg-white border border-border rounded-lg p-4 animate-pulse">
+            {/* Row 1: Avatar + Name + Badges */}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-10 w-10 bg-muted rounded-full shrink-0"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-muted rounded w-32"></div>
+              </div>
+              <div className="flex gap-2">
+                <div className="h-6 w-16 bg-muted rounded"></div>
+                <div className="h-6 w-16 bg-muted rounded"></div>
+              </div>
+            </div>
+            
+            {/* Row 2: Subject */}
+            <div className="h-4 bg-muted rounded w-2/3 mb-2"></div>
+            
+            {/* Row 3: Preview */}
+            <div className="space-y-1 mb-2">
+              <div className="h-3 bg-muted rounded w-full"></div>
+              <div className="h-3 bg-muted rounded w-4/5"></div>
+            </div>
+            
+            {/* Row 4: Metadata */}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-3">
+                <div className="h-3 w-20 bg-muted rounded"></div>
+                <div className="h-3 w-16 bg-muted rounded"></div>
+              </div>
+              <div className="h-3 w-24 bg-muted rounded"></div>
             </div>
           </div>
         </div>

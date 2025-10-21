@@ -1,4 +1,4 @@
-import { Search, Filter, Inbox, CheckCheck, ChevronDown, Move, Settings, CheckSquare } from "lucide-react";
+import { Search, Filter, Inbox, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,22 @@ export const ConversationListHeader = ({
 
   const totalCount = filteredConversations.length;
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
+
+  // Check if any filters are active
+  const hasActiveFilters = state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all';
+  
+  // Count active filters
+  const activeFilterCount = [
+    state.statusFilter !== 'all',
+    state.priorityFilter !== 'all',
+    state.searchQuery.length > 0
+  ].filter(Boolean).length;
+
+  const clearAllFilters = () => {
+    dispatch({ type: 'SET_SEARCH_QUERY', payload: '' });
+    dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' });
+    dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' });
+  };
 
   const getSortLabel = (sortBy: SortBy) => {
     switch (sortBy) {
@@ -87,22 +103,40 @@ export const ConversationListHeader = ({
           <Popover>
             <PopoverTrigger asChild>
               <Button 
-                variant="outline" 
+                variant={hasActiveFilters ? "default" : "outline"}
                 size="sm" 
-                className="h-7 px-2 gap-1 text-xs"
+                className="h-7 px-2 gap-1 text-xs relative"
               >
                 <Filter className="!w-3 !h-3" />
                 <span className="hidden sm:inline">
                   {t('dashboard.conversationList.filters', 'Filters')}
                 </span>
+                {activeFilterCount > 0 && (
+                  <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary text-primary-foreground">
+                    {activeFilterCount}
+                  </Badge>
+                )}
                 <ChevronDown className="!w-3 !h-3" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80" align="end">
               <div className="space-y-3">
-                <h4 className="font-medium text-sm">
-                  {t('dashboard.conversationList.filterConversations', 'Filter Conversations')}
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm">
+                    {t('dashboard.conversationList.filterConversations', 'Filter Conversations')}
+                  </h4>
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllFilters}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <X className="!w-3 !h-3 mr-1" />
+                      {t('dashboard.conversationList.clearFilters', 'Clear')}
+                    </Button>
+                  )}
+                </div>
                 <ConversationListFilters />
               </div>
             </PopoverContent>
@@ -185,6 +219,14 @@ export const ConversationListHeader = ({
             onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
             className="pl-9 h-7 bg-background text-xs"
           />
+          {state.searchQuery && (
+            <button
+              onClick={() => dispatch({ type: 'SET_SEARCH_QUERY', payload: '' })}
+              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="!w-3 !h-3" />
+            </button>
+          )}
         </div>
         
         {/* Sort Dropdown */}
@@ -211,6 +253,56 @@ export const ConversationListHeader = ({
           </SelectContent>
         </Select>
       </div>
+      
+      {/* Row 3: Active Filter Badges */}
+      {hasActiveFilters && (
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">
+            {t('dashboard.conversationList.activeFilters', 'Active filters:')}
+          </span>
+          {state.searchQuery && (
+            <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
+              Search: "{state.searchQuery.substring(0, 20)}{state.searchQuery.length > 20 ? '...' : ''}"
+              <button
+                onClick={() => dispatch({ type: 'SET_SEARCH_QUERY', payload: '' })}
+                className="ml-1 hover:text-foreground"
+              >
+                <X className="!w-2.5 !h-2.5" />
+              </button>
+            </Badge>
+          )}
+          {state.statusFilter !== 'all' && (
+            <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
+              Status: {state.statusFilter}
+              <button
+                onClick={() => dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' })}
+                className="ml-1 hover:text-foreground"
+              >
+                <X className="!w-2.5 !h-2.5" />
+              </button>
+            </Badge>
+          )}
+          {state.priorityFilter !== 'all' && (
+            <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
+              Priority: {state.priorityFilter}
+              <button
+                onClick={() => dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' })}
+                className="ml-1 hover:text-foreground"
+              >
+                <X className="!w-2.5 !h-2.5" />
+              </button>
+            </Badge>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+            className="h-5 px-2 text-xs"
+          >
+            {t('dashboard.conversationList.clearAll', 'Clear all')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

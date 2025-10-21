@@ -196,17 +196,6 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       }
       
       logger.info('Conversations fetched successfully', { count: data?.length }, 'ConversationListProvider');
-      console.log('🔍 [ConversationContext] Raw conversations fetched:', {
-        total: data?.length,
-        inboxes: [...new Set(data?.map((c: any) => c.inbox_id))],
-        sample: data?.slice(0, 5).map((c: any) => ({ 
-          id: c.id, 
-          subject: c.subject, 
-          inbox_id: c.inbox_id,
-          status: c.status,
-          is_archived: c.is_archived 
-        }))
-      });
       return (data || []).map((conv: any) => ({
         ...conv,
         customer: conv.customer as Customer,
@@ -386,16 +375,6 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     ? selectedTab.replace('inbox-', '')
     : (selectedInboxId !== 'all' ? selectedInboxId : null);
 
-  console.log('🔍 [ConversationContext] Filtering setup:', {
-    selectedTab,
-    selectedInboxId,
-    effectiveInboxId,
-    totalConversations: conversations.length,
-    statusFilter: state.statusFilter,
-    priorityFilter: state.priorityFilter,
-    searchQuery: state.searchQuery
-  });
-
   const filteredAndSortedConversations = conversations
     .filter((conversation) => {
       const matchesSearch = 
@@ -441,40 +420,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         }
       })();
 
-      // Debug: Log why conversations fail filters
-      const passes = matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
-      if (!passes) {
-        console.log('🚫 [ConversationContext] Conversation filtered out:', {
-          id: conversation.id,
-          subject: conversation.subject,
-          inbox_id: conversation.inbox_id,
-          status: conversation.status,
-          checks: {
-            matchesSearch,
-            matchesStatus,
-            matchesPriority,
-            matchesInbox,
-            matchesTab,
-            selectedTab,
-            effectiveInboxId
-          }
-        });
-      }
-      
-      return passes;
-    })
-    .map((conv, index) => {
-      // Debug logging for first few conversations that passed
-      if (index < 5) {
-        console.log('✅ [ConversationContext] Conversation passed filters:', {
-          id: conv.id,
-          subject: conv.subject,
-          inbox_id: conv.inbox_id,
-          status: conv.status,
-          is_archived: conv.is_archived
-        });
-      }
-      return conv;
+      return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
     })
     .sort((a, b) => {
       switch (state.sortBy) {
