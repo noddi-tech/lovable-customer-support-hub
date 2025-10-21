@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { type NormalizedMessage } from "@/lib/normalizeMessage";
 import { MessageDebugProbe } from "./MessageDebugProbe";
+import { stripHtml } from "@/utils/stripHtml";
 
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
@@ -109,20 +110,9 @@ export const MessageCard = ({
       JSON.parse(message.originalMessage.attachments) : 
       message.originalMessage.attachments) as EmailAttachment[] : [];
 
-  // Decode HTML entities and generate preview text
-  const decodeEntities = (s: string) => {
-    if (!s) return s;
-    return s
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&#39;/g, "'")
-      .replace(/&quot;/g, '"');
-  };
-
+  // Generate preview text using stripHtml utility
   const getPreviewText = (content: string) => {
-    const textOnly = decodeEntities(content.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    const textOnly = stripHtml(content);
     return textOnly.length > 160 ? textOnly.slice(0, 160) + '…' : textOnly;
   };
 
