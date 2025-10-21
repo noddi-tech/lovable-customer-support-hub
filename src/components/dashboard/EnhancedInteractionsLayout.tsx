@@ -13,6 +13,8 @@ import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
 import type { ConversationRow } from '@/types/interactions';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -59,6 +61,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 }) => {
   const { t } = useTranslation();
   const navigation = useInteractionsNavigation();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   
   // Dev-only performance monitoring
@@ -121,10 +124,33 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const selectedConversation = conversationId ? 
     conversations.find(c => c.id === conversationId) : null;
 
+  // Mark conversation as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ is_read: true })
+        .eq('id', conversationId)
+        .eq('is_read', false); // Only update if currently unread
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+    }
+  });
+
   // Handlers
   const handleConversationSelect = useCallback((conversation: ConversationRow) => {
     navigation.openConversation(conversation.id);
-  }, [navigation]);
+    
+    // Mark as read if it's unread
+    if (conversation.unread) {
+      markAsReadMutation.mutate(conversation.id);
+    }
+  }, [navigation, markAsReadMutation]);
 
   const handleBack = useCallback(() => {
     navigation.backToList();

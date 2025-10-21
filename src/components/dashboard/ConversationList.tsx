@@ -145,7 +145,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
                 <p className="text-sm mb-4">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
               </div>
             ) : (
-              <div className="space-y-0">
+              <div className="space-y-3">
                 {filteredConversations.map((conversation) => (
                   <ConversationListItem 
                     key={conversation.id}
