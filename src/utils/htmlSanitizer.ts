@@ -13,7 +13,7 @@ export const sanitizeEmailHTML = (html: string): string => {
     ],
     ALLOWED_ATTR: [
       'href', 'src', 'alt', 'width', 'height', 'style', 
-      'class', 'target', 'rel', 'title', 'id'
+      'class', 'target', 'rel', 'title', 'id', 'dir'
     ],
     ALLOW_DATA_ATTR: false,
     ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
@@ -34,7 +34,7 @@ export const sanitizeNewsletterHTML = (html: string): string => {
     ],
     ALLOWED_ATTR: [
       'href', 'src', 'alt', 'width', 'height', 'style', 
-      'class', 'target', 'rel', 'title', 'id', 'role', 'aria-label'
+      'class', 'target', 'rel', 'title', 'id', 'role', 'aria-label', 'dir'
     ],
     ALLOW_DATA_ATTR: false,
     ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
@@ -56,7 +56,7 @@ export const sanitizeTemplateHTML = (html: string): string => {
     ALLOWED_ATTR: [
       'href', 'src', 'alt', 'width', 'height', 'style', 
       'class', 'target', 'rel', 'title', 'id', 'role', 'aria-label',
-      'colspan', 'rowspan', 'align', 'valign'
+      'colspan', 'rowspan', 'align', 'valign', 'dir'
     ],
     ALLOW_DATA_ATTR: false,
     ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,

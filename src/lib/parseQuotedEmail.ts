@@ -195,8 +195,8 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const doc = htmlToDocument(stripHtmlComments(html));
   const body = doc.body;
 
-  // STEP 1: Detect Outlook-specific separators and CUT everything after them
-  // This must happen BEFORE removing individual elements
+  // STEP 1: Detect Outlook-specific separators and remove everything AFTER them
+  // The reply content is BEFORE the separator, quoted content is AFTER
   const outlookSeparators = [
     body.querySelector('#divRplyFwdMsg'),
     body.querySelector('#ms-outlook-mobile-body-separator-line'),
@@ -204,21 +204,39 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     ...Array.from(body.querySelectorAll('hr[style*="width:98"]'))
   ].filter(Boolean);
 
+  console.log('[parseQuotedEmail] Found Outlook separators:', outlookSeparators.length);
+
   if (outlookSeparators.length > 0) {
-    // Find the earliest separator
-    const firstSeparator = outlookSeparators[0];
+    // Find the first separator in document order
+    const firstSeparator = outlookSeparators[0] as Element;
     
-    // Collect everything from separator onwards as quoted content
+    console.log('[parseQuotedEmail] First separator:', (firstSeparator as HTMLElement).id || firstSeparator.tagName);
+    
+    // Collect everything AFTER the separator as quoted content
     let quotedHTML = '';
-    let currentNode: Node | null = firstSeparator;
+    let currentNode = firstSeparator.nextSibling;
+    
+    // First, collect the quoted HTML
     while (currentNode) {
-      quotedHTML += (currentNode as HTMLElement).outerHTML || currentNode.textContent || '';
+      if (currentNode.nodeType === 1) { // Element node
+        quotedHTML += (currentNode as Element).outerHTML || '';
+      } else if (currentNode.nodeType === 3) { // Text node
+        quotedHTML += currentNode.textContent || '';
+      }
+      currentNode = currentNode.nextSibling;
+    }
+    
+    // Now remove the separator and everything after it
+    currentNode = firstSeparator;
+    while (currentNode) {
       const next = currentNode.nextSibling;
       currentNode.parentNode?.removeChild(currentNode);
       currentNode = next;
     }
     
-    if (quotedHTML) {
+    console.log('[parseQuotedEmail] Removed separator and collected quoted HTML:', quotedHTML.length, 'chars');
+    
+    if (quotedHTML.trim()) {
       quoted.push({ kind: 'outlook', raw: quotedHTML });
       const quotedMessage = parseQuotedHeaders(quotedHTML, 'outlook');
       quotedMessages.push(quotedMessage);
@@ -284,15 +302,16 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const bodyText = body.innerText.trim();
   const cleanedText = stripEmailListFooters(bodyText);
   
+  console.log('[parseQuotedEmail] Extraction complete:', {
+    visibleHTMLLength: visibleHTML.length,
+    bodyTextLength: bodyText.length,
+    cleanedTextLength: cleanedText.length,
+    quotedBlocksCount: quoted.length,
+    visibleHTMLPreview: visibleHTML.substring(0, 200)
+  });
+  
   // Priority: HTML content > cleaned text > original text
   const finalContent = visibleHTML || cleanedText || bodyText;
-  
-  console.log('[parseQuotedEmail] Result:', {
-    visibleHTMLLength: visibleHTML.length,
-    cleanedTextLength: cleanedText.length,
-    finalContentLength: finalContent.length,
-    quotedBlocksCount: quoted.length
-  });
   
   return { 
     visibleHTML: finalContent, 

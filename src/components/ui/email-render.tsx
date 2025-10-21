@@ -215,6 +215,15 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   }, [content, toast]);
 
   const renderContent = () => {
+    console.log('[EmailRender] Rendering content:', {
+      processedLength: processedContent.length,
+      originalLength: content.length,
+      isHTML,
+      messageId,
+      processedPreview: processedContent.substring(0, 100),
+      originalPreview: content.substring(0, 100)
+    });
+
     // If processed content is empty or too short, fall back to original
     const contentToRender = processedContent.trim().length > 10 
       ? processedContent 
@@ -231,6 +240,11 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       // SECURITY: Sanitize HTML content before rendering to prevent XSS attacks
       const sanitizedContent = sanitizeForXSS(contentWithCollapsibleSections || contentToRender);
       
+      console.log('[EmailRender] After sanitization:', {
+        sanitizedLength: sanitizedContent.length,
+        sanitizedPreview: sanitizedContent.substring(0, 100)
+      });
+      
       // Additional check: if sanitized content is empty, show original as plain text
       if (!sanitizedContent || sanitizedContent.trim().length < 10) {
         console.warn('[EmailRender] HTML parsing resulted in empty content, falling back to plain text');
@@ -242,6 +256,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
               fontFamily: 'inherit',
               fontSize: 'inherit',
               margin: 0,
+              padding: 0,
               lineHeight: '1.6'
             }}>{content}</pre>
           </div>
@@ -264,6 +279,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
             fontFamily: 'inherit',
             fontSize: 'inherit',
             margin: 0,
+            padding: 0,
             lineHeight: '1.6'
           }}>{contentToRender}</pre>
         </div>
