@@ -3,7 +3,7 @@
 // and a list of quoted blocks (for optional "Show quoted history")
 
 // Feature flag: Enable thread extraction - expand quoted messages into separate cards
-export const ENABLE_QUOTED_EXTRACTION = false; // Set to true to enable thread view
+export const ENABLE_QUOTED_EXTRACTION = true; // Thread view enabled - splits replies into separate cards // Set to true to enable thread view
 
 // Never promote quoted blocks into cards (deprecated, use ENABLE_QUOTED_EXTRACTION)
 export const ENABLE_QUOTED_SEGMENTATION = false;
@@ -306,7 +306,36 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     }
   }
 
-  // STEP 4: Get visible content with smart fallback
+  // STEP 4: Strip email list footers from DOM before extracting HTML
+  const bodyTextForCheck = body.innerText || '';
+  for (const pattern of EMAIL_LIST_FOOTERS) {
+    const match = bodyTextForCheck.match(pattern);
+    if (match && match.index !== undefined) {
+      // Footer found - locate and remove it from DOM
+      const footerText = match[0].slice(0, 50); // Use first 50 chars as marker
+      
+      // Find elements containing this footer text
+      const allElements = Array.from(body.querySelectorAll('*'));
+      for (const el of allElements) {
+        const elText = el.textContent || '';
+        if (elText.includes(footerText)) {
+          // Remove this element and all following siblings
+          let current: Node | null = el;
+          while (current) {
+            const next = current.nextSibling;
+            if (current.parentNode) {
+              current.parentNode.removeChild(current);
+            }
+            current = next;
+          }
+          break;
+        }
+      }
+      break; // Stop after first footer match
+    }
+  }
+
+  // STEP 5: Get visible content with smart fallback
   const visibleHTML = body.innerHTML.trim();
   const bodyText = body.innerText.trim();
   const cleanedText = stripEmailListFooters(bodyText);
@@ -319,7 +348,7 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     visibleHTMLPreview: visibleHTML.substring(0, 200)
   });
   
-  // Priority: HTML content > cleaned text > original text
+  // Priority: HTML content (now footer-stripped) > cleaned text > original text
   const finalContent = visibleHTML || cleanedText || bodyText;
   
   return { 
