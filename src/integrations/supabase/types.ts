@@ -575,6 +575,7 @@ export type Database = {
           is_active: boolean
           organization_id: string
           secret_token: string | null
+          sender_display_name: string | null
           updated_at: string
         }
         Insert: {
@@ -588,6 +589,7 @@ export type Database = {
           is_active?: boolean
           organization_id: string
           secret_token?: string | null
+          sender_display_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -601,6 +603,7 @@ export type Database = {
           is_active?: boolean
           organization_id?: string
           secret_token?: string | null
+          sender_display_name?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -633,6 +636,7 @@ export type Database = {
           is_default: boolean | null
           name: string
           organization_id: string
+          sender_display_name: string | null
           updated_at: string
         }
         Insert: {
@@ -647,6 +651,7 @@ export type Database = {
           is_default?: boolean | null
           name: string
           organization_id: string
+          sender_display_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -661,6 +666,7 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           organization_id?: string
+          sender_display_name?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1098,6 +1104,7 @@ export type Database = {
           metadata: Json | null
           name: string
           primary_color: string | null
+          sender_display_name: string | null
           slug: string
           updated_at: string
         }
@@ -1108,6 +1115,7 @@ export type Database = {
           metadata?: Json | null
           name: string
           primary_color?: string | null
+          sender_display_name?: string | null
           slug: string
           updated_at?: string
         }
@@ -1118,6 +1126,7 @@ export type Database = {
           metadata?: Json | null
           name?: string
           primary_color?: string | null
+          sender_display_name?: string | null
           slug?: string
           updated_at?: string
         }
@@ -1620,6 +1629,7 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           name: string
+          sender_display_name: string
           updated_at: string
         }[]
       }

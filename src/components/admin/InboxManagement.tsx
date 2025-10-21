@@ -29,6 +29,7 @@ interface InboxData {
   created_at: string;
   updated_at: string;
   conversation_count: number;
+  sender_display_name: string | null;
 }
 
 interface Department {
@@ -62,7 +63,8 @@ export function InboxManagement() {
     department_id: 'no-department',
     color: '#3B82F6',
     is_default: false,
-    auto_assignment_rules: {}
+    auto_assignment_rules: {},
+    sender_display_name: ''
   });
 
   // Sending/Receiving address edit state
@@ -146,6 +148,7 @@ export function InboxManagement() {
         .insert({
           ...inboxData,
           department_id: inboxData.department_id === 'no-department' ? null : inboxData.department_id,
+          sender_display_name: inboxData.sender_display_name || null,
           organization_id: profile.organization_id
         });
       if (error) throw error;
@@ -159,7 +162,8 @@ export function InboxManagement() {
         department_id: 'no-department',
         color: '#3B82F6',
         is_default: false,
-        auto_assignment_rules: {}
+        auto_assignment_rules: {},
+        sender_display_name: ''
       });
       toast.success('Inbox created successfully');
     },
@@ -312,6 +316,18 @@ export function InboxManagement() {
                   value={newInboxData.color}
                   onChange={(e) => setNewInboxData(prev => ({ ...prev, color: e.target.value }))}
                 />
+              </div>
+              <div>
+                <Label htmlFor="sender-name">Sender Display Name (Optional)</Label>
+                <Input
+                  id="sender-name"
+                  value={newInboxData.sender_display_name}
+                  onChange={(e) => setNewInboxData(prev => ({ ...prev, sender_display_name: e.target.value }))}
+                  placeholder="Leave empty to use organization default"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Override the organization-level sender name for this inbox
+                </p>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
@@ -531,6 +547,18 @@ export function InboxManagement() {
                   value={editingInbox.color}
                   onChange={(e) => setEditingInbox(prev => prev ? { ...prev, color: e.target.value } : null)}
                 />
+              </div>
+              <div>
+                <Label htmlFor="edit-sender-name">Sender Display Name (Optional)</Label>
+                <Input
+                  id="edit-sender-name"
+                  value={editingInbox.sender_display_name || ''}
+                  onChange={(e) => setEditingInbox(prev => prev ? { ...prev, sender_display_name: e.target.value || null } : null)}
+                  placeholder="Leave empty to use organization default"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Override the organization-level sender name for this inbox
+                </p>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch

@@ -65,32 +65,64 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Get sender (agent) info
-    let senderInfo: { full_name?: string; email?: string } | null = null;
-    if (message.sender_id) {
-      const { data: sender } = await supabaseClient
-        .from('profiles')
-        .select('full_name, email')
-        .eq('user_id', message.sender_id)
-        .single();
-      senderInfo = sender;
-    }
+  let senderInfo: { full_name?: string; email?: string } | null = null;
+  if (message.sender_id) {
+    const { data: sender } = await supabaseClient
+      .from('profiles')
+      .select('full_name, email')
+      .eq('user_id', message.sender_id)
+      .single();
+    senderInfo = sender;
+  }
 
-    const customer = message.conversation?.customer;
-    const emailAccount = message.conversation?.email_account;
-    let fromEmail: string | null = null;
+  const customer = message.conversation?.customer;
+  const emailAccount = message.conversation?.email_account;
+  let fromEmail: string | null = null;
+  let senderDisplayName: string | null = null;
 
-    // Prefer the inbox's public group email from inbound route
-    const inboxId = (message.conversation as any)?.inbox_id || null;
-    if (inboxId) {
-      const { data: inboundRoute } = await supabaseClient
-        .from('inbound_routes')
-        .select('group_email')
-        .eq('inbox_id', inboxId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .maybeSingle();
-      fromEmail = inboundRoute?.group_email || null;
-    }
+  // Prefer the inbox's public group email from inbound route
+  const inboxId = (message.conversation as any)?.inbox_id || null;
+  if (inboxId) {
+    const { data: inboundRoute } = await supabaseClient
+      .from('inbound_routes')
+      .select('group_email, sender_display_name')
+      .eq('inbox_id', inboxId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .maybeSingle();
+    fromEmail = inboundRoute?.group_email || null;
+    senderDisplayName = inboundRoute?.sender_display_name || null;
+  }
+
+  // Priority 2: Check inbox for sender_display_name if not set by inbound route
+  if (!senderDisplayName && inboxId) {
+    const { data: inbox } = await supabaseClient
+      .from('inboxes')
+      .select('sender_display_name')
+      .eq('id', inboxId)
+      .maybeSingle();
+    senderDisplayName = inbox?.sender_display_name || null;
+  }
+
+  // Priority 3: Use organization's sender_display_name or name as fallback
+  if (!senderDisplayName) {
+    const { data: organization } = await supabaseClient
+      .from('organizations')
+      .select('sender_display_name, name')
+      .eq('id', message.conversation.organization_id)
+      .single();
+    senderDisplayName = organization?.sender_display_name || organization?.name || null;
+  }
+
+  // Priority 4: Use agent's full name
+  if (!senderDisplayName && senderInfo?.full_name) {
+    senderDisplayName = senderInfo.full_name;
+  }
+
+  // Final fallback for sender display name
+  senderDisplayName = senderDisplayName || 'Support';
+
+  console.log('Sender display name:', senderDisplayName);
 
     if (!customer?.email) throw new Error('Customer email not found');
     if (!fromEmail && !emailAccount?.email_address) throw new Error('Missing sending address (set inbound route public email or connect an email account)');
@@ -187,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
           to: [{ email: toEmail, name: customer.full_name || undefined }],
         },
       ],
-      from: { email: fromEmailFinal, name: senderInfo?.full_name || 'Support' },
+      from: { email: fromEmailFinal, name: senderDisplayName },
       reply_to: { email: fromEmailFinal },
       subject,
       content: [

@@ -29,8 +29,9 @@ export const GeneralSettings = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
-const [orgName, setOrgName] = useState('');
-const [orgDescription, setOrgDescription] = useState('');
+  const [orgName, setOrgName] = useState('');
+  const [orgDescription, setOrgDescription] = useState('');
+  const [senderDisplayName, setSenderDisplayName] = useState('');
 const [isBackfillOpen, setIsBackfillOpen] = useState(false);
 const [runningBackfill, setRunningBackfill] = useState(false);
 const { isAdmin } = usePermissions();
@@ -55,17 +56,19 @@ const { isAdmin } = usePermissions();
       // Use metadata for description if available
       const metadata = organization.metadata || {};
       setOrgDescription(metadata.description || '');
+      setSenderDisplayName((organization as any).sender_display_name || organization.name || '');
     }
   }, [organization]);
 
   // Mutation for updating organization branding
   const updateBrandingMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string }) => {
+    mutationFn: async (data: { name: string; description: string; sender_display_name: string }) => {
       const currentMetadata = organization?.metadata || {};
       const { error } = await supabase
         .from('organizations')
         .update({
           name: data.name,
+          sender_display_name: data.sender_display_name,
           metadata: {
             ...currentMetadata,
             description: data.description,
@@ -96,6 +99,7 @@ const { isAdmin } = usePermissions();
     updateBrandingMutation.mutate({
       name: orgName,
       description: orgDescription,
+      sender_display_name: senderDisplayName,
     });
   };
 
@@ -158,6 +162,24 @@ const { isAdmin } = usePermissions();
               value={orgDescription}
               onChange={(e) => setOrgDescription(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sender-display-name">Default Sender Display Name</Label>
+            <Input 
+              id="sender-display-name" 
+              placeholder="e.g., Noddi, Noddi Support"
+              value={senderDisplayName}
+              onChange={(e) => setSenderDisplayName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              The name that appears in the "From" field when sending emails. 
+              This will be used by default for all inboxes unless overridden.
+              <br />
+              <span className="font-medium mt-1 inline-block">
+                Preview: {senderDisplayName || orgName} &lt;email@example.com&gt;
+              </span>
+            </p>
           </div>
 
           <Button 
