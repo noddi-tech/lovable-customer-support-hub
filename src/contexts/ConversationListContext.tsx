@@ -1,5 +1,5 @@
-import { createContext, useContext, useReducer, ReactNode } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { createContext, useContext, useReducer, useMemo, ReactNode } from 'react';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -123,6 +123,10 @@ interface ConversationListContextType {
   dispatch: React.Dispatch<ConversationListAction>;
   conversations: Conversation[];
   isLoading: boolean;
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
+  fetchNextPage: () => void;
+  totalCount: number;
   hasSessionError: boolean;
   archiveConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
@@ -171,45 +175,88 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     },
   });
 
-  // Fetch conversations with optimized config
-  const { data: conversations = [], isLoading, error } = useQuery({
-    queryKey: ['conversations', user?.id],
+  // Fetch conversations with infinite query for pagination
+  const { 
+    data, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage,
+    isLoading, 
+    error 
+  } = useInfiniteQuery({
+    queryKey: ['conversations', user?.id, selectedInboxId, selectedTab],
     enabled: !!user,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: false, // Don't refetch on tab switch
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    queryFn: async () => {
-      logger.info('Fetching conversations for user', { userId: user?.id }, 'ConversationListProvider');
+    refetchOnWindowFocus: false,
+    gcTime: 10 * 60 * 1000,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam = 0 }) => {
+      logger.info('Fetching conversations page', { 
+        userId: user?.id, 
+        offset: pageParam,
+        inbox: selectedInboxId,
+        status: selectedTab 
+      }, 'ConversationListProvider');
       
-      const { data, error } = await supabase.rpc('get_conversations');
+      const statusFilter = selectedTab === 'all' ? null : selectedTab;
+      
+      const { data, error } = await supabase.rpc('get_conversations', {
+        inbox_filter: selectedInboxId || null,
+        status_filter: statusFilter,
+        page_limit: 50,
+        page_offset: pageParam
+      });
 
       if (error) {
         logger.error('Error fetching conversations', error, 'ConversationListProvider');
-        // Check if it's a session error
         if (error?.code === 'PGRST301' || 
             error?.message?.includes('JWT expired') ||
             error?.message?.includes('auth.uid() is null') ||
             error?.code === 'PGRST116') {
           throw new Error('SESSION_ERROR');
         }
-        return [];
+        throw error;
       }
       
-      logger.info('Conversations fetched successfully', { count: data?.length }, 'ConversationListProvider');
-      return (data || []).map((conv: any) => ({
+      const conversations = (data || []).map((conv: any) => ({
         ...conv,
         customer: conv.customer as Customer,
         assigned_to: conv.assigned_to as AssignedTo,
       })) as Conversation[];
+      
+      const totalCount = data?.[0]?.total_count || 0;
+      
+      logger.info('Conversations page fetched', { 
+        count: conversations.length,
+        totalCount,
+        hasMore: pageParam + 50 < totalCount
+      }, 'ConversationListProvider');
+      
+      return {
+        conversations,
+        totalCount,
+        nextOffset: pageParam + 50
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      const loadedCount = lastPage.nextOffset;
+      return loadedCount < lastPage.totalCount ? lastPage.nextOffset : undefined;
     },
     retry: (failureCount, error: any) => {
-      // Don't retry session errors
       if (error?.message === 'SESSION_ERROR') {
         return false;
       }
       return failureCount < 2;
     }
   });
+
+  // Flatten paginated data
+  const conversations = useMemo(() => 
+    data?.pages.flatMap(page => page.conversations) || [],
+    [data]
+  );
+  
+  const totalCount = data?.pages[0]?.totalCount || 0;
 
   // Detect session errors
   const hasSessionError = error?.message === 'SESSION_ERROR';
@@ -630,6 +677,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     dispatch,
     conversations,
     isLoading,
+    isFetchingNextPage,
+    hasNextPage: hasNextPage || false,
+    fetchNextPage: () => fetchNextPage(),
+    totalCount,
     hasSessionError,
     archiveConversation,
     deleteConversation,

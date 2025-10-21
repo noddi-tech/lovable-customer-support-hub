@@ -16,20 +16,27 @@ const ITEM_HEIGHT = 162; // Height of each conversation item in pixels (156px ca
 const OVERSCAN_COUNT = 5; // Number of items to render outside visible area for smoother scrolling
 
 const VirtualizedConversationList = memo(({ onSelectConversation, selectedConversation }: VirtualizedConversationListProps) => {
-  const { filteredConversations, isLoading } = useConversationList();
+  const { 
+    filteredConversations, 
+    isLoading, 
+    hasNextPage, 
+    fetchNextPage,
+    isFetchingNextPage 
+  } = useConversationList();
   const { t } = useTranslation();
 
   // Memoize conversations to prevent unnecessary re-renders
   const conversations = useMemo(() => filteredConversations, [filteredConversations]);
   const conversationCount = conversations.length;
 
-  // Check if item is loaded (for infinite loading - future enhancement)
-  const isItemLoaded = (index: number) => !!conversations[index];
+  // Check if item is loaded for infinite loading
+  const isItemLoaded = (index: number) => !hasNextPage || index < conversationCount;
 
-  // Load more items (placeholder for pagination - future enhancement)
+  // Load more items when scrolling near the end
   const loadMoreItems = async (startIndex: number, stopIndex: number) => {
-    // Placeholder for pagination logic
-    console.log(`Loading items ${startIndex} to ${stopIndex}`);
+    if (hasNextPage && !isFetchingNextPage) {
+      await fetchNextPage();
+    }
   };
 
   // Render individual conversation item
@@ -120,7 +127,7 @@ const VirtualizedConversationList = memo(({ onSelectConversation, selectedConver
           {({ height, width }) => (
             <InfiniteLoader
               isItemLoaded={isItemLoaded}
-              itemCount={conversationCount}
+              itemCount={hasNextPage ? conversationCount + 1 : conversationCount}
               loadMoreItems={loadMoreItems}
             >
               {({ onItemsRendered, ref }) => (
@@ -128,7 +135,7 @@ const VirtualizedConversationList = memo(({ onSelectConversation, selectedConver
                   ref={ref}
                   height={height}
                   width={width}
-                  itemCount={conversationCount}
+                  itemCount={hasNextPage ? conversationCount + 1 : conversationCount}
                   itemSize={ITEM_HEIGHT}
                   onItemsRendered={onItemsRendered}
                   overscanCount={OVERSCAN_COUNT}

@@ -201,6 +201,7 @@ export type Database = {
           is_read: boolean | null
           metadata: Json | null
           organization_id: string
+          preview_text: string | null
           priority: string
           received_at: string | null
           sla_breach_at: string | null
@@ -227,6 +228,7 @@ export type Database = {
           is_read?: boolean | null
           metadata?: Json | null
           organization_id: string
+          preview_text?: string | null
           priority?: string
           received_at?: string | null
           sla_breach_at?: string | null
@@ -253,6 +255,7 @@ export type Database = {
           is_read?: boolean | null
           metadata?: Json | null
           organization_id?: string
+          preview_text?: string | null
           priority?: string
           received_at?: string | null
           sla_breach_at?: string | null
@@ -1189,6 +1192,36 @@ export type Database = {
           },
         ]
       }
+      query_performance_logs: {
+        Row: {
+          created_at: string | null
+          execution_time_ms: number | null
+          function_name: string
+          id: string
+          organization_id: string | null
+          parameters: Json | null
+          row_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          execution_time_ms?: number | null
+          function_name: string
+          id?: string
+          organization_id?: string | null
+          parameters?: Json | null
+          row_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          execution_time_ms?: number | null
+          function_name?: string
+          id?: string
+          organization_id?: string | null
+          parameters?: Json | null
+          row_count?: number | null
+        }
+        Relationships: []
+      }
       response_templates: {
         Row: {
           content: string
@@ -1461,7 +1494,14 @@ export type Database = {
         }[]
       }
       get_conversations: {
-        Args: Record<PropertyKey, never>
+        Args:
+          | Record<PropertyKey, never>
+          | {
+              inbox_filter?: string
+              page_limit?: number
+              page_offset?: number
+              status_filter?: string
+            }
         Returns: {
           assigned_to: Json
           channel: string
@@ -1480,6 +1520,36 @@ export type Database = {
           snooze_until: string
           status: string
           subject: string
+          total_count: number
+          updated_at: string
+        }[]
+      }
+      get_conversations_monitored: {
+        Args: {
+          inbox_filter?: string
+          page_limit?: number
+          page_offset?: number
+          status_filter?: string
+        }
+        Returns: {
+          assigned_to: Json
+          channel: string
+          customer: Json
+          email_account: Json
+          first_response_at: string
+          id: string
+          inbox_id: string
+          is_archived: boolean
+          is_read: boolean
+          preview_text: string
+          priority: string
+          received_at: string
+          sla_breach_at: string
+          sla_status: string
+          snooze_until: string
+          status: string
+          subject: string
+          total_count: number
           updated_at: string
         }[]
       }
