@@ -215,6 +215,13 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     };
   }, [conversationId, user?.id, queryClient]);
 
+  // Auto-mark as read when conversation is opened and unread
+  useEffect(() => {
+    if (conversation && conversation.is_read === false && conversationId) {
+      autoMarkAsReadMutation.mutate(conversationId);
+    }
+  }, [conversation?.is_read, conversationId]);
+
   // Fetch users for assignment
   const { data: assignUsers = [] } = useQuery({
     queryKey: ['users-for-assignment'],
@@ -429,6 +436,39 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     onError: (error) => {
       logger.error('Failed to snooze conversation', error, 'ConversationViewProvider');
       toast.error('Failed to snooze: ' + error.message);
+    },
+  });
+
+  // Auto-mark as read mutation (silent, no toast)
+  const autoMarkAsReadMutation = useMutation({
+    mutationFn: async (convId: string) => {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ is_read: true })
+        .eq('id', convId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Optimistically update conversation cache
+      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
+        if (old) return { ...old, is_read: true };
+        return old;
+      });
+      
+      // Also update conversation-meta cache
+      queryClient.setQueryData(['conversation-meta', conversationId, user?.id], (old: any) => {
+        if (old) return { ...old, isRead: true };
+        return old;
+      });
+      
+      // Invalidate counts to update unread badge
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (error) => {
+      logger.error('Failed to auto-mark as read', error, 'ConversationViewProvider');
     },
   });
 
