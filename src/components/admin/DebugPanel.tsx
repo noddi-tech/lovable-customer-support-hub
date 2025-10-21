@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ResponsiveGrid, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, LayoutItem } from '@/components/admin/design/components/layouts';
 import { AuthContextDebugger } from '@/components/conversations/AuthContextDebugger';
 import { SessionDebugPanel } from '@/components/conversations/SessionDebugPanel';
-import { Bug, Database } from 'lucide-react';
+import { SessionHealthMonitor } from '@/components/conversations/SessionHealthMonitor';
+import { Bug, Database, Activity } from 'lucide-react';
 
 export const DebugPanel = () => {
   return (
@@ -30,6 +31,10 @@ export const DebugPanel = () => {
                   <Database className="h-4 w-4 mr-2" />
                   Session Status
                 </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="health">
+                  <Activity className="h-4 w-4 mr-2" />
+                  Session Health
+                </ResponsiveTabsTrigger>
               </ResponsiveTabsList>
               
               <ResponsiveTabsContent value="context">
@@ -39,6 +44,12 @@ export const DebugPanel = () => {
               <ResponsiveTabsContent value="session">
                 <div className="flex justify-center">
                   <SessionDebugPanel />
+                </div>
+              </ResponsiveTabsContent>
+              
+              <ResponsiveTabsContent value="health">
+                <div className="flex justify-center">
+                  <SessionHealthMonitor showDetails={true} autoRecover={true} />
                 </div>
               </ResponsiveTabsContent>
             </ResponsiveTabs>

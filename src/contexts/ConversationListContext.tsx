@@ -382,9 +382,27 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         (conversation.customer?.full_name || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
         (conversation.customer?.email || '').toLowerCase().includes(state.searchQuery.toLowerCase());
       
-      const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
+      // CRITICAL FIX: Don't apply state.statusFilter when selectedTab is handling status filtering
+      // This prevents duplicate filtering that was hiding conversations
+      const isTabHandlingStatus = selectedTab !== 'all' && ['unread', 'assigned', 'pending', 'closed', 'archived', 'snoozed'].includes(selectedTab);
+      const matchesStatus = isTabHandlingStatus || state.statusFilter === "all" || conversation.status === state.statusFilter;
+      
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
       const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
+      
+      // Debug logging (DEV mode only)
+      if (import.meta.env.DEV && state.searchQuery === '' && conversation.inbox_id === effectiveInboxId) {
+        console.log('[Filter Debug]', {
+          subject: conversation.subject?.substring(0, 30),
+          status: conversation.status,
+          matchesStatus,
+          matchesPriority,
+          matchesInbox,
+          selectedTab,
+          stateStatusFilter: state.statusFilter,
+          isTabHandlingStatus
+        });
+      }
       
       const matchesTab = (() => {
         const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
@@ -450,6 +468,40 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       }
     });
+
+  // Comprehensive debug logging (DEV mode only)
+  if (import.meta.env.DEV && effectiveInboxId) {
+    const totalForInbox = conversations.filter(c => c.inbox_id === effectiveInboxId).length;
+    console.log('📊 [ConversationList Filter Debug]', {
+      totalConversations: conversations.length,
+      totalForInbox,
+      filteredCount: filteredAndSortedConversations.length,
+      selectedTab,
+      selectedInboxId,
+      effectiveInboxId,
+      filters: {
+        searchQuery: state.searchQuery,
+        statusFilter: state.statusFilter,
+        priorityFilter: state.priorityFilter,
+      },
+      breakdown: {
+        afterSearch: conversations.filter(c => {
+          const matchesInbox = c.inbox_id === effectiveInboxId;
+          const matchesSearch = 
+            (c.subject || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+            (c.customer?.full_name || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+            (c.customer?.email || '').toLowerCase().includes(state.searchQuery.toLowerCase());
+          return matchesInbox && matchesSearch;
+        }).length,
+        byStatus: {
+          open: conversations.filter(c => c.inbox_id === effectiveInboxId && c.status === 'open').length,
+          closed: conversations.filter(c => c.inbox_id === effectiveInboxId && c.status === 'closed').length,
+          pending: conversations.filter(c => c.inbox_id === effectiveInboxId && c.status === 'pending').length,
+        }
+      }
+    });
+  }
+
 
   // Bulk operations
   const bulkMarkAsRead = async () => {

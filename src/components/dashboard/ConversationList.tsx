@@ -74,11 +74,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
         onHide={() => setShowSessionBanner(false)} 
       />
       
-      {/* Session Health Monitor */}
-      <SessionHealthMonitor showDetails={import.meta.env.DEV && filteredConversations.length === 0} />
-      
-      {/* Session Sync Button */}
-      <SessionSyncButton 
+      {/* Session Sync Button - Less intrusive recovery option */}
+      <SessionSyncButton
         onSyncSuccess={() => {
           setShowSessionBanner(false);
           // Only refresh conversation-related queries
