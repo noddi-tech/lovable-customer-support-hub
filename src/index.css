@@ -781,6 +781,8 @@ Optimized for accessibility with WCAG AA compliance.
 
 /* Enhanced Email Render Styles - Scoped to prevent layout leakage */
 .email-render {
+  max-width: min(100%, 900px);
+  margin: 0 auto;
   padding-inline: 12px;
   word-break: break-word;
   font-family: inherit;

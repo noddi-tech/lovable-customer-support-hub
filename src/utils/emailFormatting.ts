@@ -267,6 +267,8 @@ export const sanitizeEmailHTML = (
   // Apply minimal styling that preserves original email design
   return `
     <div class="email-render" style="
+      max-width: min(100%, 900px);
+      margin: 0 auto;
       overflow-wrap: anywhere;
       background-color: transparent;
     ">
