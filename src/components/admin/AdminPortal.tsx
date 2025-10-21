@@ -15,6 +15,7 @@ import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettin
 import { VoiceIntegrationsList } from './VoiceIntegrationsList';
 import { InboundRoutesList } from './InboundRoutesList';
 import { InboxManagement } from './InboxManagement';
+import { DebugPanel } from './DebugPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { useTranslation } from 'react-i18next';
@@ -160,6 +161,9 @@ export const AdminPortal = () => {
             </LayoutItem>
           </ResponsiveGrid>
         );
+
+      case 'debug':
+        return <DebugPanel />;
 
       case 'general':
       default:

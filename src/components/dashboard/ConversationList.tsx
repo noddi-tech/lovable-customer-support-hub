@@ -6,8 +6,6 @@ import { ConversationListDeleteDialog } from "./conversation-list/ConversationLi
 import { VirtualizedConversationList } from "./conversation-list/VirtualizedConversationList";
 import { BulkActionsBar } from "./conversation-list/BulkActionsBar";
 import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
-import { SessionDebugPanel } from "@/components/conversations/SessionDebugPanel";
-import { AuthContextDebugger } from "@/components/conversations/AuthContextDebugger";
 import { SessionSyncButton } from "@/components/conversations/SessionSyncButton";
 import { SessionHealthMonitor } from "@/components/conversations/SessionHealthMonitor";
 // Removed old realtime subscription hook - now using centralized system
@@ -123,9 +121,6 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       
       {/* Conversation List - Card-based layout */}
       <div className="pane flex-1 overflow-y-auto min-h-0 bg-white">
-        {import.meta.env.DEV && <AuthContextDebugger />}
-        {import.meta.env.DEV && <SessionDebugPanel />}
-        
         {shouldUseVirtualization ? (
           <VirtualizedConversationList
             onSelectConversation={onSelectConversation}

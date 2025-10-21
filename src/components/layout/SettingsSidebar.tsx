@@ -24,7 +24,8 @@ import {
   Layout,
   Shield,
   Bell,
-  Home
+  Home,
+  Bug
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -87,6 +88,12 @@ export const SettingsSidebar: React.FC = () => {
       title: 'General',
       icon: Shield,
       path: '/admin/general',
+      permission: 'manage_settings' as const
+    },
+    {
+      title: 'Debug',
+      icon: Bug,
+      path: '/admin/debug',
       permission: 'manage_settings' as const
     }
   ];
