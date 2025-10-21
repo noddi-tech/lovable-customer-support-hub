@@ -1610,6 +1610,10 @@ export type Database = {
         Args: { data: Json }
         Returns: Json
       }
+      strip_html_tags: {
+        Args: { input_text: string }
+        Returns: string
+      }
       validate_session_context: {
         Args: Record<PropertyKey, never>
         Returns: {
