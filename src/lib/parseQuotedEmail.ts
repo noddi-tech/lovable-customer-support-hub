@@ -254,11 +254,17 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     }
   }
 
-  // Strip email list footers from the visible content
+  // Get the HTML content and also extract text for footer detection
+  const visibleHTML = body.innerHTML || '';
   const bodyText = body.innerText || '';
   const cleanedText = stripEmailListFooters(bodyText);
   
-  return { visibleHTML: cleanedText, quoted, quotedMessages };
+  // Return HTML content (preferred) or fall back to cleaned text if HTML is empty
+  return { 
+    visibleHTML: visibleHTML.trim() || cleanedText, 
+    quoted, 
+    quotedMessages 
+  };
 }
 
 /**
