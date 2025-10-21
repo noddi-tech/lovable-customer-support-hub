@@ -245,9 +245,16 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
         sanitizedPreview: sanitizedContent.substring(0, 100)
       });
       
-      // Additional check: if sanitized content is empty, show original as plain text
-      if (!sanitizedContent || sanitizedContent.trim().length < 10) {
-        console.warn('[EmailRender] HTML parsing resulted in empty content, falling back to plain text');
+      // Additional check: if sanitized content has no actual text, show original as plain text
+      const tempDiv2 = document.createElement('div');
+      tempDiv2.innerHTML = sanitizedContent;
+      const visibleText = tempDiv2.textContent || tempDiv2.innerText || '';
+      
+      if (!sanitizedContent || visibleText.trim().length < 10) {
+        console.warn('[EmailRender] HTML parsing resulted in empty content, falling back to plain text', {
+          sanitizedLength: sanitizedContent.length,
+          visibleTextLength: visibleText.trim().length
+        });
         return (
           <div className="email-render__plain-content">
             <pre className="email-render__text-line" style={{

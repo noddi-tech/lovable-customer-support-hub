@@ -93,13 +93,13 @@ export const sanitizeEmailHTML = (
     ],
     ALLOWED_ATTR: [
       'href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan', 
-      'align', 'cellpadding', 'cellspacing', 'style'
+      'align', 'cellpadding', 'cellspacing', 'style', 'dir'
     ],
     ALLOWED_URI_REGEXP: /^(?:https:|data:|mailto:|tel:|#)/i,
     FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link', 'style'],
     FORBID_ATTR: ['javascript:', 'vbscript:', 'on*'],
     // Enhanced data URL filtering - only allow safe image data URLs
-    KEEP_CONTENT: false,
+    KEEP_CONTENT: true, // Preserve text content even if tags/attributes are removed
     ADD_ATTR: ['target', 'rel'],
     ALLOW_DATA_ATTR: false,
     // Custom hook to add security attributes to links
