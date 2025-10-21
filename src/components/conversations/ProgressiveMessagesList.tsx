@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, MessageSquare, ChevronUp, ChevronDown, ChevronsDown, ChevronsUp } from "lucide-react";
 import { MessageCard } from "./MessageCard";
 import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList";
 import { createNormalizationContext } from "@/lib/normalizeMessage";
@@ -28,6 +28,7 @@ export const ProgressiveMessagesList = ({
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
   const [collapsedMessageIds, setCollapsedMessageIds] = useState<Set<string>>(new Set());
+  const [allCollapsed, setAllCollapsed] = useState(false);
   
   // Create conversation-specific normalization context
   const normalizationCtx = useMemo(() => createNormalizationContext({
@@ -188,8 +189,43 @@ export const ProgressiveMessagesList = ({
     );
   }
 
+  // Toggle all messages collapsed/expanded
+  const toggleAllMessages = () => {
+    if (allCollapsed) {
+      setCollapsedMessageIds(new Set());
+      setAllCollapsed(false);
+    } else {
+      const allIds = new Set(messages.map(m => m.dedupKey || m.id));
+      setCollapsedMessageIds(allIds);
+      setAllCollapsed(true);
+    }
+  };
+
   return (
     <div className="flex-1 min-h-0 relative">
+      {/* Floating action buttons for message management */}
+      <div className="absolute top-4 right-6 z-10 flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleAllMessages}
+          className="shadow-md bg-card hover:bg-accent transition-all duration-200"
+          title={allCollapsed ? "Expand all messages" : "Collapse all messages"}
+        >
+          {allCollapsed ? (
+            <>
+              <ChevronsDown className="h-4 w-4 mr-2" />
+              <span className="text-xs">Expand All</span>
+            </>
+          ) : (
+            <>
+              <ChevronsUp className="h-4 w-4 mr-2" />
+              <span className="text-xs">Collapse All</span>
+            </>
+          )}
+        </Button>
+      </div>
+
       {/* Debug Header - Only visible when VITE_UI_PROBE=1 */}
       {isProbeMode && (
         <div className="bg-orange-100 border-l-4 border-orange-500 p-3 text-xs font-mono">
@@ -212,7 +248,7 @@ export const ProgressiveMessagesList = ({
       )}
       
       <ScrollArea className="h-full" ref={scrollAreaRef}>
-        <div className="p-4 space-y-4">
+        <div className="w-full max-w-5xl mx-auto px-6 py-8 space-y-6">
 
           {/* Messages list - Cards in ASC order (oldest first, natural email reading) */}
           {messages.length === 0 ? (
@@ -237,23 +273,26 @@ export const ProgressiveMessagesList = ({
               })
           )}
           
-          {/* Load older messages button at BOTTOM */}
+          {/* Load older messages button at BOTTOM with improved styling */}
           {(hasNextPage || isFetchingNextPage) && (
-            <div className="text-center pt-4">
+            <div className="text-center pt-6 pb-2">
               <Button
                 variant="outline"
-                size="sm"
+                size="default"
                 onClick={() => fetchNextPage()}
                 disabled={!hasNextPage || isFetchingNextPage}
-                className="text-xs"
+                className="shadow-sm hover:shadow-md transition-all duration-200"
               >
                 {isFetchingNextPage ? (
                   <>
-                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                    Loading older...
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <span>Loading older messages...</span>
                   </>
                 ) : (
-                  hasNextPage && remaining > 0 ? `Load older messages (${remaining} remaining)` : 'Load older messages'
+                  <>
+                    <ChevronUp className="w-4 h-4 mr-2" />
+                    <span>{hasNextPage && remaining > 0 ? `Load ${remaining} older messages` : 'Load older messages'}</span>
+                  </>
                 )}
               </Button>
             </div>

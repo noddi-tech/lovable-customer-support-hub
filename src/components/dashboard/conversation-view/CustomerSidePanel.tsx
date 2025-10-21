@@ -60,14 +60,15 @@ export const CustomerSidePanel = ({
 
   if (isCollapsed) {
     return (
-      <div className="w-12 border-l border-border bg-card flex flex-col items-center py-4 gap-4">
+      <div className="h-full w-12 bg-card flex flex-col items-center py-4 gap-4 border-l border-border">
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleCollapse}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 hover:bg-primary/10 transition-colors"
+          title="Expand side panel"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4 text-muted-foreground" />
         </Button>
       </div>
     );
@@ -75,21 +76,22 @@ export const CustomerSidePanel = ({
 
   return (
     <div className={cn(
-      "w-80 border-l border-border bg-card flex flex-col transition-all duration-300 ease-in-out",
+      "h-full bg-card flex flex-col transition-all duration-300 ease-in-out border-l border-border",
       "animate-in slide-in-from-right"
     )}>
-      {/* Header */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Customer Details</h3>
+      {/* Header with improved styling */}
+      <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+        <h3 className="font-semibold text-sm text-foreground">Customer Details</h3>
         <div className="flex items-center gap-1">
           {onToggleCollapse && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onToggleCollapse}
-              className="h-6 w-6 p-0"
+              className="h-7 w-7 p-0 hover:bg-primary/10 transition-colors"
+              title="Collapse side panel"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Button>
           )}
           {onClose && (
@@ -97,9 +99,10 @@ export const CustomerSidePanel = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="h-6 w-6 p-0"
+              className="h-7 w-7 p-0 hover:bg-destructive/10 transition-colors"
+              title="Close side panel"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </Button>
           )}
         </div>

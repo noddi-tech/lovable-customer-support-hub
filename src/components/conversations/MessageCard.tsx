@@ -160,11 +160,11 @@ export const MessageCard = ({
 
   return (
     <div className={cn(
-      "group relative rounded-xl border transition-all mb-6",
-      "shadow-md hover:shadow-lg bg-white",
+      "group relative rounded-xl border transition-all duration-200",
+      "shadow-sm hover:shadow-md bg-card",
       tne.border
     )}>
-      <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-l-xl", tne.accentBar)} />
+      <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl transition-all duration-200", tne.accentBar)} />
       
       <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
         {/* Card Header with background */}
@@ -318,22 +318,24 @@ export const MessageCard = ({
         </div>
         
         <CollapsibleContent>
-          <div className="p-5 pt-4 min-w-0 overflow-hidden">
+          <div className="p-6 pt-4 min-w-0 overflow-hidden">
             {/* Subject line when expanded */}
             {message.subject && (
-              <div className="mb-3 pb-3 border-b">
-                <span className="text-xs text-muted-foreground">Subject:</span>
-                <p className="text-sm font-semibold mt-1">{message.subject}</p>
+              <div className="mb-4 pb-4 border-b border-border">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subject</span>
+                <p className="text-base font-semibold mt-2 text-foreground">{message.subject}</p>
               </div>
             )}
             
-            {/* Main message content */}
-            <EmailRender
-              content={message.visibleBody}
-              contentType={message.originalMessage?.content_type || 'text/plain'}
-              attachments={attachments}
-              messageId={message.id}
-            />
+            {/* Main message content with enhanced readability */}
+            <div className="prose prose-sm max-w-none leading-relaxed">
+              <EmailRender
+                content={message.visibleBody}
+                contentType={message.originalMessage?.content_type || 'text/plain'}
+                attachments={attachments}
+                messageId={message.id}
+              />
+            </div>
             
             {/* Quoted content toggle - only show if feature flag is enabled */}
             {SHOW_QUOTED && message.quotedBlocks && message.quotedBlocks.length > 0 && (

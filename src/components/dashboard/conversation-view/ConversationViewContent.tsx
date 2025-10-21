@@ -14,6 +14,7 @@ import { ProgressiveMessagesList } from '@/components/conversations/ProgressiveM
 import { AlwaysVisibleReplyArea } from '@/components/dashboard/conversation-view/AlwaysVisibleReplyArea';
 import { CustomerSidePanel } from './CustomerSidePanel';
 import { useConversationShortcuts } from '@/hooks/useConversationShortcuts';
+import { cn } from '@/lib/utils';
 
 interface ConversationViewContentProps {
   conversationId: string;
@@ -34,12 +35,14 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   // Enable keyboard shortcuts for status changes
   useConversationShortcuts();
 
+  const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
+
   return (
     <div className="flex h-full">
       {/* Main conversation area */}
-      <div className="flex flex-col min-h-0 flex-1 bg-white">
-        {/* Enhanced Conversation Header - Phase 2 */}
-        <div className="flex-shrink-0 p-5 border-b border-border bg-gray-50 shadow-sm">
+      <div className="flex flex-col min-h-0 flex-1 bg-background">
+        {/* Enhanced Conversation Header */}
+        <div className="flex-shrink-0 p-5 border-b border-border bg-muted/30 shadow-sm backdrop-blur-sm transition-colors duration-200">
           <div className="flex items-center gap-4">
             {/* Left Section: Back + Customer Info */}
             <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -105,21 +108,27 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
         </div>
 
         {/* Messages Area with Progressive Loading */}
-        <div className="flex-1 min-h-0 w-full flex flex-col bg-white">
+        <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
           <ProgressiveMessagesList 
             conversationId={conversationId} 
             conversation={conversation}
           />
-          <AlwaysVisibleReplyArea conversationId={conversationId} />
+          <div className="border-t border-border bg-card">
+            <AlwaysVisibleReplyArea conversationId={conversationId} />
+          </div>
         </div>
       </div>
 
-      {/* Side panel - Only on desktop when enabled */}
+      {/* Side panel - Responsive with collapse feature */}
       {showSidePanel && !isMobile && (
-        <div className="flex-shrink-0 w-[360px] xl:w-[400px] border-l border-border">
+        <div className={cn(
+          "flex-shrink-0 border-l border-border transition-all duration-300 ease-in-out",
+          sidePanelCollapsed ? "w-12" : "w-80 lg:w-[340px] xl:w-[380px] 2xl:w-[420px]"
+        )}>
           <CustomerSidePanel 
             conversation={conversation}
-            isCollapsed={false}
+            isCollapsed={sidePanelCollapsed}
+            onToggleCollapse={() => setSidePanelCollapsed(!sidePanelCollapsed)}
           />
         </div>
       )}
