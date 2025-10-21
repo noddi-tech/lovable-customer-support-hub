@@ -1466,12 +1466,17 @@ export type Database = {
           assigned_to: Json
           channel: string
           customer: Json
+          email_account: Json
+          first_response_at: string
           id: string
           inbox_id: string
           is_archived: boolean
           is_read: boolean
+          preview_text: string
           priority: string
           received_at: string
+          sla_breach_at: string
+          sla_status: string
           snooze_until: string
           status: string
           subject: string
