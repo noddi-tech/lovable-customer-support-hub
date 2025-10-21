@@ -267,15 +267,12 @@ export const sanitizeEmailHTML = (
   // Apply minimal styling that preserves original email design
   return `
     <div class="email-render" style="
-      max-width: 700px;
-      margin: 0 auto;
       overflow-wrap: anywhere;
       background-color: transparent;
     ">
       <style>
         /* CSP-compliant email rendering styles */
         .email-render {
-          --email-max-width: 700px;
         }
         
         /* Force readable colors for elements without explicit color */
