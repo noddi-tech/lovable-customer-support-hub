@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
+import { useSimpleRealtimeSubscriptions } from '@/hooks/useSimpleRealtimeSubscriptions';
 
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -261,6 +262,12 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
   // Detect session errors
   const hasSessionError = error?.message === 'SESSION_ERROR';
+
+  // Real-time subscription for conversation updates
+  useSimpleRealtimeSubscriptions(
+    [{ table: 'conversations', queryKey: 'conversations' }],
+    !isLoading && !hasSessionError
+  );
 
   // Archive conversation mutation
   const archiveConversationMutation = useMutation({
