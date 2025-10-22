@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCustomerCacheKey } from '@/utils/customerCacheKey';
 import type { NoddiLookupResponse } from '@/hooks/useNoddihKundeData';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CustomerSidePanelProps {
   conversation: any;
@@ -51,6 +52,8 @@ export const CustomerSidePanel = ({
   const [statusLoading, setStatusLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
+  const organizationId = profile?.organization_id;
   const [alternativeEmail, setAlternativeEmail] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [alternativeEmailResult, setAlternativeEmailResult] = useState(false);
@@ -63,6 +66,15 @@ export const CustomerSidePanel = ({
   const handleAlternativeEmailSearch = async () => {
     if (!alternativeEmail || !conversation.customer?.id) return;
 
+    if (!organizationId) {
+      toast({
+        title: 'Session error',
+        description: 'Unable to determine your organization. Please refresh the page.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setSearchLoading(true);
     setAlternativeEmailResult(false);
 
@@ -73,6 +85,7 @@ export const CustomerSidePanel = ({
           body: {
             email: alternativeEmail,
             customerId: conversation.customer.id,
+            organizationId,
           },
         });
 
@@ -137,6 +150,15 @@ export const CustomerSidePanel = ({
       return;
     }
 
+    if (!organizationId) {
+      toast({
+        title: 'Session error',
+        description: 'Unable to determine your organization. Please refresh the page.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setNameSearchLoading(true);
     setMatchingCustomers([]);
 
@@ -146,7 +168,7 @@ export const CustomerSidePanel = ({
         {
           body: {
             searchTerm: searchName,
-            organizationId: conversation.organization_id,
+            organizationId,
           },
         }
       );
@@ -188,6 +210,15 @@ export const CustomerSidePanel = ({
       return;
     }
 
+    if (!organizationId) {
+      toast({
+        title: 'Session error',
+        description: 'Unable to determine your organization. Please refresh the page.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setSearchLoading(true);
 
     try {
@@ -198,6 +229,7 @@ export const CustomerSidePanel = ({
             email: selectedCustomer.email,
             phone: selectedCustomer.phone,
             customerId: selectedCustomer.id,
+            organizationId,
           },
         });
 
