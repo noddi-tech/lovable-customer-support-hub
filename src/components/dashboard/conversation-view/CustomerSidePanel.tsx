@@ -115,11 +115,15 @@ export const CustomerSidePanel = ({
           description: `Found booking data for ${alternativeEmail}!`,
         });
 
-        // 4. Invalidate query cache to refresh UI
+        // 4. Refetch queries to ensure UI updates with fresh data
         const cacheKey = getCustomerCacheKey(conversation.customer);
-        queryClient.invalidateQueries({ queryKey: [cacheKey] });
-        queryClient.invalidateQueries({
+        await queryClient.refetchQueries({ 
+          queryKey: [cacheKey],
+          exact: false 
+        });
+        await queryClient.refetchQueries({
           queryKey: ["conversation", conversation.id],
+          exact: false
         });
       } else {
         toast({
@@ -269,10 +273,16 @@ export const CustomerSidePanel = ({
           description: `Found booking data for ${selectedCustomer.full_name}!`,
         });
 
-        // Refresh conversation data
-        queryClient.invalidateQueries({ queryKey: ["conversation", conversation.id] });
+        // Refresh conversation data and WAIT for refetch to complete
+        await queryClient.refetchQueries({ 
+          queryKey: ["conversation", conversation.id],
+          exact: false 
+        });
         const cacheKey = getCustomerCacheKey(selectedCustomer);
-        queryClient.invalidateQueries({ queryKey: [cacheKey] });
+        await queryClient.refetchQueries({ 
+          queryKey: [cacheKey],
+          exact: false 
+        });
       } else {
         toast({
           title: "No booking data",
