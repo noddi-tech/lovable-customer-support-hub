@@ -78,13 +78,26 @@ Deno.serve(async (req) => {
     if (firstName) searchParams.append('first_name', firstName);
     if (lastName) searchParams.append('last_name', lastName);
 
-    const searchResponse = await fetch(`${API_BASE}/v1/users/search?${searchParams}`, {
+    const searchUrl = `${API_BASE}/v1/users/search?${searchParams}`;
+    console.log(`[noddi-search-by-name] Request URL: ${searchUrl}`);
+    console.log(`[noddi-search-by-name] API Base: ${API_BASE}`);
+    console.log(`[noddi-search-by-name] Has API Key: ${noddiApiKey ? 'Yes' : 'No'}`);
+
+    const searchResponse = await fetch(searchUrl, {
       headers: noddiAuthHeaders()
     });
 
     if (!searchResponse.ok) {
+      const errorBody = await searchResponse.text();
       console.error(`[noddi-search-by-name] Search failed: ${searchResponse.status}`);
-      return json({ error: 'Noddi search failed', status: searchResponse.status }, 500);
+      console.error(`[noddi-search-by-name] Request URL: ${searchUrl}`);
+      console.error(`[noddi-search-by-name] Response body: ${errorBody}`);
+      return json({ 
+        error: 'Noddi search failed', 
+        status: searchResponse.status,
+        details: errorBody,
+        requestUrl: searchUrl 
+      }, 500);
     }
 
     const searchData = await searchResponse.json();
