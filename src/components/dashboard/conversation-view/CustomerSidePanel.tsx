@@ -311,7 +311,7 @@ export const CustomerSidePanel = ({
       </div>
 
       {/* Customer Info Section */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto relative" style={{ isolation: 'isolate' }}>
         <div className="p-4 space-y-4">
           
           {/* Enhanced Noddi Customer Details Component */}
@@ -325,7 +325,7 @@ export const CustomerSidePanel = ({
 
           {/* Alternative Lookup - only show if no data found */}
           {conversation.customer?.id && noddiData && !noddiData?.data?.found && (
-            <Card className="border-amber-200 bg-amber-50/50">
+            <Card className="border-amber-200 bg-amber-50/50 relative z-20" style={{ pointerEvents: 'auto' }}>
               <CardContent className="pt-4">
                 <div className="flex items-start gap-2 mb-3">
                   <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
@@ -371,13 +371,14 @@ export const CustomerSidePanel = ({
                     <label className="text-xs font-medium text-amber-900">
                       Alternative email address:
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 relative z-10" style={{ pointerEvents: 'auto' }}>
                       <Input
                         type="email"
                         placeholder="alternative@email.com"
                         value={alternativeEmail}
                         onChange={(e) => setAlternativeEmail(e.target.value)}
-                        className="text-sm h-8"
+                        className="text-sm h-8 relative z-10"
+                        style={{ pointerEvents: 'auto' }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleAlternativeEmailSearch();
                         }}
@@ -404,13 +405,14 @@ export const CustomerSidePanel = ({
                     <label className="text-xs font-medium text-amber-900">
                       Customer name:
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 relative z-10" style={{ pointerEvents: 'auto' }}>
                       <Input
                         type="text"
                         placeholder="Type customer name..."
                         value={searchName}
                         onChange={(e) => setSearchName(e.target.value)}
-                        className="text-sm h-8"
+                        className="text-sm h-8 relative z-10"
+                        style={{ pointerEvents: 'auto' }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleNameSearch();
                         }}
