@@ -55,6 +55,10 @@ export const CustomerSidePanel = ({
   const [searchLoading, setSearchLoading] = useState(false);
   const [alternativeEmailResult, setAlternativeEmailResult] = useState(false);
   const [noddiData, setNoddiData] = useState<NoddiLookupResponse | null>(null);
+  const [searchMode, setSearchMode] = useState<'email' | 'name'>('email');
+  const [searchName, setSearchName] = useState('');
+  const [matchingCustomers, setMatchingCustomers] = useState<any[]>([]);
+  const [nameSearchLoading, setNameSearchLoading] = useState(false);
 
   const handleAlternativeEmailSearch = async () => {
     if (!alternativeEmail || !conversation.customer?.id) return;
@@ -63,27 +67,21 @@ export const CustomerSidePanel = ({
     setAlternativeEmailResult(false);
 
     try {
-      console.log('[Alternative Email] Testing lookup with:', alternativeEmail);
-
       // 1. Test lookup with alternative email via noddi-customer-lookup
-      const { data: lookupData, error: lookupError } = await supabase.functions.invoke(
-        'noddi-customer-lookup',
-        {
+      const { data: lookupData, error: lookupError } =
+        await supabase.functions.invoke("noddi-customer-lookup", {
           body: {
             email: alternativeEmail,
             customerId: conversation.customer.id,
           },
-        }
-      );
+        });
 
       if (lookupError) throw lookupError;
-
-      console.log('[Alternative Email] Lookup result:', lookupData);
 
       // 2. If data found, save alternative email to customer metadata
       if (lookupData?.data?.found) {
         const { error: updateError } = await supabase.functions.invoke(
-          'update-customer-alternative-email',
+          "update-customer-alternative-email",
           {
             body: {
               customerId: conversation.customer.id,
@@ -98,30 +96,164 @@ export const CustomerSidePanel = ({
         // 3. Update local state to show the data
         setNoddiData(lookupData);
         setAlternativeEmailResult(true);
-        
+
         toast({
-          title: 'Success',
+          title: "Booking data found",
           description: `Found booking data for ${alternativeEmail}!`,
         });
-        
+
         // 4. Invalidate query cache to refresh UI
         const cacheKey = getCustomerCacheKey(conversation.customer);
-        queryClient.invalidateQueries({ 
-          queryKey: ['noddi-customer-lookup', cacheKey] 
+        queryClient.invalidateQueries({ queryKey: [cacheKey] });
+        queryClient.invalidateQueries({
+          queryKey: ["conversation", conversation.id],
         });
       } else {
         toast({
-          title: 'Not found',
+          title: "No booking data",
           description: `No booking data found for ${alternativeEmail}`,
-          variant: 'destructive'
+          variant: "destructive",
         });
       }
-    } catch (error: any) {
-      console.error('[Alternative Email] Search error:', error);
+    } catch (error) {
+      console.error("[Alternative Email Search] Error:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to search with alternative email',
-        variant: 'destructive'
+        title: "Search failed",
+        description: "Failed to search with alternative email",
+        variant: "destructive",
+      });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleNameSearch = async () => {
+    if (!searchName.trim() || searchName.length < 2) {
+      toast({
+        title: "Invalid search",
+        description: "Please enter at least 2 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setNameSearchLoading(true);
+    setMatchingCustomers([]);
+
+    try {
+      const { data: customers, error } = await supabase.functions.invoke(
+        "search-customers-by-name",
+        {
+          body: {
+            searchTerm: searchName,
+            organizationId: conversation.organization_id,
+          },
+        }
+      );
+
+      if (error) throw error;
+
+      if (customers && customers.length > 0) {
+        setMatchingCustomers(customers);
+        toast({
+          title: "Found customers",
+          description: `Found ${customers.length} matching customer${customers.length > 1 ? "s" : ""}`,
+        });
+      } else {
+        toast({
+          title: "No matches",
+          description: `No customers found matching "${searchName}"`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("[Name Search] Error:", error);
+      toast({
+        title: "Search failed",
+        description: "Failed to search customers by name",
+        variant: "destructive",
+      });
+    } finally {
+      setNameSearchLoading(false);
+    }
+  };
+
+  const handleSelectCustomer = async (selectedCustomer: any) => {
+    if (!selectedCustomer.email && !selectedCustomer.phone) {
+      toast({
+        title: "Cannot search",
+        description: "Selected customer has no email or phone",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSearchLoading(true);
+
+    try {
+      // 1. Lookup Noddi data using the selected customer's email/phone
+      const { data: lookupData, error: lookupError } =
+        await supabase.functions.invoke("noddi-customer-lookup", {
+          body: {
+            email: selectedCustomer.email,
+            phone: selectedCustomer.phone,
+            customerId: selectedCustomer.id,
+          },
+        });
+
+      if (lookupError) throw lookupError;
+
+      // 2. If data found, link this customer to current conversation
+      if (lookupData?.data?.found) {
+        // Update conversation to link to the found customer
+        const { error: updateError } = await supabase
+          .from("conversations")
+          .update({ customer_id: selectedCustomer.id })
+          .eq("id", conversation.id);
+
+        if (updateError) throw updateError;
+
+        // 3. Save alternative email if different from conversation email
+        if (
+          conversation.customer?.email &&
+          selectedCustomer.email !== conversation.customer.email
+        ) {
+          await supabase.functions.invoke("update-customer-alternative-email", {
+            body: {
+              customerId: selectedCustomer.id,
+              alternativeEmail: conversation.customer.email,
+              primaryEmail: selectedCustomer.email,
+            },
+          });
+        }
+
+        // 4. Update UI
+        setNoddiData(lookupData);
+        setAlternativeEmailResult(true);
+        setMatchingCustomers([]); // Clear search results
+
+        toast({
+          title: "Customer linked",
+          description: `Found booking data for ${selectedCustomer.full_name}!`,
+        });
+
+        // Refresh conversation data
+        queryClient.invalidateQueries({ queryKey: ["conversation", conversation.id] });
+        const cacheKey = getCustomerCacheKey(selectedCustomer);
+        queryClient.invalidateQueries({ queryKey: [cacheKey] });
+      } else {
+        toast({
+          title: "No booking data",
+          description: `No Noddi data found for ${selectedCustomer.full_name}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("[Select Customer] Error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to link customer",
+        variant: "destructive",
       });
     } finally {
       setSearchLoading(false);
@@ -191,7 +323,7 @@ export const CustomerSidePanel = ({
             onDataLoaded={setNoddiData}
           />
 
-          {/* Alternative Email Lookup - only show if no data found */}
+          {/* Alternative Lookup - only show if no data found */}
           {conversation.customer?.id && noddiData && !noddiData?.data?.found && (
             <Card className="border-amber-200 bg-amber-50/50">
               <CardContent className="pt-4">
@@ -202,43 +334,147 @@ export const CustomerSidePanel = ({
                       No booking data found
                     </p>
                     <p className="text-xs text-amber-700">
-                      Customer may be registered with a different email address
+                      Search by alternative email or customer name
                     </p>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-amber-900">
-                    Search with alternative email:
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="email"
-                      placeholder="alternative@email.com"
-                      value={alternativeEmail}
-                      onChange={(e) => setAlternativeEmail(e.target.value)}
-                      className="text-sm h-8"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleAlternativeEmailSearch}
-                      disabled={!alternativeEmail || searchLoading}
-                      className="h-8"
-                    >
-                      {searchLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        'Search'
-                      )}
-                    </Button>
-                  </div>
+
+                {/* Tab Navigation */}
+                <div className="flex gap-2 mb-3 border-b border-amber-200">
+                  <button
+                    onClick={() => setSearchMode('email')}
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium transition-colors border-b-2",
+                      searchMode === 'email'
+                        ? "border-amber-600 text-amber-900"
+                        : "border-transparent text-amber-700 hover:text-amber-900"
+                    )}
+                  >
+                    Search by Email
+                  </button>
+                  <button
+                    onClick={() => setSearchMode('name')}
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium transition-colors border-b-2",
+                      searchMode === 'name'
+                        ? "border-amber-600 text-amber-900"
+                        : "border-transparent text-amber-700 hover:text-amber-900"
+                    )}
+                  >
+                    Search by Name
+                  </button>
                 </div>
-                
+
+                {/* Email Search Tab */}
+                {searchMode === 'email' && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-amber-900">
+                      Alternative email address:
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="email"
+                        placeholder="alternative@email.com"
+                        value={alternativeEmail}
+                        onChange={(e) => setAlternativeEmail(e.target.value)}
+                        className="text-sm h-8"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleAlternativeEmailSearch();
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleAlternativeEmailSearch}
+                        disabled={!alternativeEmail || searchLoading}
+                        className="h-8"
+                      >
+                        {searchLoading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          "Search"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Name Search Tab */}
+                {searchMode === 'name' && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-amber-900">
+                      Customer name:
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Type customer name..."
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                        className="text-sm h-8"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleNameSearch();
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleNameSearch}
+                        disabled={!searchName || searchName.length < 2 || nameSearchLoading}
+                        className="h-8"
+                      >
+                        {nameSearchLoading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          "Search"
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Matching Customers List */}
+                    {matchingCustomers.length > 0 && (
+                      <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
+                        <p className="text-xs font-medium text-amber-900 mb-2">
+                          Select customer to search:
+                        </p>
+                        {matchingCustomers.map((customer) => (
+                          <button
+                            key={customer.id}
+                            onClick={() => handleSelectCustomer(customer)}
+                            disabled={searchLoading}
+                            className="w-full text-left p-2 rounded border border-amber-200 
+                                     hover:bg-amber-100 hover:border-amber-300 
+                                     transition-colors text-xs space-y-0.5
+                                     disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <div className="font-medium text-amber-900">
+                              {customer.full_name}
+                            </div>
+                            <div className="text-amber-700 flex items-center gap-2 flex-wrap">
+                              {customer.email && (
+                                <span className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {customer.email}
+                                </span>
+                              )}
+                              {customer.phone && (
+                                <span className="flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {customer.phone}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Success Message */}
                 {alternativeEmailResult && (
                   <Alert className="mt-3 bg-green-50 border-green-200">
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     <AlertDescription className="text-xs text-green-900">
-                      Found booking data! Alternative email saved.
+                      Found booking data! Customer linked successfully.
                     </AlertDescription>
                   </Alert>
                 )}
