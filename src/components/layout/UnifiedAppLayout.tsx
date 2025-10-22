@@ -40,7 +40,7 @@ export const UnifiedAppLayout: React.FC<UnifiedAppLayoutProps> = ({
   // }, []);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <UIProbe />}
       <div className="h-svh flex w-full bg-white">
         {/* Sidebar Navigation */}
