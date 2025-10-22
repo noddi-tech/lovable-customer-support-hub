@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
   Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap
@@ -14,6 +15,7 @@ interface NoddiCustomerDetailsProps {
   customerEmail?: string;
   customerPhone?: string;
   customerName?: string;
+  onDataLoaded?: (data: any) => void;
 }
 
 export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
@@ -21,6 +23,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   customerEmail,
   customerPhone,
   customerName,
+  onDataLoaded,
 }) => {
   const { data: noddiData, isLoading } = useNoddihKundeData({
     id: customerId || '',
@@ -28,6 +31,13 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     phone: customerPhone,
     full_name: customerName,
   });
+
+  // Notify parent when data is loaded
+  React.useEffect(() => {
+    if (noddiData && onDataLoaded) {
+      onDataLoaded(noddiData);
+    }
+  }, [noddiData, onDataLoaded]);
 
   // Currency formatter for consistent money display
   const moneyFmt = (amt: number, cur: string) =>
@@ -105,6 +115,19 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Show which email was used for lookup if different */}
+        {data.ui_meta?.match_mode === 'email' && 
+         data.user?.email && 
+         customerEmail && 
+         data.user.email !== customerEmail && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-xs text-blue-900">
+              Booking data found using alternative email: <strong>{data.user.email}</strong>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Customer Name and Status */}
         <div>
           <div className="flex items-center gap-2 mb-2">

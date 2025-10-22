@@ -670,7 +670,7 @@ Deno.serve(async (req) => {
     const body = await req.json() as NoddihCustomerLookupRequest;
     
     const phone = sanitizePhone(body.phone);
-    const email = (body.email || "").trim().toLowerCase();
+    let email = (body.email || "").trim().toLowerCase();
     
     if (!phone && !email) {
       console.error('Missing required fields:', { email: !!email, phone: !!phone, organizationId: !!body.organizationId });
@@ -691,88 +691,147 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Starting Noddi lookup for:', { email, phone });
+    // Build list of emails to try (primary + alternatives from metadata)
+    const emailsToTry: string[] = [];
+    if (email) {
+      emailsToTry.push(email);
+    }
 
-    // Step 1: Check cache first unless force refresh is requested
+    // If we have a customerId, fetch alternative emails from customer metadata
+    if (body.customerId) {
+      try {
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('metadata')
+          .eq('id', body.customerId)
+          .single();
+
+        if (customer?.metadata?.alternative_emails) {
+          const altEmails = customer.metadata.alternative_emails as string[];
+          // Add alternative emails that aren't already in the list
+          altEmails.forEach((altEmail: string) => {
+            if (altEmail && !emailsToTry.includes(altEmail)) {
+              emailsToTry.push(altEmail);
+            }
+          });
+          console.log('📧 Alternative emails loaded:', altEmails.length);
+        }
+      } catch (err) {
+        console.error('Failed to load alternative emails:', err);
+        // Continue without alternatives
+      }
+    }
+
+    console.log('Starting Noddi lookup for:', { emails: emailsToTry.length, phone });
+
+    // Step 1: Check cache first unless force refresh - try all emails
     if (!body.forceRefresh) {
       const cacheExpiry = new Date(Date.now() - CACHE_TTL_SECONDS * 1000).toISOString();
       
-      let cacheQuery = supabase
-        .from('noddi_customer_cache')
-        .select('*')
-        .eq('organization_id', body.organizationId)
-        .gte('last_refreshed_at', cacheExpiry);
-      
-      if (phone) {
-        cacheQuery = cacheQuery.eq('phone', phone);
-      } else if (email) {
-        cacheQuery = cacheQuery.eq('email', email);
-      }
-      
-      try {
-        const { data: cachedData } = await cacheQuery.maybeSingle();
+      // Try to find cached data for any of the emails
+      for (const emailToCheck of emailsToTry) {
+        try {
+          const { data: cachedData } = await supabase
+            .from('noddi_customer_cache')
+            .select('*')
+            .eq('organization_id', body.organizationId)
+            .eq('email', emailToCheck)
+            .gte('last_refreshed_at', cacheExpiry)
+            .maybeSingle();
 
-        if (cachedData) {
-          console.log('Returning cached Noddi data');
-          
-          const cacheAge = Math.floor((Date.now() - new Date(cachedData.last_refreshed_at).getTime()) / 1000);
-          const remainingTtl = Math.max(0, CACHE_TTL_SECONDS - cacheAge);
-          
-          return json(mapCacheRowToUnified(cachedData, email || phone || '', remainingTtl));
+          if (cachedData) {
+            console.log('✅ Returning cached data (matched email):', emailToCheck.substring(0, 3) + '***');
+            
+            const cacheAge = Math.floor((Date.now() - new Date(cachedData.last_refreshed_at).getTime()) / 1000);
+            const remainingTtl = Math.max(0, CACHE_TTL_SECONDS - cacheAge);
+            
+            return json(mapCacheRowToUnified(cachedData, emailToCheck, remainingTtl));
+          }
+        } catch (error) {
+          console.log('Cache check failed for email:', emailToCheck.substring(0, 3) + '***');
         }
-      } catch (error) {
-        console.log('Cache table not available, proceeding with API call');
+      }
+
+      // Also try phone cache if provided
+      if (phone) {
+        try {
+          const { data: cachedData } = await supabase
+            .from('noddi_customer_cache')
+            .select('*')
+            .eq('organization_id', body.organizationId)
+            .eq('phone', phone)
+            .gte('last_refreshed_at', cacheExpiry)
+            .maybeSingle();
+
+          if (cachedData) {
+            console.log('✅ Returning cached data (phone match)');
+            
+            const cacheAge = Math.floor((Date.now() - new Date(cachedData.last_refreshed_at).getTime()) / 1000);
+            const remainingTtl = Math.max(0, CACHE_TTL_SECONDS - cacheAge);
+            
+            return json(mapCacheRowToUnified(cachedData, email || phone, remainingTtl));
+          }
+        } catch (error) {
+          console.log('Cache table not available for phone, proceeding with API call');
+        }
       }
     } else {
       console.log('Force refresh requested, skipping cache');
     }
 
-    // Step 2: Lookup user (phone first, email fallback)
+    // Step 2: Lookup user - try each email until we find a match
     console.log('Fetching user from Noddi API');
     let user: any | null = null;
+    let successfulEmail: string | null = null;
     let lookupKeyForCache: string | null = null;
     let lookupMode: "phone" | "email" = "email";
     let conflict = false;
 
+    // Try phone first if available
     if (phone) {
       try {
         user = await getUserByPhone(phone);
-        lookupMode = "phone";
-        lookupKeyForCache = phone;
-        console.log('Phone lookup result:', user ? 'found' : 'not found');
+        if (user) {
+          lookupMode = "phone";
+          lookupKeyForCache = phone;
+          successfulEmail = user.email || null;
+          console.log('✅ Phone lookup successful');
+        }
       } catch (error) {
         console.log('Phone lookup failed:', error);
       }
     }
     
-    if (!user && email) {
-      try {
-        user = await getUserByEmail(email);
-        if (user && phone) {
-          // Check if this is a different user than phone lookup would have found
-          lookupMode = "email";
-          // Could implement conflict detection here if needed
-        } else if (user) {
-          lookupMode = "email";
+    // If no user found via phone, try each email
+    if (!user) {
+      for (const emailToTry of emailsToTry) {
+        try {
+          console.log('🔍 Trying email:', emailToTry.substring(0, 3) + '***');
+          user = await getUserByEmail(emailToTry);
+          if (user) {
+            console.log('✅ Email lookup successful:', emailToTry.substring(0, 3) + '***');
+            lookupMode = "email";
+            successfulEmail = emailToTry;
+            lookupKeyForCache = emailToTry;
+            break; // Stop trying more emails
+          }
+        } catch (error) {
+          console.log('Email lookup failed for:', emailToTry.substring(0, 3) + '***');
         }
-        if (!lookupKeyForCache) lookupKeyForCache = email;
-        console.log('Email lookup result:', user ? 'found' : 'not found');
-      } catch (error) {
-        console.log('Email lookup failed:', error);
       }
     }
     
     if (!user) {
-      console.log('No user found for:', { email, phone });
+      console.log('No user found for:', { emails: emailsToTry.length, phone });
       
-      // Store negative cache entry
+      // Store negative cache entry (use first email or phone)
       try {
         await supabase
           .from('noddi_customer_cache')
           .upsert({
             organization_id: body.organizationId,
             customer_id: body.customerId,
-            email: email || null,
+            email: emailsToTry[0] || null,
             phone: phone || null,
             noddi_user_id: -1,
             user_group_id: null,
@@ -794,7 +853,7 @@ Deno.serve(async (req) => {
         ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
         data: {
           found: false,
-          email: email || "",
+          email: emailsToTry[0] || "",
           noddi_user_id: null,
           user_group_id: null,
           user: null,
@@ -803,7 +862,7 @@ Deno.serve(async (req) => {
           unpaid_count: 0,
           unpaid_bookings: [],
           ui_meta: {
-            display_name: email ? email.split("@")[0] : "Unknown Name",
+            display_name: emailsToTry[0] ? emailsToTry[0].split("@")[0] : "Unknown Name",
             user_group_badge: null,
             unpaid_count: 0,
             status_label: null,
@@ -819,7 +878,7 @@ Deno.serve(async (req) => {
     }
 
     const noddihUser = user;
-    console.log(`Found Noddi user: ${noddihUser.id}`);
+    console.log(`Found Noddi user: ${noddihUser.id}, email: ${successfulEmail?.substring(0, 3)}***`);
 
     // Step 3: Get user groups
     const groupsResponse = await fetch(`${API_BASE}/v1/user-groups/?user_ids=${noddihUser.id}`, {
@@ -906,8 +965,21 @@ Deno.serve(async (req) => {
       console.log(`Found ${pendingBookings.length} truly unpaid bookings for group ${selectedGroup.id}`);
     }
 
-    // Step 7: Build unified response with enrichment
+    // Step 7: Build unified response with enrichment (use successful email for response)
     const { tags: order_tags, bookingForCache } = await enrichTagsIfEmpty(priorityBooking);
+    
+    const unified = buildResponse(
+      noddihUser,
+      selectedGroup,
+      pendingBookings,
+      bookingForCache || priorityBooking,
+      priorityBookingType,
+      successfulEmail || emailsToTry[0] || "",
+      phone,
+      lookupMode,
+      conflict,
+      order_tags
+    );
     
     const liveResponse = buildResponse({
       source: "live",

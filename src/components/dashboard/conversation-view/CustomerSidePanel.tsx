@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   X, 
   Mail, 
@@ -14,13 +17,20 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  CircleDot
+  CircleDot,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { getCustomerCacheKey } from '@/utils/customerCacheKey';
+import type { NoddiLookupResponse } from '@/hooks/useNoddihKundeData';
 
 interface CustomerSidePanelProps {
   conversation: any;
@@ -39,6 +49,84 @@ export const CustomerSidePanel = ({
   const { dateTime } = useDateFormatting();
   const { dispatch, updateStatus } = useConversationView();
   const [statusLoading, setStatusLoading] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [alternativeEmail, setAlternativeEmail] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [alternativeEmailResult, setAlternativeEmailResult] = useState(false);
+  const [noddiData, setNoddiData] = useState<NoddiLookupResponse | null>(null);
+
+  const handleAlternativeEmailSearch = async () => {
+    if (!alternativeEmail || !conversation.customer?.id) return;
+
+    setSearchLoading(true);
+    setAlternativeEmailResult(false);
+
+    try {
+      console.log('[Alternative Email] Testing lookup with:', alternativeEmail);
+
+      // 1. Test lookup with alternative email via noddi-customer-lookup
+      const { data: lookupData, error: lookupError } = await supabase.functions.invoke(
+        'noddi-customer-lookup',
+        {
+          body: {
+            email: alternativeEmail,
+            customerId: conversation.customer.id,
+          },
+        }
+      );
+
+      if (lookupError) throw lookupError;
+
+      console.log('[Alternative Email] Lookup result:', lookupData);
+
+      // 2. If data found, save alternative email to customer metadata
+      if (lookupData?.data?.found) {
+        const { error: updateError } = await supabase.functions.invoke(
+          'update-customer-alternative-email',
+          {
+            body: {
+              customerId: conversation.customer.id,
+              alternativeEmail,
+              primaryEmail: conversation.customer.email,
+            },
+          }
+        );
+
+        if (updateError) throw updateError;
+
+        // 3. Update local state to show the data
+        setNoddiData(lookupData);
+        setAlternativeEmailResult(true);
+        
+        toast({
+          title: 'Success',
+          description: `Found booking data for ${alternativeEmail}!`,
+        });
+        
+        // 4. Invalidate query cache to refresh UI
+        const cacheKey = getCustomerCacheKey(conversation.customer);
+        queryClient.invalidateQueries({ 
+          queryKey: ['noddi-customer-lookup', cacheKey] 
+        });
+      } else {
+        toast({
+          title: 'Not found',
+          description: `No booking data found for ${alternativeEmail}`,
+          variant: 'destructive'
+        });
+      }
+    } catch (error: any) {
+      console.error('[Alternative Email] Search error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to search with alternative email',
+        variant: 'destructive'
+      });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   if (isCollapsed) {
     return (
@@ -100,7 +188,63 @@ export const CustomerSidePanel = ({
             customerEmail={conversation.customer?.email}
             customerPhone={conversation.customer?.phone}
             customerName={conversation.customer?.full_name}
+            onDataLoaded={setNoddiData}
           />
+
+          {/* Alternative Email Lookup - only show if no data found */}
+          {conversation.customer?.id && noddiData && !noddiData?.data?.found && (
+            <Card className="border-amber-200 bg-amber-50/50">
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-2 mb-3">
+                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-900 mb-1">
+                      No booking data found
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      Customer may be registered with a different email address
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-amber-900">
+                    Search with alternative email:
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="alternative@email.com"
+                      value={alternativeEmail}
+                      onChange={(e) => setAlternativeEmail(e.target.value)}
+                      className="text-sm h-8"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleAlternativeEmailSearch}
+                      disabled={!alternativeEmail || searchLoading}
+                      className="h-8"
+                    >
+                      {searchLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        'Search'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                {alternativeEmailResult && (
+                  <Alert className="mt-3 bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-xs text-green-900">
+                      Found booking data! Alternative email saved.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          )}
           
           <Separator />
           
