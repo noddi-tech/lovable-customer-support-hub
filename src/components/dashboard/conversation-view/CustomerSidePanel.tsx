@@ -167,11 +167,18 @@ export const CustomerSidePanel = ({
     setMatchingCustomers([]);
 
     try {
-      const { data: customers, error } = await supabase.functions.invoke(
-        "search-customers-by-name",
+      // Parse search term into first and last name
+      const nameParts = searchName.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      // Call new Noddi search API
+      const { data, error } = await supabase.functions.invoke(
+        "noddi-search-by-name",
         {
           body: {
-            searchTerm: searchName,
+            firstName,
+            lastName,
             organizationId,
           },
         }
@@ -179,16 +186,41 @@ export const CustomerSidePanel = ({
 
       if (error) throw error;
 
-      if (customers && customers.length > 0) {
-        setMatchingCustomers(customers);
+      if (data?.results && data.results.length > 0) {
+        // Transform Noddi results to local customer format with metadata
+        const transformedCustomers = data.results.map((result: any) => ({
+          id: result.local_customer_id || `noddi-${result.noddi_user.id}`,
+          full_name: `${result.noddi_user_group?.first_name || result.noddi_user.first_name || ''} ${result.noddi_user_group?.last_name || result.noddi_user.last_name || ''}`.trim(),
+          email: result.noddi_user.email,
+          phone: result.noddi_user.phone,
+          metadata: {
+            noddi_user_id: result.noddi_user.id,
+            user_group_id: result.noddi_user_group?.id,
+            badge: result.noddi_user_group?.badge,
+            unpaid_count: result.bookings_summary.unpaid_count,
+            has_priority: !!result.bookings_summary.priority_booking,
+            is_new: !result.local_customer_id,
+            // Store full noddi data for handleSelectCustomer
+            _noddiData: {
+              noddi_user: result.noddi_user,
+              noddi_user_group: result.noddi_user_group,
+              priority_booking: result.bookings_summary.priority_booking,
+              unpaid_bookings: result.bookings_summary.unpaid_bookings,
+              unpaid_count: result.bookings_summary.unpaid_count,
+              total_bookings: result.bookings_summary.total_bookings
+            }
+          }
+        }));
+
+        setMatchingCustomers(transformedCustomers);
         toast({
           title: "Found customers",
-          description: `Found ${customers.length} matching customer${customers.length > 1 ? "s" : ""}`,
+          description: `Found ${transformedCustomers.length} customer${transformedCustomers.length > 1 ? "s" : ""} in Noddi`,
         });
       } else {
         toast({
           title: "No matches",
-          description: `No customers found matching "${searchName}"`,
+          description: `No customers found in Noddi matching "${searchName}"`,
           variant: "destructive",
         });
       }
@@ -196,7 +228,7 @@ export const CustomerSidePanel = ({
       console.error("[Name Search] Error:", error);
       toast({
         title: "Search failed",
-        description: "Failed to search customers by name",
+        description: "Failed to search Noddi customers by name",
         variant: "destructive",
       });
     } finally {
@@ -207,7 +239,7 @@ export const CustomerSidePanel = ({
   const handleSelectCustomer = async (selectedCustomer: any) => {
     if (!selectedCustomer.email && !selectedCustomer.phone) {
       toast({
-        title: "Cannot search",
+        title: "Cannot link",
         description: "Selected customer has no email or phone",
         variant: "destructive",
       });
@@ -226,44 +258,98 @@ export const CustomerSidePanel = ({
     setSearchLoading(true);
 
     try {
-      // 1. Lookup Noddi data using the selected customer's email/phone
-      const { data: lookupData, error: lookupError } =
-        await supabase.functions.invoke("noddi-customer-lookup", {
-          body: {
+      let customerId = selectedCustomer.id;
+      let lookupData = null;
+
+      // Check if this is a Noddi search result with embedded data
+      if (selectedCustomer.metadata?._noddiData) {
+        const noddiData = selectedCustomer.metadata._noddiData;
+        
+        // If customer doesn't exist locally, create them
+        if (selectedCustomer.metadata.is_new) {
+          const { data: newCustomer, error: createError } = await supabase
+            .from("customers")
+            .insert({
+              full_name: selectedCustomer.full_name,
+              email: selectedCustomer.email,
+              phone: selectedCustomer.phone,
+              organization_id: organizationId,
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          customerId = newCustomer.id;
+
+          toast({
+            title: "Customer created",
+            description: `Created new customer: ${selectedCustomer.full_name}`,
+          });
+        }
+
+        // Build lookup data format from embedded Noddi data
+        lookupData = {
+          ok: true,
+          source: "live",
+          data: {
+            found: true,
             email: selectedCustomer.email,
-            phone: selectedCustomer.phone,
-            customerId: selectedCustomer.id,
-            organizationId,
-          },
-        });
+            noddi_user_id: noddiData.noddi_user.id,
+            user_group_id: noddiData.noddi_user_group?.id,
+            user: noddiData.noddi_user,
+            priority_booking: noddiData.priority_booking,
+            unpaid_count: noddiData.unpaid_count,
+            unpaid_bookings: noddiData.unpaid_bookings,
+            ui_meta: {
+              display_name: selectedCustomer.full_name,
+              user_group_badge: noddiData.noddi_user_group?.badge,
+              unpaid_count: noddiData.unpaid_count,
+              match_mode: "email",
+              conflict: false,
+              source: "live"
+            }
+          }
+        };
+      } else {
+        // Regular local customer search - perform Noddi lookup
+        const { data: fetchedLookupData, error: lookupError } =
+          await supabase.functions.invoke("noddi-customer-lookup", {
+            body: {
+              email: selectedCustomer.email,
+              phone: selectedCustomer.phone,
+              customerId: selectedCustomer.id,
+              organizationId,
+            },
+          });
 
-      if (lookupError) throw lookupError;
+        if (lookupError) throw lookupError;
+        lookupData = fetchedLookupData;
+      }
 
-      // 2. If data found, link this customer to current conversation
+      // Link customer to conversation if data found
       if (lookupData?.data?.found) {
-        // Update conversation to link to the found customer
         const { error: updateError } = await supabase
           .from("conversations")
-          .update({ customer_id: selectedCustomer.id })
+          .update({ customer_id: customerId })
           .eq("id", conversation.id);
 
         if (updateError) throw updateError;
 
-        // 3. Save alternative email if different from conversation email
+        // Save alternative email if different from conversation email
         if (
           conversation.customer?.email &&
           selectedCustomer.email !== conversation.customer.email
         ) {
           await supabase.functions.invoke("update-customer-alternative-email", {
             body: {
-              customerId: selectedCustomer.id,
+              customerId: customerId,
               alternativeEmail: conversation.customer.email,
               primaryEmail: selectedCustomer.email,
             },
           });
         }
 
-        // 4. Update UI - Store noddi data to display immediately
+        // Update UI - Store noddi data to display immediately
         setNoddiData(lookupData);
         setAlternativeEmailResult(true);
         setMatchingCustomers([]); // Clear search results
@@ -273,12 +359,15 @@ export const CustomerSidePanel = ({
           description: `Found booking data for ${selectedCustomer.full_name}!`,
         });
 
-        // Refresh conversation data and WAIT for refetch to complete
+        // Refresh conversation data
         await queryClient.refetchQueries({ 
           queryKey: ["conversation", conversation.id],
           exact: false 
         });
-        const cacheKey = getCustomerCacheKey(selectedCustomer);
+        const cacheKey = getCustomerCacheKey({
+          email: selectedCustomer.email,
+          phone: selectedCustomer.phone
+        });
         await queryClient.refetchQueries({ 
           queryKey: [cacheKey],
           exact: false 
@@ -478,7 +567,7 @@ export const CustomerSidePanel = ({
                     {matchingCustomers.length > 0 && (
                       <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
                         <p className="text-xs font-medium text-amber-900 mb-2">
-                          Select customer to search:
+                          Select customer to link:
                         </p>
                         {matchingCustomers.map((customer) => (
                           <button
@@ -487,11 +576,33 @@ export const CustomerSidePanel = ({
                             disabled={searchLoading}
                             className="w-full text-left p-2 rounded border border-amber-200 
                                      hover:bg-amber-100 hover:border-amber-300 
-                                     transition-colors text-xs space-y-0.5
+                                     transition-colors text-xs space-y-1
                                      disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <div className="font-medium text-amber-900">
-                              {customer.full_name}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-amber-900">
+                                {customer.full_name}
+                              </span>
+                              {customer.metadata?.badge && (
+                                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                                  Badge {customer.metadata.badge}
+                                </Badge>
+                              )}
+                              {customer.metadata?.has_priority && (
+                                <span className="text-yellow-600" title="Has priority booking">
+                                  ⭐
+                                </span>
+                              )}
+                              {customer.metadata?.unpaid_count > 0 && (
+                                <span className="text-destructive text-[10px] font-semibold" title={`${customer.metadata.unpaid_count} unpaid booking(s)`}>
+                                  ⚠️ {customer.metadata.unpaid_count} unpaid
+                                </span>
+                              )}
+                              {customer.metadata?.is_new && (
+                                <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                                  New
+                                </Badge>
+                              )}
                             </div>
                             <div className="text-amber-700 flex items-center gap-2 flex-wrap">
                               {customer.email && (
