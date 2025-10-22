@@ -1,7 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink } from 'lucide-react';
+import { 
+  Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
+  Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap
+} from 'lucide-react';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
@@ -25,6 +28,25 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     phone: customerPhone,
     full_name: customerName,
   });
+
+  // Currency formatter for consistent money display
+  const moneyFmt = (amt: number, cur: string) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(amt);
+
+  // Map service tags to icons and colors
+  const getServiceTagStyle = (tag: string) => {
+    const tagLower = tag.toLowerCase();
+    if (tagLower.includes('dekkhotell')) return { bg: 'bg-blue-100', text: 'text-blue-900', icon: Archive };
+    if (tagLower.includes('dekkskift')) return { bg: 'bg-green-100', text: 'text-green-900', icon: RotateCcw };
+    if (tagLower.includes('hjemlevering')) return { bg: 'bg-purple-100', text: 'text-purple-900', icon: Truck };
+    if (tagLower.includes('henting') || tagLower.includes('levering')) return { bg: 'bg-orange-100', text: 'text-orange-900', icon: Package };
+    if (tagLower.includes('bærehjelp')) return { bg: 'bg-teal-100', text: 'text-teal-900', icon: Users };
+    if (tagLower.includes('felgvask')) return { bg: 'bg-indigo-100', text: 'text-indigo-900', icon: Droplets };
+    if (tagLower.includes('balansering')) return { bg: 'bg-pink-100', text: 'text-pink-900', icon: Target };
+    if (tagLower.includes('tpms') || tagLower.includes('ventil')) return { bg: 'bg-red-100', text: 'text-red-900', icon: Gauge };
+    if (tagLower.includes('punktering')) return { bg: 'bg-yellow-100', text: 'text-yellow-900', icon: Zap };
+    return { bg: 'bg-muted', text: 'text-muted-foreground', icon: null };
+  };
 
   if (isLoading) {
     return (
@@ -152,6 +174,38 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 </Badge>
               )}
             </div>
+            
+            {/* Status Chips */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              {data.ui_meta?.status_label && (
+                <Badge variant="outline" className="text-xs">
+                  {data.ui_meta.status_label}
+                </Badge>
+              )}
+              {/* Unable to complete chip */}
+              {data.ui_meta?.unable_to_complete && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-amber-900 text-xs">
+                  {data.ui_meta?.unable_label ?? 'Unable to complete'}
+                </span>
+              )}
+              {/* Paid state chip */}
+              {data.ui_meta?.money?.paid_state && (
+                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs ${
+                  data.ui_meta.money.paid_state === 'paid' 
+                    ? 'bg-green-100 text-green-900' 
+                    : data.ui_meta.money.paid_state === 'partially_paid' 
+                    ? 'bg-yellow-100 text-yellow-900' 
+                    : data.ui_meta.money.paid_state === 'unpaid' 
+                    ? 'bg-red-100 text-red-900' 
+                    : 'bg-gray-100 text-gray-900'
+                }`}>
+                  {data.ui_meta.money.paid_state === 'paid' ? 'Paid' :
+                   data.ui_meta.money.paid_state === 'partially_paid' ? 'Partially paid' :
+                   data.ui_meta.money.paid_state === 'unpaid' ? 'Unpaid' : 'Payment'}
+                </span>
+              )}
+            </div>
+
             {data.ui_meta?.booking_date_iso && (
               <p className="text-sm text-muted-foreground mb-2">
                 Date: {format(new Date(data.ui_meta.booking_date_iso), 'PPP')}
@@ -167,26 +221,49 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 Vehicle: {data.ui_meta.vehicle_label}
               </p>
             )}
-            {data.ui_meta?.money && (
-              <div className="mt-2 pt-2 border-t">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="font-medium">
-                    {data.ui_meta.money.gross.toFixed(2)} {data.ui_meta.money.currency}
-                  </span>
+
+            {/* Order Summary with Line Items */}
+            {data.ui_meta?.order_lines && data.ui_meta.order_lines.length > 0 && (
+              <div className="mt-3 rounded-lg border p-3">
+                <div className="font-medium mb-2 text-sm">Order Summary</div>
+
+                {/* Line Items */}
+                <div className="space-y-1 mb-2">
+                  {data.ui_meta.order_lines.map((line: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between text-sm">
+                      <div className="truncate">
+                        {line.name}{line.quantity > 1 ? ` × ${line.quantity}` : ''}
+                      </div>
+                      <div className={`${line.is_discount ? 'text-red-600' : ''} ${data.ui_meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}`}>
+                        {moneyFmt(line.amount_gross, line.currency)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Paid:</span>
-                  <span className={data.ui_meta.money.paid_state === 'paid' ? 'text-success' : ''}>
-                    {data.ui_meta.money.paid.toFixed(2)} {data.ui_meta.money.currency}
-                  </span>
-                </div>
-                {data.ui_meta.money.outstanding > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Outstanding:</span>
-                    <span className="font-medium text-destructive">
-                      {data.ui_meta.money.outstanding.toFixed(2)} {data.ui_meta.money.currency}
-                    </span>
+
+                {/* Totals */}
+                {data.ui_meta?.money && (
+                  <div className="border-t pt-2 text-sm space-y-1">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>VAT</span>
+                      <span className={data.ui_meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}>
+                        {moneyFmt(data.ui_meta.money.vat, data.ui_meta.money.currency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-medium">
+                      <span>Total</span>
+                      <span className={data.ui_meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}>
+                        {moneyFmt(data.ui_meta.money.gross, data.ui_meta.money.currency)}
+                      </span>
+                    </div>
+                    {data.ui_meta.money.outstanding > 0 && (
+                      <div className="flex justify-between text-rose-700">
+                        <span>Outstanding</span>
+                        <span className={data.ui_meta?.unable_to_complete ? 'line-through text-muted-foreground' : ''}>
+                          {moneyFmt(data.ui_meta.money.outstanding, data.ui_meta.money.currency)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -209,16 +286,22 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           </div>
         )}
 
-        {/* Additional Info */}
+        {/* Service Tags with Icons */}
         {data.ui_meta?.order_tags && data.ui_meta.order_tags.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Tags</p>
-            <div className="flex flex-wrap gap-1">
-              {data.ui_meta.order_tags.map((tag: string, idx: number) => (
-                <Badge key={idx} variant="secondary" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
+            <p className="text-xs font-medium text-muted-foreground mb-2">Service Tags</p>
+            <div className="flex flex-wrap gap-1.5">
+              {data.ui_meta.order_tags.map((tag: string, idx: number) => {
+                const style = getServiceTagStyle(tag);
+                const IconComponent = style.icon;
+                
+                return (
+                  <span key={idx} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${style.bg} ${style.text}`}>
+                    {IconComponent && <IconComponent className="w-3 h-3" />}
+                    {tag}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}

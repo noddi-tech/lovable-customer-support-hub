@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
+import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 import { CustomerNotes } from '@/components/dashboard/CustomerNotes';
 import { Call } from '@/hooks/useCalls';
 import { useSimpleRealtimeSubscriptions } from '@/hooks/useSimpleRealtimeSubscriptions';
@@ -240,10 +240,15 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-4">
-            {customerForNoddi && (
-              <NoddihKundeData customer={customerForNoddi} />
-            )}
+              <TabsContent value="overview" className="space-y-4">
+                {customerForNoddi && (
+                  <NoddiCustomerDetails
+                    customerId={customer?.id}
+                    customerEmail={customer?.email}
+                    customerPhone={customerPhone}
+                    customerName={customer?.full_name}
+                  />
+                )}
             
             {/* Email Capture Card */}
             {customer && !customer.email && (

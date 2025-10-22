@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
+import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 
 interface ConversationSidebarProps {
   conversationId?: string;
@@ -63,9 +63,14 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   return (
     <div className={cn("space-y-4", className)}>
       {/* Customer Information */}
-      {showCustomer && customer?.id && (
-        <NoddihKundeData customer={customer as { id: string; email?: string; phone?: string; full_name?: string; }} />
-      )}
+        {showCustomer && customer?.id && (
+          <NoddiCustomerDetails
+            customerId={customer.id}
+            customerEmail={customer.email}
+            customerPhone={customer.phone}
+            customerName={customer.full_name}
+          />
+        )}
       
       {/* Conversation Metadata */}
       {showMetadata && (
