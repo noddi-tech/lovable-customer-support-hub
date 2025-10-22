@@ -263,7 +263,7 @@ export const CustomerSidePanel = ({
           });
         }
 
-        // 4. Update UI
+        // 4. Update UI - Store noddi data to display immediately
         setNoddiData(lookupData);
         setAlternativeEmailResult(true);
         setMatchingCustomers([]); // Clear search results
@@ -363,6 +363,7 @@ export const CustomerSidePanel = ({
             customerPhone={conversation.customer?.phone}
             customerName={conversation.customer?.full_name}
             onDataLoaded={setNoddiData}
+            noddiData={noddiData}
           />
 
           {/* Alternative Lookup - only show if no data found */}

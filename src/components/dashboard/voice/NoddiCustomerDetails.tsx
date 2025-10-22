@@ -16,6 +16,7 @@ interface NoddiCustomerDetailsProps {
   customerPhone?: string;
   customerName?: string;
   onDataLoaded?: (data: any) => void;
+  noddiData?: any; // External noddi data to override fetch
 }
 
 export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
@@ -24,13 +25,21 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   customerPhone,
   customerName,
   onDataLoaded,
+  noddiData: externalNoddiData,
 }) => {
-  const { data: noddiData, isLoading } = useNoddihKundeData({
-    id: customerId || '',
-    email: customerEmail,
-    phone: customerPhone,
-    full_name: customerName,
-  });
+  // Only fetch if no external data provided
+  const { data: fetchedData, isLoading } = useNoddihKundeData(
+    externalNoddiData ? null : {
+      id: customerId || '',
+      email: customerEmail,
+      phone: customerPhone,
+      full_name: customerName,
+    }
+  );
+
+  // Use external data if provided, otherwise use fetched data
+  const noddiData = externalNoddiData || fetchedData;
+  const isLoadingData = !externalNoddiData && isLoading;
 
   // Notify parent when data is loaded
   React.useEffect(() => {
@@ -58,7 +67,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     return { bg: 'bg-muted', text: 'text-muted-foreground', icon: null };
   };
 
-  if (isLoading) {
+  if (isLoadingData) {
     return (
       <Card>
         <CardHeader>
