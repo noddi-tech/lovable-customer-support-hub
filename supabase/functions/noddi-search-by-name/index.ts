@@ -73,10 +73,10 @@ Deno.serve(async (req) => {
 
     console.log(`[noddi-search-by-name] Searching for: ${firstName} ${lastName}`);
 
-    // Call Noddi search API
+    // Call Noddi search API - combine names into single search query
+    const fullName = [firstName, lastName].filter(Boolean).join(' ');
     const searchParams = new URLSearchParams();
-    if (firstName) searchParams.append('first_name', firstName);
-    if (lastName) searchParams.append('last_name', lastName);
+    if (fullName) searchParams.append('search', fullName);
 
     const searchUrl = `${API_BASE}/v1/users/?${searchParams}`;
     console.log(`[noddi-search-by-name] Request URL: ${searchUrl}`);
