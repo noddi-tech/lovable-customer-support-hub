@@ -1127,11 +1127,7 @@ Deno.serve(async (req) => {
           money: extractMoney(bookingForCache || priorityBooking),
           unable_to_complete: isUnableToComplete(bookingForCache || priorityBooking),
           unable_label: unableLabel(bookingForCache || priorityBooking),
-          partner_urls: {
-            customer_url: buildCustomerUrl(noddihUser.id),
-            booking_url: buildBookingUrl((bookingForCache || priorityBooking)?.id),
-            booking_id: (bookingForCache || priorityBooking)?.id
-          },
+          partner_urls: buildPartnerUrls(selectedGroup.id, bookingForCache || priorityBooking),
           version: VERSION,
           source: "live" as const
         }
