@@ -87,6 +87,10 @@ Deno.serve(async (req) => {
       headers: noddiAuthHeaders()
     });
 
+    // Detailed response logging
+    console.log(`[noddi-search-by-name] Response status: ${searchResponse.status} ${searchResponse.statusText}`);
+    console.log(`[noddi-search-by-name] Response headers:`, JSON.stringify(Object.fromEntries(searchResponse.headers.entries())));
+
     if (!searchResponse.ok) {
       const errorBody = await searchResponse.text();
       console.error(`[noddi-search-by-name] Search failed: ${searchResponse.status}`);
@@ -101,9 +105,34 @@ Deno.serve(async (req) => {
     }
 
     const searchData = await searchResponse.json();
-    const users = searchData.results || [];
 
-    console.log(`[noddi-search-by-name] Found ${users.length} users`);
+    // Detailed API response logging
+    console.log(`[noddi-search-by-name] ===== FULL API RESPONSE =====`);
+    console.log(`[noddi-search-by-name] Response structure:`, JSON.stringify(searchData, null, 2));
+    console.log(`[noddi-search-by-name] Response keys:`, Object.keys(searchData));
+    
+    if (searchData.results) {
+      console.log(`[noddi-search-by-name] Results array length: ${searchData.results.length}`);
+      if (searchData.results.length > 0) {
+        console.log(`[noddi-search-by-name] First result sample:`, JSON.stringify(searchData.results[0], null, 2));
+      }
+    }
+    
+    // Log pagination info if available
+    if (searchData.count !== undefined) {
+      console.log(`[noddi-search-by-name] Total count: ${searchData.count}`);
+    }
+    if (searchData.next) {
+      console.log(`[noddi-search-by-name] Has next page: ${searchData.next}`);
+    }
+    if (searchData.previous) {
+      console.log(`[noddi-search-by-name] Has previous page: ${searchData.previous}`);
+    }
+    
+    console.log(`[noddi-search-by-name] ===== END API RESPONSE =====`);
+
+    const users = searchData.results || [];
+    console.log(`[noddi-search-by-name] Extracted ${users.length} users from results`);
 
     // Enrich each user with booking data
     const enrichedResults = await Promise.all(
