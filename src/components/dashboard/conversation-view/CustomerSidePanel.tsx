@@ -421,7 +421,7 @@ export const CustomerSidePanel = ({
             onDataLoaded={setNoddiData}
             noddiData={noddiData}
             onUserGroupChange={handleUserGroupChange}
-            isUserGroupSwitching={isUserGroupSwitching}
+            selectedUserGroupId={selectedUserGroupId}
           />
 
           {/* Alternative Lookup - only show if no data found */}
