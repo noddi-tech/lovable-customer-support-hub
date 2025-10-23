@@ -172,15 +172,19 @@ export const CustomerSidePanel = ({
 
     try {
       // Call Noddi search API with separate fields
+      const body: any = {
+        firstName,
+        organizationId,
+      };
+      
+      // Only include lastName if it's not empty
+      if (lastName) {
+        body.lastName = lastName;
+      }
+
       const { data, error } = await supabase.functions.invoke(
         "noddi-search-by-name",
-        {
-          body: {
-            firstName,
-            lastName: lastName || undefined, // Only send if provided
-            organizationId,
-          },
-        }
+        { body }
       );
 
       if (error) throw error;
