@@ -19,7 +19,7 @@ interface NoddiCustomerDetailsProps {
   onDataLoaded?: (data: any) => void;
   noddiData?: any; // External noddi data to override fetch
   onUserGroupChange?: (userGroupId: number) => void;
-  isUserGroupSwitching?: boolean;
+  selectedUserGroupId?: number;
 }
 
 export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
@@ -30,7 +30,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   onDataLoaded,
   noddiData: externalNoddiData,
   onUserGroupChange,
-  isUserGroupSwitching = false,
+  selectedUserGroupId,
 }) => {
   // Only fetch if no external data provided
   const { data: fetchedData, isLoading } = useNoddihKundeData(
@@ -46,12 +46,47 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const noddiData = externalNoddiData || fetchedData;
   const isLoadingData = !externalNoddiData && isLoading;
 
+  // Compute displayed data based on selected group
+  const displayedData = React.useMemo(() => {
+    if (!noddiData?.data) return noddiData;
+    
+    // If a specific group is selected, find its data
+    if (selectedUserGroupId && noddiData.data.all_user_groups) {
+      const selectedGroupData = noddiData.data.all_user_groups.find(
+        (g: any) => g.id === selectedUserGroupId
+      );
+      
+      if (selectedGroupData) {
+        return {
+          ...noddiData,
+          data: {
+            ...noddiData.data,
+            user_group_id: selectedGroupData.id,
+            priority_booking: selectedGroupData.booking,
+            priority_booking_type: selectedGroupData.booking_type,
+            ui_meta: {
+              ...noddiData.data.ui_meta,
+              user_group_badge: selectedGroupData.id,
+              status_label: selectedGroupData.booking?.status?.label || null,
+              booking_date_iso: selectedGroupData.booking?.deliveryWindowStartsAt || selectedGroupData.booking?.completedAt || null,
+              vehicle_label: selectedGroupData.booking?.vehicle?.registrationNumber || selectedGroupData.booking?.vehicle?.label || null,
+              service_title: selectedGroupData.booking?.service?.title || null,
+            },
+          },
+        };
+      }
+    }
+    
+    // Default: show priority booking
+    return noddiData;
+  }, [noddiData, selectedUserGroupId]);
+
   // Notify parent when data is loaded
   React.useEffect(() => {
-    if (noddiData && onDataLoaded) {
-      onDataLoaded(noddiData);
+    if (displayedData && onDataLoaded) {
+      onDataLoaded(displayedData);
     }
-  }, [noddiData, onDataLoaded]);
+  }, [displayedData, onDataLoaded]);
 
   // Currency formatter for consistent money display
   const moneyFmt = (amt: number, cur: string) =>
@@ -90,7 +125,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     );
   }
 
-  if (!noddiData?.data?.found) {
+  if (!displayedData?.data?.found) {
     return (
       <Card>
         <CardHeader>
@@ -109,7 +144,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     );
   }
 
-  const { data } = noddiData;
+  const { data } = displayedData;
   const customerDisplayName = displayName(data.user, customerEmail);
   const unpaidCount = data.unpaid_count || 0;
   const isPriority = data.priority_booking_type === 'upcoming';
@@ -173,33 +208,25 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
         </div>
 
         {/* User Group Selector - show if multiple groups available */}
-        {noddiData.data.all_user_groups && noddiData.data.all_user_groups.length > 1 && (
+        {displayedData.data.all_user_groups && displayedData.data.all_user_groups.length > 1 && (
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <Building2 className="h-3 w-3" />
               Company / Customer Context
             </label>
             <Select
-              value={noddiData.data.user_group_id?.toString()}
+              value={selectedUserGroupId?.toString() || displayedData.data.user_group_id?.toString()}
               onValueChange={(value) => {
                 if (onUserGroupChange) {
                   onUserGroupChange(Number(value));
                 }
               }}
-              disabled={isUserGroupSwitching}
             >
               <SelectTrigger className="h-9">
-                {isUserGroupSwitching ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Loading...</span>
-                  </div>
-                ) : (
-                  <SelectValue />
-                )}
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {noddiData.data.all_user_groups.map((group: any) => (
+                {displayedData.data.all_user_groups.map((group: any) => (
                   <SelectItem key={group.id} value={group.id.toString()}>
                     <div className="flex items-center gap-2">
                       <span>{group.name || `Group ${group.id}`}</span>
@@ -216,7 +243,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             </Select>
             <p className="text-xs text-muted-foreground">
               Viewing bookings for: <strong>
-                {noddiData.data.all_user_groups.find((g: any) => g.id === noddiData.data.user_group_id)?.name || 'Selected group'}
+                {displayedData.data.all_user_groups.find((g: any) => g.id === (selectedUserGroupId || displayedData.data.user_group_id))?.name || 'Selected group'}
               </strong>
             </p>
           </div>

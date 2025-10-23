@@ -910,119 +910,123 @@ Deno.serve(async (req) => {
       is_personal: g.isPersonal || false
     }));
 
-    // Step 4: Fetch bookings across ALL user groups to find most recent
+    // Step 4: Fetch ALL bookings for ALL user groups in parallel (no filters)
+    console.log(`Fetching all bookings for ${userGroups.length} user groups in parallel`);
+    
+    type BookingWithGroup = NoddihBooking & { user_group_id: number };
+    
+    const allBookingsPromises = userGroups.map(group => 
+      fetch(`${API_BASE}/v1/user-groups/${group.id}/bookings-for-customer/`, {
+        headers: noddiAuthHeaders()
+      })
+        .then(r => r.ok ? r.json() : [])
+        .then(bookings => bookings.map((b: NoddihBooking) => ({ ...b, user_group_id: group.id })))
+        .catch(err => {
+          console.error(`Error fetching bookings for group ${group.id}:`, err);
+          return [];
+        })
+    );
+    
+    const allBookingsResults = await Promise.all(allBookingsPromises);
+    const allBookings: BookingWithGroup[] = allBookingsResults.flat();
+    console.log(`Found ${allBookings.length} total bookings across all groups`);
+    
+    // Categorize all bookings
+    const upcomingBookings = allBookings.filter(b => 
+      b.deliveryWindowStartsAt && new Date(b.deliveryWindowStartsAt) > new Date()
+    );
+    const startedBookings = allBookings.filter(b => 
+      b.startedAt && !b.completedAt
+    );
+    const completedBookings = allBookings.filter(b => 
+      b.completedAt
+    );
+    
+    console.log(`Categorized: ${upcomingBookings.length} upcoming, ${startedBookings.length} started, ${completedBookings.length} completed`);
+    
+    // Determine priority booking and group
     let priorityBooking: NoddihBooking | null = null;
     let priorityBookingType: 'upcoming' | 'completed' | null = null;
     let priorityGroupId: number | null = null;
-
-    // If specific group requested via dropdown, use it directly
-    if (body.userGroupId) {
-      const selectedGroup = userGroups.find(g => g.id === body.userGroupId);
-      if (!selectedGroup) {
-        return json({ error: `User group ${body.userGroupId} not found` }, 404);
-      }
-      console.log(`Using explicitly requested user group: ${selectedGroup.id}`);
+    
+    // Priority: upcoming > started > completed (most recent in each category)
+    if (upcomingBookings.length > 0) {
+      const sorted = upcomingBookings.sort((a, b) => 
+        new Date(a.deliveryWindowStartsAt || '').getTime() - 
+        new Date(b.deliveryWindowStartsAt || '').getTime()
+      );
+      priorityBooking = sorted[0];
+      priorityBookingType = 'upcoming';
+      priorityGroupId = sorted[0].user_group_id;
+      console.log(`Priority: Soonest upcoming booking ${priorityBooking.id} from group ${priorityGroupId} (${priorityBooking.deliveryWindowStartsAt})`);
+    } else if (startedBookings.length > 0) {
+      const sorted = startedBookings.sort((a, b) => 
+        new Date(b.startedAt || '').getTime() - 
+        new Date(a.startedAt || '').getTime()
+      );
+      priorityBooking = sorted[0];
+      priorityBookingType = 'completed';
+      priorityGroupId = sorted[0].user_group_id;
+      console.log(`Priority: Most recent started booking ${priorityBooking.id} from group ${priorityGroupId} (${priorityBooking.startedAt})`);
+    } else if (completedBookings.length > 0) {
+      const sorted = completedBookings.sort((a, b) => 
+        new Date(b.completedAt || '').getTime() - 
+        new Date(a.completedAt || '').getTime()
+      );
+      priorityBooking = sorted[0];
+      priorityBookingType = 'completed';
+      priorityGroupId = sorted[0].user_group_id;
+      console.log(`Priority: Most recent completed booking ${priorityBooking.id} from group ${priorityGroupId} (${priorityBooking.completedAt})`);
+    }
+    
+    // Group bookings by user_group_id for frontend switching
+    const bookingsByGroup = userGroups.map(group => {
+      const groupBookings = allBookings.filter(b => b.user_group_id === group.id);
       
-      // Fetch bookings for this specific group
-      const upcomingResponse = await fetch(
-        `${API_BASE}/v1/user-groups/${selectedGroup.id}/bookings-for-customer/?is_upcoming=true`,
-        { headers: noddiAuthHeaders() }
+      // Find most recent booking for this group
+      let mostRecentBooking: NoddihBooking | null = null;
+      let bookingType: 'upcoming' | 'completed' | null = null;
+      
+      const groupUpcoming = groupBookings.filter(b => 
+        b.deliveryWindowStartsAt && new Date(b.deliveryWindowStartsAt) > new Date()
+      );
+      const groupStarted = groupBookings.filter(b => 
+        b.startedAt && !b.completedAt
+      );
+      const groupCompleted = groupBookings.filter(b => 
+        b.completedAt
       );
       
-      if (upcomingResponse.ok) {
-        const upcomingBookings: NoddihBooking[] = await upcomingResponse.json();
-        if (upcomingBookings.length > 0) {
-          priorityBooking = upcomingBookings.sort((a, b) => 
-            new Date(a.deliveryWindowStartsAt || '').getTime() - new Date(b.deliveryWindowStartsAt || '').getTime()
-          )[0];
-          priorityBookingType = 'upcoming';
-          priorityGroupId = selectedGroup.id;
-        }
-      }
-      
-      if (!priorityBooking) {
-        const completedResponse = await fetch(
-          `${API_BASE}/v1/user-groups/${selectedGroup.id}/bookings-for-customer/?is_completed=true`,
-          { headers: noddiAuthHeaders() }
-        );
-        
-        if (completedResponse.ok) {
-          const completedBookings: NoddihBooking[] = await completedResponse.json();
-          if (completedBookings.length > 0) {
-            priorityBooking = completedBookings.sort((a, b) => 
-              new Date(b.completedAt || b.deliveryWindowStartsAt || '').getTime() - 
-              new Date(a.completedAt || a.deliveryWindowStartsAt || '').getTime()
-            )[0];
-            priorityBookingType = 'completed';
-            priorityGroupId = selectedGroup.id;
-          }
-        }
-      }
-    } else {
-      // No specific group requested - find most recent booking across ALL groups
-      console.log(`Fetching bookings across ${userGroups.length} user groups to find most recent`);
-      
-      type BookingWithGroup = NoddihBooking & { user_group_id: number };
-      
-      // Step 1: Fetch upcoming bookings for all groups in parallel
-      const upcomingPromises = userGroups.map(group => 
-        fetch(`${API_BASE}/v1/user-groups/${group.id}/bookings-for-customer/?is_upcoming=true`, {
-          headers: noddiAuthHeaders()
-        })
-          .then(r => r.ok ? r.json() : [])
-          .then(bookings => bookings.map((b: NoddihBooking) => ({ ...b, user_group_id: group.id })))
-          .catch(err => {
-            console.error(`Error fetching upcoming bookings for group ${group.id}:`, err);
-            return [];
-          })
-      );
-      
-      const upcomingResults = await Promise.all(upcomingPromises);
-      const allUpcomingBookings: BookingWithGroup[] = upcomingResults.flat();
-      console.log(`Found ${allUpcomingBookings.length} total upcoming bookings across all groups`);
-      
-      // Step 2: If upcoming bookings found, use the soonest one
-      if (allUpcomingBookings.length > 0) {
-        const sortedUpcoming = allUpcomingBookings.sort((a, b) => 
+      if (groupUpcoming.length > 0) {
+        mostRecentBooking = groupUpcoming.sort((a, b) => 
           new Date(a.deliveryWindowStartsAt || '').getTime() - 
           new Date(b.deliveryWindowStartsAt || '').getTime()
-        );
-        priorityBooking = sortedUpcoming[0];
-        priorityBookingType = 'upcoming';
-        priorityGroupId = sortedUpcoming[0].user_group_id;
-        console.log(`Using soonest upcoming booking ${priorityBooking.id} from group ${priorityGroupId}`);
-      } else {
-        // Step 3: No upcoming bookings - fetch completed bookings across all groups
-        console.log('No upcoming bookings, fetching completed bookings across all groups');
-        
-        const completedPromises = userGroups.map(group =>
-          fetch(`${API_BASE}/v1/user-groups/${group.id}/bookings-for-customer/?is_completed=true`, {
-            headers: noddiAuthHeaders()
-          })
-            .then(r => r.ok ? r.json() : [])
-            .then(bookings => bookings.map((b: NoddihBooking) => ({ ...b, user_group_id: group.id })))
-            .catch(err => {
-              console.error(`Error fetching completed bookings for group ${group.id}:`, err);
-              return [];
-            })
-        );
-        
-        const completedResults = await Promise.all(completedPromises);
-        const allCompletedBookings: BookingWithGroup[] = completedResults.flat();
-        console.log(`Found ${allCompletedBookings.length} total completed bookings across all groups`);
-        
-        if (allCompletedBookings.length > 0) {
-          const sortedCompleted = allCompletedBookings.sort((a, b) => 
-            new Date(b.completedAt || b.deliveryWindowStartsAt || '').getTime() - 
-            new Date(a.completedAt || a.deliveryWindowStartsAt || '').getTime()
-          );
-          priorityBooking = sortedCompleted[0];
-          priorityBookingType = 'completed';
-          priorityGroupId = sortedCompleted[0].user_group_id;
-          console.log(`Using most recent completed booking ${priorityBooking.id} from group ${priorityGroupId}`);
-        }
+        )[0];
+        bookingType = 'upcoming';
+      } else if (groupStarted.length > 0) {
+        mostRecentBooking = groupStarted.sort((a, b) => 
+          new Date(b.startedAt || '').getTime() - 
+          new Date(a.startedAt || '').getTime()
+        )[0];
+        bookingType = 'completed';
+      } else if (groupCompleted.length > 0) {
+        mostRecentBooking = groupCompleted.sort((a, b) => 
+          new Date(b.completedAt || '').getTime() - 
+          new Date(a.completedAt || '').getTime()
+        )[0];
+        bookingType = 'completed';
       }
-    }
+      
+      return {
+        id: group.id,
+        name: group.name,
+        is_personal: group.isPersonal,
+        is_default: group.isDefaultUserGroup,
+        booking: mostRecentBooking,
+        booking_type: bookingType,
+        total_bookings: groupBookings.length
+      };
+    });
 
     // Step 5: Select the user group (either explicitly requested or found via booking)
     let selectedGroup: NoddihUserGroup;
@@ -1079,22 +1083,48 @@ Deno.serve(async (req) => {
       order_tags
     );
     
-    const liveResponse = buildResponse({
-      source: "live",
+    const liveResponse = {
+      ok: true,
+      source: "live" as const,
       ttl_seconds: CACHE_TTL_SECONDS,
-      found: true,
-      email,
-      noddi_user_id: noddihUser.id,
-      user_group_id: selectedGroup.id,
-      all_user_groups: allUserGroupsFormatted,
-      user: noddihUser,
-      priority_booking_type: priorityBookingType,
-      priority_booking: bookingForCache, // Use enriched booking
-      unpaid_count: pendingBookings.length,
-      unpaid_bookings: pendingBookings,
-      userGroup: selectedGroup,
-      enriched_order_tags: order_tags // Pass tags separately
-    });
+      data: {
+        found: true,
+        email: successfulEmail || emailsToTry[0] || "",
+        noddi_user_id: noddihUser.id,
+        user_group_id: selectedGroup.id,
+        all_user_groups: bookingsByGroup, // Include all groups with their bookings
+        most_recent_group_id: priorityGroupId,
+        user: noddihUser,
+        priority_booking_type: priorityBookingType,
+        priority_booking: bookingForCache || priorityBooking,
+        unpaid_count: pendingBookings.length,
+        unpaid_bookings: pendingBookings,
+        ui_meta: {
+          display_name: resolveDisplayName(noddihUser, bookingForCache || priorityBooking),
+          user_group_badge: selectedGroup.id,
+          unpaid_count: pendingBookings.length,
+          status_label: statusLabel((bookingForCache || priorityBooking)?.status),
+          booking_date_iso: isoFromBooking(bookingForCache || priorityBooking, priorityBookingType),
+          match_mode: lookupMode,
+          conflict,
+          vehicle_label: extractVehicleLabel(bookingForCache || priorityBooking),
+          service_title: extractServiceTitle(bookingForCache || priorityBooking),
+          order_summary: extractOrderSummary(bookingForCache || priorityBooking),
+          order_tags,
+          order_lines: extractOrderLines(bookingForCache || priorityBooking),
+          money: extractMoney(bookingForCache || priorityBooking),
+          unable_to_complete: !!(bookingForCache || priorityBooking)?.unableToComplete,
+          unable_label: extractUnableLabel(bookingForCache || priorityBooking),
+          partner_urls: {
+            customer_url: buildCustomerUrl(noddihUser.id),
+            booking_url: buildBookingUrl((bookingForCache || priorityBooking)?.id),
+            booking_id: (bookingForCache || priorityBooking)?.id
+          },
+          version: VERSION,
+          source: "live" as const
+        }
+      }
+    };
 
     // Step 8: Update cache (if table exists)
     try {

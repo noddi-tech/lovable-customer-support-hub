@@ -50,6 +50,7 @@ export const CustomerSidePanel = ({
   const { dateTime } = useDateFormatting();
   const { dispatch, updateStatus } = useConversationView();
   const [statusLoading, setStatusLoading] = useState(false);
+  const [selectedUserGroupId, setSelectedUserGroupId] = useState<number | undefined>(undefined);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { profile } = useAuth();
@@ -352,53 +353,9 @@ export const CustomerSidePanel = ({
     }
   };
 
-  const [isUserGroupSwitching, setIsUserGroupSwitching] = useState(false);
-
-  const handleUserGroupChange = async (userGroupId: number) => {
-    setIsUserGroupSwitching(true);
-    
-    try {
-      const { data: newData, error } = await supabase.functions.invoke(
-        "noddi-customer-lookup",
-        {
-          body: {
-            email: conversation.customer?.email,
-            phone: conversation.customer?.phone,
-            customerId: conversation.customer?.id,
-            organizationId,
-            userGroupId,
-          },
-        }
-      );
-
-      if (error) throw error;
-      
-      if (newData?.data?.found) {
-        // Update the displayed data
-        setNoddiData(newData);
-        
-        const groupName = newData.data.all_user_groups?.find((g: any) => g.id === userGroupId)?.name;
-        toast({
-          title: "Context Switched",
-          description: `Now viewing: ${groupName || 'Selected company'}`,
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "No Data",
-          description: "No booking data found for this company",
-        });
-      }
-    } catch (error) {
-      console.error('Error switching user group:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load data for selected company",
-      });
-    } finally {
-      setIsUserGroupSwitching(false);
-    }
+  const handleUserGroupChange = (groupId: number) => {
+    // Instant local switch - no API call needed, data is already cached
+    setSelectedUserGroupId(groupId);
   };
 
   if (isCollapsed) {
