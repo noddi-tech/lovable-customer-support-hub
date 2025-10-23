@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
     
     console.log(`[noddi-search-by-name] ===== END API RESPONSE =====`);
 
-    const users = searchData.results || [];
+    const users = Array.isArray(searchData) ? searchData : (searchData.results || []);
     console.log(`[noddi-search-by-name] Extracted ${users.length} users from results`);
 
     // Enrich each user with booking data
