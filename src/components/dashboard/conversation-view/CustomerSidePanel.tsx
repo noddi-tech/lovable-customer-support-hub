@@ -210,7 +210,8 @@ export const CustomerSidePanel = ({
               priority_booking: result.bookings_summary.priority_booking,
               unpaid_bookings: result.bookings_summary.unpaid_bookings,
               unpaid_count: result.bookings_summary.unpaid_count,
-              total_bookings: result.bookings_summary.total_bookings
+              total_bookings: result.bookings_summary.total_bookings,
+              ui_meta: result.ui_meta || {}
             }
           }
         }));
@@ -304,14 +305,7 @@ export const CustomerSidePanel = ({
             priority_booking: noddiData.priority_booking,
             unpaid_count: noddiData.unpaid_count,
             unpaid_bookings: noddiData.unpaid_bookings,
-            ui_meta: {
-              display_name: selectedCustomer.full_name,
-              user_group_badge: noddiData.noddi_user_group?.badge,
-              unpaid_count: noddiData.unpaid_count,
-              match_mode: "email",
-              conflict: false,
-              source: "live"
-            }
+            ui_meta: noddiData.ui_meta || {}
           }
         };
       } else {

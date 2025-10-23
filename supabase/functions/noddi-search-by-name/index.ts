@@ -134,6 +134,45 @@ Deno.serve(async (req) => {
     const users = Array.isArray(searchData) ? searchData : (searchData.results || []);
     console.log(`[noddi-search-by-name] Extracted ${users.length} users from results`);
 
+    // Helper function to build UI metadata from booking data
+    function buildBookingUIMeta(booking: any, userGroup: any) {
+      if (!booking) return {};
+      
+      return {
+        partner_urls: {
+          customer_url: `https://admin.noddi.co/users/${booking.user_id || userGroup?.user_id}`,
+          booking_url: `https://admin.noddi.co/bookings/${booking.id}`,
+          booking_id: booking.id
+        },
+        status_label: booking.status || 'unknown',
+        booking_date_iso: booking.scheduled_at || booking.created_at,
+        service_title: booking.service?.name || 'Service',
+        vehicle_label: booking.vehicle ? 
+          `${booking.vehicle.make} ${booking.vehicle.model} (${booking.vehicle.registration_number})`.trim() 
+          : undefined,
+        order_lines: (booking.order?.line_items || []).map((item: any) => ({
+          name: item.name || item.description,
+          quantity: item.quantity || 1,
+          amount_gross: item.total_amount || 0,
+          currency: item.currency || 'NOK',
+          is_discount: (item.total_amount || 0) < 0
+        })),
+        order_tags: booking.tags || [],
+        money: booking.order ? {
+          paid_state: booking.order.payment_status === 'paid' ? 'paid' : 
+                      booking.order.payment_status === 'partially_paid' ? 'partially_paid' : 'unpaid',
+          gross: booking.order.total_amount || 0,
+          vat: booking.order.vat_amount || 0,
+          outstanding: booking.order.outstanding_amount || 0,
+          currency: booking.order.currency || 'NOK'
+        } : undefined,
+        unable_to_complete: booking.status === 'cancelled' || booking.status === 'failed',
+        unable_label: booking.status === 'cancelled' ? 'Cancelled' : 
+                      booking.status === 'failed' ? 'Failed' : undefined,
+        version: '1.0'
+      };
+    }
+
     // Enrich each user with booking data
     const enrichedResults = await Promise.all(
       users.map(async (user: any) => {
@@ -180,6 +219,9 @@ Deno.serve(async (req) => {
           // Get user_group data
           const userGroup = user.user_groups?.[0] || null;
 
+          // Build UI metadata for the priority booking
+          const uiMeta = buildBookingUIMeta(priorityBooking, userGroup);
+
           return {
             noddi_user: user,
             noddi_user_group: userGroup,
@@ -189,7 +231,8 @@ Deno.serve(async (req) => {
               unpaid_count: unpaidBookings.length,
               unpaid_bookings: unpaidBookings,
               total_bookings: bookings.length
-            }
+            },
+            ui_meta: uiMeta
           };
         } catch (error) {
           console.error(`[noddi-search-by-name] Error enriching user ${user.id}:`, error);
@@ -202,7 +245,8 @@ Deno.serve(async (req) => {
               unpaid_count: 0,
               unpaid_bookings: [],
               total_bookings: 0
-            }
+            },
+            ui_meta: {}
           };
         }
       })
