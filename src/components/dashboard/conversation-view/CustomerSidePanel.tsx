@@ -352,6 +352,44 @@ export const CustomerSidePanel = ({
     }
   };
 
+  const handleUserGroupChange = async (userGroupId: number) => {
+    setStatusLoading(true);
+    
+    try {
+      const { data: newData, error } = await supabase.functions.invoke(
+        "noddi-customer-lookup",
+        {
+          body: {
+            email: conversation.customer?.email,
+            phone: conversation.customer?.phone,
+            customerId: conversation.customer?.id,
+            organizationId,
+            userGroupId,
+          },
+        }
+      );
+
+      if (error) throw error;
+      
+      // Update the displayed data
+      setNoddiData(newData);
+      
+      toast({
+        title: "Context Switched",
+        description: `Viewing bookings for selected company`,
+      });
+    } catch (error) {
+      console.error('Error switching user group:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load data for selected company",
+      });
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   if (isCollapsed) {
     return (
       <div className="h-full w-12 bg-card flex flex-col items-center py-4 gap-4 border-l border-border">
@@ -414,6 +452,7 @@ export const CustomerSidePanel = ({
             customerName={conversation.customer?.full_name}
             onDataLoaded={setNoddiData}
             noddiData={noddiData}
+            onUserGroupChange={handleUserGroupChange}
           />
 
           {/* Alternative Lookup - only show if no data found */}

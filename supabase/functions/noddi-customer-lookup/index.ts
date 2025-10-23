@@ -24,6 +24,12 @@ export type NoddiLookupResponse = {
     email: string;
     noddi_user_id: number | null;
     user_group_id: number | null;
+    all_user_groups?: Array<{
+      id: number;
+      name: string | null;
+      is_default: boolean;
+      is_personal: boolean;
+    }>;
     user: any;
     priority_booking_type: "upcoming" | "completed" | null;
     priority_booking: any;
@@ -89,6 +95,7 @@ interface NoddihCustomerLookupRequest {
   customerId?: string;
   organizationId?: string;
   forceRefresh?: boolean;
+  userGroupId?: number;
 }
 
 interface NoddihUser {
@@ -497,6 +504,7 @@ function buildResponse(params: {
   email: string;
   noddi_user_id?: number | null;
   user_group_id?: number | null;
+  all_user_groups?: any[];
   user?: any;
   priority_booking_type?: "upcoming" | "completed" | null;
   priority_booking?: any;
@@ -513,6 +521,7 @@ function buildResponse(params: {
     email,
     noddi_user_id = null,
     user_group_id = null,
+    all_user_groups = [],
     user = null,
     priority_booking_type = null,
     priority_booking = null,
@@ -564,6 +573,7 @@ function buildResponse(params: {
       email,
       noddi_user_id,
       user_group_id: safeUserGroupId,
+      all_user_groups,
       user,
       priority_booking_type: safePriorityBookingType,
       priority_booking,
@@ -892,16 +902,35 @@ Deno.serve(async (req) => {
     const userGroups: NoddihUserGroup[] = await groupsResponse.json();
     console.log(`Found ${userGroups.length} user groups`);
 
+    // Format all user groups for response
+    const allUserGroupsFormatted = userGroups.map(g => ({
+      id: g.id,
+      name: g.name || null,
+      is_default: g.isDefaultUserGroup || false,
+      is_personal: g.isPersonal || false
+    }));
+
     // Step 4: Select priority group
-    let selectedGroup = userGroups.find(g => g.isDefaultUserGroup) || 
-                       userGroups.find(g => g.isPersonal) || 
-                       userGroups[0];
+    let selectedGroup: NoddihUserGroup | undefined;
+
+    if (body.userGroupId) {
+      // If specific group requested, use it
+      selectedGroup = userGroups.find(g => g.id === body.userGroupId);
+      if (!selectedGroup) {
+        return json({ error: `User group ${body.userGroupId} not found` }, 404);
+      }
+      console.log(`Using requested user group: ${selectedGroup.id}`);
+    } else {
+      // Default selection logic
+      selectedGroup = userGroups.find(g => g.isDefaultUserGroup) || 
+                     userGroups.find(g => g.isPersonal) || 
+                     userGroups[0];
+      console.log(`Using auto-selected user group: ${selectedGroup.id}`);
+    }
 
     if (!selectedGroup) {
       return json({ error: 'No user groups found for customer' }, 404);
     }
-
-    console.log(`Using user group: ${selectedGroup.id}`);
 
     // Step 5: Get bookings (upcoming first, then completed)
     let priorityBooking: NoddihBooking | null = null;
@@ -988,6 +1017,7 @@ Deno.serve(async (req) => {
       email,
       noddi_user_id: noddihUser.id,
       user_group_id: selectedGroup.id,
+      all_user_groups: allUserGroupsFormatted,
       user: noddihUser,
       priority_booking_type: priorityBookingType,
       priority_booking: bookingForCache, // Use enriched booking

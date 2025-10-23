@@ -2,9 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
-  Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap
+  Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap, Building2
 } from 'lucide-react';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
@@ -17,6 +18,7 @@ interface NoddiCustomerDetailsProps {
   customerName?: string;
   onDataLoaded?: (data: any) => void;
   noddiData?: any; // External noddi data to override fetch
+  onUserGroupChange?: (userGroupId: number) => void;
 }
 
 export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
@@ -26,6 +28,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   customerName,
   onDataLoaded,
   noddiData: externalNoddiData,
+  onUserGroupChange,
 }) => {
   // Only fetch if no external data provided
   const { data: fetchedData, isLoading } = useNoddihKundeData(
@@ -166,6 +169,48 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             )}
           </div>
         </div>
+
+        {/* User Group Selector - show if multiple groups available */}
+        {noddiData.data.all_user_groups && noddiData.data.all_user_groups.length > 1 && (
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Building2 className="h-3 w-3" />
+              Company / Customer Context
+            </label>
+            <Select
+              value={noddiData.data.user_group_id?.toString()}
+              onValueChange={(value) => {
+                if (onUserGroupChange) {
+                  onUserGroupChange(Number(value));
+                }
+              }}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {noddiData.data.all_user_groups.map((group: any) => (
+                  <SelectItem key={group.id} value={group.id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <span>{group.name || `Group ${group.id}`}</span>
+                      {group.is_default && (
+                        <Badge variant="outline" className="text-xs">Default</Badge>
+                      )}
+                      {group.is_personal && (
+                        <Badge variant="outline" className="text-xs">Personal</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Viewing bookings for: <strong>
+                {noddiData.data.all_user_groups.find((g: any) => g.id === noddiData.data.user_group_id)?.name || 'Selected group'}
+              </strong>
+            </p>
+          </div>
+        )}
 
         {/* Priority Status */}
         {isPriority && (
