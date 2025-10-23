@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     if (firstName) searchParams.append('first_name', firstName);
     if (lastName) searchParams.append('last_name', lastName);
 
-    const searchUrl = `${API_BASE}/v1/users/search?${searchParams}`;
+    const searchUrl = `${API_BASE}/v1/users/?${searchParams}`;
     console.log(`[noddi-search-by-name] Request URL: ${searchUrl}`);
     console.log(`[noddi-search-by-name] API Base: ${API_BASE}`);
     console.log(`[noddi-search-by-name] Has API Key: ${noddiApiKey ? 'Yes' : 'No'}`);
