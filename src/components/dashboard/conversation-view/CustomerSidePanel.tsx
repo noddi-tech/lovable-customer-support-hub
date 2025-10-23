@@ -352,8 +352,10 @@ export const CustomerSidePanel = ({
     }
   };
 
+  const [isUserGroupSwitching, setIsUserGroupSwitching] = useState(false);
+
   const handleUserGroupChange = async (userGroupId: number) => {
-    setStatusLoading(true);
+    setIsUserGroupSwitching(true);
     
     try {
       const { data: newData, error } = await supabase.functions.invoke(
@@ -371,13 +373,22 @@ export const CustomerSidePanel = ({
 
       if (error) throw error;
       
-      // Update the displayed data
-      setNoddiData(newData);
-      
-      toast({
-        title: "Context Switched",
-        description: `Viewing bookings for selected company`,
-      });
+      if (newData?.data?.found) {
+        // Update the displayed data
+        setNoddiData(newData);
+        
+        const groupName = newData.data.all_user_groups?.find((g: any) => g.id === userGroupId)?.name;
+        toast({
+          title: "Context Switched",
+          description: `Now viewing: ${groupName || 'Selected company'}`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "No Data",
+          description: "No booking data found for this company",
+        });
+      }
     } catch (error) {
       console.error('Error switching user group:', error);
       toast({
@@ -386,7 +397,7 @@ export const CustomerSidePanel = ({
         description: "Failed to load data for selected company",
       });
     } finally {
-      setStatusLoading(false);
+      setIsUserGroupSwitching(false);
     }
   };
 
@@ -453,6 +464,7 @@ export const CustomerSidePanel = ({
             onDataLoaded={setNoddiData}
             noddiData={noddiData}
             onUserGroupChange={handleUserGroupChange}
+            isUserGroupSwitching={isUserGroupSwitching}
           />
 
           {/* Alternative Lookup - only show if no data found */}

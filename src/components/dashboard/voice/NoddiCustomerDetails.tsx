@@ -19,6 +19,7 @@ interface NoddiCustomerDetailsProps {
   onDataLoaded?: (data: any) => void;
   noddiData?: any; // External noddi data to override fetch
   onUserGroupChange?: (userGroupId: number) => void;
+  isUserGroupSwitching?: boolean;
 }
 
 export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
@@ -29,6 +30,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   onDataLoaded,
   noddiData: externalNoddiData,
   onUserGroupChange,
+  isUserGroupSwitching = false,
 }) => {
   // Only fetch if no external data provided
   const { data: fetchedData, isLoading } = useNoddihKundeData(
@@ -184,9 +186,17 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                   onUserGroupChange(Number(value));
                 }
               }}
+              disabled={isUserGroupSwitching}
             >
               <SelectTrigger className="h-9">
-                <SelectValue />
+                {isUserGroupSwitching ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Loading...</span>
+                  </div>
+                ) : (
+                  <SelectValue />
+                )}
               </SelectTrigger>
               <SelectContent>
                 {noddiData.data.all_user_groups.map((group: any) => (
