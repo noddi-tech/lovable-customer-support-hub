@@ -1123,7 +1123,7 @@ Deno.serve(async (req) => {
           service_title: extractServiceTitle(bookingForCache || priorityBooking),
           order_summary: extractOrderSummary(bookingForCache || priorityBooking),
           order_tags,
-          order_lines: extractOrderLines(bookingForCache || priorityBooking),
+          order_lines: extractLineItems(bookingForCache || priorityBooking),
           money: extractMoney(bookingForCache || priorityBooking),
           unable_to_complete: !!(bookingForCache || priorityBooking)?.unableToComplete,
           unable_label: extractUnableLabel(bookingForCache || priorityBooking),
