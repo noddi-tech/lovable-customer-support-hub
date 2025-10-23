@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       return json({ error: 'Organization mismatch' }, 403);
     }
 
-    console.log(`[noddi-search-by-name] Searching for: ${firstName} ${lastName}`);
+    console.log(`[noddi-search-by-name] Searching - firstName: "${firstName}", lastName: "${lastName || 'not provided'}"`);
 
     // Call Noddi search API using filter parameters
     const searchParams = new URLSearchParams();

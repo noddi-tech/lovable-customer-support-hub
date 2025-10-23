@@ -59,7 +59,8 @@ export const CustomerSidePanel = ({
   const [alternativeEmailResult, setAlternativeEmailResult] = useState(false);
   const [noddiData, setNoddiData] = useState<NoddiLookupResponse | null>(null);
   const [searchMode, setSearchMode] = useState<'email' | 'name'>('email');
-  const [searchName, setSearchName] = useState('');
+  const [searchFirstName, setSearchFirstName] = useState('');
+  const [searchLastName, setSearchLastName] = useState('');
   const [matchingCustomers, setMatchingCustomers] = useState<any[]>([]);
   const [nameSearchLoading, setNameSearchLoading] = useState(false);
 
@@ -145,10 +146,13 @@ export const CustomerSidePanel = ({
   };
 
   const handleNameSearch = async () => {
-    if (!searchName.trim() || searchName.length < 2) {
+    const firstName = searchFirstName.trim();
+    const lastName = searchLastName.trim();
+    
+    if (firstName.length < 2) {
       toast({
         title: "Invalid search",
-        description: "Please enter at least 2 characters",
+        description: "Please enter at least 2 characters for first name",
         variant: "destructive",
       });
       return;
@@ -167,18 +171,13 @@ export const CustomerSidePanel = ({
     setMatchingCustomers([]);
 
     try {
-      // Parse search term into first and last name
-      const nameParts = searchName.trim().split(/\s+/);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      // Call new Noddi search API
+      // Call Noddi search API with separate fields
       const { data, error } = await supabase.functions.invoke(
         "noddi-search-by-name",
         {
           body: {
             firstName,
-            lastName,
+            lastName: lastName || undefined, // Only send if provided
             organizationId,
           },
         }
@@ -218,9 +217,10 @@ export const CustomerSidePanel = ({
           description: `Found ${transformedCustomers.length} customer${transformedCustomers.length > 1 ? "s" : ""} in Noddi`,
         });
       } else {
+        const searchTerm = lastName ? `"${firstName} ${lastName}"` : `"${firstName}"`;
         toast({
           title: "No matches",
-          description: `No customers found in Noddi matching "${searchName}"`,
+          description: `No customers found in Noddi matching ${searchTerm}`,
           variant: "destructive",
         });
       }
@@ -533,35 +533,54 @@ export const CustomerSidePanel = ({
 
                 {/* Name Search Tab */}
                 {searchMode === 'name' && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-amber-900">
-                      Customer name:
-                    </label>
-                    <div className="flex gap-2 relative z-10" style={{ pointerEvents: 'auto' }}>
+                  <div className="space-y-3">
+                    {/* First Name Field */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-amber-900">
+                        First name: <span className="text-destructive">*</span>
+                      </label>
                       <Input
                         type="text"
-                        placeholder="Type customer name..."
-                        value={searchName}
-                        onChange={(e) => setSearchName(e.target.value)}
-                        className="text-sm h-8 relative z-10"
-                        style={{ pointerEvents: 'auto' }}
+                        placeholder="e.g., Joachim"
+                        value={searchFirstName}
+                        onChange={(e) => setSearchFirstName(e.target.value)}
+                        className="text-sm h-8"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleNameSearch();
+                          if (e.key === 'Enter' && searchFirstName.length >= 2) handleNameSearch();
                         }}
                       />
-                      <Button
-                        size="sm"
-                        onClick={handleNameSearch}
-                        disabled={!searchName || searchName.length < 2 || nameSearchLoading}
-                        className="h-8"
-                      >
-                        {nameSearchLoading ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          "Search"
-                        )}
-                      </Button>
                     </div>
+
+                    {/* Last Name Field */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-amber-900">
+                        Last name: <span className="text-xs text-muted-foreground">(optional)</span>
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="e.g., Rathke"
+                        value={searchLastName}
+                        onChange={(e) => setSearchLastName(e.target.value)}
+                        className="text-sm h-8"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && searchFirstName.length >= 2) handleNameSearch();
+                        }}
+                      />
+                    </div>
+
+                    {/* Search Button */}
+                    <Button
+                      size="sm"
+                      onClick={handleNameSearch}
+                      disabled={!searchFirstName || searchFirstName.length < 2 || nameSearchLoading}
+                      className="h-8 w-full"
+                    >
+                      {nameSearchLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        "Search"
+                      )}
+                    </Button>
 
                     {/* Matching Customers List */}
                     {matchingCustomers.length > 0 && (
