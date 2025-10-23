@@ -1125,8 +1125,8 @@ Deno.serve(async (req) => {
           order_tags,
           order_lines: extractLineItems(bookingForCache || priorityBooking),
           money: extractMoney(bookingForCache || priorityBooking),
-          unable_to_complete: !!(bookingForCache || priorityBooking)?.unableToComplete,
-          unable_label: extractUnableLabel(bookingForCache || priorityBooking),
+          unable_to_complete: isUnableToComplete(bookingForCache || priorityBooking),
+          unable_label: unableLabel(bookingForCache || priorityBooking),
           partner_urls: {
             customer_url: buildCustomerUrl(noddihUser.id),
             booking_url: buildBookingUrl((bookingForCache || priorityBooking)?.id),
