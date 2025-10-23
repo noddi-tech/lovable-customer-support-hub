@@ -420,6 +420,18 @@ function extractOrderTags(b: any): string[] {
   return out;
 }
 
+function isoFromBooking(booking: any, bookingType: 'upcoming' | 'completed' | null): string | null {
+  if (!booking) return null;
+  
+  // For upcoming bookings, use delivery window start
+  if (bookingType === 'upcoming') {
+    return booking.deliveryWindowStartsAt || booking.startedAt || booking.completedAt || null;
+  }
+  
+  // For completed/started bookings, prioritize completedAt, then startedAt
+  return booking.completedAt || booking.startedAt || booking.deliveryWindowStartsAt || null;
+}
+
 function buildPartnerUrls(userGroupId: number | null, booking: any) {
   const bookingId = extractBookingId(booking);
   return {
