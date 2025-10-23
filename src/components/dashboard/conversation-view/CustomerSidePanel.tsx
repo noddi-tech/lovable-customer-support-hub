@@ -190,29 +190,16 @@ export const CustomerSidePanel = ({
       if (error) throw error;
 
       if (data?.results && data.results.length > 0) {
-        // Transform Noddi results to local customer format with metadata
+        // Transform Noddi results to local customer format with basic metadata
         const transformedCustomers = data.results.map((result: any) => ({
-          id: result.local_customer_id || `noddi-${result.noddi_user.id}`,
-          full_name: `${result.noddi_user_group?.first_name || result.noddi_user.first_name || ''} ${result.noddi_user_group?.last_name || result.noddi_user.last_name || ''}`.trim(),
-          email: result.noddi_user.email,
-          phone: result.noddi_user.phone,
+          id: result.local_customer_id || `noddi-${result.noddi_user_id}`,
+          full_name: result.full_name,
+          email: result.email,
+          phone: result.phone,
           metadata: {
-            noddi_user_id: result.noddi_user.id,
-            user_group_id: result.noddi_user_group?.id,
-            badge: result.noddi_user_group?.badge,
-            unpaid_count: result.bookings_summary.unpaid_count,
-            has_priority: !!result.bookings_summary.priority_booking,
-            is_new: !result.local_customer_id,
-            // Store full noddi data for handleSelectCustomer
-            _noddiData: {
-              noddi_user: result.noddi_user,
-              noddi_user_group: result.noddi_user_group,
-              priority_booking: result.bookings_summary.priority_booking,
-              unpaid_bookings: result.bookings_summary.unpaid_bookings,
-              unpaid_count: result.bookings_summary.unpaid_count,
-              total_bookings: result.bookings_summary.total_bookings,
-              ui_meta: result.ui_meta || {}
-            }
+            noddi_user_id: result.noddi_user_id,
+            user_group_id: result.user_group_id,
+            is_new: result.is_new
           }
         }));
 
@@ -264,65 +251,41 @@ export const CustomerSidePanel = ({
 
     try {
       let customerId = selectedCustomer.id;
-      let lookupData = null;
 
-      // Check if this is a Noddi search result with embedded data
-      if (selectedCustomer.metadata?._noddiData) {
-        const noddiData = selectedCustomer.metadata._noddiData;
-        
-        // If customer doesn't exist locally, create them
-        if (selectedCustomer.metadata.is_new) {
-          const { data: newCustomer, error: createError } = await supabase
-            .from("customers")
-            .insert({
-              full_name: selectedCustomer.full_name,
-              email: selectedCustomer.email,
-              phone: selectedCustomer.phone,
-              organization_id: organizationId,
-            })
-            .select()
-            .single();
-
-          if (createError) throw createError;
-          customerId = newCustomer.id;
-
-          toast({
-            title: "Customer created",
-            description: `Created new customer: ${selectedCustomer.full_name}`,
-          });
-        }
-
-        // Build lookup data format from embedded Noddi data
-        lookupData = {
-          ok: true,
-          source: "live",
-          data: {
-            found: true,
+      // If customer doesn't exist locally, create them
+      if (selectedCustomer.metadata?.is_new) {
+        const { data: newCustomer, error: createError } = await supabase
+          .from("customers")
+          .insert({
+            full_name: selectedCustomer.full_name,
             email: selectedCustomer.email,
-            noddi_user_id: noddiData.noddi_user.id,
-            user_group_id: noddiData.noddi_user_group?.id,
-            user: noddiData.noddi_user,
-            priority_booking: noddiData.priority_booking,
-            unpaid_count: noddiData.unpaid_count,
-            unpaid_bookings: noddiData.unpaid_bookings,
-            ui_meta: noddiData.ui_meta || {}
-          }
-        };
-      } else {
-        // Regular local customer search - perform Noddi lookup
-        const { data: fetchedLookupData, error: lookupError } =
-          await supabase.functions.invoke("noddi-customer-lookup", {
-            body: {
-              email: selectedCustomer.email,
-              phone: selectedCustomer.phone,
-              customerId: selectedCustomer.id,
-              organizationId,
-            },
-          });
+            phone: selectedCustomer.phone,
+            organization_id: organizationId,
+          })
+          .select()
+          .single();
 
-        if (lookupError) throw lookupError;
-        lookupData = fetchedLookupData;
+        if (createError) throw createError;
+        customerId = newCustomer.id;
+
+        toast({
+          title: "Customer created",
+          description: `Created new customer: ${selectedCustomer.full_name}`,
+        });
       }
+
+      // Always call noddi-customer-lookup to get full enriched data
+      const { data: lookupData, error: lookupError } =
+        await supabase.functions.invoke("noddi-customer-lookup", {
+          body: {
+            email: selectedCustomer.email,
+            phone: selectedCustomer.phone,
+            customerId: customerId,
+            organizationId,
+          },
+        });
+
+      if (lookupError) throw lookupError;
 
       // Link customer to conversation if data found
       if (lookupData?.data?.found) {
