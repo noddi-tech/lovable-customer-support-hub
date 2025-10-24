@@ -35,6 +35,7 @@ interface ConversationSidebarProps {
   onStatusChange?: (status: string) => void;
   onPriorityChange?: (priority: string) => void;
   onAssigneeChange?: (assigneeId: string) => void;
+  onAssign?: () => void;
   onAddTag?: () => void;
   onRemoveTag?: (tag: string) => void;
   onSnooze?: () => void;
@@ -57,6 +58,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   onStatusChange,
   onPriorityChange,
   onAssigneeChange,
+  onAssign,
   onAddTag,
   onRemoveTag,
   onSnooze,
@@ -174,6 +176,15 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start"
+              onClick={onAssign}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Assign
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 

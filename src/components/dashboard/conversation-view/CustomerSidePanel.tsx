@@ -19,7 +19,8 @@ import {
   CheckCircle2,
   CircleDot,
   AlertCircle,
-  Loader2
+  Loader2,
+  UserPlus
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
@@ -786,6 +787,18 @@ export const CustomerSidePanel = ({
         
         {/* Quick Actions */}
         <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h4>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start gap-2"
+          onClick={() => {
+            dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: true, userId: '', loading: false } });
+          }}
+        >
+          <UserPlus className="h-4 w-4" />
+          <span className="text-xs">Assign</span>
+        </Button>
         
         <Button 
           variant="outline" 
