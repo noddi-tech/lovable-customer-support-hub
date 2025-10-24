@@ -15,6 +15,29 @@ import { AlwaysVisibleReplyArea } from '@/components/dashboard/conversation-view
 import { CustomerSidePanel } from './CustomerSidePanel';
 import { useConversationShortcuts } from '@/hooks/useConversationShortcuts';
 import { cn } from '@/lib/utils';
+import { useConversationView } from '@/contexts/ConversationViewContext';
+import { TagDialog } from './TagDialog';
+import { SnoozeDialog } from './SnoozeDialog';
+import { 
+  Dialog,
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from '@/integrations/supabase/client';
 
 interface ConversationViewContentProps {
   conversationId: string;
@@ -36,6 +59,19 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   useConversationShortcuts();
 
   const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
+  
+  // Get conversation view context
+  const {
+    state,
+    dispatch,
+    assignUsers,
+    moveInboxes,
+    assignConversation,
+    moveConversation,
+    snoozeConversation,
+    addTag,
+    removeTag,
+  } = useConversationView();
 
   return (
     <div className="flex h-full">
@@ -132,6 +168,172 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           />
         </div>
       )}
+
+      {/* Dialogs */}
+      <TagDialog
+        open={state.tagDialogOpen}
+        onOpenChange={(open) => dispatch({ type: 'SET_TAG_DIALOG', payload: open })}
+        currentTags={conversation.metadata?.tags || []}
+        onAddTag={addTag}
+        onRemoveTag={removeTag}
+      />
+
+      <SnoozeDialog
+        open={state.snoozeDialogOpen}
+        onOpenChange={(open) => 
+          dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open, date: new Date(), time: '09:00' } })
+        }
+        onSnooze={async (date: Date, time: string) => {
+          dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: true, date, time } });
+          await snoozeConversation();
+        }}
+      />
+
+      {/* Assign Dialog */}
+      <Dialog 
+        open={state.assignDialogOpen}
+        onOpenChange={(open) => 
+          dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open, userId: '', loading: false } })
+        }
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Conversation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select
+              value={state.assignSelectedUserId}
+              onValueChange={(userId) =>
+                dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { 
+                  open: true, 
+                  userId, 
+                  loading: false 
+                }})
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select user" />
+              </SelectTrigger>
+              <SelectContent>
+                {assignUsers.map((user: any) => (
+                  <SelectItem key={user.id} value={user.user_id}>
+                    {user.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline"
+              onClick={() => 
+                dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: false, userId: '', loading: false } })
+              }
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => assignConversation(state.assignSelectedUserId)}
+              disabled={!state.assignSelectedUserId || state.assignLoading}
+            >
+              {state.assignLoading ? 'Assigning...' : 'Assign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move Dialog */}
+      <Dialog 
+        open={state.moveDialogOpen}
+        onOpenChange={(open) => 
+          dispatch({ type: 'SET_MOVE_DIALOG', payload: { open, inboxId: '', loading: false } })
+        }
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move Conversation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select
+              value={state.moveSelectedInboxId}
+              onValueChange={(inboxId) =>
+                dispatch({ type: 'SET_MOVE_DIALOG', payload: { 
+                  open: true, 
+                  inboxId, 
+                  loading: false 
+                }})
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select inbox" />
+              </SelectTrigger>
+              <SelectContent>
+                {moveInboxes.map((inbox: any) => (
+                  <SelectItem key={inbox.id} value={inbox.id}>
+                    {inbox.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline"
+              onClick={() => 
+                dispatch({ type: 'SET_MOVE_DIALOG', payload: { open: false, inboxId: '', loading: false } })
+              }
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => moveConversation(state.moveSelectedInboxId)}
+              disabled={!state.moveSelectedInboxId || state.moveLoading}
+            >
+              {state.moveLoading ? 'Moving...' : 'Move'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Conversation Dialog */}
+      <AlertDialog 
+        open={state.deleteDialogOpen && !state.messageToDelete}
+        onOpenChange={(open) => 
+          dispatch({ type: 'SET_DELETE_DIALOG', payload: { open, messageId: null } })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the conversation and all its messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={async () => {
+                const { error } = await supabase
+                  .from('conversations')
+                  .delete()
+                  .eq('id', conversationId);
+                
+                if (error) {
+                  toast.error('Failed to delete conversation');
+                } else {
+                  toast.success('Conversation deleted');
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.delete('c');
+                  setSearchParams(newParams);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

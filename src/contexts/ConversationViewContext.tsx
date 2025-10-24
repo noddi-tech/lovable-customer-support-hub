@@ -26,6 +26,7 @@ interface ConversationViewState {
   snoozeDialogOpen: boolean;
   snoozeDate: Date | undefined;
   snoozeTime: string;
+  tagDialogOpen: boolean;
   deleteDialogOpen: boolean;
   messageToDelete: string | null;
   showCustomerInfo: boolean;
@@ -42,6 +43,7 @@ type ConversationViewAction =
   | { type: 'SET_ASSIGN_DIALOG'; payload: { open: boolean; userId: string; loading: boolean } }
   | { type: 'SET_MOVE_DIALOG'; payload: { open: boolean; inboxId: string; loading: boolean } }
   | { type: 'SET_SNOOZE_DIALOG'; payload: { open: boolean; date: Date | undefined; time: string } }
+  | { type: 'SET_TAG_DIALOG'; payload: boolean }
   | { type: 'SET_DELETE_DIALOG'; payload: { open: boolean; messageId: string | null } }
   | { type: 'SET_CUSTOMER_INFO'; payload: boolean }
   | { type: 'SET_SEND_LOADING'; payload: boolean }
@@ -68,6 +70,7 @@ const initialState: ConversationViewState = {
   snoozeDialogOpen: false,
   snoozeDate: undefined,
   snoozeTime: '09:00',
+  tagDialogOpen: false,
   deleteDialogOpen: false,
   messageToDelete: null,
   showCustomerInfo: true,
@@ -93,6 +96,8 @@ function conversationViewReducer(state: ConversationViewState, action: Conversat
       return { ...state, moveDialogOpen: action.payload.open, moveSelectedInboxId: action.payload.inboxId, moveLoading: action.payload.loading };
     case 'SET_SNOOZE_DIALOG':
       return { ...state, snoozeDialogOpen: action.payload.open, snoozeDate: action.payload.date, snoozeTime: action.payload.time };
+    case 'SET_TAG_DIALOG':
+      return { ...state, tagDialogOpen: action.payload };
     case 'SET_DELETE_DIALOG':
       return { ...state, deleteDialogOpen: action.payload.open, messageToDelete: action.payload.messageId };
     case 'SET_CUSTOMER_INFO':
@@ -600,6 +605,50 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     await gmailSyncMutation.mutateAsync();
   };
 
+  const addTag = async (tag: string) => {
+    if (!conversationId || !conversation) return;
+    
+    const currentTags = conversation.metadata?.tags || [];
+    const newTags = [...currentTags, tag];
+    
+    const { error } = await supabase
+      .from('conversations')
+      .update({ 
+        metadata: { ...conversation.metadata, tags: newTags }
+      })
+      .eq('id', conversationId);
+      
+    if (error) {
+      toast.error('Failed to add tag');
+      return;
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+    toast.success('Tag added');
+  };
+
+  const removeTag = async (tag: string) => {
+    if (!conversationId || !conversation) return;
+    
+    const currentTags = conversation.metadata?.tags || [];
+    const newTags = currentTags.filter((t: string) => t !== tag);
+    
+    const { error } = await supabase
+      .from('conversations')
+      .update({ 
+        metadata: { ...conversation.metadata, tags: newTags }
+      })
+      .eq('id', conversationId);
+      
+    if (error) {
+      toast.error('Failed to remove tag');
+      return;
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+    toast.success('Tag removed');
+  };
+
   const value = {
     state,
     dispatch,
@@ -617,6 +666,8 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     getAiSuggestions,
     translateText,
     refreshConversation,
+    addTag,
+    removeTag,
   };
 
   return (

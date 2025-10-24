@@ -792,8 +792,7 @@ export const CustomerSidePanel = ({
           size="sm" 
           className="w-full justify-start gap-2"
           onClick={() => {
-            // TODO: Implement tag dialog
-            console.log('Add tag clicked');
+            dispatch({ type: 'SET_TAG_DIALOG', payload: true });
           }}
         >
           <Tag className="h-4 w-4" />
@@ -829,8 +828,7 @@ export const CustomerSidePanel = ({
           size="sm" 
           className="w-full justify-start gap-2 text-destructive hover:text-destructive"
           onClick={() => {
-            // TODO: Implement delete confirmation
-            console.log('Delete clicked');
+            dispatch({ type: 'SET_DELETE_DIALOG', payload: { open: true, messageId: null } });
           }}
         >
           <Trash2 className="h-4 w-4" />

@@ -35,8 +35,11 @@ interface ConversationSidebarProps {
   onStatusChange?: (status: string) => void;
   onPriorityChange?: (priority: string) => void;
   onAssigneeChange?: (assigneeId: string) => void;
-  onAddTag?: (tag: string) => void;
+  onAddTag?: () => void;
   onRemoveTag?: (tag: string) => void;
+  onSnooze?: () => void;
+  onArchive?: () => void;
+  onMarkClosed?: () => void;
   
   // UI state
   className?: string;
@@ -54,7 +57,11 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   onStatusChange,
   onPriorityChange,
   onAssigneeChange,
+  onAddTag,
   onRemoveTag,
+  onSnooze,
+  onArchive,
+  onMarkClosed,
   className,
   showActions = true,
   showMetadata = true,
@@ -167,18 +174,38 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" size="sm" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start"
+              onClick={onAddTag}
+            >
               <Tag className="h-4 w-4 mr-2" />
               Add Tag
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start"
+              onClick={onSnooze}
+            >
               <Clock className="h-4 w-4 mr-2" />
               Snooze
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start"
+              onClick={onArchive}
+            >
               Archive
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start"
+              onClick={onMarkClosed}
+            >
               Mark Closed
             </Button>
           </CardContent>
