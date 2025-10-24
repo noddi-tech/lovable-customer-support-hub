@@ -564,8 +564,14 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
       const lastCustomerMessage = [...messages].reverse().find(m => m.sender_type === 'customer');
       if (!lastCustomerMessage) {
         toast.error('No customer message found for AI suggestions');
+        logger.warn('No customer message found', { conversationId, messageCount: messages.length }, 'ConversationViewProvider');
         return;
       }
+
+      logger.info('Requesting AI suggestions', { 
+        conversationId, 
+        messagePreview: lastCustomerMessage.content.substring(0, 50) 
+      }, 'ConversationViewProvider');
 
       const { data, error } = await supabase.functions.invoke('suggest-replies', {
         body: { customerMessage: lastCustomerMessage.content }
@@ -573,7 +579,9 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
 
       if (error) throw error;
       
-      dispatch({ type: 'SET_AI_STATE', payload: { open: true, loading: false, suggestions: data.suggestions || [] } });
+      // Map suggestions to extract just the reply text
+      const suggestions = (data?.suggestions || []).map((s: any) => s.reply || s);
+      dispatch({ type: 'SET_AI_STATE', payload: { open: true, loading: false, suggestions } });
     } catch (error: any) {
       logger.error('Failed to get AI suggestions', error, 'ConversationViewProvider');
       toast.error('Failed to get AI suggestions: ' + error.message);
