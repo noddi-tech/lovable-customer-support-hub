@@ -112,7 +112,8 @@ Deno.serve(async (req) => {
         return {
           noddi_user_id: user.id,
           full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.name || 'Unknown',
-          email: user.email,
+          email: null, // Don't return Noddi email as primary - it should never overwrite customer email
+          noddi_email: user.email, // Return Noddi email separately in metadata
           phone: user.phone,
           user_group_id: user.user_groups?.[0]?.id || null,
           local_customer_id: localCustomer?.id || null,

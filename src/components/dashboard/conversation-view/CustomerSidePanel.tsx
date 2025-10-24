@@ -195,12 +195,13 @@ export const CustomerSidePanel = ({
         const transformedCustomers = data.results.map((result: any) => ({
           id: result.local_customer_id || `noddi-${result.noddi_user_id}`,
           full_name: result.full_name,
-          email: result.email,
+          email: null, // Don't use Noddi email as primary - preserve conversation email
           phone: result.phone,
           metadata: {
             noddi_user_id: result.noddi_user_id,
             user_group_id: result.user_group_id,
-            is_new: result.is_new
+            is_new: result.is_new,
+            noddi_email: result.noddi_email // Store Noddi email in metadata
           }
         }));
 
@@ -259,7 +260,7 @@ export const CustomerSidePanel = ({
           .from("customers")
           .insert({
             full_name: selectedCustomer.full_name,
-            email: selectedCustomer.email,
+            email: conversation.customer?.email || selectedCustomer.phone, // Use conversation email (the one we communicate with)
             phone: selectedCustomer.phone,
             organization_id: organizationId,
           })
@@ -279,10 +280,11 @@ export const CustomerSidePanel = ({
       const { data: lookupData, error: lookupError } =
         await supabase.functions.invoke("noddi-customer-lookup", {
           body: {
-            email: selectedCustomer.email,
+            email: conversation.customer?.email, // Use conversation email for lookup (the one we communicate with)
             phone: selectedCustomer.phone,
             customerId: customerId,
             organizationId,
+            noddiEmail: selectedCustomer.metadata?.noddi_email, // Pass Noddi email separately if available
           },
         });
 
@@ -297,16 +299,13 @@ export const CustomerSidePanel = ({
 
         if (updateError) throw updateError;
 
-        // Save alternative email if different from conversation email
-        if (
-          conversation.customer?.email &&
-          selectedCustomer.email !== conversation.customer.email
-        ) {
+        // Save Noddi email as alternative if we have one
+        if (selectedCustomer.metadata?.noddi_email) {
           await supabase.functions.invoke("update-customer-alternative-email", {
             body: {
               customerId: customerId,
-              alternativeEmail: conversation.customer.email,
-              primaryEmail: selectedCustomer.email,
+              alternativeEmail: selectedCustomer.metadata.noddi_email, // Store Noddi email as alternative
+              primaryEmail: conversation.customer?.email, // Keep conversation email as primary
             },
           });
         }

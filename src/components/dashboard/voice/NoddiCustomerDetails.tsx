@@ -199,7 +199,20 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             </Badge>
           </div>
           <div className="text-sm text-muted-foreground space-y-1">
-            {data.user?.email && <p>Email: {data.user.email}</p>}
+            {/* Show customer email (primary - the one we communicate with) */}
+            {customerEmail && (
+              <p className="font-medium">
+                <span className="text-muted-foreground">Customer Email (Primary): </span>
+                {customerEmail}
+              </p>
+            )}
+            {/* Show Noddi email if different */}
+            {data.user?.email && data.user.email !== customerEmail && (
+              <p>
+                <span className="text-muted-foreground">Noddi Account Email: </span>
+                {data.user.email}
+              </p>
+            )}
             {data.user?.phone && <p>Phone: {data.user.phone}</p>}
             {data.user?.registrationDate && (
               <p>Registered: {format(new Date(data.user.registrationDate), 'MMM d, yyyy')}</p>
