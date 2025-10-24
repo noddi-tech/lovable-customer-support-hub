@@ -128,6 +128,8 @@ interface ConversationViewContextType {
   getAiSuggestions: () => Promise<void>;
   translateText: (text: string, sourceLanguage: string, targetLanguage: string) => Promise<string>;
   refreshConversation: () => Promise<void>;
+  addTag: (tag: string) => Promise<void>;
+  removeTag: (tag: string) => Promise<void>;
 }
 
 const ConversationViewContext = createContext<ConversationViewContextType | undefined>(undefined);
@@ -608,13 +610,14 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
   const addTag = async (tag: string) => {
     if (!conversationId || !conversation) return;
     
-    const currentTags = conversation.metadata?.tags || [];
+    const metadata = conversation.metadata as Record<string, any> || {};
+    const currentTags = (metadata.tags || []) as string[];
     const newTags = [...currentTags, tag];
     
     const { error } = await supabase
       .from('conversations')
       .update({ 
-        metadata: { ...conversation.metadata, tags: newTags }
+        metadata: { ...metadata, tags: newTags }
       })
       .eq('id', conversationId);
       
@@ -630,13 +633,14 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
   const removeTag = async (tag: string) => {
     if (!conversationId || !conversation) return;
     
-    const currentTags = conversation.metadata?.tags || [];
+    const metadata = conversation.metadata as Record<string, any> || {};
+    const currentTags = (metadata.tags || []) as string[];
     const newTags = currentTags.filter((t: string) => t !== tag);
     
     const { error } = await supabase
       .from('conversations')
       .update({ 
-        metadata: { ...conversation.metadata, tags: newTags }
+        metadata: { ...metadata, tags: newTags }
       })
       .eq('id', conversationId);
       

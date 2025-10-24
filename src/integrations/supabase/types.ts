@@ -1464,29 +1464,17 @@ export type Database = {
     }
     Functions: {
       auto_close_inactive_conversations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           closed_count: number
         }[]
       }
-      calculate_sla_breach: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      create_test_notification: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      delete_email_account: {
-        Args: { account_id: string }
-        Returns: undefined
-      }
-      extract_email_date: {
-        Args: { email_headers: Json }
-        Returns: string
-      }
+      calculate_sla_breach: { Args: never; Returns: undefined }
+      create_test_notification: { Args: never; Returns: undefined }
+      delete_email_account: { Args: { account_id: string }; Returns: undefined }
+      extract_email_date: { Args: { email_headers: Json }; Returns: string }
       get_all_counts: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           channels_email: number
           channels_facebook: number
@@ -1502,37 +1490,59 @@ export type Database = {
           notifications_unread: number
         }[]
       }
-      get_conversations: {
-        Args:
-          | Record<PropertyKey, never>
-          | {
+      get_conversations:
+        | {
+            Args: {
               inbox_filter?: string
               page_limit?: number
               page_offset?: number
               status_filter?: string
             }
-        Returns: {
-          assigned_to: Json
-          channel: string
-          customer: Json
-          email_account: Json
-          first_response_at: string
-          id: string
-          inbox_id: string
-          is_archived: boolean
-          is_read: boolean
-          preview_text: string
-          priority: string
-          received_at: string
-          sla_breach_at: string
-          sla_status: string
-          snooze_until: string
-          status: string
-          subject: string
-          total_count: number
-          updated_at: string
-        }[]
-      }
+            Returns: {
+              assigned_to: Json
+              channel: string
+              customer: Json
+              email_account: Json
+              first_response_at: string
+              id: string
+              inbox_id: string
+              is_archived: boolean
+              is_read: boolean
+              preview_text: string
+              priority: string
+              received_at: string
+              sla_breach_at: string
+              sla_status: string
+              snooze_until: string
+              status: string
+              subject: string
+              total_count: number
+              updated_at: string
+            }[]
+          }
+        | {
+            Args: never
+            Returns: {
+              assigned_to: Json
+              channel: string
+              customer: Json
+              email_account: Json
+              first_response_at: string
+              id: string
+              inbox_id: string
+              is_archived: boolean
+              is_read: boolean
+              preview_text: string
+              priority: string
+              received_at: string
+              sla_breach_at: string
+              sla_status: string
+              snooze_until: string
+              status: string
+              subject: string
+              updated_at: string
+            }[]
+          }
       get_conversations_monitored: {
         Args: {
           inbox_filter?: string
@@ -1583,7 +1593,7 @@ export type Database = {
         }[]
       }
       get_email_accounts: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           auto_sync_enabled: boolean
           created_at: string
@@ -1617,7 +1627,7 @@ export type Database = {
         Returns: string
       }
       get_inboxes: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           auto_assignment_rules: Json
           color: string
@@ -1645,12 +1655,9 @@ export type Database = {
         }
         Returns: string
       }
-      get_user_department_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_user_department_id: { Args: never; Returns: string }
       get_user_org_cache: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           dept_id: string
           org_id: string
@@ -1660,10 +1667,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
-      get_user_organization_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_user_organization_id: { Args: never; Returns: string }
       has_permission: {
         Args: {
           _permission: Database["public"]["Enums"]["app_permission"]
@@ -1678,24 +1682,15 @@ export type Database = {
         }
         Returns: boolean
       }
-      mark_all_notifications_read: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: {
         Args: { notification_id: string }
         Returns: undefined
       }
-      sanitize_debug_data: {
-        Args: { data: Json }
-        Returns: Json
-      }
-      strip_html_tags: {
-        Args: { input_text: string }
-        Returns: string
-      }
+      sanitize_debug_data: { Args: { data: Json }; Returns: Json }
+      strip_html_tags: { Args: { input_text: string }; Returns: string }
       validate_session_context: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           auth_uid: string
           organization_id: string

@@ -226,7 +226,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         assigned_to: conv.assigned_to as AssignedTo,
       })) as Conversation[];
       
-      const totalCount = data?.[0]?.total_count || 0;
+      const totalCount = (data as any)?.[0]?.total_count || 0;
       
       logger.info('Conversations page fetched', { 
         count: conversations.length,

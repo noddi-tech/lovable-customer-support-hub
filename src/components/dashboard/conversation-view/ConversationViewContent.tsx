@@ -173,7 +173,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
       <TagDialog
         open={state.tagDialogOpen}
         onOpenChange={(open) => dispatch({ type: 'SET_TAG_DIALOG', payload: open })}
-        currentTags={conversation.metadata?.tags || []}
+        currentTags={((conversation.metadata as Record<string, any> || {}).tags || []) as string[]}
         onAddTag={addTag}
         onRemoveTag={removeTag}
       />
