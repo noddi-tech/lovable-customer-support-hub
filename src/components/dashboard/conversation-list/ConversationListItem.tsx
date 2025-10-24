@@ -104,8 +104,15 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
 
   const handleSelect = useCallback((e: React.MouseEvent) => {
     console.log('Click handler called:', conversation.id);
-    onSelect(conversation);
-  }, [onSelect, conversation]);
+    
+    // In bulk selection mode, clicking the card should toggle checkbox selection
+    if (showBulkCheckbox && onBulkSelect) {
+      onBulkSelect(conversation.id, !isBulkSelected);
+    } else {
+      // In normal mode, clicking opens the conversation
+      onSelect(conversation);
+    }
+  }, [onSelect, conversation, showBulkCheckbox, onBulkSelect, conversation.id, isBulkSelected]);
 
   const handleDropdownClick = useCallback((e: React.MouseEvent) => {
     console.log('Dropdown trigger clicked');
@@ -128,10 +135,11 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
       className={cn(
         "bg-white border border-border rounded-lg p-4",
         isVirtualized ? "mb-0" : "mb-3",
-        "shadow-sm hover:shadow-md hover:border-primary/30",
-        "transition-all duration-200 cursor-pointer",
-        isSelected && "border-primary shadow-md",
-        !conversation.is_read && "ring-2 ring-primary/20"
+        "shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer",
+        showBulkCheckbox && "hover:border-primary/50",
+        isSelected && !showBulkCheckbox && "border-primary shadow-md",
+        isBulkSelected && "border-primary bg-primary/5 shadow-md ring-2 ring-primary/30",
+        !conversation.is_read && !isBulkSelected && "ring-2 ring-primary/20"
       )}
       onClick={handleSelect}
     >
