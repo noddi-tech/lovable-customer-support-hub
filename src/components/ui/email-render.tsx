@@ -277,19 +277,14 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
         />
       );
     } else {
-      // Plain text - preserve line breaks and proper formatting
+      // Plain text - format as structured HTML for consistency
+      const formattedHtml = formatPlainTextEmail(contentToRender);
+      
       return (
-        <div className="email-render__plain-content">
-          <pre className="email-render__text-line" style={{
-            whiteSpace: 'pre-wrap',
-            wordWrap: 'break-word',
-            fontFamily: 'inherit',
-            fontSize: 'inherit',
-            margin: 0,
-            padding: 0,
-            lineHeight: '1.6'
-          }}>{contentToRender}</pre>
-        </div>
+        <div 
+          className="email-render__plain-content"
+          dangerouslySetInnerHTML={{ __html: formattedHtml }}
+        />
       );
     }
   };

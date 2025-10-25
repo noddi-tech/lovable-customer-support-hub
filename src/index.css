@@ -834,12 +834,12 @@ Optimized for accessibility with WCAG AA compliance.
   overflow-x: auto;
 }
 
-/* Plain Text Content */
+/* Plain Text Content - Now uses normal font for consistency */
 .email-render__plain-content {
   white-space: pre-wrap;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 14px;
-  line-height: 1.5;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.6;
   max-width: 100%;
   min-width: 0;
   overflow-wrap: break-word;
@@ -851,8 +851,29 @@ Optimized for accessibility with WCAG AA compliance.
   padding: 2px 0;
   font-family: inherit;
   font-size: inherit;
-  line-height: inherit;
+  line-height: 1.6;
   white-space: pre-wrap;
+}
+
+/* Actual code blocks (semantic pre+code) should still be monospace */
+.email-render__html-content pre code,
+.email-render__plain-content pre code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  background-color: hsl(var(--muted) / 0.5);
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border));
+  display: block;
+  overflow-x: auto;
+}
+
+/* Distinguish actual code blocks from plain text */
+.email-render__html-content pre:has(code),
+.email-render__plain-content pre:has(code) {
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 8px;
+  padding: 0;
+  margin: 12px 0;
 }
 
 .email-render__quoted-text {

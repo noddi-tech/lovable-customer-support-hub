@@ -100,6 +100,38 @@ function htmlToDocument(html: string): Document {
 }
 
 /**
+ * Strip email client wrapper elements (like <pre> tags) that wrap entire content
+ */
+function stripEmailClientWrappers(body: HTMLElement): void {
+  // Check if the entire body is wrapped in a single <pre> or <div>
+  const children = Array.from(body.children);
+  
+  // If there's only one child and it's a wrapper element
+  if (children.length === 1) {
+    const onlyChild = children[0];
+    
+    // Check if it's a wrapper <pre> or <div> with specific characteristics
+    if (
+      (onlyChild.tagName === 'PRE' && !onlyChild.querySelector('code')) ||
+      (onlyChild.tagName === 'DIV' && onlyChild.childElementCount === 0 && onlyChild.textContent)
+    ) {
+      // Unwrap: replace body content with the inner content
+      body.innerHTML = onlyChild.innerHTML;
+    }
+  }
+  
+  // Also handle cases where content is in <pre> without being wrapped
+  const preElements = body.querySelectorAll('pre:not(:has(code))');
+  preElements.forEach(pre => {
+    // If pre doesn't contain code, it's likely email client formatting
+    const div = document.createElement('div');
+    div.innerHTML = pre.innerHTML;
+    div.style.whiteSpace = 'pre-wrap';
+    pre.replaceWith(div);
+  });
+}
+
+/**
  * Extract quoted blocks from HTML by removing known containers and blockquotes.
  * Returns [visibleHTML, quotedBlocks]
  */
@@ -197,6 +229,9 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const quotedMessages: QuotedMessage[] = [];
   const doc = htmlToDocument(stripHtmlComments(html));
   const body = doc.body;
+
+  // STEP 0: Strip email client wrapper elements
+  stripEmailClientWrappers(body);
 
   // STEP 1: Detect Outlook-specific separators and remove everything AFTER them
   // The reply content is BEFORE the separator, quoted content is AFTER
