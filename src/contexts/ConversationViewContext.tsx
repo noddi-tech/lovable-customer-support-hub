@@ -300,12 +300,21 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
         );
         
         // Determine response source and ID
-        let responseSource: 'ai_suggestion' | 'template' | 'manual' = 'manual';
+        let responseSource: 'ai_suggestion' | 'template' | 'knowledge_base' | 'manual' = 'manual';
         let sourceId: string | null = null;
         
         if (state.selectedAiSuggestion) {
-          responseSource = 'ai_suggestion';
-          sourceId = state.selectedAiSuggestion;
+          // Check if the AI suggestion came from knowledge base by looking at the suggestion metadata
+          const selectedSuggestion = state.aiSuggestions.find(
+            s => s.reply === state.selectedAiSuggestion
+          );
+          if (selectedSuggestion?.knowledgeEntryId) {
+            responseSource = 'knowledge_base';
+            sourceId = selectedSuggestion.knowledgeEntryId;
+          } else {
+            responseSource = 'ai_suggestion';
+            sourceId = state.selectedAiSuggestion;
+          }
         } else if (state.selectedTemplateId) {
           responseSource = 'template';
           sourceId = state.selectedTemplateId;
@@ -321,7 +330,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
             agent_id: user?.id,
             response_source: responseSource,
             ai_suggestion_id: responseSource === 'ai_suggestion' ? sourceId : null,
-            knowledge_entry_id: responseSource === 'template' ? sourceId : null,
+            knowledge_entry_id: responseSource === 'knowledge_base' ? sourceId : null,
             customer_message: customerMessage?.content || null,
             agent_response: content
           });
