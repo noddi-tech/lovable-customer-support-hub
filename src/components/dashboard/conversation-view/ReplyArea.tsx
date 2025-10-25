@@ -10,7 +10,8 @@ import {
   Sparkles,
   Loader2,
   Languages,
-  Lock
+  Lock,
+  Database
 } from "lucide-react";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { TemplateSelector } from "./TemplateSelector";
 
 export const ReplyArea = () => {
   const { 
@@ -84,8 +86,12 @@ export const ReplyArea = () => {
 
   const handleAiSuggestionSelect = (suggestion: string, index: number) => {
     dispatch({ type: 'SET_REPLY_TEXT', payload: suggestion });
-    // Track which suggestion was selected for knowledge database
     dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: `suggestion_${index}` });
+  };
+
+  const handleTemplateSelect = (content: string, templateId: string) => {
+    dispatch({ type: 'SET_REPLY_TEXT', payload: content });
+    dispatch({ type: 'SET_SELECTED_TEMPLATE', payload: templateId });
   };
 
   const handleGetAiSuggestions = async () => {
@@ -165,6 +171,12 @@ export const ReplyArea = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Template Selector */}
+            <TemplateSelector 
+              onSelectTemplate={handleTemplateSelect}
+              isMobile={isMobile}
+            />
+
             {/* AI Suggestions Button */}
             <Button
               variant="ghost"
@@ -269,6 +281,14 @@ export const ReplyArea = () => {
 
         {/* Text Input Area */}
         <div className="space-y-2">
+          {state.trackingActive && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-md">
+              <Database className="h-3 w-3 text-primary animate-pulse" />
+              <span className="text-xs text-primary font-medium">
+                Learning from this response...
+              </span>
+            </div>
+          )}
           <Textarea
             ref={replyRef}
             value={state.replyText}

@@ -13,7 +13,8 @@ interface ConversationViewState {
   aiOpen: boolean;
   aiLoading: boolean;
   aiSuggestions: any[];
-  selectedAiSuggestion: string | null; // Track which AI suggestion was selected
+  selectedAiSuggestion: string | null;
+  selectedTemplateId: string | null; // Track which template was selected
   translateOpen: boolean;
   translateLoading: boolean;
   sourceLanguage: string;
@@ -33,6 +34,7 @@ interface ConversationViewState {
   showCustomerInfo: boolean;
   sendLoading: boolean;
   showReplyArea: boolean;
+  trackingActive: boolean; // Visual indicator for knowledge tracking
 }
 
 type ConversationViewAction =
@@ -41,6 +43,7 @@ type ConversationViewAction =
   | { type: 'SET_EDITING_MESSAGE'; payload: { id: string | null; text: string } }
   | { type: 'SET_AI_STATE'; payload: { open: boolean; loading: boolean; suggestions: any[] } }
   | { type: 'SET_SELECTED_AI_SUGGESTION'; payload: string | null }
+  | { type: 'SET_SELECTED_TEMPLATE'; payload: string | null }
   | { type: 'SET_TRANSLATE_STATE'; payload: { open: boolean; loading: boolean; sourceLanguage: string; targetLanguage: string } }
   | { type: 'SET_ASSIGN_DIALOG'; payload: { open: boolean; userId: string; loading: boolean } }
   | { type: 'SET_MOVE_DIALOG'; payload: { open: boolean; inboxId: string; loading: boolean } }
@@ -49,7 +52,8 @@ type ConversationViewAction =
   | { type: 'SET_DELETE_DIALOG'; payload: { open: boolean; messageId: string | null } }
   | { type: 'SET_CUSTOMER_INFO'; payload: boolean }
   | { type: 'SET_SEND_LOADING'; payload: boolean }
-  | { type: 'SET_SHOW_REPLY_AREA'; payload: boolean };
+  | { type: 'SET_SHOW_REPLY_AREA'; payload: boolean }
+  | { type: 'SET_TRACKING_ACTIVE'; payload: boolean };
 
 const initialState: ConversationViewState = {
   replyText: '',
@@ -60,6 +64,7 @@ const initialState: ConversationViewState = {
   aiLoading: false,
   aiSuggestions: [],
   selectedAiSuggestion: null,
+  selectedTemplateId: null,
   translateOpen: false,
   translateLoading: false,
   sourceLanguage: 'auto',
@@ -78,6 +83,7 @@ const initialState: ConversationViewState = {
   messageToDelete: null,
   showCustomerInfo: true,
   sendLoading: false,
+  trackingActive: false,
   showReplyArea: false,
 };
 
@@ -92,7 +98,9 @@ function conversationViewReducer(state: ConversationViewState, action: Conversat
     case 'SET_AI_STATE':
       return { ...state, aiOpen: action.payload.open, aiLoading: action.payload.loading, aiSuggestions: action.payload.suggestions };
     case 'SET_SELECTED_AI_SUGGESTION':
-      return { ...state, selectedAiSuggestion: action.payload };
+      return { ...state, selectedAiSuggestion: action.payload, trackingActive: true };
+    case 'SET_SELECTED_TEMPLATE':
+      return { ...state, selectedTemplateId: action.payload, trackingActive: true };
     case 'SET_TRANSLATE_STATE':
       return { ...state, translateOpen: action.payload.open, translateLoading: action.payload.loading, sourceLanguage: action.payload.sourceLanguage, targetLanguage: action.payload.targetLanguage };
     case 'SET_ASSIGN_DIALOG':
@@ -111,6 +119,8 @@ function conversationViewReducer(state: ConversationViewState, action: Conversat
       return { ...state, sendLoading: action.payload };
     case 'SET_SHOW_REPLY_AREA':
       return { ...state, showReplyArea: action.payload };
+    case 'SET_TRACKING_ACTIVE':
+      return { ...state, trackingActive: action.payload };
     default:
       return state;
   }
@@ -282,12 +292,19 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
           (m: any) => m.sender_type === 'customer'
         );
         
-        // Determine response source
-        const responseSource = state.selectedAiSuggestion 
-          ? 'ai_suggestion' 
-          : 'manual';
+        // Determine response source and ID
+        let responseSource: 'ai_suggestion' | 'template' | 'manual' = 'manual';
+        let sourceId: string | null = null;
         
-        // Insert response tracking
+        if (state.selectedAiSuggestion) {
+          responseSource = 'ai_suggestion';
+          sourceId = state.selectedAiSuggestion;
+        } else if (state.selectedTemplateId) {
+          responseSource = 'template';
+          sourceId = state.selectedTemplateId;
+        }
+        
+        // Insert response tracking with enhanced metadata
         const { error: trackingError } = await supabase
           .from('response_tracking')
           .insert({
@@ -296,7 +313,8 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
             message_id: message.id,
             agent_id: user?.id,
             response_source: responseSource,
-            ai_suggestion_id: state.selectedAiSuggestion,
+            ai_suggestion_id: responseSource === 'ai_suggestion' ? sourceId : null,
+            knowledge_entry_id: responseSource === 'template' ? sourceId : null,
             customer_message: customerMessage?.content || null,
             agent_response: content
           });
@@ -304,6 +322,9 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
         if (trackingError) {
           logger.warn('Failed to track response', trackingError, 'ConversationViewProvider');
         }
+        
+        // Reset tracking state
+        dispatch({ type: 'SET_TRACKING_ACTIVE', payload: false });
       }
 
       // Update conversation status after agent reply (only for non-internal messages)
@@ -337,7 +358,8 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     },
     onSuccess: (newMessage) => {
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null }); // Reset selected suggestion
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
+      dispatch({ type: 'SET_SELECTED_TEMPLATE', payload: null });
       
       // Optimistically update messages cache instead of invalidating
       queryClient.setQueryData(['messages', conversationId, user?.id], (old: any[]) => {
