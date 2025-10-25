@@ -244,7 +244,20 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`SendGrid error ${sgRes.status}: ${errTxt}`);
     }
 
-    // Update message as sent, store Message-ID we generated
+    // Build email headers object for storage
+    const emailHeaders: Record<string, string> = {
+      'Message-ID': messageIdHeader,
+      'From': `${senderDisplayName} <${fromEmailFinal}>`,
+      'To': customer.full_name ? `${customer.full_name} <${toEmail}>` : toEmail,
+      'Subject': subject,
+    };
+    if (inReplyToId) {
+      const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
+      emailHeaders['In-Reply-To'] = normalized;
+      emailHeaders['References'] = normalized;
+    }
+
+    // Update message as sent, store Message-ID and headers
     const { error: updateError } = await supabaseClient
       .from('messages')
       .update({
@@ -252,6 +265,7 @@ const handler = async (req: Request): Promise<Response> => {
         email_message_id: messageIdHeader.replace(/[<>]/g, ''),
         content_type: 'html',
         content: emailHTML,
+        email_headers: emailHeaders,
       })
       .eq('id', messageId);
 
