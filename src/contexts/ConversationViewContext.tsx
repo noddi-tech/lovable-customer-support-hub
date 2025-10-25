@@ -320,23 +320,34 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
           sourceId = state.selectedTemplateId;
         }
         
-        // Insert response tracking with enhanced metadata
-        const { error: trackingError } = await supabase
-          .from('response_tracking')
-          .insert({
-            organization_id: (user as any)?.organization_id,
-            conversation_id: conversationId,
-            message_id: message.id,
-            agent_id: user?.id,
-            response_source: responseSource,
-            ai_suggestion_id: responseSource === 'ai_suggestion' ? sourceId : null,
-            knowledge_entry_id: responseSource === 'knowledge_base' ? sourceId : null,
-            customer_message: customerMessage?.content || null,
-            agent_response: content
-          });
+        // Fetch organization_id from profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
         
-        if (trackingError) {
-          logger.warn('Failed to track response', trackingError, 'ConversationViewProvider');
+        if (!profile?.organization_id) {
+          logger.warn('No organization found for tracking', { userId: user.id }, 'ConversationViewProvider');
+        } else {
+          // Insert response tracking with enhanced metadata
+          const { error: trackingError } = await supabase
+            .from('response_tracking')
+            .insert({
+              organization_id: profile.organization_id,
+              conversation_id: conversationId,
+              message_id: message.id,
+              agent_id: user?.id,
+              response_source: responseSource,
+              ai_suggestion_id: responseSource === 'ai_suggestion' ? sourceId : null,
+              knowledge_entry_id: responseSource === 'knowledge_base' ? sourceId : null,
+              customer_message: customerMessage?.content || null,
+              agent_response: content
+            });
+          
+          if (trackingError) {
+            logger.warn('Failed to track response', trackingError, 'ConversationViewProvider');
+          }
         }
 
         // Track outcome for the previous agent response when customer replies
@@ -661,16 +672,27 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
         return;
       }
 
+      // Fetch organization_id from profiles
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found for user');
+      }
+
       logger.info('Requesting AI suggestions with knowledge base', { 
         conversationId, 
-        organizationId: (user as any)?.organization_id,
+        organizationId: profile.organization_id,
         messagePreview: lastCustomerMessage.content.substring(0, 50) 
       }, 'ConversationViewProvider');
 
       const { data, error } = await supabase.functions.invoke('suggest-replies', {
         body: { 
           customerMessage: lastCustomerMessage.content,
-          organizationId: (user as any)?.organization_id
+          organizationId: profile.organization_id
         }
       });
 
