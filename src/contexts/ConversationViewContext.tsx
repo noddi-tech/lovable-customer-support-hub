@@ -322,6 +322,20 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
         if (trackingError) {
           logger.warn('Failed to track response', trackingError, 'ConversationViewProvider');
         }
+
+        // Track outcome for the previous agent response when customer replies
+        if (customerMessage && customerMessage.sender_type === 'customer') {
+          try {
+            await supabase.functions.invoke('track-outcome', {
+              body: {
+                conversationId,
+                messageId: customerMessage.id,
+              }
+            });
+          } catch (outcomeError) {
+            logger.warn('Failed to track outcome', outcomeError, 'ConversationViewProvider');
+          }
+        }
         
         // Reset tracking state
         dispatch({ type: 'SET_TRACKING_ACTIVE', payload: false });
