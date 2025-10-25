@@ -100,6 +100,17 @@ function htmlToDocument(html: string): Document {
 }
 
 /**
+ * Decodes HTML entities using browser's native decoder (industry standard approach)
+ * Converts &lt;br/&gt; to <br/>, &amp; to &, etc.
+ * Reference: Gmail API docs, Stack Overflow standard practices
+ */
+function decodeHTMLEntities(html: string): string {
+  const txt = document.createElement('textarea');
+  txt.innerHTML = html;
+  return txt.value;
+}
+
+/**
  * Strip email client wrapper elements (like <pre> tags) that wrap entire content
  */
 function stripEmailClientWrappers(body: HTMLElement): void {
@@ -112,13 +123,23 @@ function stripEmailClientWrappers(body: HTMLElement): void {
   if (children.length === 1) {
     const onlyChild = children[0];
     
-    // Check if it's a wrapper <pre> or <div> with specific characteristics
-    if (
-      (onlyChild.tagName === 'PRE' && !onlyChild.querySelector('code')) ||
-      (onlyChild.tagName === 'DIV' && onlyChild.childElementCount === 0 && onlyChild.textContent)
-    ) {
-      console.log('[stripEmailClientWrappers] Unwrapping single wrapper:', onlyChild.tagName);
-      // Unwrap: replace body content with the inner content
+    if (onlyChild.tagName === 'PRE' && !onlyChild.querySelector('code')) {
+      console.log('[stripEmailClientWrappers] Unwrapping single PRE wrapper');
+      
+      // STEP 1: Get the HTML-encoded content
+      const encodedContent = onlyChild.innerHTML;
+      console.log('[stripEmailClientWrappers] Encoded content preview:', encodedContent.substring(0, 100));
+      
+      // STEP 2: Decode HTML entities using standard method
+      const decodedContent = decodeHTMLEntities(encodedContent);
+      console.log('[stripEmailClientWrappers] Decoded content preview:', decodedContent.substring(0, 100));
+      
+      // STEP 3: Set decoded content as innerHTML so browser parses it as HTML
+      body.innerHTML = decodedContent;
+      
+    } else if (onlyChild.tagName === 'DIV' && onlyChild.childElementCount === 0 && onlyChild.textContent) {
+      console.log('[stripEmailClientWrappers] Unwrapping single DIV wrapper');
+      // DIV wrappers don't encode content, use innerHTML directly
       body.innerHTML = onlyChild.innerHTML;
     }
   }
@@ -129,16 +150,22 @@ function stripEmailClientWrappers(body: HTMLElement): void {
   console.log('[stripEmailClientWrappers] Found pre elements:', preElements.length);
   
   preElements.forEach((pre, index) => {
-    // Manually check if pre contains a code element
     const hasCodeChild = pre.querySelector('code') !== null;
     console.log(`[stripEmailClientWrappers] Pre element ${index}: hasCode=${hasCodeChild}`);
     
     if (!hasCodeChild) {
-      // If pre doesn't contain code, it's email client formatting - replace with div
+      // STEP 1: Get encoded content from pre
+      const encodedContent = pre.innerHTML;
+      
+      // STEP 2: Decode HTML entities
+      const decodedContent = decodeHTMLEntities(encodedContent);
+      console.log(`[stripEmailClientWrappers] Decoded pre ${index}:`, decodedContent.substring(0, 50));
+      
+      // STEP 3: Create div and parse decoded content as HTML
       const div = document.createElement('div');
-      div.innerHTML = pre.innerHTML;
+      div.innerHTML = decodedContent;
       div.style.whiteSpace = 'pre-wrap';
-      div.className = 'email-client-content'; // Add class for styling
+      div.className = 'email-client-content';
       pre.replaceWith(div);
       console.log(`[stripEmailClientWrappers] Replaced pre ${index} with div`);
     }
