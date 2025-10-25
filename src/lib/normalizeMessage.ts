@@ -5,13 +5,73 @@
 
 import { parseQuotedEmail, type QuotedBlock, type QuotedMessage } from './parseQuotedEmail';
 
+// Helper function to parse raw email header string (e.g., "From: ...\nSubject: ...\n")
+function parseRawHeaders(raw: string): Record<string, any> {
+  const headers: Record<string, any> = {};
+  const lines = raw.split('\n');
+  let currentHeader = '';
+  let currentValue = '';
+  
+  for (const line of lines) {
+    // Check if line starts a new header (contains ':' and doesn't start with whitespace)
+    if (line.match(/^[^\s:]+:/) && !line.startsWith(' ') && !line.startsWith('\t')) {
+      // Save previous header if exists
+      if (currentHeader) {
+        headers[currentHeader] = currentValue.trim();
+      }
+      
+      // Parse new header
+      const colonIndex = line.indexOf(':');
+      currentHeader = line.substring(0, colonIndex).trim();
+      currentValue = line.substring(colonIndex + 1).trim();
+    } else if (currentHeader && (line.startsWith(' ') || line.startsWith('\t'))) {
+      // Continuation of previous header (folded header)
+      currentValue += ' ' + line.trim();
+    }
+  }
+  
+  // Save last header
+  if (currentHeader) {
+    headers[currentHeader] = currentValue.trim();
+  }
+  
+  return headers;
+}
+
 // Robust header parsing helpers
 function safeParseHeaders(h: unknown): Record<string, any> {
   if (!h) return {};
+  
+  // If it's a string, try to parse as JSON
   if (typeof h === 'string') {
-    try { const o = JSON.parse(h); return typeof o === 'object' && o ? o as any : {}; } catch { return {}; }
+    try { 
+      const o = JSON.parse(h); 
+      if (typeof o === 'object' && o) {
+        // Check if it has a 'raw' field with header string
+        if (typeof o.raw === 'string') {
+          return parseRawHeaders(o.raw);
+        }
+        return o as any;
+      }
+      return {};
+    } catch { 
+      return {}; 
+    }
   }
-  return (typeof h === 'object') ? (h as Record<string, any>) : {};
+  
+  // If it's an object
+  if (typeof h === 'object' && h) {
+    const obj = h as Record<string, any>;
+    
+    // Check if it has a 'raw' field with header string
+    if (typeof obj.raw === 'string') {
+      return parseRawHeaders(obj.raw);
+    }
+    
+    return obj;
+  }
+  
+  return {};
 }
 
 function firstString(v: any): string | undefined {
