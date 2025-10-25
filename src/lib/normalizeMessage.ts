@@ -13,6 +13,11 @@ function parseRawHeaders(raw: string): Record<string, any> {
   let currentValue = '';
   
   for (const line of lines) {
+    // Skip empty lines
+    if (!line.trim()) {
+      continue;
+    }
+    
     // Check if line starts a new header (contains ':' and doesn't start with whitespace)
     if (line.match(/^[^\s:]+:/) && !line.startsWith(' ') && !line.startsWith('\t')) {
       // Save previous header if exists
@@ -22,8 +27,10 @@ function parseRawHeaders(raw: string): Record<string, any> {
       
       // Parse new header
       const colonIndex = line.indexOf(':');
-      currentHeader = line.substring(0, colonIndex).trim();
-      currentValue = line.substring(colonIndex + 1).trim();
+      if (colonIndex > 0) {
+        currentHeader = line.substring(0, colonIndex).trim();
+        currentValue = line.substring(colonIndex + 1).trim();
+      }
     } else if (currentHeader && (line.startsWith(' ') || line.startsWith('\t'))) {
       // Continuation of previous header (folded header)
       currentValue += ' ' + line.trim();
@@ -49,7 +56,12 @@ function safeParseHeaders(h: unknown): Record<string, any> {
       if (typeof o === 'object' && o) {
         // Check if it has a 'raw' field with header string
         if (typeof o.raw === 'string') {
-          return parseRawHeaders(o.raw);
+          try {
+            return parseRawHeaders(o.raw);
+          } catch (parseError) {
+            console.error('[safeParseHeaders] Failed to parse raw headers:', parseError);
+            return {}; // Fallback to empty
+          }
         }
         return o as any;
       }
@@ -65,7 +77,12 @@ function safeParseHeaders(h: unknown): Record<string, any> {
     
     // Check if it has a 'raw' field with header string
     if (typeof obj.raw === 'string') {
-      return parseRawHeaders(obj.raw);
+      try {
+        return parseRawHeaders(obj.raw);
+      } catch (parseError) {
+        console.error('[safeParseHeaders] Failed to parse raw headers object:', parseError);
+        return {}; // Fallback to empty
+      }
     }
     
     return obj;
