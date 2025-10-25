@@ -308,30 +308,61 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
 
   // STEP 4: Strip email list footers from DOM before extracting HTML
   const bodyTextForCheck = body.innerText || '';
+  let earliestFooterIndex: number | null = null;
+  let earliestFooterPattern: RegExp | null = null;
+
+  // Find the earliest footer match
   for (const pattern of EMAIL_LIST_FOOTERS) {
     const match = bodyTextForCheck.match(pattern);
     if (match && match.index !== undefined) {
-      // Footer found - locate and remove it from DOM
-      const footerText = match[0].slice(0, 50); // Use first 50 chars as marker
+      if (earliestFooterIndex === null || match.index < earliestFooterIndex) {
+        earliestFooterIndex = match.index;
+        earliestFooterPattern = pattern;
+      }
+    }
+  }
+
+  // If footer found, intelligently remove it
+  if (earliestFooterIndex !== null && earliestFooterPattern) {
+    // Find all text nodes and remove content after the footer
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+    let currentTextPos = 0;
+    let node: Node | null;
+    
+    while (node = walker.nextNode()) {
+      const textContent = node.textContent || '';
+      const nodeStart = currentTextPos;
+      const nodeEnd = currentTextPos + textContent.length;
       
-      // Find elements containing this footer text
-      const allElements = Array.from(body.querySelectorAll('*'));
-      for (const el of allElements) {
-        const elText = el.textContent || '';
-        if (elText.includes(footerText)) {
-          // Remove this element and all following siblings
-          let current: Node | null = el;
+      // Check if footer starts within this text node
+      if (earliestFooterIndex >= nodeStart && earliestFooterIndex < nodeEnd) {
+        const cutPos = earliestFooterIndex - nodeStart;
+        node.textContent = textContent.substring(0, cutPos);
+        
+        // Remove all following siblings
+        let current = node.nextSibling;
+        while (current) {
+          const next = current.nextSibling;
+          current.parentNode?.removeChild(current);
+          current = next;
+        }
+        
+        // Also remove following siblings of parent nodes
+        let parent = node.parentNode;
+        while (parent && parent !== body) {
+          let current = parent.nextSibling;
           while (current) {
             const next = current.nextSibling;
-            if (current.parentNode) {
-              current.parentNode.removeChild(current);
-            }
+            current.parentNode?.removeChild(current);
             current = next;
           }
-          break;
+          parent = parent.parentNode;
         }
+        
+        break;
       }
-      break; // Stop after first footer match
+      
+      currentTextPos = nodeEnd;
     }
   }
 
