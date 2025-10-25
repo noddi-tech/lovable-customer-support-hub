@@ -56,7 +56,7 @@ export function useThreadMessages(conversationId?: string) {
       // 1) Seed from newest few rows of this conversation
       const seedSel = supabase
         .from("messages")
-        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), inbox:inboxes(email_accounts(email_address)))")
+        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address))")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -82,7 +82,7 @@ export function useThreadMessages(conversationId?: string) {
       // 2) Build base query (DESC newest first); add cursor for older pages
       let base = supabase
         .from("messages")
-        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), inbox:inboxes(email_accounts(email_address)))")
+        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address))")
         .eq("conversation_id", conversationId) // Filter by conversation first
         .order("created_at", { ascending: false })
         .limit(pageParam ? PAGE : INITIAL);
@@ -174,8 +174,7 @@ export function useThreadMessages(conversationId?: string) {
       // Extract conversation customer info for normalization context
       const conversationData = typedRows[0]?.conversation;
       const customerData = conversationData?.customer;
-      const inboxData = conversationData?.inbox;
-      const emailAccountData = Array.isArray(inboxData?.email_accounts) ? inboxData.email_accounts[0] : inboxData?.email_accounts;
+      const emailAccountData = conversationData?.email_account;
       const inboxEmail = emailAccountData?.email_address;
       
       // Create conversation-specific normalization context
