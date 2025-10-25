@@ -826,9 +826,15 @@ Optimized for accessibility with WCAG AA compliance.
   word-wrap: break-word;
 }
 
-/* Special handling for pre and code elements */
+/* Special handling for pre and code elements - remove email client formatting */
 .email-render__html-content pre,
 .email-render__html-content code {
+  font-family: inherit !important; /* Override monospace font */
+  background-color: transparent !important; /* Remove dark background */
+  color: inherit !important; /* Inherit text color */
+  padding: 0 !important; /* Remove padding */
+  margin: 0 !important; /* Remove margins */
+  border: none !important; /* Remove any borders */
   white-space: pre-wrap !important;
   word-break: break-word;
   overflow-x: auto;
@@ -874,6 +880,17 @@ Optimized for accessibility with WCAG AA compliance.
   border-radius: 8px;
   padding: 0;
   margin: 12px 0;
+}
+
+/* Email client content converted from pre tags */
+.email-render__html-content .email-client-content {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.6;
+  color: inherit;
+  background: transparent;
+  margin: 0;
+  padding: 0;
 }
 
 .email-render__quoted-text {

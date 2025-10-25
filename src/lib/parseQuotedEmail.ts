@@ -103,6 +103,8 @@ function htmlToDocument(html: string): Document {
  * Strip email client wrapper elements (like <pre> tags) that wrap entire content
  */
 function stripEmailClientWrappers(body: HTMLElement): void {
+  console.log('[stripEmailClientWrappers] Starting - body children:', body.children.length);
+  
   // Check if the entire body is wrapped in a single <pre> or <div>
   const children = Array.from(body.children);
   
@@ -115,20 +117,34 @@ function stripEmailClientWrappers(body: HTMLElement): void {
       (onlyChild.tagName === 'PRE' && !onlyChild.querySelector('code')) ||
       (onlyChild.tagName === 'DIV' && onlyChild.childElementCount === 0 && onlyChild.textContent)
     ) {
+      console.log('[stripEmailClientWrappers] Unwrapping single wrapper:', onlyChild.tagName);
       // Unwrap: replace body content with the inner content
       body.innerHTML = onlyChild.innerHTML;
     }
   }
   
-  // Also handle cases where content is in <pre> without being wrapped
-  const preElements = body.querySelectorAll('pre:not(:has(code))');
-  preElements.forEach(pre => {
-    // If pre doesn't contain code, it's likely email client formatting
-    const div = document.createElement('div');
-    div.innerHTML = pre.innerHTML;
-    div.style.whiteSpace = 'pre-wrap';
-    pre.replaceWith(div);
+  // Handle all <pre> elements that don't contain <code> (email client formatting)
+  // Don't use :has() - manually check each pre element
+  const preElements = Array.from(body.querySelectorAll('pre'));
+  console.log('[stripEmailClientWrappers] Found pre elements:', preElements.length);
+  
+  preElements.forEach((pre, index) => {
+    // Manually check if pre contains a code element
+    const hasCodeChild = pre.querySelector('code') !== null;
+    console.log(`[stripEmailClientWrappers] Pre element ${index}: hasCode=${hasCodeChild}`);
+    
+    if (!hasCodeChild) {
+      // If pre doesn't contain code, it's email client formatting - replace with div
+      const div = document.createElement('div');
+      div.innerHTML = pre.innerHTML;
+      div.style.whiteSpace = 'pre-wrap';
+      div.className = 'email-client-content'; // Add class for styling
+      pre.replaceWith(div);
+      console.log(`[stripEmailClientWrappers] Replaced pre ${index} with div`);
+    }
   });
+  
+  console.log('[stripEmailClientWrappers] Complete - body children:', body.children.length);
 }
 
 /**
