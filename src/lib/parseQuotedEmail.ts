@@ -104,7 +104,7 @@ function htmlToDocument(html: string): Document {
  * Converts &lt;br/&gt; to <br/>, &amp; to &, etc.
  * Reference: Gmail API docs, Stack Overflow standard practices
  */
-function decodeHTMLEntities(html: string): string {
+export function decodeHTMLEntities(html: string): string {
   const txt = document.createElement('textarea');
   txt.innerHTML = html;
   return txt.value;

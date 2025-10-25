@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
 import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
 import { sanitizeEmailHTML as sanitizeForXSS } from '@/utils/htmlSanitizer';
+import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
 
 interface EmailRenderProps {
   content: string;
@@ -99,13 +100,19 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
     console.log('[EmailRender] Content type:', contentType, 'isHTML:', isHTML);
     console.log('[EmailRender] Attachments available:', attachments);
     
-    const normalized = fixEncodingIssues(content);
+    let normalized = fixEncodingIssues(content);
+    
+    // CRITICAL: Decode HTML entities for BOTH HTML and plain text content
+    // This handles Gmail/Outlook sending &lt;br/&gt; in plain text emails
+    console.log('[EmailRender] Content before entity decoding:', normalized.substring(0, 100));
+    normalized = decodeHTMLEntities(normalized);
+    console.log('[EmailRender] Content after entity decoding:', normalized.substring(0, 100));
     
     if (isHTML) {
       const alreadyWrapped = /class=\"email-render\"/.test(normalized);
       return alreadyWrapped ? normalized : sanitizeEmailHTML(normalized, attachments, true, messageId);
     } else {
-      // For plain text, just return the normalized content to preserve line breaks
+      // For plain text, return decoded content
       return normalized;
     }
   }, [content, isHTML, attachments, messageId, contentType]);

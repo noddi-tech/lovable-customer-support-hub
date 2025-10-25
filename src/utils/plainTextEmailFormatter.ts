@@ -272,8 +272,13 @@ export const escapeHtml = (text: string): string => {
 export const formatPlainTextEmail = (content: string): string => {
   if (!content) return '';
   
+  // Convert <br> tags to newlines (handles decoded HTML entities)
+  const normalized = content
+    .replace(/<br\s*\/?>/gi, '\n')  // <br>, <br/>, <BR>, etc.
+    .replace(/\n{3,}/g, '\n\n');    // Normalize multiple newlines
+  
   // First, process signatures (produces an HTML signature block if found)
-  const withSignature = processSignature(content);
+  const withSignature = processSignature(normalized);
 
   const sigMarker = '<div class="email-signature"';
   const sigIndex = withSignature.indexOf(sigMarker);
