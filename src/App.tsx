@@ -23,6 +23,7 @@ import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
 import AdminDesignComponentsPage from "./pages/AdminDesignComponentsPage";
+import KnowledgeManagement from "./pages/KnowledgeManagement";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
@@ -101,6 +102,7 @@ const AppContent = () => {
       <Route path="/admin/design" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/design/components" element={<ProtectedRoute><AdminRoute><AdminDesignComponentsPage /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/debug" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
       
       {/* Static Pages */}
       <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />

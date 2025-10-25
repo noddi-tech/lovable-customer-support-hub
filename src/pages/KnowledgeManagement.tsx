@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KnowledgeAnalytics } from "@/components/dashboard/KnowledgeAnalytics";
 import { SystemHealthMonitor } from "@/components/dashboard/SystemHealthMonitor";
@@ -34,56 +35,58 @@ export default function KnowledgeManagement() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold flex items-center gap-3 mb-2">
-          <Brain className="w-10 h-10" />
-          Knowledge Management System
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          Manage your AI-powered knowledge base, track performance, and optimize suggestions
-        </p>
-      </div>
+    <AdminPortalLayout>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-4xl font-bold flex items-center gap-3 mb-2">
+            <Brain className="w-10 h-10" />
+            Knowledge Management System
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Manage your AI-powered knowledge base, track performance, and optimize suggestions
+          </p>
+        </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Brain className="w-4 h-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="entries" className="flex items-center gap-2">
-            <Database className="w-4 h-4" />
-            Entries
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Performance
-          </TabsTrigger>
-          <TabsTrigger value="health" className="flex items-center gap-2">
-            <Activity className="w-4 h-4" />
-            System Health
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <Brain className="w-4 h-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="entries" className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              Entries
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Performance
+            </TabsTrigger>
+            <TabsTrigger value="health" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              System Health
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <KnowledgeAnalytics organizationId={profile.organization_id} />
-          <div className="grid gap-6 md:grid-cols-2">
+          <TabsContent value="overview" className="space-y-6">
+            <KnowledgeAnalytics organizationId={profile.organization_id} />
+            <div className="grid gap-6 md:grid-cols-2">
+              <SuggestionPerformance organizationId={profile.organization_id} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="entries">
+            <KnowledgeEntriesManager organizationId={profile.organization_id} />
+          </TabsContent>
+
+          <TabsContent value="performance">
             <SuggestionPerformance organizationId={profile.organization_id} />
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="entries">
-          <KnowledgeEntriesManager organizationId={profile.organization_id} />
-        </TabsContent>
-
-        <TabsContent value="performance">
-          <SuggestionPerformance organizationId={profile.organization_id} />
-        </TabsContent>
-
-        <TabsContent value="health">
-          <SystemHealthMonitor organizationId={profile.organization_id} />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="health">
+            <SystemHealthMonitor organizationId={profile.organization_id} />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AdminPortalLayout>
   );
 }

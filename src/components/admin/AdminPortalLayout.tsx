@@ -24,7 +24,8 @@ import {
   Building,
   Shield,
   Mail,
-  Route
+  Route,
+  Brain
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Heading } from '@/components/ui/heading';
@@ -74,6 +75,15 @@ const AdminSidebar = () => {
       url: '/admin/design',
       icon: Palette,
       group: 'customization'
+    }
+  ];
+
+  const intelligenceItems = [
+    {
+      title: 'Knowledge Management',
+      url: '/admin/knowledge',
+      icon: Brain,
+      group: 'intelligence'
     }
   ];
 
@@ -147,6 +157,26 @@ const AdminSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {customizationItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/70">
+            AI & Intelligence
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {intelligenceItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <a href={item.url}>
