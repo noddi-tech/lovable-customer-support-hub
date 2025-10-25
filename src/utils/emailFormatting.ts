@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { convertShortcodesToEmojis } from './emojiUtils';
 import { formatPlainTextEmail } from './plainTextEmailFormatter';
 import { createPlaceholder, rewriteImageSources } from './imageAssetHandler';
+import { parseQuotedEmail } from '@/lib/parseQuotedEmail';
 
 export interface EmailAttachment {
   filename: string;
@@ -84,6 +85,23 @@ export const sanitizeEmailHTML = (
   preserveOriginalStyles: boolean = true,
   messageId?: string
 ): string => {
+  // STEP 1: Parse quoted email to strip <pre> wrappers and decode HTML entities
+  console.log('[sanitizeEmailHTML] Parsing quoted email structure...');
+  const parsed = parseQuotedEmail({
+    content: htmlContent,
+    contentType: 'text/html' // Force HTML processing to trigger stripEmailClientWrappers
+  });
+  
+  console.log('[sanitizeEmailHTML] Parsed result:', {
+    originalLength: htmlContent.length,
+    visibleLength: parsed.visibleContent.length,
+    quotedBlocks: parsed.quotedBlocks.length
+  });
+  
+  // Use the visible content (with <pre> wrappers removed and entities decoded)
+  let processedContent = parsed.visibleContent || htmlContent;
+  
+  // STEP 2: Continue with existing sanitization logic
   // Strict email HTML configuration following security best practices
   const config = {
     ALLOWED_TAGS: [
@@ -191,7 +209,7 @@ export const sanitizeEmailHTML = (
   const { byContentId, byContentLocation } = buildAssetIndexes(attachments);
   
   // Strip style and script tag contents before sanitization
-  let processedContent = htmlContent
+  processedContent = processedContent
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   
