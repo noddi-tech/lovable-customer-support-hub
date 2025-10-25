@@ -107,3 +107,9 @@ verify_jwt = true
 
 [functions.submit-feedback]
 verify_jwt = true
+
+[functions.batch-update-embeddings]
+verify_jwt = true
+
+[functions.generate-analytics-report]
+verify_jwt = true
