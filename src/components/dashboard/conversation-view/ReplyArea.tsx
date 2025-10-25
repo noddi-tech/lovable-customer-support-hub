@@ -87,8 +87,6 @@ export const ReplyArea = () => {
   };
 
   const handleGetAiSuggestions = async () => {
-    if (!state.replyText.trim()) return;
-    
     try {
       await getAiSuggestions();
     } catch (error) {
@@ -170,7 +168,7 @@ export const ReplyArea = () => {
               variant="ghost"
               size="sm"
               onClick={handleGetAiSuggestions}
-              disabled={state.aiLoading || !state.replyText.trim()}
+              disabled={state.aiLoading}
               className="gap-2"
               title={t('conversation.getAiSuggestions')}
             >
