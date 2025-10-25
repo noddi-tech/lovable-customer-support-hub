@@ -82,8 +82,10 @@ export const ReplyArea = () => {
     }
   };
 
-  const handleAiSuggestionSelect = (suggestion: string) => {
+  const handleAiSuggestionSelect = (suggestion: string, index: number) => {
     dispatch({ type: 'SET_REPLY_TEXT', payload: suggestion });
+    // Track which suggestion was selected for knowledge database
+    dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: `suggestion_${index}` });
   };
 
   const handleGetAiSuggestions = async () => {
@@ -127,7 +129,7 @@ export const ReplyArea = () => {
                   key={index}
                   variant="outline"
                   size="sm"
-                  onClick={() => handleAiSuggestionSelect(suggestion)}
+                  onClick={() => handleAiSuggestionSelect(suggestion, index)}
                   className="text-xs h-auto py-1.5 whitespace-normal text-left"
                 >
                   {suggestion.length > 60 ? `${suggestion.slice(0, 60)}...` : suggestion}

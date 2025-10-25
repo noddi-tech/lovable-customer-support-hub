@@ -13,6 +13,7 @@ interface ConversationViewState {
   aiOpen: boolean;
   aiLoading: boolean;
   aiSuggestions: any[];
+  selectedAiSuggestion: string | null; // Track which AI suggestion was selected
   translateOpen: boolean;
   translateLoading: boolean;
   sourceLanguage: string;
@@ -39,6 +40,7 @@ type ConversationViewAction =
   | { type: 'SET_IS_INTERNAL_NOTE'; payload: boolean }
   | { type: 'SET_EDITING_MESSAGE'; payload: { id: string | null; text: string } }
   | { type: 'SET_AI_STATE'; payload: { open: boolean; loading: boolean; suggestions: any[] } }
+  | { type: 'SET_SELECTED_AI_SUGGESTION'; payload: string | null }
   | { type: 'SET_TRANSLATE_STATE'; payload: { open: boolean; loading: boolean; sourceLanguage: string; targetLanguage: string } }
   | { type: 'SET_ASSIGN_DIALOG'; payload: { open: boolean; userId: string; loading: boolean } }
   | { type: 'SET_MOVE_DIALOG'; payload: { open: boolean; inboxId: string; loading: boolean } }
@@ -57,6 +59,7 @@ const initialState: ConversationViewState = {
   aiOpen: false,
   aiLoading: false,
   aiSuggestions: [],
+  selectedAiSuggestion: null,
   translateOpen: false,
   translateLoading: false,
   sourceLanguage: 'auto',
@@ -88,6 +91,8 @@ function conversationViewReducer(state: ConversationViewState, action: Conversat
       return { ...state, editingMessageId: action.payload.id, editText: action.payload.text };
     case 'SET_AI_STATE':
       return { ...state, aiOpen: action.payload.open, aiLoading: action.payload.loading, aiSuggestions: action.payload.suggestions };
+    case 'SET_SELECTED_AI_SUGGESTION':
+      return { ...state, selectedAiSuggestion: action.payload };
     case 'SET_TRANSLATE_STATE':
       return { ...state, translateOpen: action.payload.open, translateLoading: action.payload.loading, sourceLanguage: action.payload.sourceLanguage, targetLanguage: action.payload.targetLanguage };
     case 'SET_ASSIGN_DIALOG':
@@ -270,6 +275,37 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
 
       if (insertError) throw insertError;
 
+      // Track response in knowledge database
+      if (!isInternal && message) {
+        // Get the customer message being replied to
+        const customerMessage = messages.find(
+          (m: any) => m.sender_type === 'customer'
+        );
+        
+        // Determine response source
+        const responseSource = state.selectedAiSuggestion 
+          ? 'ai_suggestion' 
+          : 'manual';
+        
+        // Insert response tracking
+        const { error: trackingError } = await supabase
+          .from('response_tracking')
+          .insert({
+            organization_id: (user as any)?.organization_id,
+            conversation_id: conversationId,
+            message_id: message.id,
+            agent_id: user?.id,
+            response_source: responseSource,
+            ai_suggestion_id: state.selectedAiSuggestion,
+            customer_message: customerMessage?.content || null,
+            agent_response: content
+          });
+        
+        if (trackingError) {
+          logger.warn('Failed to track response', trackingError, 'ConversationViewProvider');
+        }
+      }
+
       // Update conversation status after agent reply (only for non-internal messages)
       if (!isInternal && status) {
         const { error: updateError } = await supabase
@@ -301,6 +337,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     },
     onSuccess: (newMessage) => {
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null }); // Reset selected suggestion
       
       // Optimistically update messages cache instead of invalidating
       queryClient.setQueryData(['messages', conversationId, user?.id], (old: any[]) => {

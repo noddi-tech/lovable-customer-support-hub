@@ -785,6 +785,78 @@ export type Database = {
           },
         ]
       }
+      knowledge_entries: {
+        Row: {
+          acceptance_count: number | null
+          agent_response: string
+          category: string | null
+          created_at: string
+          created_by_id: string | null
+          created_from_message_id: string | null
+          customer_context: string
+          embedding: string | null
+          id: string
+          is_active: boolean | null
+          is_manually_curated: boolean | null
+          organization_id: string
+          quality_score: number | null
+          tags: string[] | null
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          acceptance_count?: number | null
+          agent_response: string
+          category?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          created_from_message_id?: string | null
+          customer_context: string
+          embedding?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_manually_curated?: boolean | null
+          organization_id: string
+          quality_score?: number | null
+          tags?: string[] | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          acceptance_count?: number | null
+          agent_response?: string
+          category?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          created_from_message_id?: string | null
+          customer_context?: string
+          embedding?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_manually_curated?: boolean | null
+          organization_id?: string
+          quality_score?: number | null
+          tags?: string[] | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_entries_created_from_message_id_fkey"
+            columns: ["created_from_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_entries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           assigned_to_id: string | null
@@ -1231,6 +1303,73 @@ export type Database = {
         }
         Relationships: []
       }
+      response_outcomes: {
+        Row: {
+          conversation_id: string
+          conversation_resolved: boolean | null
+          created_at: string
+          customer_replied: boolean | null
+          customer_satisfaction_score: number | null
+          id: string
+          organization_id: string
+          outcome_score: number | null
+          reply_time_seconds: number | null
+          required_followup: boolean | null
+          response_tracking_id: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_id: string
+          conversation_resolved?: boolean | null
+          created_at?: string
+          customer_replied?: boolean | null
+          customer_satisfaction_score?: number | null
+          id?: string
+          organization_id: string
+          outcome_score?: number | null
+          reply_time_seconds?: number | null
+          required_followup?: boolean | null
+          response_tracking_id: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          conversation_resolved?: boolean | null
+          created_at?: string
+          customer_replied?: boolean | null
+          customer_satisfaction_score?: number | null
+          id?: string
+          organization_id?: string
+          outcome_score?: number | null
+          reply_time_seconds?: number | null
+          required_followup?: boolean | null
+          response_tracking_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "response_outcomes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "response_outcomes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "response_outcomes_response_tracking_id_fkey"
+            columns: ["response_tracking_id"]
+            isOneToOne: false
+            referencedRelation: "response_tracking"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       response_templates: {
         Row: {
           content: string
@@ -1285,6 +1424,77 @@ export type Database = {
           },
           {
             foreignKeyName: "response_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      response_tracking: {
+        Row: {
+          agent_id: string
+          agent_response: string
+          ai_suggestion_id: string | null
+          conversation_id: string
+          created_at: string
+          customer_message: string | null
+          id: string
+          knowledge_entry_id: string | null
+          message_id: string
+          organization_id: string
+          response_source: string
+        }
+        Insert: {
+          agent_id: string
+          agent_response: string
+          ai_suggestion_id?: string | null
+          conversation_id: string
+          created_at?: string
+          customer_message?: string | null
+          id?: string
+          knowledge_entry_id?: string | null
+          message_id: string
+          organization_id: string
+          response_source: string
+        }
+        Update: {
+          agent_id?: string
+          agent_response?: string
+          ai_suggestion_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          customer_message?: string | null
+          id?: string
+          knowledge_entry_id?: string | null
+          message_id?: string
+          organization_id?: string
+          response_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "response_tracking_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "response_tracking_knowledge_entry_id_fkey"
+            columns: ["knowledge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "response_tracking_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "response_tracking_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1473,6 +1683,23 @@ export type Database = {
       create_test_notification: { Args: never; Returns: undefined }
       delete_email_account: { Args: { account_id: string }; Returns: undefined }
       extract_email_date: { Args: { email_headers: Json }; Returns: string }
+      find_similar_responses: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          org_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          agent_response: string
+          category: string
+          customer_context: string
+          id: string
+          quality_score: number
+          similarity: number
+          tags: string[]
+        }[]
+      }
       get_all_counts: {
         Args: never
         Returns: {
