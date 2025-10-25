@@ -91,6 +91,7 @@ export interface NormalizationContext {
   agentDomainsSet: Set<string>;   // case-insensitive agent domains
   orgDomains?: string[];          // fallback org domains (now array)
   currentUserEmail?: string;      // fallback current user
+  inboxEmail?: string;            // inbox email for agent messages
   conversationCustomerEmail?: string;  // conversation customer email
   conversationCustomerName?: string;   // conversation customer name
 }
@@ -136,6 +137,7 @@ export function createNormalizationContext(options: {
   orgDomain?: string;
   orgDomains?: string[];
   currentUserEmail?: string;
+  inboxEmail?: string;
   conversationCustomerEmail?: string;
   conversationCustomerName?: string;
 }): NormalizationContext {
@@ -146,6 +148,7 @@ export function createNormalizationContext(options: {
     agentDomainsSet: new Set((allDomains ?? []).map(d => d.toLowerCase())),
     orgDomains: allDomains,
     currentUserEmail: options.currentUserEmail?.toLowerCase().trim(),
+    inboxEmail: options.inboxEmail?.toLowerCase().trim(),
     conversationCustomerEmail: options.conversationCustomerEmail?.toLowerCase().trim(),
     conversationCustomerName: options.conversationCustomerName?.trim(),
   };
@@ -252,9 +255,10 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
       fromEmail = fromEmail ?? e;
       fromName  = fromName  ?? n;
       authorLabel = (n && e) ? `${n} <${e}>` : (e || n);
-    } else if (authorType === 'agent' && ctx.currentUserEmail) {
-      fromEmail = fromEmail ?? ctx.currentUserEmail.toLowerCase();
-      authorLabel = fromEmail;
+    } else if (authorType === 'agent') {
+      // Prefer inbox email over current user email for agent messages
+      fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
+      authorLabel = fromEmail || 'Agent';
     }
   }
 
