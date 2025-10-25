@@ -87,5 +87,14 @@ verify_jwt = true
 [functions.suggest-replies]
 verify_jwt = true
 
+[functions.create-embedding]
+verify_jwt = true
+
+[functions.search-knowledge]
+verify_jwt = true
+
+[functions.promote-response]
+verify_jwt = true
+
 [functions.translate-text]
 verify_jwt = true

@@ -627,13 +627,17 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
         return;
       }
 
-      logger.info('Requesting AI suggestions', { 
+      logger.info('Requesting AI suggestions with knowledge base', { 
         conversationId, 
+        organizationId: (user as any)?.organization_id,
         messagePreview: lastCustomerMessage.content.substring(0, 50) 
       }, 'ConversationViewProvider');
 
       const { data, error } = await supabase.functions.invoke('suggest-replies', {
-        body: { customerMessage: lastCustomerMessage.content }
+        body: { 
+          customerMessage: lastCustomerMessage.content,
+          organizationId: (user as any)?.organization_id
+        }
       });
 
       if (error) throw error;
