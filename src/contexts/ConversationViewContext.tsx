@@ -15,6 +15,8 @@ interface ConversationViewState {
   aiSuggestions: any[];
   selectedAiSuggestion: string | null;
   selectedTemplateId: string | null; // Track which template was selected
+  showFeedbackRating: boolean; // Show feedback UI after sending reply
+  lastSentMessageId: string | null; // Track the last sent message for feedback
   translateOpen: boolean;
   translateLoading: boolean;
   sourceLanguage: string;
@@ -44,6 +46,7 @@ type ConversationViewAction =
   | { type: 'SET_AI_STATE'; payload: { open: boolean; loading: boolean; suggestions: any[] } }
   | { type: 'SET_SELECTED_AI_SUGGESTION'; payload: string | null }
   | { type: 'SET_SELECTED_TEMPLATE'; payload: string | null }
+  | { type: 'SET_FEEDBACK_STATE'; payload: { show: boolean; messageId: string | null } }
   | { type: 'SET_TRANSLATE_STATE'; payload: { open: boolean; loading: boolean; sourceLanguage: string; targetLanguage: string } }
   | { type: 'SET_ASSIGN_DIALOG'; payload: { open: boolean; userId: string; loading: boolean } }
   | { type: 'SET_MOVE_DIALOG'; payload: { open: boolean; inboxId: string; loading: boolean } }
@@ -65,6 +68,8 @@ const initialState: ConversationViewState = {
   aiSuggestions: [],
   selectedAiSuggestion: null,
   selectedTemplateId: null,
+  showFeedbackRating: false,
+  lastSentMessageId: null,
   translateOpen: false,
   translateLoading: false,
   sourceLanguage: 'auto',
@@ -101,6 +106,8 @@ function conversationViewReducer(state: ConversationViewState, action: Conversat
       return { ...state, selectedAiSuggestion: action.payload, trackingActive: true };
     case 'SET_SELECTED_TEMPLATE':
       return { ...state, selectedTemplateId: action.payload, trackingActive: true };
+    case 'SET_FEEDBACK_STATE':
+      return { ...state, showFeedbackRating: action.payload.show, lastSentMessageId: action.payload.messageId };
     case 'SET_TRANSLATE_STATE':
       return { ...state, translateOpen: action.payload.open, translateLoading: action.payload.loading, sourceLanguage: action.payload.sourceLanguage, targetLanguage: action.payload.targetLanguage };
     case 'SET_ASSIGN_DIALOG':
@@ -337,8 +344,12 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
           }
         }
         
-        // Reset tracking state
+        // Reset tracking state and show feedback if AI/template was used
+        const shouldShowFeedback = state.selectedAiSuggestion || state.selectedTemplateId;
         dispatch({ type: 'SET_TRACKING_ACTIVE', payload: false });
+        if (shouldShowFeedback) {
+          dispatch({ type: 'SET_FEEDBACK_STATE', payload: { show: true, messageId: message.id } });
+        }
       }
 
       // Update conversation status after agent reply (only for non-internal messages)

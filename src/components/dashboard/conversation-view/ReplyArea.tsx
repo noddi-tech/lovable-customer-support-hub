@@ -30,6 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { TemplateSelector } from "./TemplateSelector";
+import { FeedbackPrompt } from "./FeedbackPrompt";
 
 export const ReplyArea = () => {
   const { 
@@ -125,6 +126,9 @@ export const ReplyArea = () => {
   return (
     <div className="border-t-2 border-border bg-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
       <div className="p-6 space-y-4">
+        {/* Feedback Prompt */}
+        <FeedbackPrompt />
+
         {/* AI Suggestions Section */}
         {state.aiSuggestions.length > 0 && (
           <div className="space-y-2">

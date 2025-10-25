@@ -1439,6 +1439,9 @@ export type Database = {
           conversation_id: string
           created_at: string
           customer_message: string | null
+          feedback_comment: string | null
+          feedback_rating: number | null
+          feedback_submitted_at: string | null
           id: string
           knowledge_entry_id: string | null
           message_id: string
@@ -1452,6 +1455,9 @@ export type Database = {
           conversation_id: string
           created_at?: string
           customer_message?: string | null
+          feedback_comment?: string | null
+          feedback_rating?: number | null
+          feedback_submitted_at?: string | null
           id?: string
           knowledge_entry_id?: string | null
           message_id: string
@@ -1465,6 +1471,9 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           customer_message?: string | null
+          feedback_comment?: string | null
+          feedback_rating?: number | null
+          feedback_submitted_at?: string | null
           id?: string
           knowledge_entry_id?: string | null
           message_id?: string
