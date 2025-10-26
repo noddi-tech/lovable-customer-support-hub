@@ -119,33 +119,22 @@ function stripEmailClientWrappers(body: HTMLElement): void {
   // Check if the entire body is wrapped in a single <pre> or <div>
   const children = Array.from(body.children);
   
-  // If there's only one child and it's a wrapper element
+  // If there's only one child and it's a wrapper element, unwrap it
   if (children.length === 1) {
     const onlyChild = children[0];
     
     if (onlyChild.tagName === 'PRE' && !onlyChild.querySelector('code')) {
       console.log('[stripEmailClientWrappers] Unwrapping single PRE wrapper');
-      
-      // STEP 1: Get the HTML-encoded content
-      const encodedContent = onlyChild.innerHTML;
-      console.log('[stripEmailClientWrappers] Encoded content preview:', encodedContent.substring(0, 100));
-      
-      // STEP 2: Decode HTML entities using standard method
-      const decodedContent = decodeHTMLEntities(encodedContent);
-      console.log('[stripEmailClientWrappers] Decoded content preview:', decodedContent.substring(0, 100));
-      
-      // STEP 3: Set decoded content as innerHTML so browser parses it as HTML
-      body.innerHTML = decodedContent;
+      // Just unwrap - content is already decoded by extractFromHtml
+      body.innerHTML = onlyChild.innerHTML;
       
     } else if (onlyChild.tagName === 'DIV' && onlyChild.childElementCount === 0 && onlyChild.textContent) {
       console.log('[stripEmailClientWrappers] Unwrapping single DIV wrapper');
-      // DIV wrappers don't encode content, use innerHTML directly
       body.innerHTML = onlyChild.innerHTML;
     }
   }
   
   // Handle all <pre> elements that don't contain <code> (email client formatting)
-  // Don't use :has() - manually check each pre element
   const preElements = Array.from(body.querySelectorAll('pre'));
   console.log('[stripEmailClientWrappers] Found pre elements:', preElements.length);
   
@@ -154,16 +143,9 @@ function stripEmailClientWrappers(body: HTMLElement): void {
     console.log(`[stripEmailClientWrappers] Pre element ${index}: hasCode=${hasCodeChild}`);
     
     if (!hasCodeChild) {
-      // STEP 1: Get encoded content from pre
-      const encodedContent = pre.innerHTML;
-      
-      // STEP 2: Decode HTML entities
-      const decodedContent = decodeHTMLEntities(encodedContent);
-      console.log(`[stripEmailClientWrappers] Decoded pre ${index}:`, decodedContent.substring(0, 50));
-      
-      // STEP 3: Create div and parse decoded content as HTML
+      // Just unwrap - content is already decoded by extractFromHtml
       const div = document.createElement('div');
-      div.innerHTML = decodedContent;
+      div.innerHTML = pre.innerHTML;
       div.style.whiteSpace = 'pre-wrap';
       div.className = 'email-client-content';
       pre.replaceWith(div);
@@ -270,10 +252,17 @@ function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessa
 function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
   const quoted: QuotedBlock[] = [];
   const quotedMessages: QuotedMessage[] = [];
-  const doc = htmlToDocument(stripHtmlComments(html));
+  
+  // CRITICAL FIX: Decode HTML entities FIRST, before any DOM operations
+  // This handles &lt;br/&gt; → <br/>, &gt; → >, etc.
+  const decodedHtml = decodeHTMLEntities(html);
+  console.log('[extractFromHtml] Decoded entities. Original preview:', html.substring(0, 100));
+  console.log('[extractFromHtml] Decoded preview:', decodedHtml.substring(0, 100));
+  
+  const doc = htmlToDocument(stripHtmlComments(decodedHtml));
   const body = doc.body;
 
-  // STEP 0: Strip email client wrapper elements
+  // STEP 0: Strip email client wrapper elements (no decoding needed, already done)
   stripEmailClientWrappers(body);
 
   // STEP 1: Detect Outlook-specific separators and remove everything AFTER them
@@ -444,10 +433,18 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     }
   }
 
-  // STEP 5: Get visible content with smart fallback
-  const visibleHTML = body.innerHTML.trim();
-  const bodyText = body.innerText.trim();
+  // STEP 5: Get visible content WITHOUT re-encoding - use textContent to preserve decoded entities
+  // Using .innerHTML would re-encode special chars (> → &gt;, < → &lt;, etc.)
+  const bodyText = (body.textContent || body.innerText || '').trim();
   const cleanedText = stripEmailListFooters(bodyText);
+  
+  // Convert cleaned text back to minimal HTML structure (preserve line breaks as paragraphs)
+  const visibleHTML = cleanedText
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => `<p>${line}</p>`)
+    .join('\n');
   
   console.log('[parseQuotedEmail] Extraction complete:', {
     visibleHTMLLength: visibleHTML.length,
@@ -457,11 +454,8 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     visibleHTMLPreview: visibleHTML.substring(0, 200)
   });
   
-  // Priority: HTML content (now footer-stripped) > cleaned text > original text
-  const finalContent = visibleHTML || cleanedText || bodyText;
-  
   return { 
-    visibleHTML: finalContent, 
+    visibleHTML: visibleHTML || cleanedText || bodyText, 
     quoted, 
     quotedMessages 
   };
