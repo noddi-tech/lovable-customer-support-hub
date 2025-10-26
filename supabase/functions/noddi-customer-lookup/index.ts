@@ -872,66 +872,331 @@ Deno.serve(async (req) => {
         });
       }
       
-      // Handle 500 errors gracefully (Noddi API instability)
+      // Handle 500 errors with fallback to legacy endpoints
       if (lookupResponse.status >= 500) {
         const errorText = await lookupResponse.text();
-        console.error(`⚠️  Noddi API returned ${lookupResponse.status}, treating as not found:`, errorText);
-        console.log('💡 Customer may exist in Noddi but API failed - showing search option');
+        console.error(`⚠️  New endpoint failed with ${lookupResponse.status}:`, errorText);
+        console.log('🔄 Falling back to legacy multi-call approach...');
         
-        // Store negative cache with short TTL (1 minute) in case API recovers
         try {
-          await supabase
-            .from('noddi_customer_cache')
-            .upsert({
-              organization_id: body.organizationId,
-              customer_id: body.customerId,
-              email: emailsToTry[0] || null,
-              phone: phone || null,
-              noddi_user_id: -1,
-              user_group_id: null,
-              last_refreshed_at: new Date().toISOString(),
-              priority_booking_id: null,
-              priority_booking_type: null,
-              pending_bookings_count: 0,
-              cached_customer_data: {},
-              cached_priority_booking: null,
-              cached_pending_bookings: []
-            }, {
-              onConflict: phone ? 'phone' : 'email'
-            });
-        } catch {}
-        
-        return json({
-          ok: false,
-          source: "live",
-          ttl_seconds: 60, // Short TTL (1 minute) in case API recovers
-          data: {
-            found: false,
-            email: emailsToTry[0] || email || "",
-            noddi_user_id: null,
-            user_group_id: null,
-            user: null,
-            priority_booking_type: null,
-            priority_booking: null,
-            unpaid_count: 0,
-            unpaid_bookings: [],
-            ui_meta: {
-              display_name: email || phone || "Unknown",
-              user_group_badge: null,
-              unpaid_count: 0,
-              status_label: null,
-              booking_date_iso: null,
-              match_mode: lookupMode,
-              conflict: false,
-              unable_to_complete: true,
-              unable_label: "Noddi API temporarily unavailable",
-              version: "noddi-edge-1.7",
-              source: "live"
+          // Fallback: Use old working endpoints
+          let legacyUser = null;
+          let usedEmail = null;
+          
+          // Try email lookup first
+          for (const tryEmail of emailsToTry) {
+            legacyUser = await getUserByEmail(tryEmail);
+            if (legacyUser) {
+              usedEmail = tryEmail;
+              lookupMode = "email";
+              console.log(`✅ Found user via email: ${tryEmail}`);
+              break;
             }
-          },
-          noddiApiError: true, // Flag to indicate this was an API error, not truly "not found"
-          notFound: true
-        });
+          }
+          
+          // Try phone lookup if email failed
+          if (!legacyUser && phone) {
+            legacyUser = await getUserByPhone(phone);
+            if (legacyUser) {
+              lookupMode = "phone";
+              console.log(`✅ Found user via phone: ${phone}`);
+            }
+          }
+          
+          if (!legacyUser) {
+            // Still not found - return not found response
+            console.log('❌ User not found in legacy lookup either');
+            
+            try {
+              await supabase
+                .from('noddi_customer_cache')
+                .upsert({
+                  organization_id: body.organizationId,
+                  customer_id: body.customerId,
+                  email: emailsToTry[0] || null,
+                  phone: phone || null,
+                  noddi_user_id: -1,
+                  user_group_id: null,
+                  last_refreshed_at: new Date().toISOString(),
+                  priority_booking_id: null,
+                  priority_booking_type: null,
+                  pending_bookings_count: 0,
+                  cached_customer_data: {},
+                  cached_priority_booking: null,
+                  cached_pending_bookings: []
+                }, {
+                  onConflict: phone ? 'phone' : 'email'
+                });
+            } catch {}
+            
+            return json({
+              ok: false,
+              source: "live",
+              ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
+              data: {
+                found: false,
+                email: emailsToTry[0] || email || "",
+                noddi_user_id: null,
+                user_group_id: null,
+                user: null,
+                priority_booking_type: null,
+                priority_booking: null,
+                unpaid_count: 0,
+                unpaid_bookings: [],
+                ui_meta: {
+                  display_name: emailsToTry[0] ? emailsToTry[0].split("@")[0] : (phone || "Unknown"),
+                  user_group_badge: null,
+                  unpaid_count: 0,
+                  status_label: null,
+                  booking_date_iso: null,
+                  match_mode: lookupMode,
+                  conflict: false,
+                  version: "noddi-edge-1.7",
+                  source: "live"
+                }
+              },
+              notFound: true
+            });
+          }
+          
+          // Fetch user groups
+          const groupsResponse = await fetch(
+            `${API_BASE}/v1/user-groups/?user=${legacyUser.id}`,
+            { headers: noddiAuthHeaders() }
+          );
+          
+          if (!groupsResponse.ok) {
+            throw new Error(`Failed to fetch user groups: ${groupsResponse.status}`);
+          }
+          
+          const userGroups = await groupsResponse.json();
+          console.log(`✅ Fetched ${userGroups.length} user groups`);
+          
+          // Find primary group for fetching bookings
+          const primaryGroup = userGroups.find((g: any) => g.is_default_user_group) || 
+                               userGroups.find((g: any) => g.is_personal) || 
+                               userGroups[0];
+          
+          // Fetch unpaid bookings for all groups
+          let allUnpaidBookings: any[] = [];
+          
+          for (const group of userGroups) {
+            try {
+              const bookingsResponse = await fetch(
+                `${API_BASE}/v1/bookings/?user_group=${group.id}&status=pending`,
+                { headers: noddiAuthHeaders() }
+              );
+              
+              if (bookingsResponse.ok) {
+                const groupBookings = await bookingsResponse.json();
+                allUnpaidBookings.push(...groupBookings);
+              }
+            } catch (err) {
+              console.warn(`Failed to fetch bookings for group ${group.id}:`, err);
+            }
+          }
+          
+          console.log(`✅ Fetched ${allUnpaidBookings.length} total unpaid bookings`);
+          
+          // Reconstruct lookupData in the same format as new endpoint
+          const lookupData = {
+            user: legacyUser,
+            user_groups: userGroups,
+            unpaid_bookings: allUnpaidBookings,
+            metadata: {
+              total_bookings_count: allUnpaidBookings.length,
+              total_unpaid_count: allUnpaidBookings.length
+            }
+          };
+          
+          console.log(`✅ Legacy lookup successful. User: ${legacyUser.id}, Groups: ${userGroups.length}, Unpaid: ${allUnpaidBookings.length}`);
+          
+          // Continue with normal flow - extract data from response
+          const noddihUser = lookupData.user;
+          const successfulEmail = noddihUser?.email || emailsToTry[0] || "";
+          
+          if (!noddihUser || userGroups.length === 0) {
+            throw new Error('Invalid response structure from legacy lookup');
+          }
+          
+          console.log(`User: ${noddihUser.id}, Groups: ${userGroups.length}, Total bookings: ${lookupData.metadata?.total_bookings_count}, Unpaid: ${lookupData.metadata?.total_unpaid_count}`);
+          
+          // Now we jump to the same processing flow as the successful new endpoint
+          // (continuing at Step 4 from line 959)
+          let priorityBooking: any = null;
+          let priorityBookingType: 'upcoming' | 'completed' | null = null;
+          let priorityGroup: any = null;
+          
+          // Find the group with the most relevant priority booking
+          for (const group of userGroups) {
+            if (group.bookings_summary?.priority_booking) {
+              priorityGroup = group;
+              priorityBooking = group.bookings_summary.priority_booking;
+              
+              // Determine type based on booking status/dates
+              if (priorityBooking.deliveryWindowStartsAt && 
+                  new Date(priorityBooking.deliveryWindowStartsAt) > new Date()) {
+                priorityBookingType = 'upcoming';
+              } else if (priorityBooking.startedAt && !priorityBooking.completedAt) {
+                priorityBookingType = 'completed';
+              } else if (priorityBooking.completedAt) {
+                priorityBookingType = 'completed';
+              }
+              
+              console.log(`Priority booking ${priorityBooking.id} from group ${priorityGroup.id} (type: ${priorityBookingType})`);
+              break;
+            }
+          }
+          
+          // Fallback to first group if no priority booking found
+          if (!priorityGroup) {
+            priorityGroup = userGroups.find((g: any) => g.is_default_user_group) || 
+                            userGroups.find((g: any) => g.is_personal) || 
+                            userGroups[0];
+            console.log(`No priority booking found, using fallback group: ${priorityGroup.id}`);
+          }
+          
+          // Fallback: If no priority booking found in bookings_summary, 
+          // use the first unpaid booking (which has full order details)
+          if (!priorityBooking && allUnpaidBookings.length > 0) {
+            // Find first unpaid booking for the priority group
+            const groupUnpaid = allUnpaidBookings.filter((b: any) => 
+              b.user_group_id === priorityGroup?.id
+            );
+            
+            if (groupUnpaid.length > 0) {
+              priorityBooking = groupUnpaid[0];
+              priorityBookingType = 'completed';
+              console.log(`Using first unpaid booking ${priorityBooking.id} as priority booking (type: ${priorityBookingType})`);
+            }
+          }
+          
+          // Select the user group (explicit request or priority)
+          let selectedGroup = priorityGroup;
+          
+          if (body.userGroupId) {
+            const requestedGroup = userGroups.find((g: any) => g.id === body.userGroupId);
+            if (requestedGroup) {
+              selectedGroup = requestedGroup;
+              console.log(`Using explicitly requested group: ${selectedGroup.id}`);
+            }
+          }
+          
+          // Filter unpaid bookings for selected group
+          const pendingBookings = allUnpaidBookings.filter(
+            (booking: any) => booking.user_group_id === selectedGroup.id
+          );
+          
+          console.log(`Selected group ${selectedGroup.id} has ${pendingBookings.length} unpaid bookings`);
+          
+          // Format all user groups with their booking summaries for UI
+          const allUserGroupsFormatted = userGroups.map((g: any) => ({
+            id: g.id,
+            name: g.name || null,
+            is_default: g.is_default_user_group || false,
+            is_personal: g.is_personal || false,
+            bookings_summary: {
+              total_count: g.bookings_summary?.total_count || 0,
+              upcoming_count: g.bookings_summary?.upcoming_count || 0,
+              completed_count: g.bookings_summary?.completed_count || 0,
+              unpaid_count: g.bookings_summary?.unpaid_count || 0
+            },
+            priority_booking: g.bookings_summary?.priority_booking || null
+          }));
+
+          // Enrich tags if empty
+          const orderTags = priorityBooking?.order?.tags || [];
+          let enrichedTags = orderTags;
+          let bookingForCache = priorityBooking;
+          
+          if (orderTags.length === 0 && priorityBooking) {
+            console.log('Tags empty, enriching...');
+            const enrichResult = await enrichTagsIfEmpty(priorityBooking);
+            enrichedTags = enrichResult.tags;
+            bookingForCache = enrichResult.bookingForCache || priorityBooking;
+          }
+          
+          // Build final response using buildResponse helper
+          const response = buildResponse({
+            noddihUserId: noddihUser.id,
+            userGroupId: selectedGroup.id,
+            user: noddihUser,
+            userGroup: selectedGroup,
+            allUserGroups: allUserGroupsFormatted,
+            priorityBooking: bookingForCache,
+            priorityBookingType,
+            pendingBookings,
+            unpaidCount: pendingBookings.length,
+            orderTags: enrichedTags,
+            matchMode: lookupMode,
+            conflict,
+            email: successfulEmail
+          });
+          
+          // Update cache with fresh data
+          try {
+            await supabase
+              .from('noddi_customer_cache')
+              .upsert({
+                organization_id: body.organizationId,
+                customer_id: body.customerId,
+                email: successfulEmail,
+                phone: phone || null,
+                noddi_user_id: noddihUser.id,
+                user_group_id: selectedGroup.id,
+                last_refreshed_at: new Date().toISOString(),
+                priority_booking_id: bookingForCache?.id || null,
+                priority_booking_type: priorityBookingType,
+                pending_bookings_count: pendingBookings.length,
+                cached_customer_data: noddihUser,
+                cached_priority_booking: bookingForCache,
+                cached_pending_bookings: pendingBookings
+              }, {
+                onConflict: phone ? 'phone' : 'email'
+              });
+            console.log('✅ Cache updated with legacy lookup data');
+          } catch (cacheError) {
+            console.warn('⚠️  Failed to update cache:', cacheError);
+          }
+          
+          return json(response);
+          
+        } catch (fallbackError) {
+          console.error('❌ Legacy fallback also failed:', fallbackError);
+          
+          // Last resort: return graceful degradation
+          return json({
+            ok: false,
+            source: "live",
+            ttl_seconds: 60,
+            data: {
+              found: false,
+              email: emailsToTry[0] || email || "",
+              noddi_user_id: null,
+              user_group_id: null,
+              user: null,
+              priority_booking_type: null,
+              priority_booking: null,
+              unpaid_count: 0,
+              unpaid_bookings: [],
+              ui_meta: {
+                display_name: email || phone || "Unknown",
+                user_group_badge: null,
+                unpaid_count: 0,
+                status_label: null,
+                booking_date_iso: null,
+                match_mode: lookupMode,
+                conflict: false,
+                unable_to_complete: true,
+                unable_label: "Noddi API temporarily unavailable",
+                version: "noddi-edge-1.7",
+                source: "live"
+              }
+            },
+            noddiApiError: true,
+            notFound: true
+          });
+        }
       }
       
       // For other errors (401, 403, etc.), capture and throw
