@@ -807,6 +807,7 @@ Deno.serve(async (req) => {
     const lookupUrl = new URL(`${API_BASE}/v1/users/customer-lookup-support/`);
     if (emailsToTry[0]) lookupUrl.searchParams.set('email', emailsToTry[0]);
     if (phone) lookupUrl.searchParams.set('phone', phone);
+    lookupUrl.searchParams.set('include_unpaid_only', 'false');
     
     let lookupMode: "phone" | "email" = phone ? "phone" : "email";
     let conflict = false;
