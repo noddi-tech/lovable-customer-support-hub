@@ -112,8 +112,8 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       const alreadyWrapped = /class=\"email-render\"/.test(normalized);
       return alreadyWrapped ? normalized : sanitizeEmailHTML(normalized, attachments, true, messageId);
     } else {
-      // For plain text, return decoded content
-      return normalized;
+      // For plain text, format the decoded content (converts <br/> to newlines)
+      return formatPlainTextEmail(normalized);
     }
   }, [content, isHTML, attachments, messageId, contentType]);
 
