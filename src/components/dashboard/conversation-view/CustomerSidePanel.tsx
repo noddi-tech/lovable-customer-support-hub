@@ -232,10 +232,10 @@ export const CustomerSidePanel = ({
   };
 
   const handleSelectCustomer = async (selectedCustomer: any) => {
-    if (!selectedCustomer.email && !selectedCustomer.phone) {
+    if (!selectedCustomer.email && !selectedCustomer.phone && !selectedCustomer.metadata?.noddi_email) {
       toast({
         title: "Cannot link",
-        description: "Selected customer has no email or phone",
+        description: "Selected customer has no email, phone, or Noddi account",
         variant: "destructive",
       });
       return;
@@ -257,6 +257,13 @@ export const CustomerSidePanel = ({
 
       // If customer doesn't exist locally, create them
       if (selectedCustomer.metadata?.is_new) {
+        const metadata: any = {};
+        
+        // Store Noddi email in alternative_emails if available
+        if (selectedCustomer.metadata?.noddi_email) {
+          metadata.alternative_emails = [selectedCustomer.metadata.noddi_email];
+        }
+
         const { data: newCustomer, error: createError } = await supabase
           .from("customers")
           .insert({
@@ -264,6 +271,7 @@ export const CustomerSidePanel = ({
             email: conversation.customer?.email || selectedCustomer.phone, // Use conversation email (the one we communicate with)
             phone: selectedCustomer.phone,
             organization_id: organizationId,
+            metadata,
           })
           .select()
           .single();
@@ -275,6 +283,31 @@ export const CustomerSidePanel = ({
           title: "Customer created",
           description: `Created new customer: ${selectedCustomer.full_name}`,
         });
+      } else if (selectedCustomer.metadata?.noddi_email) {
+        // Update existing customer to include Noddi email in alternative_emails
+        const { data: existingCustomer } = await supabase
+          .from("customers")
+          .select('metadata')
+          .eq('id', customerId)
+          .single();
+        
+        const existingMeta = existingCustomer?.metadata as Record<string, any> | null;
+        const currentAltEmails = (existingMeta?.alternative_emails as string[]) || [];
+        const noddiEmail = selectedCustomer.metadata.noddi_email;
+        
+        if (!currentAltEmails.includes(noddiEmail)) {
+          await supabase
+            .from("customers")
+            .update({
+              metadata: {
+                ...(existingMeta || {}),
+                alternative_emails: [...currentAltEmails, noddiEmail]
+              }
+            })
+            .eq('id', customerId);
+          
+          console.log(`✅ Added Noddi email to alternative_emails: ${noddiEmail}`);
+        }
       }
 
       // Always call noddi-customer-lookup to get full enriched data
@@ -593,6 +626,13 @@ export const CustomerSidePanel = ({
                               )}
                             </div>
                             <div className="text-amber-700 flex items-center gap-2 flex-wrap">
+                              {customer.metadata?.noddi_email && (
+                                <span className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {customer.metadata.noddi_email}
+                                  <span className="text-[10px] font-medium text-amber-600">(Noddi)</span>
+                                </span>
+                              )}
                               {customer.email && (
                                 <span className="flex items-center gap-1">
                                   <Mail className="h-3 w-3" />
