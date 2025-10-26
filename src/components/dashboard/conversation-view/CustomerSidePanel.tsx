@@ -326,6 +326,12 @@ export const CustomerSidePanel = ({
           .eq("id", conversation.id);
       }
 
+      // Prepare alternative emails to pass to edge function
+      const alternativeEmailsToTry: string[] = [];
+      if (selectedCustomer.metadata?.noddi_email) {
+        alternativeEmailsToTry.push(selectedCustomer.metadata.noddi_email);
+      }
+
       // Always call noddi-customer-lookup to get full enriched data
       const { data: lookupData, error: lookupError } =
         await supabase.functions.invoke("noddi-customer-lookup", {
@@ -334,7 +340,7 @@ export const CustomerSidePanel = ({
             phone: selectedCustomer.phone,
             customerId: customerId,
             organizationId,
-            noddiEmail: selectedCustomer.metadata?.noddi_email, // Pass Noddi email separately if available
+            alternative_emails: alternativeEmailsToTry, // Pass directly for immediate use
           },
         });
 

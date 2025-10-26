@@ -719,7 +719,18 @@ Deno.serve(async (req) => {
       emailsToTry.push(email);
     }
 
-    // If we have a customerId, fetch alternative emails from customer metadata
+    // Add provided alternative emails from request (takes priority for immediate use)
+    if (body.alternative_emails && Array.isArray(body.alternative_emails)) {
+      body.alternative_emails.forEach((altEmail: string) => {
+        const normalized = (altEmail || "").trim().toLowerCase();
+        if (normalized && !emailsToTry.includes(normalized)) {
+          emailsToTry.push(normalized);
+          console.log('📧 Added provided alternative email:', normalized);
+        }
+      });
+    }
+
+    // If we have a customerId, fetch alternative emails from customer metadata (as fallback)
     if (body.customerId) {
       try {
         const { data: customer } = await supabase
@@ -732,11 +743,12 @@ Deno.serve(async (req) => {
           const altEmails = customer.metadata.alternative_emails as string[];
           // Add alternative emails that aren't already in the list
           altEmails.forEach((altEmail: string) => {
-            if (altEmail && !emailsToTry.includes(altEmail)) {
-              emailsToTry.push(altEmail);
+            const normalized = (altEmail || "").trim().toLowerCase();
+            if (normalized && !emailsToTry.includes(normalized)) {
+              emailsToTry.push(normalized);
             }
           });
-          console.log('📧 Alternative emails loaded:', altEmails.length);
+          console.log('📧 Alternative emails loaded from DB:', altEmails.length);
         }
       } catch (err) {
         console.error('Failed to load alternative emails:', err);
