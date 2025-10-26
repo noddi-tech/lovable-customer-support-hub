@@ -807,7 +807,6 @@ Deno.serve(async (req) => {
     const lookupUrl = new URL(`${API_BASE}/v1/users/customer-lookup-support/`);
     if (emailsToTry[0]) lookupUrl.searchParams.set('email', emailsToTry[0]);
     if (phone) lookupUrl.searchParams.set('phone', phone);
-    lookupUrl.searchParams.set('include_unpaid_only', 'false');
     
     let lookupMode: "phone" | "email" = phone ? "phone" : "email";
     let conflict = false;
@@ -873,6 +872,9 @@ Deno.serve(async (req) => {
         });
       }
       
+      // Capture actual error response for debugging
+      const errorText = await lookupResponse.text();
+      console.error(`❌ Noddi API Error ${lookupResponse.status}:`, errorText);
       throw new Error(`Customer lookup failed: ${lookupResponse.status}`);
     }
     
