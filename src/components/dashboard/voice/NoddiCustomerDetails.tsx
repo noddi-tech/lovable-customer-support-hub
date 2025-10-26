@@ -83,8 +83,10 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
   // Notify parent when data is loaded
   React.useEffect(() => {
-    if (displayedData && onDataLoaded) {
-      onDataLoaded(displayedData);
+    if (onDataLoaded) {
+      // Always call onDataLoaded, even if displayedData is null/undefined
+      // This ensures parent knows about the "not found" state
+      onDataLoaded(displayedData || null);
     }
   }, [displayedData, onDataLoaded]);
 
