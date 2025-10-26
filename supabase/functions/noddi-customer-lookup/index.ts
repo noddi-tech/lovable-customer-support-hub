@@ -872,7 +872,69 @@ Deno.serve(async (req) => {
         });
       }
       
-      // Capture actual error response for debugging
+      // Handle 500 errors gracefully (Noddi API instability)
+      if (lookupResponse.status >= 500) {
+        const errorText = await lookupResponse.text();
+        console.error(`⚠️  Noddi API returned ${lookupResponse.status}, treating as not found:`, errorText);
+        console.log('💡 Customer may exist in Noddi but API failed - showing search option');
+        
+        // Store negative cache with short TTL (1 minute) in case API recovers
+        try {
+          await supabase
+            .from('noddi_customer_cache')
+            .upsert({
+              organization_id: body.organizationId,
+              customer_id: body.customerId,
+              email: emailsToTry[0] || null,
+              phone: phone || null,
+              noddi_user_id: -1,
+              user_group_id: null,
+              last_refreshed_at: new Date().toISOString(),
+              priority_booking_id: null,
+              priority_booking_type: null,
+              pending_bookings_count: 0,
+              cached_customer_data: {},
+              cached_priority_booking: null,
+              cached_pending_bookings: []
+            }, {
+              onConflict: phone ? 'phone' : 'email'
+            });
+        } catch {}
+        
+        return json({
+          ok: false,
+          source: "live",
+          ttl_seconds: 60, // Short TTL (1 minute) in case API recovers
+          data: {
+            found: false,
+            email: emailsToTry[0] || email || "",
+            noddi_user_id: null,
+            user_group_id: null,
+            user: null,
+            priority_booking_type: null,
+            priority_booking: null,
+            unpaid_count: 0,
+            unpaid_bookings: [],
+            ui_meta: {
+              display_name: email || phone || "Unknown",
+              user_group_badge: null,
+              unpaid_count: 0,
+              status_label: null,
+              booking_date_iso: null,
+              match_mode: lookupMode,
+              conflict: false,
+              unable_to_complete: true,
+              unable_label: "Noddi API temporarily unavailable",
+              version: "noddi-edge-1.7",
+              source: "live"
+            }
+          },
+          noddiApiError: true, // Flag to indicate this was an API error, not truly "not found"
+          notFound: true
+        });
+      }
+      
+      // For other errors (401, 403, etc.), capture and throw
       const errorText = await lookupResponse.text();
       console.error(`❌ Noddi API Error ${lookupResponse.status}:`, errorText);
       throw new Error(`Customer lookup failed: ${lookupResponse.status}`);
