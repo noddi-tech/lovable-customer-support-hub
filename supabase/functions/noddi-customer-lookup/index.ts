@@ -925,6 +925,21 @@ Deno.serve(async (req) => {
       console.log(`No priority booking found, using fallback group: ${priorityGroup.id}`);
     }
     
+    // Fallback: If no priority booking found in bookings_summary, 
+    // use the first unpaid booking (which has full order details)
+    if (!priorityBooking && allUnpaidBookings.length > 0) {
+      // Find first unpaid booking for the priority group
+      const groupUnpaid = allUnpaidBookings.filter((b: any) => 
+        b.user_group_id === priorityGroup?.id
+      );
+      
+      if (groupUnpaid.length > 0) {
+        priorityBooking = groupUnpaid[0];
+        priorityBookingType = 'completed'; // Unpaid bookings are typically completed but not paid
+        console.log(`Using first unpaid booking ${priorityBooking.id} as priority booking (type: ${priorityBookingType})`);
+      }
+    }
+    
     // Step 5: Select the user group (explicit request or priority)
     let selectedGroup = priorityGroup;
     
