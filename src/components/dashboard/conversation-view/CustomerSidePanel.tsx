@@ -253,45 +253,53 @@ export const CustomerSidePanel = ({
     setSearchLoading(true);
 
     try {
-      let customerId = selectedCustomer.id;
+      // Step 1: Check if conversation already has a customer
+      const conversationCustomerId = conversation.customer_id;
+      let customerId = conversationCustomerId;
 
-      // If customer doesn't exist locally, create them
-      if (selectedCustomer.metadata?.is_new) {
-        const metadata: any = {};
-        
-        // Store Noddi email in alternative_emails if available
-        if (selectedCustomer.metadata?.noddi_email) {
-          metadata.alternative_emails = [selectedCustomer.metadata.noddi_email];
+      // Step 2: If conversation has NO customer, create or link one
+      if (!conversationCustomerId) {
+        if (selectedCustomer.metadata?.is_new) {
+          // Create new customer with Noddi email in alternative_emails
+          const metadata: any = {};
+          if (selectedCustomer.metadata?.noddi_email) {
+            metadata.alternative_emails = [selectedCustomer.metadata.noddi_email];
+          }
+
+          const { data: newCustomer, error: createError } = await supabase
+            .from("customers")
+            .insert({
+              full_name: selectedCustomer.full_name,
+              email: conversation.customer?.email || selectedCustomer.phone,
+              phone: selectedCustomer.phone,
+              organization_id: organizationId,
+              metadata,
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          customerId = newCustomer.id;
+
+          toast({
+            title: "Customer created",
+            description: `Created new customer: ${selectedCustomer.full_name}`,
+          });
+        } else {
+          // Use existing customer from search results
+          customerId = selectedCustomer.metadata?.local_customer_id || selectedCustomer.id;
         }
+      }
 
-        const { data: newCustomer, error: createError } = await supabase
-          .from("customers")
-          .insert({
-            full_name: selectedCustomer.full_name,
-            email: conversation.customer?.email || selectedCustomer.phone, // Use conversation email (the one we communicate with)
-            phone: selectedCustomer.phone,
-            organization_id: organizationId,
-            metadata,
-          })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        customerId = newCustomer.id;
-
-        toast({
-          title: "Customer created",
-          description: `Created new customer: ${selectedCustomer.full_name}`,
-        });
-      } else if (selectedCustomer.metadata?.noddi_email) {
-        // Update existing customer to include Noddi email in alternative_emails
-        const { data: existingCustomer } = await supabase
+      // Step 3: Add Noddi email to alternative_emails if not already there
+      if (customerId && selectedCustomer.metadata?.noddi_email) {
+        const { data: customer } = await supabase
           .from("customers")
           .select('metadata')
           .eq('id', customerId)
           .single();
         
-        const existingMeta = existingCustomer?.metadata as Record<string, any> | null;
+        const existingMeta = customer?.metadata as Record<string, any> | null;
         const currentAltEmails = (existingMeta?.alternative_emails as string[]) || [];
         const noddiEmail = selectedCustomer.metadata.noddi_email;
         
@@ -306,8 +314,16 @@ export const CustomerSidePanel = ({
             })
             .eq('id', customerId);
           
-          console.log(`✅ Added Noddi email to alternative_emails: ${noddiEmail}`);
+          console.log(`✅ Added Noddi email to customer ${customerId}: ${noddiEmail}`);
         }
+      }
+
+      // Step 4: Link customer to conversation if not already linked
+      if (customerId !== conversationCustomerId) {
+        await supabase
+          .from("conversations")
+          .update({ customer_id: customerId })
+          .eq("id", conversation.id);
       }
 
       // Always call noddi-customer-lookup to get full enriched data
