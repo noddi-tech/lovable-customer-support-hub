@@ -71,7 +71,7 @@ export default function ServiceTickets() {
     open: filteredTickets.filter(t => t.status === 'open'),
     in_progress: filteredTickets.filter(t => t.status === 'in_progress'),
     scheduled: filteredTickets.filter(t => t.status === 'scheduled'),
-    resolved: filteredTickets.filter(t => t.status === 'resolved'),
+    completed: filteredTickets.filter(t => t.status === 'completed'),
     closed: filteredTickets.filter(t => t.status === 'closed'),
   };
 
