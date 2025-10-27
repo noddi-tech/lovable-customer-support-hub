@@ -7,19 +7,18 @@ const supabase = createClient(
 );
 
 async function logSystemEvent(
+  orgId: string,
   eventType: string,
-  severity: 'debug' | 'info' | 'warn' | 'error' | 'critical',
-  message: string,
-  context: any = {}
+  severity: 'info' | 'warn' | 'error' | 'critical',
+  eventData: any = {}
 ) {
   try {
     await supabase.from('system_events_log').insert({
+      organization_id: orgId,
       event_type: eventType,
+      event_source: 'edge_function',
+      event_data: eventData,
       severity,
-      component: 'edge_function',
-      function_name: 'update-ticket-status',
-      message,
-      context,
     });
   } catch (err) {
     console.error('Failed to log system event:', err);
@@ -54,7 +53,6 @@ Deno.serve(async (req) => {
     );
 
     if (authError || !user) {
-      await logSystemEvent('auth_failed', 'warn', 'Authentication failed', { error: authError?.message });
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -92,10 +90,6 @@ Deno.serve(async (req) => {
       .single();
 
     if (fetchError || !currentTicket) {
-      await logSystemEvent('ticket_not_found', 'warn', `Ticket ${body.ticketId} not found`, {
-        ticket_id: body.ticketId,
-        user_id: user.id,
-      });
       return new Response(
         JSON.stringify({ error: 'Ticket not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -127,11 +121,16 @@ Deno.serve(async (req) => {
       .single();
 
     if (updateError) {
-      await logSystemEvent('ticket_update_failed', 'error', 'Failed to update ticket status', {
-        error: updateError.message,
-        ticket_id: body.ticketId,
-        user_id: user.id,
-      });
+      await logSystemEvent(
+        profile.organization_id,
+        'ticket_update_failed',
+        'error',
+        {
+          error: updateError.message,
+          ticket_id: body.ticketId,
+          user_id: user.id,
+        }
+      );
       throw updateError;
     }
 
@@ -188,12 +187,18 @@ Deno.serve(async (req) => {
       },
     });
 
-    await logSystemEvent('ticket_status_updated', 'info', `Ticket ${updatedTicket.ticket_number} status changed`, {
-      ticket_id: updatedTicket.id,
-      old_status: currentTicket.status,
-      new_status: body.newStatus,
-      user_id: user.id,
-    });
+    await logSystemEvent(
+      profile.organization_id,
+      'ticket_status_updated',
+      'info',
+      {
+        ticket_id: updatedTicket.id,
+        ticket_number: updatedTicket.ticket_number,
+        old_status: currentTicket.status,
+        new_status: body.newStatus,
+        user_id: user.id,
+      }
+    );
 
     return new Response(
       JSON.stringify({ ticket: updatedTicket }),
@@ -201,10 +206,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    await logSystemEvent('unexpected_error', 'critical', 'Unexpected error in update-ticket-status', {
-      error: error.message,
-      stack: error.stack,
-    });
+    console.error('Unexpected error in update-ticket-status:', error);
 
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),

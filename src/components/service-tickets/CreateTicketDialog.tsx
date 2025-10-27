@@ -9,8 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, X, Calendar } from 'lucide-react';
 import { useCreateServiceTicket } from '@/hooks/useServiceTickets';
-import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
-import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 import { NoddiBookingSelector } from './NoddiBookingSelector';
 import { type NoddiBooking } from '@/hooks/useNoddiBookings';
 import type { ServiceTicketPriority, ServiceTicketCategory, ServiceType } from '@/types/service-tickets';
@@ -58,7 +56,7 @@ export const CreateTicketDialog = ({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
-  // TODO: Re-enable after Supabase types regeneration
+  // Noddi integration would go here - keeping simple for now
   const noddiData = null;
   const noddiLoading = false;
 
@@ -108,7 +106,7 @@ export const CreateTicketDialog = ({
         conversationId,
         callId,
         noddiBookingId: selectedBookingId,
-        noddiUserGroupId: noddiData?.data?.user_group_id,
+        noddiUserGroupId: undefined,
         noddiBookingType: selectedBooking?.booking_type,
         serviceType,
         tags: tags.length > 0 ? tags : undefined,
@@ -141,27 +139,19 @@ export const CreateTicketDialog = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Noddi Customer Details */}
+          {/* Noddi Customer Info - Simplified */}
           {(customerEmail || customerPhone) && (
             <Card>
               <CardContent className="p-4">
-                {noddiLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="ml-2 text-sm text-muted-foreground">
-                      Loading customer data...
-                    </span>
-                  </div>
-                ) : noddiData?.data ? (
-                  <NoddiCustomerDetails
-                    customerId={customerId}
-                    customerEmail={customerEmail}
-                    customerPhone={customerPhone}
-                    noddiData={noddiData.data}
-                  />
-                ) : (
-                  <p className="text-sm text-muted-foreground">No booking data available</p>
-                )}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Customer Information</p>
+                  {customerEmail && (
+                    <p className="text-sm text-muted-foreground">Email: {customerEmail}</p>
+                  )}
+                  {customerPhone && (
+                    <p className="text-sm text-muted-foreground">Phone: {customerPhone}</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}

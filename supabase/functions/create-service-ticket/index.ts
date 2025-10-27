@@ -8,19 +8,18 @@ const supabase = createClient(
 
 // Error tracking wrapper
 async function logSystemEvent(
+  orgId: string,
   eventType: string,
-  severity: 'debug' | 'info' | 'warn' | 'error' | 'critical',
-  message: string,
-  context: any = {}
+  severity: 'info' | 'warn' | 'error' | 'critical',
+  eventData: any = {}
 ) {
   try {
     await supabase.from('system_events_log').insert({
+      organization_id: orgId,
       event_type: eventType,
+      event_source: 'edge_function',
+      event_data: eventData,
       severity,
-      component: 'edge_function',
-      function_name: 'create-service-ticket',
-      message,
-      context,
     });
   } catch (err) {
     console.error('Failed to log system event:', err);
@@ -66,7 +65,6 @@ Deno.serve(async (req) => {
     );
 
     if (authError || !user) {
-      await logSystemEvent('auth_failed', 'warn', 'Authentication failed', { error: authError?.message });
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -81,7 +79,6 @@ Deno.serve(async (req) => {
       .single();
 
     if (!profile?.organization_id) {
-      await logSystemEvent('missing_organization', 'error', 'User has no organization', { user_id: user.id });
       return new Response(
         JSON.stringify({ error: 'User organization not found' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -116,8 +113,8 @@ Deno.serve(async (req) => {
         customer_id: body.customerId,
         priority: body.priority || 'normal',
         category: body.category,
-        related_conversation_id: body.conversationId,
-        related_call_id: body.callId,
+        conversation_id: body.conversationId,
+        call_id: body.callId,
         noddi_booking_id: body.noddiBookingId,
         noddi_user_group_id: body.noddiUserGroupId,
         noddi_booking_type: body.noddiBookingType,
@@ -137,10 +134,12 @@ Deno.serve(async (req) => {
       .single();
 
     if (ticketError) {
-      await logSystemEvent('ticket_creation_failed', 'error', 'Failed to create ticket', {
-        error: ticketError.message,
-        user_id: user.id,
-      });
+      await logSystemEvent(
+        profile.organization_id,
+        'ticket_creation_failed',
+        'error',
+        { error: ticketError.message, user_id: user.id }
+      );
       throw ticketError;
     }
 
@@ -183,11 +182,16 @@ Deno.serve(async (req) => {
       },
     });
 
-    await logSystemEvent('ticket_created', 'info', `Ticket ${ticket.ticket_number} created`, {
-      ticket_id: ticket.id,
-      ticket_number: ticket.ticket_number,
-      user_id: user.id,
-    });
+    await logSystemEvent(
+      profile.organization_id,
+      'ticket_created',
+      'info',
+      {
+        ticket_id: ticket.id,
+        ticket_number: ticket.ticket_number,
+        user_id: user.id,
+      }
+    );
 
     return new Response(
       JSON.stringify({ ticket }),
@@ -195,10 +199,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    await logSystemEvent('unexpected_error', 'critical', 'Unexpected error in create-service-ticket', {
-      error: error.message,
-      stack: error.stack,
-    });
+    console.error('Unexpected error in create-service-ticket:', error);
 
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
