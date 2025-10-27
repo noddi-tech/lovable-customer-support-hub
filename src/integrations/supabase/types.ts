@@ -1132,6 +1132,68 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          app_on_sla_breach: boolean | null
+          app_on_ticket_assigned: boolean | null
+          app_on_ticket_commented: boolean | null
+          app_on_ticket_updated: boolean | null
+          created_at: string
+          daily_digest_enabled: boolean | null
+          email_on_sla_breach: boolean | null
+          email_on_ticket_assigned: boolean | null
+          email_on_ticket_commented: boolean | null
+          email_on_ticket_updated: boolean | null
+          id: string
+          organization_id: string
+          updated_at: string
+          user_id: string
+          weekly_digest_enabled: boolean | null
+        }
+        Insert: {
+          app_on_sla_breach?: boolean | null
+          app_on_ticket_assigned?: boolean | null
+          app_on_ticket_commented?: boolean | null
+          app_on_ticket_updated?: boolean | null
+          created_at?: string
+          daily_digest_enabled?: boolean | null
+          email_on_sla_breach?: boolean | null
+          email_on_ticket_assigned?: boolean | null
+          email_on_ticket_commented?: boolean | null
+          email_on_ticket_updated?: boolean | null
+          id?: string
+          organization_id: string
+          updated_at?: string
+          user_id: string
+          weekly_digest_enabled?: boolean | null
+        }
+        Update: {
+          app_on_sla_breach?: boolean | null
+          app_on_ticket_assigned?: boolean | null
+          app_on_ticket_commented?: boolean | null
+          app_on_ticket_updated?: boolean | null
+          created_at?: string
+          daily_digest_enabled?: boolean | null
+          email_on_sla_breach?: boolean | null
+          email_on_ticket_assigned?: boolean | null
+          email_on_ticket_commented?: boolean | null
+          email_on_ticket_updated?: boolean | null
+          id?: string
+          organization_id?: string
+          updated_at?: string
+          user_id?: string
+          weekly_digest_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1536,7 +1598,7 @@ export type Database = {
         Row: {
           created_at: string
           file_name: string
-          file_size: number | null
+          file_size_bytes: number | null
           file_type: string | null
           file_url: string
           id: string
@@ -1546,7 +1608,7 @@ export type Database = {
         Insert: {
           created_at?: string
           file_name: string
-          file_size?: number | null
+          file_size_bytes?: number | null
           file_type?: string | null
           file_url: string
           id?: string
@@ -1556,7 +1618,7 @@ export type Database = {
         Update: {
           created_at?: string
           file_name?: string
-          file_size?: number | null
+          file_size_bytes?: number | null
           file_type?: string | null
           file_url?: string
           id?: string
@@ -1799,6 +1861,47 @@ export type Database = {
           },
         ]
       }
+      system_events_log: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_source: string
+          event_type: string
+          id: string
+          organization_id: string
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_source: string
+          event_type: string
+          id?: string
+          organization_id: string
+          severity?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_source?: string
+          event_type?: string
+          id?: string
+          organization_id?: string
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_events_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       translations: {
         Row: {
           context: string | null
@@ -1941,6 +2044,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "internal_event_types"
             referencedColumns: ["name"]
+          },
+        ]
+      }
+      webhook_retry_queue: {
+        Row: {
+          attempt_count: number | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          max_attempts: number | null
+          next_retry_at: string
+          organization_id: string
+          payload: Json
+          status: string
+          target_url: string | null
+          updated_at: string
+          webhook_type: string
+        }
+        Insert: {
+          attempt_count?: number | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number | null
+          next_retry_at?: string
+          organization_id: string
+          payload: Json
+          status?: string
+          target_url?: string | null
+          updated_at?: string
+          webhook_type: string
+        }
+        Update: {
+          attempt_count?: number | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number | null
+          next_retry_at?: string
+          organization_id?: string
+          payload?: Json
+          status?: string
+          target_url?: string | null
+          updated_at?: string
+          webhook_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_retry_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2255,10 +2414,8 @@ export type Database = {
         | "open"
         | "in_progress"
         | "pending_customer"
-        | "on_hold"
-        | "scheduled"
-        | "resolved"
-        | "closed"
+        | "pending_parts"
+        | "completed"
         | "cancelled"
     }
     CompositeTypes: {
@@ -2443,10 +2600,8 @@ export const Constants = {
         "open",
         "in_progress",
         "pending_customer",
-        "on_hold",
-        "scheduled",
-        "resolved",
-        "closed",
+        "pending_parts",
+        "completed",
         "cancelled",
       ],
     },

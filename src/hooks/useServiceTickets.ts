@@ -7,12 +7,47 @@ import type {
   UpdateTicketStatusRequest 
 } from '@/types/service-tickets';
 
-// NOTE: Queries disabled until Supabase types regenerate after migration
 export const useServiceTickets = () => {
   return useQuery({
     queryKey: ['service-tickets'],
-    queryFn: async () => [] as ServiceTicket[],
-    enabled: false, // Disabled until types regenerate
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_tickets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Manually fetch related data for now
+      const ticketsWithRelations = await Promise.all(
+        (data || []).map(async (ticket) => {
+          let customer = null;
+          let assigned_to = null;
+
+          if (ticket.customer_id) {
+            const { data: customerData } = await supabase
+              .from('customers')
+              .select('*')
+              .eq('id', ticket.customer_id)
+              .single();
+            customer = customerData;
+          }
+
+          if (ticket.assigned_to_id) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('user_id, full_name, avatar_url')
+              .eq('user_id', ticket.assigned_to_id)
+              .single();
+            assigned_to = profileData;
+          }
+
+          return { ...ticket, customer, assigned_to } as ServiceTicket;
+        })
+      );
+
+      return ticketsWithRelations;
+    },
   });
 };
 

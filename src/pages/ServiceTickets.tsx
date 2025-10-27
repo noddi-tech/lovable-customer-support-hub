@@ -12,6 +12,7 @@ import { ServiceTicketFilters, type TicketFilters } from '@/components/service-t
 import { ServiceTicketBulkActions, type BulkUpdateData } from '@/components/service-tickets/ServiceTicketBulkActions';
 import { TeamWorkloadStats } from '@/components/service-tickets/TeamWorkloadStats';
 import { TicketAnalyticsDashboard } from '@/components/service-tickets/TicketAnalyticsDashboard';
+import { VirtualizedTicketList } from '@/components/service-tickets/VirtualizedTicketList';
 import { useServiceTickets } from '@/hooks/useServiceTickets';
 import { useServiceTicketAnalytics } from '@/hooks/useServiceTicketAnalytics';
 import { useServiceTicketNotifications } from '@/hooks/useServiceTicketNotifications';
@@ -73,12 +74,27 @@ export default function ServiceTickets() {
     await Promise.all(updatePromises);
   };
 
+  const [activeTab, setActiveTab] = useState('all');
+
   const ticketsByStatus = {
+    all: filteredTickets,
     open: filteredTickets.filter(t => t.status === 'open'),
     in_progress: filteredTickets.filter(t => t.status === 'in_progress'),
-    scheduled: filteredTickets.filter(t => t.status === 'scheduled'),
+    pending: filteredTickets.filter(t => t.status === 'pending_customer' || t.status === 'awaiting_parts'),
     completed: filteredTickets.filter(t => t.status === 'completed'),
-    closed: filteredTickets.filter(t => t.status === 'closed'),
+    cancelled: filteredTickets.filter(t => t.status === 'cancelled'),
+  };
+
+  const toggleTicketSelection = (ticketId: string) => {
+    setSelectedTicketIds(prev => 
+      prev.includes(ticketId) 
+        ? prev.filter(id => id !== ticketId) 
+        : [...prev, ticketId]
+    );
+  };
+
+  const handleTicketClick = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
   };
 
   return (
@@ -118,47 +134,41 @@ export default function ServiceTickets() {
       {viewMode === 'list' ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">
-            <Tabs defaultValue="all">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
-                <TabsTrigger value="all">All ({filteredTickets.length})</TabsTrigger>
+                <TabsTrigger value="all">All ({ticketsByStatus.all.length})</TabsTrigger>
                 <TabsTrigger value="open">Open ({ticketsByStatus.open.length})</TabsTrigger>
                 <TabsTrigger value="in_progress">In Progress ({ticketsByStatus.in_progress.length})</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
               </TabsList>
-              <TabsContent value="all" className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  {filteredTickets.map((ticket) => (
-                    <div key={ticket.id} className="relative">
-                      <div className="absolute top-3 left-3 z-10">
-                        <Checkbox checked={selectedTicketIds.includes(ticket.id)} onCheckedChange={() => setSelectedTicketIds(prev => prev.includes(ticket.id) ? prev.filter(id => id !== ticket.id) : [...prev, ticket.id])} />
-                      </div>
-                      <ServiceTicketCard ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
-                    </div>
-                  ))}
+              <TabsContent value="all" className="mt-6">
+                <div className="h-[600px]">
+                  <VirtualizedTicketList
+                    tickets={ticketsByStatus.all}
+                    selectedTicketIds={selectedTicketIds}
+                    onSelectTicket={toggleTicketSelection}
+                    onTicketClick={handleTicketClick}
+                  />
                 </div>
               </TabsContent>
-              <TabsContent value="open" className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  {ticketsByStatus.open.map((ticket) => (
-                    <div key={ticket.id} className="relative">
-                      <div className="absolute top-3 left-3 z-10">
-                        <Checkbox checked={selectedTicketIds.includes(ticket.id)} onCheckedChange={() => setSelectedTicketIds(prev => prev.includes(ticket.id) ? prev.filter(id => id !== ticket.id) : [...prev, ticket.id])} />
-                      </div>
-                      <ServiceTicketCard ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
-                    </div>
-                  ))}
+              <TabsContent value="open" className="mt-6">
+                <div className="h-[600px]">
+                  <VirtualizedTicketList
+                    tickets={ticketsByStatus.open}
+                    selectedTicketIds={selectedTicketIds}
+                    onSelectTicket={toggleTicketSelection}
+                    onTicketClick={handleTicketClick}
+                  />
                 </div>
               </TabsContent>
-              <TabsContent value="in_progress" className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  {ticketsByStatus.in_progress.map((ticket) => (
-                    <div key={ticket.id} className="relative">
-                      <div className="absolute top-3 left-3 z-10">
-                        <Checkbox checked={selectedTicketIds.includes(ticket.id)} onCheckedChange={() => setSelectedTicketIds(prev => prev.includes(ticket.id) ? prev.filter(id => id !== ticket.id) : [...prev, ticket.id])} />
-                      </div>
-                      <ServiceTicketCard ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
-                    </div>
-                  ))}
+              <TabsContent value="in_progress" className="mt-6">
+                <div className="h-[600px]">
+                  <VirtualizedTicketList
+                    tickets={ticketsByStatus.in_progress}
+                    selectedTicketIds={selectedTicketIds}
+                    onSelectTicket={toggleTicketSelection}
+                    onTicketClick={handleTicketClick}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="analytics" className="space-y-4">
