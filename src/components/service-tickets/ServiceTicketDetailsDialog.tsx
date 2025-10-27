@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,24 +8,63 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ServiceTicketStatusBadge } from './ServiceTicketStatusBadge';
-import { Clock, User, MessageSquare, Paperclip, Calendar, ExternalLink } from 'lucide-react';
+import { Clock, User, MessageSquare, Paperclip, Calendar, ExternalLink, Loader2 } from 'lucide-react';
 import { useUpdateTicketStatus } from '@/hooks/useServiceTickets';
 import { formatDistanceToNow } from 'date-fns';
 import type { ServiceTicket, ServiceTicketStatus } from '@/types/service-tickets';
 
 interface ServiceTicketDetailsDialogProps {
-  ticket: ServiceTicket | null;
+  ticketId?: string;
+  ticket?: ServiceTicket | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export const ServiceTicketDetailsDialog = ({
-  ticket,
+  ticketId,
+  ticket: passedTicket,
   open,
   onOpenChange,
 }: ServiceTicketDetailsDialogProps) => {
   const [comment, setComment] = useState('');
   const updateStatus = useUpdateTicketStatus();
+
+  // Fetch ticket if only ID is provided
+  const { data: fetchedTicket, isLoading } = useQuery({
+    queryKey: ['service-ticket', ticketId],
+    queryFn: async () => {
+      if (!ticketId) return null;
+      
+      const { data, error } = await supabase
+        .from('service_tickets' as any)
+        .select(`
+          *,
+          customer:customers(id, full_name, email, phone),
+          assigned_to:profiles!service_tickets_assigned_to_id_fkey(user_id, full_name, avatar_url),
+          created_by:profiles!service_tickets_created_by_id_fkey(user_id, full_name)
+        `)
+        .eq('id', ticketId)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as ServiceTicket;
+    },
+    enabled: !!ticketId && !passedTicket,
+  });
+
+  const ticket = passedTicket || fetchedTicket;
+
+  if (isLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (!ticket) return null;
 

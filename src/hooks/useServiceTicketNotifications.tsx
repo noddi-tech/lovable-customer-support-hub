@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 import { useBrowserNotifications } from './useBrowserNotifications';
 
-export const useRealtimeNotifications = () => {
+export const useServiceTicketNotifications = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showNotification, permission } = useBrowserNotifications();
@@ -14,7 +14,7 @@ export const useRealtimeNotifications = () => {
     if (!user) return;
 
     const channel = supabase
-      .channel('notifications')
+      .channel('service-ticket-notifications')
       .on(
         'postgres_changes',
         {
@@ -26,9 +26,13 @@ export const useRealtimeNotifications = () => {
         async (payload) => {
           const notification = payload.new as any;
           
+          // Only handle service ticket notifications
+          if (!notification.data?.ticket_id) return;
+
           // Invalidate queries to update notification badge
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
           queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+          queryClient.invalidateQueries({ queryKey: ['service-tickets'] });
 
           // Show toast notification
           toast(notification.title, {
@@ -37,11 +41,6 @@ export const useRealtimeNotifications = () => {
               label: 'View Ticket',
               onClick: () => {
                 window.location.href = `/service-tickets?ticket=${notification.data.ticket_id}`;
-              },
-            } : notification.data?.conversation_id ? {
-              label: 'View',
-              onClick: () => {
-                window.location.href = `/?c=${notification.data.conversation_id}`;
               },
             } : undefined,
           });

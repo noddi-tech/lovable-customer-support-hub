@@ -175,8 +175,12 @@ export function NotificationsList({ context = 'all' }: NotificationsListProps = 
       return;
     }
     
-    // Navigate to conversation if it's an assignment notification
-    if (notification.data?.conversation_id) {
+    // Navigate based on notification type
+    if (notification.data?.ticket_id) {
+      // Service ticket notification
+      navigate(`/service-tickets?ticket=${notification.data.ticket_id}`);
+    } else if (notification.data?.conversation_id) {
+      // Conversation notification
       const conversationId = notification.data.conversation_id;
       const messageId = notification.data.message_id;
       

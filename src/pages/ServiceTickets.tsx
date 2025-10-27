@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Filter, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,16 +7,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ServiceTicketCard } from '@/components/service-tickets/ServiceTicketCard';
 import { CreateTicketDialog } from '@/components/service-tickets/CreateTicketDialog';
+import { ServiceTicketDetailsDialog } from '@/components/service-tickets/ServiceTicketDetailsDialog';
 import { useServiceTickets } from '@/hooks/useServiceTickets';
+import { useServiceTicketNotifications } from '@/hooks/useServiceTicketNotifications';
+import { useRealtimeServiceTickets } from '@/hooks/useRealtimeServiceTickets';
 import type { ServiceTicketStatus } from '@/types/service-tickets';
 
 export default function ServiceTickets() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ServiceTicketStatus | 'all'>('all');
   const [activeTab, setActiveTab] = useState<'active' | 'closed'>('active');
 
+  // Initialize real-time updates and notifications
+  useServiceTicketNotifications();
+  useRealtimeServiceTickets();
+
   const { data: tickets = [], isLoading } = useServiceTickets();
+
+  // Handle URL parameter for opening specific ticket
+  useEffect(() => {
+    const ticketId = searchParams.get('ticket');
+    if (ticketId) {
+      setSelectedTicketId(ticketId);
+    }
+  }, [searchParams]);
+
+  // Clear URL parameter when closing ticket details
+  const handleCloseTicketDetails = () => {
+    setSelectedTicketId(null);
+    searchParams.delete('ticket');
+    setSearchParams(searchParams);
+  };
 
   // Filter tickets based on search and status
   const filteredTickets = tickets.filter((ticket) => {
@@ -188,6 +213,14 @@ export default function ServiceTickets() {
       </div>
 
       <CreateTicketDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      
+      {selectedTicketId && (
+        <ServiceTicketDetailsDialog
+          ticketId={selectedTicketId}
+          open={!!selectedTicketId}
+          onOpenChange={handleCloseTicketDetails}
+        />
+      )}
     </div>
   );
 }
