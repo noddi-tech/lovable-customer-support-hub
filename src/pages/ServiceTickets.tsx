@@ -11,7 +11,9 @@ import { ServiceTicketKanban } from '@/components/service-tickets/ServiceTicketK
 import { ServiceTicketFilters, type TicketFilters } from '@/components/service-tickets/ServiceTicketFilters';
 import { ServiceTicketBulkActions, type BulkUpdateData } from '@/components/service-tickets/ServiceTicketBulkActions';
 import { TeamWorkloadStats } from '@/components/service-tickets/TeamWorkloadStats';
+import { TicketAnalyticsDashboard } from '@/components/service-tickets/TicketAnalyticsDashboard';
 import { useServiceTickets } from '@/hooks/useServiceTickets';
+import { useServiceTicketAnalytics } from '@/hooks/useServiceTicketAnalytics';
 import { useServiceTicketNotifications } from '@/hooks/useServiceTicketNotifications';
 import { useRealtimeServiceTickets } from '@/hooks/useRealtimeServiceTickets';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
@@ -26,6 +28,7 @@ export default function ServiceTickets() {
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const { data: tickets = [] } = useServiceTickets();
   const { data: teamMembers = [] } = useTeamMembers();
+  const analytics = useServiceTicketAnalytics(tickets);
   
   useServiceTicketNotifications();
   useRealtimeServiceTickets();
@@ -120,6 +123,7 @@ export default function ServiceTickets() {
                 <TabsTrigger value="all">All ({filteredTickets.length})</TabsTrigger>
                 <TabsTrigger value="open">Open ({ticketsByStatus.open.length})</TabsTrigger>
                 <TabsTrigger value="in_progress">In Progress ({ticketsByStatus.in_progress.length})</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
@@ -132,6 +136,33 @@ export default function ServiceTickets() {
                     </div>
                   ))}
                 </div>
+              </TabsContent>
+              <TabsContent value="open" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {ticketsByStatus.open.map((ticket) => (
+                    <div key={ticket.id} className="relative">
+                      <div className="absolute top-3 left-3 z-10">
+                        <Checkbox checked={selectedTicketIds.includes(ticket.id)} onCheckedChange={() => setSelectedTicketIds(prev => prev.includes(ticket.id) ? prev.filter(id => id !== ticket.id) : [...prev, ticket.id])} />
+                      </div>
+                      <ServiceTicketCard ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="in_progress" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {ticketsByStatus.in_progress.map((ticket) => (
+                    <div key={ticket.id} className="relative">
+                      <div className="absolute top-3 left-3 z-10">
+                        <Checkbox checked={selectedTicketIds.includes(ticket.id)} onCheckedChange={() => setSelectedTicketIds(prev => prev.includes(ticket.id) ? prev.filter(id => id !== ticket.id) : [...prev, ticket.id])} />
+                      </div>
+                      <ServiceTicketCard ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="analytics" className="space-y-4">
+                <TicketAnalyticsDashboard analytics={analytics} />
               </TabsContent>
             </Tabs>
           </div>

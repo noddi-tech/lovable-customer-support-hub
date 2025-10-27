@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ServiceTicketStatusBadge, ServiceTicketPriorityBadge } from './ServiceTicketStatusBadge';
 import { ServiceTicketDetailsDialog } from './ServiceTicketDetailsDialog';
+import { SLAStatusIndicator } from './SLAStatusIndicator';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -85,6 +86,12 @@ export const ServiceTicketCard = ({
             {/* Status and metadata */}
             <div className="flex items-center flex-wrap gap-2">
               <ServiceTicketStatusBadge status={ticket.status} showIcon={!compact} />
+              <SLAStatusIndicator 
+                dueDate={ticket.due_date}
+                completedAt={ticket.completed_at}
+                status={ticket.status}
+                showLabel={!compact}
+              />
               
               {ticket.category && (
                 <Badge variant="outline" className="text-xs">
