@@ -381,14 +381,15 @@ export const CustomerSidePanel = ({
           queryKey: ["conversation", conversation.id],
           exact: false 
         });
-        const cacheKey = getCustomerCacheKey({
-          email: selectedCustomer.email,
-          phone: selectedCustomer.phone
-        });
-        await queryClient.refetchQueries({ 
-          queryKey: [cacheKey],
+        
+        // CRITICAL: Invalidate noddi-customer-lookup cache to force fresh data fetch
+        // This ensures the alternative_emails we just added will be used
+        await queryClient.invalidateQueries({ 
+          queryKey: ['noddi-customer-lookup'],
           exact: false 
         });
+        
+        console.log(`✅ Cache invalidated for noddi-customer-lookup - fresh data will be fetched`);
       } else {
         toast({
           title: "No booking data",
