@@ -5,7 +5,9 @@ export type ServiceTicketStatus =
   | 'acknowledged'
   | 'scheduled'
   | 'in_progress'
+  | 'pending_customer'
   | 'awaiting_parts'
+  | 'on_hold'
   | 'completed'
   | 'verified'
   | 'closed'
@@ -36,8 +38,8 @@ export interface ServiceTicket {
   
   // Customer & Context
   customer_id?: string;
-  related_conversation_id?: string;
-  related_call_id?: string;
+  conversation_id?: string;
+  call_id?: string;
   
   // Noddi Integration
   noddi_user_group_id?: number;
@@ -57,6 +59,7 @@ export interface ServiceTicket {
   // Service Details
   service_type?: ServiceType;
   scheduled_for?: string;
+  scheduled_date?: string;
   completed_at?: string;
   
   // SLA Tracking
@@ -208,7 +211,9 @@ export const STATUS_LABELS: Record<ServiceTicketStatus, string> = {
   acknowledged: 'Acknowledged',
   scheduled: 'Scheduled',
   in_progress: 'In Progress',
+  pending_customer: 'Pending Customer',
   awaiting_parts: 'Awaiting Parts',
+  on_hold: 'On Hold',
   completed: 'Completed',
   verified: 'Verified',
   closed: 'Closed',
@@ -220,7 +225,9 @@ export const STATUS_COLORS: Record<ServiceTicketStatus, string> = {
   acknowledged: 'bg-cyan-500',
   scheduled: 'bg-purple-500',
   in_progress: 'bg-yellow-500',
+  pending_customer: 'bg-amber-500',
   awaiting_parts: 'bg-orange-500',
+  on_hold: 'bg-gray-500',
   completed: 'bg-green-500',
   verified: 'bg-emerald-500',
   closed: 'bg-gray-500',

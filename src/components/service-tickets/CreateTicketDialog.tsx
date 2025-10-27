@@ -150,8 +150,9 @@ export const CreateTicketDialog = ({
                 ) : noddiData?.data ? (
                   <NoddiCustomerDetails
                     customerId={customerId}
+                    customerEmail={customerEmail}
+                    customerPhone={customerPhone}
                     noddiData={noddiData.data}
-                    compact
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">No booking data available</p>
