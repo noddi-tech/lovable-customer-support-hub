@@ -1532,6 +1532,273 @@ export type Database = {
         }
         Relationships: []
       }
+      service_ticket_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          ticket_id: string
+          uploaded_by_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          ticket_id: string
+          uploaded_by_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          ticket_id?: string
+          uploaded_by_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "service_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_ticket_comments: {
+        Row: {
+          content: string
+          created_at: string
+          created_by_id: string
+          id: string
+          is_internal: boolean | null
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by_id: string
+          id?: string
+          is_internal?: boolean | null
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by_id?: string
+          id?: string
+          is_internal?: boolean | null
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_ticket_comments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "service_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_ticket_events: {
+        Row: {
+          comment: string | null
+          created_at: string
+          event_type: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          ticket_id: string
+          triggered_by_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          ticket_id: string
+          triggered_by_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          ticket_id?: string
+          triggered_by_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "service_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_tickets: {
+        Row: {
+          actual_cost: number | null
+          assigned_to_id: string | null
+          call_id: string | null
+          category: Database["public"]["Enums"]["service_ticket_category"]
+          completed_date: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by_id: string
+          custom_fields: Json | null
+          customer_address: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          department_id: string | null
+          description: string | null
+          estimated_cost: number | null
+          first_response_at: string | null
+          id: string
+          metadata: Json | null
+          noddi_booking_id: number | null
+          noddi_user_group_id: number | null
+          organization_id: string
+          priority: Database["public"]["Enums"]["service_ticket_priority"]
+          resolution_time_minutes: number | null
+          scheduled_date: string | null
+          service_location: string | null
+          service_type: string | null
+          sla_due_date: string | null
+          status: Database["public"]["Enums"]["service_ticket_status"]
+          tags: string[] | null
+          ticket_number: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number | null
+          assigned_to_id?: string | null
+          call_id?: string | null
+          category?: Database["public"]["Enums"]["service_ticket_category"]
+          completed_date?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by_id: string
+          custom_fields?: Json | null
+          customer_address?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          department_id?: string | null
+          description?: string | null
+          estimated_cost?: number | null
+          first_response_at?: string | null
+          id?: string
+          metadata?: Json | null
+          noddi_booking_id?: number | null
+          noddi_user_group_id?: number | null
+          organization_id: string
+          priority?: Database["public"]["Enums"]["service_ticket_priority"]
+          resolution_time_minutes?: number | null
+          scheduled_date?: string | null
+          service_location?: string | null
+          service_type?: string | null
+          sla_due_date?: string | null
+          status?: Database["public"]["Enums"]["service_ticket_status"]
+          tags?: string[] | null
+          ticket_number: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number | null
+          assigned_to_id?: string | null
+          call_id?: string | null
+          category?: Database["public"]["Enums"]["service_ticket_category"]
+          completed_date?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by_id?: string
+          custom_fields?: Json | null
+          customer_address?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          department_id?: string | null
+          description?: string | null
+          estimated_cost?: number | null
+          first_response_at?: string | null
+          id?: string
+          metadata?: Json | null
+          noddi_booking_id?: number | null
+          noddi_user_group_id?: number | null
+          organization_id?: string
+          priority?: Database["public"]["Enums"]["service_ticket_priority"]
+          resolution_time_minutes?: number | null
+          scheduled_date?: string | null
+          service_location?: string | null
+          service_type?: string | null
+          sla_due_date?: string | null
+          status?: Database["public"]["Enums"]["service_ticket_status"]
+          tags?: string[] | null
+          ticket_number?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_tickets_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_tickets_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_tickets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_tickets_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_tickets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       translations: {
         Row: {
           context: string | null
@@ -1709,6 +1976,7 @@ export type Database = {
           tags: string[]
         }[]
       }
+      generate_ticket_number: { Args: { org_id: string }; Returns: string }
       get_all_counts: {
         Args: never
         Returns: {
@@ -1974,6 +2242,24 @@ export type Database = {
         | "instagram"
         | "whatsapp"
         | "other"
+      service_ticket_category:
+        | "tire_issue"
+        | "service_complaint"
+        | "delivery_issue"
+        | "installation_problem"
+        | "warranty_claim"
+        | "technical_support"
+        | "other"
+      service_ticket_priority: "low" | "normal" | "high" | "urgent"
+      service_ticket_status:
+        | "open"
+        | "in_progress"
+        | "pending_customer"
+        | "on_hold"
+        | "scheduled"
+        | "resolved"
+        | "closed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2142,6 +2428,26 @@ export const Constants = {
         "instagram",
         "whatsapp",
         "other",
+      ],
+      service_ticket_category: [
+        "tire_issue",
+        "service_complaint",
+        "delivery_issue",
+        "installation_problem",
+        "warranty_claim",
+        "technical_support",
+        "other",
+      ],
+      service_ticket_priority: ["low", "normal", "high", "urgent"],
+      service_ticket_status: [
+        "open",
+        "in_progress",
+        "pending_customer",
+        "on_hold",
+        "scheduled",
+        "resolved",
+        "closed",
+        "cancelled",
       ],
     },
   },
