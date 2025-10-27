@@ -10,8 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, X, Calendar } from 'lucide-react';
 import { useCreateServiceTicket } from '@/hooks/useServiceTickets';
 import { NoddiBookingSelector } from './NoddiBookingSelector';
-import { type NoddiBooking } from '@/hooks/useNoddiBookings';
+import { CustomerSearch } from './CustomerSearch';
+import { useNoddiBookings, type NoddiBooking } from '@/hooks/useNoddiBookings';
 import type { ServiceTicketPriority, ServiceTicketCategory, ServiceType } from '@/types/service-tickets';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateTicketDialogProps {
   open: boolean;
@@ -36,14 +38,18 @@ export const CreateTicketDialog = ({
   open,
   onOpenChange,
   onSuccess,
-  customerId,
-  customerEmail,
-  customerPhone,
+  customerId: initialCustomerId,
+  customerEmail: initialCustomerEmail,
+  customerPhone: initialCustomerPhone,
   conversationId,
   callId,
   prefillData,
 }: CreateTicketDialogProps) => {
   const createTicket = useCreateServiceTicket();
+  
+  // Customer state
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [organizationId, setOrganizationId] = useState<string>('');
   
   // Form state
   const [title, setTitle] = useState('');
@@ -56,9 +62,35 @@ export const CreateTicketDialog = ({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
-  // Noddi integration would go here - keeping simple for now
-  const noddiData = null;
-  const noddiLoading = false;
+  // Get current customer ID (from prop or selected customer)
+  const customerId = selectedCustomer?.id || initialCustomerId;
+  const customerEmail = selectedCustomer?.email || initialCustomerEmail;
+  const customerPhone = selectedCustomer?.phone || initialCustomerPhone;
+
+  // Noddi integration
+  const { data: noddiBookings, isLoading: noddiLoading } = useNoddiBookings({
+    email: customerEmail,
+    phone: customerPhone,
+    enabled: !!(customerEmail || customerPhone),
+  });
+
+  // Get organization ID
+  useEffect(() => {
+    const fetchOrgId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .single();
+        if (profile) {
+          setOrganizationId(profile.organization_id);
+        }
+      }
+    };
+    fetchOrgId();
+  }, []);
 
   // Pre-fill form data
   useEffect(() => {
@@ -72,10 +104,17 @@ export const CreateTicketDialog = ({
 
   // Auto-select booking if only one priority booking exists
   useEffect(() => {
-    if (noddiData?.data?.priority_booking && !selectedBookingId) {
-      setSelectedBookingId(noddiData.data.priority_booking.id);
+    if (noddiBookings && noddiBookings.length > 0 && !selectedBookingId) {
+      // Find priority bookings
+      const priorityBooking = noddiBookings.find(b => 
+        b.status === 'Upcoming' || b.booking_type?.includes('Priority')
+      );
+      if (priorityBooking) {
+        setSelectedBookingId(priorityBooking.id);
+        setSelectedBooking(priorityBooking);
+      }
     }
-  }, [noddiData, selectedBookingId]);
+  }, [noddiBookings, selectedBookingId]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -139,8 +178,17 @@ export const CreateTicketDialog = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Noddi Customer Info - Simplified */}
-          {(customerEmail || customerPhone) && (
+          {/* Customer Search */}
+          {!initialCustomerId && organizationId && (
+            <CustomerSearch
+              selectedCustomer={selectedCustomer}
+              onSelectCustomer={setSelectedCustomer}
+              organizationId={organizationId}
+            />
+          )}
+
+          {/* Pre-filled Customer Info */}
+          {initialCustomerId && (customerEmail || customerPhone) && (
             <Card>
               <CardContent className="p-4">
                 <div className="space-y-2">
@@ -233,13 +281,16 @@ export const CreateTicketDialog = ({
           </div>
 
           {/* Noddi Booking Selector */}
-          {(customerEmail || customerPhone) && (
-            <NoddiBookingSelector
-              email={customerEmail}
-              phone={customerPhone}
-              selectedBookingId={selectedBookingId}
-              onSelectBooking={handleSelectBooking}
-            />
+          {(customerEmail || customerPhone) && noddiBookings && noddiBookings.length > 0 && (
+            <div className="space-y-2">
+              <Label>Link to Noddi Booking (Optional)</Label>
+              <NoddiBookingSelector
+                email={customerEmail}
+                phone={customerPhone}
+                selectedBookingId={selectedBookingId}
+                onSelectBooking={handleSelectBooking}
+              />
+            </div>
           )}
 
           {/* Tags */}
