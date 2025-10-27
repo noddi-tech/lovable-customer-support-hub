@@ -10,9 +10,11 @@ import { ServiceTicketDetailsDialog } from '@/components/service-tickets/Service
 import { ServiceTicketKanban } from '@/components/service-tickets/ServiceTicketKanban';
 import { ServiceTicketFilters, type TicketFilters } from '@/components/service-tickets/ServiceTicketFilters';
 import { ServiceTicketBulkActions, type BulkUpdateData } from '@/components/service-tickets/ServiceTicketBulkActions';
+import { TeamWorkloadStats } from '@/components/service-tickets/TeamWorkloadStats';
 import { useServiceTickets } from '@/hooks/useServiceTickets';
 import { useServiceTicketNotifications } from '@/hooks/useServiceTicketNotifications';
 import { useRealtimeServiceTickets } from '@/hooks/useRealtimeServiceTickets';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function ServiceTickets() {
@@ -23,6 +25,7 @@ export default function ServiceTickets() {
   const [filters, setFilters] = useState<TicketFilters>({});
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const { data: tickets = [] } = useServiceTickets();
+  const { data: teamMembers = [] } = useTeamMembers();
   
   useServiceTicketNotifications();
   useRealtimeServiceTickets();
@@ -97,29 +100,45 @@ export default function ServiceTickets() {
         </div>
       </div>
 
-      <ServiceTicketFilters filters={filters} onFiltersChange={setFilters} />
-      <ServiceTicketBulkActions selectedTicketIds={selectedTicketIds} onClearSelection={() => setSelectedTicketIds([])} onBulkUpdate={handleBulkUpdate} />
+      <ServiceTicketFilters 
+        filters={filters} 
+        onFiltersChange={setFilters}
+        availableAssignees={teamMembers.map(m => ({ id: m.user_id, name: m.full_name }))}
+      />
+      <ServiceTicketBulkActions 
+        selectedTicketIds={selectedTicketIds} 
+        onClearSelection={() => setSelectedTicketIds([])} 
+        onBulkUpdate={handleBulkUpdate}
+        availableAssignees={teamMembers.map(m => ({ id: m.user_id, name: m.full_name }))}
+      />
 
       {viewMode === 'list' ? (
-        <Tabs defaultValue="all">
-          <TabsList>
-            <TabsTrigger value="all">All ({filteredTickets.length})</TabsTrigger>
-            <TabsTrigger value="open">Open ({ticketsByStatus.open.length})</TabsTrigger>
-            <TabsTrigger value="in_progress">In Progress ({ticketsByStatus.in_progress.length})</TabsTrigger>
-          </TabsList>
-          <TabsContent value="all" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredTickets.map((ticket) => (
-                <div key={ticket.id} className="relative">
-                  <div className="absolute top-3 left-3 z-10">
-                    <Checkbox checked={selectedTicketIds.includes(ticket.id)} onCheckedChange={() => setSelectedTicketIds(prev => prev.includes(ticket.id) ? prev.filter(id => id !== ticket.id) : [...prev, ticket.id])} />
-                  </div>
-                  <ServiceTicketCard ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            <Tabs defaultValue="all">
+              <TabsList>
+                <TabsTrigger value="all">All ({filteredTickets.length})</TabsTrigger>
+                <TabsTrigger value="open">Open ({ticketsByStatus.open.length})</TabsTrigger>
+                <TabsTrigger value="in_progress">In Progress ({ticketsByStatus.in_progress.length})</TabsTrigger>
+              </TabsList>
+              <TabsContent value="all" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {filteredTickets.map((ticket) => (
+                    <div key={ticket.id} className="relative">
+                      <div className="absolute top-3 left-3 z-10">
+                        <Checkbox checked={selectedTicketIds.includes(ticket.id)} onCheckedChange={() => setSelectedTicketIds(prev => prev.includes(ticket.id) ? prev.filter(id => id !== ticket.id) : [...prev, ticket.id])} />
+                      </div>
+                      <ServiceTicketCard ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+              </TabsContent>
+            </Tabs>
+          </div>
+          <div className="lg:col-span-1">
+            <TeamWorkloadStats tickets={tickets} teamMembers={teamMembers} />
+          </div>
+        </div>
       ) : (
         <ServiceTicketKanban tickets={filteredTickets} onTicketClick={(ticket) => setSelectedTicketId(ticket.id)} />
       )}

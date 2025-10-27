@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ServiceTicketStatusBadge } from './ServiceTicketStatusBadge';
 import { TicketCommentsList } from './TicketCommentsList';
 import { TicketActivityTimeline } from './TicketActivityTimeline';
+import { TicketAssignment } from './TicketAssignment';
 import { Clock, User, MessageSquare, Paperclip, Calendar, ExternalLink, Loader2, Activity } from 'lucide-react';
 import { useUpdateTicketStatus } from '@/hooks/useServiceTickets';
 import { formatDistanceToNow } from 'date-fns';
@@ -141,12 +142,12 @@ export const ServiceTicketDetailsDialog = ({
                     Assignment
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm">
-                  {ticket.assigned_to_id ? (
-                    <p>Assigned to user</p>
-                  ) : (
-                    <p className="text-muted-foreground">Unassigned</p>
-                  )}
+                <CardContent>
+                  <TicketAssignment
+                    ticketId={ticket.id}
+                    currentAssigneeId={ticket.assigned_to_id}
+                    currentAssigneeName={ticket.assigned_to?.full_name}
+                  />
                 </CardContent>
               </Card>
 
