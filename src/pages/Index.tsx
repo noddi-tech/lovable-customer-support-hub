@@ -76,10 +76,10 @@ const Index = () => {
       
       case 'operations':
         if (subSection === 'tickets') {
-          const ServiceTicketsPage = React.lazy(() => import('@/pages/ServiceTicketsPage'));
+          const ServiceTickets = React.lazy(() => import('@/pages/ServiceTickets'));
           return (
             <React.Suspense fallback={<div>Loading...</div>}>
-              <ServiceTicketsPage />
+              <ServiceTickets />
             </React.Suspense>
           );
         }
