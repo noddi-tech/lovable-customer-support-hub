@@ -11,6 +11,8 @@ import { Loader2, X, Calendar } from 'lucide-react';
 import { useCreateServiceTicket } from '@/hooks/useServiceTickets';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
+import { NoddiBookingSelector } from './NoddiBookingSelector';
+import { type NoddiBooking } from '@/hooks/useNoddiBookings';
 import type { ServiceTicketPriority, ServiceTicketCategory, ServiceType } from '@/types/service-tickets';
 
 interface CreateTicketDialogProps {
@@ -52,6 +54,7 @@ export const CreateTicketDialog = ({
   const [category, setCategory] = useState<ServiceTicketCategory | undefined>();
   const [serviceType, setServiceType] = useState<ServiceType | undefined>();
   const [selectedBookingId, setSelectedBookingId] = useState<number | undefined>();
+  const [selectedBooking, setSelectedBooking] = useState<NoddiBooking | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
@@ -87,11 +90,13 @@ export const CreateTicketDialog = ({
     setTags(tags.filter((t) => t !== tag));
   };
 
+  const handleSelectBooking = (booking: NoddiBooking | null) => {
+    setSelectedBooking(booking);
+    setSelectedBookingId(booking?.id);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // TODO: Re-enable after types regeneration
-    const selectedBooking = undefined;
 
     try {
       const ticket = await createTicket.mutateAsync({
@@ -236,6 +241,16 @@ export const CreateTicketDialog = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Noddi Booking Selector */}
+          {(customerEmail || customerPhone) && (
+            <NoddiBookingSelector
+              email={customerEmail}
+              phone={customerPhone}
+              selectedBookingId={selectedBookingId}
+              onSelectBooking={handleSelectBooking}
+            />
+          )}
 
           {/* Tags */}
           <div className="space-y-2">

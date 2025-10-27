@@ -119,3 +119,6 @@ verify_jwt = true
 
 [functions.update-ticket-status]
 verify_jwt = true
+
+[functions.send-ticket-notification]
+verify_jwt = true

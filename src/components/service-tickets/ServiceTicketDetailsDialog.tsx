@@ -11,6 +11,8 @@ import { ServiceTicketStatusBadge } from './ServiceTicketStatusBadge';
 import { TicketCommentsList } from './TicketCommentsList';
 import { TicketActivityTimeline } from './TicketActivityTimeline';
 import { TicketAssignment } from './TicketAssignment';
+import { TicketAttachmentUpload } from './TicketAttachmentUpload';
+import { TicketCustomFields } from './TicketCustomFields';
 import { Clock, User, MessageSquare, Paperclip, Calendar, ExternalLink, Loader2, Activity } from 'lucide-react';
 import { useUpdateTicketStatus } from '@/hooks/useServiceTickets';
 import { formatDistanceToNow } from 'date-fns';
@@ -296,15 +298,14 @@ export const ServiceTicketDetailsDialog = ({
           </TabsContent>
 
           <TabsContent value="attachments" className="mt-4">
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No attachments yet
-                </p>
-              </CardContent>
-            </Card>
+            <TicketAttachmentUpload ticketId={ticket.id} />
           </TabsContent>
         </Tabs>
+
+        {/* Custom Fields Section */}
+        <div className="mt-6">
+          <TicketCustomFields ticketId={ticket.id} customFields={ticket.custom_fields} />
+        </div>
       </DialogContent>
     </Dialog>
   );

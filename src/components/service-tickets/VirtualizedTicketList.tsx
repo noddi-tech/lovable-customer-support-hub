@@ -1,0 +1,67 @@
+import { useRef } from 'react';
+import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import { ServiceTicketCard } from './ServiceTicketCard';
+import { Checkbox } from '@/components/ui/checkbox';
+import type { ServiceTicket } from '@/types/service-tickets';
+
+interface VirtualizedTicketListProps {
+  tickets: ServiceTicket[];
+  selectedTicketIds: string[];
+  onSelectTicket: (ticketId: string) => void;
+  onTicketClick: (ticketId: string) => void;
+}
+
+export function VirtualizedTicketList({
+  tickets,
+  selectedTicketIds,
+  onSelectTicket,
+  onTicketClick,
+}: VirtualizedTicketListProps) {
+  const listRef = useRef<List>(null);
+
+  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const ticket = tickets[index];
+    
+    return (
+      <div style={style} className="px-2 py-2">
+        <div className="relative">
+          <div className="absolute top-3 left-3 z-10">
+            <Checkbox
+              checked={selectedTicketIds.includes(ticket.id)}
+              onCheckedChange={() => onSelectTicket(ticket.id)}
+            />
+          </div>
+          <ServiceTicketCard
+            ticket={ticket}
+            onClick={() => onTicketClick(ticket.id)}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  if (tickets.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">No tickets found</p>
+      </div>
+    );
+  }
+
+  return (
+    <AutoSizer>
+      {({ height, width }) => (
+        <List
+          ref={listRef}
+          height={height}
+          itemCount={tickets.length}
+          itemSize={200}
+          width={width}
+        >
+          {Row}
+        </List>
+      )}
+    </AutoSizer>
+  );
+}
