@@ -13,6 +13,12 @@ interface Customer {
   full_name: string;
   email?: string;
   phone?: string;
+  metadata?: {
+    noddi_user_id?: string;
+    user_group_id?: string;
+    is_new?: boolean;
+    noddi_email?: string;
+  };
 }
 
 interface CustomerSearchProps {
@@ -40,15 +46,36 @@ export const CustomerSearch = ({
 
       setIsSearching(true);
       try {
-        const { data, error } = await supabase.functions.invoke('search-customers-by-name', {
+        // Split search term into first and last name
+        const nameParts = debouncedSearchTerm.trim().split(/\s+/);
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(" ");
+
+        const { data, error } = await supabase.functions.invoke('noddi-search-by-name', {
           body: {
-            searchTerm: debouncedSearchTerm,
+            firstName,
+            lastName: lastName || undefined,
             organizationId,
           },
         });
 
         if (error) throw error;
-        setSearchResults(data || []);
+
+        // Transform Noddi results to Customer format
+        const transformedResults = (data?.results || []).map((result: any) => ({
+          id: result.local_customer_id || `noddi-${result.noddi_user_id}`,
+          full_name: result.full_name,
+          email: result.email, // Use local email if available
+          phone: result.phone,
+          metadata: {
+            noddi_user_id: result.noddi_user_id,
+            user_group_id: result.user_group_id,
+            is_new: result.is_new,
+            noddi_email: result.noddi_email,
+          }
+        }));
+
+        setSearchResults(transformedResults);
       } catch (error) {
         console.error('Failed to search customers:', error);
         toast.error('Failed to search customers');
@@ -132,13 +159,22 @@ export const CustomerSearch = ({
                   onClick={() => handleSelectCustomer(customer)}
                   className="w-full text-left p-3 hover:bg-accent rounded-md transition-colors"
                 >
-                  <p className="font-medium">{customer.full_name}</p>
-                  {customer.email && (
-                    <p className="text-sm text-muted-foreground">{customer.email}</p>
-                  )}
-                  {customer.phone && (
-                    <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                  )}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium">{customer.full_name}</p>
+                      {customer.email && (
+                        <p className="text-sm text-muted-foreground">{customer.email}</p>
+                      )}
+                      {customer.phone && (
+                        <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                      )}
+                    </div>
+                    {customer.metadata?.is_new && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                        New
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
