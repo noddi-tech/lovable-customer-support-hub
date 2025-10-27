@@ -113,3 +113,9 @@ verify_jwt = true
 
 [functions.generate-analytics-report]
 verify_jwt = true
+
+[functions.create-service-ticket]
+verify_jwt = true
+
+[functions.update-ticket-status]
+verify_jwt = true
