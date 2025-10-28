@@ -60,7 +60,8 @@ export const LinkCustomerDialog = ({
   const { data: noddiBookings } = useNoddiBookings({
     email: selectedCustomer?.email || currentCustomer?.email,
     phone: selectedCustomer?.phone || currentCustomer?.phone,
-    enabled: !!(selectedCustomer?.email || selectedCustomer?.phone || currentCustomer?.email || currentCustomer?.phone),
+    organizationId: organizationId || '',
+    enabled: !!(selectedCustomer?.email || selectedCustomer?.phone || currentCustomer?.email || currentCustomer?.phone) && !!organizationId,
   });
 
   // Auto-select current booking if exists
@@ -198,12 +199,13 @@ export const LinkCustomerDialog = ({
           )}
 
           {/* Noddi Booking Selector */}
-          {noddiBookings && noddiBookings.length > 0 && (
+          {noddiBookings && noddiBookings.length > 0 && organizationId && (
             <div className="space-y-2">
               <Label>Link to Noddi Booking (Optional)</Label>
               <NoddiBookingSelector
                 email={selectedCustomer?.email || currentCustomer?.email}
                 phone={selectedCustomer?.phone || currentCustomer?.phone}
+                organizationId={organizationId}
                 selectedBookingId={selectedBooking?.id || currentBookingId}
                 onSelectBooking={setSelectedBooking}
               />

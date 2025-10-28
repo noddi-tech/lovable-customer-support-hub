@@ -71,7 +71,8 @@ export const CreateTicketDialog = ({
   const { data: noddiBookings, isLoading: noddiLoading } = useNoddiBookings({
     email: customerEmail,
     phone: customerPhone,
-    enabled: !!(customerEmail || customerPhone),
+    organizationId: organizationId || '',
+    enabled: !!(customerEmail || customerPhone) && !!organizationId,
   });
 
   // Get organization ID and fetch initial customer
@@ -362,12 +363,13 @@ export const CreateTicketDialog = ({
           </div>
 
           {/* Noddi Booking Selector */}
-          {(customerEmail || customerPhone) && noddiBookings && noddiBookings.length > 0 && (
+          {(customerEmail || customerPhone) && noddiBookings && noddiBookings.length > 0 && organizationId && (
             <div className="space-y-2">
               <Label>Link to Noddi Booking (Optional)</Label>
               <NoddiBookingSelector
                 email={customerEmail}
                 phone={customerPhone}
+                organizationId={organizationId}
                 selectedBookingId={selectedBookingId}
                 onSelectBooking={handleSelectBooking}
               />

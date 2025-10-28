@@ -9,6 +9,7 @@ import { formatDate } from '@/utils/noddiHelpers';
 interface NoddiBookingSelectorProps {
   email?: string;
   phone?: string;
+  organizationId: string;
   selectedBookingId?: number;
   onSelectBooking: (booking: NoddiBooking | null) => void;
 }
@@ -16,10 +17,11 @@ interface NoddiBookingSelectorProps {
 export function NoddiBookingSelector({
   email,
   phone,
+  organizationId,
   selectedBookingId,
   onSelectBooking,
 }: NoddiBookingSelectorProps) {
-  const { data: bookings, isLoading } = useNoddiBookings({ email, phone });
+  const { data: bookings, isLoading } = useNoddiBookings({ email, phone, organizationId });
 
   if (isLoading) {
     return (

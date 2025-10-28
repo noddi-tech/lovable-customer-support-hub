@@ -151,6 +151,8 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const unpaidCount = data.unpaid_count || 0;
   const isPriority = data.priority_booking_type === 'upcoming';
   const hasBooking = data.priority_booking != null;
+  const hasUnpaidBookings = unpaidCount > 0;
+  const hasAnyBookingData = hasBooking || hasUnpaidBookings;
   
   // Extract partner URLs
   const customerUrl = data.ui_meta?.partner_urls?.customer_url;
@@ -277,9 +279,12 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           </div>
         )}
 
-        {/* Active Booking */}
-        {hasBooking && (
-          <div className="p-3 rounded-lg bg-muted">
+        {/* Active Booking or Unpaid Bookings */}
+        {hasAnyBookingData && (
+          <div className="space-y-3">
+            {/* Existing priority booking section */}
+            {hasBooking && (
+              <div className="p-3 rounded-lg bg-muted">
             <div className="flex items-center gap-2 mb-2">
               <Package className="h-4 w-4" />
               {bookingUrl ? (
@@ -398,9 +403,26 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               </div>
             )}
           </div>
+            )}
+            
+            {/* NEW: Show unpaid bookings list if no priority booking */}
+            {!hasBooking && hasUnpaidBookings && (
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="h-4 w-4 text-amber-700" />
+                  <p className="font-medium text-sm text-amber-900">
+                    {unpaidCount} Unpaid Booking{unpaidCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  This customer has bookings with outstanding payments. Check the Noddi admin panel for details.
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Unpaid Bookings Warning */}
+        {/* Unpaid Bookings Warning - shown for ALL customers with unpaid bookings */}
         {unpaidCount > 0 && (
           <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
             <div className="flex items-center gap-2 mb-1">

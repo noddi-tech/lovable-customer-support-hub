@@ -16,19 +16,24 @@ export interface NoddiBooking {
 interface UseNoddiBookingsParams {
   email?: string;
   phone?: string;
+  organizationId: string;
   enabled?: boolean;
 }
 
-export function useNoddiBookings({ email, phone, enabled = true }: UseNoddiBookingsParams) {
+export function useNoddiBookings({ email, phone, organizationId, enabled = true }: UseNoddiBookingsParams) {
   return useQuery({
-    queryKey: ['noddi-bookings', email, phone],
+    queryKey: ['noddi-bookings', email, phone, organizationId],
     queryFn: async () => {
       if (!email && !phone) {
         throw new Error('Email or phone required');
       }
 
+      if (!organizationId) {
+        throw new Error('Organization ID required');
+      }
+
       const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
-        body: { email, phone },
+        body: { email, phone, organizationId },
       });
 
       if (error) throw error;
@@ -84,6 +89,6 @@ export function useNoddiBookings({ email, phone, enabled = true }: UseNoddiBooki
 
       return bookings;
     },
-    enabled: enabled && (!!email || !!phone),
+    enabled: enabled && (!!email || !!phone) && !!organizationId,
   });
 }
