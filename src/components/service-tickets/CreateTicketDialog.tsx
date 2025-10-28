@@ -74,7 +74,7 @@ export const CreateTicketDialog = ({
     enabled: !!(customerEmail || customerPhone),
   });
 
-  // Get organization ID
+  // Get organization ID and fetch initial customer
   useEffect(() => {
     const fetchOrgId = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -91,6 +91,41 @@ export const CreateTicketDialog = ({
     };
     fetchOrgId();
   }, []);
+
+  // Fetch and set initial customer if customerId is provided
+  useEffect(() => {
+    const fetchInitialCustomer = async () => {
+      if (initialCustomerId) {
+        console.log('Fetching initial customer:', initialCustomerId);
+        const { data: customer, error } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', initialCustomerId)
+          .single();
+        
+        if (customer && !error) {
+          console.log('Initial customer loaded:', customer);
+          setSelectedCustomer(customer);
+        } else {
+          console.error('Failed to fetch initial customer:', error);
+          // Fallback: create temporary customer object from props
+          if (initialCustomerEmail || initialCustomerPhone) {
+            console.log('Using fallback customer data from props');
+            setSelectedCustomer({
+              id: initialCustomerId,
+              email: initialCustomerEmail,
+              phone: initialCustomerPhone,
+              full_name: initialCustomerEmail || initialCustomerPhone || 'Unknown Customer',
+            });
+          }
+        }
+      }
+    };
+    
+    if (open) {
+      fetchInitialCustomer();
+    }
+  }, [initialCustomerId, initialCustomerEmail, initialCustomerPhone, open]);
 
   // Pre-fill form data
   useEffect(() => {
@@ -142,6 +177,8 @@ export const CreateTicketDialog = ({
       let customerEmail: string | undefined;
       let customerPhone: string | undefined;
       
+      console.log('Submitting ticket with customer:', selectedCustomer);
+      
       if (selectedCustomer) {
         // Handle "noddi-7703" temporary IDs
         if (customerId && customerId.startsWith('noddi-')) {
@@ -154,7 +191,15 @@ export const CreateTicketDialog = ({
         customerName = selectedCustomer.full_name;
         customerEmail = selectedCustomer.email || selectedCustomer.metadata?.noddi_email;
         customerPhone = selectedCustomer.phone;
+      } else if (initialCustomerId || initialCustomerEmail || initialCustomerPhone) {
+        // Fallback to props if selectedCustomer is not set
+        console.log('Using initial props for customer data');
+        customerEmail = initialCustomerEmail;
+        customerPhone = initialCustomerPhone;
+        customerName = initialCustomerEmail || initialCustomerPhone || 'Unknown Customer';
       }
+      
+      console.log('Customer data for ticket:', { noddiUserId, customerName, customerEmail, customerPhone });
 
       const ticket = await createTicket.mutateAsync({
         title,

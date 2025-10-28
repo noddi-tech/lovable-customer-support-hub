@@ -65,8 +65,13 @@ export const ServiceTicketBulkActions = ({
   const [selectedAssignee, setSelectedAssignee] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Component is now only rendered when selection mode is active in parent
   if (selectedTicketIds.length === 0) {
-    return null;
+    return (
+      <div className="flex items-center justify-center p-4 bg-muted/50 rounded-lg border border-dashed">
+        <p className="text-sm text-muted-foreground">Select tickets to perform bulk actions</p>
+      </div>
+    );
   }
 
   const handleBulkStatusUpdate = async () => {

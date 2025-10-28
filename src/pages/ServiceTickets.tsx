@@ -10,6 +10,7 @@ import { ServiceTicketDetailsDialog } from '@/components/service-tickets/Service
 import { ServiceTicketKanban } from '@/components/service-tickets/ServiceTicketKanban';
 import { ServiceTicketFilters, type TicketFilters } from '@/components/service-tickets/ServiceTicketFilters';
 import { ServiceTicketBulkActions, type BulkUpdateData } from '@/components/service-tickets/ServiceTicketBulkActions';
+import { ServiceTicketListHeader } from '@/components/service-tickets/ServiceTicketListHeader';
 import { TeamWorkloadStats } from '@/components/service-tickets/TeamWorkloadStats';
 import { TicketAnalyticsDashboard } from '@/components/service-tickets/TicketAnalyticsDashboard';
 import { VirtualizedTicketList } from '@/components/service-tickets/VirtualizedTicketList';
@@ -27,6 +28,7 @@ export default function ServiceTickets() {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [filters, setFilters] = useState<TicketFilters>({});
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   const { data: tickets = [] } = useServiceTickets();
   const { data: teamMembers = [] } = useTeamMembers();
   const analytics = useServiceTicketAnalytics(tickets);
@@ -97,6 +99,14 @@ export default function ServiceTickets() {
     setSelectedTicketId(ticketId);
   };
 
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    if (selectionMode) {
+      // Clear selections when exiting selection mode
+      setSelectedTicketIds([]);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -124,12 +134,14 @@ export default function ServiceTickets() {
         onFiltersChange={setFilters}
         availableAssignees={teamMembers.map(m => ({ id: m.user_id, name: m.full_name }))}
       />
-      <ServiceTicketBulkActions 
-        selectedTicketIds={selectedTicketIds} 
-        onClearSelection={() => setSelectedTicketIds([])} 
-        onBulkUpdate={handleBulkUpdate}
-        availableAssignees={teamMembers.map(m => ({ id: m.user_id, name: m.full_name }))}
-      />
+      {selectionMode && (
+        <ServiceTicketBulkActions 
+          selectedTicketIds={selectedTicketIds} 
+          onClearSelection={() => setSelectedTicketIds([])} 
+          onBulkUpdate={handleBulkUpdate}
+          availableAssignees={teamMembers.map(m => ({ id: m.user_id, name: m.full_name }))}
+        />
+      )}
 
       {viewMode === 'list' ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -141,33 +153,54 @@ export default function ServiceTickets() {
                 <TabsTrigger value="in_progress">In Progress ({ticketsByStatus.in_progress.length})</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
               </TabsList>
-              <TabsContent value="all" className="mt-6">
+              <TabsContent value="all" className="mt-6 space-y-4">
+                <ServiceTicketListHeader
+                  ticketCount={ticketsByStatus.all.length}
+                  selectionMode={selectionMode}
+                  onToggleSelectionMode={toggleSelectionMode}
+                  onCreateTicket={() => setIsCreateDialogOpen(true)}
+                />
                 <div className="h-[600px]">
                   <VirtualizedTicketList
                     tickets={ticketsByStatus.all}
                     selectedTicketIds={selectedTicketIds}
                     onSelectTicket={toggleTicketSelection}
                     onTicketClick={handleTicketClick}
+                    selectionMode={selectionMode}
                   />
                 </div>
               </TabsContent>
-              <TabsContent value="open" className="mt-6">
+              <TabsContent value="open" className="mt-6 space-y-4">
+                <ServiceTicketListHeader
+                  ticketCount={ticketsByStatus.open.length}
+                  selectionMode={selectionMode}
+                  onToggleSelectionMode={toggleSelectionMode}
+                  onCreateTicket={() => setIsCreateDialogOpen(true)}
+                />
                 <div className="h-[600px]">
                   <VirtualizedTicketList
                     tickets={ticketsByStatus.open}
                     selectedTicketIds={selectedTicketIds}
                     onSelectTicket={toggleTicketSelection}
                     onTicketClick={handleTicketClick}
+                    selectionMode={selectionMode}
                   />
                 </div>
               </TabsContent>
-              <TabsContent value="in_progress" className="mt-6">
+              <TabsContent value="in_progress" className="mt-6 space-y-4">
+                <ServiceTicketListHeader
+                  ticketCount={ticketsByStatus.in_progress.length}
+                  selectionMode={selectionMode}
+                  onToggleSelectionMode={toggleSelectionMode}
+                  onCreateTicket={() => setIsCreateDialogOpen(true)}
+                />
                 <div className="h-[600px]">
                   <VirtualizedTicketList
                     tickets={ticketsByStatus.in_progress}
                     selectedTicketIds={selectedTicketIds}
                     onSelectTicket={toggleTicketSelection}
                     onTicketClick={handleTicketClick}
+                    selectionMode={selectionMode}
                   />
                 </div>
               </TabsContent>
