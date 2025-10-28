@@ -129,6 +129,55 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
     return { bg: 'bg-muted', text: 'text-muted-foreground', icon: null };
   };
 
+  // Helper functions to extract booking details
+  const extractVehicleLabel = (b: any): string | null => {
+    const plate = b?.car?.registration ?? b?.vehicle?.plate ?? null;
+    const model = b?.car?.model ?? b?.vehicle?.model ?? null;
+    const make = b?.car?.make ?? b?.vehicle?.make ?? null;
+    
+    const composed = [make, model].filter(Boolean).join(" ");
+    if (composed && plate) return `${composed} (${plate})`;
+    if (composed) return composed;
+    if (plate) return plate;
+    return null;
+  };
+
+  const extractServiceTitle = (b: any): string | null => {
+    const direct = b?.service?.name ?? b?.service_name ?? null;
+    if (direct) return String(direct);
+    
+    const lines = b?.order?.order_lines ?? [];
+    const firstNonDiscount = (Array.isArray(lines) ? lines : []).find(
+      (l: any) => !/discount/i.test(String(l?.description ?? l?.name ?? ""))
+    );
+    
+    return firstNonDiscount?.description ?? firstNonDiscount?.name ?? null;
+  };
+
+  const extractLineItems = (b: any) => {
+    const lines = Array.isArray(b?.order?.order_lines) ? b.order.order_lines : [];
+    return lines.map((l: any) => ({
+      name: String(l?.description ?? l?.name ?? 'Item'),
+      quantity: Number(l?.quantity ?? 1),
+      amount_gross: Number(l?.amount_gross?.amount ?? 0),
+      currency: l?.currency ?? b?.order?.currency ?? 'NOK',
+      is_discount: Boolean(l?.is_discount === true || l?.is_coupon_discount === true),
+      is_fee: Boolean(l?.is_delivery_fee === true)
+    }));
+  };
+
+  const extractMoney = (b: any) => {
+    const currency = b?.order?.currency ?? 'NOK';
+    return {
+      currency,
+      gross: Number(b?.order?.amount_gross?.amount ?? 0),
+      net: Number(b?.order?.amount_net?.amount ?? 0),
+      vat: Number(b?.order?.amount_vat?.amount ?? 0),
+      paid: Number(b?.order?.amount_paid?.amount ?? 0),
+      outstanding: Number(b?.order?.amount_outstanding?.amount ?? 0)
+    };
+  };
+
   if (isLoadingData) {
     return (
       <Card>
@@ -177,6 +226,10 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const userGroup = data.all_user_groups?.[0];
   const bookingsSummary = userGroup?.bookings_summary;
   const hasBookingHistory = (bookingsSummary?.total_count || 0) > 0;
+  
+  // Extract the most recent booking from bookings_summary
+  const mostRecentBooking = bookingsSummary?.priority_booking || null;
+  const hasRecentBookingDetails = mostRecentBooking != null;
   
   const hasAnyBookingData = hasBooking || hasUnpaidBookings || hasBookingHistory;
 
@@ -240,7 +293,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
 
         {/* Customer Name and Status */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             {customerUrl ? (
               <a 
                 href={customerUrl}
@@ -258,6 +311,25 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
               <CheckCircle2 className="h-3 w-3 text-success mr-1" />
               Verified
             </Badge>
+            
+            {/* Customer Type Badges */}
+            {userGroup?.is_personal && (
+              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                <User className="h-3 w-3 mr-1" />
+                Personal
+              </Badge>
+            )}
+            {!userGroup?.is_personal && userGroup?.name && (
+              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                <Building2 className="h-3 w-3 mr-1" />
+                Business
+              </Badge>
+            )}
+            {userGroup?.is_default && (
+              <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
+                Default
+              </Badge>
+            )}
           </div>
           <div className="text-sm text-muted-foreground space-y-1">
             {/* Show customer email (primary - the one we communicate with) */}
@@ -510,10 +582,11 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="h-4 w-4 text-green-700" />
                   <p className="font-medium text-sm text-green-900">
-                    Booking History
+                    Most Recent Booking
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                
+                <div className="grid grid-cols-2 gap-2 text-xs mb-2">
                   <div>
                     <span className="text-muted-foreground">Total bookings:</span>
                     <span className="ml-1 font-medium">{bookingsSummary.total_count}</span>
@@ -523,9 +596,90 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                     <span className="ml-1 font-medium text-green-700">{bookingsSummary.completed_count}</span>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  All bookings completed and paid. View full history in Noddi admin.
-                </p>
+
+                {/* Show order details if available */}
+                {hasRecentBookingDetails && mostRecentBooking && (
+                  <>
+                    {/* Booking date */}
+                    {mostRecentBooking.completedAt && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Date: {format(new Date(mostRecentBooking.completedAt), 'PPP')}
+                      </p>
+                    )}
+                    
+                    {/* Vehicle and service info */}
+                    {extractVehicleLabel(mostRecentBooking) && (
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Vehicle: {extractVehicleLabel(mostRecentBooking)}
+                      </p>
+                    )}
+                    {extractServiceTitle(mostRecentBooking) && (
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Service: {extractServiceTitle(mostRecentBooking)}
+                      </p>
+                    )}
+
+                    {/* Service Tags */}
+                    {mostRecentBooking.tags && Array.isArray(mostRecentBooking.tags) && mostRecentBooking.tags.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {mostRecentBooking.tags.map((tag: string, idx: number) => {
+                            const style = getServiceTagStyle(tag);
+                            const IconComponent = style.icon;
+                            
+                            return (
+                              <span key={idx} className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${style.bg} ${style.text}`}>
+                                {IconComponent && <IconComponent className="w-3 h-3" />}
+                                {tag}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Order lines and totals */}
+                    {mostRecentBooking.order?.order_lines && mostRecentBooking.order.order_lines.length > 0 && (
+                      <div className="mt-3 rounded-lg border border-green-300 bg-white p-3">
+                        <div className="font-medium mb-2 text-sm">Order Summary</div>
+                        
+                        {/* Line Items */}
+                        <div className="space-y-1 mb-2">
+                          {extractLineItems(mostRecentBooking).map((line: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between text-sm">
+                              <div className="truncate">
+                                {line.name}{line.quantity > 1 ? ` × ${line.quantity}` : ''}
+                              </div>
+                              <div className={line.is_discount ? 'text-red-600' : ''}>
+                                {moneyFmt(line.amount_gross, line.currency)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Totals */}
+                        {extractMoney(mostRecentBooking) && (
+                          <div className="border-t pt-2 text-sm space-y-1">
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>VAT</span>
+                              <span>{moneyFmt(extractMoney(mostRecentBooking).vat, extractMoney(mostRecentBooking).currency)}</span>
+                            </div>
+                            <div className="flex justify-between font-medium">
+                              <span>Total</span>
+                              <span>{moneyFmt(extractMoney(mostRecentBooking).gross, extractMoney(mostRecentBooking).currency)}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                {!hasRecentBookingDetails && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    All bookings completed and paid. View full history in Noddi admin.
+                  </p>
+                )}
               </div>
             )}
           </div>
