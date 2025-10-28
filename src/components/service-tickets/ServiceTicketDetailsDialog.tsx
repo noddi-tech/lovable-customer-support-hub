@@ -14,6 +14,7 @@ import { TicketAssignment } from './TicketAssignment';
 import { TicketAttachmentUpload } from './TicketAttachmentUpload';
 import { TicketCustomFields } from './TicketCustomFields';
 import { TicketCustomerInfo } from './TicketCustomerInfo';
+import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 import { LinkCustomerDialog } from './LinkCustomerDialog';
 import { Clock, User, MessageSquare, Paperclip, Calendar, ExternalLink, Loader2, Activity, Edit } from 'lucide-react';
 import { useUpdateTicketStatus } from '@/hooks/useServiceTickets';
@@ -252,13 +253,18 @@ export const ServiceTicketDetailsDialog = ({
                 </div>
               </CardHeader>
               <CardContent>
-                <TicketCustomerInfo 
-                  customerName={ticket.customer_name}
-                  customerEmail={ticket.customer_email}
-                  customerPhone={ticket.customer_phone}
-                  noddiUserId={ticket.noddi_user_id}
-                  showDetails={true}
-                />
+                {!ticket.customer_name && !ticket.customer_email && !ticket.customer_phone ? (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <User className="h-3 w-3" />
+                    <span>No customer linked</span>
+                  </div>
+                ) : (
+                  <NoddiCustomerDetails
+                    customerEmail={ticket.customer_email}
+                    customerPhone={ticket.customer_phone}
+                    customerName={ticket.customer_name}
+                  />
+                )}
               </CardContent>
             </Card>
 
