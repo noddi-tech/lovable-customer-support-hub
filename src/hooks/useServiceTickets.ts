@@ -85,3 +85,43 @@ export const useUpdateTicketStatus = () => {
     },
   });
 };
+
+export const useUpdateServiceTicket = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ 
+      ticketId, 
+      updates 
+    }: { 
+      ticketId: string; 
+      updates: Record<string, any> 
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('update-service-ticket', {
+        body: { ticketId, updates },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+      if (!data?.ticket) throw new Error('Failed to update ticket');
+
+      return data.ticket as ServiceTicket;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['service-ticket'] });
+      toast({ title: 'Ticket Updated', description: 'Changes saved successfully' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to Update Ticket',
+        description: error.message || 'An error occurred',
+        variant: 'destructive',
+      });
+    },
+  });
+};

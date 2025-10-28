@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,8 @@ import { TicketAssignment } from './TicketAssignment';
 import { TicketAttachmentUpload } from './TicketAttachmentUpload';
 import { TicketCustomFields } from './TicketCustomFields';
 import { TicketCustomerInfo } from './TicketCustomerInfo';
-import { Clock, User, MessageSquare, Paperclip, Calendar, ExternalLink, Loader2, Activity } from 'lucide-react';
+import { LinkCustomerDialog } from './LinkCustomerDialog';
+import { Clock, User, MessageSquare, Paperclip, Calendar, ExternalLink, Loader2, Activity, Edit } from 'lucide-react';
 import { useUpdateTicketStatus } from '@/hooks/useServiceTickets';
 import { formatDistanceToNow } from 'date-fns';
 import type { ServiceTicket, ServiceTicketStatus } from '@/types/service-tickets';
@@ -33,7 +34,9 @@ export const ServiceTicketDetailsDialog = ({
   onOpenChange,
 }: ServiceTicketDetailsDialogProps) => {
   const [comment, setComment] = useState('');
+  const [linkCustomerOpen, setLinkCustomerOpen] = useState(false);
   const updateStatus = useUpdateTicketStatus();
+  const queryClient = useQueryClient();
 
   // Fetch ticket if only ID is provided
   const { data: fetchedTicket, isLoading } = useQuery({
@@ -233,10 +236,20 @@ export const ServiceTicketDetailsDialog = ({
             {/* Customer Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Customer Information
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Customer Information
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setLinkCustomerOpen(true)}
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    {ticket.customer_name ? 'Edit' : 'Link Customer'}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <TicketCustomerInfo 
@@ -253,10 +266,20 @@ export const ServiceTicketDetailsDialog = ({
             {ticket.noddi_booking_id && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Linked Booking
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Linked Booking
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setLinkCustomerOpen(true)}
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Change
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
@@ -365,6 +388,24 @@ export const ServiceTicketDetailsDialog = ({
           <TicketCustomFields ticketId={ticket.id} customFields={ticket.custom_fields} />
         </div>
       </DialogContent>
+
+      {/* Link Customer Dialog */}
+      <LinkCustomerDialog
+        ticketId={ticket.id}
+        currentCustomer={{
+          name: ticket.customer_name,
+          email: ticket.customer_email,
+          phone: ticket.customer_phone,
+          noddiUserId: ticket.noddi_user_id,
+        }}
+        currentBookingId={ticket.noddi_booking_id}
+        open={linkCustomerOpen}
+        onOpenChange={setLinkCustomerOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['service-ticket', ticket.id] });
+          queryClient.invalidateQueries({ queryKey: ['service-tickets'] });
+        }}
+      />
     </Dialog>
   );
 }

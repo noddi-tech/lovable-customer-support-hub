@@ -177,7 +177,14 @@ export const CreateTicketDialog = ({
       let customerEmail: string | undefined;
       let customerPhone: string | undefined;
       
-      console.log('Submitting ticket with customer:', selectedCustomer);
+      console.log('=== TICKET CREATION DEBUG ===');
+      console.log('selectedCustomer:', selectedCustomer);
+      console.log('initialCustomerId:', initialCustomerId);
+      console.log('initialCustomerEmail:', initialCustomerEmail);
+      console.log('initialCustomerPhone:', initialCustomerPhone);
+      console.log('customerId from state:', customerId);
+      console.log('customerEmail from state:', customerEmail);
+      console.log('customerPhone from state:', customerPhone);
       
       if (selectedCustomer) {
         // Handle "noddi-7703" temporary IDs
@@ -199,7 +206,12 @@ export const CreateTicketDialog = ({
         customerName = initialCustomerEmail || initialCustomerPhone || 'Unknown Customer';
       }
       
-      console.log('Customer data for ticket:', { noddiUserId, customerName, customerEmail, customerPhone });
+      console.log('Final customer data for ticket:');
+      console.log('  noddiUserId:', noddiUserId);
+      console.log('  customerName:', customerName);
+      console.log('  customerEmail:', customerEmail);
+      console.log('  customerPhone:', customerPhone);
+      console.log('============================');
 
       const ticket = await createTicket.mutateAsync({
         title,
