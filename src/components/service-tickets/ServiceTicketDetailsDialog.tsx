@@ -41,11 +41,11 @@ export const ServiceTicketDetailsDialog = ({
       if (!ticketId) return null;
       
       const { data, error } = await supabase
-        .from('service_tickets' as any)
+        .from('service_tickets')
         .select(`
           *,
-          assigned_to:profiles!service_tickets_assigned_to_id_fkey(user_id, full_name, avatar_url),
-          created_by:profiles!service_tickets_created_by_id_fkey(user_id, full_name)
+          assigned_to:profiles!assigned_to_id(user_id, full_name, avatar_url),
+          created_by:profiles!created_by_id(user_id, full_name, avatar_url)
         `)
         .eq('id', ticketId)
         .single();
@@ -100,6 +100,12 @@ export const ServiceTicketDetailsDialog = ({
                 <span className="font-mono">{ticket.ticket_number}</span>
                 <span>•</span>
                 <span>Created {formatDistanceToNow(new Date(ticket.created_at))} ago</span>
+                {ticket.created_by && (
+                  <>
+                    <span>•</span>
+                    <span>by {ticket.created_by.full_name}</span>
+                  </>
+                )}
               </div>
             </div>
             <ServiceTicketStatusBadge status={ticket.status} />
@@ -223,13 +229,13 @@ export const ServiceTicketDetailsDialog = ({
               </Card>
             )}
 
-            {/* Linked Resources */}
-            {(ticket.conversation_id || ticket.call_id || ticket.noddi_booking_id || ticket.customer_name || ticket.customer_email || ticket.customer_phone) && (
+            {/* Customer Information */}
+            {(ticket.customer_name || ticket.customer_email || ticket.customer_phone || ticket.noddi_user_id) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    Customer & Links
+                    Customer Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
@@ -253,6 +259,59 @@ export const ServiceTicketDetailsDialog = ({
                       <span className="text-muted-foreground">Noddi ID:</span> {ticket.noddi_user_id}
                     </p>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Noddi Booking */}
+            {ticket.noddi_booking_id && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Linked Booking
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Noddi Booking #{ticket.noddi_booking_id}</p>
+                      {ticket.noddi_booking_type && (
+                        <p className="text-muted-foreground text-xs">
+                          Type: {ticket.noddi_booking_type}
+                        </p>
+                      )}
+                      {ticket.noddi_user_group_id && (
+                        <p className="text-muted-foreground text-xs">
+                          User Group: {ticket.noddi_user_group_id}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        window.open(`https://noddi.no/admin/bookings/${ticket.noddi_booking_id}`, '_blank');
+                      }}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      View
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Linked Resources */}
+            {(ticket.conversation_id || ticket.call_id) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Linked Resources
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
                   {ticket.conversation_id && (
                     <p className="flex items-center gap-2">
                       <MessageSquare className="h-3 w-3" />
@@ -263,12 +322,6 @@ export const ServiceTicketDetailsDialog = ({
                     <p className="flex items-center gap-2">
                       <Clock className="h-3 w-3" />
                       Linked to call
-                    </p>
-                  )}
-                  {ticket.noddi_booking_id && (
-                    <p className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3" />
-                      Noddi Booking #{ticket.noddi_booking_id}
                     </p>
                   )}
                 </CardContent>

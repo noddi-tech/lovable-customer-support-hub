@@ -13,30 +13,15 @@ export const useServiceTickets = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_tickets')
-        .select('*')
+        .select(`
+          *,
+          assigned_to:profiles!assigned_to_id(user_id, full_name, avatar_url),
+          created_by:profiles!created_by_id(user_id, full_name, avatar_url)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Fetch only assigned_to relation (customer info is now in ticket fields)
-      const ticketsWithRelations = await Promise.all(
-        (data || []).map(async (ticket) => {
-          let assigned_to = null;
-
-          if (ticket.assigned_to_id) {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('user_id, full_name, avatar_url')
-              .eq('user_id', ticket.assigned_to_id)
-              .single();
-            assigned_to = profileData;
-          }
-
-          return { ...ticket, assigned_to } as ServiceTicket;
-        })
-      );
-
-      return ticketsWithRelations;
+      return data as unknown as ServiceTicket[];
     },
   });
 };

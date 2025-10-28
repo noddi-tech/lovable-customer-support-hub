@@ -154,6 +154,9 @@ export const ServiceTicketCard = ({
             {/* Footer metadata */}
             <div className="text-xs text-muted-foreground pt-1 border-t">
               Created {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
+              {ticket.created_by && (
+                <span className="ml-2">• by {ticket.created_by.full_name}</span>
+              )}
               {ticket.noddi_booking_id && (
                 <span className="ml-2">• Booking #{ticket.noddi_booking_id}</span>
               )}
