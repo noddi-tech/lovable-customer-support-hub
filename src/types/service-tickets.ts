@@ -18,9 +18,10 @@ export type ServiceTicketPriority = 'low' | 'normal' | 'high' | 'urgent';
 export type ServiceTicketCategory = 
   | 'tire_issue'
   | 'service_complaint'
-  | 'follow_up'
-  | 'warranty'
-  | 'safety_concern'
+  | 'delivery_issue'
+  | 'installation_problem'
+  | 'warranty_claim'
+  | 'technical_support'
   | 'other';
 
 export type ServiceType = 
@@ -251,8 +252,9 @@ export const PRIORITY_COLORS: Record<ServiceTicketPriority, string> = {
 export const CATEGORY_LABELS: Record<ServiceTicketCategory, string> = {
   tire_issue: 'Tire Issue',
   service_complaint: 'Service Complaint',
-  follow_up: 'Follow Up',
-  warranty: 'Warranty',
-  safety_concern: 'Safety Concern',
+  delivery_issue: 'Delivery Issue',
+  installation_problem: 'Installation Problem',
+  warranty_claim: 'Warranty Claim',
+  technical_support: 'Technical Support',
   other: 'Other',
 };

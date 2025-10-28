@@ -255,9 +255,10 @@ export const CreateTicketDialog = ({
                 <SelectContent>
                   <SelectItem value="tire_issue">Tire Issue</SelectItem>
                   <SelectItem value="service_complaint">Service Complaint</SelectItem>
-                  <SelectItem value="follow_up">Follow Up</SelectItem>
-                  <SelectItem value="warranty">Warranty</SelectItem>
-                  <SelectItem value="safety_concern">Safety Concern</SelectItem>
+                  <SelectItem value="delivery_issue">Delivery Issue</SelectItem>
+                  <SelectItem value="installation_problem">Installation Problem</SelectItem>
+                  <SelectItem value="warranty_claim">Warranty Claim</SelectItem>
+                  <SelectItem value="technical_support">Technical Support</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
