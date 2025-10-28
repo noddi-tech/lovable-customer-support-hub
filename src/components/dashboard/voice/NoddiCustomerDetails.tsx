@@ -3,13 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { 
   Loader2, User, Package, AlertCircle, Calendar, DollarSign, CheckCircle2, Star, ExternalLink,
-  Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap, Building2
+  Archive, RotateCcw, Truck, Users, Droplets, Target, Gauge, Zap, Building2, RefreshCw
 } from 'lucide-react';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface NoddiCustomerDetailsProps {
   customerId?: string;
@@ -45,6 +47,24 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   // Use external data if provided, otherwise use fetched data
   const noddiData = externalNoddiData || fetchedData;
   const isLoadingData = !externalNoddiData && isLoading;
+  const queryClient = useQueryClient();
+
+  // Force refresh handler
+  const handleForceRefresh = async () => {
+    console.log('[NoddiCustomerDetails] 🔄 Force refreshing Noddi data...');
+    
+    // Clear all noddi-customer-lookup caches
+    await queryClient.invalidateQueries({
+      queryKey: ['noddi-customer-lookup']
+    });
+    
+    // Trigger a refetch
+    await queryClient.refetchQueries({
+      queryKey: ['noddi-customer-lookup']
+    });
+    
+    console.log('[NoddiCustomerDetails] ✅ Force refresh completed');
+  };
 
   // Compute displayed data based on selected group
   const displayedData = React.useMemo(() => {
@@ -153,6 +173,26 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const hasBooking = data.priority_booking != null;
   const hasUnpaidBookings = unpaidCount > 0;
   const hasAnyBookingData = hasBooking || hasUnpaidBookings;
+
+  // ADD COMPREHENSIVE DEBUGGING
+  console.group('[NoddiCustomerDetails] 🔍 Full Data Analysis');
+  console.log('noddiData (full):', noddiData);
+  console.log('displayedData (full):', displayedData);
+  console.log('data.priority_booking:', data.priority_booking);
+  console.log('data.priority_booking_type:', data.priority_booking_type);
+  console.log('data.unpaid_count:', data.unpaid_count);
+  console.log('data.unpaid_bookings:', data.unpaid_bookings);
+  console.log('data.all_user_groups:', data.all_user_groups);
+  console.log('Computed booleans:', {
+    hasBooking,
+    hasUnpaidBookings,
+    hasAnyBookingData,
+    unpaidCount,
+    isPriority
+  });
+  console.log('noddiData.source:', noddiData?.source);
+  console.log('Data cache timestamp:', noddiData?.data?.ui_meta?.source);
+  console.groupEnd();
   
   // Extract partner URLs
   const customerUrl = data.ui_meta?.partner_urls?.customer_url;
@@ -162,10 +202,21 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <User className="h-4 w-4" />
-          Customer Information
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Customer Information
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleForceRefresh}
+            disabled={isLoadingData}
+          >
+            <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingData ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Show which email was used for lookup if different */}
@@ -405,6 +456,32 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
           </div>
             )}
             
+            {/* TEMPORARY: Debug section when no booking data */}
+            {!hasAnyBookingData && data.found && (
+              <Alert className="bg-blue-50 border-blue-200">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-xs">
+                  <div className="space-y-2">
+                    <p className="font-medium text-blue-900">Debug: No booking data found</p>
+                    <details className="cursor-pointer">
+                      <summary className="text-blue-700">View raw API response</summary>
+                      <pre className="mt-2 text-[10px] overflow-auto max-h-40 bg-white p-2 rounded">
+                        {JSON.stringify({
+                          source: noddiData?.source,
+                          priority_booking: data.priority_booking ? 'EXISTS' : 'NULL',
+                          priority_booking_type: data.priority_booking_type,
+                          unpaid_count: data.unpaid_count,
+                          unpaid_bookings_count: data.unpaid_bookings?.length || 0,
+                          all_user_groups_count: data.all_user_groups?.length || 0,
+                          ui_meta_version: data.ui_meta?.version
+                        }, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* NEW: Show unpaid bookings list if no priority booking */}
             {!hasBooking && hasUnpaidBookings && (
               <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">

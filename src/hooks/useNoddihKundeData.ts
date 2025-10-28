@@ -178,6 +178,23 @@ export const useNoddihKundeData = (customer: Customer | null) => {
           timestamp: new Date().toISOString()
         });
 
+        // ADD: Detailed response structure logging
+        console.log('[Noddi API] 📦 Full Response Structure:', {
+          ok: data?.ok,
+          source: data?.source,
+          ttl_seconds: data?.ttl_seconds,
+          'data.found': data?.data?.found,
+          'data.noddi_user_id': data?.data?.noddi_user_id,
+          'data.user_group_id': data?.data?.user_group_id,
+          'data.priority_booking': data?.data?.priority_booking ? 'EXISTS' : 'NULL',
+          'data.priority_booking_type': data?.data?.priority_booking_type,
+          'data.unpaid_count': data?.data?.unpaid_count,
+          'data.unpaid_bookings': data?.data?.unpaid_bookings?.length || 0,
+          'data.all_user_groups': data?.data?.all_user_groups?.length || 0,
+          'data.ui_meta.version': data?.data?.ui_meta?.version,
+          'data.ui_meta.source': data?.data?.ui_meta?.source
+        });
+
         return data as NoddiLookupResponse;
       } catch (err: any) {
         const duration = Date.now() - startTime;
