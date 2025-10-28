@@ -1738,6 +1738,7 @@ export type Database = {
           metadata: Json | null
           noddi_booking_id: number | null
           noddi_user_group_id: number | null
+          noddi_user_id: number | null
           organization_id: string
           priority: Database["public"]["Enums"]["service_ticket_priority"]
           resolution_time_minutes: number | null
@@ -1774,6 +1775,7 @@ export type Database = {
           metadata?: Json | null
           noddi_booking_id?: number | null
           noddi_user_group_id?: number | null
+          noddi_user_id?: number | null
           organization_id: string
           priority?: Database["public"]["Enums"]["service_ticket_priority"]
           resolution_time_minutes?: number | null
@@ -1810,6 +1812,7 @@ export type Database = {
           metadata?: Json | null
           noddi_booking_id?: number | null
           noddi_user_group_id?: number | null
+          noddi_user_id?: number | null
           organization_id?: string
           priority?: Database["public"]["Enums"]["service_ticket_priority"]
           resolution_time_minutes?: number | null
@@ -1825,6 +1828,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "service_tickets_assigned_to_id_fkey"
+            columns: ["assigned_to_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "service_tickets_call_id_fkey"
             columns: ["call_id"]
             isOneToOne: false
@@ -1837,6 +1847,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_tickets_created_by_id_fkey"
+            columns: ["created_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "service_tickets_customer_id_fkey"
