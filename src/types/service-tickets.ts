@@ -38,14 +38,17 @@ export interface ServiceTicket {
   description: string;
   
   // Customer & Context
-  customer_id?: string;
   conversation_id?: string;
   call_id?: string;
   
-  // Noddi Integration
+  // Noddi Integration - Direct customer identification
+  noddi_user_id?: number;
   noddi_user_group_id?: number;
   noddi_booking_id?: number;
   noddi_booking_type?: string;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
   
   // Status Pipeline
   status: ServiceTicketStatus;
@@ -88,12 +91,6 @@ export interface ServiceTicket {
   is_deleted?: boolean;
   
   // Relations (populated by joins)
-  customer?: {
-    id: string;
-    full_name?: string;
-    email?: string;
-    phone?: string;
-  };
   assigned_to?: {
     user_id: string;
     full_name: string;
@@ -163,7 +160,10 @@ export interface ServiceTicketAttachment {
 export interface CreateServiceTicketRequest {
   title: string;
   description: string;
-  customerId?: string;
+  noddiUserId?: number;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
   priority?: ServiceTicketPriority;
   category?: ServiceTicketCategory;
   conversationId?: string;

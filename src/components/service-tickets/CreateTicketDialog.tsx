@@ -136,16 +136,39 @@ export const CreateTicketDialog = ({
     e.preventDefault();
 
     try {
+      // Extract Noddi customer info from selected customer
+      let noddiUserId: number | undefined;
+      let customerName: string | undefined;
+      let customerEmail: string | undefined;
+      let customerPhone: string | undefined;
+      
+      if (selectedCustomer) {
+        // Handle "noddi-7703" temporary IDs
+        if (customerId && customerId.startsWith('noddi-')) {
+          noddiUserId = parseInt(customerId.replace('noddi-', ''));
+        } else {
+          // For existing customers, get noddi_user_id from metadata
+          noddiUserId = selectedCustomer.metadata?.noddi_user_id;
+        }
+        
+        customerName = selectedCustomer.full_name;
+        customerEmail = selectedCustomer.email || selectedCustomer.metadata?.noddi_email;
+        customerPhone = selectedCustomer.phone;
+      }
+
       const ticket = await createTicket.mutateAsync({
         title,
         description,
-        customerId,
+        noddiUserId,
+        customerName,
+        customerEmail,
+        customerPhone,
         priority,
         category,
         conversationId,
         callId,
         noddiBookingId: selectedBookingId,
-        noddiUserGroupId: undefined,
+        noddiUserGroupId: selectedCustomer?.metadata?.user_group_id,
         noddiBookingType: selectedBooking?.booking_type,
         serviceType,
         tags: tags.length > 0 ? tags : undefined,

@@ -29,7 +29,10 @@ async function logSystemEvent(
 interface CreateTicketRequest {
   title: string;
   description: string;
-  customerId?: string;
+  noddiUserId?: number;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   category?: 'tire_issue' | 'service_complaint' | 'follow_up' | 'warranty' | 'safety_concern' | 'other';
   conversationId?: string;
@@ -109,7 +112,10 @@ Deno.serve(async (req) => {
         organization_id: profile.organization_id,
         title: body.title,
         description: body.description,
-        customer_id: body.customerId,
+        noddi_user_id: body.noddiUserId,
+        customer_name: body.customerName,
+        customer_email: body.customerEmail,
+        customer_phone: body.customerPhone,
         priority: body.priority || 'normal',
         category: body.category,
         conversation_id: body.conversationId,
@@ -123,7 +129,7 @@ Deno.serve(async (req) => {
         sla_due_date: slaDueDate,
         created_by_id: user.id,
       })
-      .select('*, customer:customers(*)')
+      .select('*')
       .single();
 
     if (ticketError) {
@@ -157,7 +163,7 @@ Deno.serve(async (req) => {
           ticket_number: ticket.ticket_number,
           status: 'open',
           priority: body.priority || 'normal',
-          customer_name: ticket.customer?.full_name || 'Unknown',
+          customer_name: body.customerName || 'Unknown',
         },
       });
     }
@@ -170,7 +176,7 @@ Deno.serve(async (req) => {
         ticket_number: ticket.ticket_number,
         title: body.title,
         priority: body.priority || 'normal',
-        customer_name: ticket.customer?.full_name || 'Unknown',
+        customer_name: body.customerName || 'Unknown',
         created_by: profile.full_name,
       },
     });

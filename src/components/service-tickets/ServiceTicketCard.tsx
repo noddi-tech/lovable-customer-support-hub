@@ -104,11 +104,11 @@ export const ServiceTicketCard = ({
             {/* Customer and assignment */}
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-3">
-                {ticket.customer && (
+                {(ticket.customer_name || ticket.customer_email) && (
                   <div className="flex items-center gap-1">
                     <User className="w-3 h-3" />
                     <span className="truncate max-w-[120px]">
-                      {ticket.customer.full_name || ticket.customer.email}
+                      {ticket.customer_name || ticket.customer_email}
                     </span>
                   </div>
                 )}

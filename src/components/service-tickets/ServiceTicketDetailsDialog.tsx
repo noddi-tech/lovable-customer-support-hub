@@ -44,7 +44,6 @@ export const ServiceTicketDetailsDialog = ({
         .from('service_tickets' as any)
         .select(`
           *,
-          customer:customers(id, full_name, email, phone),
           assigned_to:profiles!service_tickets_assigned_to_id_fkey(user_id, full_name, avatar_url),
           created_by:profiles!service_tickets_created_by_id_fkey(user_id, full_name)
         `)
@@ -225,15 +224,35 @@ export const ServiceTicketDetailsDialog = ({
             )}
 
             {/* Linked Resources */}
-            {(ticket.conversation_id || ticket.call_id || ticket.noddi_booking_id) && (
+            {(ticket.conversation_id || ticket.call_id || ticket.noddi_booking_id || ticket.customer_name || ticket.customer_email || ticket.customer_phone) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <ExternalLink className="h-4 w-4" />
-                    Linked Resources
+                    <User className="h-4 w-4" />
+                    Customer & Links
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
+                  {ticket.customer_name && (
+                    <p>
+                      <span className="text-muted-foreground">Name:</span> {ticket.customer_name}
+                    </p>
+                  )}
+                  {ticket.customer_email && (
+                    <p>
+                      <span className="text-muted-foreground">Email:</span> {ticket.customer_email}
+                    </p>
+                  )}
+                  {ticket.customer_phone && (
+                    <p>
+                      <span className="text-muted-foreground">Phone:</span> {ticket.customer_phone}
+                    </p>
+                  )}
+                  {ticket.noddi_user_id && (
+                    <p>
+                      <span className="text-muted-foreground">Noddi ID:</span> {ticket.noddi_user_id}
+                    </p>
+                  )}
                   {ticket.conversation_id && (
                     <p className="flex items-center gap-2">
                       <MessageSquare className="h-3 w-3" />

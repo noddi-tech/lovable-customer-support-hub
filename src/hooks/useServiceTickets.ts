@@ -18,20 +18,10 @@ export const useServiceTickets = () => {
 
       if (error) throw error;
       
-      // Manually fetch related data for now
+      // Fetch only assigned_to relation (customer info is now in ticket fields)
       const ticketsWithRelations = await Promise.all(
         (data || []).map(async (ticket) => {
-          let customer = null;
           let assigned_to = null;
-
-          if (ticket.customer_id) {
-            const { data: customerData } = await supabase
-              .from('customers')
-              .select('*')
-              .eq('id', ticket.customer_id)
-              .single();
-            customer = customerData;
-          }
 
           if (ticket.assigned_to_id) {
             const { data: profileData } = await supabase
@@ -42,7 +32,7 @@ export const useServiceTickets = () => {
             assigned_to = profileData;
           }
 
-          return { ...ticket, customer, assigned_to } as ServiceTicket;
+          return { ...ticket, assigned_to } as ServiceTicket;
         })
       );
 
