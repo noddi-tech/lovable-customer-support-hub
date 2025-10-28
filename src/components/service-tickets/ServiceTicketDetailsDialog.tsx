@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ServiceTicketStatusBadge } from './ServiceTicketStatusBadge';
 import { TicketCommentsList } from './TicketCommentsList';
 import { TicketActivityTimeline } from './TicketActivityTimeline';
-import { TicketAssignment } from './TicketAssignment';
+import { TicketAssignmentInline } from './TicketAssignmentInline';
 import { TicketAttachmentUpload } from './TicketAttachmentUpload';
 import { TicketCustomFields } from './TicketCustomFields';
 import { TicketCustomerInfo } from './TicketCustomerInfo';
@@ -62,6 +62,28 @@ export const ServiceTicketDetailsDialog = ({
   });
 
   const ticket = passedTicket || fetchedTicket;
+
+  const formatLabel = (text: string) => {
+    return text
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const getPriorityVariant = (priority: string): "default" | "destructive" | "outline" | "secondary" | null | undefined => {
+    switch (priority) {
+      case 'urgent':
+        return 'destructive';
+      case 'high':
+        return 'default';
+      case 'medium':
+        return 'secondary';
+      case 'low':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -145,57 +167,57 @@ export const ServiceTicketDetailsDialog = ({
               </CardContent>
             </Card>
 
-            {/* Compact Metadata */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-3">
-                  {/* Assignment Row */}
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground min-w-[80px]">Assigned to:</span>
-                    <TicketAssignment
-                      ticketId={ticket.id}
-                      currentAssigneeId={ticket.assigned_to_id}
-                      currentAssigneeName={ticket.assigned_to?.full_name}
-                    />
-                  </div>
-
-                  {/* Priority & Category Row */}
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Priority:</span>
-                      <Badge variant={ticket.priority === 'urgent' ? 'destructive' : 'secondary'}>
-                        {ticket.priority}
-                      </Badge>
-                    </div>
-                    
-                    {ticket.category && (
+                {/* Compact Metadata */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="space-y-3">
+                      {/* Assignment Row */}
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Category:</span>
-                        <Badge variant="outline">
-                          {ticket.category}
-                        </Badge>
+                        <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-sm text-muted-foreground min-w-[90px] shrink-0">Assigned to:</span>
+                        <TicketAssignmentInline
+                          ticketId={ticket.id}
+                          currentAssigneeId={ticket.assigned_to_id}
+                          currentAssigneeName={ticket.assigned_to?.full_name}
+                        />
                       </div>
-                    )}
-                  </div>
 
-                  {/* Tags Row */}
-                  {ticket.tags && ticket.tags.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground min-w-[80px]">Tags:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {ticket.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
+                      {/* Priority & Category Row */}
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm text-muted-foreground shrink-0">Priority:</span>
+                          <Badge variant={getPriorityVariant(ticket.priority)}>
+                            {formatLabel(ticket.priority)}
                           </Badge>
-                        ))}
+                        </div>
+                        
+                        {ticket.category && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground shrink-0">Category:</span>
+                            <Badge variant="outline">
+                              {formatLabel(ticket.category)}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Tags Row */}
+                      {ticket.tags && ticket.tags.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground min-w-[90px] shrink-0">Tags:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {ticket.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
 
             {/* Service Details */}
             {(ticket.service_type || ticket.scheduled_date) && (
@@ -206,12 +228,12 @@ export const ServiceTicketDetailsDialog = ({
                     Service Details
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {ticket.service_type && (
-                    <p>
-                      <span className="text-muted-foreground">Type:</span> {ticket.service_type}
-                    </p>
-                  )}
+                 <CardContent className="space-y-2 text-sm">
+                   {ticket.service_type && (
+                     <p>
+                       <span className="text-muted-foreground">Type:</span> {formatLabel(ticket.service_type)}
+                     </p>
+                   )}
                   {ticket.scheduled_date && (
                     <p>
                       <span className="text-muted-foreground">Scheduled:</span>{' '}
