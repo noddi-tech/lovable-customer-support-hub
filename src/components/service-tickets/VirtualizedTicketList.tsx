@@ -62,7 +62,7 @@ export function VirtualizedTicketList({
           ref={listRef}
           height={height}
           itemCount={tickets.length}
-          itemSize={240}
+          itemSize={300}
           width={width}
         >
           {Row}
