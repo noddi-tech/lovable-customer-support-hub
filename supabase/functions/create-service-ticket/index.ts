@@ -36,11 +36,10 @@ interface CreateTicketRequest {
   callId?: string;
   noddiBookingId?: number;
   noddiUserGroupId?: number;
-  noddiBookingType?: string;
   assignedToId?: string;
-  scheduledFor?: string;
+  scheduledDate?: string;
   tags?: string[];
-  dueDate?: string;
+  slaDueDate?: string;
   serviceType?: 'on_site_visit' | 'workshop_appointment' | 'remote_support' | 'callback';
 }
 
@@ -97,10 +96,10 @@ Deno.serve(async (req) => {
     }
 
     // Calculate due date if not provided (default: 7 days for normal, 24h for urgent)
-    let dueDate = body.dueDate;
-    if (!dueDate) {
+    let slaDueDate = body.slaDueDate;
+    if (!slaDueDate) {
       const hours = body.priority === 'urgent' ? 24 : body.priority === 'high' ? 48 : 168;
-      dueDate = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+      slaDueDate = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
     }
 
     // Create ticket
@@ -117,12 +116,11 @@ Deno.serve(async (req) => {
         call_id: body.callId,
         noddi_booking_id: body.noddiBookingId,
         noddi_user_group_id: body.noddiUserGroupId,
-        noddi_booking_type: body.noddiBookingType,
         assigned_to_id: body.assignedToId,
-        scheduled_for: body.scheduledFor,
+        scheduled_date: body.scheduledDate,
         service_type: body.serviceType,
         tags: body.tags || [],
-        due_date: dueDate,
+        sla_due_date: slaDueDate,
         created_by_id: user.id,
       })
       .select('*, customer:customers(*)')
