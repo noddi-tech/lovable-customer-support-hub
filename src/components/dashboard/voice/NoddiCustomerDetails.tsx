@@ -172,7 +172,13 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const isPriority = data.priority_booking_type === 'upcoming';
   const hasBooking = data.priority_booking != null;
   const hasUnpaidBookings = unpaidCount > 0;
-  const hasAnyBookingData = hasBooking || hasUnpaidBookings;
+  
+  // Extract booking summary from user groups
+  const userGroup = data.all_user_groups?.[0];
+  const bookingsSummary = userGroup?.bookings_summary;
+  const hasBookingHistory = (bookingsSummary?.total_count || 0) > 0;
+  
+  const hasAnyBookingData = hasBooking || hasUnpaidBookings || hasBookingHistory;
 
   // ADD COMPREHENSIVE DEBUGGING
   console.group('[NoddiCustomerDetails] 🔍 Full Data Analysis');
@@ -473,6 +479,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                           unpaid_count: data.unpaid_count,
                           unpaid_bookings_count: data.unpaid_bookings?.length || 0,
                           all_user_groups_count: data.all_user_groups?.length || 0,
+                          bookings_summary: userGroup?.bookings_summary,
                           ui_meta_version: data.ui_meta?.version
                         }, null, 2)}
                       </pre>
@@ -493,6 +500,31 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   This customer has bookings with outstanding payments. Check the Noddi admin panel for details.
+                </p>
+              </div>
+            )}
+
+            {/* Booking History Summary - when no active/priority bookings */}
+            {!hasBooking && !hasUnpaidBookings && hasBookingHistory && bookingsSummary && (
+              <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Package className="h-4 w-4 text-green-700" />
+                  <p className="font-medium text-sm text-green-900">
+                    Booking History
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Total bookings:</span>
+                    <span className="ml-1 font-medium">{bookingsSummary.total_count}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Completed:</span>
+                    <span className="ml-1 font-medium text-green-700">{bookingsSummary.completed_count}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  All bookings completed and paid. View full history in Noddi admin.
                 </p>
               </div>
             )}
