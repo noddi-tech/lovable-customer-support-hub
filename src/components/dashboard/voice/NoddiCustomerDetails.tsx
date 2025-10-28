@@ -227,8 +227,8 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const bookingsSummary = userGroup?.bookings_summary;
   const hasBookingHistory = (bookingsSummary?.total_count || 0) > 0;
   
-  // Extract the most recent booking from bookings_summary
-  const mostRecentBooking = bookingsSummary?.priority_booking || null;
+  // Extract the most recent booking from user group (priority_booking is at user_group level, not bookings_summary)
+  const mostRecentBooking = userGroup?.priority_booking || null;
   const hasRecentBookingDetails = mostRecentBooking != null;
   
   const hasAnyBookingData = hasBooking || hasUnpaidBookings || hasBookingHistory;
