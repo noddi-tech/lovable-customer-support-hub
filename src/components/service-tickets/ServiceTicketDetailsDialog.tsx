@@ -13,6 +13,7 @@ import { TicketActivityTimeline } from './TicketActivityTimeline';
 import { TicketAssignment } from './TicketAssignment';
 import { TicketAttachmentUpload } from './TicketAttachmentUpload';
 import { TicketCustomFields } from './TicketCustomFields';
+import { TicketCustomerInfo } from './TicketCustomerInfo';
 import { Clock, User, MessageSquare, Paperclip, Calendar, ExternalLink, Loader2, Activity } from 'lucide-react';
 import { useUpdateTicketStatus } from '@/hooks/useServiceTickets';
 import { formatDistanceToNow } from 'date-fns';
@@ -230,38 +231,23 @@ export const ServiceTicketDetailsDialog = ({
             )}
 
             {/* Customer Information */}
-            {(ticket.customer_name || ticket.customer_email || ticket.customer_phone || ticket.noddi_user_id) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Customer Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {ticket.customer_name && (
-                    <p>
-                      <span className="text-muted-foreground">Name:</span> {ticket.customer_name}
-                    </p>
-                  )}
-                  {ticket.customer_email && (
-                    <p>
-                      <span className="text-muted-foreground">Email:</span> {ticket.customer_email}
-                    </p>
-                  )}
-                  {ticket.customer_phone && (
-                    <p>
-                      <span className="text-muted-foreground">Phone:</span> {ticket.customer_phone}
-                    </p>
-                  )}
-                  {ticket.noddi_user_id && (
-                    <p>
-                      <span className="text-muted-foreground">Noddi ID:</span> {ticket.noddi_user_id}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Customer Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TicketCustomerInfo 
+                  customerName={ticket.customer_name}
+                  customerEmail={ticket.customer_email}
+                  customerPhone={ticket.customer_phone}
+                  noddiUserId={ticket.noddi_user_id}
+                  showDetails={true}
+                />
+              </CardContent>
+            </Card>
 
             {/* Noddi Booking */}
             {ticket.noddi_booking_id && (

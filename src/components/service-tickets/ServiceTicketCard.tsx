@@ -7,8 +7,9 @@ import { SLAStatusIndicator } from './SLAStatusIndicator';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { Calendar, User, Tag, AlertCircle } from 'lucide-react';
+import { Calendar, Tag, AlertCircle } from 'lucide-react';
 import type { ServiceTicket } from '@/types/service-tickets';
+import { TicketCustomerInfo } from './TicketCustomerInfo';
 
 interface ServiceTicketCardProps {
   ticket: ServiceTicket;
@@ -102,19 +103,18 @@ export const ServiceTicketCard = ({
             </div>
 
             {/* Customer and assignment */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-3">
-                {(ticket.customer_name || ticket.customer_email) && (
-                  <div className="flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    <span className="truncate max-w-[120px]">
-                      {ticket.customer_name || ticket.customer_email}
-                    </span>
-                  </div>
-                )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <TicketCustomerInfo 
+                  customerName={ticket.customer_name}
+                  customerEmail={ticket.customer_email}
+                  customerPhone={ticket.customer_phone}
+                  noddiUserId={ticket.noddi_user_id}
+                  compact={compact}
+                />
                 
                 {ticket.scheduled_for && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     <span>
                       {formatDistanceToNow(new Date(ticket.scheduled_for), { addSuffix: true })}
