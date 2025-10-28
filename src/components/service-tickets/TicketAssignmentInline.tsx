@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User } from 'lucide-react';
+import { User, Edit } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ export const TicketAssignmentInline = ({
 }: TicketAssignmentInlineProps) => {
   const { data: teamMembers = [] } = useTeamMembers();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(!currentAssigneeId);
 
   const handleAssign = async (userId: string) => {
     setIsUpdating(true);
@@ -44,6 +46,7 @@ export const TicketAssignmentInline = ({
           ? `Assigned to ${assignee?.full_name || 'team member'}`
           : 'Unassigned ticket'
       );
+      setShowDropdown(!userId); // Close dropdown if assigned, keep open if unassigned
       onAssignmentChange?.();
     } catch (error) {
       console.error('Assignment error:', error);
@@ -53,32 +56,16 @@ export const TicketAssignmentInline = ({
     }
   };
 
-  return (
-    <div className="flex items-center gap-2 flex-1">
-      {currentAssigneeId && currentAssigneeName ? (
-        <>
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={undefined} />
-            <AvatarFallback className="bg-primary/10 text-xs">
-              {currentAssigneeName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-sm">{currentAssigneeName}</span>
-        </>
-      ) : (
-        <>
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Unassigned</span>
-        </>
-      )}
-      
+  // When unassigned or dropdown is shown, display the select dropdown
+  if (!currentAssigneeId || showDropdown) {
+    return (
       <Select
         value={currentAssigneeId || 'unassigned'}
         onValueChange={handleAssign}
         disabled={isUpdating}
       >
-        <SelectTrigger className="h-8 w-[140px]">
-          <SelectValue placeholder="Change..." />
+        <SelectTrigger className="h-8 w-[180px]">
+          <SelectValue placeholder="Select assignee..." />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="unassigned">
@@ -102,6 +89,29 @@ export const TicketAssignmentInline = ({
           ))}
         </SelectContent>
       </Select>
+    );
+  }
+
+  // When assigned, show avatar + name + edit button
+  return (
+    <div className="flex items-center gap-2 flex-1">
+      <Avatar className="h-6 w-6">
+        <AvatarImage src={undefined} />
+        <AvatarFallback className="bg-primary/10 text-xs">
+          {currentAssigneeName?.charAt(0).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <span className="text-sm">{currentAssigneeName}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setShowDropdown(true)}
+        disabled={isUpdating}
+        className="h-7 px-2"
+      >
+        <Edit className="h-3 w-3 mr-1" />
+        Edit
+      </Button>
     </div>
   );
 };

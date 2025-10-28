@@ -135,7 +135,9 @@ export const ServiceTicketDetailsDialog = ({
                 )}
               </div>
             </div>
-            <ServiceTicketStatusBadge status={ticket.status} />
+            <div className="mr-8">
+              <ServiceTicketStatusBadge status={ticket.status} />
+            </div>
           </div>
         </DialogHeader>
 
@@ -182,7 +184,7 @@ export const ServiceTicketDetailsDialog = ({
                         />
                       </div>
 
-                      {/* Priority & Category Row */}
+                      {/* Priority, Category & Service Type Row */}
                       <div className="flex items-center gap-4 flex-wrap">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -200,7 +202,25 @@ export const ServiceTicketDetailsDialog = ({
                             </Badge>
                           </div>
                         )}
+
+                        {ticket.service_type && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground shrink-0">Type:</span>
+                            <Badge variant="secondary">
+                              {formatLabel(ticket.service_type)}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Scheduled Date Row */}
+                      {ticket.scheduled_date && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm text-muted-foreground shrink-0">Scheduled:</span>
+                          <span className="text-sm">{new Date(ticket.scheduled_date).toLocaleString()}</span>
+                        </div>
+                      )}
 
                       {/* Tags Row */}
                       {ticket.tags && ticket.tags.length > 0 && (
@@ -218,31 +238,6 @@ export const ServiceTicketDetailsDialog = ({
                     </div>
                   </CardContent>
                 </Card>
-
-            {/* Service Details */}
-            {(ticket.service_type || ticket.scheduled_date) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Service Details
-                  </CardTitle>
-                </CardHeader>
-                 <CardContent className="space-y-2 text-sm">
-                   {ticket.service_type && (
-                     <p>
-                       <span className="text-muted-foreground">Type:</span> {formatLabel(ticket.service_type)}
-                     </p>
-                   )}
-                  {ticket.scheduled_date && (
-                    <p>
-                      <span className="text-muted-foreground">Scheduled:</span>{' '}
-                      {new Date(ticket.scheduled_date).toLocaleString()}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
             {/* Customer Information */}
             <Card>
