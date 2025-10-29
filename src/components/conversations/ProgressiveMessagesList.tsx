@@ -265,6 +265,7 @@ export const ProgressiveMessagesList = ({
                     key={message.dedupKey || message.id}
                     message={message}
                     conversation={conversation}
+                    isFirstInThread={index === 0}  // First in chronological order (oldest)
                     defaultCollapsed={collapsedMessageIds.has(message.dedupKey || message.id)}
                     onEdit={onEditMessage}
                     onDelete={onDeleteMessage}

@@ -79,6 +79,7 @@ interface MessageCardProps {
     } | null;
   };
   defaultCollapsed?: boolean;
+  isFirstInThread?: boolean;  // NEW: Indicates if this is the first message in the thread
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
 }
@@ -87,6 +88,7 @@ export const MessageCard = ({
   message, 
   conversation, 
   defaultCollapsed = true,
+  isFirstInThread = false,
   onEdit, 
   onDelete 
 }: MessageCardProps) => {
@@ -321,9 +323,9 @@ export const MessageCard = ({
         
         <CollapsibleContent>
           <div className="p-6 pt-5 min-w-0 overflow-hidden">
-            {/* Email header metadata when expanded */}
-            {!isCollapsed && (
-              <div className="mb-6 pb-6 border-b space-y-2.5 text-sm">
+            {/* Email header metadata - ONLY on first message in thread */}
+            {!isCollapsed && isFirstInThread && (
+              <div className="mb-6 pb-6 border-b space-y-2.5 text-sm bg-muted/20 -mx-6 -mt-5 px-6 pt-5 rounded-t-lg">
                 <div className="flex">
                   <span className="w-16 font-medium text-muted-foreground shrink-0">From:</span>
                   <span className="text-foreground">{display}</span>
@@ -356,6 +358,15 @@ export const MessageCard = ({
                     <span className="text-foreground font-semibold">{message.subject}</span>
                   </div>
                 )}
+              </div>
+            )}
+            
+            {/* Compact header for subsequent messages */}
+            {!isCollapsed && !isFirstInThread && (
+              <div className="mb-4 pb-3 border-b text-xs text-muted-foreground -mx-6 px-6">
+                <span className="font-medium text-foreground">{display}</span>
+                <span className="mx-2">•</span>
+                <span>{dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}</span>
               </div>
             )}
             

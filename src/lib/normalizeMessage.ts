@@ -103,7 +103,13 @@ function getHeader(headers: Record<string, any>, key: string): string | undefine
 
 function extractNameEmail(input?: string) {
   if (!input) return { name: undefined, email: undefined };
-  const s = input.trim();
+  
+  // CRITICAL: Strip HTML first before parsing
+  const temp = document.createElement('div');
+  temp.innerHTML = input;
+  const cleaned = (temp.textContent || temp.innerText || input).trim();
+  
+  const s = cleaned.trim();
   // "Name" <email@host>  |  Name <email@host>  |  <email@host>  |  email@host
   const m1 = s.match(/^(?:"?([^"]+)"?\s*)?<([^>]+)>$/);
   if (m1) return { name: m1[1]?.trim(), email: m1[2].trim().toLowerCase() };

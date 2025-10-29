@@ -12,17 +12,23 @@ export function getSmartPreview(content: string, maxLength: number = 150): strin
   
   // Remove common email quote headers (case insensitive)
   const quotePatterns = [
-    /On .+ wrote:/gi,
+    // English patterns
+    /On .+? wrote:/gi,
+    /On .+? at .+? UTC, .+? wrote:/gi,  // Gmail "On Wed, Oct 29, 2025 at 9:40 AM UTC, Fredrik wrote:"
     /From:.+Sent:.+To:.+Subject:/gi,
     /-----Original Message-----/gi,
+    // Norwegian patterns
+    /ons\. \d+ \. .+? skrev .+?:/gi,     // "ons. 29. okt. skrev"
+    /(Den|På) .+ skrev:$/gi,
+    /Från:.+Skickat:.+Till:.+Ämne:/gi,   // Swedish
+    /De:.+Envoyé:.+À:.+Objet:/gi,        // French
+    /Von:.+Gesendet:.+An:.+Betreff:/gi,  // German
+    // Separators
     /__+/g,
     /_{3,}/g,
     /={3,}/g,
     /-{3,}/g,
     /\*{3,}/g,
-    /Från:.+Skickat:.+Till:.+Ämne:/gi, // Swedish
-    /De:.+Envoyé:.+À:.+Objet:/gi, // French
-    /Von:.+Gesendet:.+An:.+Betreff:/gi, // German
   ];
   
   for (const pattern of quotePatterns) {
