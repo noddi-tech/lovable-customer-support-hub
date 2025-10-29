@@ -77,12 +77,6 @@ export const ServiceTicketCard = ({
               <ServiceTicketPriorityBadge priority={ticket.priority} showIcon={false} />
             </div>
 
-            {/* Description preview */}
-            {!compact && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {ticket.description}
-              </p>
-            )}
 
             {/* Status and metadata */}
             <div className="flex items-center flex-wrap gap-2">
