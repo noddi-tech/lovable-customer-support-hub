@@ -101,17 +101,21 @@ interface NoddihCustomerLookupRequest {
 // Helper function to fetch individual bookings for a user group
 async function fetchUserGroupBookings(userGroupId: number, limit: number = 5): Promise<any[]> {
   try {
-    const url = `${API_BASE}/v1/bookings/?user_group_id=${userGroupId}&limit=${limit}&ordering=-completed_at`;
+    // Use the dedicated bookings-for-customer endpoint instead
+    const url = `${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/?page_size=${limit}`;
     console.log(`📥 Fetching bookings for group ${userGroupId}...`);
     
     const response = await fetch(url, { headers: noddiAuthHeaders() });
     
     if (!response.ok) {
       console.warn(`⚠️ Failed to fetch bookings for group ${userGroupId}: ${response.status}`);
+      const errorText = await response.text();
+      console.warn(`Error response: ${errorText}`);
       return [];
     }
     
     const data = await response.json();
+    // Handle both paginated response (results array) and direct array response
     const bookings = data.results || data || [];
     console.log(`✅ Fetched ${bookings.length} bookings for group ${userGroupId}`);
     return bookings;
