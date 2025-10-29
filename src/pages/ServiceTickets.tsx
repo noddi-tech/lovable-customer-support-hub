@@ -19,7 +19,9 @@ import { useServiceTicketAnalytics } from '@/hooks/useServiceTicketAnalytics';
 import { useServiceTicketNotifications } from '@/hooks/useServiceTicketNotifications';
 import { useRealtimeServiceTickets } from '@/hooks/useRealtimeServiceTickets';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function ServiceTickets() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,6 +34,7 @@ export default function ServiceTickets() {
   const { data: tickets = [] } = useServiceTickets();
   const { data: teamMembers = [] } = useTeamMembers();
   const analytics = useServiceTicketAnalytics(tickets);
+  const queryClient = useQueryClient();
   
   useServiceTicketNotifications();
   useRealtimeServiceTickets();
@@ -65,15 +68,67 @@ export default function ServiceTickets() {
   }, [tickets, filters]);
 
   const handleBulkUpdate = async (updates: BulkUpdateData) => {
-    const updatePromises = selectedTicketIds.map(async (ticketId) => {
-      const updateData: any = {};
-      if (updates.status) updateData.status = updates.status;
-      if (updates.priority) updateData.priority = updates.priority;
-      if (updates.assignedTo) updateData.assigned_to_id = updates.assignedTo;
-      const { error } = await supabase.from('service_tickets').update(updateData).eq('id', ticketId);
-      if (error) throw error;
-    });
-    await Promise.all(updatePromises);
+    try {
+      console.log(`🔄 Bulk updating ${selectedTicketIds.length} tickets:`, updates);
+      
+      const updatePromises = selectedTicketIds.map(async (ticketId) => {
+        const updateData: any = {};
+        if (updates.status) updateData.status = updates.status;
+        if (updates.priority) updateData.priority = updates.priority;
+        if (updates.assignedTo) updateData.assigned_to_id = updates.assignedTo;
+        
+        const { error } = await supabase
+          .from('service_tickets')
+          .update(updateData)
+          .eq('id', ticketId);
+          
+        if (error) {
+          console.error(`❌ Failed to update ticket ${ticketId}:`, error);
+          throw error;
+        }
+      });
+      
+      await Promise.all(updatePromises);
+      
+      // Invalidate cache to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['service-tickets'] });
+      
+      console.log(`✅ Successfully bulk updated ${selectedTicketIds.length} tickets`);
+    } catch (error) {
+      console.error('❌ Bulk update failed:', error);
+      throw error; // Re-throw so the component can show error toast
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      console.log(`🗑️  Deleting ${selectedTicketIds.length} tickets`);
+      
+      const deletePromises = selectedTicketIds.map(async (ticketId) => {
+        const { error } = await supabase
+          .from('service_tickets')
+          .delete()
+          .eq('id', ticketId);
+          
+        if (error) {
+          console.error(`❌ Failed to delete ticket ${ticketId}:`, error);
+          throw error;
+        }
+      });
+      
+      await Promise.all(deletePromises);
+      
+      // Invalidate cache to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['service-tickets'] });
+      
+      toast.success(`Deleted ${selectedTicketIds.length} ticket(s)`);
+      setSelectedTicketIds([]);
+      
+      console.log(`✅ Successfully deleted ${selectedTicketIds.length} tickets`);
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error);
+      toast.error('Failed to delete tickets');
+    }
   };
 
   const [activeTab, setActiveTab] = useState('all');
@@ -139,6 +194,7 @@ export default function ServiceTickets() {
           selectedTicketIds={selectedTicketIds} 
           onClearSelection={() => setSelectedTicketIds([])} 
           onBulkUpdate={handleBulkUpdate}
+          onDelete={handleBulkDelete}
           availableAssignees={teamMembers.map(m => ({ id: m.user_id, name: m.full_name }))}
         />
       )}

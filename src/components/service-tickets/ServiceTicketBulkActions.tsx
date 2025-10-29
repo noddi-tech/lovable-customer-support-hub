@@ -41,6 +41,7 @@ interface ServiceTicketBulkActionsProps {
   selectedTicketIds: string[];
   onClearSelection: () => void;
   onBulkUpdate: (updates: BulkUpdateData) => Promise<void>;
+  onDelete?: () => Promise<void>;
   availableAssignees?: Array<{ id: string; name: string }>;
 }
 
@@ -54,6 +55,7 @@ export const ServiceTicketBulkActions = ({
   selectedTicketIds,
   onClearSelection,
   onBulkUpdate,
+  onDelete,
   availableAssignees = [],
 }: ServiceTicketBulkActionsProps) => {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
@@ -271,15 +273,25 @@ export const ServiceTicketBulkActions = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={() => {
-                toast.error('Delete functionality not yet implemented');
-                setShowDeleteDialog(false);
+              onClick={async () => {
+                if (onDelete) {
+                  setIsProcessing(true);
+                  try {
+                    await onDelete();
+                    setShowDeleteDialog(false);
+                  } catch (error) {
+                    toast.error('Failed to delete tickets');
+                  } finally {
+                    setIsProcessing(false);
+                  }
+                }
               }}
+              disabled={isProcessing}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isProcessing ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

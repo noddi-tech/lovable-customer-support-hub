@@ -15,8 +15,8 @@ export const useServiceTickets = () => {
         .from('service_tickets')
         .select(`
           *,
-          assigned_to:profiles!assigned_to_id(user_id, full_name, avatar_url),
-          created_by:profiles!created_by_id(user_id, full_name, avatar_url)
+          assigned_to:profiles!service_tickets_assigned_to_id_fkey(user_id, full_name, avatar_url),
+          created_by:profiles!service_tickets_created_by_id_fkey(user_id, full_name, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
