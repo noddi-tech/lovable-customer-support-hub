@@ -27,7 +27,7 @@ export function VirtualizedTicketList({
     const ticket = tickets[index];
     
     return (
-      <div style={style} className="px-2 py-3">
+      <div style={style} className="px-2 py-1">
         <div className={cn("relative", selectionMode && "pl-8")}>
           {selectionMode && (
             <div className="absolute top-3 left-3 z-10">
@@ -62,7 +62,7 @@ export function VirtualizedTicketList({
           ref={listRef}
           height={height}
           itemCount={tickets.length}
-          itemSize={300}
+          itemSize={200}
           width={width}
         >
           {Row}
