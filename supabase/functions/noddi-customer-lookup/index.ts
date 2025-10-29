@@ -98,6 +98,29 @@ interface NoddihCustomerLookupRequest {
   userGroupId?: number;
 }
 
+// Helper function to fetch individual bookings for a user group
+async function fetchUserGroupBookings(userGroupId: number, limit: number = 5): Promise<any[]> {
+  try {
+    const url = `${API_BASE}/v1/bookings/?user_group_id=${userGroupId}&limit=${limit}&ordering=-completed_at`;
+    console.log(`📥 Fetching bookings for group ${userGroupId}...`);
+    
+    const response = await fetch(url, { headers: noddiAuthHeaders() });
+    
+    if (!response.ok) {
+      console.warn(`⚠️ Failed to fetch bookings for group ${userGroupId}: ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    const bookings = data.results || data || [];
+    console.log(`✅ Fetched ${bookings.length} bookings for group ${userGroupId}`);
+    return bookings;
+  } catch (error) {
+    console.error(`❌ Error fetching bookings for group ${userGroupId}:`, error);
+    return [];
+  }
+}
+
 interface NoddihUser {
   id: number;
   email: string;
@@ -1279,6 +1302,35 @@ Deno.serve(async (req) => {
         priorityBooking = groupUnpaid[0];
         priorityBookingType = 'completed'; // Unpaid bookings are typically completed but not paid
         console.log(`Using first unpaid booking ${priorityBooking.id} as priority booking (type: ${priorityBookingType})`);
+      }
+    }
+    
+    // Enhanced fallback: If still no priority booking but we have booking history, fetch it
+    if (!priorityBooking && priorityGroup?.bookings_summary) {
+      const summary = priorityGroup.bookings_summary;
+      const totalCount = summary.total_count || 0;
+      
+      if (totalCount > 0) {
+        console.log(`📊 Group ${priorityGroup.id} has ${totalCount} bookings but no priority_booking. Fetching recent bookings...`);
+        const recentBookings = await fetchUserGroupBookings(priorityGroup.id, 5);
+        
+        if (recentBookings.length > 0) {
+          // Prefer upcoming bookings first, then completed
+          const upcomingBooking = recentBookings.find((b: any) => 
+            b.delivery_window_starts_at && new Date(b.delivery_window_starts_at) > new Date()
+          );
+          
+          if (upcomingBooking) {
+            priorityBooking = upcomingBooking;
+            priorityBookingType = 'upcoming';
+            console.log(`✅ Found upcoming booking ${priorityBooking.id} as priority`);
+          } else {
+            // Use most recent completed booking
+            priorityBooking = recentBookings[0];
+            priorityBookingType = 'completed';
+            console.log(`✅ Using most recent booking ${priorityBooking.id} as priority (completed)`);
+          }
+        }
       }
     }
     
