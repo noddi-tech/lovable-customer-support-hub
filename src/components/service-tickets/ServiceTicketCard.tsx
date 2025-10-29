@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ServiceTicketStatusBadge, ServiceTicketPriorityBadge } from './ServiceTicketStatusBadge';
 import { ServiceTicketDetailsDialog } from './ServiceTicketDetailsDialog';
 import { SLAStatusIndicator } from './SLAStatusIndicator';
@@ -16,6 +17,9 @@ interface ServiceTicketCardProps {
   onClick?: () => void;
   isActive?: boolean;
   compact?: boolean;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onSelectionChange?: () => void;
 }
 
 export const ServiceTicketCard = ({
@@ -23,6 +27,9 @@ export const ServiceTicketCard = ({
   onClick,
   isActive = false,
   compact = false,
+  selectionMode = false,
+  isSelected = false,
+  onSelectionChange,
 }: ServiceTicketCardProps) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -52,6 +59,18 @@ export const ServiceTicketCard = ({
         onClick={handleClick}
       >
         <CardContent className={cn('p-4', compact && 'p-3')}>
+          {/* Selection Checkbox */}
+          {selectionMode && (
+            <div className="float-left mr-2 mt-0.5">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onSelectionChange?.()}
+                onClick={(e) => e.stopPropagation()}
+                className="h-3.5 w-3.5"
+              />
+            </div>
+          )}
+          
           <div className="space-y-2">
             {/* Header */}
             <div className="flex items-start justify-between gap-2">
