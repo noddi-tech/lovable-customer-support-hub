@@ -66,7 +66,7 @@ export const ServiceTicketCard = ({
                 checked={isSelected}
                 onCheckedChange={() => onSelectionChange?.()}
                 onClick={(e) => e.stopPropagation()}
-                className="h-[5px] w-[5px]"
+                className="!h-[10px] !w-[10px] !min-h-[10px] !min-w-[10px] ring-offset-0 focus-visible:ring-1"
               />
             </div>
           )}
