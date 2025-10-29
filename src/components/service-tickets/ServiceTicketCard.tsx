@@ -37,7 +37,9 @@ export const ServiceTicketCard = ({
     !['completed', 'closed', 'cancelled'].includes(ticket.status);
 
   const handleClick = () => {
-    if (onClick) {
+    if (selectionMode && onSelectionChange) {
+      onSelectionChange();
+    } else if (onClick) {
       onClick();
     } else {
       setDetailsOpen(true);
@@ -66,7 +68,7 @@ export const ServiceTicketCard = ({
                 checked={isSelected}
                 onCheckedChange={() => onSelectionChange?.()}
                 onClick={(e) => e.stopPropagation()}
-                className="!h-[10px] !w-[10px] !min-h-[10px] !min-w-[10px] ring-offset-0 focus-visible:ring-1"
+                className="shrink-0"
               />
             </div>
           )}
