@@ -279,7 +279,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__html-content"
+          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       );
@@ -289,7 +289,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__plain-content"
+          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{ __html: formattedHtml }}
         />
       );

@@ -149,10 +149,19 @@ export const MessageCard = ({
     }
   };
 
+  // Helper to detect if message is from customer
+  const isCustomer = () => {
+    const from = (message.from?.email || '').toLowerCase();
+    return !from.endsWith('@noddi.no') && !from.includes('@noddi.tech');
+  };
+
   return (
     <div className={cn(
       "group relative rounded-xl border transition-all duration-200",
-      "shadow-sm hover:shadow-md hover:border-primary/40 bg-card",
+      "shadow-sm hover:shadow-md hover:border-primary/40",
+      isCustomer()
+        ? "bg-blue-50/60 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/40"
+        : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
       tne.border
     )}>
       <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl transition-all duration-200", tne.accentBar)} />

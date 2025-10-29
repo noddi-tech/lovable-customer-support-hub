@@ -267,7 +267,14 @@ export const ProgressiveMessagesList = ({
       )}
       
       <ScrollArea className="h-full" ref={scrollAreaRef}>
-        <div className="w-full max-w-6xl mx-auto px-8 py-8 space-y-6">
+        <div className="relative w-full max-w-3xl mx-auto px-8 py-8">
+          {/* Timeline vertical rail */}
+          <div 
+            className="absolute left-[52px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-muted/40 via-muted/70 to-muted/40 pointer-events-none rounded-full" 
+            aria-hidden="true"
+          />
+          
+          <div className="space-y-6">
 
           {/* Messages list - Cards in ASC order (oldest first, natural email reading) */}
           {messages.length === 0 ? (
@@ -317,6 +324,7 @@ export const ProgressiveMessagesList = ({
               </Button>
             </div>
           )}
+          </div>
         </div>
       </ScrollArea>
       
