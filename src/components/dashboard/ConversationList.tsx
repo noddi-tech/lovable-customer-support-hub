@@ -2,9 +2,9 @@ import { Clock, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationListProvider, useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { ConversationListHeader } from "./conversation-list/ConversationListHeader";
-import { ConversationListItem } from "./conversation-list/ConversationListItem";
 import { ConversationListDeleteDialog } from "./conversation-list/ConversationListDeleteDialog";
-import { VirtualizedConversationList } from "./conversation-list/VirtualizedConversationList";
+import { ConversationTable } from "./conversation-list/ConversationTable";
+import { VirtualizedConversationTable } from "./conversation-list/VirtualizedConversationTable";
 import { BulkActionsBar } from "./conversation-list/BulkActionsBar";
 import { SessionRecoveryBanner } from "@/components/conversations/SessionRecoveryBanner";
 import { SessionSyncButton } from "@/components/conversations/SessionSyncButton";
@@ -117,83 +117,18 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
         agents={agents}
       />
       
-      {/* Conversation List - Card-based layout */}
-      <div className="pane flex-1 overflow-y-auto min-h-0 bg-white">
+      {/* Conversation List - Table layout */}
+      <div className="pane flex-1 overflow-hidden min-h-0 bg-white">
         {shouldUseVirtualization ? (
-          <VirtualizedConversationList
+          <VirtualizedConversationTable
             onSelectConversation={onSelectConversation}
             selectedConversation={selectedConversation}
           />
         ) : (
-          <div className="p-4 space-y-3">
-            {isLoading ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
-                <p>{t('dashboard.conversationList.loadingConversations', 'Loading conversations...')}</p>
-              </div>
-            ) : filteredConversations.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <Inbox className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">{t('dashboard.conversationList.noConversations', 'No conversations found')}</p>
-                <p className="text-sm mb-2">{t('dashboard.conversationList.noConversationsDescription', 'There are no conversations matching your current filters.')}</p>
-                
-                {/* Show active filters if any */}
-                {(state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all') && (
-                  <div className="mt-4 p-4 bg-muted/50 rounded-lg text-left max-w-md mx-auto">
-                    <p className="text-xs font-medium mb-2">{t('dashboard.conversationList.activeFiltersLabel', 'Active Filters:')}</p>
-                    <div className="space-y-1 text-xs">
-                      {state.searchQuery && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Search:</span>
-                          <span className="text-foreground/70">"{state.searchQuery}"</span>
-                        </div>
-                      )}
-                      {state.statusFilter !== 'all' && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Status:</span>
-                          <span className="text-foreground/70">{state.statusFilter}</span>
-                        </div>
-                      )}
-                      {state.priorityFilter !== 'all' && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Priority:</span>
-                          <span className="text-foreground/70">{state.priorityFilter}</span>
-                        </div>
-                      )}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        dispatch({ type: 'SET_SEARCH_QUERY', payload: '' });
-                        dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' });
-                        dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' });
-                      }}
-                      className="mt-3 w-full"
-                    >
-                      {t('dashboard.conversationList.clearFilters', 'Clear All Filters')}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredConversations.map((conversation) => (
-                  <ConversationListItem 
-                    key={conversation.id}
-                    conversation={conversation}
-                    isSelected={selectedConversation?.id === conversation.id}
-                    onSelect={onSelectConversation}
-                    showBulkCheckbox={state.bulkSelectionMode}
-                    isBulkSelected={state.selectedConversations.has(conversation.id)}
-                    onBulkSelect={(id, selected) => {
-                      dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id, selected } });
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          <ConversationTable
+            onSelectConversation={onSelectConversation}
+            selectedConversation={selectedConversation}
+          />
         )}
       </div>
 

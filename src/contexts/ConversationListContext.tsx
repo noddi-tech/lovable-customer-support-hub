@@ -59,6 +59,7 @@ interface ConversationListState {
   showFilters: boolean;
   selectedConversations: Set<string>;
   bulkSelectionMode: boolean;
+  tableSort: { key: string; direction: 'asc' | 'desc' | null };
 }
 
 type ConversationListAction =
@@ -71,7 +72,8 @@ type ConversationListAction =
   | { type: 'CLOSE_DELETE_DIALOG' }
   | { type: 'TOGGLE_BULK_SELECTION'; payload: { id: string; selected: boolean } }
   | { type: 'CLEAR_BULK_SELECTION' }
-  | { type: 'TOGGLE_BULK_MODE' };
+  | { type: 'TOGGLE_BULK_MODE' }
+  | { type: 'SET_SORT'; payload: string };
 
 const initialState: ConversationListState = {
   searchQuery: '',
@@ -83,6 +85,7 @@ const initialState: ConversationListState = {
   showFilters: false,
   selectedConversations: new Set(),
   bulkSelectionMode: false,
+  tableSort: { key: 'waiting', direction: 'desc' }, // Default: sort by waiting time descending
 };
 
 function conversationListReducer(state: ConversationListState, action: ConversationListAction): ConversationListState {
@@ -114,6 +117,19 @@ function conversationListReducer(state: ConversationListState, action: Conversat
       return { ...state, selectedConversations: new Set() };
     case 'TOGGLE_BULK_MODE':
       return { ...state, bulkSelectionMode: !state.bulkSelectionMode, selectedConversations: new Set() };
+    case 'SET_SORT': {
+      const currentKey = state.tableSort.key;
+      const currentDirection = state.tableSort.direction;
+      
+      if (action.payload === currentKey) {
+        // Toggle through: null -> asc -> desc -> null
+        const newDirection = currentDirection === null ? 'asc' : currentDirection === 'asc' ? 'desc' : null;
+        return { ...state, tableSort: { key: action.payload, direction: newDirection } };
+      } else {
+        // New column, start with ascending
+        return { ...state, tableSort: { key: action.payload, direction: 'asc' } };
+      }
+    }
     default:
       return state;
   }
@@ -455,8 +471,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     ? selectedTab.replace('inbox-', '')
     : (selectedInboxId !== 'all' ? selectedInboxId : null);
 
-  const filteredAndSortedConversations = conversations
-    .filter((conversation) => {
+  const filteredAndSortedConversations = useMemo(() => {
+    const filtered = conversations.filter((conversation) => {
       const matchesSearch = 
         (conversation.subject || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
         (conversation.customer?.full_name || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
@@ -469,20 +485,6 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       
       const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
       const matchesInbox = !effectiveInboxId || conversation.inbox_id === effectiveInboxId;
-      
-      // Debug logging (DEV mode only)
-      if (import.meta.env.DEV && state.searchQuery === '' && conversation.inbox_id === effectiveInboxId) {
-        console.log('[Filter Debug]', {
-          subject: conversation.subject?.substring(0, 30),
-          status: conversation.status,
-          matchesStatus,
-          matchesPriority,
-          matchesInbox,
-          selectedTab,
-          stateStatusFilter: state.statusFilter,
-          isTabHandlingStatus
-        });
-      }
       
       const matchesTab = (() => {
         const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
@@ -529,8 +531,45 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       })();
 
       return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
-    })
-    .sort((a, b) => {
+    });
+
+    // Apply table sorting if a column is sorted
+    if (state.tableSort.direction) {
+      return filtered.sort((a, b) => {
+        const multiplier = state.tableSort.direction === 'asc' ? 1 : -1;
+        
+        switch (state.tableSort.key) {
+          case 'customer':
+            return multiplier * ((a.customer?.full_name || '').localeCompare(b.customer?.full_name || ''));
+          case 'subject':
+            return multiplier * ((a.subject || '').localeCompare(b.subject || ''));
+          case 'channel':
+            return multiplier * a.channel.localeCompare(b.channel);
+          case 'waiting':
+            return multiplier * (new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime());
+          case 'sla':
+            const slaOrder = { breached: 4, at_risk: 3, on_track: 2, met: 1 };
+            const aSla = slaOrder[a.slaStatus || 'on_track'] || 2;
+            const bSla = slaOrder[b.slaStatus || 'on_track'] || 2;
+            return multiplier * (aSla - bSla);
+          case 'status':
+            const statusOrder = { open: 1, pending: 2, resolved: 3, closed: 4 };
+            const aStatus = statusOrder[a.status] || 1;
+            const bStatus = statusOrder[b.status] || 1;
+            return multiplier * (aStatus - bStatus);
+          case 'priority':
+            const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 };
+            const aPriority = priorityOrder[a.priority] || 2;
+            const bPriority = priorityOrder[b.priority] || 2;
+            return multiplier * (aPriority - bPriority);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    // Otherwise use legacy sortBy
+    return filtered.sort((a, b) => {
       switch (state.sortBy) {
         case 'oldest':
           return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
@@ -548,6 +587,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       }
     });
+  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId]);
 
   // Comprehensive debug logging (DEV mode only)
   if (import.meta.env.DEV && effectiveInboxId) {
