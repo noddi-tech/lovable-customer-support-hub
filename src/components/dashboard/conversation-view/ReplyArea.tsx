@@ -1,17 +1,20 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import { 
   Send,
   Sparkles,
   Loader2,
   Languages,
   Lock,
-  Database
+  Database,
+  Eye,
+  Star
 } from "lucide-react";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
@@ -31,6 +34,8 @@ import {
 } from "@/components/ui/popover";
 import { TemplateSelector } from "./TemplateSelector";
 import { FeedbackPrompt } from "./FeedbackPrompt";
+import { AiSuggestionDialog } from "./AiSuggestionDialog";
+import { toast } from 'sonner';
 
 export const ReplyArea = () => {
   const { 
@@ -38,12 +43,17 @@ export const ReplyArea = () => {
     dispatch, 
     sendReply, 
     getAiSuggestions,
-    translateText
+    refineAiSuggestion,
+    translateText,
+    conversation,
+    messages
   } = useConversationView();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const [replyStatus, setReplyStatus] = React.useState<string>('pending');
+  const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
+  const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
 
   // Available languages for translation
   const languages = [
@@ -86,8 +96,31 @@ export const ReplyArea = () => {
   };
 
   const handleAiSuggestionSelect = (suggestion: string, index: number) => {
-    dispatch({ type: 'SET_REPLY_TEXT', payload: suggestion });
-    dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: `suggestion_${index}` });
+    setSelectedSuggestionForDialog(suggestion);
+    setOriginalSuggestionText(suggestion);
+  };
+
+  const handleUseAsIs = () => {
+    if (selectedSuggestionForDialog) {
+      dispatch({ type: 'SET_REPLY_TEXT', payload: selectedSuggestionForDialog });
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: selectedSuggestionForDialog });
+      setSelectedSuggestionForDialog(null);
+      toast.success('Suggestion inserted into reply area');
+    }
+  };
+
+  const handleRefineAndUse = async (refinementInstructions: string, originalText: string) => {
+    const lastCustomerMessage = [...messages].reverse().find((m: any) => m.sender_type === 'customer');
+    const customerMessageText = lastCustomerMessage?.content || '';
+    
+    const refinedText = await refineAiSuggestion(originalText, refinementInstructions, customerMessageText);
+    
+    if (refinedText) {
+      dispatch({ type: 'SET_REPLY_TEXT', payload: refinedText });
+      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: refinedText });
+      setSelectedSuggestionForDialog(refinedText); // Update dialog with refined version
+      toast.success('Refined suggestion ready! You can refine it more or use it.');
+    }
   };
 
   const handleTemplateSelect = (content: string, templateId: string) => {
@@ -129,25 +162,56 @@ export const ReplyArea = () => {
         {/* Feedback Prompt */}
         <FeedbackPrompt />
 
-        {/* AI Suggestions Section */}
+        {/* AI Suggestions Section with Preview Cards */}
         {state.aiSuggestions.length > 0 && (
           <div className="space-y-2">
-            <Label className="text-xs font-medium">{t('conversation.aiSuggestions')}</Label>
-            <div className="flex flex-wrap gap-2">
-              {state.aiSuggestions.map((suggestion, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAiSuggestionSelect(suggestion, index)}
-                  className="text-xs h-auto py-1.5 whitespace-normal text-left"
-                >
-                  {suggestion.length > 60 ? `${suggestion.slice(0, 60)}...` : suggestion}
-                </Button>
-              ))}
+            <Label className="text-xs font-medium flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              {t('conversation.aiSuggestions')} ({state.aiSuggestions.length})
+            </Label>
+            <div className="grid gap-2">
+              {state.aiSuggestions.map((suggestion, index) => {
+                const preview = suggestion.length > 100 ? `${suggestion.slice(0, 100)}...` : suggestion;
+                const charCount = suggestion.length;
+                
+                return (
+                  <Card
+                    key={index}
+                    className="p-3 hover:bg-muted/50 cursor-pointer transition-colors border-border hover:border-primary/50"
+                    onClick={() => handleAiSuggestionSelect(suggestion, index)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-relaxed text-foreground/90 line-clamp-2">
+                          {preview}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ~{charCount} characters
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <Eye className="h-3 w-3" />
+                          View
+                        </Badge>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
+
+        {/* AI Suggestion Dialog */}
+        <AiSuggestionDialog
+          open={selectedSuggestionForDialog !== null}
+          onOpenChange={(open) => !open && setSelectedSuggestionForDialog(null)}
+          suggestion={selectedSuggestionForDialog || ''}
+          onUseAsIs={handleUseAsIs}
+          onRefine={handleRefineAndUse}
+          isRefining={state.refiningSuggestion}
+        />
 
         {/* Controls Row: Internal Note + AI + Translate */}
         <div className="flex items-center justify-between gap-3">

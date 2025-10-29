@@ -22,6 +22,27 @@ Output ONLY valid JSON with the following shape:
 }
 `;
 
+async function getLearnedPatterns(supabase: any, organizationId: string): Promise<string> {
+  try {
+    const { data: patterns } = await supabase
+      .from('knowledge_patterns')
+      .select('pattern_description, occurrence_count')
+      .eq('organization_id', organizationId)
+      .eq('pattern_type', 'refinement')
+      .order('occurrence_count', { ascending: false })
+      .limit(10);
+
+    if (!patterns || patterns.length === 0) return '';
+
+    return '\n\nLEARNED PATTERNS FROM THIS ORGANIZATION:\n' +
+      patterns.map((p: any) => `- ${p.pattern_description} (used ${p.occurrence_count}x successfully)`).join('\n') +
+      '\n\nPlease incorporate these learned patterns when they apply to the customer situation.\n';
+  } catch (error) {
+    console.warn('Failed to fetch learned patterns:', error);
+    return '';
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -49,9 +70,18 @@ Deno.serve(async (req) => {
 
     const inputText = String(customerMessage).slice(0, 8000);
 
-    // Step 1: Search knowledge base for similar responses (if we have org ID and supabase access)
+    // Step 1: Get learned patterns (if we have org ID and supabase access)
+    let learnedPatterns = '';
     let knowledgeContext = '';
+    let supabaseClient: any = null;
+
     if (organizationId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      learnedPatterns = await getLearnedPatterns(supabaseClient, organizationId);
+    }
+
+    // Step 2: Search knowledge base for similar responses
+    if (organizationId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && supabaseClient) {
       try {
         // Create embedding for the customer message
         const embeddingResp = await fetch('https://api.openai.com/v1/embeddings', {
@@ -69,10 +99,9 @@ Deno.serve(async (req) => {
         const embeddingData = await embeddingResp.json();
         const embedding = embeddingData?.data?.[0]?.embedding;
 
-        if (embedding) {
-          // Search for similar responses
-          const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-          const { data: similarResponses } = await supabase.rpc(
+        if (embedding && supabaseClient) {
+          // Search for similar responses including refined ones
+          const { data: similarResponses } = await supabaseClient.rpc(
             'find_similar_responses',
             {
               query_embedding: embedding,
@@ -87,9 +116,13 @@ Deno.serve(async (req) => {
             similarResponses.forEach((item: any, idx: number) => {
               knowledgeContext += `\n${idx + 1}. Customer asked: "${item.customer_context}"\n`;
               knowledgeContext += `   Agent replied: "${item.agent_response}"\n`;
-              knowledgeContext += `   (Quality: ${item.quality_score}, Used ${item.usage_count} times)\n`;
+              knowledgeContext += `   (Quality: ${item.quality_score}, Used ${item.usage_count} times`;
+              if (item.was_refined) {
+                knowledgeContext += `, Refined by agent ⭐`;
+              }
+              knowledgeContext += `)\n`;
             });
-            knowledgeContext += '\nConsider adapting these proven responses to the current customer message.\n';
+            knowledgeContext += '\nPrioritize responses marked as "Refined by agent" - these were manually improved by our team.\n';
           }
         }
       } catch (embError) {
@@ -97,13 +130,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 2: Generate AI suggestions with knowledge context
+    // Step 3: Generate AI suggestions with learned patterns and knowledge context
     const body = {
       model: 'gpt-4o-mini',
       temperature: 0.5,
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: SYSTEM_INSTRUCTIONS + knowledgeContext },
+        { role: 'system', content: SYSTEM_INSTRUCTIONS + learnedPatterns + knowledgeContext },
         { role: 'user', content: `Customer wrote:\n${inputText}` },
       ],
     };

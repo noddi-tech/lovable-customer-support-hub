@@ -67,14 +67,23 @@ Deno.serve(async (req) => {
 
       // Calculate quality score (0-5 scale)
       const resolutionRate = resolvedCount / totalReplies;
-      const qualityScore = (
+      let qualityScore = (
         (avgSatisfaction * 0.4) + // 40% weight on satisfaction
         (resolutionRate * 5 * 0.4) + // 40% weight on resolution rate
         (Math.min(1, 300 / Math.max(avgReplyTime, 60)) * 5 * 0.2) // 20% weight on quick replies
       );
 
-      // Promote if quality score is high enough and has at least 3 successful outcomes
-      if (qualityScore >= minQualityScore && totalReplies >= 3) {
+      // Boost quality score for refined responses
+      if (candidate.was_refined) {
+        qualityScore += 0.5; // Quality bonus for agent-refined responses
+      }
+
+      // Refined responses get priority promotion with lower thresholds
+      const effectiveMinQualityScore = candidate.was_refined ? 3.5 : minQualityScore;
+      const effectiveMinReplies = candidate.was_refined ? 2 : 3;
+
+      // Promote if quality score is high enough and has sufficient successful outcomes
+      if (qualityScore >= effectiveMinQualityScore && totalReplies >= effectiveMinReplies) {
         // Create embedding
         const embeddingResp = await fetch('https://api.openai.com/v1/embeddings', {
           method: 'POST',

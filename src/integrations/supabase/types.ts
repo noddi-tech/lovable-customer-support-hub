@@ -857,6 +857,56 @@ export type Database = {
           },
         ]
       }
+      knowledge_patterns: {
+        Row: {
+          created_at: string | null
+          example_refinements: string[] | null
+          id: string
+          last_seen_at: string | null
+          occurrence_count: number | null
+          organization_id: string
+          pattern_description: string | null
+          pattern_key: string
+          pattern_type: string
+          success_rate: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          example_refinements?: string[] | null
+          id?: string
+          last_seen_at?: string | null
+          occurrence_count?: number | null
+          organization_id: string
+          pattern_description?: string | null
+          pattern_key: string
+          pattern_type: string
+          success_rate?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          example_refinements?: string[] | null
+          id?: string
+          last_seen_at?: string | null
+          occurrence_count?: number | null
+          organization_id?: string
+          pattern_description?: string | null
+          pattern_key?: string
+          pattern_type?: string
+          success_rate?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_patterns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           assigned_to_id: string | null
@@ -1508,7 +1558,10 @@ export type Database = {
           knowledge_entry_id: string | null
           message_id: string
           organization_id: string
+          original_ai_suggestion: string | null
+          refinement_instructions: string | null
           response_source: string
+          was_refined: boolean | null
         }
         Insert: {
           agent_id: string
@@ -1524,7 +1577,10 @@ export type Database = {
           knowledge_entry_id?: string | null
           message_id: string
           organization_id: string
+          original_ai_suggestion?: string | null
+          refinement_instructions?: string | null
           response_source: string
+          was_refined?: boolean | null
         }
         Update: {
           agent_id?: string
@@ -1540,7 +1596,10 @@ export type Database = {
           knowledge_entry_id?: string | null
           message_id?: string
           organization_id?: string
+          original_ai_suggestion?: string | null
+          refinement_instructions?: string | null
           response_source?: string
+          was_refined?: boolean | null
         }
         Relationships: [
           {
@@ -2135,23 +2194,40 @@ export type Database = {
       create_test_notification: { Args: never; Returns: undefined }
       delete_email_account: { Args: { account_id: string }; Returns: undefined }
       extract_email_date: { Args: { email_headers: Json }; Returns: string }
-      find_similar_responses: {
-        Args: {
-          match_count?: number
-          match_threshold?: number
-          org_id?: string
-          query_embedding: string
-        }
-        Returns: {
-          agent_response: string
-          category: string
-          customer_context: string
-          id: string
-          quality_score: number
-          similarity: number
-          tags: string[]
-        }[]
-      }
+      find_similar_responses:
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              org_id: string
+              query_embedding: string
+            }
+            Returns: {
+              agent_response: string
+              customer_context: string
+              id: string
+              quality_score: number
+              usage_count: number
+              was_refined: boolean
+            }[]
+          }
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              org_id?: string
+              query_embedding: string
+            }
+            Returns: {
+              agent_response: string
+              category: string
+              customer_context: string
+              id: string
+              quality_score: number
+              similarity: number
+              tags: string[]
+            }[]
+          }
       generate_ticket_number: { Args: { org_id: string }; Returns: string }
       get_all_counts: {
         Args: never

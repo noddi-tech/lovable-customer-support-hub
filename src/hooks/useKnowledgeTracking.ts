@@ -8,6 +8,9 @@ interface TrackingSuggestionData {
   agentResponse: string;
   responseSource: 'ai_suggestion' | 'template' | 'knowledge_base';
   knowledgeEntryId?: string;
+  originalAiSuggestion?: string;
+  refinementInstructions?: string;
+  wasRefined?: boolean;
 }
 
 export function useKnowledgeTracking() {
@@ -42,6 +45,9 @@ export function useKnowledgeTracking() {
           response_source: data.responseSource,
           knowledge_entry_id: data.knowledgeEntryId,
           organization_id: profile.organization_id,
+          original_ai_suggestion: data.originalAiSuggestion,
+          refinement_instructions: data.refinementInstructions,
+          was_refined: data.wasRefined || false,
         });
 
       if (error) {

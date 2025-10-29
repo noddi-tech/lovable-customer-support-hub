@@ -37,6 +37,9 @@ interface ConversationViewState {
   sendLoading: boolean;
   showReplyArea: boolean;
   trackingActive: boolean; // Visual indicator for knowledge tracking
+  refiningSuggestion: boolean; // Loading state for AI refinement
+  refinementDialogOpen: boolean;
+  selectedSuggestionForRefinement: string | null;
 }
 
 type ConversationViewAction =
@@ -56,7 +59,9 @@ type ConversationViewAction =
   | { type: 'SET_CUSTOMER_INFO'; payload: boolean }
   | { type: 'SET_SEND_LOADING'; payload: boolean }
   | { type: 'SET_SHOW_REPLY_AREA'; payload: boolean }
-  | { type: 'SET_TRACKING_ACTIVE'; payload: boolean };
+  | { type: 'SET_TRACKING_ACTIVE'; payload: boolean }
+  | { type: 'SET_REFINING_SUGGESTION'; payload: boolean }
+  | { type: 'SET_REFINEMENT_DIALOG'; payload: { open: boolean; suggestion: string | null } };
 
 const initialState: ConversationViewState = {
   replyText: '',
@@ -90,6 +95,9 @@ const initialState: ConversationViewState = {
   sendLoading: false,
   trackingActive: false,
   showReplyArea: false,
+  refiningSuggestion: false,
+  refinementDialogOpen: false,
+  selectedSuggestionForRefinement: null,
 };
 
 function conversationViewReducer(state: ConversationViewState, action: ConversationViewAction): ConversationViewState {
@@ -128,6 +136,10 @@ function conversationViewReducer(state: ConversationViewState, action: Conversat
       return { ...state, showReplyArea: action.payload };
     case 'SET_TRACKING_ACTIVE':
       return { ...state, trackingActive: action.payload };
+    case 'SET_REFINING_SUGGESTION':
+      return { ...state, refiningSuggestion: action.payload };
+    case 'SET_REFINEMENT_DIALOG':
+      return { ...state, refinementDialogOpen: action.payload.open, selectedSuggestionForRefinement: action.payload.suggestion };
     default:
       return state;
   }
@@ -148,6 +160,7 @@ interface ConversationViewContextType {
   updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
   snoozeConversation: () => Promise<void>;
   getAiSuggestions: () => Promise<void>;
+  refineAiSuggestion: (originalSuggestion: string, refinementInstructions: string, customerMessage?: string) => Promise<string | null>;
   translateText: (text: string, sourceLanguage: string, targetLanguage: string) => Promise<string>;
   refreshConversation: () => Promise<void>;
   addTag: (tag: string) => Promise<void>;
@@ -730,6 +743,55 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     }
   };
 
+  const refineAiSuggestion = async (
+    originalSuggestion: string,
+    refinementInstructions: string,
+    customerMessage?: string
+  ): Promise<string | null> => {
+    dispatch({ type: 'SET_REFINING_SUGGESTION', payload: true });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('refine-suggestion', {
+        body: {
+          originalSuggestion,
+          refinementInstructions,
+          customerMessage
+        }
+      });
+
+      if (error) throw error;
+
+      // Extract refined text and pattern for learning
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profile?.organization_id && data?.learningMetadata) {
+        // Extract pattern asynchronously (fire and forget)
+        supabase.functions.invoke('extract-refinement-pattern', {
+          body: {
+            refinementInstruction: refinementInstructions,
+            originalSuggestion,
+            refinedSuggestion: data.refinedText,
+            organizationId: profile.organization_id
+          }
+        }).catch(err => {
+          logger.warn('Failed to extract refinement pattern', err, 'ConversationViewProvider');
+        });
+      }
+
+      return data.refinedText;
+    } catch (error: any) {
+      logger.error('Failed to refine suggestion', error, 'ConversationViewProvider');
+      toast.error('Failed to refine suggestion: ' + error.message);
+      return null;
+    } finally {
+      dispatch({ type: 'SET_REFINING_SUGGESTION', payload: false });
+    }
+  };
+
   const refreshConversation = async () => {
     await gmailSyncMutation.mutateAsync();
   };
@@ -795,6 +857,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     updateStatus,
     snoozeConversation,
     getAiSuggestions,
+    refineAiSuggestion,
     translateText,
     refreshConversation,
     addTag,
