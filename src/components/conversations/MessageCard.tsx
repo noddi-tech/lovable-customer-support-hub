@@ -160,7 +160,7 @@ export const MessageCard = ({
       "group relative rounded-xl border transition-all duration-200",
       "shadow-sm hover:shadow-md hover:border-primary/40",
       isCustomer()
-        ? "bg-indigo-100 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800/40"
+        ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/40"
         : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
       tne.border
     )}>
@@ -371,8 +371,13 @@ export const MessageCard = ({
               </div>
             )}
             
-            {/* Main message content with enhanced typography */}
-            <div className="prose prose-sm max-w-none dark:prose-invert">
+            {/* Visual separator between header and content */}
+            {!isCollapsed && (
+              <div className="h-[1px] bg-border/50 mb-5 -mx-6" />
+            )}
+            
+            {/* Main message content */}
+            <div className="mt-4">
               <EmailRender
                 content={message.visibleBody}
                 contentType={message.originalMessage?.content_type || 'text/plain'}
