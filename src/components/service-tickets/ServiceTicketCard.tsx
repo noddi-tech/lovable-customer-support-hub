@@ -60,20 +60,18 @@ export const ServiceTicketCard = ({
         )}
         onClick={handleClick}
       >
-        <CardContent className={cn('p-4', compact && 'p-3')}>
+        <CardContent className={cn('p-4 flex gap-3', compact && 'p-3')}>
           {/* Selection Checkbox */}
           {selectionMode && (
-            <div className="float-left mr-2 mt-0.5">
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={() => onSelectionChange?.()}
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0"
-              />
-            </div>
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onSelectionChange?.()}
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0"
+            />
           )}
           
-          <div className="space-y-2">
+          <div className="flex-1 min-w-0 space-y-2">
             {/* Header */}
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
