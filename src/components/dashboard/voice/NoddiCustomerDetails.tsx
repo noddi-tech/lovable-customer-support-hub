@@ -12,6 +12,8 @@ import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
+import { getCustomerCacheKey } from '@/utils/customerCacheKey';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NoddiCustomerDetailsProps {
   customerId?: string;
@@ -48,20 +50,30 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   const noddiData = externalNoddiData || fetchedData;
   const isLoadingData = !externalNoddiData && isLoading;
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   // Force refresh handler
   const handleForceRefresh = async () => {
+    if (!profile?.organization_id) {
+      console.warn('[NoddiCustomerDetails] Cannot refresh - no organization ID');
+      return;
+    }
+    
     console.log('[NoddiCustomerDetails] 🔄 Force refreshing Noddi data...');
     
-    // Clear all noddi-customer-lookup caches
-    await queryClient.invalidateQueries({
-      queryKey: ['noddi-customer-lookup']
+    // Build specific query key for THIS customer only
+    const customerKey = getCustomerCacheKey({
+      email: customerEmail,
+      phone: customerPhone
     });
     
-    // Trigger a refetch
-    await queryClient.refetchQueries({
-      queryKey: ['noddi-customer-lookup']
-    });
+    const specificQueryKey = ['noddi-customer-lookup', customerKey, profile.organization_id];
+    
+    console.log('[NoddiCustomerDetails] Refreshing query:', specificQueryKey);
+    
+    // Clear cache and refetch for THIS customer only
+    await queryClient.invalidateQueries({ queryKey: specificQueryKey });
+    await queryClient.refetchQueries({ queryKey: specificQueryKey });
     
     console.log('[NoddiCustomerDetails] ✅ Force refresh completed');
   };
