@@ -152,7 +152,7 @@ export const MessageCard = ({
   return (
     <div className={cn(
       "group relative rounded-xl border transition-all duration-200",
-      "shadow-sm hover:shadow-md bg-card",
+      "shadow-sm hover:shadow-md hover:border-primary/40 bg-card",
       tne.border
     )}>
       <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl transition-all duration-200", tne.accentBar)} />
@@ -253,7 +253,7 @@ export const MessageCard = ({
                    </div>
                  )}
                 
-                {/* Subject and preview when collapsed - enhanced layout */}
+                 {/* Subject and preview when collapsed - enhanced layout */}
                 {isCollapsed && (
                   <div className="mt-3 space-y-1.5">
                     {message.subject && (
@@ -264,17 +264,9 @@ export const MessageCard = ({
                     <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
                       {previewText}
                     </p>
-                    {(hasQuotedContent || attachments.length > 0) && (
+                    {hasQuotedContent && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {attachments.length > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Paperclip className="w-3 h-3" />
-                            {attachments.length}
-                          </span>
-                        )}
-                        {hasQuotedContent && (
-                          <span>• Thread</span>
-                        )}
+                        <span>• Thread</span>
                       </div>
                     )}
                   </div>
@@ -371,44 +363,80 @@ export const MessageCard = ({
             )}
             
             {/* Main message content with enhanced typography */}
-            <div className="prose prose-sm max-w-none">
+            <div className="prose prose-sm max-w-none dark:prose-invert">
               <EmailRender
                 content={message.visibleBody}
                 contentType={message.originalMessage?.content_type || 'text/plain'}
-                attachments={attachments}
+                attachments={[]}
                 messageId={message.id}
               />
             </div>
             
-            {/* Quoted content toggle */}
+            {/* Attachment Rail - Below message content */}
+            {!isCollapsed && attachments.length > 0 && (
+              <div className="mt-6 pt-4 border-t">
+                <div className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                  <Paperclip className="h-3 w-3" />
+                  {attachments.length} {attachments.length === 1 ? 'Attachment' : 'Attachments'}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {attachments.map((att, index) => (
+                    <button
+                      key={index}
+                      className="flex items-center gap-2 px-3 py-2 bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors text-sm group"
+                      onClick={() => {
+                        // Download functionality
+                        const downloadUrl = `/supabase/functions/v1/get-attachment/${att.attachmentId}?messageId=${message.id}&download=true`;
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = att.filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      <Paperclip className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <span className="font-medium">{att.filename}</span>
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({(att.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Quoted content toggle - Enhanced styling */}
             {hasQuotedContent && (
-              <div className="mt-6 pt-6 border-t">
+              <div className="mt-6 pt-6 border-t border-dashed">
                 <button
                   onClick={() => setShowQuotedContent(!showQuotedContent)}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                 >
                   {showQuotedContent ? (
-                    <ChevronUp className="w-4 h-4" />
+                    <ChevronUp className="w-4 h-4 group-hover:translate-y-[-2px] transition-transform" />
                   ) : (
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-4 h-4 group-hover:translate-y-[2px] transition-transform" />
                   )}
-                  <span>
+                  <span className="font-medium">
                     {showQuotedContent ? 'Hide' : 'Show'} previous messages ({message.quotedBlocks?.length || 0})
                   </span>
                 </button>
                 
                 {showQuotedContent && (
-                  <div className="mt-4 space-y-4">
+                  <div className="mt-4 space-y-3">
                     {message.quotedBlocks?.map((block, index) => (
                       <div 
                         key={index}
-                        className="pl-4 border-l-4 border-muted bg-muted/30 p-4 rounded-r-lg"
+                        className="relative pl-5 border-l-3 border-muted-foreground/30 bg-muted/20 p-4 rounded-r-lg hover:bg-muted/30 transition-colors"
                       >
-                        <div className="text-xs text-muted-foreground mb-2 italic">
-                          {block.kind === 'gmail' ? 'Gmail quote' : 'Quoted content'}
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-muted-foreground/40 to-muted-foreground/10 rounded-l-lg" />
+                        <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                          {block.kind === 'gmail' ? 'Previous email' : 'Quoted reply'}
                         </div>
                         <div 
-                          className="prose prose-sm max-w-none text-muted-foreground"
+                          className="prose prose-sm max-w-none text-foreground/80 [&_*]:text-foreground/80"
                           dangerouslySetInnerHTML={{ __html: block.raw }}
                         />
                       </div>

@@ -27,6 +27,7 @@ export const ProgressiveMessagesList = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [collapsedMessageIds, setCollapsedMessageIds] = useState<Set<string>>(new Set());
   const [allCollapsed, setAllCollapsed] = useState(false);
   
@@ -89,6 +90,10 @@ export const ProgressiveMessagesList = ({
     // Check if we're near the top (within 100px)
     const nearTop = scrollTop < 100;
     setIsNearTop(nearTop);
+    
+    // Show "jump to latest" if scrolled up more than 200px from bottom
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    setShowJumpToLatest(distanceFromBottom > 200);
     
     // Auto-load more when scrolling to top
     if (nearTop && hasNextPage && !isFetchingNextPage) {
@@ -225,6 +230,20 @@ export const ProgressiveMessagesList = ({
           )}
         </Button>
       </div>
+
+      {/* Sticky "Jump to Latest" Button */}
+      {showJumpToLatest && (
+        <div className="fixed bottom-8 right-8 z-20">
+          <Button
+            onClick={scrollToBottom}
+            className="shadow-lg hover:shadow-xl transition-all duration-200 rounded-full h-12 px-6"
+            size="default"
+          >
+            <ChevronDown className="h-4 w-4 mr-2" />
+            Jump to latest
+          </Button>
+        </div>
+      )}
 
       {/* Debug Header - Only visible when VITE_UI_PROBE=1 */}
       {isProbeMode && (

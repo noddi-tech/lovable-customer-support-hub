@@ -246,6 +246,88 @@ Optimized for accessibility with WCAG AA compliance.
   .design-system-heading {
     transition: all 0.2s ease;
   }
+
+  /* Email content prose styling */
+  .email-render__html-content,
+  .email-render__plain-content {
+    @apply prose prose-sm max-w-none;
+    
+    /* Enhanced readability */
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: hsl(var(--foreground));
+  }
+
+  .email-render__html-content pre,
+  .email-render__plain-content pre {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    line-height: 1.7 !important;
+  }
+
+  /* Prose element overrides for email content */
+  .email-render__html-content a,
+  .email-render__plain-content a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  .email-render__html-content blockquote,
+  .email-render__plain-content blockquote {
+    border-left: 3px solid hsl(var(--muted-foreground));
+    padding-left: 1em;
+    font-style: italic;
+    background: hsl(var(--muted) / 0.2);
+    margin: 0.5em 0;
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+
+  .email-render__html-content p,
+  .email-render__plain-content p {
+    margin-bottom: 0.75em;
+  }
+
+  .email-render__html-content ul,
+  .email-render__html-content ol {
+    margin-left: 1.5em;
+    margin-bottom: 0.75em;
+  }
+
+  .email-render__html-content li {
+    margin-bottom: 0.25em;
+  }
+
+  /* Smooth collapse/expand transitions */
+  [data-state="open"] {
+    animation: accordion-down 0.2s ease-out;
+  }
+
+  [data-state="closed"] {
+    animation: accordion-up 0.2s ease-out;
+  }
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+      opacity: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+      opacity: 1;
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+      opacity: 1;
+    }
+    to {
+      height: 0;
+      opacity: 0;
+    }
+  }
 }
 
 @layer utilities {
