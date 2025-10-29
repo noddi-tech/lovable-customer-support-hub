@@ -1411,7 +1411,21 @@ Deno.serve(async (req) => {
           user_group_badge: selectedGroup.id,
           unpaid_count: pendingBookings.length,
           status_label: statusLabel((bookingForCache || priorityBooking)?.status),
-          booking_date_iso: isoFromBooking(bookingForCache || priorityBooking, priorityBookingType),
+          booking_date_iso: (() => {
+            const booking = bookingForCache || priorityBooking;
+            console.log('📅 Extracting date from booking:', {
+              bookingId: booking?.id,
+              completed_at: booking?.completed_at,
+              date: booking?.date,
+              delivery_window_starts_at: booking?.delivery_window_starts_at,
+              window_starts_at: booking?.window_starts_at,
+              starts_at: booking?.starts_at,
+              priorityBookingType
+            });
+            const result = isoFromBooking(booking, priorityBookingType);
+            console.log('📅 Extracted date result:', result);
+            return result;
+          })(),
           match_mode: lookupMode,
           conflict,
           vehicle_label: extractVehicleLabel(bookingForCache || priorityBooking),
