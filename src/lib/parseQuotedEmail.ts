@@ -102,12 +102,27 @@ function htmlToDocument(html: string): Document {
 /**
  * Decodes HTML entities using browser's native decoder (industry standard approach)
  * Converts &lt;br/&gt; to <br/>, &amp; to &, etc.
+ * Supports iterative decoding for nested entities like &amp;lt;br/&amp;gt;
  * Reference: Gmail API docs, Stack Overflow standard practices
  */
 export function decodeHTMLEntities(html: string): string {
-  const txt = document.createElement('textarea');
-  txt.innerHTML = html;
-  return txt.value;
+  if (!html) return html;
+  
+  const temp = document.createElement('textarea');
+  temp.innerHTML = html;
+  let decoded = temp.value;
+  
+  // Iterative decoding for nested entities (max 3 passes)
+  let previousDecoded = '';
+  let iterations = 0;
+  while (decoded !== previousDecoded && iterations < 3) {
+    previousDecoded = decoded;
+    temp.innerHTML = decoded;
+    decoded = temp.value;
+    iterations++;
+  }
+  
+  return decoded;
 }
 
 /**
@@ -164,9 +179,28 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Strip HTML tags and entities from raw quoted content to prevent HTML leakage
+ * Critical fix for issue where HTML like <a href="mailto:..."> was showing in sender names
+ */
+function stripHtmlSafe(html: string): string {
+  if (!html) return '';
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  let text = temp.textContent || temp.innerText || html;
+  // Remove remaining angle brackets that might be plain text
+  text = text.replace(/[<>]/g, '');
+  // Decode any entities
+  temp.innerHTML = text;
+  return (temp.textContent || temp.innerText || text).trim();
+}
+
 function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessage {
-  const bodyHtml = raw;
-  const bodyText = stripHtmlTags(raw);
+  // CRITICAL: Strip HTML BEFORE parsing to prevent HTML leakage in sender names
+  const cleanRaw = stripHtmlSafe(raw);
+  
+  const bodyHtml = raw; // Keep original for body display
+  const bodyText = stripHtmlTags(cleanRaw); // Use cleaned version
   
   let fromEmail: string | undefined;
   let fromName: string | undefined;
@@ -174,39 +208,45 @@ function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessa
   let vendor: QuotedMessage['vendor'] = 'generic';
   let confidence: QuotedMessage['confidence'] = 'low';
 
-  // Gmail patterns
+  // Gmail patterns - use email regex instead of angle bracket matching
   if (kind === 'gmail') {
     vendor = 'gmail';
-    // Look for "On ... <email> wrote:" pattern
-    const gmailMatch = raw.match(/On .+?(\d{4}).+?<([^>]+)>.+?wrote:/i);
-    if (gmailMatch) {
-      fromEmail = gmailMatch[2];
+    // Extract email using explicit email regex (not angle brackets which match HTML tags)
+    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+    const emailMatch = cleanRaw.match(emailRegex);
+    if (emailMatch) {
+      fromEmail = emailMatch[1].toLowerCase();
       confidence = 'high';
     }
-    // Look for name patterns
-    const nameMatch = raw.match(/On .+?,\s*(.+?)\s*<[^>]+>.+?wrote:/i);
-    if (nameMatch) {
+    // Extract name from "On ..., Name wrote:" pattern
+    const nameMatch = cleanRaw.match(/On .+?,\s*(.+?)\s+wrote:/i);
+    if (nameMatch && !nameMatch[1].includes('@')) {
       fromName = nameMatch[1].trim();
     }
   }
   
-  // Outlook patterns
+  // Outlook patterns - use email regex instead of angle bracket matching
   else if (kind === 'outlook') {
     vendor = 'outlook';
     // Look for "From:" headers
-    const fromMatch = raw.match(/From:\s*(.+?)(?:\n|<br|$)/i);
+    const fromMatch = cleanRaw.match(/From:\s*(.+?)(?:\n|$)/i);
     if (fromMatch) {
       const fromValue = fromMatch[1].trim();
-      const emailMatch = fromValue.match(/<([^>]+)>/);
-      const nameMatch = fromValue.match(/^([^<]+)</);
+      // Use email regex instead of angle brackets
+      const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+      const emailMatch = fromValue.match(emailRegex);
+      fromEmail = emailMatch ? emailMatch[1].toLowerCase() : undefined;
       
-      fromEmail = emailMatch ? emailMatch[1] : fromValue;
-      fromName = nameMatch ? nameMatch[1].trim().replace(/"/g, '') : undefined;
-      confidence = 'high';
+      // Extract name (everything before email)
+      if (emailMatch) {
+        const beforeEmail = fromValue.substring(0, fromValue.indexOf(emailMatch[0])).trim();
+        fromName = beforeEmail.replace(/[<>"]/g, '').trim() || undefined;
+      }
+      confidence = emailMatch ? 'high' : 'low';
     }
     
     // Look for "Sent:" or "Date:" headers
-    const dateMatch = raw.match(/(?:Sent|Date):\s*(.+?)(?:\n|<br|$)/i);
+    const dateMatch = cleanRaw.match(/(?:Sent|Date):\s*(.+?)(?:\n|$)/i);
     if (dateMatch) {
       const dateStr = dateMatch[1].trim();
       const parsedDate = new Date(dateStr);
@@ -216,10 +256,10 @@ function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessa
     }
   }
   
-  // Header-based patterns (Norwegian, English)
+  // Header-based patterns (Norwegian, English) - use cleanRaw for parsing
   else if (kind === 'header') {
     // Norwegian patterns
-    const norMatch = raw.match(/^(Den|På)\s+(.+?)\s+skrev\s+(.+?):/i);
+    const norMatch = cleanRaw.match(/^(Den|På)\s+(.+?)\s+skrev\s+(.+?):/i);
     if (norMatch) {
       fromEmail = norMatch[3].trim();
       const dateStr = norMatch[2].trim();
@@ -231,7 +271,7 @@ function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessa
     }
     
     // Simple "Wrote ..." pattern
-    const wroteMatch = raw.match(/Skrev\s+(.+?):/i);
+    const wroteMatch = cleanRaw.match(/Skrev\s+(.+?):/i);
     if (wroteMatch) {
       fromEmail = wroteMatch[1].trim();
       confidence = 'medium';
