@@ -12,7 +12,7 @@ interface VirtualizedConversationListProps {
   selectedConversation?: Conversation;
 }
 
-const ITEM_HEIGHT = 162; // Height of each conversation item in pixels (156px card content + 6px padding wrapper)
+const ITEM_HEIGHT = 52; // Compressed height for density (48px card + 4px padding)
 const OVERSCAN_COUNT = 5; // Number of items to render outside visible area for smoother scrolling
 
 const VirtualizedConversationList = memo(({ onSelectConversation, selectedConversation }: VirtualizedConversationListProps) => {
@@ -44,38 +44,25 @@ const VirtualizedConversationList = memo(({ onSelectConversation, selectedConver
     const conversation = conversations[index];
     
     if (!conversation) {
-      // Enhanced loading skeleton matching card design
+      // Compressed loading skeleton matching single-row layout
       return (
-        <div style={style} className="p-3 md:px-4 md:py-3">
-          <div className="bg-white border border-border rounded-lg p-4 animate-pulse">
-            {/* Row 1: Avatar + Name + Badges */}
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-10 w-10 bg-muted rounded-full shrink-0"></div>
-              <div className="flex-1 space-y-2">
+        <div style={style} className="px-3 py-1">
+          <div className="bg-white border border-border rounded-lg px-3 py-2 animate-pulse">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 bg-muted rounded-full shrink-0"></div>
+              <div className="flex-1 flex items-center gap-2">
                 <div className="h-4 bg-muted rounded w-32"></div>
+                <div className="h-3 bg-muted rounded flex-1 max-w-md"></div>
+              </div>
+              <div className="flex gap-1.5">
+                <div className="h-5 w-12 bg-muted rounded"></div>
+                <div className="h-5 w-12 bg-muted rounded"></div>
+                <div className="h-5 w-12 bg-muted rounded"></div>
               </div>
               <div className="flex gap-2">
-                <div className="h-6 w-16 bg-muted rounded"></div>
-                <div className="h-6 w-16 bg-muted rounded"></div>
-              </div>
-            </div>
-            
-            {/* Row 2: Subject */}
-            <div className="h-4 bg-muted rounded w-2/3 mb-2"></div>
-            
-            {/* Row 3: Preview */}
-            <div className="space-y-1 mb-2">
-              <div className="h-3 bg-muted rounded w-full"></div>
-              <div className="h-3 bg-muted rounded w-4/5"></div>
-            </div>
-            
-            {/* Row 4: Metadata */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-3">
-                <div className="h-3 w-20 bg-muted rounded"></div>
                 <div className="h-3 w-16 bg-muted rounded"></div>
+                <div className="h-3 w-20 bg-muted rounded"></div>
               </div>
-              <div className="h-3 w-24 bg-muted rounded"></div>
             </div>
           </div>
         </div>
@@ -83,7 +70,7 @@ const VirtualizedConversationList = memo(({ onSelectConversation, selectedConver
     }
 
     return (
-      <div style={style} className="p-3 md:px-4 md:py-3">
+      <div style={style} className="px-3 py-1">
         <ConversationListItem
           conversation={conversation}
           isSelected={selectedConversation?.id === conversation.id}

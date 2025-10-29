@@ -133,9 +133,9 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
   return (
     <div
       className={cn(
-        "bg-white border border-border rounded-lg p-4",
-        isVirtualized ? "mb-0" : "mb-3",
-        "shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer",
+        "bg-white border border-border rounded-lg px-3 py-2",
+        isVirtualized ? "mb-0" : "mb-1",
+        "shadow-sm hover:shadow-sm transition-all duration-200 cursor-pointer",
         showBulkCheckbox && "hover:border-primary/50",
         isSelected && !showBulkCheckbox && "border-primary shadow-md",
         isBulkSelected && "border-primary bg-primary/5 shadow-md ring-2 ring-primary/30",
@@ -143,8 +143,8 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
       )}
       onClick={handleSelect}
     >
-      {/* Row 1: Avatar + Name + Unread Badge + Status/Priority + Menu */}
-      <div className="flex items-center gap-3 mb-2">
+      {/* Single horizontal row with all content */}
+      <div className="flex items-center gap-2.5">
         {showBulkCheckbox && (
           <Checkbox
             checked={isBulkSelected}
@@ -154,31 +154,33 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
           />
         )}
         
-        <Avatar className="h-10 w-10 ring-2 ring-muted shrink-0">
-          <AvatarFallback className="text-base font-semibold">
+        <Avatar className="h-7 w-7 ring-1 ring-muted shrink-0">
+          <AvatarFallback className="text-xs font-semibold">
             {computedValues.customerInitial}
           </AvatarFallback>
         </Avatar>
         
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="font-semibold text-base truncate">
-              {computedValues.customerName}
-            </span>
-            {!conversation.is_read && (
-              <Badge className="bg-blue-500 text-white px-2 py-0.5">
-                Unread
-              </Badge>
-            )}
-          </div>
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <span className="font-semibold text-sm truncate">
+            {computedValues.customerName}
+          </span>
+          <span className="text-xs text-muted-foreground">•</span>
+          <span className="text-sm truncate flex-1">
+            {computedValues.subjectText}
+          </span>
+          {!conversation.is_read && (
+            <Badge className="bg-blue-500 text-white px-1.5 py-0 text-xs shrink-0">
+              Unread
+            </Badge>
+          )}
         </div>
         
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
-          <Badge className={cn("px-2.5 py-1", statusColors[conversation.status])}>
+          <Badge className={cn("px-1.5 py-0 text-xs", statusColors[conversation.status])}>
             {computedValues.statusLabel}
           </Badge>
-          <Badge className={cn("px-2.5 py-1", priorityColors[conversation.priority])}>
+          <Badge className={cn("px-1.5 py-0 text-xs", priorityColors[conversation.priority])}>
             {computedValues.priorityLabel}
           </Badge>
           <DropdownMenu>
@@ -186,10 +188,10 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-8 w-8 p-0"
+                className="h-6 w-6 p-0"
                 onClick={handleDropdownClick}
               >
-                <MoreVertical className="h-4 w-4" />
+                <MoreVertical className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -216,41 +218,23 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      </div>
-      
-      {/* Row 2: Subject (bold and prominent) */}
-      <h4 className="font-semibold text-sm mb-1 truncate">
-        {computedValues.subjectText}
-      </h4>
-      
-      {/* Row 3: Preview (better contrast) */}
-      <p className="text-sm text-foreground/70 line-clamp-2 mb-2">
-        {computedValues.previewText}
-      </p>
-      
-      {/* Row 4: Metadata */}
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <User className="h-3.5 w-3.5" />
-            {computedValues.customerEmail || 'No email'}
-          </span>
-          <span className="flex items-center gap-1">
-            <computedValues.ChannelIcon className="h-3.5 w-3.5" />
-            {conversation.channel}
-          </span>
-          <div className="flex items-center gap-1">
-            <div 
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: computedValues.inboxColor }}
-            />
-            <span>{computedValues.inboxName}</span>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+            <span className="flex items-center gap-1">
+              <computedValues.ChannelIcon className="h-3 w-3" />
+              {conversation.channel}
+            </span>
+            <div className="flex items-center gap-1">
+              <div 
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: computedValues.inboxColor }}
+              />
+              <span className="truncate max-w-[100px]">{computedValues.inboxName}</span>
+            </div>
+            <span className="font-medium">
+              {computedValues.formattedTime}
+            </span>
           </div>
         </div>
-        <span className="font-medium text-muted-foreground">
-          Waiting: {computedValues.formattedTime}
-        </span>
       </div>
     </div>
   );
