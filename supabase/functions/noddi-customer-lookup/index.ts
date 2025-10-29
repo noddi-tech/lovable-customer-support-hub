@@ -452,11 +452,21 @@ function isoFromBooking(booking: any, bookingType: 'upcoming' | 'completed' | nu
   
   // For upcoming bookings, use delivery window start
   if (bookingType === 'upcoming') {
-    return booking.deliveryWindowStartsAt || booking.startedAt || booking.completedAt || null;
+    return booking.delivery_window_starts_at || 
+           booking.window_starts_at || 
+           booking.starts_at || 
+           booking.started_at || 
+           booking.date || 
+           null;
   }
   
-  // For completed/started bookings, prioritize completedAt, then startedAt
-  return booking.completedAt || booking.startedAt || booking.deliveryWindowStartsAt || null;
+  // For completed bookings, prioritize completed_at
+  return booking.completed_at || 
+         booking.finished_at || 
+         booking.started_at || 
+         booking.date || 
+         booking.delivery_window_starts_at || 
+         null;
 }
 
 function buildPartnerUrls(userGroupId: number | null, booking: any) {
