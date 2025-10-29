@@ -160,7 +160,7 @@ export const MessageCard = ({
       "group relative rounded-xl border transition-all duration-200",
       "shadow-sm hover:shadow-md hover:border-primary/40",
       isCustomer()
-        ? "bg-blue-50/60 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/40"
+        ? "bg-indigo-100 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800/40"
         : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
       tne.border
     )}>

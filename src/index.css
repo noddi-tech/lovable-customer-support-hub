@@ -247,55 +247,75 @@ Optimized for accessibility with WCAG AA compliance.
     transition: all 0.2s ease;
   }
 
-  /* Email content prose styling */
+  /* Email content prose styling - Force critical layout properties only */
   .email-render__html-content,
   .email-render__plain-content {
-    @apply prose prose-sm max-w-none;
+    @apply prose prose-sm dark:prose-invert max-w-none;
     
-    /* Enhanced readability */
-    font-size: 0.95rem;
-    line-height: 1.7;
+    /* Force only layout-critical properties */
+    white-space: pre-wrap !important;
+    line-height: 1.7 !important;
+    word-wrap: break-word;
     color: hsl(var(--foreground));
   }
 
-  .email-render__html-content pre,
-  .email-render__plain-content pre {
-    white-space: pre-wrap !important;
-    word-wrap: break-word !important;
-    line-height: 1.7 !important;
+  /* Paragraph spacing - force to override resets */
+  .email-render__html-content p,
+  .email-render__plain-content p {
+    margin-bottom: 1em !important;
   }
 
-  /* Prose element overrides for email content */
+  /* Link styling - let Tailwind utilities handle these */
   .email-render__html-content a,
   .email-render__plain-content a {
     color: hsl(var(--primary));
     text-decoration: underline;
+    text-underline-offset: 2px;
     font-weight: 500;
   }
 
+  /* Blockquote styling */
   .email-render__html-content blockquote,
   .email-render__plain-content blockquote {
     border-left: 3px solid hsl(var(--muted-foreground));
-    padding-left: 1em;
+    padding: 0.75em 1em;
     font-style: italic;
-    background: hsl(var(--muted) / 0.2);
-    margin: 0.5em 0;
+    background: hsl(var(--muted) / 0.15);
+    margin: 1em 0;
     border-radius: 0 0.5rem 0.5rem 0;
+    color: hsl(var(--muted-foreground));
   }
 
-  .email-render__html-content p,
-  .email-render__plain-content p {
-    margin-bottom: 0.75em;
-  }
-
+  /* List styling */
   .email-render__html-content ul,
-  .email-render__html-content ol {
+  .email-render__html-content ol,
+  .email-render__plain-content ul,
+  .email-render__plain-content ol {
     margin-left: 1.5em;
-    margin-bottom: 0.75em;
+    margin-bottom: 1em;
   }
 
-  .email-render__html-content li {
-    margin-bottom: 0.25em;
+  .email-render__html-content li,
+  .email-render__plain-content li {
+    margin-bottom: 0.35em;
+  }
+
+  /* Code blocks */
+  .email-render__html-content pre,
+  .email-render__plain-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: hsl(var(--muted) / 0.3);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.9em;
+  }
+
+  /* Strong emphasis */
+  .email-render__html-content strong,
+  .email-render__plain-content strong {
+    font-weight: 600;
+    color: hsl(var(--foreground));
   }
 
   /* Smooth collapse/expand transitions */
