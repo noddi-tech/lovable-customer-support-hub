@@ -26,7 +26,7 @@ export function VirtualizedTicketList({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-2 pb-4">
+    <div className="grid grid-cols-1 gap-1 pb-4">
       {tickets.map((ticket) => (
         <ServiceTicketCard
           key={ticket.id}
