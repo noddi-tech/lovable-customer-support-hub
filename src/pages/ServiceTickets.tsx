@@ -159,7 +159,7 @@ export default function ServiceTickets() {
                 onToggleSelectionMode={toggleSelectionMode}
                 onCreateTicket={() => setIsCreateDialogOpen(true)}
               />
-              <div className="h-[calc(100vh-280px)] overflow-visible">
+              <div className="h-[calc(100vh-280px)] overflow-y-auto">
                 <VirtualizedTicketList
                   tickets={ticketsByStatus.all}
                   selectedTicketIds={selectedTicketIds}
@@ -176,7 +176,7 @@ export default function ServiceTickets() {
                 onToggleSelectionMode={toggleSelectionMode}
                 onCreateTicket={() => setIsCreateDialogOpen(true)}
               />
-              <div className="h-[calc(100vh-280px)] overflow-visible">
+              <div className="h-[calc(100vh-280px)] overflow-y-auto">
                 <VirtualizedTicketList
                   tickets={ticketsByStatus.open}
                   selectedTicketIds={selectedTicketIds}
@@ -193,7 +193,7 @@ export default function ServiceTickets() {
                 onToggleSelectionMode={toggleSelectionMode}
                 onCreateTicket={() => setIsCreateDialogOpen(true)}
               />
-              <div className="h-[calc(100vh-280px)] overflow-visible">
+              <div className="h-[calc(100vh-280px)] overflow-y-auto">
                 <VirtualizedTicketList
                   tickets={ticketsByStatus.in_progress}
                   selectedTicketIds={selectedTicketIds}
