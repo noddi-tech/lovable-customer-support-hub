@@ -388,9 +388,12 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       className={`email-render ${isHTML ? 'email-render--html' : 'email-render--text'} ${className}`}
       aria-label="Email message content"
       role="article"
+      style={{
+        lineHeight: '1.7',
+      }}
     >
       {/* Email Controls */}
-      <div className="email-render__controls" role="toolbar" aria-label="Email actions">
+      <div className="email-render__controls mb-3" role="toolbar" aria-label="Email actions">
         <Button
           variant="ghost"
           size="sm"

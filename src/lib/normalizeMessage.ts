@@ -311,10 +311,21 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     fromEmail = rawMessage.customer_phone; // Store phone as email for SMS
   }
 
-  // Build display label (public)
+  // Build display label (public) - sanitize to remove HTML
+  const sanitizeName = (name: string | undefined) => {
+    if (!name) return undefined;
+    // Remove HTML tags and decode entities
+    const temp = document.createElement('div');
+    temp.innerHTML = name;
+    return (temp.textContent || temp.innerText || name).trim();
+  };
+  
+  const cleanFromName = sanitizeName(fromName);
+  const cleanFromEmail = fromEmail?.toLowerCase();
+  
   let authorLabel =
-    (fromName && fromEmail) ? `${fromName} <${fromEmail}>`
-    : (fromEmail || fromName || undefined);
+    (cleanFromName && cleanFromEmail) ? `${cleanFromName} <${cleanFromEmail}>`
+    : (cleanFromEmail || cleanFromName || undefined);
 
   // Detect agent/customer using context
   const isAgent =

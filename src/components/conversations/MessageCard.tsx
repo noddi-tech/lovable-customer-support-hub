@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { type NormalizedMessage } from "@/lib/normalizeMessage";
 import { MessageDebugProbe } from "./MessageDebugProbe";
 import { stripHtml } from "@/utils/stripHtml";
+import { getSmartPreview } from "@/utils/messagePreview";
 
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
@@ -93,14 +94,15 @@ export const MessageCard = ({
   const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [showAllRecipients, setShowAllRecipients] = useState(false);
+  const [showQuotedContent, setShowQuotedContent] = useState(false);
   
   // Sync with prop changes for expand/collapse all functionality
   useEffect(() => {
     setIsCollapsed(defaultCollapsed);
   }, [defaultCollapsed]);
   
-  // never show quoted blocks (even if present)
-  const SHOW_QUOTED = import.meta.env.VITE_QUOTED_SEGMENTATION === '1' && false;
+  // Show quoted blocks if they exist and feature is enabled
+  const hasQuotedContent = message.quotedBlocks && message.quotedBlocks.length > 0;
   
   const isFromCustomer = message.authorType === 'customer';
   
@@ -110,11 +112,8 @@ export const MessageCard = ({
       JSON.parse(message.originalMessage.attachments) : 
       message.originalMessage.attachments) as EmailAttachment[] : [];
 
-  // Generate preview text using stripHtml utility
-  const getPreviewText = (content: string) => {
-    const textOnly = stripHtml(content);
-    return textOnly.length > 160 ? textOnly.slice(0, 160) + '…' : textOnly;
-  };
+  // Generate smart preview text
+  const previewText = getSmartPreview(message.visibleBody, 160);
 
   // Use the real author label from normalization
   const display = message.authorLabel;
@@ -157,19 +156,19 @@ export const MessageCard = ({
       <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl transition-all duration-200", tne.accentBar)} />
       
       <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
-        {/* Card Header with background */}
-        <div className={cn("p-5", !isCollapsed && "bg-muted/20")}>
+        {/* Card Header - improved spacing */}
+        <div className={cn("p-6", !isCollapsed && "bg-muted/20 border-b")}>
           <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3 min-w-0 flex-1">
-              <Avatar className="h-9 w-9 ring-2 ring-border shrink-0">
+            <div className="flex items-start gap-4 min-w-0 flex-1">
+              <Avatar className="h-10 w-10 ring-2 ring-border shrink-0">
                 <AvatarFallback className="text-sm font-medium">
                   {initial}
                 </AvatarFallback>
               </Avatar>
               
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="font-semibold text-base">
+                <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
+                  <span className="font-semibold text-base leading-tight">
                     {display}
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -191,9 +190,9 @@ export const MessageCard = ({
                    )}
                 </div>
 
-                {/* Recipients chips */}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-                  <span className="text-muted-foreground">{t('mail.to') || 'to'}</span>
+                {/* Recipients chips - better spacing */}
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="text-muted-foreground font-medium">{t('mail.to') || 'To:'}</span>
                   {toShown.length > 0 && toShown.map((name) => (
                     <Badge
                       key={`to-${name}`}
@@ -252,18 +251,31 @@ export const MessageCard = ({
                    </div>
                  )}
                 
-                {/* Subject line when collapsed - more prominent */}
-                {message.subject && isCollapsed && (
-                  <p className="text-sm font-medium text-foreground/80 mt-2">
-                    Re: {message.subject}
-                  </p>
-                )}
-                
-                {/* Preview line when collapsed */}
+                {/* Subject and preview when collapsed - enhanced layout */}
                 {isCollapsed && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                    {getPreviewText(message.visibleBody)}
-                  </p>
+                  <div className="mt-3 space-y-1.5">
+                    {message.subject && (
+                      <p className="text-sm font-semibold text-foreground leading-tight">
+                        {message.subject}
+                      </p>
+                    )}
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                      {previewText}
+                    </p>
+                    {(hasQuotedContent || attachments.length > 0) && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {attachments.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Paperclip className="w-3 h-3" />
+                            {attachments.length}
+                          </span>
+                        )}
+                        {hasQuotedContent && (
+                          <span>• Thread</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -308,17 +320,47 @@ export const MessageCard = ({
         </div>
         
         <CollapsibleContent>
-          <div className="p-6 pt-4 min-w-0 overflow-hidden">
-            {/* Subject line when expanded */}
-            {message.subject && (
-              <div className="mb-4 pb-4 border-b border-border">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subject</span>
-                <p className="text-base font-semibold mt-2 text-foreground">{message.subject}</p>
+          <div className="p-6 pt-5 min-w-0 overflow-hidden">
+            {/* Email header metadata when expanded */}
+            {!isCollapsed && (
+              <div className="mb-6 pb-6 border-b space-y-2.5 text-sm">
+                <div className="flex">
+                  <span className="w-16 font-medium text-muted-foreground shrink-0">From:</span>
+                  <span className="text-foreground">{display}</span>
+                </div>
+                {message.to && message.to.length > 0 && (
+                  <div className="flex">
+                    <span className="w-16 font-medium text-muted-foreground shrink-0">To:</span>
+                    <span className="text-foreground">
+                      {message.to.map(a => a.name || a.email).join(', ')}
+                    </span>
+                  </div>
+                )}
+                {message.cc && message.cc.length > 0 && (
+                  <div className="flex">
+                    <span className="w-16 font-medium text-muted-foreground shrink-0">Cc:</span>
+                    <span className="text-foreground">
+                      {message.cc.map(a => a.name || a.email).join(', ')}
+                    </span>
+                  </div>
+                )}
+                <div className="flex">
+                  <span className="w-16 font-medium text-muted-foreground shrink-0">Date:</span>
+                  <span className="text-foreground">
+                    {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
+                  </span>
+                </div>
+                {message.subject && (
+                  <div className="flex">
+                    <span className="w-16 font-medium text-muted-foreground shrink-0">Subject:</span>
+                    <span className="text-foreground font-semibold">{message.subject}</span>
+                  </div>
+                )}
               </div>
             )}
             
-            {/* Main message content with enhanced readability */}
-            <div className="prose prose-sm max-w-none leading-relaxed">
+            {/* Main message content with enhanced typography */}
+            <div className="prose prose-sm max-w-none">
               <EmailRender
                 content={message.visibleBody}
                 contentType={message.originalMessage?.content_type || 'text/plain'}
@@ -327,12 +369,41 @@ export const MessageCard = ({
               />
             </div>
             
-            {/* Quoted content toggle - only show if feature flag is enabled */}
-            {SHOW_QUOTED && message.quotedBlocks && message.quotedBlocks.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <div className="text-xs text-muted-foreground">
-                  Thread-aware view: Quoted content hidden
-                </div>
+            {/* Quoted content toggle */}
+            {hasQuotedContent && (
+              <div className="mt-6 pt-6 border-t">
+                <button
+                  onClick={() => setShowQuotedContent(!showQuotedContent)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showQuotedContent ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                  <span>
+                    {showQuotedContent ? 'Hide' : 'Show'} previous messages ({message.quotedBlocks?.length || 0})
+                  </span>
+                </button>
+                
+                {showQuotedContent && (
+                  <div className="mt-4 space-y-4">
+                    {message.quotedBlocks?.map((block, index) => (
+                      <div 
+                        key={index}
+                        className="pl-4 border-l-4 border-muted bg-muted/30 p-4 rounded-r-lg"
+                      >
+                        <div className="text-xs text-muted-foreground mb-2 italic">
+                          {block.kind === 'gmail' ? 'Gmail quote' : 'Quoted content'}
+                        </div>
+                        <div 
+                          className="prose prose-sm max-w-none text-muted-foreground"
+                          dangerouslySetInnerHTML={{ __html: block.raw }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             
