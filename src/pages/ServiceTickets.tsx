@@ -14,7 +14,7 @@ import { ServiceTicketListHeader } from '@/components/service-tickets/ServiceTic
 import { TeamWorkloadStats } from '@/components/service-tickets/TeamWorkloadStats';
 import { TicketAnalyticsDashboard } from '@/components/service-tickets/TicketAnalyticsDashboard';
 import { VirtualizedTicketList } from '@/components/service-tickets/VirtualizedTicketList';
-import { useServiceTickets } from '@/hooks/useServiceTickets';
+import { useServiceTickets, useDeleteServiceTickets } from '@/hooks/useServiceTickets';
 import { useServiceTicketAnalytics } from '@/hooks/useServiceTicketAnalytics';
 import { useServiceTicketNotifications } from '@/hooks/useServiceTicketNotifications';
 import { useRealtimeServiceTickets } from '@/hooks/useRealtimeServiceTickets';
@@ -35,6 +35,7 @@ export default function ServiceTickets() {
   const { data: teamMembers = [] } = useTeamMembers();
   const analytics = useServiceTicketAnalytics(tickets);
   const queryClient = useQueryClient();
+  const deleteMutation = useDeleteServiceTickets();
   
   useServiceTicketNotifications();
   useRealtimeServiceTickets();
@@ -101,34 +102,8 @@ export default function ServiceTickets() {
   };
 
   const handleBulkDelete = async () => {
-    try {
-      console.log(`🗑️  Deleting ${selectedTicketIds.length} tickets`);
-      
-      const deletePromises = selectedTicketIds.map(async (ticketId) => {
-        const { error } = await supabase
-          .from('service_tickets')
-          .delete()
-          .eq('id', ticketId);
-          
-        if (error) {
-          console.error(`❌ Failed to delete ticket ${ticketId}:`, error);
-          throw error;
-        }
-      });
-      
-      await Promise.all(deletePromises);
-      
-      // Invalidate cache to refresh UI
-      queryClient.invalidateQueries({ queryKey: ['service-tickets'] });
-      
-      toast.success(`Deleted ${selectedTicketIds.length} ticket(s)`);
-      setSelectedTicketIds([]);
-      
-      console.log(`✅ Successfully deleted ${selectedTicketIds.length} tickets`);
-    } catch (error) {
-      console.error('❌ Bulk delete failed:', error);
-      toast.error('Failed to delete tickets');
-    }
+    await deleteMutation.mutateAsync(selectedTicketIds);
+    setSelectedTicketIds([]);
   };
 
   const [activeTab, setActiveTab] = useState('all');
@@ -195,6 +170,7 @@ export default function ServiceTickets() {
           onClearSelection={() => setSelectedTicketIds([])} 
           onBulkUpdate={handleBulkUpdate}
           onDelete={handleBulkDelete}
+          isDeleting={deleteMutation.isPending}
           availableAssignees={teamMembers.map(m => ({ id: m.user_id, name: m.full_name }))}
         />
       )}

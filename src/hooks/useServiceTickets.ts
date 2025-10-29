@@ -125,3 +125,63 @@ export const useUpdateServiceTicket = () => {
     },
   });
 };
+
+export const useDeleteServiceTickets = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (ticketIds: string[]) => {
+      const deleteWithTimeout = (ticketId: string) => {
+        return Promise.race([
+          supabase.from('service_tickets').delete().eq('id', ticketId),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Operation timeout')), 30000)
+          )
+        ]);
+      };
+
+      const results = await Promise.allSettled(
+        ticketIds.map(id => deleteWithTimeout(id))
+      );
+      
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length > 0) {
+        const errors = failed.map((r: any) => r.reason?.message).join(', ');
+        throw new Error(`Failed to delete ${failed.length} ticket(s): ${errors}`);
+      }
+
+      return { deleted: ticketIds.length };
+    },
+    onMutate: async (ticketIds) => {
+      await queryClient.cancelQueries({ queryKey: ['service-tickets'] });
+      const previous = queryClient.getQueryData(['service-tickets']);
+      
+      queryClient.setQueryData(['service-tickets'], (old: any) => 
+        Array.isArray(old) ? old.filter((t: any) => !ticketIds.includes(t.id)) : old
+      );
+      
+      return { previous };
+    },
+    onError: (err: any, variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['service-tickets'], context.previous);
+      }
+      queryClient.resetQueries({ queryKey: ['service-tickets'] });
+      toast({
+        title: 'Failed to Delete Tickets',
+        description: err.message || 'An error occurred',
+        variant: 'destructive',
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Tickets Deleted',
+        description: `Successfully deleted ${data.deleted} ticket(s)`,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-tickets'] });
+    },
+  });
+};

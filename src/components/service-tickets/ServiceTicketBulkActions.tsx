@@ -42,6 +42,7 @@ interface ServiceTicketBulkActionsProps {
   onClearSelection: () => void;
   onBulkUpdate: (updates: BulkUpdateData) => Promise<void>;
   onDelete?: () => Promise<void>;
+  isDeleting?: boolean;
   availableAssignees?: Array<{ id: string; name: string }>;
 }
 
@@ -56,6 +57,7 @@ export const ServiceTicketBulkActions = ({
   onClearSelection,
   onBulkUpdate,
   onDelete,
+  isDeleting = false,
   availableAssignees = [],
 }: ServiceTicketBulkActionsProps) => {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
@@ -264,7 +266,7 @@ export const ServiceTicketBulkActions = ({
       </AlertDialog>
 
       {/* Delete Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => !isDeleting && setShowDeleteDialog(open)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Tickets</AlertDialogTitle>
@@ -272,26 +274,30 @@ export const ServiceTicketBulkActions = ({
               Are you sure you want to delete {selectedTicketIds.length} selected ticket(s)? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {isDeleting && (
+            <div className="py-4">
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <p className="text-sm text-muted-foreground">
+                  Deleting {selectedTicketIds.length} ticket(s)...
+                </p>
+              </div>
+            </div>
+          )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={async () => {
                 if (onDelete) {
-                  setIsProcessing(true);
-                  try {
-                    await onDelete();
-                    setShowDeleteDialog(false);
-                  } catch (error) {
-                    toast.error('Failed to delete tickets');
-                  } finally {
-                    setIsProcessing(false);
-                  }
+                  await onDelete();
+                  setShowDeleteDialog(false);
+                  onClearSelection();
                 }
               }}
-              disabled={isProcessing}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isProcessing ? 'Deleting...' : 'Delete'}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
