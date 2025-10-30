@@ -917,6 +917,25 @@ Optimized for accessibility with WCAG AA compliance.
   position: relative;
 }
 
+/* Aggressively minimize prose spacing for email content - using @layer to avoid circular dependency */
+@layer components {
+  .email-render__html-content p,
+  .email-render__plain-content p {
+    margin-top: 0.125rem !important;
+    margin-bottom: 0.125rem !important;
+  }
+
+  .email-render__html-content > *:first-child,
+  .email-render__plain-content > *:first-child {
+    margin-top: 0 !important;
+  }
+
+  .email-render__html-content > *:last-child,
+  .email-render__plain-content > *:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
 /* Special handling for pre and code elements - remove email client formatting */
 .email-render__html-content pre,
 .email-render__html-content code {
@@ -1185,7 +1204,7 @@ button, [role="button"], [role="tab"] {
 @media (max-width: 600px) {
   .email-render {
     max-width: 100%;
-    padding: 0 8px;
+    /* Padding handled inline in emailFormatting.ts */
   }
   
   .email-render__controls {

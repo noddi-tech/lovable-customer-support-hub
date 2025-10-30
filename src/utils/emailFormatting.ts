@@ -292,6 +292,7 @@ export const sanitizeEmailHTML = (
     <div class="email-render" style="
       max-width: min(100%, 900px);
       margin: 0;
+      padding: 8px 12px;
       overflow-wrap: anywhere;
       background-color: transparent;
     ">
