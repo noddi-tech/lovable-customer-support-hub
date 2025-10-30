@@ -11,12 +11,15 @@ import {
   Paperclip,
   MoreVertical,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Copy,
+  Check
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
 import { useDateFormatting } from "@/hooks/useDateFormatting";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { type NormalizedMessage } from "@/lib/normalizeMessage";
 import { MessageDebugProbe } from "./MessageDebugProbe";
@@ -95,9 +98,11 @@ export const MessageCard = ({
 }: MessageCardProps) => {
   const { dateTime } = useDateFormatting();
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [showAllRecipients, setShowAllRecipients] = useState(false);
   const [showQuotedContent, setShowQuotedContent] = useState(false);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   
   // Sync with prop changes for expand/collapse all functionality
   useEffect(() => {
@@ -147,6 +152,17 @@ export const MessageCard = ({
   const handleDelete = () => {
     if (onDelete) {
       onDelete(message.id);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.visibleBody);
+      setCopiedToClipboard(true);
+      toast({ title: "Copied to clipboard" });
+      setTimeout(() => setCopiedToClipboard(false), 2000);
+    } catch (error) {
+      toast({ title: "Copy failed", variant: "destructive" });
     }
   };
 
@@ -248,11 +264,49 @@ export const MessageCard = ({
                           +{ccExtra} {t('mail.more') || 'more'}
                         </button>
                       )}
-                    </>
-                  )}
-                </div>
+                     </>
+                   )}
+                 </div>
 
-                {/* Full recipients list when expanded */}
+                 {/* Expanded metadata header - shown when not collapsed */}
+                 {!isCollapsed && (
+                   <div className="mt-4 pt-4 border-t grid grid-cols-[80px_1fr] gap-2 text-sm">
+                     <span className="text-muted-foreground font-medium">From:</span>
+                     <span className="text-foreground">{display}</span>
+                     
+                     {message.to && message.to.length > 0 && (
+                       <>
+                         <span className="text-muted-foreground font-medium">To:</span>
+                         <span className="text-foreground">
+                           {message.to.map(a => a.name || a.email).join(', ')}
+                         </span>
+                       </>
+                     )}
+                     
+                     {message.cc && message.cc.length > 0 && (
+                       <>
+                         <span className="text-muted-foreground font-medium">Cc:</span>
+                         <span className="text-foreground">
+                           {message.cc.map(a => a.name || a.email).join(', ')}
+                         </span>
+                       </>
+                     )}
+                     
+                     <span className="text-muted-foreground font-medium">Date:</span>
+                     <span className="text-foreground">
+                       {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
+                     </span>
+                     
+                     {message.subject && (
+                       <>
+                         <span className="text-muted-foreground font-medium">Subject:</span>
+                         <span className="text-foreground font-semibold">{message.subject}</span>
+                       </>
+                     )}
+                   </div>
+                 )}
+
+                 {/* Full recipients list when expanded */}
                  {showAllRecipients && (
                    <div className="mt-1 space-x-1 text-xs text-muted-foreground">
                      <span className="font-medium">{t('mail.to') || 'to'}:</span>{' '}
@@ -289,6 +343,21 @@ export const MessageCard = ({
             </div>
             
             <div className="flex items-center space-x-1 shrink-0">
+              {/* Copy Button - visible on hover */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={handleCopy}
+                title="Copy message content"
+              >
+                {copiedToClipboard ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+
               {/* Expand/Collapse trigger - clearer indicator */}
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -329,58 +398,6 @@ export const MessageCard = ({
         
         <CollapsibleContent>
           <div className="p-6 pt-5 min-w-0 overflow-hidden">
-            {/* Email header metadata - ONLY on first message in thread */}
-            {!isCollapsed && isFirstInThread && (
-              <div className="mb-6 pb-6 border-b space-y-2.5 text-sm bg-muted/20 -mx-6 -mt-5 px-6 pt-5 rounded-t-lg">
-                <div className="flex">
-                  <span className="w-16 font-medium text-muted-foreground shrink-0">From:</span>
-                  <span className="text-foreground">{display}</span>
-                </div>
-                {message.to && message.to.length > 0 && (
-                  <div className="flex">
-                    <span className="w-16 font-medium text-muted-foreground shrink-0">To:</span>
-                    <span className="text-foreground">
-                      {message.to.map(a => a.name || a.email).join(', ')}
-                    </span>
-                  </div>
-                )}
-                {message.cc && message.cc.length > 0 && (
-                  <div className="flex">
-                    <span className="w-16 font-medium text-muted-foreground shrink-0">Cc:</span>
-                    <span className="text-foreground">
-                      {message.cc.map(a => a.name || a.email).join(', ')}
-                    </span>
-                  </div>
-                )}
-                <div className="flex">
-                  <span className="w-16 font-medium text-muted-foreground shrink-0">Date:</span>
-                  <span className="text-foreground">
-                    {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
-                  </span>
-                </div>
-                {message.subject && (
-                  <div className="flex">
-                    <span className="w-16 font-medium text-muted-foreground shrink-0">Subject:</span>
-                    <span className="text-foreground font-semibold">{message.subject}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Compact header for subsequent messages */}
-            {!isCollapsed && !isFirstInThread && (
-              <div className="mb-4 pb-3 border-b text-xs text-muted-foreground -mx-6 px-6">
-                <span className="font-medium text-foreground">{display}</span>
-                <span className="mx-2">•</span>
-                <span>{dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}</span>
-              </div>
-            )}
-            
-            {/* Visual separator between header and content */}
-            {!isCollapsed && (
-              <div className="h-px bg-border/60 my-4" />
-            )}
-            
             {/* Main message content */}
             <div className="mt-4">
               <EmailRender

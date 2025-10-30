@@ -409,23 +409,8 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       }}
     >
       {/* Email Controls */}
-      <div className="email-render__controls mb-3" role="toolbar" aria-label="Email actions">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={copyToClipboard}
-          className="text-xs"
-          aria-label="Copy email content to clipboard"
-        >
-          {copiedToClipboard ? (
-            <Check className="h-3 w-3 mr-1" aria-hidden="true" />
-          ) : (
-            <Copy className="h-3 w-3 mr-1" aria-hidden="true" />
-          )}
-          {copiedToClipboard ? 'Copied' : 'Copy'}
-        </Button>
-        
-        {showLoadImagesControl && hasBlockedImages && !imagesLoaded && (
+      {showLoadImagesControl && hasBlockedImages && !imagesLoaded && (
+        <div className="email-render__controls mb-3" role="toolbar" aria-label="Email actions">
           <Button
             variant="ghost"
             size="sm"
@@ -436,8 +421,8 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
             <ImageIcon className="h-3 w-3 mr-1" aria-hidden="true" />
             Load images
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Email Content */}
       <div className="email-render__content" role="main">
