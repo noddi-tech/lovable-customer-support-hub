@@ -289,25 +289,24 @@ export const sanitizeEmailHTML = (
 
   // Apply minimal styling that preserves original email design
   return `
-    <div class="email-render" style="
+    <div class="email-render__processed-content" style="
       max-width: min(100%, 900px);
       margin: 0;
-      padding: 8px 12px;
       overflow-wrap: anywhere;
       background-color: transparent;
     ">
       <style>
         /* CSP-compliant email rendering styles */
-        .email-render {
+        .email-render__processed-content {
         }
         
         /* Force readable colors for elements without explicit color */
-        .email-render :not([style*="color"]):not([color]) {
+        .email-render__processed-content :not([style*="color"]):not([color]) {
           color: inherit !important;
         }
         
         /* Minimal reset to preserve original email styling */
-        .email-render * {
+        .email-render__processed-content * {
           box-sizing: border-box;
         }
         
@@ -343,22 +342,22 @@ export const sanitizeEmailHTML = (
         
         /* Mobile responsive adjustments */
         @media (max-width: 600px) {
-          .email-render table[width="600"] {
+          .email-render__processed-content table[width="600"] {
             width: 100% !important;
           }
           
-          .email-render .structure__table {
+          .email-render__processed-content .structure__table {
             width: 100% !important;
           }
           
           /* Ensure mobile padding on containers */
-          .email-render [style*="padding:15px 60px"] {
+          .email-render__processed-content [style*="padding:15px 60px"] {
             padding: 15px 20px !important;
           }
         }
         
         /* Preserve email-specific MSO styles for Outlook compatibility */
-        .email-render [style*="mso-line-height-rule"] {
+        .email-render__processed-content [style*="mso-line-height-rule"] {
           line-height: inherit;
         }
       </style>

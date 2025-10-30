@@ -920,18 +920,21 @@ Optimized for accessibility with WCAG AA compliance.
 /* Aggressively minimize prose spacing for email content - using @layer to avoid circular dependency */
 @layer components {
   .email-render__html-content p,
-  .email-render__plain-content p {
+  .email-render__plain-content p,
+  .email-render__processed-content p {
     margin-top: 0.125rem !important;
     margin-bottom: 0.125rem !important;
   }
 
   .email-render__html-content > *:first-child,
-  .email-render__plain-content > *:first-child {
+  .email-render__plain-content > *:first-child,
+  .email-render__processed-content > *:first-child {
     margin-top: 0 !important;
   }
 
   .email-render__html-content > *:last-child,
-  .email-render__plain-content > *:last-child {
+  .email-render__plain-content > *:last-child,
+  .email-render__processed-content > *:last-child {
     margin-bottom: 0 !important;
   }
 }

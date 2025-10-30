@@ -406,6 +406,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       role="article"
       style={{
         lineHeight: '1.5',
+        padding: '8px 12px',
       }}
     >
       {/* Email Controls */}
