@@ -921,6 +921,84 @@ Deno.serve(async (req) => {
         });
       }
       
+      // Handle 400 "user_does_not_exist" as a not-found case
+      if (lookupResponse.status === 400) {
+        const errorText = await lookupResponse.text();
+        console.log(`⚠️  Noddi API returned 400:`, errorText);
+        
+        // Check if this is a "user_does_not_exist" error
+        let isUserNotFound = false;
+        try {
+          const errorData = JSON.parse(errorText);
+          const errors = errorData?.errors || [];
+          isUserNotFound = errors.some((err: any) => 
+            err?.code === 'user_does_not_exist' || 
+            err?.detail?.includes('does not exist')
+          );
+        } catch {
+          // If we can't parse the error, treat it as a real error
+          isUserNotFound = false;
+        }
+        
+        if (isUserNotFound) {
+          console.log('✅ Treating 400 user_does_not_exist as not found');
+          
+          // Store negative cache entry
+          try {
+            await supabase
+              .from('noddi_customer_cache')
+              .upsert({
+                organization_id: body.organizationId,
+                customer_id: body.customerId,
+                email: emailsToTry[0] || null,
+                phone: phone || null,
+                noddi_user_id: -1,
+                user_group_id: null,
+                last_refreshed_at: new Date().toISOString(),
+                priority_booking_id: null,
+                priority_booking_type: null,
+                pending_bookings_count: 0,
+                cached_customer_data: {},
+                cached_priority_booking: null,
+                cached_pending_bookings: []
+              }, {
+                onConflict: phone ? 'phone' : 'email'
+              });
+          } catch {}
+          
+          return json({
+            ok: false,
+            source: "live",
+            ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
+            data: {
+              found: false,
+              email: emailsToTry[0] || "",
+              noddi_user_id: null,
+              user_group_id: null,
+              user: null,
+              priority_booking_type: null,
+              priority_booking: null,
+              unpaid_count: 0,
+              unpaid_bookings: [],
+              ui_meta: {
+                display_name: emailsToTry[0] ? emailsToTry[0].split("@")[0] : "Unknown Name",
+                user_group_badge: null,
+                unpaid_count: 0,
+                status_label: null,
+                booking_date_iso: null,
+                match_mode: lookupMode,
+                conflict: false,
+                version: "noddi-edge-1.7",
+                source: "live"
+              }
+            },
+            notFound: true
+          });
+        }
+        
+        // If it's a different 400 error, fall through to the error handling below
+      }
+      
       // Handle 500 errors with fallback to legacy endpoints
       if (lookupResponse.status >= 500) {
         const errorText = await lookupResponse.text();
