@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import i18n from '@/lib/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 export function useUserLanguage() {
   const { user } = useAuth();
@@ -10,25 +11,16 @@ export function useUserLanguage() {
   useEffect(() => {
     const initializeLanguage = async () => {
       try {
-        console.log('🔄 useUserLanguage: Starting language setup...');
-        console.log('Current i18n status:', {
-          isInitialized: i18n.isInitialized,
-          language: i18n.language,
-          hasResources: Object.keys(i18n.services?.resourceStore?.data || {}).length > 0
-        });
-        
         // If i18n is already ready, proceed immediately
         if (i18n.isInitialized) {
-          console.log('✅ i18n already initialized, proceeding...');
+          logger.debug('i18n already initialized', undefined, 'i18n');
         } else {
-          // Wait for i18n with shorter timeout and better error handling
-          console.log('⏳ Waiting for i18n initialization...');
-          
-          await new Promise((resolve, reject) => {
+          // Wait for i18n with shorter timeout
+          await new Promise((resolve) => {
             const timeout = setTimeout(() => {
-              console.warn('⚠️ i18n initialization timeout, proceeding anyway...');
-              resolve(void 0); // Don't reject, just proceed
-            }, 2000); // Shorter timeout
+              logger.warn('i18n initialization timeout, proceeding anyway', undefined, 'i18n');
+              resolve(void 0);
+            }, 2000);
             
             if (i18n.isInitialized) {
               clearTimeout(timeout);
@@ -37,7 +29,6 @@ export function useUserLanguage() {
               const onInitialized = () => {
                 clearTimeout(timeout);
                 i18n.off('initialized', onInitialized);
-                console.log('✅ i18n initialized via event listener');
                 resolve(void 0);
               };
               i18n.on('initialized', onInitialized);
@@ -45,12 +36,9 @@ export function useUserLanguage() {
           });
         }
 
-        console.log('📖 Current language after init:', i18n.language);
-
         // For authenticated users, try to load their language preference
         if (user) {
           try {
-            console.log('👤 Loading user language preference...');
             const { data: profile } = await supabase
               .from('profiles')
               .select('preferred_language')
@@ -58,31 +46,23 @@ export function useUserLanguage() {
               .single();
 
             if (profile?.preferred_language && profile.preferred_language !== i18n.language) {
-              console.log('🔄 Changing language to user preference:', profile.preferred_language);
+              logger.info('Changing to user language preference', { language: profile.preferred_language }, 'i18n');
               await i18n.changeLanguage(profile.preferred_language);
-            } else {
-              console.log('✅ Using current language (no user preference or already set)');
             }
           } catch (error) {
-            console.warn('⚠️ Failed to load user language preference (continuing with default):', error);
-            // Continue with browser/localStorage language
+            logger.warn('Failed to load user language preference', error, 'i18n');
           }
         }
         
-        console.log('✅ Language initialization complete:', {
-          language: i18n.language,
-          isReady: true
-        });
         setIsReady(true);
       } catch (error) {
-        console.error('❌ Language initialization error (proceeding anyway):', error);
-        setIsReady(true); // Always set ready to prevent blocking
+        logger.error('Language initialization error', error, 'i18n');
+        setIsReady(true);
       }
     };
 
     // If already ready, don't reinitialize
     if (isReady) {
-      console.log('✅ Language already ready, skipping initialization');
       return;
     }
 
@@ -92,7 +72,6 @@ export function useUserLanguage() {
   // Listen for i18n ready state changes
   useEffect(() => {
     if (i18n.isInitialized && !isReady) {
-      console.log('🔄 i18n became ready, updating state');
       setIsReady(true);
     }
   }, [isReady]);

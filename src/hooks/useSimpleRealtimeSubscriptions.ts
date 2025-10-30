@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 interface SimpleRealtimeConfig {
   table: string;
@@ -35,7 +36,7 @@ export const useSimpleRealtimeSubscriptions = (
           table,
         },
         () => {
-          console.log(`Realtime update for ${table}, invalidating ${queryKey}`);
+          logger.debug(`Realtime update received`, { table, queryKey }, 'Realtime');
           queryClient.invalidateQueries({ 
             predicate: (query) => query.queryKey[0] === queryKey 
           });
@@ -45,9 +46,9 @@ export const useSimpleRealtimeSubscriptions = (
 
     // Subscribe to the channel
     channel.subscribe((status) => {
-      console.log(`Realtime status: ${status}`);
+      logger.debug(`Connection status changed`, { status }, 'Realtime');
       if (status === 'CHANNEL_ERROR') {
-        console.error('Realtime subscription failed - falling back to polling');
+        logger.error('Subscription failed - falling back to polling', undefined, 'Realtime');
       }
     });
 

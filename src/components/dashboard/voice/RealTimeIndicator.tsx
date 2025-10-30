@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeConnectionManager } from '@/hooks/useRealtimeConnectionManager';
+import { logger } from '@/utils/logger';
 
 interface RealTimeIndicatorProps {
   onRefresh?: () => void;
@@ -20,13 +21,12 @@ export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh 
   } = useRealtimeConnectionManager();
 
   // Log connection status changes
-  console.log('[RealTimeIndicator] Connection status:', {
+  logger.debug('Connection status', {
     isConnected,
     subscriptionCount,
     subscriptionNames,
-    lastConnected: lastConnected?.toISOString(),
-    timestamp: new Date().toISOString()
-  });
+    lastConnected: lastConnected?.toISOString()
+  }, 'RealTimeIndicator');
 
   const handleRefresh = () => {
     onRefresh?.();

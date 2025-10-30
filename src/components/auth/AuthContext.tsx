@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { logger } from '@/utils/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -37,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       return session;
     } catch (error) {
-      console.error('Session refresh failed:', error);
+      logger.error('Session refresh failed', error, 'Auth');
       setSession(null);
       setUser(null);
       return null;
@@ -46,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const validateSession = async (retryCount = 0) => {
     if (!session) {
-      console.log('No session to validate');
+      logger.debug('No session to validate', undefined, 'Auth');
       return false;
     }
     
@@ -55,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.rpc('get_user_organization_id');
       
       if (error) {
-        console.log('Session validation failed:', error.code, error.message);
+        logger.debug('Session validation failed', { code: error.code, message: error.message }, 'Auth');
         
         // Handle specific auth error codes
         if (error.code === 'PGRST301' || 
@@ -63,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             error.message?.includes('refresh_token_not_found') ||
             error.code === 'PGRST116') {
           
-          console.log('Session invalid, attempting refresh...');
+          logger.info('Session invalid, attempting refresh', undefined, 'Auth');
           const newSession = await refreshSession();
           
           if (newSession && retryCount < 2) {
@@ -79,14 +80,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      console.log('Session validation successful');
+      logger.debug('Session validation successful', undefined, 'Auth');
       return true;
     } catch (error) {
-      console.error('Session validation failed:', error);
+      logger.error('Session validation failed', error, 'Auth');
       
       // If we haven't tried refreshing yet, attempt it
       if (retryCount === 0) {
-        console.log('Attempting session refresh due to validation error...');
+        logger.info('Attempting session refresh due to validation error', undefined, 'Auth');
         const newSession = await refreshSession();
         if (newSession) {
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -109,11 +110,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const previousUser = user;
         const newUser = session?.user ?? null;
         
-        console.log('Auth state change:', event, { 
+        logger.info('Auth state changed', { 
+          event,
           hasSession: !!session, 
           userId: newUser?.id,
           sessionExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : null
-        });
+        }, 'Auth');
         
         setSession(session);
         setUser(newUser);
@@ -128,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           queryClient.removeQueries({ queryKey: ['users'] });
           queryClient.removeQueries({ queryKey: ['inboxes'] });
           queryClient.removeQueries({ queryKey: ['notifications'] });
-          console.log('Cleared user-specific query cache due to auth state change:', event);
+          logger.debug('Cleared user-specific query cache', { event }, 'Auth');
         }
         
         // Validate session after sign-in
@@ -173,26 +175,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
       
-      console.log('Removing Supabase auth keys:', keysToRemove.length);
+      logger.debug('Removing Supabase auth keys', { count: keysToRemove.length }, 'Auth');
       keysToRemove.forEach(key => localStorage.removeItem(key));
       
       // Verify Aircall keys are still present
       const aircallKeys = Object.keys(localStorage).filter(k => k.toLowerCase().includes('aircall'));
-      console.log('🚪 [AuthContext] Preserved Aircall keys:', aircallKeys);
+      logger.debug('Preserved Aircall keys', { keys: aircallKeys }, 'Auth');
       
       // Attempt global sign out
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
-        console.error('Supabase signOut error:', err);
-        // Continue even if this fails
+        logger.error('Supabase signOut error', err, 'Auth');
       }
       
       // Phase 1 & 5: Dispatch navigation event (handled by App.tsx)
-      console.log('🚪 [AuthContext] Signing out - dispatching navigation event');
+      logger.info('Signing out - dispatching navigation event', undefined, 'Auth');
       window.dispatchEvent(new CustomEvent('auth-navigate', { detail: { path: '/auth' } }));
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('Error signing out', error, 'Auth');
       window.dispatchEvent(new CustomEvent('auth-navigate', { detail: { path: '/auth' } }));
     }
   };

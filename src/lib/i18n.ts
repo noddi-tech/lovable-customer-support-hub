@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { logger } from '@/utils/logger';
 
 // Import translation files
 import en from '@/locales/en/common.json';
@@ -30,7 +31,7 @@ const resources = {
 // Enhanced i18n initialization with robust error handling
 const initializeI18n = async () => {
   try {
-    console.log('🌐 Starting i18n initialization...');
+    logger.debug('Starting i18n initialization', undefined, 'i18n');
     
     await i18n
       .use(LanguageDetector)
@@ -39,7 +40,7 @@ const initializeI18n = async () => {
         resources,
         fallbackLng: 'en',
         defaultNS: 'common',
-        debug: process.env.NODE_ENV === 'development',
+        debug: false, // Disable i18n's built-in debug logging
         
         interpolation: {
           escapeValue: false,
@@ -62,22 +63,21 @@ const initializeI18n = async () => {
         initImmediate: false,
         
         // Handle missing translations gracefully
-        saveMissing: process.env.NODE_ENV === 'development',
-        missingKeyHandler: (lng, ns, key, fallbackValue) => {
-          console.warn(`🚨 Missing translation: ${lng}.${ns}.${key}`);
-          return fallbackValue || key;
+        saveMissing: false, // Disable to reduce noise
+        missingKeyHandler: (lng, ns, key) => {
+          // Only log in DEBUG mode
+          logger.debug('Missing translation key', { lng, ns, key }, 'i18n');
         },
       });
     
-    console.log('✅ i18n initialized successfully:', {
+    logger.info('i18n initialized', {
       language: i18n.language,
-      isInitialized: i18n.isInitialized,
-      loadedNamespaces: Object.keys(i18n.services.resourceStore.data)
-    });
+      loadedLanguages: Object.keys(i18n.services.resourceStore.data)
+    }, 'i18n');
     
     return true;
   } catch (error) {
-    console.error('❌ i18n initialization failed:', error);
+    logger.error('i18n initialization failed', error, 'i18n');
     
     // Fallback to basic English-only setup
     try {
@@ -89,10 +89,10 @@ const initializeI18n = async () => {
         returnNull: false,
         returnEmptyString: false,
       });
-      console.log('⚠️ i18n fallback initialization successful');
+      logger.warn('i18n fallback initialization successful', undefined, 'i18n');
       return true;
     } catch (fallbackError) {
-      console.error('💥 Even fallback i18n initialization failed:', fallbackError);
+      logger.error('Even fallback i18n initialization failed', fallbackError, 'i18n');
       return false;
     }
   }

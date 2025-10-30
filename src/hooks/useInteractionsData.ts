@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { logger } from '@/utils/logger';
 import {
   listAccessibleInboxes,
   getInboxCounts,
@@ -110,16 +111,16 @@ export function useConversations({
         
         const sessionInfo = sessionCheck[0];
         
-        console.log('🔍 Session validation:', {
+        logger.debug('Session validation result', {
           auth_uid: sessionInfo?.auth_uid,
           session_valid: sessionInfo?.session_valid,
           profile_exists: sessionInfo?.profile_exists,
           organization_id: sessionInfo?.organization_id
-        });
+        }, 'Auth');
 
         // If auth.uid() is null in database context, force session sync
         if (!sessionInfo?.session_valid || !sessionInfo?.auth_uid) {
-          console.warn('⚠️ Database session invalid, attempting recovery...');
+          logger.warn('Database session invalid, attempting recovery', undefined, 'Auth');
           
           const newSession = await refreshSession();
           if (!newSession) {
@@ -150,10 +151,10 @@ export function useConversations({
       // Step 2: Now fetch conversations with validated session
       try {
         const conversations = await listConversations({ inboxId, status, q });
-        console.log(`✅ Loaded ${conversations.length} conversations for inbox ${inboxId}`);
+        logger.debug('Conversations loaded', { count: conversations.length, inboxId }, 'Interactions');
         return conversations;
       } catch (error: any) {
-        console.error('❌ Conversations query failed:', error);
+        logger.error('Conversations query failed', error, 'Interactions');
         
         // Handle auth-related errors with enhanced recovery
         if (error?.message?.includes('JWT expired') || 
@@ -162,7 +163,7 @@ export function useConversations({
             error?.code === 'PGRST116' ||
             error?.message?.includes('auth.uid()')) {
           
-          console.warn('🚨 Auth error detected, final recovery attempt...');
+          logger.warn('Auth error detected, final recovery attempt', undefined, 'Auth');
           
           const newSession = await refreshSession();
           if (newSession) {
@@ -170,10 +171,10 @@ export function useConversations({
             
             try {
               const retryConversations = await listConversations({ inboxId, status, q });
-              console.log(`🔄 Retry successful: loaded ${retryConversations.length} conversations`);
+              logger.info('Retry successful', { count: retryConversations.length }, 'Interactions');
               return retryConversations;
             } catch (retryError) {
-              console.error('Final retry failed:', retryError);
+              logger.error('Final retry failed', retryError, 'Auth');
               throw new Error('Session sync failed - conversations still not accessible');
             }
           }
