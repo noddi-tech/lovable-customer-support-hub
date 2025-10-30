@@ -864,7 +864,13 @@ Deno.serve(async (req) => {
       headers: noddiAuthHeaders()
     });
     
+    // Read error response once and reuse it
+    let errorResponseText: string | null = null;
+    
     if (!lookupResponse.ok) {
+      // Read the error response body once
+      errorResponseText = await lookupResponse.text();
+      
       if (lookupResponse.status === 404) {
         console.log('No user found via new endpoint');
         
@@ -923,13 +929,12 @@ Deno.serve(async (req) => {
       
       // Handle 400 "user_does_not_exist" as a not-found case
       if (lookupResponse.status === 400) {
-        const errorText = await lookupResponse.text();
-        console.log(`⚠️  Noddi API returned 400:`, errorText);
+        console.log(`⚠️  Noddi API returned 400:`, errorResponseText);
         
         // Check if this is a "user_does_not_exist" error
         let isUserNotFound = false;
         try {
-          const errorData = JSON.parse(errorText);
+          const errorData = JSON.parse(errorResponseText || '{}');
           const errors = errorData?.errors || [];
           isUserNotFound = errors.some((err: any) => 
             err?.code === 'user_does_not_exist' || 
@@ -1001,8 +1006,7 @@ Deno.serve(async (req) => {
       
       // Handle 500 errors with fallback to legacy endpoints
       if (lookupResponse.status >= 500) {
-        const errorText = await lookupResponse.text();
-        console.error(`⚠️  New endpoint failed with ${lookupResponse.status}:`, errorText);
+        console.error(`⚠️  New endpoint failed with ${lookupResponse.status}:`, errorResponseText);
         console.log('🔄 Falling back to legacy multi-call approach...');
         
         try {
@@ -1327,8 +1331,7 @@ Deno.serve(async (req) => {
       }
       
       // For other errors (401, 403, etc.), capture and throw
-      const errorText = await lookupResponse.text();
-      console.error(`❌ Noddi API Error ${lookupResponse.status}:`, errorText);
+      console.error(`❌ Noddi API Error ${lookupResponse.status}:`, errorResponseText);
       throw new Error(`Customer lookup failed: ${lookupResponse.status}`);
     }
     
