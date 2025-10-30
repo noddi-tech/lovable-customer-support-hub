@@ -1,5 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { MessageCircle, Sidebar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConversationList } from './ConversationList';
@@ -84,8 +86,53 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
     }
   });
   
-  // Get conversation ID from URL
-  const conversationIdFromUrl = searchParams.get('conversation');
+  // Get conversation ID from URL (using 'c' parameter)
+  const conversationIdFromUrl = searchParams.get('c');
+  
+  console.log('[EnhancedInteractionsLayout] URL conversation ID:', conversationIdFromUrl);
+
+  // Fetch conversation metadata from URL
+  const { data: urlConversation, isLoading: urlConvLoading } = useQuery({
+    queryKey: ['conversation-from-url', conversationIdFromUrl],
+    queryFn: async () => {
+      if (!conversationIdFromUrl) return null;
+      console.log('[EnhancedInteractionsLayout] Fetching conversation from URL:', conversationIdFromUrl);
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*, customer:customers(*)')
+        .eq('id', conversationIdFromUrl)
+        .single();
+      
+      if (error) {
+        console.error('[EnhancedInteractionsLayout] Error fetching URL conversation:', error);
+        return null;
+      }
+      
+      console.log('[EnhancedInteractionsLayout] Fetched URL conversation:', {
+        id: data?.id,
+        subject: data?.subject
+      });
+      
+      return data;
+    },
+    enabled: !!conversationIdFromUrl && !selectedConversation,
+    staleTime: 30_000,
+  });
+
+  // Sync URL conversation with state
+  useEffect(() => {
+    if (urlConversation && conversationIdFromUrl && !selectedConversation) {
+      console.log('[EnhancedInteractionsLayout] Auto-selecting conversation from URL:', {
+        conversationId: urlConversation.id,
+        subject: urlConversation.subject
+      });
+      
+      setSelectedConversation({
+        ...urlConversation,
+        _fetchIds: urlConversation.id
+      } as Conversation);
+    }
+  }, [urlConversation, conversationIdFromUrl, selectedConversation]);
 
   // Handle conversation selection
   const handleSelectConversation = useCallback((conversation: Conversation) => {
@@ -94,14 +141,10 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
       ? conversation.thread_ids
       : conversation.id;
     
-    console.log('[InteractionsLayout] Selecting conversation:', {
+    console.log('[EnhancedInteractionsLayout] Selected threaded conversation:', {
       conversationId: conversation.id,
-      isThreaded: conversation.thread_ids && conversation.thread_ids.length > 1,
       threadCount: conversation.thread_count,
-      threadIds: conversation.thread_ids,
-      threadIdsLength: conversation.thread_ids?.length,
-      fetchingFrom: conversationIdsToFetch,
-      fetchType: Array.isArray(conversationIdsToFetch) ? 'array' : 'single'
+      threadIds: conversation.thread_ids
     });
     
     setSelectedConversation({
@@ -109,9 +152,9 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
       _fetchIds: conversationIdsToFetch
     });
     
-    // Update URL with conversation ID
+    // Update URL with conversation ID (using 'c' parameter)
     const newParams = new URLSearchParams(searchParams);
-    newParams.set('conversation', conversation.id);
+    newParams.set('c', conversation.id);
     setSearchParams(newParams, { replace: true });
     
     // On mobile, hide conversation list when selecting a conversation

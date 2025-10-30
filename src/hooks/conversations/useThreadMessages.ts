@@ -119,14 +119,18 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       if (error) throw error;
 
       // Debug logging - track raw DB response
-      console.log('[useThreadMessages] Raw DB response:', {
-        conversationIds: ids,
-        isThreadedFetch: ids.length > 1,
-        rowCount: rows?.length,
-        messageIds: rows?.map(r => ({
+      console.log('[useThreadMessages] DB query executed:', {
+        queryingConversations: ids,
+        conversationCount: ids.length,
+        isThreaded: ids.length > 1,
+        messagesReturned: rows?.length || 0,
+        pageParam: pageParam || 'initial',
+        messages: rows?.map(r => ({
           id: r.id,
+          conversation_id: (r as any).conversation_id,
           email_message_id: r.email_message_id,
           external_id: r.external_id,
+          subject: r.email_subject,
           created_at: r.created_at
         }))
       });
