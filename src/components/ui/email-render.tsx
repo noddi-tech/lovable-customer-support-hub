@@ -288,7 +288,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none"
+          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>div]:my-0"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       );
@@ -305,7 +305,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none"
+          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1"
           dangerouslySetInnerHTML={{ __html: formattedHtml }}
         />
       );
@@ -405,7 +405,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       aria-label="Email message content"
       role="article"
       style={{
-        lineHeight: '1.7',
+        lineHeight: '1.5',
       }}
     >
       {/* Email Controls */}
