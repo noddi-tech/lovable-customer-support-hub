@@ -280,11 +280,9 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       
       // Debug logging
       debug.group('[EmailRender] HTML Content', {
-        messageId,
+        messageId: messageId?.slice(-8),
         contentType,
-        className: 'email-render__html-content',
         hasQuotedBlocks: tempDiv.querySelectorAll('.collapsible-quote').length > 0,
-        contentPreview: sanitizedContent.slice(0, 100),
       }, true);
       debug.groupEnd();
       
@@ -299,11 +297,9 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       const formattedHtml = formatPlainTextEmail(contentToRender);
       
       // Debug logging
-      debug.group('[EmailRender] Plain Text Content', {
-        messageId,
+      debug.group('[EmailRender] Plain Text', {
+        messageId: messageId?.slice(-8),
         contentType,
-        className: 'email-render__plain-content',
-        contentPreview: formattedHtml.slice(0, 100),
       }, true);
       debug.groupEnd();
       

@@ -165,7 +165,7 @@ export const MessageCard = ({
         "group relative rounded-xl border transition-all duration-200",
         "shadow-sm hover:shadow-md hover:border-primary/40",
         isCustomer()
-          ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/40"
+          ? "bg-indigo-50 dark:bg-indigo-900/15 border-indigo-100 dark:border-indigo-800/30"
           : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
         tne.border
       )}>
@@ -378,7 +378,7 @@ export const MessageCard = ({
             
             {/* Visual separator between header and content */}
             {!isCollapsed && (
-              <div className="h-[1px] bg-border/50 mb-5 -mx-6" />
+              <div className="h-px bg-border/60 my-4" />
             )}
             
             {/* Main message content */}

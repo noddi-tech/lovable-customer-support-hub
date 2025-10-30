@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { debug } from '@/utils/debug';
 
 // Master kill switch - set to false to completely disable debug overlay
-const ENABLE_DEBUG_OVERLAY = true;
+const ENABLE_DEBUG_OVERLAY = false;
 
 interface Diagnostics {
   container: {

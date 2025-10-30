@@ -277,7 +277,7 @@ export const ProgressiveMessagesList = ({
               aria-hidden="true"
             />
             
-            <div className="space-y-6">
+            <div className="space-y-8">
 
           {/* Messages list - Cards in ASC order (oldest first, natural email reading) */}
           {messages.length === 0 ? (

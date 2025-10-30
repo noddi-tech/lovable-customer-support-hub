@@ -247,41 +247,53 @@ Optimized for accessibility with WCAG AA compliance.
     transition: all 0.2s ease;
   }
 
-  /* Email content prose styling - Force critical layout properties only */
+  /* Email content prose styling - Consolidated and clear */
   .email-render__html-content,
   .email-render__plain-content {
     @apply prose prose-sm dark:prose-invert max-w-none;
-    
-    /* Force only layout-critical properties */
     white-space: pre-wrap !important;
-    line-height: 1.7 !important;
-    word-wrap: break-word;
+    line-height: 1.75 !important;
+    margin-top: 0.25em !important;
     color: hsl(var(--foreground));
+    font-size: 14px;
+    overflow-wrap: anywhere;
   }
 
-  /* Paragraph spacing - force to override resets */
+  /* Paragraph spacing - clear and consistent */
   .email-render__html-content p,
   .email-render__plain-content p {
     margin-bottom: 1em !important;
+    line-height: 1.75;
   }
 
-  /* Link styling - let Tailwind utilities handle these */
+  .email-render__html-content p:last-child,
+  .email-render__plain-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Link styling */
   .email-render__html-content a,
   .email-render__plain-content a {
     color: hsl(var(--primary));
     text-decoration: underline;
     text-underline-offset: 2px;
     font-weight: 500;
+    transition: color 0.2s;
   }
 
-  /* Blockquote styling */
+  .email-render__html-content a:hover,
+  .email-render__plain-content a:hover {
+    color: hsl(var(--primary-hover));
+  }
+
+  /* Blockquote styling - softer like HelpScout */
   .email-render__html-content blockquote,
   .email-render__plain-content blockquote {
     border-left: 3px solid hsl(var(--muted-foreground));
+    background: hsl(var(--muted) / 0.12);
     padding: 0.75em 1em;
     font-style: italic;
-    background: hsl(var(--muted) / 0.15);
-    margin: 1em 0;
+    margin: 1em 0 !important;
     border-radius: 0 0.5rem 0.5rem 0;
     color: hsl(var(--muted-foreground));
   }
@@ -316,6 +328,17 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__plain-content strong {
     font-weight: 600;
     color: hsl(var(--foreground));
+  }
+
+  /* Images */
+  .email-render img,
+  .email-render__html-content img,
+  .email-render__plain-content img { 
+    max-width: 100%; 
+    height: auto; 
+    display: block;
+    border-radius: 4px;
+    margin: 0.5em 0;
   }
 
   /* Smooth collapse/expand transitions */
@@ -881,94 +904,7 @@ Optimized for accessibility with WCAG AA compliance.
   }
 }
 
-/* Enhanced Email Render Styles - Professional typography */
-.email-render {
-  max-width: min(100%, 900px);
-  margin: 0 auto;
-  padding-inline: 0;
-  word-break: break-word;
-  font-family: inherit;
-  line-height: 1.7;
-  overflow-wrap: anywhere; 
-  font-size: 14px;
-}
-
-.email-render img { 
-  max-width: 100%; 
-  height: auto; 
-  display: block;
-  border-radius: 4px;
-  margin: 0.5em 0;
-}
-
-/* Typography enhancements */
-.email-render p,
-.email-render__html-content p,
-.email-render__plain-content p {
-  margin-bottom: 1em;
-  line-height: 1.7;
-}
-
-.email-render p:last-child {
-  margin-bottom: 0;
-}
-
-.email-render a,
-.email-render__html-content a {
-  color: hsl(var(--primary));
-  text-decoration: underline;
-  transition: color 0.2s;
-}
-
-.email-render a:hover,
-.email-render__html-content a:hover {
-  color: hsl(var(--primary-hover));
-}
-
-.email-render blockquote,
-.email-render__html-content blockquote {
-  margin: 1.5em 0;
-  padding: 0.75em 1.25em;
-  border-left: 4px solid hsl(var(--primary) / 0.3);
-  background: hsl(var(--muted) / 0.3);
-  color: hsl(var(--muted-foreground));
-  font-style: italic;
-  border-radius: 0 4px 4px 0;
-}
-
-.email-render ul,
-.email-render ol,
-.email-render__html-content ul,
-.email-render__html-content ol {
-  margin: 1em 0;
-  padding-left: 2em;
-}
-
-.email-render li,
-.email-render__html-content li {
-  margin-bottom: 0.5em;
-  line-height: 1.7;
-}
-
-.email-render h1,
-.email-render h2,
-.email-render h3,
-.email-render h4,
-.email-render__html-content h1,
-.email-render__html-content h2,
-.email-render__html-content h3,
-.email-render__html-content h4 {
-  margin-top: 1.5em;
-  margin-bottom: 0.75em;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.email-render h1 { font-size: 1.5em; }
-.email-render h2 { font-size: 1.3em; }
-.email-render h3 { font-size: 1.15em; }
-.email-render h4 { font-size: 1em; }
-
+/* Email render controls and content wrapper - lean and focused */
 .email-render__controls {
   display: flex;
   gap: 8px;
@@ -979,23 +915,6 @@ Optimized for accessibility with WCAG AA compliance.
 
 .email-render__content {
   position: relative;
-}
-
-/* HTML Content Wrapper */
-.email-render__html-content {
-  max-width: 100%;
-  min-width: 0;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
-  overflow-x: auto;
-}
-
-/* Ensure all nested elements wrap properly */
-.email-render__html-content * {
-  max-width: 100%;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
 }
 
 /* Special handling for pre and code elements - remove email client formatting */
