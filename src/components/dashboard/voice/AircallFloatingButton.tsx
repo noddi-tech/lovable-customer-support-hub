@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { debug } from '@/utils/debug';
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +31,7 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
 }) => {
   // Track whether Aircall workspace exists in DOM
   const [hasWorkspaceInDOM, setHasWorkspaceInDOM] = useState(false);
+  const [lastLoggedState, setLastLoggedState] = useState<boolean | null>(null);
   
   // Check for workspace existence in DOM and watch for changes
   useEffect(() => {
@@ -37,11 +39,15 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
       const workspace = document.querySelector('#aircall-workspace');
       const workspaceExists = workspace !== null;
       
-      console.log('[AircallFloatingButton] Checking workspace in DOM:', {
-        exists: workspaceExists,
-        hasWorkspaceInDOM,
-        isWorkspaceReady
-      });
+      // Only log when state actually changes
+      if (workspaceExists !== lastLoggedState) {
+        debug.log('[AircallFloatingButton] Workspace state changed:', {
+          exists: workspaceExists,
+          isWorkspaceReady,
+          timestamp: new Date().toISOString()
+        });
+        setLastLoggedState(workspaceExists);
+      }
       
       setHasWorkspaceInDOM(workspaceExists);
     };
@@ -76,8 +82,7 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
   
   // Only show button if workspace actually exists in DOM
   if (!hasWorkspaceInDOM) {
-    console.log('[AircallFloatingButton] Not rendering: no workspace in DOM');
-    return null;
+    return null; // Silent - already logged state change
   }
 
   // Determine status and behavior
@@ -92,7 +97,7 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
     const container = document.querySelector('#aircall-workspace-container');
     const domVisible = container?.classList.contains('aircall-visible');
     
-    console.log('[AircallFloatingButton] Button clicked:', {
+    debug.log('[AircallFloatingButton] Button clicked:', {
       workspaceVisible,
       domVisible,
       isConnected,

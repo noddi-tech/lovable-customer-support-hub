@@ -6,6 +6,7 @@ import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncod
 import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
 import { sanitizeEmailHTML as sanitizeForXSS } from '@/utils/htmlSanitizer';
 import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
+import { debug } from '@/utils/debug';
 
 interface EmailRenderProps {
   content: string;
@@ -278,15 +279,14 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       }
       
       // Debug logging
-      if (import.meta.env.VITE_UI_PROBE === '1') {
-        console.log('[EmailRender] Rendering HTML:', {
-          messageId,
-          contentType,
-          className: 'email-render__html-content',
-          hasQuotedBlocks: tempDiv.querySelectorAll('.collapsible-quote').length > 0,
-          contentPreview: sanitizedContent.slice(0, 100),
-        });
-      }
+      debug.group('[EmailRender] HTML Content', {
+        messageId,
+        contentType,
+        className: 'email-render__html-content',
+        hasQuotedBlocks: tempDiv.querySelectorAll('.collapsible-quote').length > 0,
+        contentPreview: sanitizedContent.slice(0, 100),
+      }, true);
+      debug.groupEnd();
       
       return (
         <div 
@@ -299,14 +299,13 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       const formattedHtml = formatPlainTextEmail(contentToRender);
       
       // Debug logging
-      if (import.meta.env.VITE_UI_PROBE === '1') {
-        console.log('[EmailRender] Rendering Plain Text:', {
-          messageId,
-          contentType,
-          className: 'email-render__plain-content',
-          contentPreview: formattedHtml.slice(0, 100),
-        });
-      }
+      debug.group('[EmailRender] Plain Text Content', {
+        messageId,
+        contentType,
+        className: 'email-render__plain-content',
+        contentPreview: formattedHtml.slice(0, 100),
+      }, true);
+      debug.groupEnd();
       
       return (
         <div 

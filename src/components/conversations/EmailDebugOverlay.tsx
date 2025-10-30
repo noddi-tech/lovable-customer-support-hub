@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import { debug } from '@/utils/debug';
+
+// Master kill switch - set to false to completely disable debug overlay
+const ENABLE_DEBUG_OVERLAY = true;
 
 interface Diagnostics {
   container: {
@@ -31,7 +35,7 @@ export const EmailDebugOverlay = ({ messageId }: { messageId: string }) => {
   const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null);
   
   useEffect(() => {
-    if (import.meta.env.VITE_UI_PROBE !== '1') return;
+    if (!ENABLE_DEBUG_OVERLAY || import.meta.env.VITE_UI_PROBE !== '1') return;
     
     // Find the email content container
     const containers = [
@@ -42,7 +46,7 @@ export const EmailDebugOverlay = ({ messageId }: { messageId: string }) => {
     const emailContainer = containers.find(el => el !== null) as HTMLElement | null;
     
     if (!emailContainer) {
-      console.warn(`[EmailDebug] ❌ No email container found for message ${messageId}`);
+      debug.warn(`[EmailDebug] ❌ No email container found for message ${messageId}`);
       return;
     }
     
@@ -83,13 +87,13 @@ export const EmailDebugOverlay = ({ messageId }: { messageId: string }) => {
     
     setDiagnostics(diagnosticData);
     
-    // Console logging with clear structure
-    console.group(`🐛 [EmailDebug] Message ${messageId.slice(-8)}`);
-    console.log('📦 Container:', diagnosticData.container);
-    console.log('📝 Paragraphs:', diagnosticData.paragraphs);
-    console.log('🔗 Links:', diagnosticData.links);
-    console.log('💬 Blockquotes:', diagnosticData.blockquotes);
-    console.groupEnd();
+    // Console logging with collapsible groups
+    debug.group(`🐛 [EmailDebug] Message ${messageId.slice(-8)}`, undefined, true);
+    debug.log('📦 Container', diagnosticData.container);
+    debug.log('📝 Paragraphs', diagnosticData.paragraphs);
+    debug.log('🔗 Links', diagnosticData.links);
+    debug.log('💬 Blockquotes', diagnosticData.blockquotes);
+    debug.groupEnd();
     
     // Visual highlighting
     emailContainer.style.outline = '3px solid lime';
@@ -117,7 +121,7 @@ export const EmailDebugOverlay = ({ messageId }: { messageId: string }) => {
     
   }, [messageId]);
   
-  if (import.meta.env.VITE_UI_PROBE !== '1' || !diagnostics) return null;
+  if (!ENABLE_DEBUG_OVERLAY || import.meta.env.VITE_UI_PROBE !== '1' || !diagnostics) return null;
   
   return (
     <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-500 rounded-lg text-xs font-mono overflow-auto">
