@@ -94,9 +94,21 @@ export const useInteractionsNavigation = () => {
   }, [updateNavigation]);
 
   // Open conversation
-  const openConversation = useCallback((conversationId: ConversationId) => {
-    updateNavigation({ conversationId });
-  }, [updateNavigation]);
+  const openConversation = useCallback((conversationId: ConversationId, threadIds?: string | string[]) => {
+    const updates: Partial<NavigationState> = { conversationId };
+    
+    // Store threadIds if provided (for thread viewing)
+    if (threadIds && Array.isArray(threadIds) && threadIds.length > 1) {
+      // Store as comma-separated string in URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('c', conversationId);
+      newParams.set('thread', threadIds.join(','));
+      setSearchParams(newParams, { replace: true });
+      return;
+    }
+    
+    updateNavigation(updates);
+  }, [updateNavigation, searchParams, setSearchParams]);
 
   // Back to list (clear only conversation)
   const backToList = useCallback(() => {

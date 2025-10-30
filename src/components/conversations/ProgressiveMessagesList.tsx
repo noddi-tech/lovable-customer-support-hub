@@ -286,7 +286,7 @@ export const ProgressiveMessagesList = ({
         {/* Outer centering wrapper */}
         <div className="w-full flex justify-center">
           {/* Content column with timeline */}
-          <div className="relative w-full max-w-3xl px-8 py-8">
+          <div className="relative w-full max-w-3xl px-4 py-4">
             {/* Timeline vertical rail - softer gradient */}
             <div 
               className="absolute left-[26px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-muted/10 via-muted/50 to-muted/10 rounded-full pointer-events-none" 

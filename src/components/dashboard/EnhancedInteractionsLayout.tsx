@@ -98,6 +98,10 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const { conversationId, inbox, status, search } = navigation.currentState;
   const isDetail = !!conversationId;
   
+  // Read thread IDs from URL if present
+  const threadParam = new URLSearchParams(window.location.search).get('thread');
+  const conversationIds = threadParam ? threadParam.split(',') : conversationId;
+  
   // Get accessible inboxes and set default if needed
   const { data: inboxes = [] } = useAccessibleInboxes();
   
@@ -147,7 +151,12 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   // Handlers
   const handleConversationSelect = useCallback((conversation: ConversationRow) => {
-    navigation.openConversation(conversation.id);
+    const conv = conversation as any;
+    const conversationIdsToFetch = conv.thread_ids && conv.thread_ids.length > 1 
+      ? conv.thread_ids 
+      : conversation.id;
+    
+    navigation.openConversation(conversation.id, conversationIdsToFetch);
     
     // Mark as read if it's unread
     if (conversation.unread) {
@@ -155,12 +164,12 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     }
     
     // Log thread selection for debugging
-    const conv = conversation as any;
     if (conv.thread_ids && conv.thread_ids.length > 1) {
       console.log('[EnhancedInteractionsLayout] Selected threaded conversation:', {
         conversationId: conversation.id,
         threadCount: conv.thread_count,
-        threadIds: conv.thread_ids
+        threadIds: conv.thread_ids,
+        _fetchIds: conversationIdsToFetch
       });
     }
   }, [navigation, markAsReadMutation]);
@@ -284,7 +293,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
             </div>
             
             <div className="border-t border-border pt-4">
-              <ConversationView conversationId={conversationId} showSidePanel={true} />
+              <ConversationView conversationId={conversationId} conversationIds={conversationIds} showSidePanel={true} />
             </div>
           </div>
         </CardContent>
