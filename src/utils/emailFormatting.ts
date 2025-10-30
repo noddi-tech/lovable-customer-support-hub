@@ -287,83 +287,8 @@ export const sanitizeEmailHTML = (
   // Sanitize the HTML
   const sanitized = DOMPurify.sanitize(processedContent, config);
 
-  // Apply minimal styling that preserves original email design
-  return `
-    <div class="email-render__processed-content" style="
-      max-width: min(100%, 900px);
-      margin: 0;
-      overflow-wrap: anywhere;
-      background-color: transparent;
-    ">
-      <style>
-        /* CSP-compliant email rendering styles */
-        .email-render__processed-content {
-        }
-        
-        /* Force readable colors for elements without explicit color */
-        .email-render__processed-content :not([style*="color"]):not([color]) {
-          color: inherit !important;
-        }
-        
-        /* Minimal reset to preserve original email styling */
-        .email-render__processed-content * {
-          box-sizing: border-box;
-        }
-        
-        /* Preserve original table layouts and spacing */
-        .email-render table {
-          border-collapse: collapse;
-          mso-table-lspace: 0pt !important;
-          mso-table-rspace: 0pt !important;
-        }
-        
-        /* Enhanced image rendering with proper scaling */
-        .email-render img {
-          max-width: 100% !important;
-          height: auto !important;
-          display: block;
-          border: 0;
-        }
-        
-        /* Preserve link styling but keep contrast */
-        .email-render a {
-          word-break: break-word;
-          color: inherit !important;
-          text-decoration: underline;
-        }
-        
-        /* Subtle hr to match current text color */
-        .email-render hr {
-          border: none;
-          border-top: 1px solid currentColor;
-          opacity: 0.2;
-          margin: 20px 0;
-        }
-        
-        /* Mobile responsive adjustments */
-        @media (max-width: 600px) {
-          .email-render__processed-content table[width="600"] {
-            width: 100% !important;
-          }
-          
-          .email-render__processed-content .structure__table {
-            width: 100% !important;
-          }
-          
-          /* Ensure mobile padding on containers */
-          .email-render__processed-content [style*="padding:15px 60px"] {
-            padding: 15px 20px !important;
-          }
-        }
-        
-        /* Preserve email-specific MSO styles for Outlook compatibility */
-        .email-render__processed-content [style*="mso-line-height-rule"] {
-          line-height: inherit;
-        }
-      </style>
-      ${sanitized}
-    </div>
-  `;
+  // Return sanitized content directly - styling handled by CSS
+  return sanitized;
 };
 
 /**

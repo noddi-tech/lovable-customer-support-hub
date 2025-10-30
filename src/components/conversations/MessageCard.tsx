@@ -189,7 +189,7 @@ export const MessageCard = ({
       
       <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
         {/* Card Header - improved spacing */}
-        <div className={cn("p-6", !isCollapsed && "bg-muted/20 border-b")}>
+        <div className={cn("px-4 py-3", !isCollapsed && "bg-muted/20 border-b")}>
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4 min-w-0 flex-1">
               <Avatar className="h-10 w-10 ring-2 ring-border shrink-0">

@@ -920,22 +920,45 @@ Optimized for accessibility with WCAG AA compliance.
 /* Aggressively minimize prose spacing for email content - using @layer to avoid circular dependency */
 @layer components {
   .email-render__html-content p,
-  .email-render__plain-content p,
-  .email-render__processed-content p {
+  .email-render__plain-content p {
     margin-top: 0.125rem !important;
     margin-bottom: 0.125rem !important;
   }
 
   .email-render__html-content > *:first-child,
-  .email-render__plain-content > *:first-child,
-  .email-render__processed-content > *:first-child {
+  .email-render__plain-content > *:first-child {
     margin-top: 0 !important;
   }
 
   .email-render__html-content > *:last-child,
-  .email-render__plain-content > *:last-child,
-  .email-render__processed-content > *:last-child {
+  .email-render__plain-content > *:last-child {
     margin-bottom: 0 !important;
+  }
+}
+
+/* Email content styling - consolidated from emailFormatting.ts */
+.email-render__html-content,
+.email-render__plain-content {
+  max-width: min(100%, 900px);
+  overflow-wrap: anywhere;
+}
+
+/* Force readable colors */
+.email-render__html-content :not([style*="color"]):not([color]),
+.email-render__plain-content :not([style*="color"]):not([color]) {
+  color: inherit !important;
+}
+
+/* Mobile responsive email tables */
+@media (max-width: 600px) {
+  .email-render__html-content table[width="600"],
+  .email-render__plain-content table[width="600"] {
+    width: 100% !important;
+  }
+  
+  .email-render__html-content .structure__table,
+  .email-render__plain-content .structure__table {
+    width: 100% !important;
   }
 }
 
