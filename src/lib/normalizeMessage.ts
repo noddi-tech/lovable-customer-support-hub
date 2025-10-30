@@ -494,6 +494,26 @@ export function expandQuotedMessagesToCards(
         continue;
       }
       
+      // Parse the quoted content to extract ONLY visible content (strip nested quotes)
+      const quotedContent = quoted.bodyHtml || quoted.bodyText;
+      const contentType = quoted.bodyHtml ? 'text/html' : 'text/plain';
+      
+      const parsed = parseQuotedEmail({
+        content: quotedContent,
+        contentType: contentType
+      });
+      
+      // Skip if no visible content (just nested quotes)
+      if (!parsed.visibleContent || parsed.visibleContent.trim().length === 0) {
+        logger.debug('Skipping empty quoted message (only nested quotes)', {
+          parentId: message.id,
+          index: i,
+          contentLength: 0,
+          hasNestedQuotes: parsed.quotedBlocks?.length > 0
+        }, 'Thread');
+        continue;
+      }
+      
       // Parse sender information
       const { name: fromName, email: fromEmail } = extractNameEmail(quoted.fromEmail || '');
       
@@ -513,14 +533,16 @@ export function expandQuotedMessagesToCards(
         authorType: isAgent ? 'agent' : 'customer',
         authorLabel: fromName && fromEmail ? `${fromName} <${fromEmail}>` : (fromEmail || fromName || 'Unknown'),
         avatarInitial: (fromName || fromEmail || 'U')[0].toUpperCase(),
-        visibleBody: quoted.bodyHtml || quoted.bodyText,
+        visibleBody: parsed.visibleContent,  // Use ONLY visible content (nested quotes stripped)
+        quotedBlocks: parsed.quotedBlocks,   // Store nested quotes for potential "Show history" feature
         originalMessage: {
           ...message.originalMessage,
-          content: quoted.bodyHtml || quoted.bodyText,
-          content_type: quoted.bodyHtml ? 'text/html' : 'text/plain',
+          content: parsed.visibleContent,    // Use parsed visible content
+          content_type: contentType,
           is_quoted_extraction: true,
           parent_message_id: message.id,
-          quoted_index: i
+          quoted_index: i,
+          _quotedMessages: parsed.quotedMessages  // Store nested messages for potential recursive expansion
         }
       };
       
@@ -529,8 +551,10 @@ export function expandQuotedMessagesToCards(
         dedupKey: quotedNormalized.dedupKey,
         authorType: quotedNormalized.authorType,
         from: quotedNormalized.from,
-        confidence: quoted.confidence
-      });
+        confidence: quoted.confidence,
+        visibleContentLength: parsed.visibleContent.length,
+        hasNestedQuotes: parsed.quotedBlocks?.length > 0
+      }, 'Thread');
       
       expanded.push(quotedNormalized);
     }
