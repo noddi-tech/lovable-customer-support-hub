@@ -99,7 +99,9 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
       isThreaded: conversation.thread_ids && conversation.thread_ids.length > 1,
       threadCount: conversation.thread_count,
       threadIds: conversation.thread_ids,
-      fetchingFrom: conversationIdsToFetch
+      threadIdsLength: conversation.thread_ids?.length,
+      fetchingFrom: conversationIdsToFetch,
+      fetchType: Array.isArray(conversationIdsToFetch) ? 'array' : 'single'
     });
     
     setSelectedConversation({
@@ -161,7 +163,10 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
           <div className="flex flex-col bg-background min-h-0 flex-1">
             {selectedConversation ? (
               <div className="flex-1 min-h-0">
-                <ConversationView conversationId={selectedConversation.id} />
+                <ConversationView 
+                  conversationId={selectedConversation.id}
+                  conversationIds={selectedConversation._fetchIds}
+                />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center flex-1 text-center p-8 bg-card m-4 rounded-lg">

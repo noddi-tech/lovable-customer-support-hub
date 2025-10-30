@@ -146,6 +146,16 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           </div>
         </div>
 
+        {/* Conversation Metadata Header */}
+        {conversation.subject && (
+          <div className="flex-shrink-0 px-6 py-3 bg-muted/20 border-b">
+            <div className="grid grid-cols-[100px_1fr] gap-x-4 gap-y-2 text-sm max-w-4xl">
+              <span className="text-muted-foreground font-medium">Subject:</span>
+              <span className="font-semibold text-foreground">{conversation.subject}</span>
+            </div>
+          </div>
+        )}
+
         {/* Messages Area with Progressive Loading */}
         <div className="flex-1 min-h-0 w-full flex flex-col bg-white">
           <ProgressiveMessagesList 

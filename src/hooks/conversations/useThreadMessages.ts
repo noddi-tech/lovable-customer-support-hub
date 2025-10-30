@@ -38,10 +38,12 @@ export function useThreadMessages(conversationIds?: string | string[]) {
   
   // Debug: Log what we're fetching
   if (isDebugMode || ids.length > 1) {
-    console.log('[useThreadMessages] Fetching messages for conversation(s):', {
-      input: conversationIds,
-      normalized: ids,
-      isThread: ids.length > 1
+    console.log('[useThreadMessages] Fetching with:', {
+      conversationIds: ids,
+      count: ids.length,
+      isThread: ids.length > 1,
+      firstId: ids[0],
+      allIds: ids
     });
   }
 

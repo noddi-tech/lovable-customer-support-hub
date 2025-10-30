@@ -268,44 +268,6 @@ export const MessageCard = ({
                    )}
                  </div>
 
-                 {/* Expanded metadata header - shown when not collapsed */}
-                 {!isCollapsed && (
-                   <div className="mt-4 pt-4 border-t grid grid-cols-[80px_1fr] gap-2 text-sm">
-                     <span className="text-muted-foreground font-medium">From:</span>
-                     <span className="text-foreground">{display}</span>
-                     
-                     {message.to && message.to.length > 0 && (
-                       <>
-                         <span className="text-muted-foreground font-medium">To:</span>
-                         <span className="text-foreground">
-                           {message.to.map(a => a.name || a.email).join(', ')}
-                         </span>
-                       </>
-                     )}
-                     
-                     {message.cc && message.cc.length > 0 && (
-                       <>
-                         <span className="text-muted-foreground font-medium">Cc:</span>
-                         <span className="text-foreground">
-                           {message.cc.map(a => a.name || a.email).join(', ')}
-                         </span>
-                       </>
-                     )}
-                     
-                     <span className="text-muted-foreground font-medium">Date:</span>
-                     <span className="text-foreground">
-                       {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
-                     </span>
-                     
-                     {message.subject && (
-                       <>
-                         <span className="text-muted-foreground font-medium">Subject:</span>
-                         <span className="text-foreground font-semibold">{message.subject}</span>
-                       </>
-                     )}
-                   </div>
-                 )}
-
                  {/* Full recipients list when expanded */}
                  {showAllRecipients && (
                    <div className="mt-1 space-x-1 text-xs text-muted-foreground">
@@ -397,7 +359,7 @@ export const MessageCard = ({
         </div>
         
         <CollapsibleContent>
-          <div className="p-6 pt-5 min-w-0 overflow-hidden">
+          <div className="p-4 pt-3 min-w-0 overflow-hidden">
             {/* Main message content */}
             <div className="mt-4">
               <EmailRender
