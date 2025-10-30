@@ -393,7 +393,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     quotedBlocks: quotedBlocks?.length > 0 ? quotedBlocks : undefined,
     originalMessage: {
       ...rawMessage,
-      _quotedMessages: parsedContent.quotedMessages
+      _quotedMessages: parsedContent.quotedMessages?.filter(q => q !== null) || []
     }
   };
 
@@ -503,13 +503,15 @@ export function expandQuotedMessagesToCards(
         contentType: contentType
       });
       
-      // Skip if no visible content (just nested quotes)
-      if (!parsed.visibleContent || parsed.visibleContent.trim().length === 0) {
-        logger.debug('Skipping empty quoted message (only nested quotes)', {
+      // Skip if no visible content (just nested quotes or headers)
+      const trimmedContent = parsed.visibleContent?.trim() || '';
+      if (!trimmedContent || trimmedContent.length < 50) {
+        logger.debug('Skipping short/empty quoted message (likely header or nested quotes)', {
           parentId: message.id,
           index: i,
-          contentLength: 0,
-          hasNestedQuotes: parsed.quotedBlocks?.length > 0
+          contentLength: trimmedContent.length,
+          hasNestedQuotes: parsed.quotedBlocks?.length > 0,
+          preview: trimmedContent.substring(0, 60)
         }, 'Thread');
         continue;
       }

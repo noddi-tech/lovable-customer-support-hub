@@ -195,7 +195,43 @@ function stripHtmlSafe(html: string): string {
   return (temp.textContent || temp.innerText || text).trim();
 }
 
-function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessage {
+/**
+ * Detects if content is only an email header line (e.g., "On ... wrote:")
+ * without any actual message body
+ */
+function isHeaderOnlyContent(html: string): boolean {
+  const headerPatterns = [
+    /^On\s+.+wrote:?\s*$/i,
+    /^From:.+Sent:.+To:.+Subject:/is,
+    /^-+\s*Original Message\s*-+/i,
+    /^Le\s+.+a écrit/i,  // French
+    /^Den\s+.+skrev/i,    // Norwegian
+    /^På\s+.+skrev/i,     // Norwegian
+  ];
+  
+  const cleanText = html.replace(/<[^>]+>/g, '').trim();
+  
+  // Check if content matches header-only patterns
+  for (const pattern of headerPatterns) {
+    if (pattern.test(cleanText)) {
+      return true;
+    }
+  }
+  
+  // Check if content is very short (< 100 chars) and contains "wrote" keyword
+  if (cleanText.length < 100 && /wrote|skrev|écrit/i.test(cleanText)) {
+    return true;
+  }
+  
+  return false;
+}
+
+function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessage | null {
+  // Skip header-only content (e.g., just "On ... wrote:" lines)
+  if (isHeaderOnlyContent(raw)) {
+    return null;
+  }
+  
   // CRITICAL: Strip HTML BEFORE parsing to prevent HTML leakage in sender names
   const cleanRaw = stripHtmlSafe(raw);
   
@@ -355,7 +391,9 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     if (quotedHTML.trim()) {
       quoted.push({ kind: 'outlook', raw: quotedHTML });
       const quotedMessage = parseQuotedHeaders(quotedHTML, 'outlook');
-      quotedMessages.push(quotedMessage);
+      if (quotedMessage) {
+        quotedMessages.push(quotedMessage);
+      }
     }
   }
 
@@ -386,7 +424,9 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
         const quotedBlock = { kind, raw };
         quoted.push(quotedBlock);
         const quotedMessage = parseQuotedHeaders(raw, kind);
-        quotedMessages.push(quotedMessage);
+        if (quotedMessage) {
+          quotedMessages.push(quotedMessage);
+        }
       }
       
       node.remove();
@@ -403,7 +443,9 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
       const quotedBlock = { kind: 'header' as const, raw };
       quoted.push(quotedBlock);
       const quotedMessage = parseQuotedHeaders(raw, 'header');
-      quotedMessages.push(quotedMessage);
+      if (quotedMessage) {
+        quotedMessages.push(quotedMessage);
+      }
       
       const marker = lines[headerIdx].trim();
       const idxInHtml = body.innerHTML.indexOf(marker);
@@ -527,7 +569,9 @@ function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBl
     
     // Parse into structured message
     const quotedMessage = parseQuotedHeaders(raw, kind as 'header' | 'plain');
-    quotedMessages.push(quotedMessage);
+    if (quotedMessage) {
+      quotedMessages.push(quotedMessage);
+    }
   }
 
   const visible = cut > -1 ? lines.slice(0, cut).join('\n') : lines.join('\n');
