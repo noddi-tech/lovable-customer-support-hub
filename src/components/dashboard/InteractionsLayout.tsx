@@ -39,6 +39,9 @@ interface Conversation {
     full_name: string;
     avatar_url?: string;
   };
+  thread_ids?: string[];
+  thread_count?: number;
+  _fetchIds?: string | string[];
 }
 
 interface InteractionsLayoutProps {
@@ -86,8 +89,23 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
 
   // Handle conversation selection
   const handleSelectConversation = useCallback((conversation: Conversation) => {
-    console.log('Selecting conversation:', conversation.id);
-    setSelectedConversation(conversation);
+    // If this is a grouped thread, prepare to fetch from all thread IDs
+    const conversationIdsToFetch = conversation.thread_ids && conversation.thread_ids.length > 1
+      ? conversation.thread_ids
+      : conversation.id;
+    
+    console.log('[InteractionsLayout] Selecting conversation:', {
+      conversationId: conversation.id,
+      isThreaded: conversation.thread_ids && conversation.thread_ids.length > 1,
+      threadCount: conversation.thread_count,
+      threadIds: conversation.thread_ids,
+      fetchingFrom: conversationIdsToFetch
+    });
+    
+    setSelectedConversation({
+      ...conversation,
+      _fetchIds: conversationIdsToFetch
+    });
     
     // Update URL with conversation ID
     const newParams = new URLSearchParams(searchParams);
@@ -210,7 +228,10 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
           
           {selectedConversation ? (
             <div className="flex-1 min-h-0">
-              <ConversationView conversationId={selectedConversation.id} />
+              <ConversationView 
+                conversationId={selectedConversation.id}
+                conversationIds={selectedConversation._fetchIds}
+              />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center flex-1 text-center p-8 bg-card m-4 rounded-lg">

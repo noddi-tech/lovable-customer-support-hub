@@ -25,26 +25,40 @@ function applyThreadFilter(q: any, seed: {
   return q.gte('created_at', sinceIso);
 }
 
-export function useThreadMessages(conversationId?: string) {
+export function useThreadMessages(conversationIds?: string | string[]) {
   const { user } = useAuth();
 
+  // Normalize to array and log
+  const ids = conversationIds 
+    ? (Array.isArray(conversationIds) ? conversationIds : [conversationIds])
+    : [];
+  
   // Debug logging flag
   const isDebugMode = import.meta.env.VITE_UI_PROBE === '1';
+  
+  // Debug: Log what we're fetching
+  if (isDebugMode || ids.length > 1) {
+    console.log('[useThreadMessages] Fetching messages for conversation(s):', {
+      input: conversationIds,
+      normalized: ids,
+      isThread: ids.length > 1
+    });
+  }
 
   // Real-time subscription for messages
   useSimpleRealtimeSubscriptions(
-    conversationId ? [{ 
+    ids.length > 0 ? [{ 
       table: 'messages', 
       queryKey: 'thread-messages'
     }] : [],
-    !!conversationId
+    ids.length > 0
   );
 
   return useInfiniteQuery({
-    queryKey: ["thread-messages", conversationId, user?.id],
+    queryKey: ["thread-messages", ...(ids.length > 0 ? ids : ['none']), user?.id],
     initialPageParam: null as string | null, // created_at cursor
     queryFn: async ({ pageParam }) => {
-      if (!conversationId) {
+      if (ids.length === 0) {
         return {
           rows: [] as NormalizedMessage[],
           oldestCursor: null as string | null,
@@ -53,11 +67,11 @@ export function useThreadMessages(conversationId?: string) {
         };
       }
 
-      // 1) Seed from newest few rows of this conversation
+      // 1) Seed from newest few rows of these conversation(s)
       const seedSel = supabase
         .from("messages")
         .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address))")
-        .eq("conversation_id", conversationId)
+        .in("conversation_id", ids)
         .order("created_at", { ascending: false })
         .limit(5);
 
@@ -83,7 +97,7 @@ export function useThreadMessages(conversationId?: string) {
       let base = supabase
         .from("messages")
         .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address))")
-        .eq("conversation_id", conversationId) // Filter by conversation first
+        .in("conversation_id", ids) // Filter by conversation(s)
         .order("created_at", { ascending: false })
         .limit(pageParam ? PAGE : INITIAL);
 
@@ -104,7 +118,8 @@ export function useThreadMessages(conversationId?: string) {
 
       // Debug logging - track raw DB response
       console.log('[useThreadMessages] Raw DB response:', {
-        conversationId,
+        conversationIds: ids,
+        isThreadedFetch: ids.length > 1,
         rowCount: rows?.length,
         messageIds: rows?.map(r => ({
           id: r.id,
@@ -117,7 +132,8 @@ export function useThreadMessages(conversationId?: string) {
       // Debug logging for pagination
       if (isDebugMode && rows) {
         console.debug('[useThreadMessages] page fetched', {
-          conversationId,
+          conversationIds: ids,
+          isThreadedFetch: ids.length > 1,
           isInitialPage: !pageParam,
           limit: pageParam ? PAGE : INITIAL,
           rowsReturned: rows.length,
@@ -137,7 +153,7 @@ export function useThreadMessages(conversationId?: string) {
         let countQ = supabase
           .from("messages")
           .select("*", { count: "exact", head: true })
-          .eq("conversation_id", conversationId);
+          .in("conversation_id", ids);
         
         // Apply the same thread filter to get accurate count
         countQ = applyThreadFilter(countQ, {
@@ -155,7 +171,8 @@ export function useThreadMessages(conversationId?: string) {
         // Debug logging
         if (isDebugMode) {
           console.debug('[useThreadMessages] count query', { 
-            conversationId, 
+            conversationIds: ids,
+            isThreadedFetch: ids.length > 1,
             totalCount,
             messageIds: messageIds.length,
             references: references.length,
@@ -198,7 +215,8 @@ export function useThreadMessages(conversationId?: string) {
         confidence = 'low';
         if (isDebugMode) {
           console.debug('[useThreadMessages] low confidence due to small initial page', {
-            conversationId,
+            conversationIds: ids,
+            isThreadedFetch: ids.length > 1,
             initialRowCount: rows.length
           });
         }
@@ -207,7 +225,7 @@ export function useThreadMessages(conversationId?: string) {
       return { rows: normalized, oldestCursor, hasMore, totalCount, confidence };
     },
     getNextPageParam: (last) => (last.hasMore ? last.oldestCursor : undefined),
-    enabled: !!conversationId,
+    enabled: ids.length > 0,
     staleTime: 10_000,
     gcTime: 120_000,
   });

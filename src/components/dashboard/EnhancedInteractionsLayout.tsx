@@ -44,6 +44,9 @@ interface Conversation {
     full_name: string;
     avatar_url?: string;
   };
+  thread_ids?: string[];
+  thread_count?: number;
+  _fetchIds?: string | string[];
 }
 
 interface EnhancedInteractionsLayoutProps {
@@ -149,6 +152,16 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     // Mark as read if it's unread
     if (conversation.unread) {
       markAsReadMutation.mutate(conversation.id);
+    }
+    
+    // Log thread selection for debugging
+    const conv = conversation as any;
+    if (conv.thread_ids && conv.thread_ids.length > 1) {
+      console.log('[EnhancedInteractionsLayout] Selected threaded conversation:', {
+        conversationId: conversation.id,
+        threadCount: conv.thread_count,
+        threadIds: conv.thread_ids
+      });
     }
   }, [navigation, markAsReadMutation]);
 

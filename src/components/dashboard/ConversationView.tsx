@@ -22,10 +22,11 @@ import { ConversationViewContent } from './conversation-view/ConversationViewCon
 
 interface ConversationViewProps {
   conversationId: string | null;
+  conversationIds?: string | string[];
   showSidePanel?: boolean;
 }
 
-export const ConversationView: React.FC<ConversationViewProps> = ({ conversationId, showSidePanel = true }) => {
+export const ConversationView: React.FC<ConversationViewProps> = ({ conversationId, conversationIds, showSidePanel = true }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -91,7 +92,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ conversation
   }
 
   return (
-    <ConversationViewProvider conversationId={conversationId}>
+    <ConversationViewProvider conversationId={conversationId} conversationIds={conversationIds}>
       <ConversationViewContent 
         conversationId={conversationId}
         conversation={conversation}

@@ -3,8 +3,8 @@ import { NormalizationContext, expandQuotedMessagesToCards } from "@/lib/normali
 import { ENABLE_QUOTED_EXTRACTION } from "@/lib/parseQuotedEmail";
 import { logger } from "@/utils/logger";
 
-export function useThreadMessagesList(conversationId?: string, context?: NormalizationContext) {
-  const q = useThreadMessages(conversationId);
+export function useThreadMessagesList(conversationIds?: string | string[], context?: NormalizationContext) {
+  const q = useThreadMessages(conversationIds);
 
   const pages = q.data?.pages ?? [];
   const raw = pages.flatMap(p => p.rows);

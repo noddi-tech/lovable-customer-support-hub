@@ -154,6 +154,7 @@ interface ConversationViewContextType {
   moveInboxes: any[];
   isLoading: boolean;
   messagesLoading: boolean;
+  conversationIds?: string | string[];
   sendReply: (content: string, isInternal: boolean, status?: string) => Promise<void>;
   assignConversation: (userId: string) => Promise<void>;
   moveConversation: (inboxId: string) => Promise<void>;
@@ -172,9 +173,10 @@ const ConversationViewContext = createContext<ConversationViewContextType | unde
 interface ConversationViewProviderProps {
   children: ReactNode;
   conversationId: string | null;
+  conversationIds?: string | string[];
 }
 
-export const ConversationViewProvider = ({ children, conversationId }: ConversationViewProviderProps) => {
+export const ConversationViewProvider = ({ children, conversationId, conversationIds }: ConversationViewProviderProps) => {
   const [state, dispatch] = useReducer(conversationViewReducer, initialState);
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -851,6 +853,7 @@ export const ConversationViewProvider = ({ children, conversationId }: Conversat
     moveInboxes,
     isLoading,
     messagesLoading,
+    conversationIds,
     sendReply,
     assignConversation,
     moveConversation,

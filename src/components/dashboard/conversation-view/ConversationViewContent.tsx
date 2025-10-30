@@ -54,6 +54,9 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  
+  // Get conversationIds from context for thread viewing
+  const { conversationIds } = useConversationView();
 
   // Enable keyboard shortcuts for status changes
   useConversationShortcuts();
@@ -146,7 +149,8 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
         {/* Messages Area with Progressive Loading */}
         <div className="flex-1 min-h-0 w-full flex flex-col bg-white">
           <ProgressiveMessagesList 
-            conversationId={conversationId} 
+            conversationId={conversationId}
+            conversationIds={conversationIds}
             conversation={conversation}
           />
           <div className="border-t border-border bg-white">

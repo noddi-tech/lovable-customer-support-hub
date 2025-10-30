@@ -12,13 +12,15 @@ import { cn } from "@/lib/utils";
 interface ProgressiveMessagesListProps {
   conversationId: string;
   conversation: any;
+  conversationIds?: string | string[];
   onEditMessage?: (messageId: string, content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
 }
 
 export const ProgressiveMessagesList = ({ 
   conversationId, 
-  conversation, 
+  conversation,
+  conversationIds,
   onEditMessage, 
   onDeleteMessage 
 }: ProgressiveMessagesListProps) => {
@@ -40,6 +42,20 @@ export const ProgressiveMessagesList = ({
     conversationCustomerName: conversation?.customer?.full_name,
   }), [user?.email, conversation?.customer?.email, conversation?.customer?.full_name]);
   
+  // Use conversationIds if provided (for thread view), otherwise use single conversationId
+  const fetchIds = conversationIds || conversationId;
+  
+  // Log when using thread view
+  useEffect(() => {
+    if (conversationIds && Array.isArray(conversationIds) && conversationIds.length > 1) {
+      console.log('[ProgressiveMessagesList] Displaying thread with multiple conversations:', {
+        primaryId: conversationId,
+        threadIds: conversationIds,
+        threadCount: conversationIds.length
+      });
+    }
+  }, [conversationId, conversationIds]);
+  
   const {
     messages,
     totalCount,
@@ -52,7 +68,7 @@ export const ProgressiveMessagesList = ({
     fetchNextPage,
     isLoading,
     error
-  } = useThreadMessagesList(conversationId, normalizationCtx);
+  } = useThreadMessagesList(fetchIds, normalizationCtx);
 
   // Initialize collapsed state - collapse all messages except the LAST one (newest)
   useEffect(() => {
