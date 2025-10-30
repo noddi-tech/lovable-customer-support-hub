@@ -13,6 +13,7 @@ import { displayName } from '@/utils/noddiHelpers';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCustomerCacheKey } from '@/utils/customerCacheKey';
+import { logger } from '@/utils/logger';
 import { useAuth } from '@/hooks/useAuth';
 
 interface NoddiCustomerDetailsProps {
@@ -245,25 +246,15 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   
   const hasAnyBookingData = hasBooking || hasUnpaidBookings || hasBookingHistory;
 
-  // ADD COMPREHENSIVE DEBUGGING
-  console.group('[NoddiCustomerDetails] 🔍 Full Data Analysis');
-  console.log('noddiData (full):', noddiData);
-  console.log('displayedData (full):', displayedData);
-  console.log('data.priority_booking:', data.priority_booking);
-  console.log('data.priority_booking_type:', data.priority_booking_type);
-  console.log('data.unpaid_count:', data.unpaid_count);
-  console.log('data.unpaid_bookings:', data.unpaid_bookings);
-  console.log('data.all_user_groups:', data.all_user_groups);
-  console.log('Computed booleans:', {
+  // Debug booking data analysis (only in DEBUG mode)
+  logger.debug('Noddi data analysis', {
     hasBooking,
     hasUnpaidBookings,
     hasAnyBookingData,
     unpaidCount,
-    isPriority
-  });
-  console.log('noddiData.source:', noddiData?.source);
-  console.log('Data cache timestamp:', noddiData?.data?.ui_meta?.source);
-  console.groupEnd();
+    isPriority,
+    source: noddiData?.source
+  }, 'NoddiCustomerDetails');
   
   // Extract partner URLs
   const customerUrl = data.ui_meta?.partner_urls?.customer_url;

@@ -1,6 +1,7 @@
 import { useThreadMessages } from "./useThreadMessages";
 import { NormalizationContext, expandQuotedMessagesToCards } from "@/lib/normalizeMessage";
 import { ENABLE_QUOTED_EXTRACTION } from "@/lib/parseQuotedEmail";
+import { logger } from "@/utils/logger";
 
 export function useThreadMessagesList(conversationId?: string, context?: NormalizationContext) {
   const q = useThreadMessages(conversationId);
@@ -36,13 +37,13 @@ export function useThreadMessagesList(conversationId?: string, context?: Normali
     ? expandQuotedMessagesToCards(dedupedMessages, context)
     : dedupedMessages;
 
-  console.log('[Thread Expansion]', {
+  logger.debug('Thread expansion stats', {
     enabled: ENABLE_QUOTED_EXTRACTION,
     hasContext: !!context,
     originalCount: dedupedMessages.length,
     expandedCount: expandedMessages.length,
     added: expandedMessages.length - dedupedMessages.length
-  });
+  }, 'Thread');
 
   // Sort by creation time (newest first)
   const messages = expandedMessages.sort((a,b) => {

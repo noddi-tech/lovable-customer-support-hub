@@ -252,7 +252,7 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__plain-content {
     @apply prose prose-sm dark:prose-invert max-w-none;
     white-space: pre-wrap !important;
-    line-height: 1.75 !important;
+    line-height: 1.6 !important;
     margin-top: 0.25em !important;
     color: hsl(var(--foreground));
     font-size: 14px;
@@ -262,8 +262,8 @@ Optimized for accessibility with WCAG AA compliance.
   /* Paragraph spacing - clear and consistent */
   .email-render__html-content p,
   .email-render__plain-content p {
-    margin-bottom: 1em !important;
-    line-height: 1.75;
+    margin-bottom: 0.75em !important;
+    line-height: 1.6;
   }
 
   .email-render__html-content p:last-child,

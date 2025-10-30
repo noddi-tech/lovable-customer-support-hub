@@ -4,6 +4,7 @@
  */
 
 import { parseQuotedEmail, type QuotedBlock, type QuotedMessage } from './parseQuotedEmail';
+import { logger } from '@/utils/logger';
 
 // Helper function to parse raw email header string (e.g., "From: ...\nSubject: ...\n")
 function parseRawHeaders(raw: string): Record<string, any> {
@@ -483,13 +484,13 @@ export function expandQuotedMessagesToCards(
     for (let i = 0; i < quotedMessages.length; i++) {
       const quoted = quotedMessages[i];
       
-      // Skip if confidence is too low
-      if (quoted.confidence === 'low') {
-        console.log('[expandQuoted] Skipping low confidence quoted message', {
+      // Skip if confidence is explicitly 'none' - but accept 'low' confidence
+      if (quoted.confidence === 'none') {
+        logger.debug('Skipping no-confidence quoted message', {
           parentId: message.id,
           index: i,
           confidence: quoted.confidence
-        });
+        }, 'Thread');
         continue;
       }
       
@@ -523,7 +524,7 @@ export function expandQuotedMessagesToCards(
         }
       };
       
-      console.log('[expandQuoted] Created quoted message card', {
+      logger.debug('Created quoted message card', {
         id: quotedNormalized.id,
         dedupKey: quotedNormalized.dedupKey,
         authorType: quotedNormalized.authorType,
