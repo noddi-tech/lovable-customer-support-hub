@@ -124,7 +124,8 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
     if (urlConversation && conversationIdFromUrl && !selectedConversation) {
       console.log('[EnhancedInteractionsLayout] Auto-selecting conversation from URL:', {
         conversationId: urlConversation.id,
-        subject: urlConversation.subject
+        subject: urlConversation.subject,
+        _fetchIds: urlConversation.id
       });
       
       setSelectedConversation({

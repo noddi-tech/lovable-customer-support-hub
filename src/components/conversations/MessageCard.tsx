@@ -359,7 +359,7 @@ export const MessageCard = ({
         </div>
         
         <CollapsibleContent>
-          <div className="p-3 pt-2 min-w-0 overflow-hidden">
+          <div className="p-2 pt-1 min-w-0 overflow-hidden">
             {/* Main message content */}
             <div className="mt-2">
               <EmailRender
