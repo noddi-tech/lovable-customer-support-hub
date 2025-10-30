@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { type NormalizedMessage } from "@/lib/normalizeMessage";
 import { MessageDebugProbe } from "./MessageDebugProbe";
+import { EmailDebugOverlay } from "./EmailDebugOverlay";
 import { stripHtml } from "@/utils/stripHtml";
 import { getSmartPreview } from "@/utils/messagePreview";
 
@@ -156,14 +157,18 @@ export const MessageCard = ({
   };
 
   return (
-    <div className={cn(
-      "group relative rounded-xl border transition-all duration-200",
-      "shadow-sm hover:shadow-md hover:border-primary/40",
-      isCustomer()
-        ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/40"
-        : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
-      tne.border
-    )}>
+    <div 
+      data-message-id={message.id}
+      data-author-type={message.authorType || 'unknown'}
+      data-is-customer={isCustomer()}
+      className={cn(
+        "group relative rounded-xl border transition-all duration-200",
+        "shadow-sm hover:shadow-md hover:border-primary/40",
+        isCustomer()
+          ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/40"
+          : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
+        tne.border
+      )}>
       <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl transition-all duration-200", tne.accentBar)} />
       
       <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
@@ -384,6 +389,9 @@ export const MessageCard = ({
                 attachments={[]}
                 messageId={message.id}
               />
+              
+              {/* Debug overlay - only shows when VITE_UI_PROBE=1 */}
+              <EmailDebugOverlay messageId={message.id} />
             </div>
             
             {/* Attachment Rail - Below message content */}

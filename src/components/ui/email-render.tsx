@@ -277,6 +277,17 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
         );
       }
       
+      // Debug logging
+      if (import.meta.env.VITE_UI_PROBE === '1') {
+        console.log('[EmailRender] Rendering HTML:', {
+          messageId,
+          contentType,
+          className: 'email-render__html-content',
+          hasQuotedBlocks: tempDiv.querySelectorAll('.collapsible-quote').length > 0,
+          contentPreview: sanitizedContent.slice(0, 100),
+        });
+      }
+      
       return (
         <div 
           className="email-render__html-content prose prose-sm dark:prose-invert max-w-none"
@@ -286,6 +297,16 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
     } else {
       // Plain text - format as structured HTML for consistency
       const formattedHtml = formatPlainTextEmail(contentToRender);
+      
+      // Debug logging
+      if (import.meta.env.VITE_UI_PROBE === '1') {
+        console.log('[EmailRender] Rendering Plain Text:', {
+          messageId,
+          contentType,
+          className: 'email-render__plain-content',
+          contentPreview: formattedHtml.slice(0, 100),
+        });
+      }
       
       return (
         <div 
