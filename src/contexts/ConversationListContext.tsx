@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { useSimpleRealtimeSubscriptions } from '@/hooks/useSimpleRealtimeSubscriptions';
+import { groupConversationsByThread } from '@/lib/conversationThreading';
 
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -47,6 +48,9 @@ export interface Conversation {
   first_response_at?: string;
   sla_breach_at?: string;
   slaStatus?: 'on_track' | 'at_risk' | 'breached' | 'met';
+  thread_count?: number; // Number of conversations in this thread
+  thread_ids?: string[]; // IDs of all conversations in thread
+  is_thread_representative?: boolean; // True for the main/latest conversation in thread
 }
 
 interface ConversationListState {
@@ -268,11 +272,22 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     }
   });
 
-  // Flatten paginated data
-  const conversations = useMemo(() => 
-    data?.pages.flatMap(page => page.conversations) || [],
-    [data]
-  );
+  // Flatten paginated data and apply threading
+  const conversations = useMemo(() => {
+    const flattened = data?.pages.flatMap(page => page.conversations) || [];
+    
+    // Apply conversation threading to group related conversations
+    // This groups conversations from the same customer with the same subject
+    const threaded = groupConversationsByThread(flattened);
+    
+    logger.debug('Conversation threading applied', {
+      original: flattened.length,
+      afterThreading: threaded.length,
+      reduced: flattened.length - threaded.length
+    }, 'ConversationListProvider');
+    
+    return threaded;
+  }, [data]);
   
   const totalCount = data?.pages[0]?.totalCount || 0;
 

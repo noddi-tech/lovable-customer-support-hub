@@ -161,6 +161,11 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
       <TableCell className="p-2">
         <div className="flex items-center gap-2">
           <span className="text-sm truncate">{computedValues.subjectText}</span>
+          {conversation.thread_count && conversation.thread_count > 1 && (
+            <Badge variant="outline" className="px-1.5 py-0 text-xs shrink-0 border-primary/30 text-primary bg-primary/5">
+              {conversation.thread_count}
+            </Badge>
+          )}
           {!conversation.is_read && (
             <Badge className="bg-blue-500 text-white px-1.5 py-0 text-xs shrink-0">
               New
