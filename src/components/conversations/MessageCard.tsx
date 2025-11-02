@@ -178,28 +178,32 @@ export const MessageCard = ({
       data-author-type={message.authorType || 'unknown'}
       data-is-customer={isCustomer()}
       className={cn(
-        "group relative rounded-xl border transition-all duration-200",
-        "shadow-sm hover:shadow-md hover:border-primary/40",
-        isCustomer()
-          ? "bg-indigo-50 dark:bg-indigo-900/15 border-indigo-100 dark:border-indigo-800/30"
-          : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
-        tne.border
+        "group relative rounded-lg border transition-all duration-200",
+        "bg-white dark:bg-gray-900/50",
+        "border-gray-200 dark:border-gray-800",
+        "hover:border-gray-300 dark:hover:border-gray-700",
+        isCustomer() && "border-l-indigo-400 dark:border-l-indigo-500"
       )}>
-      <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl transition-all duration-200", tne.accentBar)} />
+      <div className={cn(
+        "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg transition-all duration-200",
+        isCustomer() 
+          ? "bg-indigo-500" 
+          : "bg-gray-400 dark:bg-gray-600"
+      )} />
       
       <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
         {/* Card Header - improved spacing */}
-        <div className={cn("px-4 py-3", !isCollapsed && "bg-muted/20 border-b")}>
+        <div className={cn("px-8 py-5", !isCollapsed && "border-b border-gray-100 dark:border-gray-800")}>
           <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4 min-w-0 flex-1">
-              <Avatar className="h-10 w-10 ring-2 ring-border shrink-0">
+            <div className="flex items-start gap-5 min-w-0 flex-1">
+              <Avatar className="h-10 w-10 ring-1 ring-gray-200 dark:ring-gray-700 shrink-0">
                 <AvatarFallback className="text-sm font-medium">
                   {initial}
                 </AvatarFallback>
               </Avatar>
               
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
+                <div className="flex flex-wrap items-center gap-3 mb-1.5">
                   <span className="font-semibold text-base leading-tight">
                     {display}
                   </span>
@@ -223,7 +227,7 @@ export const MessageCard = ({
                 </div>
 
                 {/* Recipients chips - better spacing */}
-                <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                   <span className="text-muted-foreground font-medium">{t('mail.to') || 'To:'}</span>
                   {toShown.length > 0 && toShown.map((name) => (
                     <Badge
@@ -359,7 +363,7 @@ export const MessageCard = ({
         </div>
         
         <CollapsibleContent>
-          <div className="p-0 min-w-0 overflow-hidden">
+          <div className="px-8 py-4 min-w-0 overflow-hidden">
             {/* Main message content */}
             <div className="mt-0">
               <EmailRender
@@ -375,7 +379,7 @@ export const MessageCard = ({
             
             {/* Attachment Rail - Below message content */}
             {!isCollapsed && attachments.length > 0 && (
-              <div className="mt-6 pt-4 border-t">
+              <div className="px-8 pb-5 border-t border-gray-100 dark:border-gray-800">
                 <div className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-2">
                   <Paperclip className="h-3 w-3" />
                   {attachments.length} {attachments.length === 1 ? 'Attachment' : 'Attachments'}
@@ -409,7 +413,7 @@ export const MessageCard = ({
             
             {/* Quoted content toggle - Enhanced styling */}
             {hasQuotedContent && (
-              <div className="mt-6 pt-6 border-t border-dashed">
+              <div className="px-8 py-4 border-t border-dashed border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setShowQuotedContent(!showQuotedContent)}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
