@@ -25,8 +25,10 @@ import {
   Shield,
   Mail,
   Route,
-  Brain
+  Brain,
+  Crown
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { Heading } from '@/components/ui/heading';
 
@@ -38,6 +40,7 @@ const AdminSidebar = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const { state } = useSidebar();
+  const { isSuperAdmin } = useAuth();
 
   const organizationItems = [
     {
@@ -84,6 +87,27 @@ const AdminSidebar = () => {
       url: '/admin/knowledge',
       icon: Brain,
       group: 'intelligence'
+    }
+  ];
+
+  const superAdminItems = [
+    {
+      title: 'Super Admin Dashboard',
+      url: '/super-admin/dashboard',
+      icon: Crown,
+      group: 'super-admin'
+    },
+    {
+      title: 'Manage Organizations',
+      url: '/super-admin/organizations',
+      icon: Building,
+      group: 'super-admin'
+    },
+    {
+      title: 'All Users',
+      url: '/super-admin/users',
+      icon: Users,
+      group: 'super-admin'
     }
   ];
 
@@ -189,6 +213,29 @@ const AdminSidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-yellow-600 dark:text-yellow-500 font-semibold">
+              <Crown className="h-4 w-4 inline mr-2" />
+              Super Admin
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {superAdminItems.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <a href={item.url} className="text-yellow-700 dark:text-yellow-400">
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

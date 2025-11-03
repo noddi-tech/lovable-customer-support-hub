@@ -29,12 +29,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/hooks/useAuth';
+import { Crown } from 'lucide-react';
 
 export const SettingsSidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { hasPermission } = usePermissions();
+  const { isSuperAdmin } = useAuth();
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
@@ -172,6 +175,34 @@ export const SettingsSidebar: React.FC = () => {
             })}
           </SidebarMenu>
         </SidebarGroup>
+
+        {isSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-yellow-600 dark:text-yellow-500 font-semibold flex items-center gap-2">
+              <Crown className="h-4 w-4" />
+              Super Admin
+            </SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild
+                  isActive={isActive('/super-admin')}
+                >
+                  <button
+                    onClick={() => navigate('/super-admin/dashboard')}
+                    className={cn(
+                      "w-full justify-start gap-2 text-yellow-700 dark:text-yellow-400",
+                      isActive('/super-admin') && "bg-yellow-100 dark:bg-yellow-950/30"
+                    )}
+                  >
+                    <Crown className="h-4 w-4" />
+                    Super Admin Portal
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       
       <SidebarFooter className="border-t border-sidebar-border p-4">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { ModernHeader } from './ModernHeader';
 import { ModernSidebar } from './ModernSidebar';
+import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
 import { useIsMobile } from '@/hooks/use-responsive';
 
 interface ModernLayoutProps {
@@ -21,10 +22,13 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
   return (
     <div className="h-svh grid grid-rows-[auto_1fr] bg-background overflow-hidden">
       {/* Header */}
-      <ModernHeader
-        onSidebarToggle={handleSidebarToggle}
-        showSidebarToggle={isMobile}
-      />
+      <div className="border-b border-border flex items-center">
+        <ModernHeader
+          onSidebarToggle={handleSidebarToggle}
+          showSidebarToggle={isMobile}
+        />
+        <OrganizationSwitcher />
+      </div>
       
       {/* Main */}
       <main className="grid grid-cols-[280px_minmax(0,1fr)] min-h-0 overflow-hidden">

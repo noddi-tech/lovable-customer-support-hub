@@ -10,6 +10,7 @@ import { AircallProvider } from "@/contexts/AircallContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import { SuperAdminRoute } from "@/components/auth/SuperAdminRoute";
 import { I18nWrapper } from "@/components/i18n/I18nWrapper";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { ControlDoctor } from "@/dev/ControlDoctor";
@@ -24,6 +25,10 @@ import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
 import AdminDesignComponentsPage from "./pages/AdminDesignComponentsPage";
 import KnowledgeManagement from "./pages/KnowledgeManagement";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import OrganizationManagement from "./pages/OrganizationManagement";
+import OrganizationDetails from "./pages/OrganizationDetails";
+import AllUsersManagement from "./pages/AllUsersManagement";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
@@ -103,6 +108,13 @@ const AppContent = () => {
       <Route path="/admin/design/components" element={<ProtectedRoute><AdminRoute><AdminDesignComponentsPage /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/debug" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
+      
+      {/* Super Admin Routes */}
+      <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
+      <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/organizations" element={<ProtectedRoute><SuperAdminRoute><OrganizationManagement /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/organizations/:id" element={<ProtectedRoute><SuperAdminRoute><OrganizationDetails /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/users" element={<ProtectedRoute><SuperAdminRoute><AllUsersManagement /></SuperAdminRoute></ProtectedRoute>} />
       
       {/* Static Pages */}
       <Route path="/privacy" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
