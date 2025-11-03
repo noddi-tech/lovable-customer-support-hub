@@ -95,6 +95,11 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
       );
       
       if (selectedGroupData) {
+        // Filter unpaid bookings for this specific group
+        const groupUnpaidBookings = (noddiData.data.unpaid_bookings || []).filter(
+          (booking: any) => booking.user_group_id === selectedUserGroupId
+        );
+        
         return {
           ...noddiData,
           data: {
@@ -102,9 +107,12 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             user_group_id: selectedGroupData.id,
             priority_booking: selectedGroupData.booking,
             priority_booking_type: selectedGroupData.booking_type,
+            unpaid_count: selectedGroupData.bookings_summary?.unpaid_count || 0,
+            unpaid_bookings: groupUnpaidBookings,
             ui_meta: {
               ...noddiData.data.ui_meta,
               user_group_badge: selectedGroupData.id,
+              unpaid_count: selectedGroupData.bookings_summary?.unpaid_count || 0,
               status_label: selectedGroupData.booking?.status?.label || null,
               booking_date_iso: selectedGroupData.booking?.deliveryWindowStartsAt || selectedGroupData.booking?.completedAt || null,
               vehicle_label: selectedGroupData.booking?.vehicle?.registrationNumber || selectedGroupData.booking?.vehicle?.label || null,
@@ -234,14 +242,17 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   }
 
   const { data } = displayedData;
-  const customerDisplayName = displayName(data.user, customerEmail);
+  
+  // Select the correct user group - prioritize selected group, then default group
+  const userGroup = data.all_user_groups?.find(
+    (g: any) => g.id === (selectedUserGroupId || data.user_group_id)
+  ) || data.all_user_groups?.[0];
+  
+  const customerDisplayName = userGroup?.name || displayName(data.user, customerEmail);
   const unpaidCount = data.unpaid_count || 0;
   const isPriority = data.priority_booking_type === 'upcoming';
   const hasBooking = data.priority_booking != null;
   const hasUnpaidBookings = unpaidCount > 0;
-  
-  // Extract booking summary from user groups
-  const userGroup = data.all_user_groups?.[0];
   const bookingsSummary = userGroup?.bookings_summary;
   const hasBookingHistory = (bookingsSummary?.total_count || 0) > 0;
   
