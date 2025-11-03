@@ -268,6 +268,7 @@ export const ServiceTicketDetailsDialog = ({
                     customerEmail={ticket.customer_email}
                     customerPhone={ticket.customer_phone}
                     customerName={ticket.customer_name}
+                    noddiEmail={ticket.metadata?.noddi_email}
                   />
                 )}
               </CardContent>
@@ -410,6 +411,7 @@ export const ServiceTicketDetailsDialog = ({
           noddiUserId: ticket.noddi_user_id,
         }}
         currentBookingId={ticket.noddi_booking_id}
+        ticketMetadata={ticket.metadata}
         open={linkCustomerOpen}
         onOpenChange={setLinkCustomerOpen}
         onSuccess={() => {

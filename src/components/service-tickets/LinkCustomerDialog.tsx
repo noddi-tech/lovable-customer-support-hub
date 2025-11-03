@@ -19,6 +19,7 @@ interface LinkCustomerDialogProps {
     noddiUserId?: number;
   };
   currentBookingId?: number;
+  ticketMetadata?: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -28,6 +29,7 @@ export const LinkCustomerDialog = ({
   ticketId,
   currentCustomer,
   currentBookingId,
+  ticketMetadata,
   open,
   onOpenChange,
   onSuccess,
@@ -115,9 +117,10 @@ export const LinkCustomerDialog = ({
           updates.noddi_user_group_id = selectedCustomer.metadata.user_group_id;
         }
         
-        // Store Noddi email in metadata for lookups
+        // Store Noddi email in metadata for lookups (preserve existing metadata)
         if (noddiEmail) {
           updates.metadata = {
+            ...(ticketMetadata || {}),
             noddi_email: noddiEmail
           };
         }

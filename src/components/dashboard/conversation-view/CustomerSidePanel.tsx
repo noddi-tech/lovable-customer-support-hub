@@ -474,6 +474,7 @@ export const CustomerSidePanel = ({
             customerEmail={conversation.customer?.email}
             customerPhone={conversation.customer?.phone}
             customerName={conversation.customer?.full_name}
+            noddiEmail={conversation.customer?.metadata?.alternative_emails?.[0]}
             onDataLoaded={setNoddiData}
             noddiData={noddiData}
             onUserGroupChange={handleUserGroupChange}

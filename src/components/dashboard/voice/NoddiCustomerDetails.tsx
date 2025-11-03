@@ -21,6 +21,7 @@ interface NoddiCustomerDetailsProps {
   customerEmail?: string;
   customerPhone?: string;
   customerName?: string;
+  noddiEmail?: string; // Separate Noddi lookup email
   onDataLoaded?: (data: any) => void;
   noddiData?: any; // External noddi data to override fetch
   onUserGroupChange?: (userGroupId: number) => void;
@@ -32,16 +33,20 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   customerEmail,
   customerPhone,
   customerName,
+  noddiEmail,
   onDataLoaded,
   noddiData: externalNoddiData,
   onUserGroupChange,
   selectedUserGroupId,
 }) => {
+  // Use noddiEmail for lookups if provided, fallback to customerEmail
+  const lookupEmail = noddiEmail || customerEmail;
+  
   // Only fetch if no external data provided
   const { data: fetchedData, isLoading } = useNoddihKundeData(
     externalNoddiData ? null : {
       id: customerId || '',
-      email: customerEmail,
+      email: lookupEmail,
       phone: customerPhone,
       full_name: customerName,
     }
@@ -281,11 +286,23 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Show email alias indicator if using different email for lookups */}
+        {noddiEmail && noddiEmail !== customerEmail && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-xs text-blue-900">
+              Contact email: <strong>{customerEmail}</strong><br />
+              Noddi lookup email: <strong>{noddiEmail}</strong>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Show which email was used for lookup if different */}
         {data.ui_meta?.match_mode === 'email' && 
          data.user?.email && 
          customerEmail && 
-         data.user.email !== customerEmail && (
+         data.user.email !== customerEmail && 
+         !noddiEmail && (
           <Alert className="bg-blue-50 border-blue-200">
             <AlertCircle className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-xs text-blue-900">
