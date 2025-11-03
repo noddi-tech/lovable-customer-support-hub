@@ -2522,6 +2522,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_organization_member: { Args: { _org_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: {
