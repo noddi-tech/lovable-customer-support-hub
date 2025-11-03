@@ -7,12 +7,16 @@ type Permission =
   | 'manage_departments' 
   | 'manage_inboxes'
   | 'manage_settings'
+  | 'manage_system_settings'
   | 'view_all_conversations'
+  | 'view_all_organizations'
+  | 'manage_organizations'
   | 'send_emails'
-  | 'receive_emails';
+  | 'receive_emails'
+  | 'view_system_logs';
 
 export function usePermissions() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
 
   const { data: permissions = [], isLoading } = useQuery({
     queryKey: ["user-permissions", user?.id],
@@ -43,17 +47,20 @@ export function usePermissions() {
   });
 
   const hasPermission = (permission: Permission) => {
+    // Super admins have all permissions
+    if (isSuperAdmin) return true;
     return permissions.includes(permission);
   };
 
   const isAdmin = () => {
-    return hasPermission('manage_users');
+    return isSuperAdmin || hasPermission('manage_users');
   };
 
   return {
     permissions,
     hasPermission,
     isAdmin,
-    isLoading
+    isLoading,
+    isSuperAdmin,
   };
 }

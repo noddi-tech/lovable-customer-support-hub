@@ -66,13 +66,20 @@ export function useSessionValidation() {
         return false;
       }
 
-      const validation = validationData?.[0];
+      const validation = validationData?.[0] as {
+        auth_uid: string;
+        session_valid: boolean;
+        organization_id: string | null;
+        profile_exists: boolean;
+        has_memberships: boolean;
+      } | undefined;
       
-      if (!validation?.session_valid || !validation?.profile_exists || !validation?.organization_id) {
+      // Check if user has profile and either legacy org_id or active memberships
+      if (!validation?.session_valid || !validation?.profile_exists || !validation?.has_memberships) {
         const errorMsg = !validation?.profile_exists 
           ? 'User profile not found'
-          : !validation?.organization_id
-          ? 'Organization not found'
+          : !validation?.has_memberships
+          ? 'No organization access found'
           : 'Session validation failed';
 
         setState({

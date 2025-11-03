@@ -2535,6 +2535,7 @@ export type Database = {
         Args: never
         Returns: {
           auth_uid: string
+          has_memberships: boolean
           organization_id: string
           profile_exists: boolean
           session_valid: boolean

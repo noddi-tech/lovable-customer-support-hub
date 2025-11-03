@@ -1,8 +1,10 @@
 import { useAuth as useSupabaseAuth } from '@/components/auth/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationStore, OrganizationMembership } from '@/stores/organizationStore';
+import { useEffect } from 'react';
 
-export type UserRole = 'admin' | 'agent' | 'user';
+export type UserRole = 'super_admin' | 'admin' | 'agent' | 'user';
 
 export interface UserProfile {
   id: string;
@@ -10,13 +12,14 @@ export interface UserProfile {
   email: string;
   full_name: string;
   role: UserRole;
-  organization_id: string;
+  organization_id: string | null;
   department_id: string | null;
   is_active: boolean;
 }
 
 export const useAuth = () => {
   const { user, session, loading, signOut } = useSupabaseAuth();
+  const { setMemberships, currentOrganizationId, clearOrganizationContext } = useOrganizationStore();
 
   // Fetch user profile data
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -40,8 +43,31 @@ export const useAuth = () => {
     enabled: !!user?.id,
   });
 
+  // Fetch organization memberships
+  const { data: memberships = [], isLoading: membershipsLoading } = useQuery({
+    queryKey: ['organization-memberships', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('organization_memberships')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('is_default', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching organization memberships:', error);
+        return [];
+      }
+
+      return data as OrganizationMembership[];
+    },
+    enabled: !!user?.id,
+  });
+
   // SECURITY: Fetch user roles from user_roles table (server-side truth)
-  const { data: userRoles } = useQuery({
+  const { data: userRoles = [] } = useQuery({
     queryKey: ['user-roles', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -61,23 +87,49 @@ export const useAuth = () => {
     enabled: !!user?.id,
   });
 
+  // Sync memberships to store
+  useEffect(() => {
+    if (memberships.length > 0) {
+      setMemberships(memberships);
+    }
+  }, [memberships, setMemberships]);
+
+  // Clear organization context on sign out
+  const handleSignOut = async () => {
+    clearOrganizationContext();
+    await signOut();
+  };
+
   // SECURITY: Check permissions using server-validated roles
-  const isAdmin = userRoles?.includes('admin') ?? false;
+  const isSuperAdmin = userRoles.includes('super_admin');
+  const isAdmin = userRoles.includes('admin') || isSuperAdmin;
   const canManageUsers = isAdmin;
   const canManageIntegrations = isAdmin;
   
-  // Derive role from userRoles (prefer first role, fallback to profile or 'agent')
-  const userRole: UserRole = (userRoles?.[0] as UserRole) || profile?.role || 'agent';
+  // Derive role from userRoles (prefer super_admin, then admin, then agent)
+  const userRole: UserRole = isSuperAdmin ? 'super_admin' : 
+                             userRoles.includes('admin') ? 'admin' :
+                             userRoles.includes('agent') ? 'agent' : 'user';
+
+  // Get current organization membership
+  const currentMembership = memberships.find(m => m.organization_id === currentOrganizationId);
 
   return {
     user,
     session,
     profile,
-    loading: loading || profileLoading,
-    signOut,
+    loading: loading || profileLoading || membershipsLoading,
+    signOut: handleSignOut,
     role: userRole,
     isAdmin,
+    isSuperAdmin,
     canManageUsers,
     canManageIntegrations,
+    
+    // Multi-org support
+    memberships,
+    currentOrganizationId,
+    currentMembership,
+    organizationId: currentOrganizationId || profile?.organization_id || null,
   };
 };
