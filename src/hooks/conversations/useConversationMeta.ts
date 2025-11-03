@@ -79,7 +79,7 @@ export function useConversationMeta(conversationId?: string) {
       };
     },
     enabled: !!conversationId && !!user,
-    staleTime: 60 * 1000, // 1 minute - meta changes less frequently
+    staleTime: import.meta.env.DEV ? 5 * 1000 : 60 * 1000, // 5 seconds in dev, 1 minute in prod
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
