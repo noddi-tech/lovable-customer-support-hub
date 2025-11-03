@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Phone, 
   PhoneIncoming, 
@@ -11,7 +12,9 @@ import {
   Calendar,
   BarChart3,
   Settings,
-  ArrowRight
+  ArrowRight,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { CallsList } from './CallsList';
 import { CallbackRequestsList } from './CallbackRequestsList';
@@ -29,10 +32,19 @@ export const VoiceDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('recent');
+  const [metricsCollapsed, setMetricsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('voiceDashboardMetricsCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+  
   const { isInitialized, isConnected, initializePhone, showAircallWorkspace } = useAircallPhone();
   const { isConnected: realtimeConnected, lastConnected } = useRealtimeConnectionManager();
   
   const { metrics, isLoading } = useDailyCallMetrics();
+
+  useEffect(() => {
+    localStorage.setItem('voiceDashboardMetricsCollapsed', JSON.stringify(metricsCollapsed));
+  }, [metricsCollapsed]);
 
   const handleLoadPhone = async () => {
     if (!isInitialized) {
@@ -97,39 +109,78 @@ export const VoiceDashboard = () => {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <CallMetricsCard
-          title="Calls Today"
-          value={metrics.totalCalls}
-          trend={metrics.callsTrend}
-          icon="phone"
-          periodLengthDays={1}
-        />
-        <CallMetricsCard
-          title="Avg Duration"
-          value={`${metrics.avgDuration}m`}
-          trend={metrics.durationTrend}
-          icon="clock"
-          periodLengthDays={1}
-        />
-        <CallMetricsCard
-          title="Answer Rate"
-          value={`${metrics.answerRate}%`}
-          trend={metrics.answerRateTrend}
-          icon="check"
-          variant="success"
-          periodLengthDays={1}
-        />
-        <CallMetricsCard
-          title="Missed Today"
-          value={metrics.missedCalls}
-          trend={metrics.missedTrend}
-          icon="x"
-          variant="warning"
-          periodLengthDays={1}
-        />
-      </div>
+      {/* Quick Stats - Collapsible */}
+      <Collapsible
+        open={!metricsCollapsed}
+        onOpenChange={(open) => setMetricsCollapsed(!open)}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Today's Metrics
+            </h2>
+            {metricsCollapsed && (
+              <div className="flex gap-2 text-xs text-muted-foreground">
+                <span>{metrics.totalCalls} calls</span>
+                <span>•</span>
+                <span>{metrics.answerRate}% answered</span>
+                <span>•</span>
+                <span>{metrics.missedCalls} missed</span>
+              </div>
+            )}
+          </div>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2">
+              {metricsCollapsed ? (
+                <>
+                  <span className="text-xs">Show Metrics</span>
+                  <ChevronDown className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  <span className="text-xs">Hide Metrics</span>
+                  <ChevronUp className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        
+        <CollapsibleContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 pb-2">
+            <CallMetricsCard
+              title="Calls Today"
+              value={metrics.totalCalls}
+              trend={metrics.callsTrend}
+              icon="phone"
+              periodLengthDays={1}
+            />
+            <CallMetricsCard
+              title="Avg Duration"
+              value={`${metrics.avgDuration}m`}
+              trend={metrics.durationTrend}
+              icon="clock"
+              periodLengthDays={1}
+            />
+            <CallMetricsCard
+              title="Answer Rate"
+              value={`${metrics.answerRate}%`}
+              trend={metrics.answerRateTrend}
+              icon="check"
+              variant="success"
+              periodLengthDays={1}
+            />
+            <CallMetricsCard
+              title="Missed Today"
+              value={metrics.missedCalls}
+              trend={metrics.missedTrend}
+              icon="x"
+              variant="warning"
+              periodLengthDays={1}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
