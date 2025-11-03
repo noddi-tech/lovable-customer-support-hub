@@ -10,6 +10,7 @@ interface ConversationMeta {
     full_name: string;
     email: string;
     phone?: string;
+    metadata?: any;
   } | null;
   messageCount: number;
   newestMessageId: string | null;
@@ -41,7 +42,7 @@ export function useConversationMeta(conversationId?: string) {
           priority,
           is_read,
           updated_at,
-          customer:customers(id, full_name, email, phone)
+          customer:customers(id, full_name, email, phone, metadata)
         `)
         .eq('id', conversationId)
         .single();
