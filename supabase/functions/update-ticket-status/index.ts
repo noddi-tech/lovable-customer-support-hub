@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('organization_id, full_name')
+      .select('id, organization_id, full_name')
       .eq('user_id', user.id)
       .single();
 
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       old_value: currentTicket.status,
       new_value: body.newStatus,
       comment: body.comment,
-      triggered_by_id: user.id,
+      triggered_by_id: profile.id,
       triggered_by_source: 'manual',
     });
 

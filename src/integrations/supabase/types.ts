@@ -1692,13 +1692,20 @@ export type Database = {
             referencedRelation: "service_tickets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_ticket_attachments_uploaded_by_id_fkey"
+            columns: ["uploaded_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       service_ticket_comments: {
         Row: {
           content: string
           created_at: string
-          created_by_id: string
+          created_by_id: string | null
           id: string
           is_internal: boolean | null
           ticket_id: string
@@ -1707,7 +1714,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
-          created_by_id: string
+          created_by_id?: string | null
           id?: string
           is_internal?: boolean | null
           ticket_id: string
@@ -1716,13 +1723,20 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
-          created_by_id?: string
+          created_by_id?: string | null
           id?: string
           is_internal?: boolean | null
           ticket_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_ticket_comments_created_by_id_fkey"
+            columns: ["created_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_ticket_comments_ticket_id_fkey"
             columns: ["ticket_id"]
@@ -1771,6 +1785,13 @@ export type Database = {
             referencedRelation: "service_tickets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_ticket_events_triggered_by_id_fkey"
+            columns: ["triggered_by_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       service_tickets: {
@@ -1782,7 +1803,7 @@ export type Database = {
           completed_date: string | null
           conversation_id: string | null
           created_at: string
-          created_by_id: string
+          created_by_id: string | null
           custom_fields: Json | null
           customer_address: string | null
           customer_email: string | null
@@ -1819,7 +1840,7 @@ export type Database = {
           completed_date?: string | null
           conversation_id?: string | null
           created_at?: string
-          created_by_id: string
+          created_by_id?: string | null
           custom_fields?: Json | null
           customer_address?: string | null
           customer_email?: string | null
@@ -1856,7 +1877,7 @@ export type Database = {
           completed_date?: string | null
           conversation_id?: string | null
           created_at?: string
-          created_by_id?: string
+          created_by_id?: string | null
           custom_fields?: Json | null
           customer_address?: string | null
           customer_email?: string | null
@@ -1891,7 +1912,7 @@ export type Database = {
             columns: ["assigned_to_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "service_tickets_call_id_fkey"
@@ -1912,7 +1933,7 @@ export type Database = {
             columns: ["created_by_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "service_tickets_customer_id_fkey"

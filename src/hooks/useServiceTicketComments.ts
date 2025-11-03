@@ -26,13 +26,25 @@ export const useServiceTicketComments = (ticketId: string) => {
 
   const addComment = useMutation({
     mutationFn: async ({ content, isInternal }: { content: string; isInternal: boolean }) => {
+      // Get current user's profile ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!profile) throw new Error('User profile not found');
+
       const { data, error } = await supabase
         .from('service_ticket_comments' as any)
         .insert({
           ticket_id: ticketId,
           content,
           is_internal: isInternal,
-          created_by_id: (await supabase.auth.getUser()).data.user?.id,
+          created_by_id: profile.id,
         })
         .select()
         .single();

@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     // Get user's profile
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('organization_id, full_name')
+      .select('id, organization_id, full_name')
       .eq('user_id', user.id)
       .single();
 
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
           event_type: 'field_changed',
           old_value: null,
           new_value: 'Customer linked',
-          triggered_by_id: user.id,
+          triggered_by_id: profile.id,
           triggered_by_source: 'manual',
         });
 

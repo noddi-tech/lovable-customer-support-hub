@@ -40,6 +40,15 @@ export function useUploadTicketAttachment(ticketId: string) {
 
       // Create attachment record
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!profile) throw new Error('User profile not found');
       
       const { data, error } = await supabase
         .from('service_ticket_attachments' as any)
@@ -49,7 +58,7 @@ export function useUploadTicketAttachment(ticketId: string) {
           file_url: publicUrl,
           file_type: file.type,
           file_size_bytes: file.size,
-          uploaded_by_id: user?.id,
+          uploaded_by_id: profile.id,
         })
         .select()
         .single();

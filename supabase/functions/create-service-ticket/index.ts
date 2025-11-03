@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     // Get user's organization
     const { data: profile } = await supabase
       .from('profiles')
-      .select('organization_id, full_name')
+      .select('id, organization_id, full_name')
       .eq('user_id', user.id)
       .single();
 
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
         service_type: body.serviceType,
         tags: body.tags || [],
         sla_due_date: slaDueDate,
-        created_by_id: user.id,
+        created_by_id: profile.id,
       })
       .select('*')
       .single();
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       ticket_id: ticket.id,
       event_type: 'created',
       new_value: 'open',
-      triggered_by_id: user.id,
+      triggered_by_id: profile.id,
       triggered_by_source: 'manual',
     });
 
