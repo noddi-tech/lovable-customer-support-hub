@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { CreateOrganizationModal } from '@/components/organization/CreateOrganizationModal';
 import { Skeleton } from '@/components/ui/skeleton';
+import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 
 export default function OrganizationManagement() {
   const navigate = useNavigate();
@@ -22,8 +23,8 @@ export default function OrganizationManagement() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10">
-      <div className="container mx-auto p-6 space-y-6">
+    <UnifiedAppLayout>
+      <div className="bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10 min-h-full p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -131,6 +132,6 @@ export default function OrganizationManagement() {
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
       />
-    </div>
+    </UnifiedAppLayout>
   );
 }

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditOrganizationModal } from '@/components/organization/EditOrganizationModal';
 import { Organization } from '@/hooks/useOrganizations';
+import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 
 export default function OrganizationDetails() {
   const { id } = useParams<{ id: string }>();
@@ -80,32 +81,36 @@ export default function OrganizationDetails() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-12 w-3/4" />
-        <Skeleton className="h-64 w-full" />
-      </div>
+      <UnifiedAppLayout>
+        <div className="p-6 space-y-6">
+          <Skeleton className="h-12 w-3/4" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </UnifiedAppLayout>
     );
   }
 
   if (!organization) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Organization not found</p>
-            <Button onClick={() => navigate('/super-admin/organizations')} className="mt-4">
-              Back to Organizations
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <UnifiedAppLayout>
+        <div className="p-6">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Organization not found</p>
+              <Button onClick={() => navigate('/super-admin/organizations')} className="mt-4">
+                Back to Organizations
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </UnifiedAppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10">
-      <div className="container mx-auto p-6 space-y-6">
+    <UnifiedAppLayout>
+      <div className="bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10 min-h-full p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button
@@ -272,6 +277,6 @@ export default function OrganizationDetails() {
           organization={organization}
         />
       )}
-    </div>
+    </UnifiedAppLayout>
   );
 }
