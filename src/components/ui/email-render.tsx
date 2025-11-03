@@ -294,7 +294,8 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       );
     } else {
       // Plain text - format as structured HTML for consistency
-      const formattedHtml = formatPlainTextEmail(contentToRender);
+      // contentToRender is already formatted HTML from processedContent memo
+      const formattedHtml = contentToRender;
       
       // Debug logging
       debug.group('[EmailRender] Plain Text', {
