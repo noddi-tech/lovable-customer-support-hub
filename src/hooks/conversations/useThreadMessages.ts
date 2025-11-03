@@ -4,6 +4,7 @@ import { createNormalizationContext, normalizeMessage, NormalizedMessage } from 
 import { canonicalizeEmail, normalizeSubject, extractMessageIds } from "@/lib/emailThreading";
 import { useAuth } from "@/hooks/useAuth";
 import { useSimpleRealtimeSubscriptions } from "@/hooks/useSimpleRealtimeSubscriptions";
+import { logger } from "@/utils/logger";
 
 const INITIAL = 20;
 const PAGE = 25;
@@ -33,19 +34,11 @@ export function useThreadMessages(conversationIds?: string | string[]) {
     ? (Array.isArray(conversationIds) ? conversationIds : [conversationIds])
     : [];
   
-  // Debug logging flag
-  const isDebugMode = import.meta.env.VITE_UI_PROBE === '1';
-  
-  // Debug: Log what we're fetching
-  if (isDebugMode || ids.length > 1) {
-    console.log('[useThreadMessages] Fetching with:', {
-      conversationIds: ids,
-      count: ids.length,
-      isThread: ids.length > 1,
-      firstId: ids[0],
-      allIds: ids
-    });
-  }
+  logger.debug('Fetching thread messages', {
+    conversationIds: ids,
+    count: ids.length,
+    isThread: ids.length > 1
+  }, 'useThreadMessages');
 
   // Real-time subscription for messages
   useSimpleRealtimeSubscriptions(
@@ -118,40 +111,13 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       const { data: rows, error } = await base;
       if (error) throw error;
 
-      // Debug logging - track raw DB response
-      console.log('[useThreadMessages] DB query executed:', {
+      logger.info('DB query executed', {
         queryingConversations: ids,
         conversationCount: ids.length,
         isThreaded: ids.length > 1,
         messagesReturned: rows?.length || 0,
-        pageParam: pageParam || 'initial',
-        messages: rows?.map(r => ({
-          id: r.id,
-          conversation_id: (r as any).conversation_id,
-          email_message_id: r.email_message_id,
-          external_id: r.external_id,
-          subject: r.email_subject,
-          created_at: r.created_at
-        }))
-      });
-
-      // Debug logging for pagination
-      if (isDebugMode && rows) {
-        console.debug('[useThreadMessages] page fetched', {
-          conversationIds: ids,
-          isThreadedFetch: ids.length > 1,
-          isInitialPage: !pageParam,
-          limit: pageParam ? PAGE : INITIAL,
-          rowsReturned: rows.length,
-          firstFiveRows: rows.slice(0, 5).map(r => ({
-            id: r.id,
-            created_at: r.created_at,
-            sender_type: r.sender_type,
-            from: (r.email_headers as any)?.['from'] || (r.email_headers as any)?.['From'],
-            external_id: r.external_id
-          }))
-        });
-      }
+        pageParam: pageParam || 'initial'
+      }, 'useThreadMessages');
 
       // 3) Count once (first page) using the EXACT same filter for thread-aware counting
       let totalCount = 0;
@@ -174,17 +140,14 @@ export function useThreadMessages(conversationIds?: string | string[]) {
         if (cErr) throw cErr;
         totalCount = count ?? 0;
         
-        // Debug logging
-        if (isDebugMode) {
-          console.debug('[useThreadMessages] count query', { 
-            conversationIds: ids,
-            isThreadedFetch: ids.length > 1,
-            totalCount,
-            messageIds: messageIds.length,
-            references: references.length,
-            normSubject: normSubject || 'none'
-          });
-        }
+        logger.debug('Count query executed', { 
+          conversationIds: ids,
+          isThreaded: ids.length > 1,
+          totalCount,
+          messageIds: messageIds.length,
+          references: references.length,
+          normSubject: normSubject || 'none'
+        }, 'useThreadMessages');
       }
 
       // Type the conversation data properly
@@ -219,13 +182,11 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       let confidence: 'high' | 'low' = 'high';
       if (!pageParam && rows && rows.length < 10) {
         confidence = 'low';
-        if (isDebugMode) {
-          console.debug('[useThreadMessages] low confidence due to small initial page', {
-            conversationIds: ids,
-            isThreadedFetch: ids.length > 1,
-            initialRowCount: rows.length
-          });
-        }
+        logger.debug('Low confidence - small initial page', {
+          conversationIds: ids,
+          isThreaded: ids.length > 1,
+          initialRowCount: rows.length
+        }, 'useThreadMessages');
       }
 
       return { rows: normalized, oldestCursor, hasMore, totalCount, confidence };

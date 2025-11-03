@@ -421,13 +421,13 @@ function generateStableDedupKey(raw: any, norm: NormalizedMessage): string {
     raw.message_id ||
     raw.external_id; // external_id is often a thread ID, not unique per message
   
-  console.log('[dedupKey]', {
+  logger.debug('Generated dedup key', {
     messageId: raw.id,
     email_message_id: raw.email_message_id,
     external_id: raw.external_id,
     hasHeaderMessageId: !!(hdr['Message-ID'] || hdr['Message-Id']),
     generatedKey: explicit ? `id:${String(explicit)}` : 'content-hash'
-  });
+  }, 'dedupKey');
   
   if (explicit) return `id:${String(explicit)}`;
 

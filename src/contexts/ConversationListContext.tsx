@@ -604,38 +604,20 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     });
   }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId]);
 
-  // Comprehensive debug logging (DEV mode only)
-  if (import.meta.env.DEV && effectiveInboxId) {
-    const totalForInbox = conversations.filter(c => c.inbox_id === effectiveInboxId).length;
-    console.log('📊 [ConversationList Filter Debug]', {
-      totalConversations: conversations.length,
-      totalForInbox,
-      filteredCount: filteredAndSortedConversations.length,
-      selectedTab,
-      selectedInboxId,
-      effectiveInboxId,
-      filters: {
-        searchQuery: state.searchQuery,
-        statusFilter: state.statusFilter,
-        priorityFilter: state.priorityFilter,
-      },
-      breakdown: {
-        afterSearch: conversations.filter(c => {
-          const matchesInbox = c.inbox_id === effectiveInboxId;
-          const matchesSearch = 
-            (c.subject || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-            (c.customer?.full_name || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-            (c.customer?.email || '').toLowerCase().includes(state.searchQuery.toLowerCase());
-          return matchesInbox && matchesSearch;
-        }).length,
-        byStatus: {
-          open: conversations.filter(c => c.inbox_id === effectiveInboxId && c.status === 'open').length,
-          closed: conversations.filter(c => c.inbox_id === effectiveInboxId && c.status === 'closed').length,
-          pending: conversations.filter(c => c.inbox_id === effectiveInboxId && c.status === 'pending').length,
-        }
-      }
-    });
-  }
+  // Comprehensive debug logging
+  logger.debug('Filter state', {
+    totalConversations: conversations.length,
+    totalForInbox: effectiveInboxId ? conversations.filter(c => c.inbox_id === effectiveInboxId).length : 0,
+    filteredCount: filteredAndSortedConversations.length,
+    selectedTab,
+    selectedInboxId,
+    effectiveInboxId,
+    filters: {
+      searchQuery: state.searchQuery,
+      statusFilter: state.statusFilter,
+      priorityFilter: state.priorityFilter,
+    }
+  }, 'ConversationListFilter');
 
 
   // Bulk operations

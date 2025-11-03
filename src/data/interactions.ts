@@ -263,12 +263,12 @@ export async function listConversations(params: {
     
     // Log session debugging info
     if (recoveryData && recoveryData.length > 0) {
-      console.log('Session Recovery Debug:', {
+      logger.debug('Session recovery data loaded', {
         session_uid: recoveryData[0]?.session_uid,
         organization_id: recoveryData[0]?.organization_id,
         total_conversations: recoveryData.length,
         inbox_filter: inboxUuid
-      });
+      }, 'SessionRecovery');
     }
     
     return applyFilters(conversations, params);

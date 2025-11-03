@@ -7,6 +7,7 @@ import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageErr
 import { sanitizeEmailHTML as sanitizeForXSS } from '@/utils/htmlSanitizer';
 import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
 import { debug } from '@/utils/debug';
+import { logger } from '@/utils/logger';
 
 interface EmailRenderProps {
   content: string;
@@ -97,17 +98,26 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   );
 
   const processedContent = useMemo(() => {
-    console.log('[EmailRender] Processing content for message:', messageId);
-    console.log('[EmailRender] Content type:', contentType, 'isHTML:', isHTML);
-    console.log('[EmailRender] Attachments available:', attachments);
+    logger.debug('Processing email content', { 
+      messageId, 
+      contentType, 
+      isHTML, 
+      attachmentsCount: attachments.length 
+    }, 'EmailRender');
     
     let normalized = fixEncodingIssues(content);
     
     // CRITICAL: Decode HTML entities for BOTH HTML and plain text content
     // This handles Gmail/Outlook sending &lt;br/&gt; in plain text emails
-    console.log('[EmailRender] Content before entity decoding:', normalized.substring(0, 100));
+    logger.debug('Content entity decoding', { 
+      before: normalized.substring(0, 100),
+      messageId 
+    }, 'EmailRender');
     normalized = decodeHTMLEntities(normalized);
-    console.log('[EmailRender] Content after entity decoding:', normalized.substring(0, 100));
+    logger.debug('Content decoded', { 
+      after: normalized.substring(0, 100),
+      messageId 
+    }, 'EmailRender');
     
     if (isHTML) {
       const alreadyWrapped = /class=\"email-render\"/.test(normalized);
@@ -223,14 +233,12 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   }, [content, toast]);
 
   const renderContent = () => {
-    console.log('[EmailRender] Rendering content:', {
+    logger.debug('Rendering email', {
       processedLength: processedContent.length,
       originalLength: content.length,
       isHTML,
-      messageId,
-      processedPreview: processedContent.substring(0, 100),
-      originalPreview: content.substring(0, 100)
-    });
+      messageId
+    }, 'EmailRender');
 
     // If processed content is empty or too short, fall back to original
     const contentToRender = processedContent.trim().length > 10 
@@ -248,10 +256,10 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       // SECURITY: Sanitize HTML content before rendering to prevent XSS attacks
       const sanitizedContent = sanitizeForXSS(contentWithCollapsibleSections || contentToRender);
       
-      console.log('[EmailRender] After sanitization:', {
+      logger.debug('Content sanitized', {
         sanitizedLength: sanitizedContent.length,
-        sanitizedPreview: sanitizedContent.substring(0, 100)
-      });
+        messageId
+      }, 'EmailRender');
       
       // Additional check: if sanitized content has no actual text, show original as plain text
       const tempDiv2 = document.createElement('div');
@@ -319,20 +327,15 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
 
   // Enhanced image processing effect
   useEffect(() => {
-    console.log('[EmailRender] Image processing effect triggered:', {
+    logger.debug('Image processing triggered', {
       isHTML,
       attachmentsLength: attachments.length,
       messageId,
-      attachments: attachments.map(a => ({ 
-        filename: a.filename, 
-        contentId: a.contentId, 
-        contentLocation: a.contentLocation,
-        isInline: a.isInline 
-      }))
-    });
+      inlineCount: attachments.filter(a => a.isInline).length
+    }, 'EmailRender');
 
     if (!isHTML || !attachments.length) {
-      console.log('[EmailRender] Skipping image processing - not HTML or no attachments');
+      logger.debug('Skipping image processing - not HTML or no attachments', { messageId }, 'EmailRender');
       setImageProcessingComplete(true);
       return;
     }
@@ -341,22 +344,28 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       try {
         const container = document.querySelector('.email-render__html-content') as HTMLElement;
         if (!container) {
-          console.log('[EmailRender] No container found for image processing');
+          logger.debug('No container found for image processing', { messageId }, 'EmailRender');
           return;
         }
 
-        console.log('[EmailRender] Found container, processing images...');
+        logger.debug('Processing inline images', { messageId, attachmentsCount: attachments.length }, 'EmailRender');
 
         // Build asset indexes
         const byContentId = new Map();
         const byContentLocation = new Map();
         
         attachments.forEach((attachment, index) => {
-          console.log(`[EmailRender] Processing attachment ${index}:`, attachment);
+          logger.debug('Processing attachment', { 
+            index, 
+            filename: attachment.filename,
+            hasContentId: !!attachment.contentId,
+            hasContentLocation: !!attachment.contentLocation,
+            messageId 
+          }, 'EmailRender');
           
           if (attachment.contentId) {
             const normalizedCid = attachment.contentId.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase();
-            console.log(`[EmailRender] Adding to byContentId: "${normalizedCid}"`);
+            logger.debug('Mapped content ID', { normalizedCid, messageId }, 'EmailRender');
             byContentId.set(normalizedCid, { attachment });
           }
           
@@ -365,16 +374,17 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
               ? attachment.contentLocation.split('/').pop()?.toLowerCase() 
               : attachment.contentLocation.toLowerCase();
             if (normalizedLocation) {
-              console.log(`[EmailRender] Adding to byContentLocation: "${normalizedLocation}"`);
+              logger.debug('Mapped content location', { normalizedLocation, messageId }, 'EmailRender');
               byContentLocation.set(normalizedLocation, { attachment });
             }
           }
         });
 
-        console.log('[EmailRender] Asset indexes built:', {
-          byContentId: Array.from(byContentId.entries()),
-          byContentLocation: Array.from(byContentLocation.entries())
-        });
+        logger.debug('Asset indexes built', {
+          contentIdCount: byContentId.size,
+          contentLocationCount: byContentLocation.size,
+          messageId
+        }, 'EmailRender');
 
         // Process images with enhanced error handling
         await rewriteImageSources(container, byContentId, byContentLocation, messageId);
@@ -382,7 +392,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
         
         // Log processing stats for debugging
         const errorStats = getImageErrorStats();
-        console.log('[EmailRender] Image processing complete. Stats:', errorStats);
+        logger.debug('Image processing complete', { errorStats, messageId }, 'EmailRender');
       } catch (error) {
         console.error('[EmailRender] Image processing failed:', error);
         setImageProcessingComplete(true);

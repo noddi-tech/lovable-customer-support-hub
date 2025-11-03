@@ -14,21 +14,21 @@ export function useThreadMessagesList(conversationIds?: string | string[], conte
   const dedupedMessages = raw.filter(m => {
     const key = m.dedupKey || m.id;
     if (seen.has(key)) {
-      console.log('[Dedup] ❌ REMOVING duplicate:', {
+      logger.debug('Removing duplicate message', {
         key,
         messageId: m.id,
         dedupKey: m.dedupKey,
         subject: m.subject
-      });
+      }, 'Dedup');
       return false;
     }
     seen.add(key);
-    console.log('[Dedup] ✅ KEEPING message:', {
+    logger.debug('Keeping message', {
       key,
       messageId: m.id,
       dedupKey: m.dedupKey,
       subject: m.subject
-    });
+    }, 'Dedup');
     return true;
   });
 
