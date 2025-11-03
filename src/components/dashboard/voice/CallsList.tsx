@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2, History, PhoneCall, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2, History, PhoneCall, CheckCircle2, AlertCircle, Table as TableIcon, LayoutGrid } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { EnhancedCallCard } from './EnhancedCallCard';
 import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
 import { BadgeGuide } from './BadgeGuide';
+import { CallsTable } from './CallsTable';
 
 interface CallsListProps {
   showTimeFilter?: boolean;
@@ -35,6 +36,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
   const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(null);
   const [selectedCall, setSelectedCall] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   
   // Advanced filters state
   const [filters, setFilters] = useState<CallFilters>({
@@ -429,8 +431,26 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
           </p>
         </div>
         
-        {/* Legacy Filters */}
+        {/* View Mode Toggle & Filters */}
         <div className="flex items-center gap-3">
+          <div className="flex items-center border rounded-md">
+            <Button 
+              variant={viewMode === 'table' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setViewMode('table')}
+              className="rounded-r-none"
+            >
+              <TableIcon className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={viewMode === 'cards' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setViewMode('cards')}
+              className="rounded-l-none"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
           <Filter className="h-4 w-4 text-muted-foreground" />
           
           {showTimeFilter && (
@@ -493,6 +513,14 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
             </p>
           </CardContent>
         </Card>
+      ) : viewMode === 'table' ? (
+        <CallsTable
+          calls={filteredCalls}
+          onCallClick={openCallDetails}
+          selectedCallId={selectedCallId}
+          onRemoveCall={removeCall}
+          onNavigateToEvents={onNavigateToEvents}
+        />
       ) : (
         <div className="space-y-6">
           <CallGroup

@@ -14,6 +14,7 @@ import { ServiceTicketListHeader } from '@/components/service-tickets/ServiceTic
 import { TeamWorkloadStats } from '@/components/service-tickets/TeamWorkloadStats';
 import { TicketAnalyticsDashboard } from '@/components/service-tickets/TicketAnalyticsDashboard';
 import { VirtualizedTicketList } from '@/components/service-tickets/VirtualizedTicketList';
+import { ServiceTicketTable } from '@/components/service-tickets/ServiceTicketTable';
 import { useServiceTickets, useDeleteServiceTickets } from '@/hooks/useServiceTickets';
 import { useServiceTicketAnalytics } from '@/hooks/useServiceTicketAnalytics';
 import { useServiceTicketNotifications } from '@/hooks/useServiceTicketNotifications';
@@ -192,7 +193,7 @@ export default function ServiceTickets() {
                 onCreateTicket={() => setIsCreateDialogOpen(true)}
               />
               <div className="h-[calc(100vh-280px)] overflow-y-auto">
-                <VirtualizedTicketList
+                <ServiceTicketTable
                   tickets={ticketsByStatus.all}
                   selectedTicketIds={selectedTicketIds}
                   onSelectTicket={toggleTicketSelection}
@@ -209,7 +210,7 @@ export default function ServiceTickets() {
                 onCreateTicket={() => setIsCreateDialogOpen(true)}
               />
               <div className="h-[calc(100vh-280px)] overflow-y-auto">
-                <VirtualizedTicketList
+                <ServiceTicketTable
                   tickets={ticketsByStatus.open}
                   selectedTicketIds={selectedTicketIds}
                   onSelectTicket={toggleTicketSelection}
@@ -226,7 +227,7 @@ export default function ServiceTickets() {
                 onCreateTicket={() => setIsCreateDialogOpen(true)}
               />
               <div className="h-[calc(100vh-280px)] overflow-y-auto">
-                <VirtualizedTicketList
+                <ServiceTicketTable
                   tickets={ticketsByStatus.in_progress}
                   selectedTicketIds={selectedTicketIds}
                   onSelectTicket={toggleTicketSelection}
