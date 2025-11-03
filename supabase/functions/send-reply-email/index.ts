@@ -159,6 +159,12 @@ const handler = async (req: Request): Promise<Response> => {
       .limit(1);
     inReplyToId = lastCustomer?.[0]?.email_message_id || null;
 
+    // Check if this is the first message (new conversation) or a reply
+    const { count: previousMessageCount } = await supabaseClient
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('conversation_id', message.conversation_id);
+
     // Build signature
     let signature = templateSettings.signature_content || '';
     if (templateSettings.include_agent_name && senderInfo?.full_name) {
@@ -167,7 +173,10 @@ const handler = async (req: Request): Promise<Response> => {
       signature = signature.replace('{{agent_name}}', 'Support Team');
     }
 
-    const subject = `Re: ${message.conversation.subject}`;
+    // Only add "Re:" prefix if there are previous messages (this is a reply)
+    const subject = previousMessageCount && previousMessageCount > 1
+      ? `Re: ${message.conversation.subject}`
+      : message.conversation.subject;
     const fromEmailFinal = (fromEmail || (emailAccount?.email_address as string)) as string;
     const toEmail = customer.email as string;
 
