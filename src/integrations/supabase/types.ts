@@ -2445,6 +2445,7 @@ export type Database = {
         Returns: string
       }
       get_user_organization_id: { Args: never; Returns: string }
+      get_user_profile_id: { Args: never; Returns: string }
       has_permission: {
         Args: {
           _permission: Database["public"]["Enums"]["app_permission"]
