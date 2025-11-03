@@ -481,9 +481,21 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       return;
     }
 
-    if (initAttemptedRef.current) {
-      console.log('[AircallProvider] Already initialized or initializing');
+    // Allow retry if previous attempt failed
+    if (initAttemptedRef.current && isInitialized) {
+      console.log('[AircallProvider] Already initialized successfully');
+      // Still show workspace if not connected
+      if (!isConnected) {
+        console.log('[AircallProvider] Initialized but not connected - showing for login');
+        showAircallWorkspace(true);
+      }
       return;
+    }
+
+    // If previously attempted but not initialized, allow retry
+    if (initAttemptedRef.current && !isInitialized) {
+      console.log('[AircallProvider] Previous initialization failed - allowing retry');
+      initAttemptedRef.current = false; // Reset the guard
     }
 
     if (!everywhereConfig?.enabled) {
@@ -535,6 +547,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             duration: 15000,
           });
           
+          initAttemptedRef.current = false; // Reset guard to allow retry
           return; // DO NOT PROCEED
         }
         
@@ -560,6 +573,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             duration: 15000,
           });
           
+          initAttemptedRef.current = false; // Reset guard to allow retry
           return; // DO NOT PROCEED
         }
         
@@ -584,6 +598,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             
             // Short-circuit initialization
             abortControllerRef.current?.abort();
+            initAttemptedRef.current = false; // Reset guard to allow retry
             
             toast({
               title: 'Aircall Blocked',
@@ -602,6 +617,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             
             // Short-circuit initialization
             abortControllerRef.current?.abort();
+            initAttemptedRef.current = false; // Reset guard to allow retry
             
             toast({
               title: 'Aircall Login Required',
@@ -832,6 +848,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
             description: 'Unable to create Aircall workspace. Check your API credentials.',
             variant: 'destructive'
           });
+          initAttemptedRef.current = false; // Reset guard to allow retry
           return;
         }
         
@@ -939,6 +956,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         }
         
         setIsInitialized(false);
+        initAttemptedRef.current = false; // Reset guard to allow retry
         return; // Exit permanently
       }
     };
@@ -1304,9 +1322,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
 
   const retryConnection = useCallback(() => {
     console.log('[AircallProvider] 🔄 Retrying connection after fixing blocks');
+    initAttemptedRef.current = false; // Reset guard before retry
     setShowBlockedModal(false);
     setDiagnosticIssues([]);
-    initAttemptedRef.current = false;
+    setError(null);
     window.location.reload();
   }, []);
 
@@ -1324,6 +1343,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       blockingErrorListenerRef.current = null;
     }
     
+    initAttemptedRef.current = false; // Reset guard in case user wants to retry later
     sessionStorage.setItem('aircall_opted_out', 'true');
     console.log('[AircallProvider] 🚫 Opt-out flag set - integration disabled until manually re-enabled');
     setShowLoginModal(false);
@@ -1339,6 +1359,11 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const forceInitialization = useCallback(async () => {
     console.log('[AircallProvider] 🚀 Force initialization requested by user');
     
+    // IMPORTANT: Reset all guards and state
+    initAttemptedRef.current = false; // Reset guard first
+    setIsInitialized(false);
+    setIsConnected(false);
+    
     // Clear all diagnostic flags
     setDiagnosticIssues([]);
     setShowBlockedModal(false);
@@ -1346,7 +1371,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     
     // Reset initialization state
     setInitializationPhase('idle');
-    setIsInitialized(false);
     setError(null);
     
     // Clear opt-out if set
