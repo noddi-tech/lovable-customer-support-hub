@@ -58,10 +58,10 @@ export const LinkCustomerDialog = ({
 
   // Get customer's bookings
   const { data: noddiBookings } = useNoddiBookings({
-    email: selectedCustomer?.email || currentCustomer?.email,
+    email: selectedCustomer?.email || selectedCustomer?.metadata?.noddi_email || currentCustomer?.email,
     phone: selectedCustomer?.phone || currentCustomer?.phone,
     organizationId: organizationId || '',
-    enabled: !!(selectedCustomer?.email || selectedCustomer?.phone || currentCustomer?.email || currentCustomer?.phone) && !!organizationId,
+    enabled: !!(selectedCustomer?.email || selectedCustomer?.metadata?.noddi_email || selectedCustomer?.phone || currentCustomer?.email || currentCustomer?.phone) && !!organizationId,
   });
 
   // Auto-select current booking if exists
@@ -203,7 +203,7 @@ export const LinkCustomerDialog = ({
             <div className="space-y-2">
               <Label>Link to Noddi Booking (Optional)</Label>
               <NoddiBookingSelector
-                email={selectedCustomer?.email || currentCustomer?.email}
+                email={selectedCustomer?.email || selectedCustomer?.metadata?.noddi_email || currentCustomer?.email}
                 phone={selectedCustomer?.phone || currentCustomer?.phone}
                 organizationId={organizationId}
                 selectedBookingId={selectedBooking?.id || currentBookingId}
