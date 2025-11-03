@@ -37,9 +37,13 @@ import {
   Circle,
   Zap,
   Bell,
-  User
+  User,
+  Crown,
+  BarChart3,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ModernSidebarProps {}
 
@@ -48,6 +52,7 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const sidebar = useSidebar();
+  const { isSuperAdmin } = useAuth();
 
   // Main navigation items
   const mainNavItems = [
@@ -196,6 +201,75 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = () => {
 
       <SidebarFooter className="border-t border-border p-3">
         <SidebarMenu>
+          {isSuperAdmin && (
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => navigate('/super-admin/dashboard')}
+                  className={cn(
+                    "w-full justify-start",
+                    location.pathname.includes('/super-admin') && "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500"
+                  )}
+                >
+                  <Crown className="h-4 w-4" />
+                  <span className="ml-2 font-semibold">{t('nav.superAdmin', 'Super Admin')}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {location.pathname.includes('/super-admin') && (
+                <SidebarMenu className="ml-4 mt-1">
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => navigate('/super-admin/dashboard')}
+                      className={cn(
+                        "w-full justify-start text-sm",
+                        location.pathname === '/super-admin/dashboard' && "bg-accent font-medium"
+                      )}
+                    >
+                      <BarChart3 className="h-3 w-3" />
+                      <span>{t('nav.dashboard', 'Dashboard')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => navigate('/super-admin/organizations')}
+                      className={cn(
+                        "w-full justify-start text-sm",
+                        location.pathname === '/super-admin/organizations' && "bg-accent font-medium"
+                      )}
+                    >
+                      <Building2 className="h-3 w-3" />
+                      <span>{t('nav.organizations', 'Organizations')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => navigate('/super-admin/users')}
+                      className={cn(
+                        "w-full justify-start text-sm",
+                        location.pathname === '/super-admin/users' && "bg-accent font-medium"
+                      )}
+                    >
+                      <Users className="h-3 w-3" />
+                      <span>{t('nav.allUsers', 'All Users')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => navigate('/super-admin/analytics')}
+                      className={cn(
+                        "w-full justify-start text-sm",
+                        location.pathname === '/super-admin/analytics' && "bg-accent font-medium"
+                      )}
+                    >
+                      <BarChart3 className="h-3 w-3" />
+                      <span>{t('nav.analytics', 'Analytics')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              )}
+              <Separator className="my-2" />
+            </>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => navigate('/settings')}
