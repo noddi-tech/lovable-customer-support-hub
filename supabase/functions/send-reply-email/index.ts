@@ -171,32 +171,37 @@ const handler = async (req: Request): Promise<Response> => {
     const fromEmailFinal = (fromEmail || (emailAccount?.email_address as string)) as string;
     const toEmail = customer.email as string;
 
-    // Build HTML content
-    const emailHTML = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: ${templateSettings.body_background_color};">
-        ${templateSettings.header_content ? `
-          <div style="background-color: ${templateSettings.header_background_color}; color: ${templateSettings.header_text_color}; padding: 20px; text-align: center;">
-            ${templateSettings.header_content}
-          </div>
-        ` : ''}
-        <div style="padding: 30px; color: ${templateSettings.body_text_color}; line-height: 1.6;">
-          ${String(message.content || '').replace(/\n/g, '<br>')}
-        </div>
-        ${signature ? `
-          <div style="padding: 20px 30px; margin-top: 20px;">
-            <div style="border-top: 1px solid #E5E7EB; padding-top: 20px;">
-              ${signature}
-            </div>
-          </div>
-        ` : ''}
-        ${templateSettings.footer_content ? `
-          <div style="background-color: ${templateSettings.footer_background_color}; color: ${templateSettings.footer_text_color}; padding: 20px; text-align: center; font-size: 12px;">
-            ${templateSettings.footer_content}
-          </div>
-        ` : ''}
-      </div>
-    `;
+    // Build HTML content with optimized structure
+    const emailHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #374151; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .content { padding: 20px; }
+    .signature { margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB; }
+    .footer { margin-top: 20px; font-size: 12px; color: #6B7280; text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    ${templateSettings.header_content ? `<div style="background: ${templateSettings.header_background_color}; color: ${templateSettings.header_text_color}; padding: 20px; text-align: center;">${templateSettings.header_content}</div>` : ''}
+    <div class="content">${String(message.content || '').replace(/\n/g, '<br>')}</div>
+    ${signature ? `<div class="signature">${signature}</div>` : ''}
+    ${templateSettings.footer_content ? `<div class="footer">${templateSettings.footer_content}</div>` : ''}
+  </div>
+</body>
+</html>`;
     const plainText = String(message.content || '');
+
+    // Monitor email size to prevent Gmail clipping (102KB limit)
+    const estimatedSize = emailHTML.length + plainText.length + 2000; // +2KB for headers
+    console.log(`📧 Email size: ${(estimatedSize/1024).toFixed(1)}KB (HTML: ${(emailHTML.length/1024).toFixed(1)}KB, Plain: ${(plainText.length/1024).toFixed(1)}KB)`);
+    
+    if (estimatedSize > 90000) {  // Warn at 90KB (before 102KB limit)
+      console.warn(`⚠️ Email approaching Gmail clip threshold: ${(estimatedSize/1024).toFixed(1)}KB - consider simplifying content`);
+    }
 
     // Compose SendGrid payload
     const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
@@ -258,13 +263,14 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Update message as sent, store Message-ID and headers
+    // IMPORTANT: Store original content, not wrapped HTML, to prevent exponential growth
     const { error: updateError } = await supabaseClient
       .from('messages')
       .update({
         email_status: 'sent',
         email_message_id: messageIdHeader.replace(/[<>]/g, ''),
         content_type: 'html',
-        content: emailHTML,
+        content: message.content, // Keep original content, don't store wrapped HTML
         email_headers: emailHeaders,
       })
       .eq('id', messageId);
