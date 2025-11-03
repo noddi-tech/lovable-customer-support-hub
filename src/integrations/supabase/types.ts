@@ -1280,6 +1280,56 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          invited_at: string | null
+          invited_by_id: string | null
+          is_default: boolean | null
+          joined_at: string | null
+          organization_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          invited_by_id?: string | null
+          is_default?: boolean | null
+          joined_at?: string | null
+          organization_id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          invited_by_id?: string | null
+          is_default?: boolean | null
+          joined_at?: string | null
+          organization_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -1325,7 +1375,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean | null
-          organization_id: string
+          organization_id: string | null
           preferred_language: string | null
           primary_role: Database["public"]["Enums"]["app_role"] | null
           role: string
@@ -1342,7 +1392,7 @@ export type Database = {
           full_name: string
           id?: string
           is_active?: boolean | null
-          organization_id: string
+          organization_id?: string | null
           preferred_language?: string | null
           primary_role?: Database["public"]["Enums"]["app_role"] | null
           role?: string
@@ -1359,7 +1409,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean | null
-          organization_id?: string
+          organization_id?: string | null
           preferred_language?: string | null
           primary_role?: Database["public"]["Enums"]["app_role"] | null
           role?: string
@@ -2445,6 +2495,18 @@ export type Database = {
         Returns: string
       }
       get_user_organization_id: { Args: never; Returns: string }
+      get_user_organization_memberships: {
+        Args: never
+        Returns: {
+          is_default: boolean
+          membership_id: string
+          organization_id: string
+          organization_name: string
+          organization_slug: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+        }[]
+      }
       get_user_profile_id: { Args: never; Returns: string }
       has_permission: {
         Args: {
@@ -2460,6 +2522,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: never; Returns: boolean }
       mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: {
         Args: { notification_id: string }
@@ -2486,7 +2549,11 @@ export type Database = {
         | "view_all_conversations"
         | "send_emails"
         | "receive_emails"
-      app_role: "admin" | "user"
+        | "view_all_organizations"
+        | "manage_organizations"
+        | "view_system_logs"
+        | "manage_system_settings"
+      app_role: "admin" | "user" | "super_admin" | "agent"
       call_direction: "inbound" | "outbound"
       call_event_type:
         | "call_started"
@@ -2667,8 +2734,12 @@ export const Constants = {
         "view_all_conversations",
         "send_emails",
         "receive_emails",
+        "view_all_organizations",
+        "manage_organizations",
+        "view_system_logs",
+        "manage_system_settings",
       ],
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin", "agent"],
       call_direction: ["inbound", "outbound"],
       call_event_type: [
         "call_started",
