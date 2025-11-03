@@ -24,8 +24,8 @@ export type NavItem = {
   label: string;
   to: string;
   icon: any;
-  group: "interactions" | "marketing" | "operations" | "settings" | "admin";
-  requiredRole?: "admin";
+  group: "interactions" | "marketing" | "operations" | "settings" | "admin" | "super_admin";
+  requiredRole?: "admin" | "super_admin";
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -170,14 +170,53 @@ export const NAV_ITEMS: NavItem[] = [
     group: "admin", 
     requiredRole: "admin" 
   },
+
+  // Super Admin - System-wide administration
+  { 
+    id: "super-admin-dashboard", 
+    label: "Dashboard", 
+    to: "/super-admin/dashboard", 
+    icon: BarChart3, 
+    group: "super_admin", 
+    requiredRole: "super_admin" 
+  },
+  { 
+    id: "super-admin-organizations", 
+    label: "Organizations", 
+    to: "/super-admin/organizations", 
+    icon: Building2, 
+    group: "super_admin", 
+    requiredRole: "super_admin" 
+  },
+  { 
+    id: "super-admin-users", 
+    label: "All Users", 
+    to: "/super-admin/users", 
+    icon: Users, 
+    group: "super_admin", 
+    requiredRole: "super_admin" 
+  },
+  { 
+    id: "super-admin-analytics", 
+    label: "System Analytics", 
+    to: "/super-admin/analytics", 
+    icon: BarChart3, 
+    group: "super_admin", 
+    requiredRole: "super_admin" 
+  },
 ];
 
-export const getGroupedNavItems = (isAdmin: boolean = false) => {
-  return NAV_ITEMS.filter(item => !item.requiredRole || (item.requiredRole === "admin" && isAdmin))
-    .reduce((groups, item) => {
-      const group = groups[item.group] || [];
-      return { ...groups, [item.group]: [...group, item] };
-    }, {} as Record<string, NavItem[]>);
+export const getGroupedNavItems = (isAdmin: boolean = false, isSuperAdmin: boolean = false) => {
+  return NAV_ITEMS.filter(item => {
+    if (!item.requiredRole) return true;
+    if (item.requiredRole === "admin" && isAdmin) return true;
+    if (item.requiredRole === "super_admin" && isSuperAdmin) return true;
+    return false;
+  })
+  .reduce((groups, item) => {
+    const group = groups[item.group] || [];
+    return { ...groups, [item.group]: [...group, item] };
+  }, {} as Record<string, NavItem[]>);
 };
 
 // Dev-only nav debug utility

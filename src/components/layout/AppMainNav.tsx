@@ -14,18 +14,21 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/hooks/useAuth';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
+import { Crown } from 'lucide-react';
 
 export const AppMainNav = () => {
   const location = useLocation();
   const { t } = useTranslation();
   const { state } = useSidebar();
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
+  const { isSuperAdmin } = useAuth();
   
   const isCollapsed = state === 'collapsed';
   const isAdmin = checkIsAdmin();
-  const groupedItems = getGroupedNavItems(isAdmin);
+  const groupedItems = getGroupedNavItems(isAdmin, isSuperAdmin);
   
   // Log nav matches in dev mode
   useEffect(() => {
@@ -44,10 +47,11 @@ export const AppMainNav = () => {
     marketing: t('navigation.marketing', 'Marketing'), 
     operations: t('navigation.operations', 'Operations'),
     settings: t('navigation.settings', 'Settings'),
-    admin: t('navigation.admin', 'Admin')
+    admin: t('navigation.admin', 'Admin'),
+    super_admin: t('navigation.superAdmin', 'Super Admin')
   };
 
-  const groupOrder = ['interactions', 'marketing', 'operations', 'settings', 'admin'];
+  const groupOrder = ['interactions', 'marketing', 'operations', 'settings', 'admin', 'super_admin'];
 
   if (permissionsLoading) {
     return (
@@ -77,10 +81,15 @@ export const AppMainNav = () => {
           
           // Don't show admin group if user is not admin
           if (groupKey === 'admin' && !isAdmin) return null;
+          // Don't show super admin group if user is not super admin
+          if (groupKey === 'super_admin' && !isSuperAdmin) return null;
 
           return (
             <SidebarGroup key={groupKey}>
-              <SidebarGroupLabel>
+              <SidebarGroupLabel className={cn(
+                groupKey === 'super_admin' && "text-yellow-600 dark:text-yellow-500 font-semibold"
+              )}>
+                {groupKey === 'super_admin' && <Crown className="inline h-4 w-4 mr-1" />}
                 {groupLabels[groupKey as keyof typeof groupLabels]}
               </SidebarGroupLabel>
               
@@ -96,7 +105,10 @@ export const AppMainNav = () => {
                           <NavLink 
                             to={item.to} 
                             end={item.to === '/'}
-                            className={getNavClassName(itemIsActive)}
+                            className={cn(
+                              getNavClassName(itemIsActive),
+                              groupKey === 'super_admin' && itemIsActive && "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 font-medium"
+                            )}
                             {...(itemIsActive && { "aria-current": "page" })}
                           >
                             <Icon className="mr-2 h-4 w-4" />
