@@ -106,6 +106,7 @@ export const ServiceTicketCard = ({
                 customerEmail={ticket.customer_email}
                 customerPhone={ticket.customer_phone}
                 noddiUserId={ticket.noddi_user_id}
+                ticketMetadata={ticket.metadata}
                 compact={true}
               />
             </div>

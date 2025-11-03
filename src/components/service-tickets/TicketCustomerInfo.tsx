@@ -11,6 +11,7 @@ interface TicketCustomerInfoProps {
   customerEmail?: string | null;
   customerPhone?: string | null;
   noddiUserId?: number | null;
+  ticketMetadata?: any;
   compact?: boolean;
   showDetails?: boolean;
 }
@@ -20,12 +21,16 @@ export const TicketCustomerInfo: React.FC<TicketCustomerInfoProps> = ({
   customerEmail,
   customerPhone,
   noddiUserId,
+  ticketMetadata,
   compact = false,
   showDetails = false,
 }) => {
+  // Use Noddi email from metadata if available, fallback to customer email
+  const noddiLookupEmail = ticketMetadata?.noddi_email || customerEmail;
+  
   const { data: noddiData, isLoading } = useNoddihKundeData({
     id: noddiUserId?.toString() || '',
-    email: customerEmail,
+    email: noddiLookupEmail,
     phone: customerPhone,
     full_name: customerName,
   });

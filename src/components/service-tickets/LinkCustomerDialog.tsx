@@ -81,6 +81,7 @@ export const LinkCustomerDialog = ({
       let customerName: string | undefined;
       let customerEmail: string | undefined;
       let customerPhone: string | undefined;
+      let noddiEmail: string | undefined;
 
       if (selectedCustomer) {
         // Handle temporary Noddi IDs
@@ -91,6 +92,11 @@ export const LinkCustomerDialog = ({
         }
 
         customerName = selectedCustomer.full_name;
+        
+        // Extract Noddi email separately (for API lookups)
+        noddiEmail = selectedCustomer.metadata?.noddi_email || selectedCustomer.email;
+        
+        // Keep the primary email (from conversation/ticket) unless it's null
         customerEmail = selectedCustomer.email || selectedCustomer.metadata?.noddi_email;
         customerPhone = selectedCustomer.phone;
       }
@@ -107,6 +113,13 @@ export const LinkCustomerDialog = ({
         }
         if (selectedCustomer.metadata?.user_group_id) {
           updates.noddi_user_group_id = selectedCustomer.metadata.user_group_id;
+        }
+        
+        // Store Noddi email in metadata for lookups
+        if (noddiEmail) {
+          updates.metadata = {
+            noddi_email: noddiEmail
+          };
         }
       }
 
@@ -195,6 +208,28 @@ export const LinkCustomerDialog = ({
                 onSelectCustomer={setSelectedCustomer}
                 organizationId={organizationId}
               />
+              
+              {/* Show selected customer with email mapping indicator */}
+              {selectedCustomer && (
+                <div className="rounded-md bg-muted p-3 text-sm space-y-1">
+                  <p className="font-medium">{selectedCustomer.full_name}</p>
+                  {selectedCustomer.email && (
+                    <p className="text-muted-foreground text-xs">{selectedCustomer.email}</p>
+                  )}
+                  {selectedCustomer.phone && (
+                    <p className="text-muted-foreground text-xs">{selectedCustomer.phone}</p>
+                  )}
+                  {/* Show email mapping if different */}
+                  {selectedCustomer.metadata?.noddi_email && 
+                   selectedCustomer.metadata.noddi_email !== selectedCustomer.email && (
+                    <div className="pt-2 mt-2 border-t border-border/50">
+                      <p className="text-xs text-muted-foreground">
+                        Noddi lookup email: <span className="font-mono">{selectedCustomer.metadata.noddi_email}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
