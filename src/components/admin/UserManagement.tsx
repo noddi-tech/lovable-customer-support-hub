@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from 'react-i18next';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface UserProfile {
   id: string;
@@ -61,6 +62,7 @@ export function UserManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   // Fetch users with their roles and departments
   const { data: users = [], isLoading } = useQuery({
@@ -141,9 +143,27 @@ export function UserManagement() {
 
       if (updateError) throw updateError;
 
-      return authData.user;
+      return { user: authData.user };
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Log audit action
+      try {
+        await logAction(
+          'user.create',
+          'user',
+          data.user.id,
+          variables.email,
+          { 
+            email: variables.email,
+            full_name: variables.full_name,
+            department_id: variables.department_id,
+            primary_role: variables.primary_role
+          }
+        );
+      } catch (error) {
+        console.error('Failed to log audit action:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({
         title: "User created",

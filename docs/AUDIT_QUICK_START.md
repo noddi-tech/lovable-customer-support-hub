@@ -74,11 +74,14 @@ function MyComponent() {
 
 ### Available Action Types
 
-- `user.role.assign` - Role assigned
-- `user.role.remove` - Role removed
+#### User Management
+- `user.create` - User created ✅ **NEW: Auto-logged**
 - `user.update` - Profile updated
 - `user.delete` - User deleted
-- `user.create` - User created
+- `user.role.assign` - Role assigned
+- `user.role.remove` - Role removed
+
+#### Organization Management
 - `org.create` - Org created
 - `org.update` - Org updated
 - `org.delete` - Org deleted
@@ -86,12 +89,23 @@ function MyComponent() {
 - `org.member.remove` - Member removed
 - `org.member.role.update` - Member role changed
 
+#### Bulk Operations
+- `bulk.users.import` - Import multiple users
+- `bulk.users.export` - Export user data
+- `bulk.roles.assign` - Assign roles to multiple users
+
+#### System Settings ✅ **NEW in Phase 8**
+- `setting.integration.update` - Integration config changes (Aircall, Voice, etc.)
+- `setting.organization.update` - Organization branding/settings updates
+- `setting.system.update` - System-wide configuration changes
+
 ### Action Categories
 
 - `user_management` - User-related actions
 - `org_management` - Organization actions
 - `role_management` - Role changes
 - `bulk_management` - Bulk operations
+- `setting_management` - System and integration settings ✅ **NEW**
 
 ### Security Rules
 
@@ -101,6 +115,7 @@ function MyComponent() {
 - Organization changes
 - Membership changes
 - Security-related updates
+- Integration/system settings changes ✅ **NEW**
 
 ❌ **Don't log:**
 - Regular user activities (viewing, reading)

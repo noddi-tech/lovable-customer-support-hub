@@ -15,6 +15,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { logger } from '@/utils/logger';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface OrganizationWithMetadata {
   id: string;
@@ -29,6 +30,7 @@ export const GeneralSettings = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
+  const { logAction } = useAuditLog();
   const [orgName, setOrgName] = useState('');
   const [orgDescription, setOrgDescription] = useState('');
   const [senderDisplayName, setSenderDisplayName] = useState('');
@@ -78,7 +80,25 @@ const { isAdmin } = usePermissions();
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
+      // Log audit action
+      try {
+        await logAction(
+          'setting.organization.update',
+          'setting',
+          organization?.id || 'unknown',
+          organization?.name || 'Organization Settings',
+          {
+            name: variables.name,
+            description: variables.description,
+            sender_display_name: variables.sender_display_name
+          },
+          organization?.id
+        );
+      } catch (error) {
+        console.error('Failed to log audit action:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['organization'] });
       toast({
         title: "Settings saved",

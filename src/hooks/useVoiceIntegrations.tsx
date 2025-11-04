@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuditLog } from "@/hooks/useAuditLog";
 
 export interface VoiceIntegrationConfig {
   id?: string;
@@ -29,6 +30,7 @@ export interface VoiceIntegrationConfig {
 export function useVoiceIntegrations() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
 
   // Get current user's organization
   const { data: currentUserOrg } = useQuery({
@@ -137,7 +139,25 @@ export function useVoiceIntegrations() {
         return data;
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
+      // Log audit action
+      try {
+        await logAction(
+          'setting.integration.update',
+          'setting',
+          data.id || 'unknown',
+          `${variables.provider} Integration`,
+          {
+            provider: variables.provider,
+            is_active: variables.is_active,
+            configuration: variables.configuration
+          },
+          currentUserOrg
+        );
+      } catch (error) {
+        console.error('Failed to log audit action:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['voice-integrations'] });
       toast({
         title: "Settings saved",

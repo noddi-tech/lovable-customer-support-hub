@@ -15,7 +15,10 @@ export type AuditAction =
   | 'org.member.role.update'
   | 'bulk.users.import'
   | 'bulk.users.export'
-  | 'bulk.roles.assign';
+  | 'bulk.roles.assign'
+  | 'setting.integration.update'
+  | 'setting.organization.update'
+  | 'setting.system.update';
 
 export type AuditTargetType = 'user' | 'organization' | 'role' | 'setting';
 
