@@ -162,11 +162,36 @@ export function useOrganizations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-memberships'] });
+      queryClient.invalidateQueries({ queryKey: ['organization-members'] });
       toast.success('User removed from organization');
     },
     onError: (error) => {
       console.error('Error removing user from organization:', error);
       toast.error('Failed to remove user from organization');
+    },
+  });
+
+  // Delete organization (super admin only)
+  const deleteOrganization = useMutation({
+    mutationFn: async (organizationId: string) => {
+      if (!isSuperAdmin) {
+        throw new Error('Only super admins can delete organizations');
+      }
+
+      const { error } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', organizationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      toast.success('Organization deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Error deleting organization:', error);
+      toast.error('Failed to delete organization');
     },
   });
 
@@ -177,7 +202,9 @@ export function useOrganizations() {
     updateOrganization: updateOrganization.mutate,
     addUserToOrganization: addUserToOrganization.mutate,
     removeUserFromOrganization: removeUserFromOrganization.mutate,
+    deleteOrganization: deleteOrganization.mutate,
     isCreating: createOrganization.isPending,
     isUpdating: updateOrganization.isPending,
+    isDeleting: deleteOrganization.isPending,
   };
 }

@@ -5,18 +5,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Crown, ArrowLeft, Users, Settings, Activity, Pencil } from 'lucide-react';
+import { Building2, Crown, ArrowLeft, Users, Settings, Activity, Pencil, UserPlus, Trash2 } from 'lucide-react';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditOrganizationModal } from '@/components/organization/EditOrganizationModal';
-import { Organization } from '@/hooks/useOrganizations';
+import { AddMemberDialog } from '@/components/organization/AddMemberDialog';
+import { MemberActionMenu } from '@/components/organization/MemberActionMenu';
+import { ConfirmDeleteDialog } from '@/components/admin/ConfirmDeleteDialog';
+import { Organization, useOrganizations } from '@/hooks/useOrganizations';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 
 export default function OrganizationDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { deleteOrganization } = useOrganizations();
 
   // Fetch organization details
   const { data: organization, isLoading } = useQuery({
@@ -142,10 +148,20 @@ export default function OrganizationDetails() {
               </div>
             </div>
           </div>
-          <Button onClick={() => setShowEditModal(true)} variant="outline" className="border-yellow-300 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-950/30">
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit Organization
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowEditModal(true)} variant="outline" className="border-yellow-300 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-950/30">
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button
+              onClick={() => setShowDeleteDialog(true)}
+              variant="outline"
+              className="border-destructive/50 text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -194,8 +210,20 @@ export default function OrganizationDetails() {
           <TabsContent value="members" className="space-y-4">
             <Card className="border-yellow-200 dark:border-yellow-900/50">
               <CardHeader>
-                <CardTitle>Organization Members</CardTitle>
-                <CardDescription>Users with access to this organization</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Organization Members</CardTitle>
+                    <CardDescription>Users with access to this organization</CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => setShowAddMemberDialog(true)}
+                    size="sm"
+                    className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Member
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -213,11 +241,12 @@ export default function OrganizationDetails() {
                           <p className="text-sm text-muted-foreground">{member.user?.email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <Badge variant="secondary">{member.role}</Badge>
                         <Badge variant={member.status === 'active' ? 'default' : 'outline'}>
                           {member.status}
                         </Badge>
+                        <MemberActionMenu member={member} organizationId={id!} />
                       </div>
                     </div>
                   ))}
@@ -271,11 +300,35 @@ export default function OrganizationDetails() {
       </div>
 
       {organization && (
-        <EditOrganizationModal
-          open={showEditModal}
-          onOpenChange={setShowEditModal}
-          organization={organization}
-        />
+        <>
+          <EditOrganizationModal
+            open={showEditModal}
+            onOpenChange={setShowEditModal}
+            organization={organization}
+          />
+          
+          <AddMemberDialog
+            open={showAddMemberDialog}
+            onOpenChange={setShowAddMemberDialog}
+            organizationId={id!}
+            existingMemberIds={members.map((m: any) => m.user_id)}
+          />
+
+          <ConfirmDeleteDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            onConfirm={() => {
+              deleteOrganization(id!, {
+                onSuccess: () => {
+                  navigate('/super-admin/organizations');
+                },
+              });
+            }}
+            title="Delete Organization"
+            description={`Are you sure you want to delete "${organization.name}"? This will permanently remove all data associated with this organization. This action cannot be undone.`}
+            itemName={organization.name}
+          />
+        </>
       )}
     </UnifiedAppLayout>
   );

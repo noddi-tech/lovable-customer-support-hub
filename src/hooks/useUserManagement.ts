@@ -179,6 +179,7 @@ export function useUserManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['organization-memberships'] });
+      queryClient.invalidateQueries({ queryKey: ['organization-members'] });
       toast.success('Membership role updated successfully');
     },
     onError: (error: any) => {
