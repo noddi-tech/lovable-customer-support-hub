@@ -967,9 +967,11 @@ Deno.serve(async (req) => {
                 cached_priority_booking: null,
                 cached_pending_bookings: []
               }, {
-                onConflict: phone ? 'phone' : 'email'
+                onConflict: phone ? 'phone,organization_id' : 'email,organization_id'
               });
-          } catch {}
+          } catch (err) {
+            console.error('❌ Failed to cache non-customer:', err);
+          }
           
           return json({
             ok: false,

@@ -199,11 +199,11 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
               // Customer NOT found in Noddi - cache this result
               console.log(`❌ ${phone} not found in Noddi, caching result`);
               
-              await supabase
+              const { error: cacheError } = await supabase
                 .from('noddi_customer_cache')
                 .upsert({
                   phone,
-                  email: phone,
+                  email: null,
                   organization_id: organizationId,
                   noddi_user_id: null,
                   last_refreshed_at: new Date().toISOString(),
@@ -211,6 +211,10 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
                 }, {
                   onConflict: 'phone,organization_id'
                 });
+              
+              if (cacheError) {
+                console.error(`❌ Failed to cache ${phone}:`, cacheError);
+              }
             }
           } catch (err) {
             console.error(`Exception syncing ${phone}:`, err);
@@ -225,9 +229,6 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
         await queryClient.invalidateQueries({ queryKey: ['calls'] });
         await queryClient.invalidateQueries({ queryKey: ['customers'] });
         
-        // Reload cached non-customers so button count updates immediately
-        await loadCachedNonCustomers();
-        
         toast({
           title: 'Sync Complete',
           description: `✅ ${totalSuccess} updated (${localMatchCount} local, ${noddiSuccessCount} Noddi)${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
@@ -240,6 +241,9 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
           description: `✅ All ${localMatchCount} calls matched from local database`,
         });
       }
+
+      // Always reload cache after sync to update button count
+      await loadCachedNonCustomers();
     } catch (error: any) {
       console.error('Sync error:', error);
       toast({
