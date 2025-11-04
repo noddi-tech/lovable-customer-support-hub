@@ -197,11 +197,31 @@ export const useNoddihKundeData = (customer: Customer | null) => {
         });
 
         // Sync customer to database if found
-        if (data?.data?.found && (customer.phone || customer.email) && profile.organization_id) {
-          const phone = customer.phone || data?.data?.user?.phone;
-          if (phone) {
-            console.log('[Noddi API] 💾 Syncing customer to database');
-            await syncCustomerFromNoddi(data, phone, profile.organization_id);
+        if (data?.data?.found && profile.organization_id) {
+          // Prioritize phone from customer object (which should come from call.customer_phone)
+          // Then fallback to phone from Noddi API response
+          const phone = customer?.phone || data?.data?.user?.phone;
+          
+          if (phone && phone.trim() !== '') {
+            console.log('[Noddi API] 💾 Syncing customer to database:', {
+              customerPhone: customer?.phone,
+              noddiPhone: data?.data?.user?.phone,
+              selectedPhone: phone,
+              organizationId: profile.organization_id
+            });
+            
+            const result = await syncCustomerFromNoddi(data, phone, profile.organization_id);
+            
+            if (result) {
+              console.log('[Noddi API] ✅ Customer synced successfully:', result.id);
+            } else {
+              console.warn('[Noddi API] ⚠️ Customer sync returned null');
+            }
+          } else {
+            console.warn('[Noddi API] ⚠️ No phone number available for customer sync', {
+              customerPhone: customer?.phone,
+              noddiPhone: data?.data?.user?.phone
+            });
           }
         }
 
@@ -258,11 +278,22 @@ export const useNoddihKundeData = (customer: Customer | null) => {
       }
 
       // Sync refreshed customer to database
-      if (data?.data?.found && (customer.phone || customer.email) && profile.organization_id) {
-        const phone = customer.phone || data?.data?.user?.phone;
-        if (phone) {
-          console.log('[Noddi API] 💾 Syncing refreshed customer to database');
-          await syncCustomerFromNoddi(data, phone, profile.organization_id);
+      if (data?.data?.found && profile.organization_id) {
+        const phone = customer?.phone || data?.data?.user?.phone;
+        
+        if (phone && phone.trim() !== '') {
+          console.log('[Noddi API] 💾 Syncing refreshed customer to database:', {
+            phone,
+            organizationId: profile.organization_id
+          });
+          
+          const result = await syncCustomerFromNoddi(data, phone, profile.organization_id);
+          
+          if (result) {
+            console.log('[Noddi API] ✅ Refreshed customer synced successfully:', result.id);
+          }
+        } else {
+          console.warn('[Noddi API] ⚠️ No phone number for refresh sync');
         }
       }
 

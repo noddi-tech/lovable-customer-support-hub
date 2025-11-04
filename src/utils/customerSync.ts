@@ -10,8 +10,19 @@ export async function syncCustomerFromNoddi(
   phone: string,
   organizationId: string
 ): Promise<{ id: string } | null> {
+  // Validate inputs
+  if (!phone || phone.trim() === '') {
+    console.error('[CustomerSync] ❌ Cannot sync: phone is required but was empty');
+    return null;
+  }
+
   if (!noddiData?.data?.found || !noddiData.data.user) {
     console.log('[CustomerSync] No Noddi data to sync');
+    return null;
+  }
+
+  if (!organizationId) {
+    console.error('[CustomerSync] ❌ Cannot sync: organizationId is required');
     return null;
   }
 
@@ -23,7 +34,13 @@ export async function syncCustomerFromNoddi(
       ? `${user.firstName} ${user.lastName}`.trim()
       : user.firstName || user.lastName || 'Unknown Customer');
 
-  console.log('[CustomerSync] Syncing customer:', { phone, fullName, email: user.email });
+  console.log('[CustomerSync] 💾 Syncing customer to database:', { 
+    phone, 
+    fullName, 
+    email: user.email,
+    organizationId,
+    noddiUserId: user.id
+  });
 
   try {
     const { data, error } = await supabase

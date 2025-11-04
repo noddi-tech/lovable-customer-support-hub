@@ -2601,6 +2601,14 @@ export type Database = {
         Args: { notification_id: string }
         Returns: undefined
       }
+      relink_calls_to_customers: {
+        Args: never
+        Returns: {
+          calls_linked: number
+          calls_updated: number
+          execution_time_ms: number
+        }[]
+      }
       sanitize_debug_data: { Args: { data: Json }; Returns: Json }
       strip_html_tags: { Args: { input_text: string }; Returns: string }
       validate_session_context: {

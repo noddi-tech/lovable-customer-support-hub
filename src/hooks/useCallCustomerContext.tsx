@@ -29,7 +29,22 @@ export const useCallCustomerContext = create<CallCustomerContextStore>((set) => 
   isLoading: false,
   
   setCallContext: (callId, customer, noddiData = null) => {
-    console.log('[CallCustomerContext] Setting context:', { callId, customer, hasNoddi: !!noddiData });
+    console.log('[CallCustomerContext] Setting context:', { 
+      callId, 
+      customer: {
+        id: customer?.id,
+        phone: customer?.phone,
+        email: customer?.email,
+        full_name: customer?.full_name
+      },
+      hasNoddi: !!noddiData 
+    });
+    
+    // Validate that customer has at least phone or email
+    if (customer && !customer.phone && !customer.email) {
+      console.warn('[CallCustomerContext] ⚠️ Customer has no phone or email');
+    }
+    
     set({ callId, customer, noddiData, isLoading: !noddiData });
   },
   
