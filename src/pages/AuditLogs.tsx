@@ -3,16 +3,19 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollText, Download, RefreshCw, Search, Calendar, User, Target, Settings } from 'lucide-react';
+import { ScrollText, Download, RefreshCw, User, Target, Settings, BarChart3, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { Heading } from '@/components/ui/heading';
+import { AuditLogDetailModal } from '@/components/admin/AuditLogDetailModal';
+import { AuditLogFilters } from '@/components/admin/AuditLogFilters';
+import { ComplianceReportGenerator } from '@/components/admin/ComplianceReportGenerator';
+import { useNavigate } from 'react-router-dom';
+import { DateRange as CalendarDateRange } from 'react-day-picker';
 
-type DateRange = '7d' | '30d' | '90d' | 'all';
+type DateRangePreset = '7d' | '30d' | '90d' | 'all' | 'custom';
 
 interface AuditLog {
   id: string;
@@ -35,22 +38,33 @@ const actionCategoryInfo: Record<string, { icon: any; label: string; color: stri
 };
 
 export default function AuditLogs() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange>('30d');
+  const [dateRange, setDateRange] = useState<DateRangePreset>('30d');
+  const [customDateRange, setCustomDateRange] = useState<CalendarDateRange | undefined>();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [selectedActionTypes, setSelectedActionTypes] = useState<string[]>([]);
+  const [selectedActorRoles, setSelectedActorRoles] = useState<string[]>([]);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showReportGenerator, setShowReportGenerator] = useState(false);
 
   const { data: logs = [], isLoading, refetch } = useQuery({
-    queryKey: ['audit-logs', dateRange, categoryFilter],
+    queryKey: ['audit-logs', dateRange, customDateRange, categoryFilter, selectedActionTypes, selectedActorRoles],
     queryFn: async () => {
       let query = supabase
         .from('admin_audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(500);
 
       // Apply date range filter
-      if (dateRange !== 'all') {
+      if (dateRange === 'custom' && customDateRange?.from && customDateRange?.to) {
+        query = query
+          .gte('created_at', customDateRange.from.toISOString())
+          .lte('created_at', customDateRange.to.toISOString());
+      } else if (dateRange !== 'all') {
         const days = parseInt(dateRange);
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - days);
@@ -75,13 +89,27 @@ export default function AuditLogs() {
   });
 
   const filteredLogs = logs.filter(log => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      log.actor_email.toLowerCase().includes(query) ||
-      log.target_identifier.toLowerCase().includes(query) ||
-      log.action_type.toLowerCase().includes(query)
-    );
+    // Search query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = 
+        log.actor_email.toLowerCase().includes(query) ||
+        log.target_identifier.toLowerCase().includes(query) ||
+        log.action_type.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
+
+    // Action type filter
+    if (selectedActionTypes.length > 0 && !selectedActionTypes.includes(log.action_type)) {
+      return false;
+    }
+
+    // Actor role filter
+    if (selectedActorRoles.length > 0 && !selectedActorRoles.includes(log.actor_role)) {
+      return false;
+    }
+
+    return true;
   });
 
   const handleExport = () => {
@@ -122,6 +150,22 @@ export default function AuditLogs() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => navigate('/super-admin/audit-logs/analytics')}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReportGenerator(true)}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Generate Report
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setAutoRefresh(!autoRefresh)}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
@@ -139,45 +183,20 @@ export default function AuditLogs() {
         </div>
 
         {/* Filters */}
-        <Card className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by actor, target, or action..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <Select value={dateRange} onValueChange={(v) => setDateRange(v as DateRange)}>
-              <SelectTrigger>
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
-                <SelectItem value="all">All time</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="All categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                <SelectItem value="user_management">User Management</SelectItem>
-                <SelectItem value="org_management">Organization</SelectItem>
-                <SelectItem value="role_management">Role Management</SelectItem>
-                <SelectItem value="bulk_management">Bulk Operations</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </Card>
+        <AuditLogFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          customDateRange={customDateRange}
+          onCustomDateRangeChange={setCustomDateRange}
+          categoryFilter={categoryFilter}
+          onCategoryFilterChange={setCategoryFilter}
+          selectedActionTypes={selectedActionTypes}
+          onActionTypesChange={setSelectedActionTypes}
+          selectedActorRoles={selectedActorRoles}
+          onActorRolesChange={setSelectedActorRoles}
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -240,9 +259,17 @@ export default function AuditLogs() {
                   filteredLogs.map((log) => {
                     const categoryInfo = actionCategoryInfo[log.action_category] || actionCategoryInfo.user_management;
                     const Icon = categoryInfo.icon;
+                    const isBulkOperation = log.changes?.bulk_operation === true;
                     
                     return (
-                      <tr key={log.id} className="border-b border-border hover:bg-accent/50 transition-colors">
+                      <tr 
+                        key={log.id} 
+                        className="border-b border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedLog(log);
+                          setShowDetailModal(true);
+                        }}
+                      >
                         <td className="p-4 text-sm">
                           <div className="flex flex-col">
                             <span className="font-medium">
@@ -267,7 +294,12 @@ export default function AuditLogs() {
                               <Icon className="h-3.5 w-3.5" />
                             </div>
                             <div className="flex flex-col">
-                              <span className="font-medium">{log.action_type}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{log.action_type}</span>
+                                {isBulkOperation && (
+                                  <Badge variant="secondary" className="text-xs">BULK</Badge>
+                                )}
+                              </div>
                               <span className="text-xs text-muted-foreground">{categoryInfo.label}</span>
                             </div>
                           </div>
@@ -279,12 +311,9 @@ export default function AuditLogs() {
                           </div>
                         </td>
                         <td className="p-4 text-sm">
-                          <details className="cursor-pointer">
-                            <summary className="text-primary hover:underline">View details</summary>
-                            <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto max-w-md">
-                              {JSON.stringify(log.changes, null, 2)}
-                            </pre>
-                          </details>
+                          <div className="text-primary hover:underline">
+                            Click row for details
+                          </div>
                         </td>
                       </tr>
                     );
@@ -294,6 +323,17 @@ export default function AuditLogs() {
             </table>
           </div>
         </Card>
+
+        {/* Modals */}
+        <AuditLogDetailModal
+          log={selectedLog}
+          open={showDetailModal}
+          onOpenChange={setShowDetailModal}
+        />
+        <ComplianceReportGenerator
+          open={showReportGenerator}
+          onOpenChange={setShowReportGenerator}
+        />
       </div>
     </UnifiedAppLayout>
   );

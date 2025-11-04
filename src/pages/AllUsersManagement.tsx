@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
-import { Crown, Users, Search, Building2, RefreshCw } from 'lucide-react';
+import { Crown, Users, Search, Building2, RefreshCw, Activity } from 'lucide-react';
 import { UserActionMenu } from '@/components/admin/UserActionMenu';
+import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
 import {
   Select,
   SelectContent,
@@ -21,6 +22,9 @@ import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 export default function AllUsersManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [orgFilter, setOrgFilter] = useState<string>('all');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserEmail, setSelectedUserEmail] = useState<string>('');
+  const [showActivityTimeline, setShowActivityTimeline] = useState(false);
 
   // Fetch all organizations for filter
   const { data: organizations = [] } = useQuery({
@@ -186,10 +190,22 @@ export default function AllUsersManagement() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                       <div className="text-sm text-muted-foreground hidden sm:block">
                         Joined {new Date(user.created_at).toLocaleDateString()}
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedUserId(user.user_id);
+                          setSelectedUserEmail(user.email);
+                          setShowActivityTimeline(true);
+                        }}
+                      >
+                        <Activity className="h-4 w-4 mr-2" />
+                        Activity
+                      </Button>
                       <UserActionMenu user={user} />
                     </div>
                   </div>
@@ -198,6 +214,16 @@ export default function AllUsersManagement() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Activity Timeline Modal */}
+        {selectedUserId && (
+          <UserActivityTimeline
+            userId={selectedUserId}
+            userEmail={selectedUserEmail}
+            open={showActivityTimeline}
+            onOpenChange={setShowActivityTimeline}
+          />
+        )}
       </div>
     </UnifiedAppLayout>
   );
