@@ -19,22 +19,23 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
   const { currentOrganizationId } = useOrganizationStore();
 
   // Load cached non-customers (phone numbers not found in Noddi)
+  const loadCachedNonCustomers = async () => {
+    const organizationId = currentOrganizationId || calls[0]?.organization_id;
+    if (!organizationId) return;
+
+    const { data: nonCustomerCache } = await supabase
+      .from('noddi_customer_cache')
+      .select('phone')
+      .eq('organization_id', organizationId)
+      .is('noddi_user_id', null);
+
+    if (nonCustomerCache) {
+      setCachedNonCustomers(new Set(nonCustomerCache.map(c => c.phone).filter(Boolean)));
+      console.log(`📋 Loaded ${nonCustomerCache.length} cached non-customers`);
+    }
+  };
+
   useEffect(() => {
-    const loadCachedNonCustomers = async () => {
-      const organizationId = currentOrganizationId || calls[0]?.organization_id;
-      if (!organizationId) return;
-
-      const { data: nonCustomerCache } = await supabase
-        .from('noddi_customer_cache')
-        .select('phone')
-        .eq('organization_id', organizationId)
-        .is('noddi_user_id', null);
-
-      if (nonCustomerCache) {
-        setCachedNonCustomers(new Set(nonCustomerCache.map(c => c.phone).filter(Boolean)));
-      }
-    };
-
     loadCachedNonCustomers();
   }, [calls, currentOrganizationId]);
 
@@ -223,6 +224,9 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
         // Refresh data to show all updates
         await queryClient.invalidateQueries({ queryKey: ['calls'] });
         await queryClient.invalidateQueries({ queryKey: ['customers'] });
+        
+        // Reload cached non-customers so button count updates immediately
+        await loadCachedNonCustomers();
         
         toast({
           title: 'Sync Complete',
