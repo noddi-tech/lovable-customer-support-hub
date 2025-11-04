@@ -24,7 +24,14 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
       // Get organization ID from store or fallback to calls
       const organizationId = currentOrganizationId || calls[0]?.organization_id;
       
+      console.log('🔍 Organization ID for sync:', { 
+        currentOrganizationId, 
+        fallbackFromCalls: calls[0]?.organization_id,
+        finalOrganizationId: organizationId 
+      });
+      
       if (!organizationId) {
+        console.error('❌ No organization ID available');
         throw new Error('No organization found');
       }
 
