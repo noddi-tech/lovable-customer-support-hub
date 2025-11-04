@@ -1,0 +1,203 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+import { toast } from 'sonner';
+
+export type AppRole = 'super_admin' | 'admin' | 'agent' | 'user';
+
+export function useUserManagement() {
+  const { isSuperAdmin } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Fetch user roles
+  const getUserRoles = (userId: string) => {
+    return useQuery({
+      queryKey: ['user-roles', userId],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('id, role, created_at')
+          .eq('user_id', userId);
+
+        if (error) throw error;
+        return data || [];
+      },
+      enabled: !!userId && isSuperAdmin,
+    });
+  };
+
+  // Assign role to user
+  const assignRole = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+      if (!isSuperAdmin) {
+        throw new Error('Only super admins can assign roles');
+      }
+
+      const { data, error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      toast.success('Role assigned successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error assigning role:', error);
+      toast.error(error.message || 'Failed to assign role');
+    },
+  });
+
+  // Remove role from user
+  const removeRole = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+      if (!isSuperAdmin) {
+        throw new Error('Only super admins can remove roles');
+      }
+
+      const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role', role);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      toast.success('Role removed successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error removing role:', error);
+      toast.error(error.message || 'Failed to remove role');
+    },
+  });
+
+  // Update user profile
+  const updateUser = useMutation({
+    mutationFn: async ({
+      userId,
+      updates,
+    }: {
+      userId: string;
+      updates: { full_name?: string; email?: string };
+    }) => {
+      if (!isSuperAdmin) {
+        throw new Error('Only super admins can update users');
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      toast.success('User updated successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error updating user:', error);
+      toast.error(error.message || 'Failed to update user');
+    },
+  });
+
+  // Delete user (cascade deletes handled by database)
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      if (!isSuperAdmin) {
+        throw new Error('Only super admins can delete users');
+      }
+
+      // Delete from profiles (triggers cascade to auth.users via database triggers)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (profileError) throw profileError;
+
+      // Admin API call to delete from auth.users
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (authError) {
+        console.error('Error deleting from auth:', authError);
+        // Don't throw - profile is already deleted
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['organization-memberships'] });
+      toast.success('User deleted successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error deleting user:', error);
+      toast.error(error.message || 'Failed to delete user');
+    },
+  });
+
+  // Update organization membership role
+  const updateMembershipRole = useMutation({
+    mutationFn: async ({
+      userId,
+      organizationId,
+      role,
+    }: {
+      userId: string;
+      organizationId: string;
+      role: 'admin' | 'agent' | 'user';
+    }) => {
+      if (!isSuperAdmin) {
+        throw new Error('Only super admins can update membership roles');
+      }
+
+      const { data, error } = await supabase
+        .from('organization_memberships')
+        .update({ role })
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['organization-memberships'] });
+      toast.success('Membership role updated successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error updating membership role:', error);
+      toast.error(error.message || 'Failed to update membership role');
+    },
+  });
+
+  return {
+    getUserRoles,
+    assignRole: assignRole.mutate,
+    removeRole: removeRole.mutate,
+    updateUser: updateUser.mutate,
+    deleteUser: deleteUser.mutate,
+    updateMembershipRole: updateMembershipRole.mutate,
+    isAssigningRole: assignRole.isPending,
+    isRemovingRole: removeRole.isPending,
+    isUpdatingUser: updateUser.isPending,
+    isDeletingUser: deleteUser.isPending,
+    isUpdatingMembership: updateMembershipRole.isPending,
+  };
+}

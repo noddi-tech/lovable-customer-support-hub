@@ -1,0 +1,97 @@
+import React, { useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { MoreVertical, Shield, Building2, Trash2, UserX } from 'lucide-react';
+import { ManageUserRolesDialog } from './ManageUserRolesDialog';
+import { ManageUserOrganizationsDialog } from './ManageUserOrganizationsDialog';
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
+import { useUserManagement } from '@/hooks/useUserManagement';
+import { useAuth } from '@/hooks/useAuth';
+
+interface UserActionMenuProps {
+  user: {
+    id: string;
+    user_id: string;
+    email: string;
+    full_name: string | null;
+    organization_memberships?: Array<{
+      id: string;
+      role: string;
+      organization?: { id: string; name: string };
+    }>;
+  };
+}
+
+export function UserActionMenu({ user }: UserActionMenuProps) {
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
+  const [orgsDialogOpen, setOrgsDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { deleteUser, isDeletingUser } = useUserManagement();
+  const { user: currentUser } = useAuth();
+
+  const handleDeleteUser = () => {
+    deleteUser(user.user_id);
+    setDeleteDialogOpen(false);
+  };
+
+  const isSelf = currentUser?.id === user.user_id;
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => setRolesDialogOpen(true)}>
+            <Shield className="h-4 w-4 mr-2" />
+            Manage Roles
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setOrgsDialogOpen(true)}>
+            <Building2 className="h-4 w-4 mr-2" />
+            Manage Organizations
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => setDeleteDialogOpen(true)}
+            disabled={isSelf}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete User
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ManageUserRolesDialog
+        open={rolesDialogOpen}
+        onOpenChange={setRolesDialogOpen}
+        user={user}
+      />
+
+      <ManageUserOrganizationsDialog
+        open={orgsDialogOpen}
+        onOpenChange={setOrgsDialogOpen}
+        user={user}
+      />
+
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteUser}
+        title="Delete User"
+        description={`Are you sure you want to delete ${user.full_name || user.email}?`}
+        itemName={user.email}
+        isLoading={isDeletingUser}
+      />
+    </>
+  );
+}

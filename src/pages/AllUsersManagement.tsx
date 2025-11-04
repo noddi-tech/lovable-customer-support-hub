@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Crown, Users, Search, Building2, RefreshCw } from 'lucide-react';
+import { UserActionMenu } from '@/components/admin/UserActionMenu';
 import {
   Select,
   SelectContent,
@@ -158,11 +159,11 @@ export default function AllUsersManagement() {
                     key={user.id}
                     className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-1">
                       <div className="h-12 w-12 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
                         <Users className="h-6 w-6 text-white" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{user.full_name || user.email}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -185,8 +186,11 @@ export default function AllUsersManagement() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Joined {new Date(user.created_at).toLocaleDateString()}
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm text-muted-foreground hidden sm:block">
+                        Joined {new Date(user.created_at).toLocaleDateString()}
+                      </div>
+                      <UserActionMenu user={user} />
                     </div>
                   </div>
                 ))
