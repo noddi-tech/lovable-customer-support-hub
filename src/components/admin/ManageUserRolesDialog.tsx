@@ -47,6 +47,12 @@ const roleInfo: Record<AppRole, { label: string; description: string; color: str
   },
 };
 
+const defaultRoleInfo = {
+  label: 'Unknown Role',
+  description: 'Role information not available',
+  color: 'bg-gray-400',
+};
+
 const availableRoles: AppRole[] = ['super_admin', 'admin', 'agent', 'user'];
 
 export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRolesDialogProps) {
@@ -108,15 +114,16 @@ export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRo
             ) : (
               <div className="space-y-2">
                 {currentRoles.map((roleItem) => {
-                  const info = roleInfo[roleItem.role as AppRole];
+                  if (!roleItem.role) return null;
+                  const info = roleInfo[roleItem.role as AppRole] || defaultRoleInfo;
                   return (
                     <Card key={roleItem.id}>
                       <CardContent className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-3">
-                          <div className={`h-2 w-2 rounded-full ${info.color}`} />
+                          <div className={`h-2 w-2 rounded-full ${info?.color || 'bg-gray-400'}`} />
                           <div>
-                            <p className="font-medium text-sm">{info.label}</p>
-                            <p className="text-xs text-muted-foreground">{info.description}</p>
+                            <p className="font-medium text-sm">{info?.label || 'Unknown'}</p>
+                            <p className="text-xs text-muted-foreground">{info?.description || 'N/A'}</p>
                           </div>
                         </div>
                         <Button
@@ -149,7 +156,7 @@ export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRo
               <h4 className="text-sm font-medium mb-3">Add Role</h4>
               <div className="space-y-2">
                 {availableToAdd.map((role) => {
-                  const info = roleInfo[role];
+                  const info = roleInfo[role] || defaultRoleInfo;
                   return (
                     <Card key={role} className="border-dashed hover:border-solid transition-colors">
                       <CardContent className="flex items-center justify-between py-3">
