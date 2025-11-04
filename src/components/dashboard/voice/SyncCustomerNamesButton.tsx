@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -13,9 +13,30 @@ interface SyncCustomerNamesButtonProps {
 
 export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = ({ calls }) => {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [cachedNonCustomers, setCachedNonCustomers] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { currentOrganizationId } = useOrganizationStore();
+
+  // Load cached non-customers (phone numbers not found in Noddi)
+  useEffect(() => {
+    const loadCachedNonCustomers = async () => {
+      const organizationId = currentOrganizationId || calls[0]?.organization_id;
+      if (!organizationId) return;
+
+      const { data: nonCustomerCache } = await supabase
+        .from('noddi_customer_cache')
+        .select('phone')
+        .eq('organization_id', organizationId)
+        .is('noddi_user_id', null);
+
+      if (nonCustomerCache) {
+        setCachedNonCustomers(new Set(nonCustomerCache.map(c => c.phone).filter(Boolean)));
+      }
+    };
+
+    loadCachedNonCustomers();
+  }, [calls, currentOrganizationId]);
 
   const handleSyncAll = async () => {
     setIsSyncing(true);
@@ -173,6 +194,22 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
                 }
                 noddiSuccessCount += callsWithPhone.length;
               }
+            } else {
+              // Customer NOT found in Noddi - cache this result
+              console.log(`❌ ${phone} not found in Noddi, caching result`);
+              
+              await supabase
+                .from('noddi_customer_cache')
+                .upsert({
+                  phone,
+                  email: phone,
+                  organization_id: organizationId,
+                  noddi_user_id: null,
+                  last_refreshed_at: new Date().toISOString(),
+                  cached_customer_data: { found: false }
+                }, {
+                  onConflict: 'phone,organization_id'
+                });
             }
           } catch (err) {
             console.error(`Exception syncing ${phone}:`, err);
@@ -211,12 +248,21 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
     }
   };
 
-  const callsNeedingSync = calls.filter(
-    call => !call.customer_name || 
-            call.customer_name === 'Unknown' || 
-            call.customer_name === 'Unknown Customer' ||
-            call.customer_name === 'Unknown Name'
-  ).length;
+  const callsNeedingSync = calls.filter(call => {
+    const needsSync = !call.customer_name || 
+                      call.customer_name === 'Unknown' || 
+                      call.customer_name === 'Unknown Customer' ||
+                      call.customer_name === 'Unknown Name';
+    
+    if (!needsSync) return false;
+    
+    // Exclude phone numbers already cached as non-customers
+    if (call.customer_phone && cachedNonCustomers.has(call.customer_phone)) {
+      return false;
+    }
+    
+    return true;
+  }).length;
 
   if (callsNeedingSync === 0) {
     return null;
