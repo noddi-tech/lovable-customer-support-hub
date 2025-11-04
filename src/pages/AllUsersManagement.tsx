@@ -35,40 +35,49 @@ export default function AllUsersManagement() {
     },
   });
 
-  // Fetch all users with their organization memberships
+  // Fetch all users with their organization memberships using separate queries
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['all-users', orgFilter],
     queryFn: async () => {
-      let query = supabase
+      // Query 1: Fetch all profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          email,
-          full_name,
-          created_at,
-          organization_memberships!organization_memberships_user_id_fkey(
-            id,
-            role,
-            status,
-            organization:organizations(id, name)
-          )
-        `)
+        .select('id, user_id, email, full_name, created_at')
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
+      if (profilesError) throw profilesError;
 
-      if (error) throw error;
+      // Query 2: Fetch all organization memberships with organizations
+      const { data: membershipsData, error: membershipsError } = await supabase
+        .from('organization_memberships')
+        .select(`
+          id,
+          user_id,
+          role,
+          status,
+          organization:organizations(id, name)
+        `);
+
+      if (membershipsError) throw membershipsError;
+
+      // Join the data in frontend by matching user_id
+      const usersWithMemberships = (profilesData || []).map(profile => ({
+        ...profile,
+        organization_memberships: (membershipsData || []).filter(
+          m => m.user_id === profile.user_id
+        )
+      }));
 
       // Filter by organization if needed
       if (orgFilter !== 'all') {
-        return (data || []).filter((user: any) =>
+        return usersWithMemberships.filter((user: any) =>
           user.organization_memberships?.some(
             (m: any) => m.organization?.id === orgFilter
           )
         );
       }
 
-      return data || [];
+      return usersWithMemberships;
     },
   });
 
