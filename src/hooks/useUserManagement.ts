@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useAuditLog } from './useAuditLog';
 import { toast } from 'sonner';
 
 export type AppRole = 'super_admin' | 'admin' | 'agent' | 'user';
@@ -8,6 +9,7 @@ export type AppRole = 'super_admin' | 'admin' | 'agent' | 'user';
 export function useUserManagement() {
   const { isSuperAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
 
   // Fetch user roles
   const getUserRoles = (userId: string) => {
@@ -45,7 +47,27 @@ export function useUserManagement() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Fetch user email for audit log
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', variables.userId)
+        .single();
+
+      // Log audit action
+      try {
+        await logAction(
+          'user.role.assign',
+          'role',
+          variables.userId,
+          profile?.email || variables.userId,
+          { role: variables.role, assigned: true }
+        );
+      } catch (error) {
+        console.error('Failed to log audit action:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['user-roles'] });
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       toast.success('Role assigned successfully');
@@ -71,7 +93,27 @@ export function useUserManagement() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Fetch user email for audit log
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', variables.userId)
+        .single();
+
+      // Log audit action
+      try {
+        await logAction(
+          'user.role.remove',
+          'role',
+          variables.userId,
+          profile?.email || variables.userId,
+          { role: variables.role, removed: true }
+        );
+      } catch (error) {
+        console.error('Failed to log audit action:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['user-roles'] });
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       toast.success('Role removed successfully');
@@ -105,7 +147,20 @@ export function useUserManagement() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Log audit action
+      try {
+        await logAction(
+          'user.update',
+          'user',
+          variables.userId,
+          data.email || variables.userId,
+          { updates: variables.updates }
+        );
+      } catch (error) {
+        console.error('Failed to log audit action:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       toast.success('User updated successfully');
     },
@@ -137,8 +192,23 @@ export function useUserManagement() {
         console.error('Error deleting from auth:', authError);
         // Don't throw - profile is already deleted
       }
+
+      return userId;
     },
-    onSuccess: () => {
+    onSuccess: async (userId) => {
+      // Log audit action
+      try {
+        await logAction(
+          'user.delete',
+          'user',
+          userId,
+          userId,
+          { deleted: true }
+        );
+      } catch (error) {
+        console.error('Failed to log audit action:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['user-roles'] });
       queryClient.invalidateQueries({ queryKey: ['organization-memberships'] });
@@ -176,7 +246,38 @@ export function useUserManagement() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Fetch user email and organization name for audit log
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', variables.userId)
+        .single();
+
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('name')
+        .eq('id', variables.organizationId)
+        .single();
+
+      // Log audit action
+      try {
+        await logAction(
+          'org.member.role.update',
+          'user',
+          variables.userId,
+          profile?.email || variables.userId,
+          { 
+            organizationId: variables.organizationId,
+            organizationName: org?.name,
+            newRole: variables.role 
+          },
+          variables.organizationId
+        );
+      } catch (error) {
+        console.error('Failed to log audit action:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['organization-memberships'] });
       queryClient.invalidateQueries({ queryKey: ['organization-members'] });
