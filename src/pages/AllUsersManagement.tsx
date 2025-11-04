@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
-import { Crown, Users, Search, Building2 } from 'lucide-react';
+import { Crown, Users, Search, Building2, RefreshCw } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -36,8 +36,10 @@ export default function AllUsersManagement() {
   });
 
   // Fetch all users with their organization memberships using separate queries
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['all-users', orgFilter],
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache (formerly cacheTime)
     queryFn: async () => {
       // Query 1: Fetch all profiles
       const { data: profilesData, error: profilesError } = await supabase
@@ -103,7 +105,7 @@ export default function AllUsersManagement() {
         {/* Filters */}
         <Card className="border-yellow-200 dark:border-yellow-900/50">
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -126,6 +128,10 @@ export default function AllUsersManagement() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button onClick={() => refetch()} variant="outline" size="default" className="w-full md:w-auto">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Data
+              </Button>
             </div>
           </CardContent>
         </Card>
