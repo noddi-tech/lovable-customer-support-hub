@@ -40,7 +40,8 @@ import {
   User,
   Crown,
   BarChart3,
-  Building2
+  Building2,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -251,6 +252,18 @@ export const ModernSidebar: React.FC<ModernSidebarProps> = () => {
                     >
                       <Users className="h-3 w-3" />
                       <span>{t('nav.allUsers', 'All Users')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => navigate('/super-admin/roles')}
+                      className={cn(
+                        "w-full justify-start text-sm",
+                        location.pathname === '/super-admin/roles' && "bg-accent font-medium"
+                      )}
+                    >
+                      <Shield className="h-3 w-3" />
+                      <span>{t('nav.roleManagement', 'Role Management')}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>

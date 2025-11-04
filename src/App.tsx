@@ -30,6 +30,7 @@ import OrganizationManagement from "./pages/OrganizationManagement";
 import OrganizationDetails from "./pages/OrganizationDetails";
 import AllUsersManagement from "./pages/AllUsersManagement";
 import SystemAnalytics from "./pages/SystemAnalytics";
+import RoleManagement from "./pages/RoleManagement";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
@@ -116,6 +117,7 @@ const AppContent = () => {
       <Route path="/super-admin/organizations" element={<ProtectedRoute><SuperAdminRoute><OrganizationManagement /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/organizations/:id" element={<ProtectedRoute><SuperAdminRoute><OrganizationDetails /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/users" element={<ProtectedRoute><SuperAdminRoute><AllUsersManagement /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/roles" element={<ProtectedRoute><SuperAdminRoute><RoleManagement /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/analytics" element={<ProtectedRoute><SuperAdminRoute><SystemAnalytics /></SuperAdminRoute></ProtectedRoute>} />
       
       {/* Static Pages */}
