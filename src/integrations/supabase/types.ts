@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action_category: string
+          action_type: string
+          actor_email: string
+          actor_id: string | null
+          actor_role: string
+          changes: Json
+          created_at: string
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+          target_id: string | null
+          target_identifier: string | null
+          target_type: string
+        }
+        Insert: {
+          action_category: string
+          action_type: string
+          actor_email: string
+          actor_id?: string | null
+          actor_role: string
+          changes?: Json
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          target_id?: string | null
+          target_identifier?: string | null
+          target_type: string
+        }
+        Update: {
+          action_category?: string
+          action_type?: string
+          actor_email?: string
+          actor_id?: string | null
+          actor_role?: string
+          changes?: Json
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          target_id?: string | null
+          target_identifier?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       call_events: {
         Row: {
           call_id: string
