@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { getCustomerCacheKey } from '@/utils/customerCacheKey';
+import { syncCustomerFromNoddi } from '@/utils/customerSync';
 
 interface NoddihCustomer {
   noddiUserId: number;
@@ -195,6 +196,15 @@ export const useNoddihKundeData = (customer: Customer | null) => {
           'data.ui_meta.source': data?.data?.ui_meta?.source
         });
 
+        // Sync customer to database if found
+        if (data?.data?.found && (customer.phone || customer.email) && profile.organization_id) {
+          const phone = customer.phone || data?.data?.user?.phone;
+          if (phone) {
+            console.log('[Noddi API] 💾 Syncing customer to database');
+            await syncCustomerFromNoddi(data, phone, profile.organization_id);
+          }
+        }
+
         return data as NoddiLookupResponse;
       } catch (err: any) {
         const duration = Date.now() - startTime;
@@ -245,6 +255,15 @@ export const useNoddihKundeData = (customer: Customer | null) => {
 
       if (error) {
         throw new Error(`Failed to refresh Noddi data: ${error.message}`);
+      }
+
+      // Sync refreshed customer to database
+      if (data?.data?.found && (customer.phone || customer.email) && profile.organization_id) {
+        const phone = customer.phone || data?.data?.user?.phone;
+        if (phone) {
+          console.log('[Noddi API] 💾 Syncing refreshed customer to database');
+          await syncCustomerFromNoddi(data, phone, profile.organization_id);
+        }
       }
 
       return data;
