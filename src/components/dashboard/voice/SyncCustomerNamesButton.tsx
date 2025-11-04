@@ -167,8 +167,7 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
               {
                 body: { 
                   phone,
-                  organizationId,
-                  forceRefresh: true 
+                  organizationId
                 }
               }
             );
