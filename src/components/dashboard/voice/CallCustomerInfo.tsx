@@ -17,7 +17,7 @@ const CallCustomerInfoComponent: React.FC<CallCustomerInfoProps> = ({ call }) =>
     email: customer?.email,
     phone: call.customer_phone,
     full_name: customer?.full_name,
-  });
+  }, call.id);
 
   // Show customer name from database
   const customerName = customer?.full_name || displayName(noddiData?.data?.user, customer?.email);

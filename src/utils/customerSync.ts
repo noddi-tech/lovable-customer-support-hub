@@ -8,7 +8,8 @@ import { NoddiLookupResponse } from '@/hooks/useNoddihKundeData';
 export async function syncCustomerFromNoddi(
   noddiData: NoddiLookupResponse,
   phone: string,
-  organizationId: string
+  organizationId: string,
+  callId?: string
 ): Promise<{ id: string } | null> {
   // Validate inputs
   if (!phone || phone.trim() === '') {
@@ -70,6 +71,25 @@ export async function syncCustomerFromNoddi(
     }
 
     console.log('[CustomerSync] Customer synced successfully:', data?.id);
+    
+    // Also update the call record with customer data for immediate display
+    if (callId && data) {
+      console.log('[CustomerSync] 🔗 Updating call record with customer data:', { callId, fullName, email: user.email });
+      const { error: callUpdateError } = await supabase
+        .from('calls')
+        .update({
+          customer_name: fullName,
+          customer_email: user.email || null
+        })
+        .eq('id', callId);
+      
+      if (callUpdateError) {
+        console.error('[CustomerSync] Error updating call record:', callUpdateError);
+      } else {
+        console.log('[CustomerSync] ✅ Call record updated successfully');
+      }
+    }
+    
     return data;
   } catch (err) {
     console.error('[CustomerSync] Exception syncing customer:', err);

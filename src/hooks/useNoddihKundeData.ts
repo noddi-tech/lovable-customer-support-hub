@@ -120,7 +120,7 @@ interface Customer {
   full_name?: string;
 }
 
-export const useNoddihKundeData = (customer: Customer | null) => {
+export const useNoddihKundeData = (customer: Customer | null, callId?: string) => {
   const queryClient = useQueryClient();
   const { profile } = useAuth();
 
@@ -210,7 +210,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
               organizationId: profile.organization_id
             });
             
-            const result = await syncCustomerFromNoddi(data, phone, profile.organization_id);
+            const result = await syncCustomerFromNoddi(data, phone, profile.organization_id, callId);
             
             if (result) {
               console.log('[Noddi API] ✅ Customer synced successfully:', result.id);
@@ -287,7 +287,7 @@ export const useNoddihKundeData = (customer: Customer | null) => {
             organizationId: profile.organization_id
           });
           
-          const result = await syncCustomerFromNoddi(data, phone, profile.organization_id);
+          const result = await syncCustomerFromNoddi(data, phone, profile.organization_id, callId);
           
           if (result) {
             console.log('[Noddi API] ✅ Refreshed customer synced successfully:', result.id);

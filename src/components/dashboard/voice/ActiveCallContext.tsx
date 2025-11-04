@@ -108,7 +108,7 @@ export const ActiveCallContext: React.FC<ActiveCallContextProps> = memo(({
   const [showNoteEditor, setShowNoteEditor] = useState(false);
 
   // Fetch Noddi data if not already loaded
-  const noddiQuery = useNoddihKundeData(customer);
+  const noddiQuery = useNoddihKundeData(customer, callId);
 
   // Update context when Noddi data loads
   useEffect(() => {

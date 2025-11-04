@@ -91,7 +91,8 @@ export const CallTableRow = memo<CallTableRowProps>(({
     return endReason ? endReason.replace(/_/g, ' ') : call.status;
   };
 
-  const customerName = call.customers?.full_name || 'Unknown';
+  const customerName = call.customer_name || call.customers?.full_name || 'Unknown';
+  const customerEmail = call.customer_email || call.customers?.email;
   const customerInitial = customerName[0]?.toUpperCase() || 'U';
 
   return (
@@ -132,9 +133,9 @@ export const CallTableRow = memo<CallTableRowProps>(({
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="text-sm truncate">{customerName}</div>
-            {call.customers?.email && (
+            {customerEmail && (
               <div className="text-xs text-muted-foreground truncate hidden xl:block">
-                {call.customers.email}
+                {customerEmail}
               </div>
             )}
           </div>

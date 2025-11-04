@@ -150,7 +150,9 @@ export type Database = {
           agent_phone: string | null
           availability_status: string | null
           created_at: string
+          customer_email: string | null
           customer_id: string | null
+          customer_name: string | null
           customer_phone: string | null
           direction: Database["public"]["Enums"]["call_direction"]
           duration_seconds: number | null
@@ -175,7 +177,9 @@ export type Database = {
           agent_phone?: string | null
           availability_status?: string | null
           created_at?: string
+          customer_email?: string | null
           customer_id?: string | null
+          customer_name?: string | null
           customer_phone?: string | null
           direction: Database["public"]["Enums"]["call_direction"]
           duration_seconds?: number | null
@@ -200,7 +204,9 @@ export type Database = {
           agent_phone?: string | null
           availability_status?: string | null
           created_at?: string
+          customer_email?: string | null
           customer_id?: string | null
+          customer_name?: string | null
           customer_phone?: string | null
           direction?: Database["public"]["Enums"]["call_direction"]
           duration_seconds?: number | null
