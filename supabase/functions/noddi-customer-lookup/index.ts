@@ -728,7 +728,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json() as NoddihCustomerLookupRequest;
     
-    const phone = sanitizePhone(body.phone);
+    const phone = body.phone?.trim() || null; // Keep spaces in phone number to match Noddi's format
     let email = (body.email || "").trim().toLowerCase();
     
     if (!phone && !email) {
