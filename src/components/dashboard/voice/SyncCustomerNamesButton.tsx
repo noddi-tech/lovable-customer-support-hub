@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { syncCustomerFromNoddi } from '@/utils/customerSync';
 import { useQueryClient } from '@tanstack/react-query';
+import { useOrganizationStore } from '@/stores/organizationStore';
 
 interface SyncCustomerNamesButtonProps {
   calls: any[];
@@ -14,24 +15,16 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { currentOrganizationId } = useOrganizationStore();
 
   const handleSyncAll = async () => {
     setIsSyncing(true);
     
     try {
-      // Get user's organization
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.organization_id) {
+      // Get organization ID from store or fallback to calls
+      const organizationId = currentOrganizationId || calls[0]?.organization_id;
+      
+      if (!organizationId) {
         throw new Error('No organization found');
       }
 
@@ -96,7 +89,7 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
               await syncCustomerFromNoddi(
                 noddiData,
                 phone,
-                profile.organization_id,
+                organizationId,
                 call?.id
               );
               successCount++;
