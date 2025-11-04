@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2, History, PhoneCall, CheckCircle2, AlertCircle, Table as TableIcon, LayoutGrid } from 'lucide-react';
+import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2, History, PhoneCall, CheckCircle2, AlertCircle, Table as TableIcon, LayoutGrid, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { EnhancedCallCard } from './EnhancedCallCard';
 import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
 import { BadgeGuide } from './BadgeGuide';
 import { CallsTable } from './CallsTable';
+import { SyncCustomerNamesButton } from './SyncCustomerNamesButton';
 
 interface CallsListProps {
   showTimeFilter?: boolean;
@@ -438,6 +439,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         
         {/* View Mode Toggle & Filters */}
         <div className="flex items-center gap-3">
+          <SyncCustomerNamesButton calls={calls} />
           <div className="flex items-center border rounded-md">
             <Button 
               variant={viewMode === 'table' ? 'default' : 'ghost'} 

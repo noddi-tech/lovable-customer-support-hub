@@ -1,0 +1,154 @@
+import React, { useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { syncCustomerFromNoddi } from '@/utils/customerSync';
+import { useQueryClient } from '@tanstack/react-query';
+
+interface SyncCustomerNamesButtonProps {
+  calls: any[];
+}
+
+export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = ({ calls }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const handleSyncAll = async () => {
+    setIsSyncing(true);
+    
+    try {
+      // Get user's organization
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.organization_id) {
+        throw new Error('No organization found');
+      }
+
+      // Find calls with missing customer names
+      const callsToSync = calls.filter(
+        call => !call.customer_name || 
+                call.customer_name === 'Unknown' || 
+                call.customer_name === 'Unknown Customer' ||
+                call.customer_name === 'Unknown Name'
+      );
+
+      if (callsToSync.length === 0) {
+        toast({
+          title: 'No Calls to Sync',
+          description: 'All calls already have customer names',
+        });
+        setIsSyncing(false);
+        return;
+      }
+
+      // Group by unique phone numbers to avoid duplicate lookups
+      const uniquePhones = [...new Set(
+        callsToSync
+          .map(c => c.customer_phone)
+          .filter(phone => phone && phone.trim() !== '')
+      )];
+
+      toast({
+        title: 'Syncing Customer Names',
+        description: `Processing ${uniquePhones.length} unique phone numbers...`,
+      });
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Process each unique phone number
+      for (const phone of uniquePhones) {
+        try {
+          // Invoke Noddi lookup function
+          const { data: noddiData, error: lookupError } = await supabase.functions.invoke(
+            'noddi-customer-lookup',
+            {
+              body: { 
+                phone,
+                forceRefresh: true 
+              }
+            }
+          );
+
+          if (lookupError) {
+            console.error(`Error looking up ${phone}:`, lookupError);
+            errorCount++;
+            continue;
+          }
+
+          // If customer found, sync will happen automatically via the function
+          if (noddiData?.data?.found) {
+            // Find the call to get the callId for updating
+            const call = callsToSync.find(c => c.customer_phone === phone);
+            
+            if (noddiData.data.user) {
+              await syncCustomerFromNoddi(
+                noddiData,
+                phone,
+                profile.organization_id,
+                call?.id
+              );
+              successCount++;
+            }
+          }
+        } catch (err) {
+          console.error(`Exception syncing ${phone}:`, err);
+          errorCount++;
+        }
+      }
+
+      // Invalidate queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['calls'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+
+      toast({
+        title: 'Sync Complete',
+        description: `✅ ${successCount} updated, ${errorCount} failed`,
+        variant: errorCount > 0 ? 'destructive' : 'default',
+      });
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast({
+        title: 'Sync Failed',
+        description: error.message || 'An error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const callsNeedingSync = calls.filter(
+    call => !call.customer_name || 
+            call.customer_name === 'Unknown' || 
+            call.customer_name === 'Unknown Customer' ||
+            call.customer_name === 'Unknown Name'
+  ).length;
+
+  if (callsNeedingSync === 0) {
+    return null;
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleSyncAll}
+      disabled={isSyncing}
+    >
+      <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+      Sync {callsNeedingSync} Customer Name{callsNeedingSync !== 1 ? 's' : ''}
+    </Button>
+  );
+};

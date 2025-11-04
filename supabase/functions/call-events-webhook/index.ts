@@ -248,6 +248,52 @@ async function getOrganizationFromDomain(supabase: any, domain: string): Promise
 async function processCallEvent(supabase: any, standardEvent: StandardCallEvent, organizationId: string) {
   console.log('Processing standard event:', JSON.stringify(standardEvent, null, 2));
 
+  // Fetch customer data from Noddi before creating the call
+  let customerName = null;
+  let customerEmail = null;
+  
+  if (standardEvent.customerPhone) {
+    try {
+      console.log('🔍 Fetching customer data from Noddi for:', standardEvent.customerPhone);
+      
+      const { data: noddiData, error: noddiError } = await supabase.functions.invoke(
+        'noddi-customer-lookup',
+        {
+          body: { 
+            phone: standardEvent.customerPhone,
+            forceRefresh: false // Use cache if available for performance
+          }
+        }
+      );
+
+      if (noddiError) {
+        console.warn('⚠️ Noddi lookup failed, proceeding without customer data:', noddiError);
+      } else if (noddiData?.data?.found && noddiData.data.user) {
+        const user = noddiData.data.user;
+        const uiMeta = noddiData.data.ui_meta;
+        const userGroup = noddiData.data.all_user_groups?.find(
+          (g: any) => g.is_personal || g.is_default
+        ) || noddiData.data.all_user_groups?.[0];
+        
+        // Extract name using same logic as syncCustomerFromNoddi
+        if (uiMeta?.display_name && uiMeta.display_name.trim()) {
+          customerName = uiMeta.display_name.trim();
+        } else if (userGroup?.name && userGroup.name.trim()) {
+          customerName = userGroup.name.trim();
+        } else if (user.first_name || user.last_name) {
+          customerName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+        }
+        
+        customerEmail = user.email || null;
+        
+        console.log('✅ Customer data fetched:', { customerName, customerEmail });
+      }
+    } catch (err) {
+      console.error('❌ Exception during Noddi lookup:', err);
+      // Continue without customer data
+    }
+  }
+
   // Upsert call record
   const terminalStatuses = ['completed', 'missed', 'failed', 'busy'];
   const isTerminal = terminalStatuses.includes(standardEvent.status);
@@ -259,6 +305,8 @@ async function processCallEvent(supabase: any, standardEvent: StandardCallEvent,
       provider: standardEvent.provider,
       organization_id: organizationId,
       customer_phone: standardEvent.customerPhone,
+      customer_name: customerName, // Now populated from Noddi
+      customer_email: customerEmail, // Now populated from Noddi
       agent_phone: standardEvent.agentPhone,
       status: standardEvent.status,
       direction: standardEvent.direction,
