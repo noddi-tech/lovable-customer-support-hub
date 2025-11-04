@@ -46,7 +46,7 @@ export default function AllUsersManagement() {
           email,
           full_name,
           created_at,
-          organization_memberships(
+          organization_memberships!organization_memberships_user_id_fkey(
             id,
             role,
             status,
