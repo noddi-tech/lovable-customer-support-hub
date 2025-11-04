@@ -90,17 +90,20 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
 
           // If customer found, sync will happen automatically via the function
           if (noddiData?.data?.found) {
-            // Find the call to get the callId for updating
-            const call = callsToSync.find(c => c.customer_phone === phone);
+            // Find ALL calls with this phone number
+            const callsWithPhone = callsToSync.filter(c => c.customer_phone === phone);
             
-            if (noddiData.data.user) {
-              await syncCustomerFromNoddi(
-                noddiData,
-                phone,
-                organizationId,
-                call?.id
-              );
-              successCount++;
+            if (noddiData.data.user && callsWithPhone.length > 0) {
+              // Update EACH call with this phone number
+              for (const call of callsWithPhone) {
+                await syncCustomerFromNoddi(
+                  noddiData,
+                  phone,
+                  organizationId,
+                  call.id
+                );
+              }
+              successCount += callsWithPhone.length; // Count all updated calls
             }
           }
         } catch (err) {
