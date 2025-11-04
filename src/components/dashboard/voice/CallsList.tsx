@@ -13,7 +13,7 @@ import { useCallNotes } from '@/hooks/useCallNotes';
 import { formatDistanceToNow, format, isAfter } from 'date-fns';
 import { CallDetailsDialog } from './CallDetailsDialog';
 import { CallActionButton } from './CallActionButton';
-import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
+import { formatPhoneNumber, normalizePhoneNumber } from '@/utils/phoneNumberUtils';
 import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
 import { EnhancedCallCard } from './EnhancedCallCard';
 import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
@@ -69,7 +69,12 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
     // Search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      const matchesPhone = call.customer_phone?.toLowerCase().includes(searchLower);
+      const normalizedSearch = normalizePhoneNumber(filters.search);
+      
+      const matchesPhone = call.customer_phone && (
+        call.customer_phone.toLowerCase().includes(searchLower) ||
+        normalizePhoneNumber(call.customer_phone).includes(normalizedSearch)
+      );
       const matchesName = call.customers?.full_name?.toLowerCase().includes(searchLower);
       const matchesId = call.id?.toLowerCase().includes(searchLower);
       if (!matchesPhone && !matchesName && !matchesId) return false;
