@@ -1,10 +1,11 @@
 import React from 'react';
-import { User } from 'lucide-react';
+import { User, RefreshCw } from 'lucide-react';
 import { Call } from '@/hooks/useCalls';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { NoddiStatusBadges } from './NoddiStatusBadges';
 import { displayName } from '@/utils/noddiHelpers';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 interface CallCustomerInfoProps {
   call: Call;
@@ -12,7 +13,7 @@ interface CallCustomerInfoProps {
 
 const CallCustomerInfoComponent: React.FC<CallCustomerInfoProps> = ({ call }) => {
   const customer = call.customers;
-  const { data: noddiData, isLoading } = useNoddihKundeData({
+  const { data: noddiData, isLoading, refresh, isRefreshing } = useNoddihKundeData({
     id: customer?.id || '',
     email: customer?.email,
     phone: call.customer_phone,
@@ -43,6 +44,19 @@ const CallCustomerInfoComponent: React.FC<CallCustomerInfoProps> = ({ call }) =>
       {/* Noddi Status Badges */}
       {noddiData && !isLoading && (
         <NoddiStatusBadges noddiData={noddiData} />
+      )}
+
+      {/* Refresh Button - Show if no customer name or needs update */}
+      {!isLoading && (!customerName || customerName === 'Unknown Name') && call.customer_phone && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => refresh()}
+          disabled={isRefreshing}
+          className="h-6 px-2"
+        >
+          <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+        </Button>
       )}
     </div>
   );
