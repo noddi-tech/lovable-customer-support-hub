@@ -35,9 +35,9 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
         throw new Error('No organization found');
       }
 
-      // Find calls with missing customer names
+      // Find calls with missing customer names or customer_id
       const callsToSync = calls.filter(
-        call => !call.customer_name || 
+        call => !call.customer_id || !call.customer_name || 
                 call.customer_name === 'Unknown' || 
                 call.customer_name === 'Unknown Customer' ||
                 call.customer_name === 'Unknown Name'
@@ -46,81 +46,159 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
       if (callsToSync.length === 0) {
         toast({
           title: 'No Calls to Sync',
-          description: 'All calls already have customer names',
+          description: 'All calls already have customer data',
         });
         setIsSyncing(false);
         return;
       }
 
-      // Group by unique phone numbers to avoid duplicate lookups
-      const uniquePhones = [...new Set(
-        callsToSync
+      toast({
+        title: 'Syncing Customer Data',
+        description: `Step 1: Matching ${callsToSync.length} calls to local database...`,
+      });
+
+      // STEP 1: Match calls to existing customers in local database
+      let localMatchCount = 0;
+      const phoneGroups: { [phone: string]: typeof callsToSync } = {};
+      
+      callsToSync.forEach(call => {
+        if (call.customer_phone) {
+          if (!phoneGroups[call.customer_phone]) {
+            phoneGroups[call.customer_phone] = [];
+          }
+          phoneGroups[call.customer_phone].push(call);
+        }
+      });
+
+      for (const [phone, phoneCalls] of Object.entries(phoneGroups)) {
+        try {
+          // Look up customer in local database
+          const { data: customer, error: lookupError } = await supabase
+            .from('customers')
+            .select('id, full_name, email')
+            .eq('phone', phone)
+            .eq('organization_id', organizationId)
+            .maybeSingle();
+
+          if (!lookupError && customer) {
+            // Update all calls with this phone number
+            const callIds = phoneCalls.map(c => c.id);
+            
+            const { error: updateError } = await supabase
+              .from('calls')
+              .update({
+                customer_id: customer.id,
+                customer_name: customer.full_name,
+                customer_email: customer.email
+              })
+              .in('id', callIds);
+
+            if (!updateError) {
+              localMatchCount += callIds.length;
+              console.log(`✅ Matched ${callIds.length} calls to local customer:`, customer.full_name);
+            }
+          }
+        } catch (err) {
+          console.error(`Error matching phone ${phone}:`, err);
+        }
+      }
+
+      // Refresh data to see local matches
+      await queryClient.invalidateQueries({ queryKey: ['calls'] });
+
+      if (localMatchCount > 0) {
+        toast({
+          title: 'Local Match Complete',
+          description: `✅ ${localMatchCount} calls matched to existing customers`,
+        });
+      }
+
+      // STEP 2: Look up remaining unknowns in Noddi API
+      // Refetch calls to see what's still missing
+      const remainingUnknowns = callsToSync.filter(call => {
+        const hasCustomerData = phoneGroups[call.customer_phone!]?.some(c => 
+          localMatchCount > 0 // If we matched any, assume this phone was matched
+        );
+        return !hasCustomerData && call.customer_phone;
+      });
+
+      const uniqueRemainingPhones = [...new Set(
+        remainingUnknowns
           .map(c => c.customer_phone)
           .filter(phone => phone && phone.trim() !== '')
       )];
 
-      toast({
-        title: 'Syncing Customer Names',
-        description: `Processing ${uniquePhones.length} unique phone numbers...`,
-      });
+      if (uniqueRemainingPhones.length > 0) {
+        toast({
+          title: 'Noddi API Lookup',
+          description: `Step 2: Checking ${uniqueRemainingPhones.length} numbers with Noddi...`,
+        });
 
-      let successCount = 0;
-      let errorCount = 0;
+        let noddiSuccessCount = 0;
+        let errorCount = 0;
 
-      // Process each unique phone number
-      for (const phone of uniquePhones) {
-        try {
-          // Invoke Noddi lookup function
-          const { data: noddiData, error: lookupError } = await supabase.functions.invoke(
-            'noddi-customer-lookup',
-            {
-              body: { 
-                phone,
-                organizationId,
-                forceRefresh: true 
-              }
-            }
-          );
-
-          if (lookupError) {
-            console.error(`Error looking up ${phone}:`, lookupError);
-            errorCount++;
-            continue;
-          }
-
-          // If customer found, sync will happen automatically via the function
-          if (noddiData?.data?.found) {
-            // Find ALL calls with this phone number
-            const callsWithPhone = callsToSync.filter(c => c.customer_phone === phone);
-            
-            if (noddiData.data.user && callsWithPhone.length > 0) {
-              // Update EACH call with this phone number
-              for (const call of callsWithPhone) {
-                await syncCustomerFromNoddi(
-                  noddiData,
+        for (const phone of uniqueRemainingPhones) {
+          try {
+            // Invoke Noddi lookup function
+            const { data: noddiData, error: lookupError } = await supabase.functions.invoke(
+              'noddi-customer-lookup',
+              {
+                body: { 
                   phone,
                   organizationId,
-                  call.id
-                );
+                  forceRefresh: true 
+                }
               }
-              successCount += callsWithPhone.length; // Count all updated calls
+            );
+
+            if (lookupError) {
+              console.error(`Error looking up ${phone}:`, lookupError);
+              errorCount++;
+              continue;
             }
+
+            // If customer found in Noddi, sync to database
+            if (noddiData?.data?.found) {
+              const callsWithPhone = remainingUnknowns.filter(c => c.customer_phone === phone);
+              
+              if (noddiData.data.user && callsWithPhone.length > 0) {
+                // Update EACH call with this phone number
+                for (const call of callsWithPhone) {
+                  await syncCustomerFromNoddi(
+                    noddiData,
+                    phone,
+                    organizationId,
+                    call.id
+                  );
+                }
+                noddiSuccessCount += callsWithPhone.length;
+              }
+            }
+          } catch (err) {
+            console.error(`Exception syncing ${phone}:`, err);
+            errorCount++;
           }
-        } catch (err) {
-          console.error(`Exception syncing ${phone}:`, err);
-          errorCount++;
         }
+
+        // Final summary
+        const totalSuccess = localMatchCount + noddiSuccessCount;
+        
+        // Refresh data to show all updates
+        await queryClient.invalidateQueries({ queryKey: ['calls'] });
+        await queryClient.invalidateQueries({ queryKey: ['customers'] });
+        
+        toast({
+          title: 'Sync Complete',
+          description: `✅ ${totalSuccess} updated (${localMatchCount} local, ${noddiSuccessCount} Noddi)${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+          variant: errorCount > 0 && totalSuccess === 0 ? 'destructive' : 'default',
+        });
+      } else {
+        // All matched locally
+        toast({
+          title: 'Sync Complete',
+          description: `✅ All ${localMatchCount} calls matched from local database`,
+        });
       }
-
-      // Invalidate queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: ['calls'] });
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-
-      toast({
-        title: 'Sync Complete',
-        description: `✅ ${successCount} updated, ${errorCount} failed`,
-        variant: errorCount > 0 ? 'destructive' : 'default',
-      });
     } catch (error: any) {
       console.error('Sync error:', error);
       toast({

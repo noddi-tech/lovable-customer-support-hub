@@ -96,10 +96,16 @@ export async function syncCustomerFromNoddi(
     
     // Also update the call record with customer data for immediate display
     if (callId && data) {
-      console.log('[CustomerSync] 🔗 Updating call record with customer data:', { callId, fullName, email: user.email });
+      console.log('[CustomerSync] 🔗 Updating call record with customer data:', { 
+        callId, 
+        customerId: data.id,
+        fullName, 
+        email: user.email 
+      });
       const { error: callUpdateError } = await supabase
         .from('calls')
         .update({
+          customer_id: data.id, // ← Set the foreign key relationship
           customer_name: fullName,
           customer_email: user.email || null
         })
@@ -108,7 +114,7 @@ export async function syncCustomerFromNoddi(
       if (callUpdateError) {
         console.error('[CustomerSync] Error updating call record:', callUpdateError);
       } else {
-        console.log('[CustomerSync] ✅ Call record updated successfully');
+        console.log('[CustomerSync] ✅ Call record updated with customer_id');
       }
     }
     
