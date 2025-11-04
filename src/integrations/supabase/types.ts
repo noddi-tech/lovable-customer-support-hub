@@ -2310,8 +2310,19 @@ export type Database = {
         }[]
       }
       calculate_sla_breach: { Args: never; Returns: undefined }
+      count_old_audit_logs: { Args: { days_old?: number }; Returns: number }
       create_test_notification: { Args: never; Returns: undefined }
       delete_email_account: { Args: { account_id: string }; Returns: undefined }
+      detect_suspicious_audit_activity: {
+        Args: { action_threshold?: number; time_window_minutes?: number }
+        Returns: {
+          action_count: number
+          actor_email: string
+          actor_id: string
+          first_action: string
+          last_action: string
+        }[]
+      }
       extract_email_date: { Args: { email_headers: Json }; Returns: string }
       find_similar_responses:
         | {
