@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { NoddiLookupResponse } from '@/hooks/useNoddihKundeData';
+import { displayName } from '@/utils/noddiHelpers';
 
 /**
  * Syncs customer data from Noddi API to local database
@@ -28,19 +29,40 @@ export async function syncCustomerFromNoddi(
   }
 
   const user = noddiData.data.user;
+  const uiMeta = noddiData.data.ui_meta;
   
-  // Construct full name from available fields
-  const fullName = user.name || 
-    (user.firstName && user.lastName 
-      ? `${user.firstName} ${user.lastName}`.trim()
-      : user.firstName || user.lastName || 'Unknown Customer');
+  // Find personal or default user group
+  const userGroup = noddiData.data.all_user_groups?.find(
+    (g: any) => g.is_personal || g.is_default
+  ) || noddiData.data.all_user_groups?.[0];
+  
+  // Extract full name using comprehensive logic (same as NoddiCustomerDetails)
+  let fullName: string;
+  
+  // 1. Try ui_meta.display_name (most reliable - already formatted by API)
+  if (uiMeta?.display_name && uiMeta.display_name.trim()) {
+    fullName = uiMeta.display_name.trim();
+  }
+  // 2. Try user group name (for personal accounts, this is the customer name)
+  else if (userGroup?.name && userGroup.name.trim()) {
+    fullName = userGroup.name.trim();
+  }
+  // 3. Use the displayName helper (handles all field variations)
+  else {
+    fullName = displayName(user, user.email, noddiData.data.priority_booking);
+  }
 
   console.log('[CustomerSync] 💾 Syncing customer to database:', { 
     phone, 
     fullName, 
     email: user.email,
     organizationId,
-    noddiUserId: user.id
+    noddiUserId: user.id,
+    sources: {
+      uiMetaDisplayName: uiMeta?.display_name,
+      userGroupName: userGroup?.name,
+      fromHelper: displayName(user, user.email, noddiData.data.priority_booking)
+    }
   });
 
   try {
