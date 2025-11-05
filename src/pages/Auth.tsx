@@ -24,6 +24,7 @@ export const Auth: React.FC = () => {
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [inviteOrganization, setInviteOrganization] = useState<string | null>(null);
   const { user } = useAuth();
@@ -243,6 +244,37 @@ export const Auth: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to update password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMagicLink = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    setMagicLinkSent(false);
+    
+    try {
+      if (!email) {
+        setError('Please enter your email address.');
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        }
+      });
+      
+      if (error) throw error;
+      
+      setMagicLinkSent(true);
+      setSuccess('Magic link sent! Check your email to sign in.');
+    } catch (error: any) {
+      setError(error.message || 'Failed to send magic link');
     } finally {
       setLoading(false);
     }
@@ -482,7 +514,7 @@ export const Auth: React.FC = () => {
                   </div>
                 </div>
 
-                <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">{t('auth.email')}</Label>
                     <div className="relative">
@@ -492,42 +524,69 @@ export const Auth: React.FC = () => {
                         type="email"
                         placeholder={t('auth.emailPlaceholder')}
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setMagicLinkSent(false);
+                        }}
                         className="pl-10"
                         required
                       />
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">{t('auth.password')}</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-password"
-                        type="password"
-                        placeholder={t('auth.passwordPlaceholder')}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end">
-                    <Button variant="link" type="button" size="sm" className="px-0" onClick={handleForgotPassword} disabled={loading}>
-                      {t('auth.forgotPassword')}
-                    </Button>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
-                    disabled={loading}
+
+                  <Button
+                    type="button"
+                    onClick={handleMagicLink}
+                    variant="outline"
+                    className="w-full"
+                    disabled={loading || magicLinkSent}
                   >
-                    {loading ? t('auth.signingIn') : t('auth.signIn')}
+                    <Mail className="mr-2 h-4 w-4" />
+                    {magicLinkSent ? 'Magic Link Sent!' : 'Send Magic Link'}
                   </Button>
-                </form>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or sign in with password
+                      </span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-password">{t('auth.password')}</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="signin-password"
+                          type="password"
+                          placeholder={t('auth.passwordPlaceholder')}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <Button variant="link" type="button" size="sm" className="px-0" onClick={handleForgotPassword} disabled={loading}>
+                        {t('auth.forgotPassword')}
+                      </Button>
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
+                      disabled={loading}
+                    >
+                      {loading ? t('auth.signingIn') : t('auth.signIn')}
+                    </Button>
+                  </form>
+                </div>
               </TabsContent>
               
               <TabsContent value="signup" className="space-y-4">
