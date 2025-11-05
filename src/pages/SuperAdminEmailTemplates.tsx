@@ -262,10 +262,18 @@ export default function SuperAdminEmailTemplates() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Ensure template_type is never NULL
+      if (!template.template_type) {
+        throw new Error('Template type is required and cannot be null');
+      }
+
       const templatePayload = {
-        ...template,
+        template_type: template.template_type,
+        subject: template.subject,
+        html_content: template.html_content,
         created_by_id: user.id,
-        is_active: true
+        is_active: true,
+        ...(template.id && { id: template.id })
       };
 
       if (template.id) {
@@ -367,6 +375,16 @@ export default function SuperAdminEmailTemplates() {
       toast({
         title: "Validation error",
         description: "Subject and HTML content are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Ensure template_type is always set
+    if (!template.template_type) {
+      toast({
+        title: "Validation error",
+        description: "Template type is missing. Please refresh the page and try again.",
         variant: "destructive",
       });
       return;

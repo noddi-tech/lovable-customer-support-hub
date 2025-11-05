@@ -46,9 +46,16 @@ export const useSimpleRealtimeSubscriptions = (
 
     // Subscribe to the channel
     channel.subscribe((status) => {
-      logger.debug(`Connection status changed`, { status }, 'Realtime');
+      logger.debug(`Connection status changed`, { status, tables: configs.map(c => c.table) }, 'Realtime');
       if (status === 'CHANNEL_ERROR') {
-        logger.error('Subscription failed - falling back to polling', undefined, 'Realtime');
+        logger.error('Subscription failed - falling back to polling', { 
+          tables: configs.map(c => c.table),
+          status 
+        }, 'Realtime');
+      } else if (status === 'SUBSCRIBED') {
+        logger.debug('Successfully subscribed to realtime', { 
+          tables: configs.map(c => c.table) 
+        }, 'Realtime');
       }
     });
 
