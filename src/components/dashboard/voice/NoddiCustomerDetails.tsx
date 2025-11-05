@@ -223,6 +223,7 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   }
 
   if (!displayedData?.data?.found) {
+    // SOLUTION 4: Show customer name/phone even when Noddi lookup fails
     return (
       <Card>
         <CardHeader>
@@ -231,11 +232,38 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
             Customer Information
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">
-            {customerName && <p className="font-medium mb-1">{customerName}</p>}
-            <p>No Noddi customer data found for this contact.</p>
+        <CardContent className="space-y-3">
+          {/* Show available contact info even without Noddi data */}
+          {customerName && (
+            <div>
+              <p className="font-semibold text-base">{customerName}</p>
+              <Badge variant="outline" className="mt-1 h-5 px-1.5 text-xs">
+                From Call Record
+              </Badge>
+            </div>
+          )}
+          
+          <div className="text-sm text-muted-foreground space-y-1">
+            {customerEmail && (
+              <p>
+                <span className="text-muted-foreground">Email: </span>
+                {customerEmail}
+              </p>
+            )}
+            {customerPhone && (
+              <p>
+                <span className="text-muted-foreground">Phone: </span>
+                {customerPhone}
+              </p>
+            )}
           </div>
+          
+          <Alert className="bg-muted/30">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              No Noddi customer data found for this contact. The customer may not be registered in Noddi.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );

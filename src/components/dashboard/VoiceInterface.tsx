@@ -29,6 +29,7 @@ import { ConnectionDiagnostic } from './voice/ConnectionDiagnostic';
 import { AircallConnectionPrompt } from './voice/AircallConnectionPrompt';
 import { AircallErrorBoundary } from '@/components/error/AircallErrorBoundary';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
+import { SyncUnlinkedCallsButton } from './voice/SyncUnlinkedCallsButton';
 import { useAircallPhone } from '@/hooks/useAircallPhone';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -492,7 +493,10 @@ export const VoiceInterface = () => {
           
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">{getSectionTitle()}</h2>
-            <RealTimeIndicator onRefresh={handleRefreshAll} />
+            <div className="flex items-center gap-2">
+              <SyncUnlinkedCallsButton />
+              <RealTimeIndicator onRefresh={handleRefreshAll} />
+            </div>
           </div>
           
           <div className="space-y-3">
@@ -534,7 +538,10 @@ export const VoiceInterface = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">{getSectionTitle()}</h2>
-          <RealTimeIndicator onRefresh={handleRefreshAll} />
+          <div className="flex items-center gap-2">
+            <SyncUnlinkedCallsButton />
+            <RealTimeIndicator onRefresh={handleRefreshAll} />
+          </div>
         </div>
       
       <div className="space-y-2">
