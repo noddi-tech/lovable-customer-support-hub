@@ -53,7 +53,7 @@ const TEMPLATE_TYPES = [
           <!-- Logo Section -->
           <tr>
             <td style="padding: 30px 30px 10px 30px; text-align: center;">
-              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 80px; height: auto; border-radius: 50%; border: 3px solid #f0f0f0;" />
             </td>
           </tr>
           <!-- Content Section -->
@@ -98,7 +98,7 @@ const TEMPLATE_TYPES = [
           <!-- Logo Section -->
           <tr>
             <td style="padding: 30px 30px 10px 30px; text-align: center;">
-              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 80px; height: auto; border-radius: 50%; border: 3px solid #f0f0f0;" />
             </td>
           </tr>
           <!-- Content Section -->
@@ -143,7 +143,7 @@ const TEMPLATE_TYPES = [
           <!-- Logo Section -->
           <tr>
             <td style="padding: 30px 30px 10px 30px; text-align: center;">
-              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 80px; height: auto; border-radius: 50%; border: 3px solid #f0f0f0;" />
             </td>
           </tr>
           <!-- Content Section -->
@@ -188,7 +188,7 @@ const TEMPLATE_TYPES = [
           <!-- Logo Section -->
           <tr>
             <td style="padding: 30px 30px 10px 30px; text-align: center;">
-              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 80px; height: auto; border-radius: 50%; border: 3px solid #f0f0f0;" />
             </td>
           </tr>
           <!-- Content Section -->
