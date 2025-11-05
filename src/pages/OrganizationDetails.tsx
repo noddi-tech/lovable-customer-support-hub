@@ -63,43 +63,57 @@ export default function OrganizationDetails() {
     enabled: !!id,
   });
 
-  // Fetch organization members with profiles in single JOIN query
-  const { data: members = [] } = useQuery({
+  // Fetch organization members with profiles (two-query approach)
+  const { data: members = [], isLoading: membersLoading } = useQuery({
     queryKey: ['organization-members', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Query 1: Get all memberships
+      const { data: memberships, error: membershipsError } = await supabase
         .from('organization_memberships')
-        .select(`
-          id,
-          role,
-          status,
-          created_at,
-          user_id,
-          profiles!organization_memberships_user_id_fkey (
-            id,
-            user_id,
-            email,
-            full_name
-          )
-        `)
+        .select('id, role, status, created_at, user_id')
         .eq('organization_id', id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching members:', error);
-        throw error;
+      if (membershipsError) {
+        console.error('Error fetching memberships:', membershipsError);
+        throw membershipsError;
       }
 
-      console.log('Raw members data:', data);
-      
-      // Transform to match expected structure
-      return (data || []).map(membership => {
-        console.log('Processing membership:', membership);
+      if (!memberships || memberships.length === 0) {
+        console.log('No memberships found');
+        return [];
+      }
+
+      console.log('Memberships fetched:', memberships);
+
+      // Query 2: Get all profiles for the user_ids
+      const userIds = memberships.map(m => m.user_id).filter(Boolean);
+      console.log('Fetching profiles for user_ids:', userIds);
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, user_id, email, full_name, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('Profiles fetched:', profiles);
+
+      // Merge memberships with profiles
+      const merged = memberships.map(membership => {
+        const profile = profiles?.find(p => p.user_id === membership.user_id);
+        console.log(`Merging membership ${membership.id} with profile:`, profile);
         return {
           ...membership,
-          user: membership.profiles || null
+          user: profile || null
         };
       });
+
+      console.log('Final merged members:', merged);
+      return merged;
     },
     enabled: !!id,
   });
