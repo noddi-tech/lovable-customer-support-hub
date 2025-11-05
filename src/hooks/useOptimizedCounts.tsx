@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useSimpleRealtimeSubscriptions } from './useSimpleRealtimeSubscriptions';
 import { useNetworkErrorHandler } from './useNetworkErrorHandler';
 import { useAuth } from './useAuth';
 
@@ -165,12 +164,6 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
 
   // Set up variables properly  
   const { data: allCounts, isLoading, error } = countsQuery;
-  
-  // Simple realtime subscriptions for essential updates only
-  useSimpleRealtimeSubscriptions([
-    { table: 'conversations', queryKey: selectedInboxId ? `inbox-counts-${selectedInboxId}` : 'all-counts' },
-    { table: 'notifications', queryKey: selectedInboxId ? '' : 'all-counts' }, // Only global notifications
-  ].filter(sub => sub.queryKey), !isLoading && !error);
 
   // Prefetch related data when user hovers over navigation items
   const prefetchData = useCallback((dataType: string) => {

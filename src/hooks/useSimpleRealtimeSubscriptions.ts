@@ -92,26 +92,33 @@ export const useSimpleRealtimeSubscriptions = (
           
           // Only log error once to avoid spam
           if (!hasLoggedErrorRef.current) {
-            logger.error('Subscription failed - falling back to polling', { 
+            logger.warn('Realtime subscription failed - falling back to polling', { 
               tables: configs.map(c => c.table),
-              status 
+              status,
+              channelName
             }, 'Realtime');
             hasLoggedErrorRef.current = true;
           }
 
-          // Retry with exponential backoff (max 3 retries)
-          if (retryCountRef.current < 3) {
-            const delay = Math.pow(2, retryCountRef.current) * 1000; // 1s, 2s, 4s
-            logger.debug(`Retrying subscription in ${delay}ms`, { 
-              attempt: retryCountRef.current + 1,
+          // Stop retrying after 3 attempts - just use polling
+          if (retryCountRef.current >= 3) {
+            logger.debug('Max retries reached, using polling mode', { 
               tables: configs.map(c => c.table) 
             }, 'Realtime');
-            
-            retryTimeoutRef.current = setTimeout(() => {
-              retryCountRef.current++;
-              setupSubscription();
-            }, delay);
+            return; // No more retries
           }
+
+          // Exponential backoff retry
+          const delay = Math.pow(2, retryCountRef.current) * 1000; // 1s, 2s, 4s
+          logger.debug(`Retrying subscription in ${delay}ms`, { 
+            attempt: retryCountRef.current + 1,
+            tables: configs.map(c => c.table) 
+          }, 'Realtime');
+          
+          retryTimeoutRef.current = setTimeout(() => {
+            retryCountRef.current++;
+            setupSubscription();
+          }, delay);
         } else if (status === 'SUBSCRIBED') {
           setIsConnected(true);
           retryCountRef.current = 0; // Reset retry count on success

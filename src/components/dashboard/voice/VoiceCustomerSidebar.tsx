@@ -11,7 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
 import { CustomerNotes } from '@/components/dashboard/CustomerNotes';
 import { Call } from '@/hooks/useCalls';
-import { useSimpleRealtimeSubscriptions } from '@/hooks/useSimpleRealtimeSubscriptions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
@@ -50,12 +49,6 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
     email: undefined,
     full_name: undefined
   } : undefined);
-
-  // Real-time subscription for customer updates
-  useSimpleRealtimeSubscriptions(
-    customer?.id ? [{ table: 'customers', queryKey: 'calls' }] : [],
-    !!customer?.id
-  );
 
   // Early return if no data
   if (!call && !customerPhone) {

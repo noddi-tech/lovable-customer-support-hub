@@ -8,6 +8,7 @@ import { queryClient, persister } from '@/lib/persistedQueryClient';
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { AircallProvider } from "@/contexts/AircallContext";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
+import { RealtimeProvider } from "@/contexts/RealtimeProvider";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { SuperAdminRoute } from "@/components/auth/SuperAdminRoute";
@@ -213,21 +214,23 @@ const App = () => (
       <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
         <BrowserRouter>
           <AuthProvider>
-            <ErrorBoundary fallback={<AircallErrorFallback />}>
-              <AircallProvider>
-                <DesignSystemProvider>
-                  <TooltipProvider>
-                    <I18nWrapper>
+            <RealtimeProvider>
+              <ErrorBoundary fallback={<AircallErrorFallback />}>
+                <AircallProvider>
+                  <DesignSystemProvider>
+                    <TooltipProvider>
+                      <I18nWrapper>
                       <AppContent />
                       {/* Aircall Workspace Manager - Controls container visibility */}
                       <AircallWorkspaceManager />
-                    </I18nWrapper>
-                    <Toaster />
-                    <Sonner />
-                  </TooltipProvider>
-                </DesignSystemProvider>
-              </AircallProvider>
-            </ErrorBoundary>
+                      </I18nWrapper>
+                      <Toaster />
+                      <Sonner />
+                    </TooltipProvider>
+                  </DesignSystemProvider>
+                </AircallProvider>
+              </ErrorBoundary>
+            </RealtimeProvider>
           </AuthProvider>
         </BrowserRouter>
       </PersistQueryClientProvider>
