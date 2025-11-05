@@ -64,9 +64,11 @@ export default function OrganizationDetails() {
   });
 
   // Fetch organization members with profiles (two-query approach)
-  const { data: members = [], isLoading: membersLoading } = useQuery({
+  const { data: members = [], isLoading: membersLoading, error: membersError } = useQuery({
     queryKey: ['organization-members', id],
     queryFn: async () => {
+      console.log('🔍 [OrganizationDetails] Starting member fetch for org:', id);
+      
       // Query 1: Get all memberships
       const { data: memberships, error: membershipsError } = await supabase
         .from('organization_memberships')
@@ -75,20 +77,20 @@ export default function OrganizationDetails() {
         .order('created_at', { ascending: false });
 
       if (membershipsError) {
-        console.error('Error fetching memberships:', membershipsError);
+        console.error('❌ [OrganizationDetails] Error fetching memberships:', membershipsError);
         throw membershipsError;
       }
 
+      console.log('✅ [OrganizationDetails] Memberships fetched:', memberships?.length || 0, memberships);
+
       if (!memberships || memberships.length === 0) {
-        console.log('No memberships found');
+        console.log('⚠️ [OrganizationDetails] No memberships found');
         return [];
       }
 
-      console.log('Memberships fetched:', memberships);
-
       // Query 2: Get all profiles for the user_ids
       const userIds = memberships.map(m => m.user_id).filter(Boolean);
-      console.log('Fetching profiles for user_ids:', userIds);
+      console.log('🔍 [OrganizationDetails] Fetching profiles for user_ids:', userIds);
 
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -96,26 +98,34 @@ export default function OrganizationDetails() {
         .in('user_id', userIds);
 
       if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
+        console.error('❌ [OrganizationDetails] Error fetching profiles:', profilesError);
         throw profilesError;
       }
 
-      console.log('Profiles fetched:', profiles);
+      console.log('✅ [OrganizationDetails] Profiles fetched:', profiles?.length || 0, profiles);
 
       // Merge memberships with profiles
       const merged = memberships.map(membership => {
         const profile = profiles?.find(p => p.user_id === membership.user_id);
-        console.log(`Merging membership ${membership.id} with profile:`, profile);
+        console.log(`🔗 [OrganizationDetails] Merging membership ${membership.id}:`, {
+          user_id: membership.user_id,
+          found_profile: !!profile,
+          profile_email: profile?.email,
+          profile_name: profile?.full_name
+        });
         return {
           ...membership,
           user: profile || null
         };
       });
 
-      console.log('Final merged members:', merged);
+      console.log('✅ [OrganizationDetails] Final merged members:', merged);
       return merged;
     },
     enabled: !!id,
+    refetchOnMount: 'always', // 🔥 Force refetch, bypass cache
+    staleTime: 0, // 🔥 Data is immediately stale
+    gcTime: 0, // 🔥 Don't cache this query
   });
 
   if (isLoading) {
@@ -146,6 +156,18 @@ export default function OrganizationDetails() {
       </UnifiedAppLayout>
     );
   }
+
+  // Debug: Log render state
+  if (membersError) {
+    console.error('❌ [OrganizationDetails] Members query error:', membersError);
+  }
+  
+  console.log('📊 [OrganizationDetails] Render state:', {
+    membersCount: members.length,
+    isLoading: membersLoading,
+    hasError: !!membersError,
+    members: members
+  });
 
   return (
     <UnifiedAppLayout>
@@ -260,29 +282,39 @@ export default function OrganizationDetails() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {members.map((member: any) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-white" />
+                  {members.map((member: any) => {
+                    console.log('🎨 [OrganizationDetails] Rendering member:', {
+                      id: member.id,
+                      user_id: member.user_id,
+                      has_user: !!member.user,
+                      user_email: member.user?.email,
+                      user_name: member.user?.full_name
+                    });
+                    
+                    return (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{member.user?.full_name || member.user?.email}</p>
+                            <p className="text-sm text-muted-foreground">{member.user?.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{member.user?.full_name || member.user?.email}</p>
-                          <p className="text-sm text-muted-foreground">{member.user?.email}</p>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary">{member.role}</Badge>
+                          <Badge variant={member.status === 'active' ? 'default' : 'outline'}>
+                            {member.status}
+                          </Badge>
+                          <MemberActionMenu member={member} organizationId={id!} />
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="secondary">{member.role}</Badge>
-                        <Badge variant={member.status === 'active' ? 'default' : 'outline'}>
-                          {member.status}
-                        </Badge>
-                        <MemberActionMenu member={member} organizationId={id!} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {members.length === 0 && (
                     <p className="text-center text-muted-foreground py-8">No members yet</p>
                   )}
