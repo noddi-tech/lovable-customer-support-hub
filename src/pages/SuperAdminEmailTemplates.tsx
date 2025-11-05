@@ -38,25 +38,153 @@ const TEMPLATE_TYPES = [
     type: 'password_reset',
     label: 'Password Reset',
     description: 'Sent when users request to reset their password',
-    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}']
+    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}'],
+    defaultHtml: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center;">
+              <h1 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Reset Your Password</h1>
+              <p style="color: #666666; margin: 0 0 30px 0; font-size: 16px; line-height: 1.5;">
+                We received a request to reset the password for your account ({{ .Email }}).
+              </p>
+              <p style="margin: 0 0 30px 0;">
+                <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 14px 30px; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">Reset Password</a>
+              </p>
+              <p style="color: #666666; margin: 0; font-size: 14px; line-height: 1.5;">
+                If you didn't request this, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    defaultSubject: 'Reset Your Password'
   },
   {
     type: 'magic_link',
     label: 'Magic Link Sign-In',
     description: 'Sent when users sign in with a magic link',
-    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}']
+    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}'],
+    defaultHtml: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center;">
+              <h1 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Sign In to Your Account</h1>
+              <p style="color: #666666; margin: 0 0 30px 0; font-size: 16px; line-height: 1.5;">
+                Click the button below to sign in to your account ({{ .Email }}).
+              </p>
+              <p style="margin: 0 0 30px 0;">
+                <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 14px 30px; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">Sign In</a>
+              </p>
+              <p style="color: #666666; margin: 0; font-size: 14px; line-height: 1.5;">
+                If you didn't request this, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    defaultSubject: 'Sign In to Your Account'
   },
   {
     type: 'email_confirmation',
     label: 'Email Confirmation',
     description: 'Sent when new users sign up to confirm their email',
-    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}']
+    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}'],
+    defaultHtml: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center;">
+              <h1 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Confirm Your Email</h1>
+              <p style="color: #666666; margin: 0 0 30px 0; font-size: 16px; line-height: 1.5;">
+                Welcome! Please confirm your email address ({{ .Email }}) to complete your registration.
+              </p>
+              <p style="margin: 0 0 30px 0;">
+                <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 14px 30px; background-color: #17a2b8; color: #ffffff; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">Confirm Email</a>
+              </p>
+              <p style="color: #666666; margin: 0; font-size: 14px; line-height: 1.5;">
+                If you didn't sign up, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    defaultSubject: 'Confirm Your Email Address'
   },
   {
     type: 'email_change',
     label: 'Email Change Confirmation',
     description: 'Sent when users change their email address',
-    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}', '{{ .NewEmail }}']
+    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}', '{{ .NewEmail }}'],
+    defaultHtml: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center;">
+              <h1 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Confirm Email Change</h1>
+              <p style="color: #666666; margin: 0 0 30px 0; font-size: 16px; line-height: 1.5;">
+                You requested to change your email address from {{ .Email }} to {{ .NewEmail }}.
+              </p>
+              <p style="margin: 0 0 30px 0;">
+                <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 14px 30px; background-color: #ffc107; color: #000000; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">Confirm Change</a>
+              </p>
+              <p style="color: #666666; margin: 0; font-size: 14px; line-height: 1.5;">
+                If you didn't request this change, please contact support immediately.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    defaultSubject: 'Confirm Your Email Change'
   }
 ];
 
@@ -241,10 +369,14 @@ export default function SuperAdminEmailTemplates() {
   const renderTemplateEditor = (templateConfig: typeof TEMPLATE_TYPES[0]) => {
     const template = templates[templateConfig.type] || {
       template_type: templateConfig.type,
-      subject: '',
-      html_content: '',
+      subject: templateConfig.defaultSubject || '',
+      html_content: templateConfig.defaultHtml || '',
       is_active: true
     };
+
+    // Check for improperly formatted links
+    const hasUnlinkedConfirmationURL = template.html_content.includes('{{ .ConfirmationURL }}') && 
+      !/<a[^>]+href\s*=\s*['"]\{\{\s*\.ConfirmationURL\s*\}\}['"][^>]*>/i.test(template.html_content);
 
     return (
       <div className="space-y-6">
@@ -264,6 +396,38 @@ export default function SuperAdminEmailTemplates() {
             </div>
           </AlertDescription>
         </Alert>
+
+        {/* HTML Tips */}
+        <Alert>
+          <Mail className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">HTML Email Tips:</p>
+              <ul className="text-sm space-y-1 ml-4 list-disc">
+                <li>Wrap <code className="px-1 py-0.5 bg-muted rounded text-xs">{'{{ .ConfirmationURL }}'}</code> in an anchor tag: <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<a href="{{ .ConfirmationURL }}">Click here</a>'}</code></li>
+                <li>Use inline styles for formatting (email clients don't support external CSS)</li>
+                <li>Use <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<br>'}</code> or <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<p>'}</code> tags for line breaks</li>
+                <li>Test on multiple email clients before deploying</li>
+              </ul>
+            </div>
+          </AlertDescription>
+        </Alert>
+
+        {/* Link Warning */}
+        {hasUnlinkedConfirmationURL && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium">⚠️ Link Not Properly Formatted</p>
+              <p className="text-sm mt-1">
+                The <code className="px-1 py-0.5 bg-muted rounded text-xs">{'{{ .ConfirmationURL }}'}</code> variable must be wrapped in an anchor tag to be clickable.
+              </p>
+              <p className="text-sm mt-2">
+                Example: <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<a href="{{ .ConfirmationURL }}">Reset Password</a>'}</code>
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Subject */}
         <div className="space-y-2">
@@ -327,12 +491,19 @@ export default function SuperAdminEmailTemplates() {
             )}
           </Button>
           <Button 
-            onClick={() => setTemplateToReset(templateConfig.type)}
+            onClick={() => {
+              updateTemplate(templateConfig.type, 'subject', templateConfig.defaultSubject || '');
+              updateTemplate(templateConfig.type, 'html_content', templateConfig.defaultHtml || '');
+              toast({
+                title: "Template reset to default",
+                description: "The template has been reset. Don't forget to save!",
+              });
+            }}
             variant="outline"
             disabled={saveTemplateMutation.isPending}
           >
             <RotateCcw className="mr-2 h-4 w-4" />
-            Reset
+            Use Default Template
           </Button>
         </div>
       </div>
