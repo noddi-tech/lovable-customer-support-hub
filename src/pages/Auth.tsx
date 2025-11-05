@@ -21,16 +21,27 @@ export const Auth: React.FC = () => {
   const [devLoading, setDevLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   useEffect(() => {
-    // Redirect if already logged in
-    if (user) {
+    // Check if this is password recovery mode
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.get('type') === 'recovery') {
+      setIsRecoveryMode(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Redirect if already logged in (but not in recovery mode)
+    if (user && !isRecoveryMode) {
       navigate('/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, isRecoveryMode]);
 
   const handleDevLogin = async () => {
     setDevLoading(true);
@@ -149,12 +160,56 @@ export const Auth: React.FC = () => {
         return;
       }
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${window.location.origin}/auth#type=recovery`,
       });
       if (error) throw error;
-      setSuccess('If an account exists, a reset link has been sent to your email.');
+      setSuccess('Password reset link has been sent to your email. Please check your inbox.');
     } catch (err: any) {
       setError(err.message || 'Unable to send password reset email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      if (!newPassword || !confirmPassword) {
+        setError('Please fill in both password fields.');
+        setLoading(false);
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setError('Passwords do not match.');
+        setLoading(false);
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        setError('Password must be at least 6 characters long.');
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      setSuccess('Password updated successfully! Redirecting to login...');
+
+      // Clear recovery mode and redirect after 2 seconds
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -225,6 +280,94 @@ export const Auth: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Show password reset form if in recovery mode
+  if (isRecoveryMode) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Lock className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <Heading level={1} className="text-foreground mb-2">Reset Your Password</Heading>
+            <p className="text-muted-foreground">
+              Enter your new password below
+            </p>
+          </div>
+
+          <Card className="shadow-lg">
+            <CardHeader className="text-center">
+              <CardTitle>Set New Password</CardTitle>
+              <CardDescription>
+                Choose a strong password with at least 6 characters
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="new-password"
+                      type="password"
+                      placeholder="Enter new password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="Confirm new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
+                  disabled={loading}
+                >
+                  {loading ? 'Updating Password...' : 'Update Password'}
+                </Button>
+              </form>
+
+              {error && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {success && (
+                <Alert className="mt-4 border-success text-success">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
