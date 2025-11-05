@@ -50,8 +50,15 @@ const TEMPLATE_TYPES = [
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Logo Section -->
           <tr>
-            <td style="padding: 40px 30px; text-align: center;">
+            <td style="padding: 30px 30px 10px 30px; text-align: center;">
+              <img src="https://yourdomain.com/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+            </td>
+          </tr>
+          <!-- Content Section -->
+          <tr>
+            <td style="padding: 20px 30px 40px 30px; text-align: center;">
               <h1 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Reset Your Password</h1>
               <p style="color: #666666; margin: 0 0 30px 0; font-size: 16px; line-height: 1.5;">
                 We received a request to reset the password for your account ({{ .Email }}).
@@ -88,8 +95,15 @@ const TEMPLATE_TYPES = [
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Logo Section -->
           <tr>
-            <td style="padding: 40px 30px; text-align: center;">
+            <td style="padding: 30px 30px 10px 30px; text-align: center;">
+              <img src="https://yourdomain.com/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+            </td>
+          </tr>
+          <!-- Content Section -->
+          <tr>
+            <td style="padding: 20px 30px 40px 30px; text-align: center;">
               <h1 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Sign In to Your Account</h1>
               <p style="color: #666666; margin: 0 0 30px 0; font-size: 16px; line-height: 1.5;">
                 Click the button below to sign in to your account ({{ .Email }}).
@@ -126,8 +140,15 @@ const TEMPLATE_TYPES = [
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Logo Section -->
           <tr>
-            <td style="padding: 40px 30px; text-align: center;">
+            <td style="padding: 30px 30px 10px 30px; text-align: center;">
+              <img src="https://yourdomain.com/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+            </td>
+          </tr>
+          <!-- Content Section -->
+          <tr>
+            <td style="padding: 20px 30px 40px 30px; text-align: center;">
               <h1 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Confirm Your Email</h1>
               <p style="color: #666666; margin: 0 0 30px 0; font-size: 16px; line-height: 1.5;">
                 Welcome! Please confirm your email address ({{ .Email }}) to complete your registration.
@@ -164,8 +185,15 @@ const TEMPLATE_TYPES = [
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Logo Section -->
           <tr>
-            <td style="padding: 40px 30px; text-align: center;">
+            <td style="padding: 30px 30px 10px 30px; text-align: center;">
+              <img src="https://yourdomain.com/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+            </td>
+          </tr>
+          <!-- Content Section -->
+          <tr>
+            <td style="padding: 20px 30px 40px 30px; text-align: center;">
               <h1 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Confirm Email Change</h1>
               <p style="color: #666666; margin: 0 0 30px 0; font-size: 16px; line-height: 1.5;">
                 You requested to change your email address from {{ .Email }} to {{ .NewEmail }}.
@@ -407,6 +435,7 @@ export default function SuperAdminEmailTemplates() {
                 <li>Wrap <code className="px-1 py-0.5 bg-muted rounded text-xs">{'{{ .ConfirmationURL }}'}</code> in an anchor tag: <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<a href="{{ .ConfirmationURL }}">Click here</a>'}</code></li>
                 <li>Use inline styles for formatting (email clients don't support external CSS)</li>
                 <li>Use <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<br>'}</code> or <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<p>'}</code> tags for line breaks</li>
+                <li>⚠️ Update logo URL: Replace <code className="px-1 py-0.5 bg-muted rounded text-xs">https://yourdomain.com</code> with your deployed domain after publishing</li>
                 <li>Test on multiple email clients before deploying</li>
               </ul>
             </div>
