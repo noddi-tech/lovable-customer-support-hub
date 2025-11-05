@@ -53,7 +53,7 @@ const TEMPLATE_TYPES = [
           <!-- Logo Section -->
           <tr>
             <td style="padding: 30px 30px 10px 30px; text-align: center;">
-              <img src="https://yourdomain.com/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
             </td>
           </tr>
           <!-- Content Section -->
@@ -98,7 +98,7 @@ const TEMPLATE_TYPES = [
           <!-- Logo Section -->
           <tr>
             <td style="padding: 30px 30px 10px 30px; text-align: center;">
-              <img src="https://yourdomain.com/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
             </td>
           </tr>
           <!-- Content Section -->
@@ -143,7 +143,7 @@ const TEMPLATE_TYPES = [
           <!-- Logo Section -->
           <tr>
             <td style="padding: 30px 30px 10px 30px; text-align: center;">
-              <img src="https://yourdomain.com/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
             </td>
           </tr>
           <!-- Content Section -->
@@ -188,7 +188,7 @@ const TEMPLATE_TYPES = [
           <!-- Logo Section -->
           <tr>
             <td style="padding: 30px 30px 10px 30px; text-align: center;">
-              <img src="https://yourdomain.com/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
+              <img src="/images/logo-support-hub.png" alt="Support Hub" style="max-width: 180px; height: auto;" />
             </td>
           </tr>
           <!-- Content Section -->
@@ -433,9 +433,10 @@ export default function SuperAdminEmailTemplates() {
               <p className="font-medium">HTML Email Tips:</p>
               <ul className="text-sm space-y-1 ml-4 list-disc">
                 <li>Wrap <code className="px-1 py-0.5 bg-muted rounded text-xs">{'{{ .ConfirmationURL }}'}</code> in an anchor tag: <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<a href="{{ .ConfirmationURL }}">Click here</a>'}</code></li>
+                <li>Supabase uses <code className="px-1 py-0.5 bg-muted rounded text-xs">{'{{ .ConfirmationURL }}'}</code> for all confirmation links (password reset, magic link, email verification)</li>
                 <li>Use inline styles for formatting (email clients don't support external CSS)</li>
                 <li>Use <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<br>'}</code> or <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<p>'}</code> tags for line breaks</li>
-                <li>⚠️ Update logo URL: Replace <code className="px-1 py-0.5 bg-muted rounded text-xs">https://yourdomain.com</code> with your deployed domain after publishing</li>
+                <li>Logo loads from <code className="px-1 py-0.5 bg-muted rounded text-xs">/images/logo-support-hub.png</code> - relative path works in all environments</li>
                 <li>Test on multiple email clients before deploying</li>
               </ul>
             </div>
@@ -487,9 +488,10 @@ export default function SuperAdminEmailTemplates() {
           <div className="border rounded bg-background p-4">
             <div 
               dangerouslySetInnerHTML={{ 
-                __html: sanitizeTemplateHTML(
+__html: sanitizeTemplateHTML(
                   (template.html_content || '')
                     .replace(/\{\{\s*\.ConfirmationURL\s*\}\}/g, 'https://example.com/confirm?token=sample')
+                    .replace(/\{\{\s*\.MagicLinkURL\s*\}\}/g, 'https://example.com/signin?token=magic-sample')
                     .replace(/\{\{\s*\.Email\s*\}\}/g, 'user@example.com')
                     .replace(/\{\{\s*\.NewEmail\s*\}\}/g, 'newemail@example.com')
                     .replace(/\{\{\s*\.Token\s*\}\}/g, 'sample-token')
