@@ -8,6 +8,9 @@ interface SimpleRealtimeConfig {
   queryKey: string;
 }
 
+// Global registry to prevent duplicate subscriptions
+const activeChannels = new Map<string, { channel: any; refCount: number }>();
+
 export const useSimpleRealtimeSubscriptions = (
   configs: SimpleRealtimeConfig[],
   enabled: boolean = true
@@ -22,14 +25,39 @@ export const useSimpleRealtimeSubscriptions = (
   useEffect(() => {
     if (!enabled || configs.length === 0) return;
 
+    // Generate unique channel key based on tables
+    const channelKey = configs.map(c => c.table).sort().join('-');
+    const channelName = `app-changes-${channelKey}`;
+
     const setupSubscription = () => {
+      // Check if this subscription already exists
+      const existing = activeChannels.get(channelKey);
+      if (existing) {
+        logger.debug('Reusing existing realtime subscription', { 
+          channelKey, 
+          tables: configs.map(c => c.table),
+          refCount: existing.refCount + 1 
+        }, 'Realtime');
+        
+        channelRef.current = existing.channel;
+        existing.refCount++;
+        setIsConnected(true);
+        return;
+      }
+
       // Clean up existing channel
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
 
-      // Create a single channel for all subscriptions
-      const channel = supabase.channel('app-changes');
+      logger.debug('Creating new realtime subscription', { 
+        channelName,
+        channelKey, 
+        tables: configs.map(c => c.table) 
+      }, 'Realtime');
+
+      // Create a unique channel for this set of tables
+      const channel = supabase.channel(channelName);
 
       // Add listeners for each table
       configs.forEach(({ table, queryKey }) => {
@@ -51,7 +79,13 @@ export const useSimpleRealtimeSubscriptions = (
 
       // Subscribe to the channel
       channel.subscribe((status) => {
-        logger.debug(`Connection status changed`, { status, tables: configs.map(c => c.table) }, 'Realtime');
+        logger.debug(`Connection status changed`, { 
+          channelName,
+          channelKey,
+          status, 
+          tables: configs.map(c => c.table),
+          activeSubscriptions: activeChannels.size
+        }, 'Realtime');
         
         if (status === 'CHANNEL_ERROR') {
           setIsConnected(false);
@@ -82,8 +116,15 @@ export const useSimpleRealtimeSubscriptions = (
           setIsConnected(true);
           retryCountRef.current = 0; // Reset retry count on success
           hasLoggedErrorRef.current = false; // Reset error log flag
+          
+          // Register this channel in the global registry
+          activeChannels.set(channelKey, { channel, refCount: 1 });
+          
           logger.debug('Successfully subscribed to realtime', { 
-            tables: configs.map(c => c.table) 
+            channelName,
+            channelKey,
+            tables: configs.map(c => c.table),
+            activeSubscriptions: activeChannels.size
           }, 'Realtime');
         }
       });
@@ -98,10 +139,35 @@ export const useSimpleRealtimeSubscriptions = (
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
+      
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        const existing = activeChannels.get(channelKey);
+        if (existing) {
+          existing.refCount--;
+          
+          logger.debug('Unsubscribing from realtime', { 
+            channelKey,
+            remainingRefs: existing.refCount,
+            activeSubscriptions: activeChannels.size
+          }, 'Realtime');
+          
+          // Only remove channel if no more references
+          if (existing.refCount <= 0) {
+            supabase.removeChannel(channelRef.current);
+            activeChannels.delete(channelKey);
+            logger.debug('Removed realtime channel', { 
+              channelKey,
+              activeSubscriptions: activeChannels.size
+            }, 'Realtime');
+          }
+        } else {
+          // Fallback: remove channel if not in registry
+          supabase.removeChannel(channelRef.current);
+        }
+        
         channelRef.current = null;
       }
+      
       retryCountRef.current = 0;
       hasLoggedErrorRef.current = false;
     };
