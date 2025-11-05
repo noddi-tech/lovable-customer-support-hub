@@ -63,33 +63,34 @@ export default function OrganizationDetails() {
     enabled: !!id,
   });
 
-  // Fetch organization members
+  // Fetch organization members with profiles in single JOIN query
   const { data: members = [] } = useQuery({
     queryKey: ['organization-members', id],
     queryFn: async () => {
-      // First get memberships
-      const { data: memberships, error: membershipsError } = await supabase
+      const { data, error } = await supabase
         .from('organization_memberships')
-        .select('id, role, status, created_at, user_id')
+        .select(`
+          id,
+          role,
+          status,
+          created_at,
+          user_id,
+          profiles!organization_memberships_user_id_fkey (
+            id,
+            user_id,
+            email,
+            full_name
+          )
+        `)
         .eq('organization_id', id)
         .order('created_at', { ascending: false });
 
-      if (membershipsError) throw membershipsError;
-      if (!memberships || memberships.length === 0) return [];
-
-      // Then get user profiles
-      const userIds = memberships.map(m => m.user_id).filter(Boolean);
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email, full_name')
-        .in('user_id', userIds);
-
-      if (profilesError) throw profilesError;
-
-      // Merge in code
-      return memberships.map(membership => ({
+      if (error) throw error;
+      
+      // Transform to match expected structure
+      return (data || []).map(membership => ({
         ...membership,
-        user: profiles?.find(p => p.user_id === membership.user_id) || null
+        user: membership.profiles || null
       }));
     },
     enabled: !!id,
