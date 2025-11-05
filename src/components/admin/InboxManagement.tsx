@@ -212,6 +212,21 @@ export function InboxManagement() {
   // Delete inbox mutation
   const deleteInboxMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Check if inbox has conversations
+      const { count, error: countError } = await supabase
+        .from('conversations')
+        .select('*', { count: 'exact', head: true })
+        .eq('inbox_id', id);
+      
+      if (countError) throw countError;
+      
+      if (count && count > 0) {
+        throw new Error(
+          `Cannot delete inbox with ${count} conversation(s). Please move or delete all conversations first.`
+        );
+      }
+      
+      // Safe to delete - no conversations
       const { error } = await supabase
         .from('inboxes')
         .delete()
@@ -223,7 +238,7 @@ export function InboxManagement() {
       toast.success('Inbox deleted successfully');
     },
     onError: (error) => {
-      toast.error('Failed to delete inbox: ' + error.message);
+      toast.error(error.message);
     }
   });
 
@@ -397,33 +412,35 @@ export function InboxManagement() {
                     >
                       <Settings className="w-4 h-4" />
                     </Button>
-                    {!inbox.is_default && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Inbox</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{inbox.name}"? This action cannot be undone.
-                              All conversations in this inbox will be moved to the default inbox.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDeleteInbox(inbox.id)}
-                              className="bg-destructive hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Inbox</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{inbox.name}"? This action cannot be undone.
+                            {inbox.conversation_count > 0 && (
+                              <span className="block mt-2 text-destructive font-semibold">
+                                This inbox has {inbox.conversation_count} conversation(s). You must move or delete all conversations before deleting this inbox.
+                              </span>
+                            )}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDeleteInbox(inbox.id)}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
                 <CardDescription>{inbox.description || 'No description'}</CardDescription>
