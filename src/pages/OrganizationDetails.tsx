@@ -85,13 +85,21 @@ export default function OrganizationDetails() {
         .eq('organization_id', id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching members:', error);
+        throw error;
+      }
+
+      console.log('Raw members data:', data);
       
       // Transform to match expected structure
-      return (data || []).map(membership => ({
-        ...membership,
-        user: membership.profiles || null
-      }));
+      return (data || []).map(membership => {
+        console.log('Processing membership:', membership);
+        return {
+          ...membership,
+          user: membership.profiles || null
+        };
+      });
     },
     enabled: !!id,
   });
