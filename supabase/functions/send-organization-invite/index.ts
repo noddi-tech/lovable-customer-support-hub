@@ -1,6 +1,4 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -190,39 +188,90 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send email via Resend
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const inviteLink = `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", "")}/auth?invite=${inviteData.invite_token}`;
+    // Send email via SendGrid
+    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
+    if (!SENDGRID_API_KEY) {
+      console.error("SENDGRID_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
-    const emailResponse = await resend.emails.send({
-      from: `${organizationName} <onboarding@resend.dev>`,
-      to: email,
+    const inviteLink = `${Deno.env.get("SUPABASE_URL")}/auth?invite=${inviteData.invite_token}`;
+
+    const emailHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { color: #3B82F6; margin-bottom: 20px; }
+    .content { font-size: 16px; line-height: 1.6; color: #374151; }
+    .button { display: inline-block; background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; margin: 20px 0; }
+    .footer { font-size: 14px; color: #6B7280; margin-top: 30px; padding-top: 30px; border-top: 1px solid #E5E7EB; }
+    .small { font-size: 12px; color: #9CA3AF; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="header">You've been invited!</h1>
+    <div class="content">
+      <p>You've been invited to join <strong>${organizationName}</strong> as a <strong>${role}</strong>.</p>
+      <p>Click the button below to accept your invitation and create your account:</p>
+      <a href="${inviteLink}" class="button">Accept Invitation</a>
+      <div class="footer">
+        <p>This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.</p>
+        <p class="small">If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="${inviteLink}" style="color: #3B82F6; word-break: break-all;">${inviteLink}</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const plainText = `You've been invited to join ${organizationName} as a ${role}.
+
+Click the link below to accept your invitation and create your account:
+${inviteLink}
+
+This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.`;
+
+    const sendgridBody = {
+      personalizations: [
+        {
+          to: [{ email }],
+        },
+      ],
+      from: { email: "noreply@qgfaycwsangsqzpveoup.supabase.co", name: organizationName },
       subject: `You've been invited to join ${organizationName}`,
-      html: `
-        <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #3B82F6; margin-bottom: 20px;">You've been invited!</h1>
-          <p style="font-size: 16px; line-height: 1.6; color: #374151; margin-bottom: 20px;">
-            You've been invited to join <strong>${organizationName}</strong> as a <strong>${role}</strong>.
-          </p>
-          <p style="font-size: 16px; line-height: 1.6; color: #374151; margin-bottom: 30px;">
-            Click the button below to accept your invitation and create your account:
-          </p>
-          <a href="${inviteLink}" style="display: inline-block; background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
-            Accept Invitation
-          </a>
-          <p style="font-size: 14px; color: #6B7280; margin-top: 30px;">
-            This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.
-          </p>
-          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #9CA3AF;">
-            If the button doesn't work, copy and paste this link into your browser:<br>
-            <a href="${inviteLink}" style="color: #3B82F6; word-break: break-all;">${inviteLink}</a>
-          </p>
-        </div>
-      `,
+      content: [
+        { type: "text/plain", value: plainText },
+        { type: "text/html", value: emailHTML },
+      ],
+    };
+
+    console.log("Sending invitation email via SendGrid to:", email);
+    const sgRes = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(sendgridBody),
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    if (sgRes.status !== 202) {
+      const errTxt = await sgRes.text();
+      console.error("SendGrid error:", sgRes.status, errTxt);
+      return new Response(
+        JSON.stringify({ error: `Email service error: ${sgRes.status}` }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("Email sent successfully via SendGrid");
 
     return new Response(
       JSON.stringify({
@@ -247,4 +296,4 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-serve(handler);
+Deno.serve(handler);
