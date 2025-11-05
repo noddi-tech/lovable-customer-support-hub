@@ -10,7 +10,17 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout";
-import { Mail, AlertCircle, CheckCircle, ExternalLink, Loader2 } from "lucide-react";
+import { Mail, AlertCircle, CheckCircle, ExternalLink, Loader2, RotateCcw, Save } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { sanitizeTemplateHTML } from "@/utils/htmlSanitizer";
 
 interface SystemEmailTemplate {
@@ -55,6 +65,8 @@ export default function SuperAdminEmailTemplates() {
   const [activeTab, setActiveTab] = useState('password_reset');
   const [templates, setTemplates] = useState<Record<string, SystemEmailTemplate>>({});
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+  const [templateToReset, setTemplateToReset] = useState<string | null>(null);
 
   // Fetch system email templates
   const { data: systemTemplates, isLoading } = useQuery({
@@ -132,6 +144,7 @@ export default function SuperAdminEmailTemplates() {
 
   // Sync to Supabase Auth
   const handleSyncToSupabase = async () => {
+    setShowSyncConfirm(false);
     setIsSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-auth-templates', {
@@ -141,25 +154,65 @@ export default function SuperAdminEmailTemplates() {
       if (error) throw error;
 
       toast({
-        title: "Templates synced",
-        description: `Successfully synced ${data.synced} templates to Supabase Auth.`,
+        title: "Templates synced successfully",
+        description: data.message || `Successfully synced ${data.synced} templates to Supabase Auth.`,
+        duration: 5000,
       });
     } catch (error: any) {
+      console.error('Sync error:', error);
       toast({
         title: "Sync failed",
-        description: error.message,
+        description: error.message || "Failed to sync templates. Please check your secrets configuration.",
         variant: "destructive",
+        duration: 7000,
       });
     } finally {
       setIsSyncing(false);
     }
   };
 
+  // Reset template to default
+  const handleResetTemplate = async (templateType: string) => {
+    setTemplateToReset(null);
+    
+    // Find the default template from database
+    const defaultTemplate = systemTemplates?.find(t => t.template_type === templateType);
+    if (defaultTemplate) {
+      setTemplates(prev => ({
+        ...prev,
+        [templateType]: defaultTemplate
+      }));
+      
+      toast({
+        title: "Template reset",
+        description: "Template has been reset to default values.",
+      });
+    }
+  };
+
   const handleSaveTemplate = (templateType: string) => {
     const template = templates[templateType];
-    if (template) {
-      saveTemplateMutation.mutate(template);
+    
+    // Validation
+    if (!template || !template.subject || !template.html_content) {
+      toast({
+        title: "Validation error",
+        description: "Subject and HTML content are required.",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    if (template.subject.length < 3) {
+      toast({
+        title: "Validation error",
+        description: "Subject must be at least 3 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    saveTemplateMutation.mutate(template);
   };
 
   const updateTemplate = (templateType: string, field: keyof SystemEmailTemplate, value: string | boolean) => {
@@ -241,21 +294,34 @@ export default function SuperAdminEmailTemplates() {
           </div>
         </div>
 
-        {/* Save Button */}
-        <Button 
-          onClick={() => handleSaveTemplate(templateConfig.type)}
-          disabled={saveTemplateMutation.isPending}
-          className="w-full"
-        >
-          {saveTemplateMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save Template'
-          )}
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => handleSaveTemplate(templateConfig.type)}
+            disabled={saveTemplateMutation.isPending || !template.subject || !template.html_content}
+            className="flex-1"
+          >
+            {saveTemplateMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Template
+              </>
+            )}
+          </Button>
+          <Button 
+            onClick={() => setTemplateToReset(templateConfig.type)}
+            variant="outline"
+            disabled={saveTemplateMutation.isPending}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Reset
+          </Button>
+        </div>
       </div>
     );
   };
@@ -313,9 +379,10 @@ export default function SuperAdminEmailTemplates() {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={handleSyncToSupabase}
+              onClick={() => setShowSyncConfirm(true)}
               disabled={isSyncing}
               className="w-full"
+              size="lg"
             >
               {isSyncing ? (
                 <>
@@ -363,6 +430,46 @@ export default function SuperAdminEmailTemplates() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Sync Confirmation Dialog */}
+        <AlertDialog open={showSyncConfirm} onOpenChange={setShowSyncConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sync Templates to Supabase Auth?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will update the authentication email templates in your Supabase project.
+                Make sure you have saved all your changes before syncing.
+                <br /><br />
+                <strong>Note:</strong> This action requires proper SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF secrets to be configured.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSyncToSupabase}>
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Reset Confirmation Dialog */}
+        <AlertDialog open={!!templateToReset} onOpenChange={(open) => !open && setTemplateToReset(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset Template to Default?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will discard any unsaved changes and reset the template to its default values.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => templateToReset && handleResetTemplate(templateToReset)}>
+                Reset Template
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </UnifiedAppLayout>
   );

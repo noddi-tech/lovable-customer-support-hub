@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users, MessageSquare, Activity, Crown } from 'lucide-react';
+import { Building2, Users, MessageSquare, Activity, Crown, Mail } from 'lucide-react';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -150,7 +150,7 @@ export default function SuperAdminDashboard() {
             <CardDescription>Common administrative tasks</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               <Button
                 onClick={() => navigate('/super-admin/organizations')}
                 variant="outline"
@@ -171,6 +171,17 @@ export default function SuperAdminDashboard() {
                 <div className="text-left">
                   <div className="font-medium">Manage Users</div>
                   <div className="text-sm text-muted-foreground">Cross-organization user administration</div>
+                </div>
+              </Button>
+              <Button
+                onClick={() => navigate('/super-admin/email-templates')}
+                variant="outline"
+                className="justify-start h-auto py-4 border-yellow-300 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-950/30"
+              >
+                <Mail className="h-5 w-5 mr-3 text-yellow-600 dark:text-yellow-500" />
+                <div className="text-left">
+                  <div className="font-medium">System Email Templates</div>
+                  <div className="text-sm text-muted-foreground">Customize authentication emails</div>
                 </div>
               </Button>
             </div>
