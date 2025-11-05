@@ -67,20 +67,30 @@ export default function OrganizationDetails() {
   const { data: members = [] } = useQuery({
     queryKey: ['organization-members', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get memberships
+      const { data: memberships, error: membershipsError } = await supabase
         .from('organization_memberships')
-        .select(`
-          id,
-          role,
-          status,
-          created_at,
-          user:profiles(id, email, full_name)
-        `)
+        .select('id, role, status, created_at, user_id')
         .eq('organization_id', id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+      if (membershipsError) throw membershipsError;
+      if (!memberships || memberships.length === 0) return [];
+
+      // Then get user profiles
+      const userIds = memberships.map(m => m.user_id).filter(Boolean);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Merge in code
+      return memberships.map(membership => ({
+        ...membership,
+        user: profiles?.find(p => p.id === membership.user_id) || null
+      }));
     },
     enabled: !!id,
   });
