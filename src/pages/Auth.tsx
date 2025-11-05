@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { Building2, Mail, Lock, User, AlertCircle, UserPlus } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { useTranslation } from 'react-i18next';
 
@@ -24,6 +24,8 @@ export const Auth: React.FC = () => {
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteOrganization, setInviteOrganization] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -33,6 +35,37 @@ export const Auth: React.FC = () => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     if (hashParams.get('type') === 'recovery') {
       setIsRecoveryMode(true);
+    }
+  }, []);
+
+  // Check for invite token in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('invite');
+    
+    if (token) {
+      setInviteToken(token);
+      
+      // Fetch organization name from invite token
+      const fetchInviteOrganization = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('organization_memberships')
+            .select('organizations(name)')
+            .eq('invite_token', token)
+            .eq('status', 'pending')
+            .gt('invite_expires_at', new Date().toISOString())
+            .single();
+
+          if (!error && data) {
+            setInviteOrganization(data.organizations?.name || null);
+          }
+        } catch (err) {
+          console.error('Error fetching invite organization:', err);
+        }
+      };
+
+      fetchInviteOrganization();
     }
   }, []);
 
@@ -362,8 +395,8 @@ export const Auth: React.FC = () => {
                   <AlertDescription>{success}</AlertDescription>
                 </Alert>
               )}
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
         </div>
       </div>
     );
@@ -371,9 +404,21 @@ export const Auth: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-4">
+        {/* Invite Banner */}
+        {inviteToken && inviteOrganization && (
+          <Alert className="bg-primary/10 border-primary/20">
+            <UserPlus className="h-4 w-4" />
+            <AlertTitle>You've been invited!</AlertTitle>
+            <AlertDescription>
+              You've been invited to join <strong>{inviteOrganization}</strong>. 
+              Sign up below to accept your invitation.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center">
           <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Building2 className="h-8 w-8 text-primary-foreground" />
           </div>

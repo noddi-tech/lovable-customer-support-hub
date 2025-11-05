@@ -1337,7 +1337,10 @@ export type Database = {
       organization_memberships: {
         Row: {
           created_at: string
+          email: string | null
           id: string
+          invite_expires_at: string | null
+          invite_token: string | null
           invited_at: string | null
           invited_by_id: string | null
           is_default: boolean | null
@@ -1346,11 +1349,14 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
+          email?: string | null
           id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
           invited_at?: string | null
           invited_by_id?: string | null
           is_default?: boolean | null
@@ -1359,11 +1365,14 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
+          email?: string | null
           id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
           invited_at?: string | null
           invited_by_id?: string | null
           is_default?: boolean | null
@@ -1372,7 +1381,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
