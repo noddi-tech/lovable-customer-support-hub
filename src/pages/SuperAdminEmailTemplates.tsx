@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout";
-import { Mail, AlertCircle, CheckCircle, ExternalLink, Loader2, RotateCcw, Save } from "lucide-react";
+import { Mail, AlertCircle, CheckCircle, ExternalLink, Loader2, RotateCcw, Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,12 @@ export default function SuperAdminEmailTemplates() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
   const [templateToReset, setTemplateToReset] = useState<string | null>(null);
+  const [setupComplete, setSetupComplete] = useState(() => {
+    return localStorage.getItem('email-templates-setup-complete') === 'true';
+  });
+  const [isSetupCollapsed, setIsSetupCollapsed] = useState(() => {
+    return localStorage.getItem('email-templates-setup-collapsed') === 'true' || setupComplete;
+  });
 
   // Fetch system email templates
   const { data: systemTemplates, isLoading } = useQuery({
@@ -152,6 +159,12 @@ export default function SuperAdminEmailTemplates() {
       });
 
       if (error) throw error;
+
+      // Mark setup as complete and collapse
+      setSetupComplete(true);
+      setIsSetupCollapsed(true);
+      localStorage.setItem('email-templates-setup-complete', 'true');
+      localStorage.setItem('email-templates-setup-collapsed', 'true');
 
       toast({
         title: "Templates synced successfully",
@@ -351,23 +364,66 @@ export default function SuperAdminEmailTemplates() {
         </div>
 
         {/* Setup Instructions */}
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-2">
-              <p className="font-medium">⚠️ First Time Setup Required:</p>
-              <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li>Go to: <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                  Supabase Account Tokens <ExternalLink className="h-3 w-3" />
-                </a></li>
-                <li>Create a new access token with "Full Access" permissions</li>
-                <li>Add SUPABASE_ACCESS_TOKEN secret to your project</li>
-                <li>Add SUPABASE_PROJECT_REF secret (project reference ID)</li>
-                <li>Click "Sync to Supabase" after saving templates</li>
-              </ol>
+        <Collapsible open={!isSetupCollapsed} onOpenChange={(open) => {
+          setIsSetupCollapsed(!open);
+          localStorage.setItem('email-templates-setup-collapsed', (!open).toString());
+        }}>
+          <Alert variant={setupComplete ? "default" : "destructive"}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-2 flex-1">
+                {setupComplete ? (
+                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 mt-0.5" />
+                )}
+                <AlertDescription className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium">
+                      {setupComplete ? '✓ Setup Complete' : '⚠️ First Time Setup Required'}
+                    </p>
+                  </div>
+                  <CollapsibleContent className="mt-3">
+                    <ol className="list-decimal list-inside space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
+                        <span>
+                          Go to: <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                            Supabase Account Tokens <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
+                        <span>Create a new access token with "Full Access" permissions</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
+                        <span>Add <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEACCESS_TOKEN</code> secret to your project</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
+                        <span>Add <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEPROJECT_REF</code> secret (project reference ID)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
+                        <span>Click "Sync to Supabase Auth" after saving templates</span>
+                      </li>
+                    </ol>
+                  </CollapsibleContent>
+                </AlertDescription>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="shrink-0 -mt-1">
+                  {isSetupCollapsed ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronUp className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
             </div>
-          </AlertDescription>
-        </Alert>
+          </Alert>
+        </Collapsible>
 
         {/* Sync Button */}
         <Card>
@@ -440,7 +496,7 @@ export default function SuperAdminEmailTemplates() {
                 This will update the authentication email templates in your Supabase project.
                 Make sure you have saved all your changes before syncing.
                 <br /><br />
-                <strong>Note:</strong> This action requires proper SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF secrets to be configured.
+                <strong>Note:</strong> This action requires proper <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEACCESS_TOKEN</code> and <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEPROJECT_REF</code> secrets to be configured.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
