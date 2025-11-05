@@ -295,7 +295,7 @@ export default function SuperAdminEmailTemplates() {
             <div 
               dangerouslySetInnerHTML={{ 
                 __html: sanitizeTemplateHTML(
-                  template.html_content
+                  (template.html_content || '')
                     .replace(/\{\{\s*\.ConfirmationURL\s*\}\}/g, 'https://example.com/confirm?token=sample')
                     .replace(/\{\{\s*\.Email\s*\}\}/g, 'user@example.com')
                     .replace(/\{\{\s*\.NewEmail\s*\}\}/g, 'newemail@example.com')
