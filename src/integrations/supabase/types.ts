@@ -1186,7 +1186,7 @@ export type Database = {
           cached_priority_booking: Json | null
           created_at: string
           customer_id: string | null
-          email: string
+          email: string | null
           id: string
           last_refreshed_at: string
           noddi_user_id: number | null
@@ -1204,7 +1204,7 @@ export type Database = {
           cached_priority_booking?: Json | null
           created_at?: string
           customer_id?: string | null
-          email: string
+          email?: string | null
           id?: string
           last_refreshed_at?: string
           noddi_user_id?: number | null
@@ -1222,7 +1222,7 @@ export type Database = {
           cached_priority_booking?: Json | null
           created_at?: string
           customer_id?: string | null
-          email?: string
+          email?: string | null
           id?: string
           last_refreshed_at?: string
           noddi_user_id?: number | null
