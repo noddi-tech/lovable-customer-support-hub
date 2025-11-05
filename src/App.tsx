@@ -26,6 +26,7 @@ import Settings from "./pages/Settings";
 import AdminDesignComponentsPage from "./pages/AdminDesignComponentsPage";
 import KnowledgeManagement from "./pages/KnowledgeManagement";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import SuperAdminEmailTemplates from "./pages/SuperAdminEmailTemplates";
 import OrganizationManagement from "./pages/OrganizationManagement";
 import OrganizationDetails from "./pages/OrganizationDetails";
 import AllUsersManagement from "./pages/AllUsersManagement";
@@ -116,6 +117,7 @@ const AppContent = () => {
       {/* Super Admin Routes */}
       <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
       <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/email-templates" element={<ProtectedRoute><SuperAdminRoute><SuperAdminEmailTemplates /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/organizations" element={<ProtectedRoute><SuperAdminRoute><OrganizationManagement /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/organizations/:id" element={<ProtectedRoute><SuperAdminRoute><OrganizationDetails /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/users" element={<ProtectedRoute><SuperAdminRoute><AllUsersManagement /></SuperAdminRoute></ProtectedRoute>} />

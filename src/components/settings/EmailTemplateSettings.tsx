@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ export function EmailTemplateSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const [activeTemplateType, setActiveTemplateType] = useState('conversation_reply');
   
   const [template, setTemplate] = useState<EmailTemplate>({
     name: 'Default Template',
@@ -45,13 +47,14 @@ export function EmailTemplateSettings() {
     include_agent_name: true,
   });
 
-  // Fetch existing template
+  // Fetch existing template for active type
   const { data: existingTemplate } = useQuery({
-    queryKey: ['email-template'],
+    queryKey: ['email-template', activeTemplateType],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('email_templates')
         .select('*')
+        .eq('template_type', activeTemplateType)
         .eq('is_default', true)
         .single();
       
@@ -88,7 +91,9 @@ export function EmailTemplateSettings() {
         ...templateData,
         organization_id: userProfile.organization_id,
         created_by_id: profile.user.id,
-        is_default: true
+        is_default: true,
+        template_type: activeTemplateType,
+        scope: 'organization'
       };
 
       if (existingTemplate?.id) {
@@ -136,16 +141,56 @@ export function EmailTemplateSettings() {
     setTemplate(prev => ({ ...prev, [field]: value }));
   };
 
+  const templateTypeInfo = {
+    conversation_reply: {
+      title: 'Conversation Reply Template',
+      description: 'Template used when agents reply to customer conversations',
+      variables: ['{{agent_name}}']
+    },
+    organization_invite: {
+      title: 'Organization Invite Template',
+      description: 'Template used when inviting users to your organization',
+      variables: ['{{organization_name}}', '{{invite_link}}', '{{role}}', '{{inviter_name}}']
+    },
+    welcome: {
+      title: 'Welcome Email Template',
+      description: 'Template sent to new users when they join your organization',
+      variables: ['{{organization_name}}', '{{user_name}}']
+    }
+  };
+
+  const currentTemplateInfo = templateTypeInfo[activeTemplateType as keyof typeof templateTypeInfo];
+
   return (
     <div className="space-y-6">
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
-          <CardTitle className="text-primary">{t('emailTemplate.title')}</CardTitle>
+          <CardTitle className="text-primary">Organization Email Templates</CardTitle>
           <CardDescription>
-            {t('emailTemplate.description')}
+            Customize email templates for your organization's communications
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Template Type Tabs */}
+          <Tabs value={activeTemplateType} onValueChange={setActiveTemplateType}>
+            <TabsList className="grid grid-cols-3 w-full">
+              <TabsTrigger value="conversation_reply">Conversation Reply</TabsTrigger>
+              <TabsTrigger value="organization_invite">Invite User</TabsTrigger>
+              <TabsTrigger value="welcome">Welcome Email</TabsTrigger>
+            </TabsList>
+            <TabsContent value={activeTemplateType} className="space-y-6 mt-6">
+              {/* Template Info */}
+              <div className="border-l-4 border-primary pl-4">
+                <h4 className="font-medium">{currentTemplateInfo.title}</h4>
+                <p className="text-sm text-muted-foreground">{currentTemplateInfo.description}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {currentTemplateInfo.variables.map(variable => (
+                    <code key={variable} className="px-2 py-1 bg-muted rounded text-xs">
+                      {variable}
+                    </code>
+                  ))}
+                </div>
+              </div>
           {/* Preview */}
           <div className="border rounded-lg p-4 bg-muted/50">
             <h4 className="font-medium mb-3">{t('emailTemplate.preview')}</h4>
@@ -314,13 +359,15 @@ export function EmailTemplateSettings() {
             </div>
           </div>
 
-          <Button 
-            onClick={handleSave} 
-            disabled={saveTemplateMutation.isPending}
-            className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
-          >
-            {saveTemplateMutation.isPending ? t('admin.saving') : t('emailTemplate.saveTemplate')}
-          </Button>
+              <Button 
+                onClick={handleSave} 
+                disabled={saveTemplateMutation.isPending}
+                className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
+              >
+                {saveTemplateMutation.isPending ? t('admin.saving') : t('emailTemplate.saveTemplate')}
+              </Button>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
