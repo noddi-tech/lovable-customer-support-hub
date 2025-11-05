@@ -574,7 +574,9 @@ export type Database = {
           is_default: boolean | null
           name: string
           organization_id: string
+          scope: string
           signature_content: string | null
+          template_type: string
           updated_at: string
         }
         Insert: {
@@ -593,7 +595,9 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           organization_id: string
+          scope?: string
           signature_content?: string | null
+          template_type: string
           updated_at?: string
         }
         Update: {
@@ -612,7 +616,9 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           organization_id?: string
+          scope?: string
           signature_content?: string | null
+          template_type?: string
           updated_at?: string
         }
         Relationships: []
@@ -2070,6 +2076,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_email_templates: {
+        Row: {
+          created_at: string
+          created_by_id: string | null
+          html_content: string
+          id: string
+          is_active: boolean
+          subject: string
+          template_type: string
+          text_content: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_id?: string | null
+          html_content: string
+          id?: string
+          is_active?: boolean
+          subject: string
+          template_type: string
+          text_content?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_id?: string | null
+          html_content?: string
+          id?: string
+          is_active?: boolean
+          subject?: string
+          template_type?: string
+          text_content?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       system_events_log: {
         Row: {
