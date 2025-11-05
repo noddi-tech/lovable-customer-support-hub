@@ -81,15 +81,15 @@ export default function OrganizationDetails() {
       const userIds = memberships.map(m => m.user_id).filter(Boolean);
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, email, full_name')
-        .in('id', userIds);
+        .select('id, user_id, email, full_name')
+        .in('user_id', userIds);
 
       if (profilesError) throw profilesError;
 
       // Merge in code
       return memberships.map(membership => ({
         ...membership,
-        user: profiles?.find(p => p.id === membership.user_id) || null
+        user: profiles?.find(p => p.user_id === membership.user_id) || null
       }));
     },
     enabled: !!id,
