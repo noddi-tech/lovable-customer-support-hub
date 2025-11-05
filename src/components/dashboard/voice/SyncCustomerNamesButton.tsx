@@ -57,6 +57,15 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
         throw new Error('No organization found');
       }
 
+      // PRE-LOAD: Fetch all cached phone numbers upfront
+      const { data: cachedEntries } = await supabase
+        .from('noddi_customer_cache')
+        .select('phone, noddi_user_id')
+        .eq('organization_id', organizationId);
+      
+      const alreadyCachedPhones = new Set(cachedEntries?.map(e => e.phone).filter(Boolean) || []);
+      console.log(`📋 Pre-loaded ${alreadyCachedPhones.size} cached phone numbers`);
+
       // Find calls with missing customer names or customer_id
       const callsToSync = calls.filter(
         call => !call.customer_id || !call.customer_name || 
@@ -144,22 +153,32 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
         return !hasCustomerData && call.customer_phone;
       });
 
+      // FILTER: Remove already-cached phone numbers before processing
       const uniqueRemainingPhones = [...new Set(
         remainingUnknowns
           .map(c => c.customer_phone)
           .filter(phone => phone && phone.trim() !== '')
       )];
+      
+      const uncachedPhones = uniqueRemainingPhones.filter(
+        phone => !alreadyCachedPhones.has(phone)
+      );
+      
+      const skippedCount = uniqueRemainingPhones.length - uncachedPhones.length;
+      if (skippedCount > 0) {
+        console.log(`⏭️  Skipping ${skippedCount} already-cached phone numbers`);
+      }
 
-      if (uniqueRemainingPhones.length > 0) {
+      if (uncachedPhones.length > 0) {
         toast({
           title: 'Noddi API Lookup',
-          description: `Step 2: Checking ${uniqueRemainingPhones.length} numbers with Noddi...`,
+          description: `Step 2: Checking ${uncachedPhones.length} numbers with Noddi...`,
         });
 
         let noddiSuccessCount = 0;
         let errorCount = 0;
 
-        for (const phone of uniqueRemainingPhones) {
+        for (const phone of uncachedPhones) {
           try {
             // Invoke Noddi lookup function
             const { data: noddiData, error: lookupError } = await supabase.functions.invoke(
@@ -195,24 +214,24 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
                 noddiSuccessCount += callsWithPhone.length;
               }
             } else {
-              // Customer NOT found in Noddi - cache this result
+              // Customer NOT found in Noddi - cache this result with simple INSERT
               console.log(`❌ ${phone} not found in Noddi, caching result`);
               
               const { error: cacheError } = await supabase
                 .from('noddi_customer_cache')
-                .upsert({
+                .insert({
                   phone,
                   email: null,
                   organization_id: organizationId,
                   noddi_user_id: null,
                   last_refreshed_at: new Date().toISOString(),
                   cached_customer_data: { found: false }
-                }, {
-                  onConflict: 'phone,organization_id'
                 });
               
               if (cacheError) {
                 console.error(`❌ Failed to cache ${phone}:`, cacheError);
+              } else {
+                console.log(`✅ Cached ${phone} as non-customer`);
               }
             }
           } catch (err) {
