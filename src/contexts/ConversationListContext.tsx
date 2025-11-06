@@ -146,6 +146,7 @@ interface ConversationListContextType {
   isFetchingNextPage: boolean;
   hasNextPage: boolean;
   fetchNextPage: () => void;
+  loadAllConversations: () => Promise<void>;
   totalCount: number;
   hasSessionError: boolean;
   archiveConversation: (id: string) => void;
@@ -735,6 +736,13 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     }
   };
 
+  // Load all conversations by fetching all remaining pages
+  const loadAllConversations = async () => {
+    while (hasNextPage && !isFetchingNextPage) {
+      await fetchNextPage();
+    }
+  };
+
   const value = {
     state,
     dispatch,
@@ -743,6 +751,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     isFetchingNextPage,
     hasNextPage: hasNextPage || false,
     fetchNextPage: () => fetchNextPage(),
+    loadAllConversations,
     totalCount,
     hasSessionError,
     archiveConversation,

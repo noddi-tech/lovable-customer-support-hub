@@ -14,6 +14,7 @@ import { useConversationList } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
@@ -30,10 +31,11 @@ export const ConversationListHeader = ({
   bulkSelectionMode = false,
   onToggleBulkMode
 }: ConversationListHeaderProps) => {
-  const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead } = useConversationList();
+  const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead, loadAllConversations, hasNextPage, isFetchingNextPage } = useConversationList();
   const { t } = useTranslation();
   const [showMigrator, setShowMigrator] = useState(false);
   const [showThreadMerger, setShowThreadMerger] = useState(false);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
 
   const totalCount = filteredConversations.length;
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
@@ -69,6 +71,17 @@ export const ConversationListHeader = ({
     }
   };
 
+  const handleToggleBulkMode = async () => {
+    if (!bulkSelectionMode && hasNextPage) {
+      // Entering bulk mode - load all conversations first
+      setIsLoadingAll(true);
+      toast.info('Loading all conversations...');
+      await loadAllConversations();
+      setIsLoadingAll(false);
+    }
+    onToggleBulkMode?.();
+  };
+
   return (
     <div className="flex-shrink-0 p-2 md:p-3 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
       {/* Row 1: Inbox Switcher + Unread Count + Select + Actions */}
@@ -88,12 +101,13 @@ export const ConversationListHeader = ({
             <Button
               variant={bulkSelectionMode ? "default" : "outline"}
               size="sm"
-              onClick={onToggleBulkMode}
+              onClick={handleToggleBulkMode}
+              disabled={isLoadingAll || isFetchingNextPage}
               className="h-7 px-2 gap-1 text-xs"
             >
               <CheckSquare className="!w-3 !h-3" />
               <span className="hidden sm:inline">
-                {bulkSelectionMode ? t('dashboard.conversationList.exitSelection', 'Exit') : t('dashboard.conversationList.select', 'Select')}
+                {isLoadingAll ? 'Loading...' : bulkSelectionMode ? t('dashboard.conversationList.exitSelection', 'Exit') : t('dashboard.conversationList.select', 'Select')}
               </span>
             </Button>
           )}
