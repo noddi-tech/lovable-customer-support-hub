@@ -738,8 +738,31 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
   // Load all conversations by fetching all remaining pages
   const loadAllConversations = async () => {
-    while (hasNextPage && !isFetchingNextPage) {
-      await fetchNextPage();
+    const loadNextBatch = async (): Promise<void> => {
+      // Check if we can fetch more
+      if (!hasNextPage || isFetchingNextPage) {
+        return;
+      }
+      
+      // Fetch the next page
+      const result = await fetchNextPage();
+      
+      // Add a small delay to allow React to update the UI
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Check the result to see if there's more data
+      if (result.hasNextPage && !result.isFetchingNextPage) {
+        // Recursively load the next batch
+        return loadNextBatch();
+      }
+    };
+    
+    try {
+      await loadNextBatch();
+      toast.success('All conversations loaded');
+    } catch (error) {
+      logger.error('Failed to load all conversations', error, 'loadAllConversations');
+      toast.error('Failed to load all conversations');
     }
   };
 
