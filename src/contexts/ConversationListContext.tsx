@@ -613,11 +613,33 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     }
   }, 'ConversationListFilter');
 
+  // Helper function to expand thread IDs for bulk operations
+  const expandThreadIds = (selectedIds: string[]): string[] => {
+    const expandedIds = new Set<string>();
+    
+    selectedIds.forEach(id => {
+      // Find the conversation in our filtered list
+      const conversation = filteredAndSortedConversations.find(c => c.id === id);
+      
+      if (conversation?.thread_ids && conversation.thread_ids.length > 0) {
+        // If it's a threaded conversation, add all thread IDs
+        conversation.thread_ids.forEach(threadId => expandedIds.add(threadId));
+      } else {
+        // Otherwise just add the single ID
+        expandedIds.add(id);
+      }
+    });
+    
+    return Array.from(expandedIds);
+  };
 
   // Bulk operations
   const bulkMarkAsRead = async () => {
-    const ids = Array.from(state.selectedConversations);
-    if (ids.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations);
+    if (selectedIds.length === 0) return;
+
+    // Expand thread IDs to include all conversations in threads
+    const ids = expandThreadIds(selectedIds);
 
     const { error } = await supabase
       .from('conversations')
@@ -634,8 +656,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   };
 
   const bulkMarkAsUnread = async () => {
-    const ids = Array.from(state.selectedConversations);
-    if (ids.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations);
+    if (selectedIds.length === 0) return;
+
+    // Expand thread IDs to include all conversations in threads
+    const ids = expandThreadIds(selectedIds);
 
     const { error } = await supabase
       .from('conversations')
@@ -652,8 +677,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   };
 
   const bulkChangeStatus = async (status: string) => {
-    const ids = Array.from(state.selectedConversations);
-    if (ids.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations);
+    if (selectedIds.length === 0) return;
+
+    // Expand thread IDs to include all conversations in threads
+    const ids = expandThreadIds(selectedIds);
 
     const { error } = await supabase
       .from('conversations')
@@ -670,8 +698,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   };
 
   const bulkArchive = async () => {
-    const ids = Array.from(state.selectedConversations);
-    if (ids.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations);
+    if (selectedIds.length === 0) return;
+
+    // Expand thread IDs to include all conversations in threads
+    const ids = expandThreadIds(selectedIds);
 
     const { error } = await supabase
       .from('conversations')
@@ -688,8 +719,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   };
 
   const bulkDelete = async () => {
-    const ids = Array.from(state.selectedConversations);
-    if (ids.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations);
+    if (selectedIds.length === 0) return;
+
+    // Expand thread IDs to include all conversations in threads
+    const ids = expandThreadIds(selectedIds);
 
     // First delete messages
     const { error: messagesError } = await supabase
@@ -718,8 +752,11 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   };
 
   const bulkAssign = async (assigneeId: string) => {
-    const ids = Array.from(state.selectedConversations);
-    if (ids.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations);
+    if (selectedIds.length === 0) return;
+
+    // Expand thread IDs to include all conversations in threads
+    const ids = expandThreadIds(selectedIds);
 
     const { error } = await supabase
       .from('conversations')
