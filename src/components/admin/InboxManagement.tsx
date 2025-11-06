@@ -451,29 +451,32 @@ export function InboxManagement() {
                           <AlertDialogTitle>Delete Inbox</AlertDialogTitle>
                           <AlertDialogDescription>
                             Are you sure you want to delete "{inbox.name}"? This action cannot be undone.
-                            {inbox.conversation_count > 0 && (
+                            {(inbox.conversation_count ?? 0) > 0 ? (
                               <span className="block mt-2 text-destructive font-semibold">
-                                This inbox has {inbox.conversation_count} conversation(s). 
+                                ⚠️ This inbox has {inbox.conversation_count} conversation(s). All conversations will be permanently deleted.
+                              </span>
+                            ) : (
+                              <span className="block mt-2 text-muted-foreground">
+                                This inbox has no conversations.
                               </span>
                             )}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          {inbox.conversation_count > 0 && (
+                          {(inbox.conversation_count ?? 0) > 0 ? (
                             <AlertDialogAction 
                               onClick={() => handleDeleteInbox(inbox.id, true)}
                               className="bg-destructive hover:bg-destructive/90"
                             >
                               Delete Inbox & All Conversations
                             </AlertDialogAction>
-                          )}
-                          {inbox.conversation_count === 0 && (
+                          ) : (
                             <AlertDialogAction 
                               onClick={() => handleDeleteInbox(inbox.id, false)}
                               className="bg-destructive hover:bg-destructive/90"
                             >
-                              Delete
+                              Delete Inbox
                             </AlertDialogAction>
                           )}
                         </AlertDialogFooter>
