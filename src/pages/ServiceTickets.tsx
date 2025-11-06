@@ -107,15 +107,15 @@ export default function ServiceTickets() {
     setSelectedTicketIds([]);
   };
 
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('open');
 
   const ticketsByStatus = {
-    all: filteredTickets,
-    open: filteredTickets.filter(t => t.status === 'open'),
-    in_progress: filteredTickets.filter(t => t.status === 'in_progress'),
-    pending: filteredTickets.filter(t => t.status === 'pending_customer' || t.status === 'awaiting_parts'),
-    completed: filteredTickets.filter(t => t.status === 'completed'),
-    cancelled: filteredTickets.filter(t => t.status === 'cancelled'),
+    open: filteredTickets.filter(t => 
+      ['open', 'acknowledged', 'scheduled', 'in_progress', 'pending_customer', 'awaiting_parts', 'on_hold'].includes(t.status)
+    ),
+    completed: filteredTickets.filter(t => 
+      ['completed', 'verified', 'closed', 'cancelled'].includes(t.status)
+    ),
   };
 
   const toggleTicketSelection = (ticketId: string) => {
@@ -180,28 +180,10 @@ export default function ServiceTickets() {
         <div className="w-full">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
-              <TabsTrigger value="all">All ({ticketsByStatus.all.length})</TabsTrigger>
               <TabsTrigger value="open">Open ({ticketsByStatus.open.length})</TabsTrigger>
-              <TabsTrigger value="in_progress">In Progress ({ticketsByStatus.in_progress.length})</TabsTrigger>
+              <TabsTrigger value="completed">Completed ({ticketsByStatus.completed.length})</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
-            <TabsContent value="all" className="mt-6 space-y-4">
-              <ServiceTicketListHeader
-                ticketCount={ticketsByStatus.all.length}
-                selectionMode={selectionMode}
-                onToggleSelectionMode={toggleSelectionMode}
-                onCreateTicket={() => setIsCreateDialogOpen(true)}
-              />
-              <div className="h-[calc(100vh-280px)] overflow-y-auto">
-                <ServiceTicketTable
-                  tickets={ticketsByStatus.all}
-                  selectedTicketIds={selectedTicketIds}
-                  onSelectTicket={toggleTicketSelection}
-                  onTicketClick={handleTicketClick}
-                  selectionMode={selectionMode}
-                />
-              </div>
-            </TabsContent>
             <TabsContent value="open" className="mt-6 space-y-4">
               <ServiceTicketListHeader
                 ticketCount={ticketsByStatus.open.length}
@@ -219,16 +201,16 @@ export default function ServiceTickets() {
                 />
               </div>
             </TabsContent>
-            <TabsContent value="in_progress" className="mt-6 space-y-4">
+            <TabsContent value="completed" className="mt-6 space-y-4">
               <ServiceTicketListHeader
-                ticketCount={ticketsByStatus.in_progress.length}
+                ticketCount={ticketsByStatus.completed.length}
                 selectionMode={selectionMode}
                 onToggleSelectionMode={toggleSelectionMode}
                 onCreateTicket={() => setIsCreateDialogOpen(true)}
               />
               <div className="h-[calc(100vh-280px)] overflow-y-auto">
                 <ServiceTicketTable
-                  tickets={ticketsByStatus.in_progress}
+                  tickets={ticketsByStatus.completed}
                   selectedTicketIds={selectedTicketIds}
                   onSelectTicket={toggleTicketSelection}
                   onTicketClick={handleTicketClick}
