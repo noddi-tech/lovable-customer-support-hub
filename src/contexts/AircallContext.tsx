@@ -658,24 +658,33 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log('[AircallProvider] ✅ Proceeding with SDK initialization...');
         
         // Container is guaranteed to exist in HTML - direct check
-        let container = document.querySelector('#aircall-workspace-container') as HTMLElement;
+        let outerContainer = document.querySelector('#aircall-workspace-container') as HTMLElement;
         
-        if (!container) {
-          // Fallback: Create container imperatively if somehow missing
-          console.warn('[AircallProvider] Container missing - creating imperatively');
-          container = document.createElement('div');
-          container.id = 'aircall-workspace-container';
-          document.body.appendChild(container);
+        if (!outerContainer) {
+          // Fallback: Create outer container imperatively if somehow missing
+          console.warn('[AircallProvider] Outer container missing - creating imperatively');
+          outerContainer = document.createElement('div');
+          outerContainer.id = 'aircall-workspace-container';
+          document.body.appendChild(outerContainer);
         }
         
-        console.log('[AircallProvider] ✅ Container ready in DOM');
+        // CRITICAL FIX: Create inner workspace div if it doesn't exist
+        let innerWorkspace = outerContainer.querySelector('#aircall-workspace') as HTMLElement;
+        if (!innerWorkspace) {
+          console.log('[AircallProvider] Creating inner #aircall-workspace div');
+          innerWorkspace = document.createElement('div');
+          innerWorkspace.id = 'aircall-workspace';
+          outerContainer.appendChild(innerWorkspace);
+        }
+        
+        console.log('[AircallProvider] ✅ Container structure ready in DOM (outer + inner)');
         
         // PHASE 5: Immediately make container visible so SDK can inject iframe
         console.log('[AircallProvider] 🎨 Making container visible for SDK initialization...');
-        container.classList.remove('aircall-hidden');
-        container.classList.add('aircall-visible');
-        container.style.display = 'block';
-        container.style.visibility = 'visible';
+        outerContainer.classList.remove('aircall-hidden');
+        outerContainer.classList.add('aircall-visible');
+        outerContainer.style.display = 'block';
+        outerContainer.style.visibility = 'visible';
         console.log('[AircallProvider] ✅ Container made visible for SDK');
         
         console.log('[AircallProvider] 🚀 Starting SDK initialization...');
@@ -798,13 +807,13 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         
         // PHASE 4: DETAILED IFRAME INSPECTION
         console.group('[AircallProvider] 🔍 DETAILED IFRAME INSPECTION');
-        const outerContainer = document.querySelector('#aircall-workspace-container');
-        const innerWorkspace = document.querySelector('#aircall-workspace');
-        const iframeInner = innerWorkspace?.querySelector('iframe');
-        const iframeOuter = outerContainer?.querySelector('iframe');
+        const outerContainerCheck = document.querySelector('#aircall-workspace-container');
+        const innerWorkspaceCheck = document.querySelector('#aircall-workspace');
+        const iframeInner = innerWorkspaceCheck?.querySelector('iframe');
+        const iframeOuter = outerContainerCheck?.querySelector('iframe');
 
-        console.log('Outer container exists:', !!outerContainer);
-        console.log('Inner workspace exists:', !!innerWorkspace);
+        console.log('Outer container exists:', !!outerContainerCheck);
+        console.log('Inner workspace exists:', !!innerWorkspaceCheck);
         console.log('Iframe in inner div:', !!iframeInner);
         console.log('Iframe in outer div:', !!iframeOuter);
 
@@ -816,7 +825,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           console.log('Iframe opacity:', window.getComputedStyle(iframeInner as HTMLElement).opacity);
         }
 
-        console.log('Inner workspace HTML:', innerWorkspace?.innerHTML?.substring(0, 200));
+        console.log('Inner workspace HTML:', innerWorkspaceCheck?.innerHTML?.substring(0, 200));
         console.groupEnd();
         
         if (workspaceCreated) {
