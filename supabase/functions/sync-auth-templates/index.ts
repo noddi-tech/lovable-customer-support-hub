@@ -91,12 +91,12 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     // Get Supabase Management API credentials
-    const projectRef = Deno.env.get("SUPABASE_PROJECT_REF");
-    const accessToken = Deno.env.get("SUPABASE_ACCESS_TOKEN");
+    const projectRef = Deno.env.get("SUPABASEPROJECT_REF");
+    const accessToken = Deno.env.get("SUPABASEACCESS_TOKEN");
 
     if (!projectRef || !accessToken) {
       console.error("❌ Missing required environment variables");
-      throw new Error("Missing SUPABASE_PROJECT_REF or SUPABASE_ACCESS_TOKEN environment variables. Please configure these secrets in your project settings.");
+      throw new Error("Missing SUPABASEPROJECT_REF or SUPABASEACCESS_TOKEN environment variables. Please configure these secrets in your project settings.");
     }
 
     console.log(`🔑 Using project ref: ${projectRef}`);
