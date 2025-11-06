@@ -209,9 +209,28 @@ export function InboxManagement() {
     }
   });
 
-  // Delete inbox mutation
+  // Bulk delete conversations mutation
+  const bulkDeleteConversationsMutation = useMutation({
+    mutationFn: async (inboxId: string) => {
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('inbox_id', inboxId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inboxes'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success('All conversations deleted successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete conversations: ' + error.message);
+    }
+  });
+
+  // Delete inbox mutation with bulk delete option
   const deleteInboxMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, forceDelete }: { id: string; forceDelete?: boolean }) => {
       // Check if inbox has conversations
       const { count, error: countError } = await supabase
         .from('conversations')
@@ -221,12 +240,17 @@ export function InboxManagement() {
       if (countError) throw countError;
       
       if (count && count > 0) {
-        throw new Error(
-          `Cannot delete inbox with ${count} conversation(s). Please move or delete all conversations first.`
-        );
+        if (forceDelete) {
+          // Delete all conversations first
+          await bulkDeleteConversationsMutation.mutateAsync(id);
+        } else {
+          throw new Error(
+            `Cannot delete inbox with ${count} conversation(s). Please move or delete all conversations first.`
+          );
+        }
       }
       
-      // Safe to delete - no conversations
+      // Safe to delete - no conversations or they were deleted
       const { error } = await supabase
         .from('inboxes')
         .delete()
@@ -254,8 +278,12 @@ export function InboxManagement() {
     }
   };
 
-  const handleDeleteInbox = (id: string) => {
-    deleteInboxMutation.mutate(id);
+  const handleDeleteInbox = (id: string, forceDelete?: boolean) => {
+    deleteInboxMutation.mutate({ id, forceDelete });
+  };
+
+  const handleBulkDeleteConversations = (inboxId: string) => {
+    bulkDeleteConversationsMutation.mutate(inboxId);
   };
 
   const getDepartmentName = (departmentId: string | null) => {
@@ -425,19 +453,29 @@ export function InboxManagement() {
                             Are you sure you want to delete "{inbox.name}"? This action cannot be undone.
                             {inbox.conversation_count > 0 && (
                               <span className="block mt-2 text-destructive font-semibold">
-                                This inbox has {inbox.conversation_count} conversation(s). You must move or delete all conversations before deleting this inbox.
+                                This inbox has {inbox.conversation_count} conversation(s). 
                               </span>
                             )}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDeleteInbox(inbox.id)}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
+                          {inbox.conversation_count > 0 && (
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteInbox(inbox.id, true)}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Delete Inbox & All Conversations
+                            </AlertDialogAction>
+                          )}
+                          {inbox.conversation_count === 0 && (
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteInbox(inbox.id, false)}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          )}
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>

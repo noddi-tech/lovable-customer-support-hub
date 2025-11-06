@@ -81,4 +81,6 @@ export interface ConversationThread {
     full_name: string;
     email: string;
   };
+  totalMessages?: number;
+  hasMore?: boolean;
 }

@@ -361,8 +361,19 @@ function applyFilters(conversations: ConversationRow[], params: {
 /**
  * Get conversation thread with messages
  */
-export async function getThread(conversationId: ConversationId): Promise<ConversationThread | null> {
+export async function getThread(
+  conversationId: ConversationId, 
+  options?: { 
+    limit?: number; 
+    offset?: number; 
+    maxMessages?: number 
+  }
+): Promise<ConversationThread | null> {
   try {
+    const limit = options?.limit || 100; // Default to 100 messages per load
+    const offset = options?.offset || 0;
+    const maxMessages = options?.maxMessages || 1000; // Hard limit to prevent issues
+    
     // Fetch conversation details
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
@@ -375,12 +386,34 @@ export async function getThread(conversationId: ConversationId): Promise<Convers
       throw convError;
     }
     
-    // Fetch messages
+    // Get total message count first
+    const { count: totalCount, error: countError } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('conversation_id', conversationId);
+    
+    if (countError) {
+      logger.error('Error counting messages', countError, 'getThread');
+    }
+    
+    // Warn if conversation has too many messages
+    if (totalCount && totalCount > maxMessages) {
+      logger.warn('Conversation has excessive messages', {
+        conversationId,
+        totalCount,
+        maxMessages,
+        loadingLimit: Math.min(limit, maxMessages)
+      }, 'getThread');
+    }
+    
+    // Fetch messages with pagination (limit to maxMessages)
+    const effectiveLimit = Math.min(limit, maxMessages - offset);
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .range(offset, offset + effectiveLimit - 1);
     
     if (messagesError) {
       logger.error('Error fetching messages', messagesError, 'getThread');
@@ -402,7 +435,9 @@ export async function getThread(conversationId: ConversationId): Promise<Convers
         inbound: msg.sender_type === 'customer',
         senderType: msg.sender_type,
         isInternal: msg.is_internal
-      })) as Message[]
+      })) as Message[],
+      totalMessages: totalCount || 0,
+      hasMore: totalCount ? (offset + effectiveLimit < Math.min(totalCount, maxMessages)) : false
     };
   } catch (error) {
     logger.error('Failed to get thread', error, 'getThread');

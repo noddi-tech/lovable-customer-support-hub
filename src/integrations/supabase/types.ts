@@ -2394,6 +2394,16 @@ export type Database = {
             }[]
           }
       extract_email_date: { Args: { email_headers: Json }; Returns: string }
+      find_large_conversations: {
+        Args: { message_threshold?: number }
+        Returns: {
+          conversation_id: string
+          created_at: string
+          inbox_name: string
+          message_count: number
+          subject: string
+        }[]
+      }
       find_similar_responses:
         | {
             Args: {
