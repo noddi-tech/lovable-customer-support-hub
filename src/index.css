@@ -420,9 +420,13 @@ Optimized for accessibility with WCAG AA compliance.
 
   .app-header {
     position: relative;
-    z-index: 100; /* Increased to prevent overlap with sidebars */
+    z-index: 200; /* Increased to ensure header controls are always accessible */
     background: hsl(var(--background));
     border-bottom: 1px solid hsl(var(--border));
+  }
+  
+  .app-header * {
+    pointer-events: auto; /* Ensure all header elements are clickable */
   }
 
   .app-main {
