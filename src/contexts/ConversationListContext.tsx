@@ -633,6 +633,15 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     return Array.from(expandedIds);
   };
 
+  // Helper function to chunk array into smaller batches to avoid URL length limits
+  const chunkArray = <T,>(array: T[], chunkSize: number): T[][] => {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
+  };
+
   // Bulk operations
   const bulkMarkAsRead = async () => {
     const selectedIds = Array.from(state.selectedConversations);
@@ -640,17 +649,23 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
     // Expand thread IDs to include all conversations in threads
     const ids = expandThreadIds(selectedIds);
-
-    const { error } = await supabase
-      .from('conversations')
-      .update({ is_read: true })
-      .in('id', ids);
+    const idChunks = chunkArray(ids, 20);
     
-    if (!error) {
+    try {
+      for (const chunk of idChunks) {
+        const { error } = await supabase
+          .from('conversations')
+          .update({ is_read: true })
+          .in('id', chunk);
+        
+        if (error) throw error;
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       toast.success(`Marked ${ids.length} conversations as read`);
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
-    } else {
+    } catch (error) {
+      logger.error('Failed to mark conversations as read', error, 'bulkMarkAsRead');
       toast.error('Failed to mark conversations as read');
     }
   };
@@ -661,17 +676,23 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
     // Expand thread IDs to include all conversations in threads
     const ids = expandThreadIds(selectedIds);
-
-    const { error } = await supabase
-      .from('conversations')
-      .update({ is_read: false })
-      .in('id', ids);
+    const idChunks = chunkArray(ids, 20);
     
-    if (!error) {
+    try {
+      for (const chunk of idChunks) {
+        const { error } = await supabase
+          .from('conversations')
+          .update({ is_read: false })
+          .in('id', chunk);
+        
+        if (error) throw error;
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       toast.success(`Marked ${ids.length} conversations as unread`);
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
-    } else {
+    } catch (error) {
+      logger.error('Failed to mark conversations as unread', error, 'bulkMarkAsUnread');
       toast.error('Failed to mark conversations as unread');
     }
   };
@@ -682,17 +703,23 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
     // Expand thread IDs to include all conversations in threads
     const ids = expandThreadIds(selectedIds);
-
-    const { error } = await supabase
-      .from('conversations')
-      .update({ status })
-      .in('id', ids);
+    const idChunks = chunkArray(ids, 20);
     
-    if (!error) {
+    try {
+      for (const chunk of idChunks) {
+        const { error } = await supabase
+          .from('conversations')
+          .update({ status })
+          .in('id', chunk);
+        
+        if (error) throw error;
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       toast.success(`Changed status for ${ids.length} conversations`);
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
-    } else {
+    } catch (error) {
+      logger.error('Failed to change status', error, 'bulkChangeStatus');
       toast.error('Failed to change status');
     }
   };
@@ -703,17 +730,23 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
     // Expand thread IDs to include all conversations in threads
     const ids = expandThreadIds(selectedIds);
-
-    const { error } = await supabase
-      .from('conversations')
-      .update({ is_archived: true, status: 'closed' })
-      .in('id', ids);
+    const idChunks = chunkArray(ids, 20);
     
-    if (!error) {
+    try {
+      for (const chunk of idChunks) {
+        const { error } = await supabase
+          .from('conversations')
+          .update({ is_archived: true, status: 'closed' })
+          .in('id', chunk);
+        
+        if (error) throw error;
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       toast.success(`Archived ${ids.length} conversations`);
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
-    } else {
+    } catch (error) {
+      logger.error('Failed to archive conversations', error, 'bulkArchive');
       toast.error('Failed to archive conversations');
     }
   };
@@ -724,30 +757,37 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
     // Expand thread IDs to include all conversations in threads
     const ids = expandThreadIds(selectedIds);
-
-    // First delete messages
-    const { error: messagesError } = await supabase
-      .from('messages')
-      .delete()
-      .in('conversation_id', ids);
+    const idChunks = chunkArray(ids, 20);
     
-    if (messagesError) {
-      toast.error('Failed to delete conversations');
-      return;
-    }
+    try {
+      toast.loading(`Deleting ${ids.length} conversations...`, { id: 'bulk-delete' });
 
-    // Then delete conversations
-    const { error: conversationsError } = await supabase
-      .from('conversations')
-      .delete()
-      .in('id', ids);
-    
-    if (!conversationsError) {
+      // First delete all messages in batches
+      for (const chunk of idChunks) {
+        const { error: messagesError } = await supabase
+          .from('messages')
+          .delete()
+          .in('conversation_id', chunk);
+        
+        if (messagesError) throw messagesError;
+      }
+
+      // Then delete all conversations in batches
+      for (const chunk of idChunks) {
+        const { error: conversationsError } = await supabase
+          .from('conversations')
+          .delete()
+          .in('id', chunk);
+        
+        if (conversationsError) throw conversationsError;
+      }
+
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(`Deleted ${ids.length} conversations`);
+      toast.success(`Deleted ${ids.length} conversations`, { id: 'bulk-delete' });
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
-    } else {
-      toast.error('Failed to delete conversations');
+    } catch (error) {
+      logger.error('Failed to delete conversations', error, 'bulkDelete');
+      toast.error('Failed to delete conversations', { id: 'bulk-delete' });
     }
   };
 
@@ -757,18 +797,24 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
 
     // Expand thread IDs to include all conversations in threads
     const ids = expandThreadIds(selectedIds);
-
-    const { error } = await supabase
-      .from('conversations')
-      .update({ assigned_to_id: assigneeId })
-      .in('id', ids);
+    const idChunks = chunkArray(ids, 20);
     
-    if (!error) {
+    try {
+      for (const chunk of idChunks) {
+        const { error } = await supabase
+          .from('conversations')
+          .update({ assigned_to_id: assigneeId })
+          .in('id', chunk);
+        
+        if (error) throw error;
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       const agent = agentsData.find(a => a.id === assigneeId);
       toast.success(`Assigned ${ids.length} conversations to ${agent?.name || 'agent'}`);
       dispatch({ type: 'CLEAR_BULK_SELECTION' });
-    } else {
+    } catch (error) {
+      logger.error('Failed to assign conversations', error, 'bulkAssign');
       toast.error('Failed to assign conversations');
     }
   };
