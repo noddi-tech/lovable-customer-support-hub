@@ -71,7 +71,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   return (
-    <div className="app-header-container bg-card/80 backdrop-blur-sm border-b border-border shadow-sm">
+    <div className="app-header-container bg-card/80 backdrop-blur-sm border-b border-border shadow-sm relative z-[200]">
       {/* Main Header */}
       <header className="flex items-center justify-between px-4 py-3">
         {/* Left Section - Logo, Navigation */}
