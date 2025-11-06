@@ -11,8 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
-import { SyncButton } from './SyncButton';
-import { DeleteAllButton } from './DeleteAllButton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
@@ -90,7 +88,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <div className="app-header-container bg-card/80 backdrop-blur-sm border-b border-border shadow-sm relative z-[200]">
       {/* Main Header */}
-      <header className="flex items-center justify-between px-4 py-3">
+      <header className="flex items-center justify-between px-6 py-2.5">
         {/* Left Section - Logo, Navigation */}
         <div className="flex items-center gap-4 flex-1 min-w-0">
           {/* Mobile Menu/Back Button */}
@@ -136,10 +134,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-1">
-            <SyncButton />
-            <DeleteAllButton />
-            
+          <div className="flex items-center gap-2">
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="hidden sm:flex">
