@@ -689,9 +689,16 @@ Optimized for accessibility with WCAG AA compliance.
 }
 
   /* PHASE 4: Ensure all dialog elements are interactive and above Aircall */
-  [data-radix-dialog-overlay] {
+  /* Only make overlays interactive when dialogs are open */
+  [data-radix-dialog-overlay][data-state="open"] {
     pointer-events: auto !important;
     z-index: 10000; /* Above Aircall workspace (9999) */
+  }
+  
+  [data-radix-dialog-overlay][data-state="closed"] {
+    pointer-events: none !important;
+    opacity: 0 !important;
+    z-index: 10000;
   }
   
   [data-radix-dialog-content] {

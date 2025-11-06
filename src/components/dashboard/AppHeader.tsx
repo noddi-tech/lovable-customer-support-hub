@@ -13,6 +13,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { SyncButton } from './SyncButton';
 import { DeleteAllButton } from './DeleteAllButton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 import { 
   Search,
   User,
@@ -44,6 +47,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const { t } = useTranslation();
   const { dateTime, timezone } = useDateFormatting();
   const isMobile = useIsMobile();
+  
+  // Search state
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Search handler
+  const handleSearch = (query: string) => {
+    if (!query.trim()) return;
+    
+    // Navigate to dashboard with search query
+    navigate(`/?search=${encodeURIComponent(query)}`);
+    setSearchOpen(false);
+    setSearchQuery('');
+  };
 
   // Fetch unread conversations count
   const { data: unreadCount = 0 } = useQuery({
@@ -123,9 +140,39 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <SyncButton />
             <DeleteAllButton />
             
-            <Button variant="ghost" size="sm" className="hidden sm:flex">
-              <Search className="h-4 w-4" />
-            </Button>
+            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="hidden sm:flex">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">
+                    {t('dashboard.search.title', 'Search Conversations')}
+                  </h4>
+                  <Input
+                    placeholder={t('dashboard.search.placeholder', 'Search by customer, subject, or content...')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearch(searchQuery);
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <Button 
+                    className="w-full" 
+                    size="sm"
+                    onClick={() => handleSearch(searchQuery)}
+                    disabled={!searchQuery.trim()}
+                  >
+                    {t('dashboard.search.search', 'Search')}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             
             <NotificationDropdown />
           </div>

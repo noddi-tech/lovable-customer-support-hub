@@ -64,6 +64,28 @@ const AppContent = () => {
     return () => window.removeEventListener('auth-navigate', handleAuthNavigate as EventListener);
   }, [navigate]);
 
+  // Emergency Escape Handler - Force close all dialogs/popovers
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Close all open popovers, dialogs, and dropdowns
+        document.querySelectorAll('[data-state="open"]').forEach(el => {
+          if (el.hasAttribute('data-radix-dialog-overlay') || 
+              el.hasAttribute('data-radix-popover-content') ||
+              el.hasAttribute('data-radix-dropdown-menu-content')) {
+            const trigger = el.previousElementSibling;
+            if (trigger) {
+              (trigger as HTMLElement).click();
+            }
+          }
+        });
+      }
+    };
+    
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
+
   return (
     <>
     {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <ControlDoctor />}
