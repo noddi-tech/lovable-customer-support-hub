@@ -384,39 +384,43 @@ export const Auth: React.FC = () => {
   // Show password reset form if in recovery mode
   if (isRecoveryMode) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen gradient-animated-bg flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated background orbs */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        
+        <div className="w-full max-w-md relative z-10">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Lock className="h-8 w-8 text-primary-foreground" />
+          <div className="text-center mb-8 animate-fade-in">
+            <div className="w-20 h-20 bg-gradient-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-glow transform hover:scale-105 transition-transform duration-300">
+              <Lock className="h-10 w-10 text-primary-foreground" />
             </div>
-            <Heading level={1} className="text-foreground mb-2">Reset Your Password</Heading>
-            <p className="text-muted-foreground">
+            <Heading level={1} className="text-foreground mb-3 text-3xl font-bold">Reset Your Password</Heading>
+            <p className="text-muted-foreground text-lg">
               Enter your new password below
             </p>
           </div>
 
-          <Card className="shadow-lg">
-            <CardHeader className="text-center">
-              <CardTitle>Set New Password</CardTitle>
-              <CardDescription>
+          <Card className="glass-card shadow-2xl border-white/40 animate-scale-in">
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="text-2xl">Set New Password</CardTitle>
+              <CardDescription className="text-base">
                 Choose a strong password with at least 6 characters
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handlePasswordUpdate} className="space-y-4">
+              <form onSubmit={handlePasswordUpdate} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="new-password" className="text-sm font-medium">New Password</Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                     <Input
                       id="new-password"
                       type="password"
                       placeholder="Enter new password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 h-11 transition-all duration-300 focus:shadow-glow"
                       required
                       minLength={6}
                     />
@@ -424,16 +428,16 @@ export const Auth: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="confirm-password" className="text-sm font-medium">Confirm Password</Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                     <Input
                       id="confirm-password"
                       type="password"
                       placeholder="Confirm new password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 h-11 transition-all duration-300 focus:shadow-glow"
                       required
                       minLength={6}
                     />
@@ -442,7 +446,7 @@ export const Auth: React.FC = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
+                  className="w-full h-12 bg-gradient-primary hover:shadow-glow transform hover:scale-[1.02] transition-all duration-300 text-primary-foreground font-medium text-base"
                   disabled={loading}
                 >
                   {loading ? 'Updating Password...' : 'Update Password'}
@@ -450,14 +454,14 @@ export const Auth: React.FC = () => {
               </form>
 
               {error && (
-                <Alert variant="destructive" className="mt-4">
+                <Alert variant="destructive" className="mt-5 animate-fade-in">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
               {success && (
-                <Alert className="mt-4 border-success text-success">
+                <Alert className="mt-5 border-success text-success bg-success/10 animate-fade-in">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{success}</AlertDescription>
                 </Alert>
@@ -470,13 +474,17 @@ export const Auth: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-4">
+    <div className="min-h-screen gradient-animated-bg flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated background orbs */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      
+      <div className="w-full max-w-md space-y-6 relative z-10">
         {/* Invite Banner */}
         {inviteToken && inviteOrganization && (
-          <Alert className="bg-primary/10 border-primary/20">
-            <UserPlus className="h-4 w-4" />
-            <AlertTitle>You've been invited!</AlertTitle>
+          <Alert className="glass-card border-primary/30 backdrop-blur-xl animate-fade-in">
+            <UserPlus className="h-4 w-4 text-primary" />
+            <AlertTitle className="font-semibold">You've been invited!</AlertTitle>
             <AlertDescription>
               You've been invited to join <strong>{inviteOrganization}</strong>. 
               Sign up below to accept your invitation.
@@ -485,19 +493,19 @@ export const Auth: React.FC = () => {
         )}
 
         {/* Header */}
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Building2 className="h-8 w-8 text-primary-foreground" />
+        <div className="text-center animate-fade-in">
+          <div className="w-20 h-20 bg-gradient-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-glow transform hover:scale-105 transition-transform duration-300">
+            <Building2 className="h-10 w-10 text-primary-foreground" />
           </div>
-          <Heading level={1} className="text-foreground mb-2">{t('auth.welcomeTitle')}</Heading>
-          <p className="text-muted-foreground">
+          <Heading level={1} className="text-foreground mb-3 text-3xl font-bold">{t('auth.welcomeTitle')}</Heading>
+          <p className="text-muted-foreground text-lg">
             {t('auth.welcomeDescription')}
           </p>
         </div>
 
-        <Card className="shadow-lg">
-          <CardHeader className="text-center">
-            <CardTitle>{t('auth.welcome')}</CardTitle>
+        <Card className="glass-card shadow-2xl border-white/40 animate-scale-in">
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-2xl">{t('auth.welcome')}</CardTitle>
             <CardDescription>
               {t('auth.signInDescription')}
             </CardDescription>
@@ -506,15 +514,15 @@ export const Auth: React.FC = () => {
           {/* Dev Login Section - Only in development */}
           {import.meta.env.DEV && (
             <div className="px-6 pb-4">
-              <div className="bg-muted/50 rounded-lg p-4 border border-border">
-                <p className="text-sm text-muted-foreground mb-3 text-center">
+              <div className="bg-gradient-to-r from-muted/60 to-muted/40 rounded-xl p-4 border border-white/30 backdrop-blur-sm">
+                <p className="text-sm text-muted-foreground mb-3 text-center font-medium">
                   Development Mode
                 </p>
                 <Button 
                   onClick={handleDevLogin}
                   disabled={devLoading}
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-10 backdrop-blur-sm hover:bg-white/80 transition-all duration-300 transform hover:scale-[1.02]"
                 >
                   {devLoading ? 'Generating login...' : 'Log in as joachim@noddi.no'}
                 </Button>
@@ -522,40 +530,40 @@ export const Auth: React.FC = () => {
             </div>
           )}
           <CardContent>
-            <Tabs defaultValue="signin" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">{t('auth.signIn')}</TabsTrigger>
-                <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
+            <Tabs defaultValue="signin" className="space-y-5">
+              <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/50 backdrop-blur-sm">
+                <TabsTrigger value="signin" className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">{t('auth.signIn')}</TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">{t('auth.signUp')}</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="signin" className="space-y-4">
+              <TabsContent value="signin" className="space-y-5 animate-fade-in">
                 {/* Google Sign In */}
                 <Button
                   onClick={handleGoogleSignIn}
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-12 backdrop-blur-sm hover:bg-white/80 transition-all duration-300 transform hover:scale-[1.02] border-white/50"
                   disabled={loading}
                 >
-                  <FcGoogle className="mr-2 h-4 w-4" />
+                  <FcGoogle className="mr-2 h-5 w-5" />
                   {t('auth.continueWithGoogle')}
                 </Button>
                 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    <span className="w-full border-t border-white/40" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span className="bg-card px-3 text-muted-foreground font-medium backdrop-blur-sm">
                       {t('auth.orContinueWithEmail')}
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">{t('auth.email')}</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="signin-email" className="text-sm font-medium">{t('auth.email')}</Label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                       <Input
                         id="signin-email"
                         type="email"
@@ -565,7 +573,7 @@ export const Auth: React.FC = () => {
                           setEmail(e.target.value);
                           setMagicLinkSent(false);
                         }}
-                        className="pl-10"
+                        className="pl-10 h-11 transition-all duration-300 focus:shadow-glow backdrop-blur-sm"
                         required
                       />
                     </div>
@@ -575,7 +583,7 @@ export const Auth: React.FC = () => {
                     type="button"
                     onClick={handleMagicLink}
                     variant="outline"
-                    className="w-full"
+                    className="w-full h-11 backdrop-blur-sm hover:bg-white/80 transition-all duration-300 transform hover:scale-[1.02] border-white/50"
                     disabled={loading || magicLinkSent}
                   >
                     <Mail className="mr-2 h-4 w-4" />
@@ -584,40 +592,40 @@ export const Auth: React.FC = () => {
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
+                      <span className="w-full border-t border-white/40" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
+                      <span className="bg-card px-3 text-muted-foreground font-medium backdrop-blur-sm">
                         Or sign in with password
                       </span>
                     </div>
                   </div>
 
-                  <form onSubmit={handleSignIn} className="space-y-4">
+                  <form onSubmit={handleSignIn} className="space-y-5">
                     <div className="space-y-2">
-                      <Label htmlFor="signin-password">{t('auth.password')}</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Label htmlFor="signin-password" className="text-sm font-medium">{t('auth.password')}</Label>
+                      <div className="relative group">
+                        <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                         <Input
                           id="signin-password"
                           type="password"
                           placeholder={t('auth.passwordPlaceholder')}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10"
+                          className="pl-10 h-11 transition-all duration-300 focus:shadow-glow backdrop-blur-sm"
                           required
                         />
                       </div>
                     </div>
                     
                     <div className="flex justify-end">
-                      <Button variant="link" type="button" size="sm" className="px-0" onClick={handleForgotPassword} disabled={loading}>
+                      <Button variant="link" type="button" size="sm" className="px-0 text-primary hover:text-primary-hover transition-colors" onClick={handleForgotPassword} disabled={loading}>
                         {t('auth.forgotPassword')}
                       </Button>
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
+                      className="w-full h-12 bg-gradient-primary hover:shadow-glow transform hover:scale-[1.02] transition-all duration-300 text-primary-foreground font-medium text-base"
                       disabled={loading}
                     >
                       {loading ? t('auth.signingIn') : t('auth.signIn')}
@@ -626,73 +634,73 @@ export const Auth: React.FC = () => {
                 </div>
               </TabsContent>
               
-              <TabsContent value="signup" className="space-y-4">
+              <TabsContent value="signup" className="space-y-5 animate-fade-in">
                 {/* Google Sign In */}
                 <Button
                   onClick={handleGoogleSignIn}
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-12 backdrop-blur-sm hover:bg-white/80 transition-all duration-300 transform hover:scale-[1.02] border-white/50"
                   disabled={loading}
                 >
-                  <FcGoogle className="mr-2 h-4 w-4" />
+                  <FcGoogle className="mr-2 h-5 w-5" />
                   {t('auth.continueWithGoogle')}
                 </Button>
                 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    <span className="w-full border-t border-white/40" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span className="bg-card px-3 text-muted-foreground font-medium backdrop-blur-sm">
                       {t('auth.orCreateAccountWithEmail')}
                     </span>
                   </div>
                 </div>
 
-                <form onSubmit={handleSignUp} className="space-y-4">
+                <form onSubmit={handleSignUp} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">{t('auth.fullName')}</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="signup-name" className="text-sm font-medium">{t('auth.fullName')}</Label>
+                    <div className="relative group">
+                      <User className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                       <Input
                         id="signup-name"
                         type="text"
                         placeholder={t('auth.fullNamePlaceholder')}
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 h-11 transition-all duration-300 focus:shadow-glow backdrop-blur-sm"
                         required
                       />
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">{t('auth.email')}</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="signup-email" className="text-sm font-medium">{t('auth.email')}</Label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                       <Input
                         id="signup-email"
                         type="email"
                         placeholder={t('auth.emailPlaceholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 h-11 transition-all duration-300 focus:shadow-glow backdrop-blur-sm"
                         required
                       />
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">{t('auth.password')}</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="signup-password" className="text-sm font-medium">{t('auth.password')}</Label>
+                    <div className="relative group">
+                      <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                       <Input
                         id="signup-password"
                         type="password"
                         placeholder={t('auth.createPasswordPlaceholder')}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 h-11 transition-all duration-300 focus:shadow-glow backdrop-blur-sm"
                         required
                         minLength={6}
                       />
@@ -701,7 +709,7 @@ export const Auth: React.FC = () => {
                   
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-primary hover:bg-primary-hover text-primary-foreground"
+                    className="w-full h-12 bg-gradient-primary hover:shadow-glow transform hover:scale-[1.02] transition-all duration-300 text-primary-foreground font-medium text-base"
                     disabled={loading}
                   >
                     {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
@@ -711,14 +719,14 @@ export const Auth: React.FC = () => {
             </Tabs>
 
             {error && (
-              <Alert variant="destructive" className="mt-4">
+              <Alert variant="destructive" className="mt-5 animate-fade-in backdrop-blur-sm">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             {success && (
-              <Alert className="mt-4 border-success text-success">
+              <Alert className="mt-5 border-success text-success bg-success/10 animate-fade-in backdrop-blur-sm">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
@@ -727,11 +735,11 @@ export const Auth: React.FC = () => {
         </Card>
 
         {/* Demo Notice */}
-        <Card className="mt-6">
+        <Card className="glass-card border-white/40 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <CardContent className="pt-6">
             <div className="text-center">
-              <h3 className="font-medium mb-2">{t('auth.demoMode')}</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold mb-2 text-lg">{t('auth.demoMode')}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {t('auth.demoModeDescription')}
               </p>
             </div>

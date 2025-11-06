@@ -117,8 +117,10 @@ Optimized for accessibility with WCAG AA compliance.
     /* Gradients */
     --gradient-background: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%));
     --use-gradient-background: 0;
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%));
+    --gradient-primary: linear-gradient(135deg, hsl(247 63% 59%), hsl(217 91% 60%));
     --gradient-surface: linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 98%));
+    --gradient-auth-bg: linear-gradient(135deg, hsl(247 80% 98%), hsl(217 91% 98%));
+    --gradient-animated: linear-gradient(135deg, hsl(247 63% 59%), hsl(217 91% 60%), hsl(247 63% 59%));
 
     /* Typography scale */
     --font-size-xs: 0.75rem;
@@ -141,6 +143,11 @@ Optimized for accessibility with WCAG AA compliance.
     --transition-fast: 0.15s ease-out;
     --transition-normal: 0.2s ease-out;
     --transition-slow: 0.3s ease-out;
+    
+    /* Glassmorphism */
+    --glass-bg: hsla(0, 0%, 100%, 0.7);
+    --glass-border: hsla(0, 0%, 100%, 0.3);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 
     /* Responsive typography and spacing */
     --font-body: clamp(14px, 1.8vw, 16px);
@@ -370,6 +377,34 @@ Optimized for accessibility with WCAG AA compliance.
       height: 0;
       opacity: 0;
     }
+  }
+
+  /* Animated gradient background */
+  @keyframes gradient-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Glassmorphism utilities */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .gradient-animated-bg {
+    background: var(--gradient-animated);
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
   }
 }
 
