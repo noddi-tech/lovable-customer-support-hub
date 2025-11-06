@@ -12,6 +12,22 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Mail, Lock, User, AlertCircle, UserPlus } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
+
+// Validation schemas for authentication inputs
+const emailSchema = z.string()
+  .trim()
+  .email({ message: "Please enter a valid email address" })
+  .max(255, { message: "Email must be less than 255 characters" });
+
+const passwordSchema = z.string()
+  .min(8, { message: "Password must be at least 8 characters" })
+  .max(100, { message: "Password must be less than 100 characters" });
+
+const fullNameSchema = z.string()
+  .trim()
+  .min(2, { message: "Name must be at least 2 characters" })
+  .max(100, { message: "Name must be less than 100 characters" });
 
 export const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -122,6 +138,22 @@ export const Auth: React.FC = () => {
     setError('');
     
     try {
+      // Validate email
+      const emailValidation = emailSchema.safeParse(email);
+      if (!emailValidation.success) {
+        setError(emailValidation.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
+      // Validate password
+      const passwordValidation = passwordSchema.safeParse(password);
+      if (!passwordValidation.success) {
+        setError(passwordValidation.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
       cleanupAuthState();
       try {
         await supabase.auth.signOut({ scope: 'global' });
@@ -130,8 +162,8 @@ export const Auth: React.FC = () => {
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: emailValidation.data,
+        password: passwordValidation.data,
       });
       
       if (error) throw error;
@@ -287,30 +319,44 @@ export const Auth: React.FC = () => {
     setSuccess('');
     
     try {
+      // Validate full name
+      const nameValidation = fullNameSchema.safeParse(fullName);
+      if (!nameValidation.success) {
+        setError(nameValidation.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
+      // Validate email
+      const emailValidation = emailSchema.safeParse(email);
+      if (!emailValidation.success) {
+        setError(emailValidation.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
+      // Validate password
+      const passwordValidation = passwordSchema.safeParse(password);
+      if (!passwordValidation.success) {
+        setError(passwordValidation.error.errors[0].message);
+        setLoading(false);
+        return;
+      }
+
       cleanupAuthState();
       
-      if (import.meta.env.DEV) {
-        console.log('Starting signup process...');
-      }
-      
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: emailValidation.data,
+        password: passwordValidation.data,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
-            full_name: fullName,
+            full_name: nameValidation.data,
           }
         }
       });
       
-      if (import.meta.env.DEV) {
-        console.log('Signup response:', { data, error });
-      }
-      
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('Signup error:', error);
-        }
         // Handle user already registered case
         if (error.message.includes('already registered')) {
           setError('This email is already registered. Please sign in instead.');
@@ -321,21 +367,10 @@ export const Auth: React.FC = () => {
       
       // Check if user was created and is immediately confirmed
       if (data.user) {
-        if (import.meta.env.DEV) {
-          console.log('User created:', data.user);
-          console.log('Email confirmed at:', data.user.email_confirmed_at);
-        }
-        
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed, redirect to main app
-          if (import.meta.env.DEV) {
-            console.log('User immediately confirmed, redirecting...');
-          }
           navigate('/', { replace: true });
         } else {
-          if (import.meta.env.DEV) {
-            console.log('User needs email confirmation');
-          }
           setSuccess('Account created! Please check your email for the confirmation link.');
         }
       }
@@ -468,22 +503,24 @@ export const Auth: React.FC = () => {
             </CardDescription>
           </CardHeader>
           
-          {/* Dev Login Section */}
-          <div className="px-6 pb-4">
-            <div className="bg-muted/50 rounded-lg p-4 border border-border">
-              <p className="text-sm text-muted-foreground mb-3 text-center">
-                Development Mode
-              </p>
-              <Button 
-                onClick={handleDevLogin}
-                disabled={devLoading}
-                variant="outline"
-                className="w-full"
-              >
-                {devLoading ? 'Generating login...' : 'Log in as joachim@noddi.no'}
-              </Button>
+          {/* Dev Login Section - Only in development */}
+          {import.meta.env.DEV && (
+            <div className="px-6 pb-4">
+              <div className="bg-muted/50 rounded-lg p-4 border border-border">
+                <p className="text-sm text-muted-foreground mb-3 text-center">
+                  Development Mode
+                </p>
+                <Button 
+                  onClick={handleDevLogin}
+                  disabled={devLoading}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {devLoading ? 'Generating login...' : 'Log in as joachim@noddi.no'}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
           <CardContent>
             <Tabs defaultValue="signin" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
