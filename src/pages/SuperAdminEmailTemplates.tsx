@@ -406,6 +406,8 @@ export default function SuperAdminEmailTemplates() {
     setTemplates(prev => ({
       ...prev,
       [templateType]: {
+        template_type: templateType,
+        is_active: true,
         ...prev[templateType],
         [field]: value
       }
