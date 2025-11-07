@@ -111,10 +111,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const isShowingWorkspaceRef = useRef(false);
   const isHidingWorkspaceRef = useRef(false);
 
-  // Get Aircall integration config
-  const aircallConfig = getIntegrationByProvider('aircall');
-  const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere;
-
   // Store connection metadata for state preservation
   const saveConnectionMetadata = useCallback(() => {
     localStorage.setItem('aircall_connection_timestamp', Date.now().toString());
@@ -173,6 +169,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     
     reconnectTimeout.current = setTimeout(async () => {
       try {
+        // Get fresh configuration data
+        const aircallConfig = getIntegrationByProvider('aircall');
+        const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere;
+
         if (!everywhereConfig?.apiId || !everywhereConfig?.apiToken) {
           throw new Error('Missing API credentials');
         }
@@ -208,7 +208,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         attemptReconnect();
       }
     }, delay);
-  }, [everywhereConfig, toast]);
+  }, [getIntegrationByProvider, toast]);
 
   // Handle disconnection
   const handleDisconnection = useCallback(() => {
@@ -507,6 +507,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       });
       return;
     }
+
+    // Get fresh configuration data (after loading is complete)
+    const aircallConfig = getIntegrationByProvider('aircall');
+    const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere;
+
+    console.log('[AircallProvider] Retrieved config:', { 
+      hasConfig: !!aircallConfig, 
+      hasEverywhere: !!everywhereConfig,
+      enabled: everywhereConfig?.enabled 
+    });
 
     if (!everywhereConfig?.enabled) {
       console.log('[AircallProvider] Aircall integration not enabled');
@@ -981,7 +991,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     };
 
     await initialize();
-  }, [everywhereConfig, toast, handleSuccessfulLogin, handleDisconnection, showAircallWorkspace, aircallPhone, saveConnectionMetadata]);
+  }, [toast, handleSuccessfulLogin, handleDisconnection, showAircallWorkspace, aircallPhone, saveConnectionMetadata, getIntegrationByProvider, integrationsLoading]);
 
   /**
    * Initialize on mount - Check for user-initiated setup
