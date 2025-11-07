@@ -60,7 +60,7 @@ interface AircallProviderProps {
 export const AircallProvider = ({ children }: AircallProviderProps) => {
   const { toast } = useToast();
   const { profile } = useAuth();
-  const { getIntegrationByProvider } = useVoiceIntegrations();
+  const { getIntegrationByProvider, isLoading: integrationsLoading } = useVoiceIntegrations();
   const [isInitialized, setIsInitialized] = useState(false);
   // CRITICAL FIX: Never trust localStorage on initial load - always require fresh login
   const [isConnected, setIsConnected] = useState(false);
@@ -496,6 +496,16 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     if (initAttemptedRef.current && !isInitialized) {
       console.log('[AircallProvider] Previous initialization failed - allowing retry');
       initAttemptedRef.current = false; // Reset the guard
+    }
+
+    // Wait for integrations data to load
+    if (integrationsLoading) {
+      console.log('[AircallProvider] Waiting for integrations data to load...');
+      toast({
+        title: 'Loading Configuration',
+        description: 'Please wait while we load your Aircall settings...',
+      });
+      return;
     }
 
     if (!everywhereConfig?.enabled) {
