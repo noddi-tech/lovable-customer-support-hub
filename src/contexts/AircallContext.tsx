@@ -746,7 +746,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           domainToUse: runtimeDomain,
           isAutoDetect: !everywhereConfig.domainName,
           isDomainMatch: !everywhereConfig.domainName || everywhereConfig.domainName === window.location.hostname,
-          apiId,
+          apiId: apiId.substring(0, 8) + '***', // Security: Only show first 8 chars
           hasToken: !!apiToken,
         });
         console.groupEnd();
@@ -890,7 +890,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         
         if (!isLoginRecent) {
           console.log('[AircallProvider] 🔐 Requiring fresh login (cached login expired or missing)');
-          aircallPhone.clearLoginStatus();
+          
+          // Force logout from SDK to clear iframe cookies and prevent auto-login
+          await aircallPhone.forceLogout();
+          
           localStorage.removeItem('aircall_connection_timestamp');
           localStorage.removeItem('aircall_connection_attempts');
           setIsConnected(false);
@@ -898,8 +901,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           showAircallWorkspace(true);
           
           toast({
-            title: 'Session Expired',
-            description: 'Please log in through the Aircall widget',
+            title: 'Login Required',
+            description: 'Please log in to Aircall to continue',
             duration: 5000,
           });
         } else {
