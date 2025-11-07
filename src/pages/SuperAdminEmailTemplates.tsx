@@ -403,15 +403,31 @@ export default function SuperAdminEmailTemplates() {
   };
 
   const updateTemplate = (templateType: string, field: keyof SystemEmailTemplate, value: string | boolean) => {
-    setTemplates(prev => ({
-      ...prev,
-      [templateType]: {
-        template_type: templateType,
-        is_active: true,
-        ...prev[templateType],
-        [field]: value
+    setTemplates(prev => {
+      // If template doesn't exist in state yet, initialize it with defaults
+      if (!prev[templateType]) {
+        const templateConfig = TEMPLATE_TYPES.find(t => t.type === templateType);
+        return {
+          ...prev,
+          [templateType]: {
+            template_type: templateType,
+            subject: templateConfig?.defaultSubject || '',
+            html_content: templateConfig?.defaultHtml || '',
+            is_active: true,
+            [field]: value
+          }
+        };
       }
-    }));
+      
+      // Template exists, just update the field
+      return {
+        ...prev,
+        [templateType]: {
+          ...prev[templateType],
+          [field]: value
+        }
+      };
+    });
   };
 
   const renderTemplateEditor = (templateConfig: typeof TEMPLATE_TYPES[0]) => {
