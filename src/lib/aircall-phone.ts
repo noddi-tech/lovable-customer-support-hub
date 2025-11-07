@@ -382,35 +382,6 @@ class AircallPhoneManager {
     }
   }
 
-  /**
-   * Force logout from Aircall SDK and clear all session data
-   * This prevents auto-login by clearing iframe cookies and local storage
-   */
-  async forceLogout(): Promise<void> {
-    try {
-      if (this.workspace) {
-        // Call the SDK's logout if available
-        if (typeof (this.workspace as any).logout === 'function') {
-          await (this.workspace as any).logout();
-          console.log('[AircallWorkspace] 🚪 Forced logout from SDK');
-        }
-      }
-      
-      // Clear localStorage
-      this.clearLoginStatus();
-      
-      // Clear any Aircall-related session storage
-      Object.keys(sessionStorage).forEach(key => {
-        if (key.toLowerCase().includes('aircall')) {
-          sessionStorage.removeItem(key);
-        }
-      });
-      
-      console.log('[AircallWorkspace] 🗑️  All Aircall session data cleared');
-    } catch (error) {
-      console.error('[AircallWorkspace] Error during force logout:', error);
-    }
-  }
 
   /**
    * Wait for the DOM container to be available

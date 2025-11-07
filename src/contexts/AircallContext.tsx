@@ -889,21 +889,21 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           (Date.now() - parseInt(loginTimestamp)) < 24 * 60 * 60 * 1000;
         
         if (!isLoginRecent) {
-          console.log('[AircallProvider] 🔐 Requiring fresh login (cached login expired or missing)');
+          console.log('[AircallProvider] 🔐 Login session expired');
           
-          // Force logout from SDK to clear iframe cookies and prevent auto-login
-          await aircallPhone.forceLogout();
-          
+          // Clear our local tracking only (iframe session will persist)
+          aircallPhone.clearLoginStatus();
           localStorage.removeItem('aircall_connection_timestamp');
           localStorage.removeItem('aircall_connection_attempts');
+          
           setIsConnected(false);
           setInitializationPhase('needs-login');
           showAircallWorkspace(true);
           
           toast({
-            title: 'Login Required',
-            description: 'Please log in to Aircall to continue',
-            duration: 5000,
+            title: 'Aircall Login',
+            description: 'Please log in to Aircall. You may be automatically signed in if your session is still active.',
+            duration: 6000,
           });
         } else {
           console.log('[AircallProvider] ✅ Recent login found, attempting to restore session');
