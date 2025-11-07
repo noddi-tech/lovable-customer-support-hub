@@ -52,16 +52,30 @@ export function useVoiceIntegrations() {
 
   // Fetch all voice integrations for the current organization
   const { data: integrations = [], isLoading, error } = useQuery({
-    queryKey: ['voice-integrations'],
+    queryKey: ['voice-integrations', currentUserOrg],
     queryFn: async () => {
+      console.log('[useVoiceIntegrations] Fetching integrations for org:', currentUserOrg);
+      
       const { data, error } = await supabase
         .from('voice_integrations')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useVoiceIntegrations] Query error:', error);
+        throw error;
+      }
+      
+      console.log('[useVoiceIntegrations] Query result:', {
+        count: data?.length,
+        providers: data?.map(d => d.provider),
+        hasAircall: data?.some(d => d.provider === 'aircall')
+      });
+      
       return data as VoiceIntegrationConfig[];
     },
+    enabled: !!currentUserOrg,
+    staleTime: 30000,
   });
 
   // Fetch last event timestamp for the current organization
