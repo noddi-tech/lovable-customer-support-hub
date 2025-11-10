@@ -69,7 +69,7 @@ export const useSimpleRealtimeSubscriptions = (
             table,
           },
           () => {
-            logger.debug(`Realtime update received`, { table, queryKey }, 'Realtime');
+            logger.info(`Realtime update received`, { table, queryKey }, 'Realtime');
             queryClient.invalidateQueries({ 
               predicate: (query) => query.queryKey[0] === queryKey 
             });
@@ -127,7 +127,7 @@ export const useSimpleRealtimeSubscriptions = (
           // Register this channel in the global registry
           activeChannels.set(channelKey, { channel, refCount: 1 });
           
-          logger.debug('Successfully subscribed to realtime', { 
+          logger.info('Successfully subscribed to realtime', { 
             channelName,
             channelKey,
             tables: configs.map(c => c.table),

@@ -11,10 +11,10 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Single subscription point for the entire app
   // Subscribes to all critical tables that need real-time updates
   const { isConnected } = useSimpleRealtimeSubscriptions([
-    { table: 'conversations', queryKey: 'all-counts' },
-    { table: 'notifications', queryKey: 'all-counts' },
-    { table: 'messages', queryKey: 'thread-messages' },
-    { table: 'customers', queryKey: 'calls' },
+    { table: 'conversations', queryKey: 'conversations' },
+    { table: 'notifications', queryKey: 'notifications' },
+    { table: 'messages', queryKey: 'messages' },
+    { table: 'customers', queryKey: 'customers' },
   ], true);
 
   return (
