@@ -104,8 +104,10 @@ export const processPlainTextStructure = (text: string): string => {
 
   const flushParagraph = () => {
     if (paragraphLines.length) {
-      const para = paragraphLines.join('<br/>');
-      result.push(`<p>${escapeHtml(para)}</p>`);
+      // Escape each line first, THEN join with <br/>
+      const escapedLines = paragraphLines.map(line => escapeHtml(line));
+      const para = escapedLines.join('<br/>');
+      result.push(`<p>${para}</p>`);
       paragraphLines = [];
     }
   };

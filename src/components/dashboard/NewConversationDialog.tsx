@@ -8,12 +8,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Mail, User, MessageSquare } from 'lucide-react';
+import { Plus, Mail, User, MessageSquare, Sparkles, Languages, Loader2, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
+import { NoddiCustomerSearch } from '@/components/shared/NoddiCustomerSearch';
+import { TemplateSelector } from './conversation-view/TemplateSelector';
+import { AiSuggestionDialog } from './conversation-view/AiSuggestionDialog';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface NewConversationDialogProps {
   children: React.ReactNode;
@@ -24,6 +32,22 @@ interface InboxData {
   name: string;
   color: string;
   is_default: boolean;
+}
+
+interface Customer {
+  id: string;
+  full_name: string;
+  email?: string;
+  phone?: string;
+  metadata?: {
+    noddi_user_id?: string;
+    user_group_id?: string;
+    is_new?: boolean;
+    noddi_email?: string;
+    badge?: string;
+    has_priority?: boolean;
+    unpaid_count?: number;
+  };
 }
 
 export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ children }) => {
@@ -39,6 +63,19 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   const { profile } = useAuth();
   const { t } = useTranslation();
   const sendingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // AI and Translation features
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [showAiDialog, setShowAiDialog] = useState(false);
+  const [sourceLanguage, setSourceLanguage] = useState('auto');
+  const [targetLanguage, setTargetLanguage] = useState('no');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+  
+  // Noddi customer search
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   // Fetch inboxes
   const { data: inboxes = [] } = useQuery({
@@ -245,6 +282,10 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
     setSubject('');
     setInitialMessage('');
     setPriority('normal');
+    setSelectedCustomer(null);
+    setAiSuggestions([]);
+    setSelectedSuggestion(null);
+    setShowAiDialog(false);
     
     // Clean up any timeouts
     sendingTimeouts.current.forEach((timeout) => clearTimeout(timeout));
@@ -255,6 +296,137 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       setSelectedInboxId(defaultInbox.id);
     }
   };
+
+  // AI Suggestions handler
+  const handleGetAiSuggestions = async () => {
+    if (!subject.trim()) {
+      toast.error('Please enter a subject first');
+      return;
+    }
+
+    setIsLoadingAi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-email-reply', {
+        body: {
+          customerMessage: subject,
+          conversationContext: `Creating new conversation about: ${subject}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.suggestions) {
+        setAiSuggestions(data.suggestions);
+        toast.success('AI suggestions generated');
+      }
+    } catch (error) {
+      console.error('Error getting AI suggestions:', error);
+      toast.error('Failed to get AI suggestions');
+    } finally {
+      setIsLoadingAi(false);
+    }
+  };
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = (suggestion: string) => {
+    setSelectedSuggestion(suggestion);
+    setShowAiDialog(true);
+  };
+
+  // Use suggestion as-is
+  const handleUseAsIs = () => {
+    if (selectedSuggestion) {
+      setInitialMessage(selectedSuggestion);
+      setShowAiDialog(false);
+      toast.success('Suggestion inserted');
+    }
+  };
+
+  // Refine suggestion
+  const handleRefine = async (instructions: string) => {
+    if (!selectedSuggestion) return;
+
+    setIsRefining(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-email-reply', {
+        body: {
+          customerMessage: subject,
+          conversationContext: `Refine this message: ${selectedSuggestion}`,
+          refinementInstructions: instructions,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.refinedText) {
+        setSelectedSuggestion(data.refinedText);
+        toast.success('Suggestion refined');
+      }
+    } catch (error) {
+      console.error('Error refining suggestion:', error);
+      toast.error('Failed to refine suggestion');
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  // Translation handler
+  const handleTranslate = async () => {
+    if (!initialMessage.trim()) {
+      toast.error('Please enter a message first');
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-text', {
+        body: {
+          text: initialMessage,
+          sourceLanguage,
+          targetLanguage,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.translatedText) {
+        setInitialMessage(data.translatedText);
+        toast.success('Message translated');
+      }
+    } catch (error) {
+      console.error('Error translating text:', error);
+      toast.error('Failed to translate text');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  // Template selection handler
+  const handleTemplateSelect = (content: string) => {
+    setInitialMessage(content);
+    toast.success('Template inserted');
+  };
+
+  // Customer selection handler
+  const handleCustomerSelect = (customer: Customer | null) => {
+    setSelectedCustomer(customer);
+    if (customer) {
+      setCustomerEmail(customer.email || customer.metadata?.noddi_email || '');
+      setCustomerName(customer.full_name);
+    }
+  };
+
+  // Available languages for translation
+  const languages = [
+    { code: 'auto', name: 'Auto Detect' },
+    { code: 'en', name: 'English' },
+    { code: 'no', name: 'Norwegian' },
+    { code: 'sv', name: 'Swedish' },
+    { code: 'da', name: 'Danish' },
+    { code: 'de', name: 'German' },
+    { code: 'fr', name: 'French' },
+    { code: 'es', name: 'Spanish' },
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,6 +499,26 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
             </CardContent>
           </Card>
 
+          {/* Noddi Customer Search */}
+          {profile?.organization_id && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center space-x-2 text-base">
+                  <User className="h-4 w-4" />
+                  <span>Search Customer in Noddi</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <NoddiCustomerSearch
+                  selectedCustomer={selectedCustomer}
+                  onSelectCustomer={handleCustomerSelect}
+                  organizationId={profile.organization_id}
+                  showEmailSearch={false}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Conversation Details */}
           <Card>
             <CardHeader className="pb-3">
@@ -388,7 +580,120 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="initial-message">{t('conversation.initialMessage')}</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="initial-message">{t('conversation.initialMessage')}</Label>
+                  
+                  {/* Editor Toolbar */}
+                  <div className="flex items-center gap-1">
+                    {/* AI Suggestions */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleGetAiSuggestions}
+                          disabled={isLoadingAi || !subject.trim()}
+                          title="Get AI suggestions"
+                        >
+                          {isLoadingAi ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      {aiSuggestions.length > 0 && (
+                        <PopoverContent className="w-96 max-h-96 overflow-y-auto">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">AI Suggestions</p>
+                            {aiSuggestions.map((suggestion, index) => (
+                              <Card
+                                key={index}
+                                className="p-3 cursor-pointer hover:bg-accent transition-colors"
+                                onClick={() => handleSelectSuggestion(suggestion)}
+                              >
+                                <p className="text-sm line-clamp-3">{suggestion}</p>
+                              </Card>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      )}
+                    </Popover>
+
+                    {/* Translation */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={!initialMessage.trim()}
+                          title="Translate message"
+                        >
+                          <Languages className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium">Translate Message</p>
+                          <div className="space-y-2">
+                            <Label>From</Label>
+                            <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {languages.map((lang) => (
+                                  <SelectItem key={lang.code} value={lang.code}>
+                                    {lang.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>To</Label>
+                            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {languages.filter(l => l.code !== 'auto').map((lang) => (
+                                  <SelectItem key={lang.code} value={lang.code}>
+                                    {lang.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={handleTranslate}
+                            disabled={isTranslating}
+                            className="w-full"
+                          >
+                            {isTranslating ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Translating...
+                              </>
+                            ) : (
+                              'Translate'
+                            )}
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Templates */}
+                    <TemplateSelector
+                      onSelectTemplate={handleTemplateSelect}
+                      isMobile={false}
+                    />
+                  </div>
+                </div>
+
                 <Textarea
                   id="initial-message"
                   placeholder={t('conversation.initialMessagePlaceholder')}
@@ -423,6 +728,16 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
             </Button>
           </div>
         </form>
+
+        {/* AI Suggestion Dialog */}
+        <AiSuggestionDialog
+          open={showAiDialog}
+          onOpenChange={setShowAiDialog}
+          suggestion={selectedSuggestion || ''}
+          onUseAsIs={handleUseAsIs}
+          onRefine={handleRefine}
+          isRefining={isRefining}
+        />
       </DialogContent>
     </Dialog>
   );

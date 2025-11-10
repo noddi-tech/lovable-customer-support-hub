@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useReducer, useMemo, useEffect, ReactNode } from 'react';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -176,6 +176,59 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const [state, dispatch] = useReducer(conversationListReducer, initialState);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  // Real-time subscriptions for conversations and messages
+  useEffect(() => {
+    if (!user) return;
+
+    logger.info('Setting up real-time subscriptions', { userId: user.id }, 'ConversationListProvider');
+
+    const channel = supabase
+      .channel('conversation-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations'
+        },
+        (payload) => {
+          logger.info('Conversation changed via real-time', { 
+            event: payload.eventType,
+            conversationId: (payload.new as any)?.id || (payload.old as any)?.id 
+          }, 'ConversationListProvider');
+          
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        },
+        (payload) => {
+          logger.info('New message via real-time', { 
+            messageId: (payload.new as any)?.id,
+            conversationId: (payload.new as any)?.conversation_id 
+          }, 'ConversationListProvider');
+          
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['messages'] });
+          queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
+        }
+      )
+      .subscribe((status) => {
+        logger.info('Real-time subscription status', { status }, 'ConversationListProvider');
+      });
+
+    return () => {
+      logger.info('Cleaning up real-time subscriptions', {}, 'ConversationListProvider');
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   // Fetch agents for assignment
   const { data: agentsData = [] } = useQuery({
