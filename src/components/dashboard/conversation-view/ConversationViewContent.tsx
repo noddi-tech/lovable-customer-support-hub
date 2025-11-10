@@ -11,7 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { ProgressiveMessagesList } from '@/components/conversations/ProgressiveMessagesList';
-import { AlwaysVisibleReplyArea } from '@/components/dashboard/conversation-view/AlwaysVisibleReplyArea';
+import { LazyReplyArea } from '@/components/conversations/LazyReplyArea';
 import { CustomerSidePanel } from './CustomerSidePanel';
 import { useConversationShortcuts } from '@/hooks/useConversationShortcuts';
 import { cn } from '@/lib/utils';
@@ -163,9 +163,6 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
             conversationIds={conversationIds}
             conversation={conversation}
           />
-          <div className="border-t border-border bg-white">
-            <AlwaysVisibleReplyArea conversationId={conversationId} />
-          </div>
         </div>
       </div>
 

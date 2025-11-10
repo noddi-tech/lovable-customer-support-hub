@@ -520,12 +520,18 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const bodyText = (body.textContent || body.innerText || '').trim();
   const cleanedText = stripEmailListFooters(bodyText);
   
-  // Convert cleaned text back to minimal HTML structure (preserve line breaks as paragraphs)
+  // Convert cleaned text back to minimal HTML structure (preserve line breaks including empty lines)
   const visibleHTML = cleanedText
     .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .map(line => `<p>${line}</p>`)
+    .map((line) => {
+      const trimmed = line.trim();
+      if (trimmed.length === 0) {
+        // Empty line - use <br/> for spacing
+        return '<br/>';
+      }
+      // Non-empty line - wrap in <p>
+      return `<p>${trimmed}</p>`;
+    })
     .join('\n');
   
   console.log('[parseQuotedEmail] Extraction complete:', {

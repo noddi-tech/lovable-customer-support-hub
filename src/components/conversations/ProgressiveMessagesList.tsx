@@ -8,6 +8,7 @@ import { createNormalizationContext } from "@/lib/normalizeMessage";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { LazyReplyArea } from "./LazyReplyArea";
 
 interface ProgressiveMessagesListProps {
   conversationId: string;
@@ -341,6 +342,16 @@ export const ProgressiveMessagesList = ({
                   </>
                 )}
               </Button>
+            </div>
+          )}
+          
+          {/* Reply Area - positioned directly after messages */}
+          {messages.length > 0 && (
+            <div className="mt-4">
+              <LazyReplyArea 
+                conversationId={conversationId}
+                onReply={undefined}
+              />
             </div>
           )}
             </div>

@@ -92,10 +92,24 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [imageProcessingComplete, setImageProcessingComplete] = useState(false);
-  const isHTML = useMemo(() => 
-    contentType.toLowerCase().includes('html') || /<[^>]+>/.test(content),
-    [content, contentType]
-  );
+  const isHTML = useMemo(() => {
+    // Check content type first
+    if (contentType.toLowerCase().includes('html')) return true;
+    
+    // Only treat as HTML if it has COMPLETE HTML tags (not just < or >)
+    const htmlTagPattern = /<\/?[a-z][\s\S]*>/i;
+    const hasHTMLTags = htmlTagPattern.test(content);
+    
+    // If only wrapped in a single <p> tag, treat as plain text
+    if (hasHTMLTags) {
+      const singlePWrapper = /^<p>(.*)<\/p>$/s;
+      if (singlePWrapper.test(content.trim())) {
+        return false; // Treat as plain text
+      }
+    }
+    
+    return hasHTMLTags;
+  }, [content, contentType]);
 
   const processedContent = useMemo(() => {
     logger.debug('Processing email content', { 
