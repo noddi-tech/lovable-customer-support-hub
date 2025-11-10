@@ -554,19 +554,38 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const bodyText = (bodyClone.textContent || bodyClone.innerText || '').trim();
   const cleanedText = stripEmailListFooters(bodyText);
   
-  // Convert cleaned text back to minimal HTML structure (preserve line breaks including empty lines)
-  const visibleHTML = cleanedText
-    .split('\n')
-    .map((line) => {
-      const trimmed = line.trim();
-      if (trimmed.length === 0) {
-        // Empty line - use <br/> for spacing
-        return '<br/>';
+  // Convert cleaned text back to minimal HTML structure with smart paragraph grouping
+  // Group consecutive non-empty lines into single paragraphs, preserve line break structure
+  const textLines = cleanedText.split('\n');
+  const paragraphs: string[] = [];
+  let currentParagraph: string[] = [];
+
+  for (let i = 0; i < textLines.length; i++) {
+    const trimmed = textLines[i].trim();
+    
+    if (trimmed.length === 0) {
+      // Empty line - close current paragraph if it has content
+      if (currentParagraph.length > 0) {
+        paragraphs.push(`<p>${currentParagraph.join('<br/>')}</p>`);
+        currentParagraph = [];
       }
-      // Non-empty line - wrap in <p>
-      return `<p>${trimmed}</p>`;
-    })
-    .join('\n');
+      // Check if next line is also empty (double line break)
+      if (i + 1 < textLines.length && textLines[i + 1].trim().length === 0) {
+        // Add extra spacing for double line breaks
+        paragraphs.push('<br/>');
+      }
+    } else {
+      // Non-empty line - add to current paragraph
+      currentParagraph.push(trimmed);
+    }
+  }
+
+  // Don't forget the last paragraph
+  if (currentParagraph.length > 0) {
+    paragraphs.push(`<p>${currentParagraph.join('<br/>')}</p>`);
+  }
+
+  const visibleHTML = paragraphs.join('\n');
   
   console.log('[parseQuotedEmail] Extraction complete:', {
     visibleHTMLLength: visibleHTML.length,
