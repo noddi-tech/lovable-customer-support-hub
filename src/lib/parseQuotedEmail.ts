@@ -515,9 +515,43 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     }
   }
 
-  // STEP 5: Get visible content WITHOUT re-encoding - use textContent to preserve decoded entities
-  // Using .innerHTML would re-encode special chars (> → &gt;, < → &lt;, etc.)
-  const bodyText = (body.textContent || body.innerText || '').trim();
+  // STEP 5: Convert block elements and <br> to newlines BEFORE extracting text
+  // This preserves line break structure when using .textContent
+  const bodyClone = body.cloneNode(true) as HTMLElement;
+
+  // Convert <br> tags to newlines
+  bodyClone.querySelectorAll('br').forEach(br => {
+    br.replaceWith(doc.createTextNode('\n'));
+  });
+
+  // Convert block-level elements to add newlines before/after
+  const blockElements = ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'];
+  blockElements.forEach(tag => {
+    bodyClone.querySelectorAll(tag).forEach(el => {
+      // Add newline before the element content
+      if (el.previousSibling && el.previousSibling.nodeType === Node.TEXT_NODE) {
+        const text = el.previousSibling.textContent || '';
+        if (text && !text.endsWith('\n')) {
+          el.previousSibling.textContent = text + '\n';
+        }
+      } else if (el.previousSibling) {
+        el.before(doc.createTextNode('\n'));
+      }
+      
+      // Add newline after the element content
+      if (el.nextSibling && el.nextSibling.nodeType === Node.TEXT_NODE) {
+        const text = el.nextSibling.textContent || '';
+        if (text && !text.startsWith('\n')) {
+          el.nextSibling.textContent = '\n' + text;
+        }
+      } else if (el.nextSibling) {
+        el.after(doc.createTextNode('\n'));
+      }
+    });
+  });
+
+  // Now extract text content - newlines are preserved!
+  const bodyText = (bodyClone.textContent || bodyClone.innerText || '').trim();
   const cleanedText = stripEmailListFooters(bodyText);
   
   // Convert cleaned text back to minimal HTML structure (preserve line breaks including empty lines)
