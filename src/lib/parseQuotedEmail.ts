@@ -559,18 +559,25 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const textLines = cleanedText.split('\n');
   const paragraphs: string[] = [];
   let currentParagraph: string[] = [];
+  let consecutiveEmptyLines = 0;
 
   for (const line of textLines) {
     const trimmed = line.trim();
     
     if (trimmed.length === 0) {
-      // Empty line - close current paragraph if it has content
-      if (currentParagraph.length > 0) {
+      consecutiveEmptyLines++;
+      
+      // Close current paragraph on first empty line
+      if (consecutiveEmptyLines === 1 && currentParagraph.length > 0) {
         paragraphs.push(`<p>${currentParagraph.join('<br/>')}</p>`);
         currentParagraph = [];
       }
-      // Let paragraph margins handle spacing - no extra <br/> tags
+      // Add <br/> for each additional empty line (creates visible spacing)
+      else if (consecutiveEmptyLines > 1) {
+        paragraphs.push('<br/>');
+      }
     } else {
+      consecutiveEmptyLines = 0;
       // Non-empty line - add to current paragraph
       currentParagraph.push(trimmed);
     }
