@@ -222,7 +222,7 @@ const MessageCardComponent = ({
       data-author-type={message.authorType || 'unknown'}
       className={cn(
         "group relative rounded-lg border",
-        !disableAnimation && "transition-all duration-200",
+        // Removed: wrapper doesn't need transitions, only CollapsibleContent animates
         messageStyle.bg,
         messageStyle.border,
         "border-y border-r border-gray-200 dark:border-gray-800",
