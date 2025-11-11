@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, Suspense, lazy, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, Suspense, lazy, useEffect, useRef, memo } from 'react';
 import { ChevronDown, ChevronUp, Download, Eye, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -80,7 +80,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   );
 };
 
-export const EmailRender: React.FC<EmailRenderProps> = ({
+const EmailRenderComponent: React.FC<EmailRenderProps> = ({
   content,
   contentType = 'text/plain',
   attachments = [],
@@ -544,3 +544,25 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
     </article>
   );
 };
+
+// Memoized wrapper with custom comparison
+export const EmailRender = memo(EmailRenderComponent, (prevProps, nextProps) => {
+  // Compare only essential props
+  const contentMatch = prevProps.content === nextProps.content;
+  const typeMatch = prevProps.contentType === nextProps.contentType;
+  const messageIdMatch = prevProps.messageId === nextProps.messageId;
+  const classMatch = prevProps.className === nextProps.className;
+  
+  // Compare attachment IDs only, not array reference
+  const prevAttachIds = prevProps.attachments?.map(a => a.attachmentId).sort().join(',') || '';
+  const nextAttachIds = nextProps.attachments?.map(a => a.attachmentId).sort().join(',') || '';
+  const attachmentsMatch = prevAttachIds === nextAttachIds;
+
+  const shouldUpdate = !(contentMatch && typeMatch && messageIdMatch && classMatch && attachmentsMatch);
+
+  if (shouldUpdate) {
+    logger.trackMemoBreak('EmailRender', `content:${!contentMatch} type:${!typeMatch} msgId:${!messageIdMatch} class:${!classMatch} attach:${!attachmentsMatch}`);
+  }
+
+  return !shouldUpdate;
+});

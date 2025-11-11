@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -93,7 +93,7 @@ interface MessageCardProps {
   onDelete?: (messageId: string) => void;
 }
 
-export const MessageCard = ({ 
+const MessageCardComponent = ({ 
   message, 
   conversation, 
   defaultCollapsed = true,
@@ -534,3 +534,27 @@ export const MessageCard = ({
     </div>
   );
 };
+
+// Memoized wrapper with custom comparison
+export const MessageCard = memo(MessageCardComponent, (prevProps, nextProps) => {
+  const messageMatch = prevProps.message.id === nextProps.message.id;
+  const collapsedMatch = prevProps.defaultCollapsed === nextProps.defaultCollapsed;
+  const animationMatch = prevProps.disableAnimation === nextProps.disableAnimation;
+  const isFirstMatch = prevProps.isFirstInThread === nextProps.isFirstInThread;
+
+  const shouldUpdate = !(
+    messageMatch && 
+    collapsedMatch && 
+    animationMatch &&
+    isFirstMatch
+  );
+
+  if (shouldUpdate) {
+    logger.trackMemoBreak(
+      'MessageCard', 
+      `msg:${!messageMatch} collapsed:${!collapsedMatch} anim:${!animationMatch} first:${!isFirstMatch}`
+    );
+  }
+
+  return !shouldUpdate;
+});

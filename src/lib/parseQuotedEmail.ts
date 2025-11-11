@@ -1,8 +1,83 @@
-// Robust quoted-reply extraction for HTML and plain text emails
-// Returns the content that should be shown in the card (visibleContent)
-// and a list of quoted blocks (for optional "Show quoted history")
+/**
+ * Centralized email parsing and quoted content extraction
+ * 
+ * This module handles parsing of both HTML and plain text email content to:
+ * 1. Extract the visible "main" content (what the sender wrote)
+ * 2. Identify and separate "quoted" reply chains
+ * 3. Parse structured quoted messages with metadata
+ * 
+ * It handles common email client patterns from Gmail, Outlook, Apple Mail, etc.
+ */
 
 import { logger } from '@/utils/logger';
+
+// ============================================================================
+// PARSE CACHE - Prevents redundant parsing of the same content
+// ============================================================================
+
+interface ParseCacheEntry {
+  result: any;
+  timestamp: number;
+}
+
+class ParseCache {
+  private cache = new Map<string, ParseCacheEntry>();
+  private maxSize = 100;
+  private maxAge = 5 * 60 * 1000; // 5 minutes
+
+  private generateKey(content: string, type: string): string {
+    // Simple hash function for cache key
+    let hash = 0;
+    const str = `${type}:${content}`;
+    for (let i = 0; i < Math.min(str.length, 1000); i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return `${hash}_${content.length}`;
+  }
+
+  get(content: string, type: string): any | null {
+    const key = this.generateKey(content, type);
+    const entry = this.cache.get(key);
+    
+    if (!entry) {
+      logger.trackParseCache(false, this.cache.size);
+      return null;
+    }
+
+    // Check if expired
+    if (Date.now() - entry.timestamp > this.maxAge) {
+      this.cache.delete(key);
+      logger.trackParseCache(false, this.cache.size);
+      return null;
+    }
+
+    logger.trackParseCache(true, this.cache.size);
+    return entry.result;
+  }
+
+  set(content: string, type: string, result: any): void {
+    const key = this.generateKey(content, type);
+    
+    // LRU eviction if cache is full
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, {
+      result,
+      timestamp: Date.now()
+    });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+const parseCache = new ParseCache();
 
 // Feature flag: Enable thread extraction - expand quoted messages into separate cards
 export const ENABLE_QUOTED_EXTRACTION = true; // Thread view enabled - splits replies into separate cards // Set to true to enable thread view
@@ -691,23 +766,50 @@ function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBl
  * Public API
  */
 export function parseQuotedEmail(input: Input): { visibleContent: string; quotedBlocks: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
-  const contentType = (input.contentType || '').toLowerCase();
+  const cacheType = input.contentType?.includes('html') || /<\/?[a-z][\s\S]*>/i.test(input.content || '') ? 'html' : 'text';
   const content = input.content || '';
+  
+  // Check cache first
+  const cached = parseCache.get(content, cacheType);
+  if (cached) {
+    logger.trackParseCall('parseQuotedEmail', true, content.substring(0, 50));
+    logger.debug('[parseQuotedEmail] Cache hit', { 
+      cacheType,
+      contentLength: content.length 
+    });
+    return cached;
+  }
+
+  // Cache miss - perform parsing
+  logger.trackParseCall('parseQuotedEmail', false, content.substring(0, 50));
+  logger.debug('[parseQuotedEmail] Cache miss - starting parse', { 
+    cacheType,
+    contentLength: content.length 
+  });
+
+  const contentType = (input.contentType || '').toLowerCase();
+
+  let result: { visibleContent: string; quotedBlocks: QuotedBlock[]; quotedMessages: QuotedMessage[] };
 
   if (contentType.includes('html') || /<\/?[a-z][\s\S]*>/i.test(content)) {
     const { visibleHTML, quoted, quotedMessages } = extractFromHtml(content);
-    return { 
+    result = { 
       visibleContent: visibleHTML.trim(), 
+      quotedBlocks: quoted,
+      quotedMessages: quotedMessages
+    };
+  } else {
+    // Plain text
+    const { visibleText, quoted, quotedMessages } = extractFromPlain(normalizeWhitespace(content));
+    result = { 
+      visibleContent: visibleText, 
       quotedBlocks: quoted,
       quotedMessages: quotedMessages
     };
   }
 
-  // Plain text
-  const { visibleText, quoted, quotedMessages } = extractFromPlain(normalizeWhitespace(content));
-  return { 
-    visibleContent: visibleText, 
-    quotedBlocks: quoted,
-    quotedMessages: quotedMessages
-  };
+  // Store in cache
+  parseCache.set(content, cacheType, result);
+
+  return result;
 }

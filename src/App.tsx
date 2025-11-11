@@ -19,6 +19,7 @@ import { useAircallPhone } from "@/hooks/useAircallPhone";
 import { AircallLoginModal } from "@/components/dashboard/voice/AircallLoginModal";
 import { AircallFloatingButton } from "@/components/dashboard/voice/AircallFloatingButton";
 import { AircallErrorFallback } from "@/components/dashboard/voice/AircallErrorFallback";
+import { PerformanceDebugPanel } from "@/components/debug/PerformanceDebugPanel";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
@@ -246,9 +247,11 @@ const App = () => (
                       {/* Aircall Workspace Manager - Controls container visibility */}
                       <AircallWorkspaceManager />
                       </I18nWrapper>
-                      <Toaster />
-                      <Sonner />
-                    </TooltipProvider>
+                       <Toaster />
+                       <Sonner />
+                       {/* Performance Debug Panel - DEV only */}
+                       {import.meta.env.DEV && <PerformanceDebugPanel />}
+                     </TooltipProvider>
                   </DesignSystemProvider>
                 </AircallProvider>
               </ErrorBoundary>

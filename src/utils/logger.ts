@@ -180,6 +180,81 @@ class Logger {
     return JSON.stringify(this.logs, null, 2);
   }
 
+  // Debug metrics for performance panel
+  private debugMetrics = {
+    componentRenders: {} as Record<string, number>,
+    parseCache: { hits: 0, misses: 0, size: 0 },
+    slowOperations: [] as Array<{ label: string; duration: number; component?: string; timestamp: number }>,
+    memoBreaks: [] as Array<{ component: string; reason: string; timestamp: number }>,
+    parseCalls: [] as Array<{ function: string; cached: boolean; contentPreview?: string; timestamp: number }>
+  };
+
+  trackComponentRender(componentName: string) {
+    this.debugMetrics.componentRenders[componentName] = 
+      (this.debugMetrics.componentRenders[componentName] || 0) + 1;
+  }
+
+  trackParseCache(hit: boolean, size: number) {
+    if (hit) {
+      this.debugMetrics.parseCache.hits++;
+    } else {
+      this.debugMetrics.parseCache.misses++;
+    }
+    this.debugMetrics.parseCache.size = size;
+  }
+
+  trackSlowOperation(label: string, duration: number, component?: string) {
+    this.debugMetrics.slowOperations.push({
+      label,
+      duration,
+      component,
+      timestamp: Date.now()
+    });
+    // Keep only last 50
+    if (this.debugMetrics.slowOperations.length > 50) {
+      this.debugMetrics.slowOperations.shift();
+    }
+  }
+
+  trackMemoBreak(component: string, reason: string) {
+    this.debugMetrics.memoBreaks.push({
+      component,
+      reason,
+      timestamp: Date.now()
+    });
+    // Keep only last 50
+    if (this.debugMetrics.memoBreaks.length > 50) {
+      this.debugMetrics.memoBreaks.shift();
+    }
+  }
+
+  trackParseCall(functionName: string, cached: boolean, contentPreview?: string) {
+    this.debugMetrics.parseCalls.push({
+      function: functionName,
+      cached,
+      contentPreview,
+      timestamp: Date.now()
+    });
+    // Keep only last 50
+    if (this.debugMetrics.parseCalls.length > 50) {
+      this.debugMetrics.parseCalls.shift();
+    }
+  }
+
+  getDebugMetrics() {
+    return { ...this.debugMetrics };
+  }
+
+  clearDebugMetrics() {
+    this.debugMetrics = {
+      componentRenders: {},
+      parseCache: { hits: 0, misses: 0, size: 0 },
+      slowOperations: [],
+      memoBreaks: [],
+      parseCalls: []
+    };
+  }
+
   // Performance timing methods
   private timers = new Map<string, number>();
   
@@ -196,6 +271,7 @@ class Logger {
       this.timers.delete(key);
       
       if (duration > 50) {
+        this.trackSlowOperation(label, duration, component);
         this.warn(`Slow operation: ${label}`, { duration: `${duration.toFixed(2)}ms` }, component);
       } else {
         this.debug(`${label} completed`, { duration: `${duration.toFixed(2)}ms` }, component);
