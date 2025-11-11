@@ -14,12 +14,12 @@ const CollapsibleContent = React.forwardRef<
     ref={ref}
     className={cn(
       "overflow-hidden",
-      "[.disable-animation_&]:transition-none",
-      "[.disable-animation_&]:!duration-0",
-      "[.disable-animation_&]:[animation:none]",
       "transition-all",
       "data-[state=open]:animate-accordion-down",
       "data-[state=closed]:animate-accordion-up",
+      "[.disable-animation_&]:!transition-none",
+      "[.disable-animation_&]:!duration-[0ms]",
+      "[.disable-animation_&]:!animate-none",
       className
     )}
     {...props}

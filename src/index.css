@@ -348,14 +348,12 @@ Optimized for accessibility with WCAG AA compliance.
     margin: 0.5em 0;
   }
 
-  /* Smooth collapse/expand transitions - respect disable-animation class */
-  :not(.disable-animation) [data-state="open"],
-  :not(.disable-animation *) [data-state="open"] {
+  /* Smooth collapse/expand transitions */
+  [data-state="open"] {
     animation: accordion-down 0.2s ease-out;
   }
 
-  :not(.disable-animation) [data-state="closed"],
-  :not(.disable-animation *) [data-state="closed"] {
+  [data-state="closed"] {
     animation: accordion-up 0.2s ease-out;
   }
 
