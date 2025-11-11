@@ -33,6 +33,7 @@ export const ProgressiveMessagesList = ({
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [collapsedMessageIds, setCollapsedMessageIds] = useState<Set<string>>(new Set());
   const [allCollapsed, setAllCollapsed] = useState(false);
+  const [isBulkToggling, setIsBulkToggling] = useState(false);
   
   // Create conversation-specific normalization context
   const normalizationCtx = useMemo(() => createNormalizationContext({
@@ -213,6 +214,8 @@ export const ProgressiveMessagesList = ({
 
   // Toggle all messages collapsed/expanded
   const toggleAllMessages = () => {
+    setIsBulkToggling(true);
+    
     if (allCollapsed) {
       setCollapsedMessageIds(new Set());
       setAllCollapsed(false);
@@ -221,6 +224,9 @@ export const ProgressiveMessagesList = ({
       setCollapsedMessageIds(allIds);
       setAllCollapsed(true);
     }
+    
+    // Re-enable animations after state updates settle
+    setTimeout(() => setIsBulkToggling(false), 50);
   };
 
   return (
@@ -313,6 +319,7 @@ export const ProgressiveMessagesList = ({
                     conversation={conversation}
                     isFirstInThread={index === 0}  // First in chronological order (oldest)
                     defaultCollapsed={collapsedMessageIds.has(message.dedupKey || message.id)}
+                    disableAnimation={isBulkToggling}
                     onEdit={onEditMessage}
                     onDelete={onDeleteMessage}
                   />

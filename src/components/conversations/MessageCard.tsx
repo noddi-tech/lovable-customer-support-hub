@@ -86,6 +86,7 @@ interface MessageCardProps {
     } | null;
   };
   defaultCollapsed?: boolean;
+  disableAnimation?: boolean;
   isFirstInThread?: boolean;  // NEW: Indicates if this is the first message in the thread
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
@@ -95,6 +96,7 @@ export const MessageCard = ({
   message, 
   conversation, 
   defaultCollapsed = true,
+  disableAnimation = false,
   isFirstInThread = false,
   onEdit, 
   onDelete 
@@ -190,7 +192,11 @@ export const MessageCard = ({
       aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
       
-        <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
+        <Collapsible 
+          open={!isCollapsed} 
+          onOpenChange={(open) => setIsCollapsed(!open)}
+          className={disableAnimation ? "disable-animation" : ""}
+        >
         {/* Card Header - improved spacing */}
         <div className="px-8 py-5">
           <div className={cn(
@@ -364,7 +370,8 @@ export const MessageCard = ({
         {/* Collapsed preview - separate container with consistent padding */}
         <div 
           className={cn(
-            "pl-[92px] pr-8 transition-all duration-200",
+            "pl-[92px] pr-8",
+            disableAnimation ? "" : "transition-all duration-200",
             isCollapsed ? "pb-5 opacity-100" : "pb-0 opacity-0 overflow-hidden"
           )}
         >

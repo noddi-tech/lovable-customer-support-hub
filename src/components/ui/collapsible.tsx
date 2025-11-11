@@ -13,7 +13,9 @@ const CollapsibleContent = React.forwardRef<
   <CollapsiblePrimitive.CollapsibleContent
     ref={ref}
     className={cn(
-      "overflow-hidden transition-all",
+      "overflow-hidden",
+      "[.disable-animation_&]:transition-none",
+      "transition-all",
       "data-[state=open]:animate-accordion-down",
       "data-[state=closed]:animate-accordion-up",
       className
