@@ -140,7 +140,7 @@ const MessageCardComponent = ({
       wasCollapsed: isCollapsed
     }, 'MessageCard');
     setIsCollapsed(defaultCollapsed);
-  }, [defaultCollapsed, message.id, isCollapsed]);
+  }, [defaultCollapsed, message.id]);
   
   // Show quoted blocks if they exist and feature is enabled
   const hasQuotedContent = message.quotedBlocks && message.quotedBlocks.length > 0;
@@ -233,7 +233,7 @@ const MessageCardComponent = ({
         <Collapsible 
           open={!isCollapsed} 
           onOpenChange={(open) => setIsCollapsed(!open)}
-          className={disableAnimation ? "disable-animation" : ""}
+          className={disableAnimation ? "[&>div]:!transition-none [&>div]:!duration-0" : ""}
         >
         {/* Card Header - improved spacing */}
         <div className="px-8 py-5">
