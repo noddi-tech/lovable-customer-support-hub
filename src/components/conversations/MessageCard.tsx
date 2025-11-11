@@ -205,10 +205,7 @@ export const MessageCard = ({
             </Avatar>
             
             {/* Content area */}
-            <div className={cn(
-              "min-w-0 flex-1",
-              isAgent && "md:text-right"
-            )}>
+            <div className="min-w-0 flex-1">
               <div className={cn(
                 "flex flex-wrap items-center gap-3 mb-1.5",
                 isAgent && "md:justify-end"
@@ -310,10 +307,7 @@ export const MessageCard = ({
               
               {/* Subject and preview when collapsed - enhanced layout */}
               {isCollapsed && (
-                <div className={cn(
-                  "mt-3 space-y-1.5",
-                  isAgent && "md:text-right"
-                )}>
+                <div className="mt-3 space-y-1.5">
                   {message.subject && (
                     <p className="text-sm font-semibold text-foreground leading-tight">
                       {message.subject}
@@ -323,10 +317,7 @@ export const MessageCard = ({
                     {previewText}
                   </p>
                   {hasQuotedContent && (
-                    <div className={cn(
-                      "flex items-center gap-2 text-xs text-muted-foreground",
-                      isAgent && "md:justify-end"
-                    )}>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>• Thread</span>
                     </div>
                   )}
