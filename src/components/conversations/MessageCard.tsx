@@ -190,9 +190,9 @@ export const MessageCard = ({
       aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
       
-      <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
+        <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
         {/* Card Header - improved spacing */}
-        <div className={cn("px-8 py-5", !isCollapsed && "border-b border-gray-100 dark:border-gray-800")}>
+        <div className="px-8 py-5">
           <div className={cn(
             "flex items-start gap-5",
             isAgent && "md:flex-row-reverse"
@@ -204,7 +204,7 @@ export const MessageCard = ({
               </AvatarFallback>
             </Avatar>
             
-            {/* Content area */}
+            {/* Content area - metadata only */}
             <div className="min-w-0 flex-1">
               <div className={cn(
                 "flex flex-wrap items-center gap-3 mb-1.5",
@@ -304,25 +304,6 @@ export const MessageCard = ({
                   ) : null}
                 </div>
               )}
-              
-              {/* Subject and preview when collapsed - enhanced layout */}
-              {isCollapsed && (
-                <div className="mt-3 space-y-1.5">
-                  {message.subject && (
-                    <p className="text-sm font-semibold text-foreground leading-tight">
-                      {message.subject}
-                    </p>
-                  )}
-                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                    {previewText}
-                  </p>
-                  {hasQuotedContent && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>• Thread</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
             
             {/* Actions - always on far right */}
@@ -379,6 +360,27 @@ export const MessageCard = ({
             </div>
           </div>
         </div>
+        
+        {/* Collapsed preview - separate container with consistent padding */}
+        {isCollapsed && (
+          <div className="pl-[92px] pr-8 pb-5">
+            <div className="space-y-1.5">
+              {message.subject && (
+                <p className="text-sm font-semibold text-foreground leading-tight">
+                  {message.subject}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                {previewText}
+              </p>
+              {hasQuotedContent && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>• Thread</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         
         <CollapsibleContent>
           <div className="py-4 pr-8 pl-[92px] min-w-0 overflow-hidden">
