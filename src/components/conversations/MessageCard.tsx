@@ -230,13 +230,21 @@ const MessageCardComponent = ({
       aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
         {/* Card Header - improved spacing */}
-        <div className="px-8 py-5">
+        <div className={cn(
+          "px-8",
+          effectiveCollapsed ? "py-2" : "py-5"
+        )}>
           <div className={cn(
-            "flex items-start gap-5",
+            "flex items-start",
+            effectiveCollapsed ? "gap-3" : "gap-5",
             isAgent && "md:flex-row-reverse"
           )}>
             {/* Avatar */}
-            <Avatar className={cn("h-10 w-10 shrink-0", messageStyle.avatarRing)}>
+            <Avatar className={cn(
+              "shrink-0",
+              effectiveCollapsed ? "h-8 w-8" : "h-10 w-10",
+              messageStyle.avatarRing
+            )}>
               <AvatarFallback className="text-sm font-medium">
                 {initial}
               </AvatarFallback>
@@ -245,7 +253,8 @@ const MessageCardComponent = ({
             {/* Content area - metadata only */}
             <div className="min-w-0 flex-1">
               <div className={cn(
-                "flex flex-wrap items-center gap-3 mb-1.5",
+                "flex flex-wrap items-center gap-3",
+                effectiveCollapsed ? "mb-0" : "mb-1.5",
                 isAgent && "md:justify-end"
               )}>
                 <span className="font-semibold text-base leading-tight">
@@ -405,8 +414,8 @@ const MessageCardComponent = ({
         
       {/* Collapsed preview - shown when collapsed */}
       {effectiveCollapsed && (
-        <div className="pl-[92px] pr-8 pb-3">
-          <div className="text-sm text-muted-foreground line-clamp-1">
+        <div className="pl-[92px] pr-8 pb-1 pt-0">
+          <div className="text-xs text-muted-foreground line-clamp-1 leading-tight">
             {previewText}
           </div>
         </div>
