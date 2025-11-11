@@ -143,7 +143,7 @@ const MessageCardComponent = ({
       }, 'MessageCard');
       setIsCollapsed(defaultCollapsed);
     }
-  }, [defaultCollapsed, message.id, isCollapsed]);
+  }, [defaultCollapsed, message.id]);
   
   // Show quoted blocks if they exist and feature is enabled
   const hasQuotedContent = message.quotedBlocks && message.quotedBlocks.length > 0;
@@ -234,11 +234,20 @@ const MessageCardComponent = ({
       )}
       aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
-      
-        <Collapsible 
-          open={!isCollapsed} 
-          onOpenChange={(open) => setIsCollapsed(!open)}
-        >
+      {/* Use defaultCollapsed directly during bulk operations to prevent double-render */}
+      {(() => {
+        const effectiveCollapsed = disableAnimation ? defaultCollapsed : isCollapsed;
+        
+        return (
+          <Collapsible 
+            open={!effectiveCollapsed} 
+            onOpenChange={(open) => {
+              // Only update internal state during individual operations
+              if (!disableAnimation) {
+                setIsCollapsed(!open);
+              }
+            }}
+          >
         {/* Card Header - improved spacing */}
         <div className="px-8 py-5">
           <div className={cn(
@@ -374,7 +383,7 @@ const MessageCardComponent = ({
               {/* Expand/Collapse trigger - clearer indicator */}
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  {isCollapsed ? (
+                  {effectiveCollapsed ? (
                     <ChevronDown className="h-4 w-4" />
                   ) : (
                     <ChevronUp className="h-4 w-4" />
@@ -412,7 +421,7 @@ const MessageCardComponent = ({
         {/* Unified content area - reserves space and prevents layout shifts */}
         <div className={cn(
           "relative",
-          isCollapsed ? "min-h-[80px]" : ""
+          effectiveCollapsed ? "min-h-[80px]" : ""
         )}>
           {/* Collapsed preview - ALWAYS absolutely positioned for smooth transitions */}
           <div 
@@ -420,10 +429,10 @@ const MessageCardComponent = ({
               "absolute top-0 left-0 right-0 pl-[92px] pr-8 pb-5",
               // When animation is disabled during bulk operations, force visibility states
               disableAnimation 
-                ? (isCollapsed ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0 hidden")
+                ? (effectiveCollapsed ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0 hidden")
                 : cn(
                     "transition-opacity duration-200",
-                    isCollapsed ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
+                    effectiveCollapsed ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
                   )
             )}
           >
@@ -540,6 +549,8 @@ const MessageCardComponent = ({
           </CollapsibleContent>
         </div>
       </Collapsible>
+        );
+      })()}
     </div>
   );
 };
