@@ -367,124 +367,128 @@ export const MessageCard = ({
           </div>
         </div>
         
-        {/* Collapsed preview - separate container with consistent padding */}
-        <div 
-          className={cn(
-            "pl-[92px] pr-8",
-            disableAnimation ? "" : "transition-all duration-200",
-            isCollapsed ? "pb-5 opacity-100" : "pb-0 opacity-0 overflow-hidden"
-          )}
-        >
-          <div className="space-y-1.5">
-            {message.subject && (
-              <p className="text-sm font-semibold text-foreground leading-tight">
-                {message.subject}
+        {/* Unified content area - prevents layout shifts during animation */}
+        <div className="relative">
+          {/* Collapsed preview - conditionally positioned */}
+          <div 
+            className={cn(
+              "pl-[92px] pr-8",
+              disableAnimation ? "" : "transition-opacity duration-200",
+              isCollapsed ? "pb-5 opacity-100 relative" : "absolute opacity-0 pointer-events-none"
+            )}
+          >
+            <div className="space-y-1.5">
+              {message.subject && (
+                <p className="text-sm font-semibold text-foreground leading-tight">
+                  {message.subject}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                {previewText}
               </p>
-            )}
-            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-              {previewText}
-            </p>
-            {hasQuotedContent && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>• Thread</span>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <CollapsibleContent>
-          <div className="py-4 pr-8 pl-[92px] min-w-0 overflow-hidden">
-            {/* Main message content */}
-            <div className="mt-0">
-              <EmailRender
-                content={message.visibleBody}
-                contentType={message.originalMessage?.content_type || 'text/plain'}
-                attachments={[]}
-                messageId={message.id}
-              />
-              
-              {/* Debug overlay - only shows when VITE_UI_PROBE=1 */}
-              <EmailDebugOverlay messageId={message.id} />
+              {hasQuotedContent && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>• Thread</span>
+                </div>
+              )}
             </div>
-            
-            {/* Attachment Rail - Below message content */}
-            {!isCollapsed && attachments.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                <div className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                  <Paperclip className="h-3 w-3" />
-                  {attachments.length} {attachments.length === 1 ? 'Attachment' : 'Attachments'}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {attachments.map((att, index) => (
-                    <button
-                      key={index}
-                      className="flex items-center gap-2 px-3 py-2 bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors text-sm group"
-                      onClick={() => {
-                        // Download functionality
-                        const downloadUrl = `/supabase/functions/v1/get-attachment/${att.attachmentId}?messageId=${message.id}&download=true`;
-                        const link = document.createElement('a');
-                        link.href = downloadUrl;
-                        link.download = att.filename;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                      }}
-                    >
-                      <Paperclip className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                      <span className="font-medium">{att.filename}</span>
-                      <span className="text-xs text-muted-foreground ml-1">
-                        ({(att.size / 1024).toFixed(1)} KB)
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Quoted content toggle - Enhanced styling */}
-            {hasQuotedContent && (
-              <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => setShowQuotedContent(!showQuotedContent)}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                  {showQuotedContent ? (
-                    <ChevronUp className="w-4 h-4 group-hover:translate-y-[-2px] transition-transform" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 group-hover:translate-y-[2px] transition-transform" />
-                  )}
-                  <span className="font-medium">
-                    {showQuotedContent ? 'Hide' : 'Show'} previous messages ({message.quotedBlocks?.length || 0})
-                  </span>
-                </button>
+          </div>
+          
+          {/* Expanded content - takes up space when open */}
+          <CollapsibleContent>
+            <div className="py-4 pr-8 pl-[92px] min-w-0 overflow-hidden">
+              {/* Main message content */}
+              <div className="mt-0">
+                <EmailRender
+                  content={message.visibleBody}
+                  contentType={message.originalMessage?.content_type || 'text/plain'}
+                  attachments={[]}
+                  messageId={message.id}
+                />
                 
-                {showQuotedContent && (
-                  <div className="mt-4 space-y-3">
-                    {message.quotedBlocks?.map((block, index) => (
-                      <div 
+                {/* Debug overlay - only shows when VITE_UI_PROBE=1 */}
+                <EmailDebugOverlay messageId={message.id} />
+              </div>
+              
+              {/* Attachment Rail - Below message content */}
+              {!isCollapsed && attachments.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                  <div className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                    <Paperclip className="h-3 w-3" />
+                    {attachments.length} {attachments.length === 1 ? 'Attachment' : 'Attachments'}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {attachments.map((att, index) => (
+                      <button
                         key={index}
-                        className="relative pl-5 border-l-3 border-muted-foreground/30 bg-muted/20 p-4 rounded-r-lg hover:bg-muted/30 transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors text-sm group"
+                        onClick={() => {
+                          // Download functionality
+                          const downloadUrl = `/supabase/functions/v1/get-attachment/${att.attachmentId}?messageId=${message.id}&download=true`;
+                          const link = document.createElement('a');
+                          link.href = downloadUrl;
+                          link.download = att.filename;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
                       >
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-muted-foreground/40 to-muted-foreground/10 rounded-l-lg" />
-                        <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
-                          {block.kind === 'gmail' ? 'Previous email' : 'Quoted reply'}
-                        </div>
-                        <div 
-                          className="prose prose-sm max-w-none text-foreground/80 [&_*]:text-foreground/80"
-                          dangerouslySetInnerHTML={{ __html: block.raw }}
-                        />
-                      </div>
+                        <Paperclip className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <span className="font-medium">{att.filename}</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({(att.size / 1024).toFixed(1)} KB)
+                        </span>
+                      </button>
                     ))}
                   </div>
-                )}
-              </div>
-            )}
-            
-            {/* Dev probe */}
-            <MessageDebugProbe message={message} />
-          </div>
-        </CollapsibleContent>
+                </div>
+              )}
+              
+              {/* Quoted content toggle - Enhanced styling */}
+              {hasQuotedContent && (
+                <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setShowQuotedContent(!showQuotedContent)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                  >
+                    {showQuotedContent ? (
+                      <ChevronUp className="w-4 h-4 group-hover:translate-y-[-2px] transition-transform" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 group-hover:translate-y-[2px] transition-transform" />
+                    )}
+                    <span className="font-medium">
+                      {showQuotedContent ? 'Hide' : 'Show'} previous messages ({message.quotedBlocks?.length || 0})
+                    </span>
+                  </button>
+                  
+                  {showQuotedContent && (
+                    <div className="mt-4 space-y-3">
+                      {message.quotedBlocks?.map((block, index) => (
+                        <div 
+                          key={index}
+                          className="relative pl-5 border-l-3 border-muted-foreground/30 bg-muted/20 p-4 rounded-r-lg hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-muted-foreground/40 to-muted-foreground/10 rounded-l-lg" />
+                          <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                            {block.kind === 'gmail' ? 'Previous email' : 'Quoted reply'}
+                          </div>
+                          <div 
+                            className="prose prose-sm max-w-none text-foreground/80 [&_*]:text-foreground/80"
+                            dangerouslySetInnerHTML={{ __html: block.raw }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Dev probe */}
+              <MessageDebugProbe message={message} />
+            </div>
+          </CollapsibleContent>
+        </div>
       </Collapsible>
     </div>
   );
