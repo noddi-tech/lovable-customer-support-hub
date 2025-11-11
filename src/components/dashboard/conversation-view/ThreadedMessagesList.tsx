@@ -3,6 +3,7 @@ import { ThreadNode } from "@/types/threading";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface ThreadedMessagesListProps {
   threadTree: ThreadNode[];
@@ -27,10 +28,18 @@ export const ThreadedMessagesList = ({
     const isCollapsed = collapsedThreads.has(node.message.id);
     const hasChildren = node.children.length > 0;
     
+    // Determine message author type
+    const isAgent = node.message.authorType === 'agent' || 
+                    node.message.from?.email?.endsWith('@noddi.no') ||
+                    node.message.from?.email?.includes('@noddi.tech');
+    
     // Calculate visual depth (capped at maxDepth)
     const visualDepth = Math.min(actualDepth, maxDepth);
     const indentWidth = 24; // pixels per level
     const marginLeft = visualDepth * indentWidth;
+    
+    // Thread line colors based on message type
+    const threadLineColor = isAgent ? 'bg-blue-300 dark:bg-blue-700' : 'bg-amber-300 dark:bg-amber-700';
     
     return (
       <div key={node.message.dedupKey || node.message.id}>
@@ -38,17 +47,17 @@ export const ThreadedMessagesList = ({
           className="relative"
           style={{ marginLeft: `${marginLeft}px` }}
         >
-          {/* Thread connection lines */}
+          {/* Thread connection lines with type-based colors */}
           {visualDepth > 0 && (
             <>
               {/* Vertical line from parent */}
               <div 
-                className="absolute left-0 top-0 bottom-0 w-[2px] bg-border"
+                className={cn("absolute left-0 top-0 bottom-0 w-[2px]", threadLineColor)}
                 style={{ left: `-${indentWidth / 2}px` }}
               />
               {/* Horizontal line to message */}
               <div 
-                className="absolute top-8 left-0 w-[12px] h-[2px] bg-border"
+                className={cn("absolute top-8 left-0 w-[12px] h-[2px]", threadLineColor)}
                 style={{ left: `-${indentWidth / 2}px` }}
               />
             </>

@@ -48,29 +48,32 @@ function formatList(list: Addr[] = [], max = 3) {
   return { shown, extra };
 }
 
-// tone per direction (authorType) - Pure white cards with colored accent bars
-function tone(authorType: 'agent' | 'customer' | 'system' = 'customer') {
+// Message styling based on author type - HelpScout inspired
+function getMessageStyle(authorType: 'agent' | 'customer' | 'system' = 'customer') {
   if (authorType === 'agent') {
     return {
-      accentBar: 'bg-emerald-500',
-      border: 'border-gray-200',
-      bg: 'bg-white',
-      chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+      border: 'border-l-4 border-blue-500 dark:border-blue-600',
+      bg: 'bg-blue-50/20 dark:bg-blue-950/20 hover:bg-blue-50/30',
+      avatarRing: 'ring-2 ring-blue-200 dark:ring-blue-800',
+      label: 'You',
+      labelBadge: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     };
   }
   if (authorType === 'customer') {
     return {
-      accentBar: 'bg-indigo-500',
-      border: 'border-gray-200',
-      bg: 'bg-white',
-      chip: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
+      border: 'border-l-4 border-amber-400 dark:border-amber-600',
+      bg: 'bg-amber-50/20 dark:bg-amber-950/20 hover:bg-amber-50/30',
+      avatarRing: 'ring-2 ring-amber-200 dark:ring-amber-800',
+      label: 'Customer',
+      labelBadge: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
     };
   }
   return {
-    accentBar: 'bg-slate-400',
-    border: 'border-gray-200',
-    bg: 'bg-white',
-    chip: 'bg-slate-50 text-slate-800 ring-slate-200',
+    border: 'border-l-4 border-gray-400',
+    bg: 'bg-gray-50/20 hover:bg-gray-50/30',
+    avatarRing: 'ring-2 ring-gray-200',
+    label: 'System',
+    labelBadge: 'bg-gray-100 text-gray-800',
   };
 }
 
@@ -140,8 +143,9 @@ export const MessageCard = ({
   const { shown: toShown, extra: toExtra } = formatList(message.to, 3);
   const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2);
 
-  // Get theme tone
-  const tne = tone(message.authorType);
+  // Get message styling based on author type
+  const messageStyle = getMessageStyle(message.authorType);
+  const isAgent = message.authorType === 'agent';
 
   const handleEdit = () => {
     if (onEdit) {
@@ -176,59 +180,73 @@ export const MessageCard = ({
     <div 
       data-message-id={message.id}
       data-author-type={message.authorType || 'unknown'}
-      data-is-customer={isCustomer()}
       className={cn(
         "group relative rounded-lg border transition-all duration-200",
-        "bg-white dark:bg-gray-900/50",
-        "border-gray-200 dark:border-gray-800",
-        "hover:border-gray-300 dark:hover:border-gray-700",
-        isCustomer() && "border-l-indigo-400 dark:border-l-indigo-500"
-      )}>
-      <div className={cn(
-        "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg transition-all duration-200",
-        isCustomer() 
-          ? "bg-indigo-500" 
-          : "bg-gray-400 dark:bg-gray-600"
-      )} />
+        messageStyle.bg,
+        messageStyle.border,
+        "border-y border-r border-gray-200 dark:border-gray-800",
+        "hover:border-gray-300 dark:hover:border-gray-700"
+      )}
+      aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
+    >
       
       <Collapsible open={!isCollapsed} onOpenChange={(open) => setIsCollapsed(!open)}>
         {/* Card Header - improved spacing */}
         <div className={cn("px-8 py-5", !isCollapsed && "border-b border-gray-100 dark:border-gray-800")}>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-5 min-w-0 flex-1">
-              <Avatar className="h-10 w-10 ring-1 ring-gray-200 dark:ring-gray-700 shrink-0">
-                <AvatarFallback className="text-sm font-medium">
-                  {initial}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-3 mb-1.5">
-                  <span className="font-semibold text-base leading-tight">
-                    {display}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
-                  </span>
-                  
-                  {message.originalMessage?.is_internal && (
-                    <Badge variant="outline" className="text-xs">
-                      <Lock className="w-3 h-3 mr-1" />
-                      Internal
-                    </Badge>
-                  )}
-                  
-                   {attachments.length > 0 && (
-                     <Badge variant="outline" className="text-xs">
-                       <Paperclip className="w-3 h-3 mr-1" />
-                       {attachments.length}
-                     </Badge>
-                   )}
-                </div>
+          <div className={cn(
+            "flex items-start gap-5",
+            isAgent && "md:flex-row-reverse"
+          )}>
+            {/* Avatar */}
+            <Avatar className={cn("h-10 w-10 shrink-0", messageStyle.avatarRing)}>
+              <AvatarFallback className="text-sm font-medium">
+                {initial}
+              </AvatarFallback>
+            </Avatar>
+            
+            {/* Content area */}
+            <div className={cn(
+              "min-w-0 flex-1",
+              isAgent && "md:text-right"
+            )}>
+              <div className={cn(
+                "flex flex-wrap items-center gap-3 mb-1.5",
+                isAgent && "md:justify-end"
+              )}>
+                <span className="font-semibold text-base leading-tight">
+                  {display}
+                </span>
+                
+                {/* Author type badge */}
+                <Badge className={cn("text-xs", messageStyle.labelBadge)}>
+                  {messageStyle.label}
+                </Badge>
+                
+                <span className="text-sm text-muted-foreground">
+                  {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
+                </span>
+                
+                {message.originalMessage?.is_internal && (
+                  <Badge variant="outline" className="text-xs">
+                    <Lock className="w-3 h-3 mr-1" />
+                    Internal
+                  </Badge>
+                )}
+                
+                 {attachments.length > 0 && (
+                   <Badge variant="outline" className="text-xs">
+                     <Paperclip className="w-3 h-3 mr-1" />
+                     {attachments.length}
+                   </Badge>
+                 )}
+              </div>
 
-                {/* Recipients chips - better spacing */}
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="text-muted-foreground font-medium">{t('mail.to') || 'To:'}</span>
+              {/* Recipients chips - better spacing */}
+              <div className={cn(
+                "mt-3 flex flex-wrap items-center gap-2 text-xs",
+                isAgent && "md:justify-end"
+              )}>
+                <span className="text-muted-foreground font-medium">{t('mail.to') || 'To:'}</span>
                   {toShown.length > 0 && toShown.map((name) => (
                     <Badge
                       key={`to-${name}`}
@@ -268,46 +286,55 @@ export const MessageCard = ({
                           +{ccExtra} {t('mail.more') || 'more'}
                         </button>
                       )}
-                     </>
-                   )}
-                 </div>
-
-                 {/* Full recipients list when expanded */}
-                 {showAllRecipients && (
-                   <div className="mt-1 space-x-1 text-xs text-muted-foreground">
-                     <span className="font-medium">{t('mail.to') || 'to'}:</span>{' '}
-                     {(message.to ?? []).map(a => a.name || a.email || '').filter(Boolean).join(', ')}
-                     {message.cc?.length ? (
-                       <>
-                         {' · '}
-                         <span className="font-medium">{t('mail.cc') || 'cc'}:</span>{' '}
-                         {message.cc.map(a => a.name || a.email || '').filter(Boolean).join(', ')}
-                       </>
-                     ) : null}
-                   </div>
-                 )}
-                
-                 {/* Subject and preview when collapsed - enhanced layout */}
-                {isCollapsed && (
-                  <div className="mt-3 space-y-1.5">
-                    {message.subject && (
-                      <p className="text-sm font-semibold text-foreground leading-tight">
-                        {message.subject}
-                      </p>
-                    )}
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                      {previewText}
-                    </p>
-                    {hasQuotedContent && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>• Thread</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    </>
+                  )}
               </div>
+
+              {/* Full recipients list when expanded */}
+              {showAllRecipients && (
+                <div className={cn(
+                  "mt-1 space-x-1 text-xs text-muted-foreground",
+                  isAgent && "md:text-right"
+                )}>
+                  <span className="font-medium">{t('mail.to') || 'to'}:</span>{' '}
+                  {(message.to ?? []).map(a => a.name || a.email || '').filter(Boolean).join(', ')}
+                  {message.cc?.length ? (
+                    <>
+                      {' · '}
+                      <span className="font-medium">{t('mail.cc') || 'cc'}:</span>{' '}
+                      {message.cc.map(a => a.name || a.email || '').filter(Boolean).join(', ')}
+                    </>
+                  ) : null}
+                </div>
+              )}
+              
+              {/* Subject and preview when collapsed - enhanced layout */}
+              {isCollapsed && (
+                <div className={cn(
+                  "mt-3 space-y-1.5",
+                  isAgent && "md:text-right"
+                )}>
+                  {message.subject && (
+                    <p className="text-sm font-semibold text-foreground leading-tight">
+                      {message.subject}
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                    {previewText}
+                  </p>
+                  {hasQuotedContent && (
+                    <div className={cn(
+                      "flex items-center gap-2 text-xs text-muted-foreground",
+                      isAgent && "md:justify-end"
+                    )}>
+                      <span>• Thread</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
+            {/* Actions - always on far right */}
             <div className="flex items-center space-x-1 shrink-0">
               {/* Copy Button - visible on hover */}
               <Button 
