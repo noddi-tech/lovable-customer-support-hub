@@ -310,7 +310,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none [&_p]:my-0.5 [&_ul]:my-0.5 [&_ol]:my-0.5 [&_div]:my-0 [&_h1]:my-1 [&_h2]:my-1 [&_h3]:my-1 [&_blockquote]:my-1"
+          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none [&_p]:my-0.5 [&_ul]:my-0.5 [&_ol]:my-0.5 [&_div]:my-0 [&_h1]:my-1 [&_h2]:my-1 [&_h3]:my-1 [&_blockquote]:my-1 [&_br]:leading-none"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       );
@@ -328,7 +328,7 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none [&_p]:my-0.5 [&_ul]:my-0.5 [&_ol]:my-0.5 [&_div]:my-0"
+          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none [&_p]:my-0.5 [&_ul]:my-0.5 [&_ol]:my-0.5 [&_div]:my-0 [&_br]:leading-none"
           dangerouslySetInnerHTML={{ __html: formattedHtml }}
         />
       );
