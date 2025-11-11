@@ -17,6 +17,8 @@ const CollapsibleContent = React.forwardRef<
       "[.disable-animation_&]:!transition-none",
       "[.disable-animation_&]:!duration-[0ms]",
       "[.disable-animation_&]:!animate-none",
+      "[.disable-animation_&]:!h-auto",
+      "[.disable-animation_&[data-state=closed]]:!hidden",
       className
     )}
     {...props}

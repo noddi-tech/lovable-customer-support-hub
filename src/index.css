@@ -362,6 +362,16 @@ Optimized for accessibility with WCAG AA compliance.
   .disable-animation [data-state="closed"] {
     animation: none !important;
     transition: none !important;
+    /* Force immediate display changes - bypass all animations */
+    height: auto !important;
+    opacity: 1 !important;
+  }
+
+  /* Hide closed content immediately during bulk operations */
+  .disable-animation [data-state="closed"] {
+    display: none !important;
+    height: 0 !important;
+    opacity: 0 !important;
   }
 
   @keyframes accordion-down {
