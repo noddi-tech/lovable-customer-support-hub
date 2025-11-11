@@ -599,25 +599,14 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     
     if (trimmed.length === 0) {
       consecutiveEmptyLines++;
-      
-      // Close current paragraph on first empty line
-      if (consecutiveEmptyLines === 1 && currentParagraph.length > 0) {
-        // Check if there's another empty line following (double line break)
-        const hasExtraSpacing = i + 1 < textLines.length && textLines[i + 1].trim().length === 0;
-        const className = hasExtraSpacing ? ' class="mb-extra"' : '';
-        paragraphs.push(`<p${className}>${currentParagraph.join('<br/>')}</p>`);
-        currentParagraph = [];
-      }
     } else {
+      // Each non-empty line becomes its own paragraph
+      // Check if previous line(s) were empty to add extra spacing
+      const hasExtraSpacing = consecutiveEmptyLines >= 2;
+      const className = hasExtraSpacing ? ' class="mt-extra"' : '';
+      paragraphs.push(`<p${className}>${trimmed}</p>`);
       consecutiveEmptyLines = 0;
-      // Non-empty line - add to current paragraph
-      currentParagraph.push(trimmed);
     }
-  }
-
-  // Don't forget the last paragraph
-  if (currentParagraph.length > 0) {
-    paragraphs.push(`<p>${currentParagraph.join('<br/>')}</p>`);
   }
 
   // Detect and separate signature from content
