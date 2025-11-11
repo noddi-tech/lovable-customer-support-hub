@@ -365,7 +365,7 @@ export const MessageCard = ({
         <div 
           className={cn(
             "pl-[92px] pr-8 transition-all duration-200",
-            isCollapsed ? "pb-5 opacity-100" : "pb-0 opacity-0 h-0 overflow-hidden"
+            isCollapsed ? "pb-5 opacity-100" : "pb-0 opacity-0 overflow-hidden"
           )}
         >
           <div className="space-y-1.5">
