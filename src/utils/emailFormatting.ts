@@ -5,6 +5,7 @@ import { convertShortcodesToEmojis } from './emojiUtils';
 import { formatPlainTextEmail } from './plainTextEmailFormatter';
 import { createPlaceholder, rewriteImageSources } from './imageAssetHandler';
 import { parseQuotedEmail } from '@/lib/parseQuotedEmail';
+import { logger } from '@/utils/logger';
 
 export interface EmailAttachment {
   filename: string;
@@ -42,36 +43,44 @@ const buildAssetIndexes = (attachments: EmailAttachment[]) => {
   const byContentId = new Map<string, AssetInfo>();
   const byContentLocation = new Map<string, AssetInfo>();
   
-  console.log('[EmailFormatting] Building asset indexes from attachments:', attachments);
+  const callStack = new Error().stack?.split('\n').slice(2, 4).join(' | ') || 'unknown';
+  logger.debug('Building asset indexes from attachments', { 
+    attachmentsCount: attachments.length,
+    callStack
+  }, 'EmailFormatting');
   
   attachments.forEach((attachment, index) => {
     const assetInfo: AssetInfo = { attachment };
     
-    console.log(`[EmailFormatting] Processing attachment ${index}:`, {
+    logger.debug(`Processing attachment ${index}`, {
       filename: attachment.filename,
       contentId: attachment.contentId,
       contentLocation: attachment.contentLocation,
       isInline: attachment.isInline,
       mimeType: attachment.mimeType
-    });
+    }, 'EmailFormatting');
     
     if (attachment.contentId) {
       const normalizedCid = normalizeCid(attachment.contentId);
-      console.log(`[EmailFormatting] Adding to byContentId: "${normalizedCid}" ->`, attachment.filename);
+      logger.debug(`Adding to byContentId: "${normalizedCid}"`, { 
+        filename: attachment.filename 
+      }, 'EmailFormatting');
       byContentId.set(normalizedCid, assetInfo);
     }
     
     if (attachment.contentLocation) {
       const normalizedLocation = normalizeContentLocation(attachment.contentLocation);
-      console.log(`[EmailFormatting] Adding to byContentLocation: "${normalizedLocation}" ->`, attachment.filename);
+      logger.debug(`Adding to byContentLocation: "${normalizedLocation}"`, { 
+        filename: attachment.filename 
+      }, 'EmailFormatting');
       byContentLocation.set(normalizedLocation, assetInfo);
     }
   });
   
-  console.log('[EmailFormatting] Final asset indexes:', {
-    byContentId: Array.from(byContentId.entries()),
-    byContentLocation: Array.from(byContentLocation.entries())
-  });
+  logger.debug('Final asset indexes', {
+    byContentIdCount: byContentId.size,
+    byContentLocationCount: byContentLocation.size
+  }, 'EmailFormatting');
   
   return { byContentId, byContentLocation };
 };
@@ -86,17 +95,26 @@ export const sanitizeEmailHTML = (
   messageId?: string
 ): string => {
   // STEP 1: Parse quoted email to strip <pre> wrappers and decode HTML entities
-  console.log('[sanitizeEmailHTML] Parsing quoted email structure...');
+  const callStack = new Error().stack?.split('\n').slice(2, 4).join(' | ') || 'unknown';
+  logger.time('parseQuotedEmail', 'EmailFormatting');
+  logger.debug('Parsing quoted email structure', { 
+    messageId,
+    contentLength: htmlContent.length,
+    callStack
+  }, 'EmailFormatting');
+  
   const parsed = parseQuotedEmail({
     content: htmlContent,
     contentType: 'text/html' // Force HTML processing to trigger stripEmailClientWrappers
   });
   
-  console.log('[sanitizeEmailHTML] Parsed result:', {
+  logger.timeEnd('parseQuotedEmail', 'EmailFormatting');
+  logger.debug('Parsed result', {
     originalLength: htmlContent.length,
     visibleLength: parsed.visibleContent.length,
-    quotedBlocks: parsed.quotedBlocks.length
-  });
+    quotedBlocks: parsed.quotedBlocks.length,
+    messageId
+  }, 'EmailFormatting');
   
   // Use the visible content (with <pre> wrappers removed and entities decoded)
   let processedContent = parsed.visibleContent || htmlContent;

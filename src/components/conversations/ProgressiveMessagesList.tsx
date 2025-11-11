@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { LazyReplyArea } from "./LazyReplyArea";
+import { logger } from "@/utils/logger";
 
 interface ProgressiveMessagesListProps {
   conversationId: string;
@@ -72,14 +73,38 @@ export const ProgressiveMessagesList = ({
     error
   } = useThreadMessagesList(fetchIds, normalizationCtx);
 
+  // Track renders
+  const renderCount = useRef(0);
+  useEffect(() => {
+    renderCount.current++;
+    logger.debug(`ProgressiveMessagesList render #${renderCount.current}`, {
+      messagesCount: messages.length,
+      collapsedCount: collapsedMessageIds.size,
+      isBulkToggling,
+      showJumpToLatest
+    }, 'ProgressiveMessagesList');
+  });
+
   // Stabilize dependency to prevent infinite loop
   const messageKeys = useMemo(
-    () => messages.map(m => m.dedupKey || m.id).join(','),
+    () => {
+      const keys = messages.map(m => m.dedupKey || m.id).join(',');
+      logger.debug('Message keys calculated', { 
+        keysLength: keys.length, 
+        messagesCount: messages.length 
+      }, 'ProgressiveMessagesList');
+      return keys;
+    },
     [messages]
   );
 
   // Initialize collapsed state - collapse all messages except the LAST one (newest)
   useEffect(() => {
+    logger.debug('Initializing collapsed state', { 
+      messageKeysLength: messageKeys.length,
+      messagesCount: messages.length 
+    }, 'ProgressiveMessagesList');
+    
     const idsToCollapse = new Set<string>();
     messages.forEach((msg, index) => {
       // Collapse all except the first message (which is newest in DESC order)
@@ -88,7 +113,7 @@ export const ProgressiveMessagesList = ({
       }
     });
     setCollapsedMessageIds(idsToCollapse);
-  }, [messageKeys]);
+  }, [messageKeys, messages]);
 
   // Auto-scroll to bottom when messages change (for new messages)
   useEffect(() => {

@@ -12,6 +12,13 @@ export function useThreadMessagesList(conversationIds?: string | string[], conte
 
   // Memoize expensive processing to prevent re-running on every render
   const messages = useMemo(() => {
+    logger.time('useThreadMessagesList processing', 'useThreadMessagesList');
+    logger.debug('useMemo RUNNING - processing messages', { 
+      pagesCount: pages.length,
+      hasContext: !!context,
+      contextRef: context ? 'has context' : 'no context'
+    }, 'useThreadMessagesList');
+    
     const raw = pages.flatMap(p => p.rows);
 
     // Dedup strictly by Message-ID/external_id/db id – normalizeMessage should supply dedupKey
@@ -51,11 +58,18 @@ export function useThreadMessagesList(conversationIds?: string | string[], conte
     }, 'Thread');
 
     // Sort by creation time (newest first)
-    return expandedMessages.sort((a,b) => {
+    const sorted = expandedMessages.sort((a,b) => {
       const ta = +new Date(a.createdAt);
       const tb = +new Date(b.createdAt);
       return tb - ta; // newest first
     });
+    
+    logger.timeEnd('useThreadMessagesList processing', 'useThreadMessagesList');
+    logger.debug('useMemo COMPLETE', { 
+      resultCount: sorted.length 
+    }, 'useThreadMessagesList');
+    
+    return sorted;
   }, [pages, context]); // Only re-run when pages data changes
 
   const totalCount = pages[0]?.totalCount ?? 0;

@@ -2,6 +2,8 @@
 // Returns the content that should be shown in the card (visibleContent)
 // and a list of quoted blocks (for optional "Show quoted history")
 
+import { logger } from '@/utils/logger';
+
 // Feature flag: Enable thread extraction - expand quoted messages into separate cards
 export const ENABLE_QUOTED_EXTRACTION = true; // Thread view enabled - splits replies into separate cards // Set to true to enable thread view
 
@@ -129,7 +131,9 @@ export function decodeHTMLEntities(html: string): string {
  * Strip email client wrapper elements (like <pre> tags) that wrap entire content
  */
 function stripEmailClientWrappers(body: HTMLElement): void {
-  console.log('[stripEmailClientWrappers] Starting - body children:', body.children.length);
+  logger.debug('stripEmailClientWrappers Starting', { 
+    bodyChildrenCount: body.children.length 
+  }, 'parseQuotedEmail');
   
   // Check if the entire body is wrapped in a single <pre> or <div>
   const children = Array.from(body.children);
@@ -139,23 +143,23 @@ function stripEmailClientWrappers(body: HTMLElement): void {
     const onlyChild = children[0];
     
     if (onlyChild.tagName === 'PRE' && !onlyChild.querySelector('code')) {
-      console.log('[stripEmailClientWrappers] Unwrapping single PRE wrapper');
+      logger.debug('Unwrapping single PRE wrapper', {}, 'parseQuotedEmail');
       // Just unwrap - content is already decoded by extractFromHtml
       body.innerHTML = onlyChild.innerHTML;
       
     } else if (onlyChild.tagName === 'DIV' && onlyChild.childElementCount === 0 && onlyChild.textContent) {
-      console.log('[stripEmailClientWrappers] Unwrapping single DIV wrapper');
+      logger.debug('Unwrapping single DIV wrapper', {}, 'parseQuotedEmail');
       body.innerHTML = onlyChild.innerHTML;
     }
   }
   
   // Handle all <pre> elements that don't contain <code> (email client formatting)
   const preElements = Array.from(body.querySelectorAll('pre'));
-  console.log('[stripEmailClientWrappers] Found pre elements:', preElements.length);
+  logger.debug('Found pre elements', { count: preElements.length }, 'parseQuotedEmail');
   
   preElements.forEach((pre, index) => {
     const hasCodeChild = pre.querySelector('code') !== null;
-    console.log(`[stripEmailClientWrappers] Pre element ${index}: hasCode=${hasCodeChild}`);
+    logger.debug(`Pre element ${index}`, { hasCode: hasCodeChild }, 'parseQuotedEmail');
     
     if (!hasCodeChild) {
       // Just unwrap - content is already decoded by extractFromHtml
@@ -164,11 +168,13 @@ function stripEmailClientWrappers(body: HTMLElement): void {
       div.style.whiteSpace = 'pre-wrap';
       div.className = 'email-client-content';
       pre.replaceWith(div);
-      console.log(`[stripEmailClientWrappers] Replaced pre ${index} with div`);
+      logger.debug(`Replaced pre ${index} with div`, {}, 'parseQuotedEmail');
     }
   });
   
-  console.log('[stripEmailClientWrappers] Complete - body children:', body.children.length);
+  logger.debug('stripEmailClientWrappers Complete', { 
+    bodyChildrenCount: body.children.length 
+  }, 'parseQuotedEmail');
 }
 
 /**
@@ -365,8 +371,10 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   // CRITICAL FIX: Decode HTML entities FIRST, before any DOM operations
   // This handles &lt;br/&gt; → <br/>, &gt; → >, etc.
   const decodedHtml = decodeHTMLEntities(html);
-  console.log('[extractFromHtml] Decoded entities. Original preview:', html.substring(0, 100));
-  console.log('[extractFromHtml] Decoded preview:', decodedHtml.substring(0, 100));
+  logger.debug('Decoded entities', { 
+    originalPreview: html.substring(0, 100),
+    decodedPreview: decodedHtml.substring(0, 100)
+  }, 'extractFromHtml');
   
   const doc = htmlToDocument(stripHtmlComments(decodedHtml));
   const body = doc.body;
@@ -384,7 +392,7 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     ...Array.from(body.querySelectorAll('hr[style*="width:98"]'))
   ].filter(Boolean);
 
-  console.log('[parseQuotedEmail] Found Outlook separators:', outlookSeparators.length);
+  logger.debug('Found Outlook separators', { count: outlookSeparators.length }, 'parseQuotedEmail');
 
   if (outlookSeparators.length > 0) {
     // Sort separators by DOM position to find the TRUE first separator
@@ -395,7 +403,9 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     
     const firstSeparator = sortedSeparators[0] as Element;
     
-    console.log('[parseQuotedEmail] First separator:', (firstSeparator as HTMLElement).id || firstSeparator.tagName);
+    logger.debug('First separator', { 
+      id: (firstSeparator as HTMLElement).id || firstSeparator.tagName 
+    }, 'parseQuotedEmail');
     
     // Collect everything AFTER the separator as quoted content
     let quotedHTML = '';
@@ -419,7 +429,9 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
       currentNode = next;
     }
     
-    console.log('[parseQuotedEmail] Removed separator and collected quoted HTML:', quotedHTML.length, 'chars');
+    logger.debug('Removed separator and collected quoted HTML', { 
+      quotedHTMLLength: quotedHTML.length 
+    }, 'parseQuotedEmail');
     
     if (quotedHTML.trim()) {
       quoted.push({ kind: 'outlook', raw: quotedHTML });

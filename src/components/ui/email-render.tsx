@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, Suspense, lazy, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, Suspense, lazy, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp, Download, Eye, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -92,6 +92,25 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [imageProcessingComplete, setImageProcessingComplete] = useState(false);
+  
+  // Track renders
+  const renderCount = useRef(0);
+  const prevAttachmentsRef = useRef(attachments);
+  
+  useEffect(() => {
+    renderCount.current++;
+    const attachmentsChanged = prevAttachmentsRef.current !== attachments;
+    
+    logger.debug(`EmailRender render #${renderCount.current}`, {
+      messageId: messageId?.slice(-8),
+      contentLength: content.length,
+      attachmentsCount: attachments.length,
+      attachmentsChanged,
+      attachmentsReference: attachments.length > 0 ? 'array ref' : 'empty'
+    }, 'EmailRender');
+    
+    prevAttachmentsRef.current = attachments;
+  });
   const isHTML = useMemo(() => {
     // Check content type first
     if (contentType.toLowerCase().includes('html')) return true;
@@ -112,11 +131,13 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
   }, [content, contentType]);
 
   const processedContent = useMemo(() => {
-    logger.debug('Processing email content', { 
-      messageId, 
+    logger.time('processedContent', 'EmailRender');
+    logger.debug('Processing email content - MEMO RUNNING', { 
+      messageId: messageId?.slice(-8), 
       contentType, 
       isHTML, 
-      attachmentsCount: attachments.length 
+      attachmentsCount: attachments.length,
+      attachmentsRef: attachments.length > 0 ? 'has attachments' : 'no attachments'
     }, 'EmailRender');
     
     let normalized = fixEncodingIssues(content);
@@ -125,21 +146,25 @@ export const EmailRender: React.FC<EmailRenderProps> = ({
     // This handles Gmail/Outlook sending &lt;br/&gt; in plain text emails
     logger.debug('Content entity decoding', { 
       before: normalized.substring(0, 100),
-      messageId 
+      messageId: messageId?.slice(-8)
     }, 'EmailRender');
     normalized = decodeHTMLEntities(normalized);
     logger.debug('Content decoded', { 
       after: normalized.substring(0, 100),
-      messageId 
+      messageId: messageId?.slice(-8)
     }, 'EmailRender');
     
+    let result;
     if (isHTML) {
       const alreadyWrapped = /class=\"email-render\"/.test(normalized);
-      return alreadyWrapped ? normalized : sanitizeEmailHTML(normalized, attachments, true, messageId);
+      result = alreadyWrapped ? normalized : sanitizeEmailHTML(normalized, attachments, true, messageId);
     } else {
       // For plain text, format the decoded content (converts <br/> to newlines)
-      return formatPlainTextEmail(normalized);
+      result = formatPlainTextEmail(normalized);
     }
+    
+    logger.timeEnd('processedContent', 'EmailRender');
+    return result;
   }, [content, isHTML, attachments, messageId, contentType]);
 
   const contentWithCollapsibleSections = useMemo(() => {

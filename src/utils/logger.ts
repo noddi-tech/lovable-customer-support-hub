@@ -179,6 +179,32 @@ class Logger {
   exportLogs(): string {
     return JSON.stringify(this.logs, null, 2);
   }
+
+  // Performance timing methods
+  private timers = new Map<string, number>();
+  
+  time(label: string, component?: string) {
+    const key = `${component || 'global'}:${label}`;
+    this.timers.set(key, performance.now());
+  }
+  
+  timeEnd(label: string, component?: string) {
+    const key = `${component || 'global'}:${label}`;
+    const startTime = this.timers.get(key);
+    if (startTime) {
+      const duration = performance.now() - startTime;
+      this.timers.delete(key);
+      
+      if (duration > 50) {
+        this.warn(`Slow operation: ${label}`, { duration: `${duration.toFixed(2)}ms` }, component);
+      } else {
+        this.debug(`${label} completed`, { duration: `${duration.toFixed(2)}ms` }, component);
+      }
+      
+      return duration;
+    }
+    return null;
+  }
 }
 
 export const logger = new Logger();

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -26,6 +26,7 @@ import { MessageDebugProbe } from "./MessageDebugProbe";
 import { EmailDebugOverlay } from "./EmailDebugOverlay";
 import { stripHtml } from "@/utils/stripHtml";
 import { getSmartPreview } from "@/utils/messagePreview";
+import { logger } from "@/utils/logger";
 
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
@@ -109,21 +110,58 @@ export const MessageCard = ({
   const [showQuotedContent, setShowQuotedContent] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   
+  // Track renders
+  const renderCount = useRef(0);
+  const prevPropsRef = useRef({ defaultCollapsed, disableAnimation });
+  
+  useEffect(() => {
+    renderCount.current++;
+    const propsChanged = 
+      prevPropsRef.current.defaultCollapsed !== defaultCollapsed ||
+      prevPropsRef.current.disableAnimation !== disableAnimation;
+    
+    logger.debug(`MessageCard render #${renderCount.current}`, {
+      messageId: message.id.slice(-8),
+      authorType: message.authorType,
+      isCollapsed,
+      defaultCollapsed,
+      disableAnimation,
+      propsChanged
+    }, 'MessageCard');
+    
+    prevPropsRef.current = { defaultCollapsed, disableAnimation };
+  });
+  
   // Sync with prop changes for expand/collapse all functionality
   useEffect(() => {
+    logger.debug('Syncing collapse state', { 
+      messageId: message.id.slice(-8),
+      defaultCollapsed,
+      wasCollapsed: isCollapsed
+    }, 'MessageCard');
     setIsCollapsed(defaultCollapsed);
-  }, [defaultCollapsed]);
+  }, [defaultCollapsed, message.id, isCollapsed]);
   
   // Show quoted blocks if they exist and feature is enabled
   const hasQuotedContent = message.quotedBlocks && message.quotedBlocks.length > 0;
   
   const isFromCustomer = message.authorType === 'customer';
   
-  // Get attachments from original message
-  const attachments = message.originalMessage?.attachments ? 
-    (typeof message.originalMessage.attachments === 'string' ? 
-      JSON.parse(message.originalMessage.attachments) : 
-      message.originalMessage.attachments) as EmailAttachment[] : [];
+  // Get attachments from original message - memoize to prevent reference changes
+  const attachments = useMemo(() => {
+    const atts = message.originalMessage?.attachments ? 
+      (typeof message.originalMessage.attachments === 'string' ? 
+        JSON.parse(message.originalMessage.attachments) : 
+        message.originalMessage.attachments) as EmailAttachment[] : [];
+    
+    logger.debug('Attachments processed', {
+      messageId: message.id.slice(-8),
+      count: atts.length,
+      reference: atts.length > 0 ? 'new array created' : 'empty array'
+    }, 'MessageCard');
+    
+    return atts;
+  }, [message.originalMessage?.attachments, message.id]);
 
   // Generate smart preview text
   const previewText = getSmartPreview(message.visibleBody, 160);
