@@ -362,25 +362,28 @@ export const MessageCard = ({
         </div>
         
         {/* Collapsed preview - separate container with consistent padding */}
-        {isCollapsed && (
-          <div className="pl-[92px] pr-8 pb-5">
-            <div className="space-y-1.5">
-              {message.subject && (
-                <p className="text-sm font-semibold text-foreground leading-tight">
-                  {message.subject}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                {previewText}
+        <div 
+          className={cn(
+            "pl-[92px] pr-8 transition-all duration-200",
+            isCollapsed ? "pb-5 opacity-100" : "pb-0 opacity-0 h-0 overflow-hidden"
+          )}
+        >
+          <div className="space-y-1.5">
+            {message.subject && (
+              <p className="text-sm font-semibold text-foreground leading-tight">
+                {message.subject}
               </p>
-              {hasQuotedContent && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>• Thread</span>
-                </div>
-              )}
-            </div>
+            )}
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+              {previewText}
+            </p>
+            {hasQuotedContent && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>• Thread</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
         
         <CollapsibleContent>
           <div className="py-4 pr-8 pl-[92px] min-w-0 overflow-hidden">
