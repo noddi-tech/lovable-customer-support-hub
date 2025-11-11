@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useThreadMessages } from "./useThreadMessages";
 import { NormalizationContext, expandQuotedMessagesToCards } from "@/lib/normalizeMessage";
 import { ENABLE_QUOTED_EXTRACTION } from "@/lib/parseQuotedEmail";
@@ -6,51 +7,56 @@ import { logger } from "@/utils/logger";
 export function useThreadMessagesList(conversationIds?: string | string[], context?: NormalizationContext) {
   const q = useThreadMessages(conversationIds);
 
+  // Extract pages for metadata calculations
   const pages = q.data?.pages ?? [];
-  const raw = pages.flatMap(p => p.rows);
 
-  // Dedup strictly by Message-ID/external_id/db id – normalizeMessage should supply dedupKey
-  const seen = new Set<string>();
-  const dedupedMessages = raw.filter(m => {
-    const key = m.dedupKey || m.id;
-    if (seen.has(key)) {
-      logger.debug('Removing duplicate message', {
+  // Memoize expensive processing to prevent re-running on every render
+  const messages = useMemo(() => {
+    const raw = pages.flatMap(p => p.rows);
+
+    // Dedup strictly by Message-ID/external_id/db id – normalizeMessage should supply dedupKey
+    const seen = new Set<string>();
+    const dedupedMessages = raw.filter(m => {
+      const key = m.dedupKey || m.id;
+      if (seen.has(key)) {
+        logger.debug('Removing duplicate message', {
+          key,
+          messageId: m.id,
+          dedupKey: m.dedupKey,
+          subject: m.subject
+        }, 'Dedup');
+        return false;
+      }
+      seen.add(key);
+      logger.debug('Keeping message', {
         key,
         messageId: m.id,
         dedupKey: m.dedupKey,
         subject: m.subject
       }, 'Dedup');
-      return false;
-    }
-    seen.add(key);
-    logger.debug('Keeping message', {
-      key,
-      messageId: m.id,
-      dedupKey: m.dedupKey,
-      subject: m.subject
-    }, 'Dedup');
-    return true;
-  });
+      return true;
+    });
 
-  // Optionally expand quoted messages into separate cards for thread view
-  const expandedMessages = ENABLE_QUOTED_EXTRACTION && context
-    ? expandQuotedMessagesToCards(dedupedMessages, context)
-    : dedupedMessages;
+    // Optionally expand quoted messages into separate cards for thread view
+    const expandedMessages = ENABLE_QUOTED_EXTRACTION && context
+      ? expandQuotedMessagesToCards(dedupedMessages, context)
+      : dedupedMessages;
 
-  logger.debug('Thread expansion stats', {
-    enabled: ENABLE_QUOTED_EXTRACTION,
-    hasContext: !!context,
-    originalCount: dedupedMessages.length,
-    expandedCount: expandedMessages.length,
-    added: expandedMessages.length - dedupedMessages.length
-  }, 'Thread');
+    logger.debug('Thread expansion stats', {
+      enabled: ENABLE_QUOTED_EXTRACTION,
+      hasContext: !!context,
+      originalCount: dedupedMessages.length,
+      expandedCount: expandedMessages.length,
+      added: expandedMessages.length - dedupedMessages.length
+    }, 'Thread');
 
-  // Sort by creation time (newest first)
-  const messages = expandedMessages.sort((a,b) => {
-    const ta = +new Date(a.createdAt);
-    const tb = +new Date(b.createdAt);
-    return tb - ta; // newest first
-  });
+    // Sort by creation time (newest first)
+    return expandedMessages.sort((a,b) => {
+      const ta = +new Date(a.createdAt);
+      const tb = +new Date(b.createdAt);
+      return tb - ta; // newest first
+    });
+  }, [pages, context]); // Only re-run when pages data changes
 
   const totalCount = pages[0]?.totalCount ?? 0;
   const loadedCount = messages.length;

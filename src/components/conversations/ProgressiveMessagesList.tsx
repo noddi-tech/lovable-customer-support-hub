@@ -72,6 +72,12 @@ export const ProgressiveMessagesList = ({
     error
   } = useThreadMessagesList(fetchIds, normalizationCtx);
 
+  // Stabilize dependency to prevent infinite loop
+  const messageKeys = useMemo(
+    () => messages.map(m => m.dedupKey || m.id).join(','),
+    [messages]
+  );
+
   // Initialize collapsed state - collapse all messages except the LAST one (newest)
   useEffect(() => {
     const idsToCollapse = new Set<string>();
@@ -82,7 +88,7 @@ export const ProgressiveMessagesList = ({
       }
     });
     setCollapsedMessageIds(idsToCollapse);
-  }, [messages.map(m => m.dedupKey || m.id).join(',')]);
+  }, [messageKeys]);
 
   // Auto-scroll to bottom when messages change (for new messages)
   useEffect(() => {
@@ -226,7 +232,7 @@ export const ProgressiveMessagesList = ({
     }
     
     // Re-enable animations after state updates settle
-    setTimeout(() => setIsBulkToggling(false), 50);
+    setTimeout(() => setIsBulkToggling(false), 150);
   };
 
   return (
