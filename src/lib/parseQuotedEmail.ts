@@ -325,6 +325,39 @@ function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessa
   };
 }
 
+/**
+ * Detect email signature patterns and separate from content
+ */
+function detectAndSeparateSignature(paragraphs: string[]): { contentHtml: string; signatureHtml: string } {
+  const signaturePatterns = [
+    /^--\s*$/,                    // Standard email signature delimiter
+    /^_{3,}$/,                    // Underscore line
+    /^sent from/i,                // "Sent from my iPhone" etc
+    /^get outlook for/i,          // Outlook mobile signature
+    /^best regards/i,
+    /^kind regards/i,
+    /^regards/i,
+    /^sincerely/i,
+    /^cheers/i,
+    /^thanks/i,
+    /^\+?\d{2,3}[-.\s]?\(?\d/,   // Phone numbers
+  ];
+  
+  // Search from the end for signature patterns
+  for (let i = paragraphs.length - 1; i >= Math.max(0, paragraphs.length - 8); i--) {
+    const text = paragraphs[i].replace(/<[^>]+>/g, '').trim();
+    
+    if (signaturePatterns.some(pattern => pattern.test(text))) {
+      return {
+        contentHtml: paragraphs.slice(0, i).join('\n'),
+        signatureHtml: paragraphs.slice(i).join('\n')
+      };
+    }
+  }
+  
+  return { contentHtml: paragraphs.join('\n'), signatureHtml: '' };
+}
+
 function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
   const quoted: QuotedBlock[] = [];
   const quotedMessages: QuotedMessage[] = [];
@@ -561,20 +594,19 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   let currentParagraph: string[] = [];
   let consecutiveEmptyLines = 0;
 
-  for (const line of textLines) {
-    const trimmed = line.trim();
+  for (let i = 0; i < textLines.length; i++) {
+    const trimmed = textLines[i].trim();
     
     if (trimmed.length === 0) {
       consecutiveEmptyLines++;
       
       // Close current paragraph on first empty line
       if (consecutiveEmptyLines === 1 && currentParagraph.length > 0) {
-        paragraphs.push(`<p>${currentParagraph.join('<br/>')}</p>`);
+        // Check if there's another empty line following (double line break)
+        const hasExtraSpacing = i + 1 < textLines.length && textLines[i + 1].trim().length === 0;
+        const className = hasExtraSpacing ? ' class="mb-extra"' : '';
+        paragraphs.push(`<p${className}>${currentParagraph.join('<br/>')}</p>`);
         currentParagraph = [];
-      }
-      // Add <br/> for each additional empty line (creates visible spacing)
-      else if (consecutiveEmptyLines > 1) {
-        paragraphs.push('<br/>');
       }
     } else {
       consecutiveEmptyLines = 0;
@@ -588,7 +620,11 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     paragraphs.push(`<p>${currentParagraph.join('<br/>')}</p>`);
   }
 
-  const visibleHTML = paragraphs.join('\n');
+  // Detect and separate signature from content
+  const { contentHtml, signatureHtml } = detectAndSeparateSignature(paragraphs);
+  const visibleHTML = signatureHtml 
+    ? `${contentHtml}\n<div class="email-signature">${signatureHtml}</div>`
+    : contentHtml;
   
   console.log('[parseQuotedEmail] Extraction complete:', {
     visibleHTMLLength: visibleHTML.length,
