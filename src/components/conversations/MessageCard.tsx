@@ -418,8 +418,13 @@ const MessageCardComponent = ({
           <div 
             className={cn(
               "absolute top-0 left-0 right-0 pl-[92px] pr-8 pb-5",
-              disableAnimation ? "" : "transition-opacity duration-200",
-              isCollapsed ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
+              // When animation is disabled during bulk operations, force visibility states
+              disableAnimation 
+                ? (isCollapsed ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0 hidden")
+                : cn(
+                    "transition-opacity duration-200",
+                    isCollapsed ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
+                  )
             )}
           >
             <div className="space-y-1.5">

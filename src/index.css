@@ -370,7 +370,18 @@ Optimized for accessibility with WCAG AA compliance.
     will-change: auto !important;
     /* Force immediate display changes - bypass all animations */
     height: auto !important;
+  }
+
+  /* Force immediate visibility for open state */
+  .disable-animation [data-state="open"] {
     opacity: 1 !important;
+  }
+
+  /* Force immediate hiding for closed state */
+  .disable-animation [data-state="closed"] {
+    display: none !important;
+    height: 0 !important;
+    opacity: 0 !important;
   }
 
   /* Hide closed content immediately during bulk operations */
