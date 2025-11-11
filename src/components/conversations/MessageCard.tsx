@@ -221,7 +221,8 @@ const MessageCardComponent = ({
       data-message-id={message.id}
       data-author-type={message.authorType || 'unknown'}
       className={cn(
-        "group relative rounded-lg border transition-all duration-200",
+        "group relative rounded-lg border",
+        !disableAnimation && "transition-all duration-200",
         messageStyle.bg,
         messageStyle.border,
         "border-y border-r border-gray-200 dark:border-gray-800",
