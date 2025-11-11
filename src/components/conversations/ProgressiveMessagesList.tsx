@@ -245,21 +245,26 @@ export const ProgressiveMessagesList = ({
 
   // Toggle all messages collapsed/expanded
   const toggleAllMessages = () => {
-    // Batch all state updates to prevent multiple re-renders
     const newCollapsed = !allCollapsed;
     
+    // CRITICAL: Set bulk toggling flag first
     setIsBulkToggling(true);
-    setAllCollapsed(newCollapsed);
     
-    if (newCollapsed) {
-      const allIds = new Set(messages.map(m => m.dedupKey || m.id));
-      setCollapsedMessageIds(allIds);
-    } else {
-      setCollapsedMessageIds(new Set());
-    }
-    
-    // Re-enable animations after they fully complete
-    setTimeout(() => setIsBulkToggling(false), 300);
+    // Wait for next frame so disable-animation class is in DOM BEFORE state changes
+    requestAnimationFrame(() => {
+      // Now update collapse states - animations are already disabled
+      setAllCollapsed(newCollapsed);
+      
+      if (newCollapsed) {
+        const allIds = new Set(messages.map(m => m.dedupKey || m.id));
+        setCollapsedMessageIds(allIds);
+      } else {
+        setCollapsedMessageIds(new Set());
+      }
+      
+      // Re-enable animations after completion
+      setTimeout(() => setIsBulkToggling(false), 100);
+    });
   };
 
   return (
