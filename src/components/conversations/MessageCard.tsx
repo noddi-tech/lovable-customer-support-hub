@@ -381,7 +381,7 @@ export const MessageCard = ({
         </div>
         
         <CollapsibleContent>
-          <div className="px-8 py-4 min-w-0 overflow-hidden">
+          <div className="py-4 pr-8 pl-[92px] min-w-0 overflow-hidden">
             {/* Main message content */}
             <div className="mt-0">
               <EmailRender
