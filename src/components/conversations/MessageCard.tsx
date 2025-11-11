@@ -232,24 +232,24 @@ const MessageCardComponent = ({
         {/* Card Header - improved spacing */}
         <div className={cn(
           "px-8",
-          effectiveCollapsed ? "py-2" : "py-5"
+          effectiveCollapsed ? "py-1" : "py-5"
         )}>
           <div className={cn(
             "flex items-start",
-            effectiveCollapsed ? "gap-3" : "gap-5",
+            effectiveCollapsed ? "gap-2" : "gap-5",
             isAgent && "md:flex-row-reverse"
           )}>
             {/* Avatar */}
             <Avatar className={cn(
               "shrink-0",
-              effectiveCollapsed ? "h-8 w-8" : "h-10 w-10",
+              effectiveCollapsed ? "h-6 w-6" : "h-10 w-10",
               messageStyle.avatarRing
             )}>
               <AvatarFallback className="text-sm font-medium">
                 {initial}
               </AvatarFallback>
             </Avatar>
-            
+
             {/* Content area - metadata only */}
             <div className="min-w-0 flex-1">
               <div className={cn(
@@ -257,7 +257,10 @@ const MessageCardComponent = ({
                 effectiveCollapsed ? "mb-0" : "mb-1.5",
                 isAgent && "md:justify-end"
               )}>
-                <span className="font-semibold text-base leading-tight">
+                <span className={cn(
+                  "font-semibold leading-tight",
+                  effectiveCollapsed ? "text-sm" : "text-base"
+                )}>
                   {display}
                 </span>
                 
@@ -266,7 +269,10 @@ const MessageCardComponent = ({
                   {messageStyle.label}
                 </Badge>
                 
-                <span className="text-sm text-muted-foreground">
+                <span className={cn(
+                  "text-muted-foreground",
+                  effectiveCollapsed ? "text-xs" : "text-sm"
+                )}>
                   {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
                 </span>
                 
@@ -285,54 +291,56 @@ const MessageCardComponent = ({
                  )}
               </div>
 
-              {/* Recipients chips - better spacing */}
-              <div className={cn(
-                "mt-3 flex flex-wrap items-center gap-2 text-xs",
-                isAgent && "md:justify-end"
-              )}>
-                <span className="text-muted-foreground font-medium">{t('mail.to') || 'To:'}</span>
-                  {toShown.length > 0 && toShown.map((name) => (
-                    <Badge
-                      key={`to-${name}`}
-                      variant="secondary"
-                      className="px-2 py-0.5"
-                    >
-                      {name}
-                    </Badge>
-                  ))}
-                  {toExtra > 0 && !showAllRecipients && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllRecipients(true)}
-                      className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
-                    >
-                      +{toExtra} {t('mail.more') || 'more'}
-                    </button>
-                  )}
-                  {ccShown.length > 0 && (
-                    <>
-                      <span className="ml-2 text-muted-foreground">{t('mail.cc') || 'cc'}</span>
-                      {ccShown.map((name) => (
-                        <Badge
-                          key={`cc-${name}`}
-                          variant="secondary"
-                          className="px-2 py-0.5"
-                        >
-                          {name}
-                        </Badge>
-                      ))}
-                      {ccExtra > 0 && !showAllRecipients && (
-                        <button
-                          type="button"
-                          onClick={() => setShowAllRecipients(true)}
-                          className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
-                        >
-                          +{ccExtra} {t('mail.more') || 'more'}
-                        </button>
-                      )}
-                    </>
-                  )}
-              </div>
+              {/* Recipients chips - only show when expanded */}
+              {!effectiveCollapsed && (
+                <div className={cn(
+                  "mt-3 flex flex-wrap items-center gap-2 text-xs",
+                  isAgent && "md:justify-end"
+                )}>
+                  <span className="text-muted-foreground font-medium">{t('mail.to') || 'To:'}</span>
+                    {toShown.length > 0 && toShown.map((name) => (
+                      <Badge
+                        key={`to-${name}`}
+                        variant="secondary"
+                        className="px-2 py-0.5"
+                      >
+                        {name}
+                      </Badge>
+                    ))}
+                    {toExtra > 0 && !showAllRecipients && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllRecipients(true)}
+                        className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
+                      >
+                        +{toExtra} {t('mail.more') || 'more'}
+                      </button>
+                    )}
+                    {ccShown.length > 0 && (
+                      <>
+                        <span className="ml-2 text-muted-foreground">{t('mail.cc') || 'cc'}</span>
+                        {ccShown.map((name) => (
+                          <Badge
+                            key={`cc-${name}`}
+                            variant="secondary"
+                            className="px-2 py-0.5"
+                          >
+                            {name}
+                          </Badge>
+                        ))}
+                        {ccExtra > 0 && !showAllRecipients && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllRecipients(true)}
+                            className="px-2 py-0.5 rounded-full ring-1 bg-muted text-foreground/80 hover:bg-muted/80 transition-colors"
+                          >
+                            +{ccExtra} {t('mail.more') || 'more'}
+                          </button>
+                        )}
+                      </>
+                    )}
+                </div>
+              )}
 
               {/* Full recipients list when expanded */}
               {showAllRecipients && (
@@ -414,7 +422,7 @@ const MessageCardComponent = ({
         
       {/* Collapsed preview - shown when collapsed */}
       {effectiveCollapsed && (
-        <div className="pl-[92px] pr-8 pb-1 pt-0">
+        <div className="pl-[92px] pr-8">
           <div className="text-xs text-muted-foreground line-clamp-1 leading-tight">
             {previewText}
           </div>
