@@ -225,7 +225,8 @@ const MessageCardComponent = ({
         messageStyle.bg,
         messageStyle.border,
         "border-y border-r border-gray-200 dark:border-gray-800",
-        "hover:border-gray-300 dark:hover:border-gray-700"
+        "hover:border-gray-300 dark:hover:border-gray-700",
+        disableAnimation && "disable-animation"
       )}
       aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
@@ -233,7 +234,6 @@ const MessageCardComponent = ({
         <Collapsible 
           open={!isCollapsed} 
           onOpenChange={(open) => setIsCollapsed(!open)}
-          className={disableAnimation ? "[&>div]:!transition-none [&>div]:!duration-0" : ""}
         >
         {/* Card Header - improved spacing */}
         <div className="px-8 py-5">
