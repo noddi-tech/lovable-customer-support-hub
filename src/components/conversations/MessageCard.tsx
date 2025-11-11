@@ -397,7 +397,7 @@ export const MessageCard = ({
             
             {/* Attachment Rail - Below message content */}
             {!isCollapsed && attachments.length > 0 && (
-              <div className="px-8 pb-5 border-t border-gray-100 dark:border-gray-800">
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                 <div className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-2">
                   <Paperclip className="h-3 w-3" />
                   {attachments.length} {attachments.length === 1 ? 'Attachment' : 'Attachments'}
@@ -431,7 +431,7 @@ export const MessageCard = ({
             
             {/* Quoted content toggle - Enhanced styling */}
             {hasQuotedContent && (
-              <div className="px-8 py-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+              <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setShowQuotedContent(!showQuotedContent)}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
