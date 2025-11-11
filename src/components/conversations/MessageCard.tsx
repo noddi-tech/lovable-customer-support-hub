@@ -160,7 +160,7 @@ const MessageCardComponent = ({
   }, [message.originalMessage?.attachments, message.id]);
 
   // Generate smart preview text
-  const previewText = getSmartPreview(message.visibleBody, 160);
+  const previewText = getSmartPreview(message.visibleBody, 100);
 
   // Use the real author label from normalization
   const display = message.authorLabel;
@@ -403,14 +403,14 @@ const MessageCardComponent = ({
           </div>
         </div>
         
-        {/* Collapsed preview - shown when collapsed */}
-        {effectiveCollapsed && (
-          <div className="pl-[92px] pr-8 pb-5">
-            <div className="text-sm text-muted-foreground line-clamp-3">
-              {previewText}
-            </div>
+      {/* Collapsed preview - shown when collapsed */}
+      {effectiveCollapsed && (
+        <div className="pl-[92px] pr-8 pb-3">
+          <div className="text-sm text-muted-foreground line-clamp-1">
+            {previewText}
           </div>
-        )}
+        </div>
+      )}
 
         {/* Full content - simple CSS collapse */}
         <div className={cn(
