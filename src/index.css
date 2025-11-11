@@ -357,11 +357,17 @@ Optimized for accessibility with WCAG AA compliance.
     animation: accordion-up 0.2s ease-out;
   }
 
+  /* Optimize rendering during bulk operations */
+  .disable-animation * {
+    will-change: auto !important;
+  }
+
   /* DISABLE animations when disable-animation class is present on ancestor */
   .disable-animation [data-state="open"],
   .disable-animation [data-state="closed"] {
     animation: none !important;
     transition: none !important;
+    will-change: auto !important;
     /* Force immediate display changes - bypass all animations */
     height: auto !important;
     opacity: 1 !important;

@@ -134,13 +134,16 @@ const MessageCardComponent = ({
   
   // Sync with prop changes for expand/collapse all functionality
   useEffect(() => {
-    logger.debug('Syncing collapse state', { 
-      messageId: message.id.slice(-8),
-      defaultCollapsed,
-      wasCollapsed: isCollapsed
-    }, 'MessageCard');
-    setIsCollapsed(defaultCollapsed);
-  }, [defaultCollapsed, message.id]);
+    // Only update if actually different to prevent unnecessary re-renders
+    if (isCollapsed !== defaultCollapsed) {
+      logger.debug('Syncing collapse state', { 
+        messageId: message.id.slice(-8),
+        defaultCollapsed,
+        wasCollapsed: isCollapsed
+      }, 'MessageCard');
+      setIsCollapsed(defaultCollapsed);
+    }
+  }, [defaultCollapsed, message.id, isCollapsed]);
   
   // Show quoted blocks if they exist and feature is enabled
   const hasQuotedContent = message.quotedBlocks && message.quotedBlocks.length > 0;

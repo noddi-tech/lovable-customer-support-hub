@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo, startTransition } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageSquare, ChevronUp, ChevronDown, ChevronsDown, ChevronsUp } from "lucide-react";
@@ -247,25 +247,26 @@ export const ProgressiveMessagesList = ({
   const toggleAllMessages = () => {
     const newCollapsed = !allCollapsed;
     
-    // Step 1: Set bulk toggling flag
+    // Step 1: Set bulk toggling flag immediately
     setIsBulkToggling(true);
     
-    // Step 2: Wait for DOM to update with disable-animation class
+    // Step 2: Use startTransition to batch the collapse state updates
     requestAnimationFrame(() => {
-      // Step 3: Wait one MORE frame to ensure CSS is applied
       requestAnimationFrame(() => {
-        // NOW update the collapse states
-        setAllCollapsed(newCollapsed);
+        // Wrap in startTransition to batch all updates
+        startTransition(() => {
+          setAllCollapsed(newCollapsed);
+          
+          if (newCollapsed) {
+            const allIds = new Set(messages.map(m => m.dedupKey || m.id));
+            setCollapsedMessageIds(allIds);
+          } else {
+            setCollapsedMessageIds(new Set());
+          }
+        });
         
-        if (newCollapsed) {
-          const allIds = new Set(messages.map(m => m.dedupKey || m.id));
-          setCollapsedMessageIds(allIds);
-        } else {
-          setCollapsedMessageIds(new Set());
-        }
-        
-        // Re-enable animations after a longer delay
-        setTimeout(() => setIsBulkToggling(false), 200);
+        // Increase timeout to ensure all transitions complete
+        setTimeout(() => setIsBulkToggling(false), 400);
       });
     });
   };
