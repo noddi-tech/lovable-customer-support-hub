@@ -560,8 +560,8 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   const paragraphs: string[] = [];
   let currentParagraph: string[] = [];
 
-  for (let i = 0; i < textLines.length; i++) {
-    const trimmed = textLines[i].trim();
+  for (const line of textLines) {
+    const trimmed = line.trim();
     
     if (trimmed.length === 0) {
       // Empty line - close current paragraph if it has content
@@ -569,11 +569,7 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
         paragraphs.push(`<p>${currentParagraph.join('<br/>')}</p>`);
         currentParagraph = [];
       }
-      // Check if next line is also empty (double line break)
-      if (i + 1 < textLines.length && textLines[i + 1].trim().length === 0) {
-        // Add extra spacing for double line breaks
-        paragraphs.push('<br/>');
-      }
+      // Let paragraph margins handle spacing - no extra <br/> tags
     } else {
       // Non-empty line - add to current paragraph
       currentParagraph.push(trimmed);
