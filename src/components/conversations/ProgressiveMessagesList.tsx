@@ -113,7 +113,7 @@ export const ProgressiveMessagesList = ({
       }
     });
     setCollapsedMessageIds(idsToCollapse);
-  }, [messageKeys, messages]);
+  }, [messageKeys]); // ✅ Only depend on messageKeys for stability
 
   // Auto-scroll to bottom when messages change (for new messages)
   useEffect(() => {
@@ -245,19 +245,21 @@ export const ProgressiveMessagesList = ({
 
   // Toggle all messages collapsed/expanded
   const toggleAllMessages = () => {
-    setIsBulkToggling(true);
+    // Batch all state updates to prevent multiple re-renders
+    const newCollapsed = !allCollapsed;
     
-    if (allCollapsed) {
-      setCollapsedMessageIds(new Set());
-      setAllCollapsed(false);
-    } else {
+    setIsBulkToggling(true);
+    setAllCollapsed(newCollapsed);
+    
+    if (newCollapsed) {
       const allIds = new Set(messages.map(m => m.dedupKey || m.id));
       setCollapsedMessageIds(allIds);
-      setAllCollapsed(true);
+    } else {
+      setCollapsedMessageIds(new Set());
     }
     
-    // Re-enable animations after state updates settle
-    setTimeout(() => setIsBulkToggling(false), 150);
+    // Re-enable animations after they fully complete
+    setTimeout(() => setIsBulkToggling(false), 300);
   };
 
   return (
