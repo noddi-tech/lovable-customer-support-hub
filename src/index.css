@@ -348,69 +348,34 @@ Optimized for accessibility with WCAG AA compliance.
     margin: 0.5em 0;
   }
 
-  /* Smooth collapse/expand transitions */
-  [data-state="open"] {
-    animation: accordion-down 0.2s ease-out;
+  /* Simple CSS-based collapse system - No Radix UI */
+  .message-content {
+    max-height: 5000px;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+    opacity: 1;
   }
 
-  [data-state="closed"] {
-    animation: accordion-up 0.2s ease-out;
+  .message-content.is-collapsed {
+    max-height: 0;
+    opacity: 0;
   }
 
-  /* Optimize rendering during bulk operations */
-  .disable-animation * {
-    will-change: auto !important;
-  }
-
-  /* DISABLE animations when disable-animation class is present on ancestor */
-  .disable-animation [data-state="open"],
-  .disable-animation [data-state="closed"] {
-    animation: none !important;
+  /* Disable ALL animations during bulk operations */
+  .disable-animation .message-content,
+  .disable-animation .message-content.is-collapsed {
     transition: none !important;
-    will-change: auto !important;
-    /* Force immediate display changes - bypass all animations */
-    height: auto !important;
   }
 
-  /* Force immediate visibility for open state */
-  .disable-animation [data-state="open"] {
+  .disable-animation .message-content.is-collapsed {
+    display: none !important;
+    max-height: 0 !important;
+    opacity: 0 !important;
+  }
+
+  .disable-animation .message-content:not(.is-collapsed) {
+    max-height: none !important;
     opacity: 1 !important;
-  }
-
-  /* Force immediate hiding for closed state */
-  .disable-animation [data-state="closed"] {
-    display: none !important;
-    height: 0 !important;
-    opacity: 0 !important;
-  }
-
-  /* Hide closed content immediately during bulk operations */
-  .disable-animation [data-state="closed"] {
-    display: none !important;
-    height: 0 !important;
-    opacity: 0 !important;
-  }
-
-  @keyframes accordion-down {
-    from {
-      height: 0;
-      opacity: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-      opacity: 1;
-    }
-  }
-
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-      opacity: 1;
-    }
-    to {
-      height: 0;
-      opacity: 0;
-    }
   }
 
 }

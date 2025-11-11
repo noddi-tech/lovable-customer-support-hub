@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EmailRender } from "@/components/ui/email-render";
 import { 
   Lock,
@@ -107,7 +106,7 @@ const MessageCardComponent = ({
   const { toast } = useToast();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [showAllRecipients, setShowAllRecipients] = useState(false);
-  const [showQuotedContent, setShowQuotedContent] = useState(false);
+  const [showQuoted, setShowQuoted] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   
   // Track renders
@@ -132,23 +131,12 @@ const MessageCardComponent = ({
     prevPropsRef.current = { defaultCollapsed, disableAnimation };
   });
   
-  // Sync with prop changes for expand/collapse all functionality
+  // Simple sync with prop - only when not in bulk operation
   useEffect(() => {
-    // Don't sync state during bulk operations - we use defaultCollapsed directly via effectiveCollapsed
-    if (disableAnimation) {
-      return;
-    }
-    
-    // Only update if actually different to prevent unnecessary re-renders
-    if (isCollapsed !== defaultCollapsed) {
-      logger.debug('Syncing collapse state', { 
-        messageId: message.id.slice(-8),
-        defaultCollapsed,
-        wasCollapsed: isCollapsed
-      }, 'MessageCard');
+    if (!disableAnimation && isCollapsed !== defaultCollapsed) {
       setIsCollapsed(defaultCollapsed);
     }
-  }, [defaultCollapsed, message.id, disableAnimation, isCollapsed]);
+  }, [defaultCollapsed, disableAnimation]);
   
   // Show quoted blocks if they exist and feature is enabled
   const hasQuotedContent = message.quotedBlocks && message.quotedBlocks.length > 0;
@@ -218,10 +206,13 @@ const MessageCardComponent = ({
     }
   };
 
-  // Helper to detect if message is from customer
-  const isCustomer = () => {
-    const from = (message.from?.email || '').toLowerCase();
-    return !from.endsWith('@noddi.no') && !from.includes('@noddi.tech');
+  // Use defaultCollapsed during bulk operations to prevent double-render
+  const effectiveCollapsed = disableAnimation ? defaultCollapsed : isCollapsed;
+  
+  const handleToggle = () => {
+    if (!disableAnimation) {
+      setIsCollapsed(!isCollapsed);
+    }
   };
 
   return (
@@ -230,7 +221,6 @@ const MessageCardComponent = ({
       data-author-type={message.authorType || 'unknown'}
       className={cn(
         "group relative rounded-lg border",
-        // Removed: wrapper doesn't need transitions, only CollapsibleContent animates
         messageStyle.bg,
         messageStyle.border,
         "border-y border-r border-gray-200 dark:border-gray-800",
@@ -239,16 +229,6 @@ const MessageCardComponent = ({
       )}
       aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
-      {/* Use defaultCollapsed directly during bulk operations to prevent double-render */}
-      <Collapsible 
-        open={!(disableAnimation ? defaultCollapsed : isCollapsed)} 
-        onOpenChange={(open) => {
-          // Only update internal state during individual operations
-          if (!disableAnimation) {
-            setIsCollapsed(!open);
-          }
-        }}
-      >
         {/* Card Header - improved spacing */}
         <div className="px-8 py-5">
           <div className={cn(
@@ -381,16 +361,20 @@ const MessageCardComponent = ({
                 )}
               </Button>
 
-              {/* Expand/Collapse trigger - clearer indicator */}
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  {(disableAnimation ? defaultCollapsed : isCollapsed) ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronUp className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
+              {/* Expand/Collapse trigger - simple button */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={handleToggle}
+                aria-label={effectiveCollapsed ? "Expand message" : "Collapse message"}
+              >
+                {effectiveCollapsed ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+              </Button>
               
               {/* Message Actions */}
               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -419,137 +403,69 @@ const MessageCardComponent = ({
           </div>
         </div>
         
-        {/* Unified content area - reserves space and prevents layout shifts */}
-        <div className={cn(
-          "relative",
-          (disableAnimation ? defaultCollapsed : isCollapsed) ? "min-h-[80px]" : ""
-        )}>
-          {/* Collapsed preview - ALWAYS absolutely positioned for smooth transitions */}
-          <div 
-            className={cn(
-              "absolute top-0 left-0 right-0 pl-[92px] pr-8 pb-5",
-              // When animation is disabled during bulk operations, force visibility states
-              disableAnimation 
-                ? ((disableAnimation ? defaultCollapsed : isCollapsed) ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0 hidden")
-                : cn(
-                    "transition-opacity duration-200",
-                    (disableAnimation ? defaultCollapsed : isCollapsed) ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
-                  )
-            )}
-          >
-            <div className="space-y-1.5">
-              {message.subject && (
-                <p className="text-sm font-semibold text-foreground leading-tight">
-                  {message.subject}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                {previewText}
-              </p>
-              {hasQuotedContent && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>• Thread</span>
-                </div>
-              )}
+        {/* Collapsed preview - shown when collapsed */}
+        {effectiveCollapsed && (
+          <div className="pl-[92px] pr-8 pb-5">
+            <div className="text-sm text-muted-foreground line-clamp-3">
+              {previewText}
             </div>
           </div>
-          
-          {/* Expanded content - takes up space when open */}
-          <CollapsibleContent>
-            <div className="py-4 pr-8 pl-[92px] min-w-0 overflow-hidden">
-              {/* Main message content */}
-              <div className="mt-0">
-                <EmailRender
-                  content={message.visibleBody}
-                  contentType={message.originalMessage?.content_type || 'text/plain'}
-                  attachments={[]}
-                  messageId={message.id}
-                />
-                
-                {/* Debug overlay - only shows when VITE_UI_PROBE=1 */}
-                <EmailDebugOverlay messageId={message.id} />
-              </div>
-              
-              {/* Attachment Rail - Below message content */}
-              {!isCollapsed && attachments.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                  <div className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                    <Paperclip className="h-3 w-3" />
-                    {attachments.length} {attachments.length === 1 ? 'Attachment' : 'Attachments'}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {attachments.map((att, index) => (
-                      <button
-                        key={index}
-                        className="flex items-center gap-2 px-3 py-2 bg-muted/50 hover:bg-muted rounded-lg border border-border transition-colors text-sm group"
-                        onClick={() => {
-                          // Download functionality
-                          const downloadUrl = `/supabase/functions/v1/get-attachment/${att.attachmentId}?messageId=${message.id}&download=true`;
-                          const link = document.createElement('a');
-                          link.href = downloadUrl;
-                          link.download = att.filename;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }}
+        )}
+
+        {/* Full content - simple CSS collapse */}
+        <div className={cn(
+          "message-content pl-[92px] pr-8 pb-8",
+          effectiveCollapsed && "is-collapsed"
+        )}>
+          <div className="space-y-4">
+            {/* Email content */}
+            <EmailRender 
+              content={message.visibleBody || ''} 
+              contentType={message.originalMessage?.content_type || 'text/plain'}
+              attachments={attachments}
+            />
+
+            {/* Toggle quoted content */}
+            {hasQuotedContent && (
+              <div className="mt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowQuoted(!showQuoted)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {showQuoted ? (
+                    <>
+                      <ChevronUp className="h-3 w-3 mr-1" />
+                      Hide quoted text
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3 mr-1" />
+                      Show quoted text
+                    </>
+                  )}
+                </Button>
+
+                {showQuoted && message.quotedBlocks && message.quotedBlocks.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {message.quotedBlocks.map((block, index) => (
+                      <div 
+                        key={index} 
+                        className="pl-4 border-l-2 border-muted-foreground/30 text-sm text-muted-foreground"
                       >
-                        <Paperclip className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        <span className="font-medium">{att.filename}</span>
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({(att.size / 1024).toFixed(1)} KB)
-                        </span>
-                      </button>
+                        <pre className="whitespace-pre-wrap">{block.raw}</pre>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
-              
-              {/* Quoted content toggle - Enhanced styling */}
-              {hasQuotedContent && (
-                <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setShowQuotedContent(!showQuotedContent)}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                  >
-                    {showQuotedContent ? (
-                      <ChevronUp className="w-4 h-4 group-hover:translate-y-[-2px] transition-transform" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 group-hover:translate-y-[2px] transition-transform" />
-                    )}
-                    <span className="font-medium">
-                      {showQuotedContent ? 'Hide' : 'Show'} previous messages ({message.quotedBlocks?.length || 0})
-                    </span>
-                  </button>
-                  
-                  {showQuotedContent && (
-                    <div className="mt-4 space-y-3">
-                      {message.quotedBlocks?.map((block, index) => (
-                        <div 
-                          key={index}
-                          className="relative pl-5 border-l-3 border-muted-foreground/30 bg-muted/20 p-4 rounded-r-lg hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-muted-foreground/40 to-muted-foreground/10 rounded-l-lg" />
-                          <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
-                            {block.kind === 'gmail' ? 'Previous email' : 'Quoted reply'}
-                          </div>
-                          <div 
-                            className="prose prose-sm max-w-none text-foreground/80 [&_*]:text-foreground/80"
-                            dangerouslySetInnerHTML={{ __html: block.raw }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Dev probe */}
-              <MessageDebugProbe message={message} />
-            </div>
-          </CollapsibleContent>
+                )}
+              </div>
+            )}
+
+            {/* Debug probe */}
+            {import.meta.env.VITE_UI_PROBE === '1' && <MessageDebugProbe message={message} />}
+          </div>
         </div>
-      </Collapsible>
     </div>
   );
 };
