@@ -32,8 +32,8 @@ export const ProgressiveMessagesList = ({
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
-  const [collapsedMessageIds, setCollapsedMessageIds] = useState<Set<string>>(new Set());
-  const [allCollapsed, setAllCollapsed] = useState(false);
+  const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
+  const [allExpanded, setAllExpanded] = useState(false);
   const [isBulkToggling, setIsBulkToggling] = useState(false);
   
   // Create conversation-specific normalization context
@@ -79,7 +79,7 @@ export const ProgressiveMessagesList = ({
     renderCount.current++;
     logger.debug(`ProgressiveMessagesList render #${renderCount.current}`, {
       messagesCount: messages.length,
-      collapsedCount: collapsedMessageIds.size,
+      expandedCount: expandedMessageIds.size,
       isBulkToggling,
       showJumpToLatest
     }, 'ProgressiveMessagesList');
@@ -98,21 +98,15 @@ export const ProgressiveMessagesList = ({
     [messages]
   );
 
-  // Initialize collapsed state - collapse all messages except the LAST one (newest)
+  // Initialize expanded state - all messages collapsed by default
   useEffect(() => {
-    logger.debug('Initializing collapsed state', { 
+    logger.debug('Initializing expanded state (all collapsed by default)', { 
       messageKeysLength: messageKeys.length,
       messagesCount: messages.length 
     }, 'ProgressiveMessagesList');
     
-    const idsToCollapse = new Set<string>();
-    messages.forEach((msg, index) => {
-      // Collapse all except the first message (which is newest in DESC order)
-      if (index > 0) {
-        idsToCollapse.add(msg.dedupKey || msg.id);
-      }
-    });
-    setCollapsedMessageIds(idsToCollapse);
+    // Start with empty set = all collapsed
+    setExpandedMessageIds(new Set());
   }, [messageKeys]); // ✅ Only depend on messageKeys for stability
 
   // Auto-scroll to bottom when messages change (for new messages)
@@ -245,19 +239,21 @@ export const ProgressiveMessagesList = ({
 
   // Toggle all messages collapsed/expanded - simplified
   const toggleAllMessages = () => {
-    const newCollapsed = !allCollapsed;
+    const newExpanded = !allExpanded;
     
     // Set bulk toggling flag immediately
     setIsBulkToggling(true);
     
     // Update states directly
-    setAllCollapsed(newCollapsed);
+    setAllExpanded(newExpanded);
     
-    if (newCollapsed) {
+    if (newExpanded) {
+      // Expand all: add all message IDs to the set
       const allIds = new Set(messages.map(m => m.dedupKey || m.id));
-      setCollapsedMessageIds(allIds);
+      setExpandedMessageIds(allIds);
     } else {
-      setCollapsedMessageIds(new Set());
+      // Collapse all: empty set
+      setExpandedMessageIds(new Set());
     }
     
     // Re-enable animations after a brief delay
@@ -273,17 +269,17 @@ export const ProgressiveMessagesList = ({
           size="sm"
           onClick={toggleAllMessages}
           className="shadow-md bg-card hover:bg-accent transition-all duration-200"
-          title={allCollapsed ? "Expand all messages" : "Collapse all messages"}
+          title={allExpanded ? "Collapse all messages" : "Expand all messages"}
         >
-          {allCollapsed ? (
-            <>
-              <ChevronsDown className="h-4 w-4 mr-2" />
-              <span className="text-xs">Expand All</span>
-            </>
-          ) : (
+          {allExpanded ? (
             <>
               <ChevronsUp className="h-4 w-4 mr-2" />
               <span className="text-xs">Collapse All</span>
+            </>
+          ) : (
+            <>
+              <ChevronsDown className="h-4 w-4 mr-2" />
+              <span className="text-xs">Expand All</span>
             </>
           )}
         </Button>
@@ -353,7 +349,7 @@ export const ProgressiveMessagesList = ({
                     message={message}
                     conversation={conversation}
                     isFirstInThread={index === 0}  // First in chronological order (oldest)
-                    defaultCollapsed={collapsedMessageIds.has(message.dedupKey || message.id)}
+                    defaultCollapsed={!expandedMessageIds.has(message.dedupKey || message.id)}
                     disableAnimation={isBulkToggling}
                     onEdit={onEditMessage}
                     onDelete={onDeleteMessage}
