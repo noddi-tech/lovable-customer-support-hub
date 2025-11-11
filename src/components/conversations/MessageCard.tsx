@@ -367,14 +367,17 @@ export const MessageCard = ({
           </div>
         </div>
         
-        {/* Unified content area - prevents layout shifts during animation */}
-        <div className="relative">
-          {/* Collapsed preview - conditionally positioned */}
+        {/* Unified content area - reserves space and prevents layout shifts */}
+        <div className={cn(
+          "relative",
+          isCollapsed ? "min-h-[80px]" : ""
+        )}>
+          {/* Collapsed preview - ALWAYS absolutely positioned for smooth transitions */}
           <div 
             className={cn(
-              "pl-[92px] pr-8",
+              "absolute top-0 left-0 right-0 pl-[92px] pr-8 pb-5",
               disableAnimation ? "" : "transition-opacity duration-200",
-              isCollapsed ? "pb-5 opacity-100 relative" : "absolute opacity-0 pointer-events-none"
+              isCollapsed ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"
             )}
           >
             <div className="space-y-1.5">
