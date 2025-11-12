@@ -263,7 +263,7 @@ export const ProgressiveMessagesList = ({
   return (
     <div className="flex-1 min-h-0 relative">
       {/* Floating action buttons for message management */}
-      <div className="absolute top-4 right-6 z-10 flex gap-2">
+      <div className="absolute top-0 right-6 z-10 flex gap-2">
         <Button
           variant="outline"
           size="sm"
