@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageSquare, ChevronUp, ChevronDown, ChevronsDown, ChevronsUp } from "lucide-react";
@@ -19,13 +19,18 @@ interface ProgressiveMessagesListProps {
   onDeleteMessage?: (messageId: string) => void;
 }
 
-export const ProgressiveMessagesList = ({ 
+export interface ProgressiveMessagesListRef {
+  toggleAllMessages: () => void;
+  allExpanded: boolean;
+}
+
+export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, ProgressiveMessagesListProps>(({ 
   conversationId, 
   conversation,
   conversationIds,
   onEditMessage, 
   onDeleteMessage 
-}: ProgressiveMessagesListProps) => {
+}, ref) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -238,7 +243,7 @@ export const ProgressiveMessagesList = ({
   }
 
   // Toggle all messages collapsed/expanded - simplified
-  const toggleAllMessages = () => {
+  const toggleAllMessages = useCallback(() => {
     const newExpanded = !allExpanded;
     
     // Set bulk toggling flag immediately
@@ -258,32 +263,16 @@ export const ProgressiveMessagesList = ({
     
     // Re-enable animations after a brief delay
     setTimeout(() => setIsBulkToggling(false), 50);
-  };
+  }, [allExpanded, messages]);
+
+  // Expose toggle function to parent via ref
+  useImperativeHandle(ref, () => ({
+    toggleAllMessages,
+    allExpanded
+  }), [toggleAllMessages, allExpanded]);
 
   return (
     <div className="flex-1 min-h-0 relative">
-      {/* Floating action buttons for message management */}
-      <div className="absolute top-0 right-6 z-10 flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleAllMessages}
-          className="shadow-md bg-card hover:bg-accent transition-all duration-200"
-          title={allExpanded ? "Collapse all messages" : "Expand all messages"}
-        >
-          {allExpanded ? (
-            <>
-              <ChevronsUp className="h-4 w-4 mr-2" />
-              <span className="text-xs">Collapse All</span>
-            </>
-          ) : (
-            <>
-              <ChevronsDown className="h-4 w-4 mr-2" />
-              <span className="text-xs">Expand All</span>
-            </>
-          )}
-        </Button>
-      </div>
 
       {/* Sticky "Jump to Latest" Button */}
       {showJumpToLatest && (
@@ -399,4 +388,6 @@ export const ProgressiveMessagesList = ({
       
     </div>
   );
-};
+});
+
+ProgressiveMessagesList.displayName = 'ProgressiveMessagesList';

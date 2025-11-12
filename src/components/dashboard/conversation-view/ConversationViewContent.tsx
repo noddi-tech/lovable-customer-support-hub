@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -7,10 +7,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   RefreshCw,
   ArrowLeft,
+  ChevronsDown,
+  ChevronsUp,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-responsive';
-import { ProgressiveMessagesList } from '@/components/conversations/ProgressiveMessagesList';
+import { ProgressiveMessagesList, ProgressiveMessagesListRef } from '@/components/conversations/ProgressiveMessagesList';
 import { LazyReplyArea } from '@/components/conversations/LazyReplyArea';
 import { CustomerSidePanel } from './CustomerSidePanel';
 import { useConversationShortcuts } from '@/hooks/useConversationShortcuts';
@@ -54,6 +56,8 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const messagesListRef = useRef<ProgressiveMessagesListRef>(null);
+  const [allExpanded, setAllExpanded] = React.useState(false);
   
   // Get conversationIds from context for thread viewing
   const { conversationIds } = useConversationView();
@@ -62,6 +66,11 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   useConversationShortcuts();
 
   const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
+
+  const handleToggleAll = () => {
+    messagesListRef.current?.toggleAllMessages();
+    setAllExpanded(messagesListRef.current?.allExpanded ?? false);
+  };
   
   // Get conversation view context
   const {
@@ -156,9 +165,35 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           </div>
         )}
 
+        {/* Sticky Messages Control Header */}
+        <div className="sticky top-0 z-20 flex-shrink-0 px-4 py-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm">
+          <div className="flex items-center justify-end max-w-3xl mx-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleAll}
+              className="shadow-sm hover:shadow-md transition-all duration-200"
+              title={allExpanded ? "Collapse all messages" : "Expand all messages"}
+            >
+              {allExpanded ? (
+                <>
+                  <ChevronsUp className="h-4 w-4 mr-2" />
+                  <span className="text-xs">Collapse All</span>
+                </>
+              ) : (
+                <>
+                  <ChevronsDown className="h-4 w-4 mr-2" />
+                  <span className="text-xs">Expand All</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
         {/* Messages Area with Progressive Loading */}
         <div className="flex-1 min-h-0 w-full flex flex-col bg-white">
           <ProgressiveMessagesList 
+            ref={messagesListRef}
             conversationId={conversationId}
             conversationIds={conversationIds}
             conversation={conversation}
