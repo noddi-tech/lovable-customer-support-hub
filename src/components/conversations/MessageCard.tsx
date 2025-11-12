@@ -253,38 +253,48 @@ const MessageCardComponent = ({
             {/* Content area - metadata only */}
             <div className="min-w-0 flex-1">
               <div className={cn(
-                "flex flex-wrap items-center gap-3",
+                "flex items-center",
+                effectiveCollapsed ? "flex-nowrap gap-2" : "flex-wrap gap-3",
                 effectiveCollapsed ? "mb-0" : "mb-1.5",
                 isAgent && "md:justify-end"
               )}>
+                {/* Timestamp FIRST when collapsed */}
                 <span className={cn(
-                  "font-semibold leading-tight",
+                  "text-muted-foreground shrink-0",
+                  effectiveCollapsed ? "text-xs" : "text-sm"
+                )}>
+                  {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
+                </span>
+                
+                {/* Name */}
+                <span className={cn(
+                  "font-semibold leading-tight shrink-0",
                   effectiveCollapsed ? "text-sm" : "text-base"
                 )}>
                   {display}
                 </span>
                 
                 {/* Author type badge */}
-                <Badge className={cn("text-xs", messageStyle.labelBadge)}>
+                <Badge className={cn("text-xs shrink-0", messageStyle.labelBadge)}>
                   {messageStyle.label}
                 </Badge>
                 
-                <span className={cn(
-                  "text-muted-foreground",
-                  effectiveCollapsed ? "text-xs" : "text-sm"
-                )}>
-                  {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
-                </span>
+                {/* Preview text inline when collapsed */}
+                {effectiveCollapsed && (
+                  <span className="text-xs text-muted-foreground truncate min-w-0">
+                    {previewText}
+                  </span>
+                )}
                 
                 {message.originalMessage?.is_internal && (
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs shrink-0">
                     <Lock className="w-3 h-3 mr-1" />
                     Internal
                   </Badge>
                 )}
                 
                  {attachments.length > 0 && (
-                   <Badge variant="outline" className="text-xs">
+                   <Badge variant="outline" className="text-xs shrink-0">
                      <Paperclip className="w-3 h-3 mr-1" />
                      {attachments.length}
                    </Badge>
@@ -420,14 +430,7 @@ const MessageCardComponent = ({
           </div>
         </div>
         
-      {/* Collapsed preview - shown when collapsed */}
-      {effectiveCollapsed && (
-        <div className="pl-[92px] pr-8">
-          <div className="text-xs text-muted-foreground line-clamp-1 leading-tight">
-            {previewText}
-          </div>
-        </div>
-      )}
+      {/* Collapsed preview is now inline in metadata - removed separate section */}
 
         {/* Full content - simple CSS collapse */}
         <div className={cn(
