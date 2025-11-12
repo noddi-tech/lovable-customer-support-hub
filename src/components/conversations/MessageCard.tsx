@@ -232,20 +232,23 @@ const MessageCardComponent = ({
         {/* Card Header - improved spacing */}
         <div className={cn(
           "px-8",
-          effectiveCollapsed ? "py-1" : "py-5"
+          effectiveCollapsed ? "py-0" : "py-5"
         )}>
           <div className={cn(
-            "flex items-start",
-            effectiveCollapsed ? "gap-2" : "gap-5",
+            "flex",
+            effectiveCollapsed ? "items-center gap-1.5" : "items-start gap-5",
             isAgent && "md:flex-row-reverse"
           )}>
             {/* Avatar */}
             <Avatar className={cn(
               "shrink-0",
-              effectiveCollapsed ? "h-6 w-6" : "h-10 w-10",
+              effectiveCollapsed ? "h-5 w-5" : "h-10 w-10",
               messageStyle.avatarRing
             )}>
-              <AvatarFallback className="text-sm font-medium">
+              <AvatarFallback className={cn(
+                "font-medium",
+                effectiveCollapsed ? "text-xs" : "text-sm"
+              )}>
                 {initial}
               </AvatarFallback>
             </Avatar>
@@ -254,22 +257,22 @@ const MessageCardComponent = ({
             <div className="min-w-0 flex-1">
               <div className={cn(
                 "flex items-center",
-                effectiveCollapsed ? "flex-nowrap gap-2" : "flex-wrap gap-3",
+                effectiveCollapsed ? "flex-nowrap gap-1.5" : "flex-wrap gap-3",
                 effectiveCollapsed ? "mb-0" : "mb-1.5",
                 isAgent && "md:justify-end"
               )}>
                 {/* Timestamp FIRST when collapsed */}
                 <span className={cn(
                   "text-muted-foreground shrink-0",
-                  effectiveCollapsed ? "text-xs" : "text-sm"
+                  effectiveCollapsed ? "text-xs leading-none" : "text-sm"
                 )}>
                   {dateTime(typeof message.createdAt === 'string' ? message.createdAt : new Date(message.createdAt).toISOString())}
                 </span>
                 
                 {/* Name */}
                 <span className={cn(
-                  "font-semibold leading-tight shrink-0",
-                  effectiveCollapsed ? "text-sm" : "text-base"
+                  "font-semibold shrink-0",
+                  effectiveCollapsed ? "text-xs leading-none" : "text-base leading-tight"
                 )}>
                   {display}
                 </span>
@@ -281,7 +284,7 @@ const MessageCardComponent = ({
                 
                 {/* Preview text inline when collapsed */}
                 {effectiveCollapsed && (
-                  <span className="text-xs text-muted-foreground truncate min-w-0">
+                  <span className="text-xs text-muted-foreground truncate min-w-0 leading-none">
                     {previewText}
                   </span>
                 )}
