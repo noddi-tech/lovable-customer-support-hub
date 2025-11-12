@@ -103,6 +103,35 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
     [messages]
   );
 
+  // Toggle all messages collapsed/expanded - MOVED BEFORE EARLY RETURNS
+  const toggleAllMessages = useCallback(() => {
+    const newExpanded = !allExpanded;
+    
+    // Set bulk toggling flag immediately
+    setIsBulkToggling(true);
+    
+    // Update states directly
+    setAllExpanded(newExpanded);
+    
+    if (newExpanded) {
+      // Expand all: add all message IDs to the set
+      const allIds = new Set(messages.map(m => m.dedupKey || m.id));
+      setExpandedMessageIds(allIds);
+    } else {
+      // Collapse all: empty set
+      setExpandedMessageIds(new Set());
+    }
+    
+    // Re-enable animations after a brief delay
+    setTimeout(() => setIsBulkToggling(false), 50);
+  }, [allExpanded, messages]);
+
+  // Expose toggle function to parent via ref - MOVED BEFORE EARLY RETURNS
+  useImperativeHandle(ref, () => ({
+    toggleAllMessages,
+    allExpanded
+  }), [toggleAllMessages, allExpanded]);
+
   // Initialize expanded state - all messages collapsed by default
   useEffect(() => {
     logger.debug('Initializing expanded state (all collapsed by default)', { 
@@ -241,35 +270,6 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
       </div>
     );
   }
-
-  // Toggle all messages collapsed/expanded - simplified
-  const toggleAllMessages = useCallback(() => {
-    const newExpanded = !allExpanded;
-    
-    // Set bulk toggling flag immediately
-    setIsBulkToggling(true);
-    
-    // Update states directly
-    setAllExpanded(newExpanded);
-    
-    if (newExpanded) {
-      // Expand all: add all message IDs to the set
-      const allIds = new Set(messages.map(m => m.dedupKey || m.id));
-      setExpandedMessageIds(allIds);
-    } else {
-      // Collapse all: empty set
-      setExpandedMessageIds(new Set());
-    }
-    
-    // Re-enable animations after a brief delay
-    setTimeout(() => setIsBulkToggling(false), 50);
-  }, [allExpanded, messages]);
-
-  // Expose toggle function to parent via ref
-  useImperativeHandle(ref, () => ({
-    toggleAllMessages,
-    allExpanded
-  }), [toggleAllMessages, allExpanded]);
 
   return (
     <div className="flex-1 min-h-0 relative">
