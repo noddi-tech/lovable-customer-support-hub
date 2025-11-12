@@ -226,7 +226,7 @@ const MessageCardComponent = ({
         "border-y border-r border-gray-200 dark:border-gray-800",
         "hover:border-gray-300 dark:hover:border-gray-700",
         disableAnimation && "disable-animation",
-        effectiveCollapsed ? "py-1 min-h-[40px]" : "py-2"
+        effectiveCollapsed ? "py-0 min-h-[36px]" : "py-2"
       )}
       aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
@@ -438,8 +438,8 @@ const MessageCardComponent = ({
 
         {/* Full content - simple CSS collapse */}
         <div className={cn(
-          "message-content pl-[92px] pr-8 pb-8",
-          effectiveCollapsed && "is-collapsed"
+          "message-content",
+          effectiveCollapsed ? "is-collapsed" : "pl-[92px] pr-8 pb-8"
         )}>
           <div className="space-y-4">
             {/* Email content */}
