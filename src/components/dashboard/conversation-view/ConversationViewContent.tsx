@@ -151,6 +151,25 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                 <RefreshCw className="h-4 w-4" />
                 {!isMobile && <span className="text-xs">Refresh</span>}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToggleAll}
+                className="gap-2"
+                title={allExpanded ? "Collapse all messages" : "Expand all messages"}
+              >
+                {allExpanded ? (
+                  <>
+                    <ChevronsUp className="h-4 w-4" />
+                    {!isMobile && <span className="text-xs">Collapse All</span>}
+                  </>
+                ) : (
+                  <>
+                    <ChevronsDown className="h-4 w-4" />
+                    {!isMobile && <span className="text-xs">Expand All</span>}
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>
@@ -164,31 +183,6 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
             </div>
           </div>
         )}
-
-        {/* Sticky Messages Control Header */}
-        <div className="sticky top-0 z-20 flex-shrink-0 px-4 py-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm">
-          <div className="flex items-center justify-end max-w-3xl mx-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleToggleAll}
-              className="shadow-sm hover:shadow-md transition-all duration-200"
-              title={allExpanded ? "Collapse all messages" : "Expand all messages"}
-            >
-              {allExpanded ? (
-                <>
-                  <ChevronsUp className="h-4 w-4 mr-2" />
-                  <span className="text-xs">Collapse All</span>
-                </>
-              ) : (
-                <>
-                  <ChevronsDown className="h-4 w-4 mr-2" />
-                  <span className="text-xs">Expand All</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
 
         {/* Messages Area with Progressive Loading */}
         <div className="flex-1 min-h-0 w-full flex flex-col bg-white">
