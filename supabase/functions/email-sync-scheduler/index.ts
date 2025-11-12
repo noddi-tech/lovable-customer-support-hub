@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
         // Check if account needs syncing based on its interval
         const now = new Date();
         const lastSync = account.last_sync_at ? new Date(account.last_sync_at) : new Date(0);
-        const intervalMinutes = account.sync_interval_minutes || 2;
+        const intervalMinutes = account.sync_interval_minutes || 15; // Changed from 2 to 15 minutes for rate limit compliance
         const intervalMs = intervalMinutes * 60 * 1000;
         const timeSinceLastSync = now.getTime() - lastSync.getTime();
         const timeSinceLastSyncSeconds = Math.round(timeSinceLastSync / 1000);

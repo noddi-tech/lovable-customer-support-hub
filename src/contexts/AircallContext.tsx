@@ -78,9 +78,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const [showLoginModal, setShowLoginModal] = useState(() => {
     if (typeof window === 'undefined') return false;
     const optedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
-    // CRITICAL FIX: Always start with modal hidden, let initialization flow control it
-    console.log('[AircallProvider] 📱 Initial modal state:', { optedOut, willShow: false });
-    return false;
+    return false; // Always start hidden, let initialization control it
   });
   
   const [showBlockedModal, setShowBlockedModal] = useState(false);
@@ -115,7 +113,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const saveConnectionMetadata = useCallback(() => {
     localStorage.setItem('aircall_connection_timestamp', Date.now().toString());
     localStorage.setItem('aircall_connection_attempts', reconnectAttempts.current.toString());
-    console.log('[AircallProvider] 💾 Saved connection metadata');
+    if (import.meta.env.MODE !== 'production') {
+      console.log('[AircallProvider] 💾 Saved connection metadata');
+    }
   }, []);
   
   const getConnectionMetadata = useCallback(() => {

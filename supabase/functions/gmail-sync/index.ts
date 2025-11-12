@@ -264,7 +264,7 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
 
     // Get messages from Gmail API
     const query = folder === 'sent' ? 'in:sent' : 'in:inbox';
-    const gmailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`;
+    const gmailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=25`; // Reduced from 50 to 25 for rate limit compliance
     console.log(`Fetching messages from: ${gmailUrl}`);
     
     const response = await fetch(gmailUrl, {
@@ -276,9 +276,23 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
 
     console.log(`Gmail API response status: ${response.status}`);
     
+    // Handle rate limiting with exponential backoff
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Gmail API error: ${response.status} - ${errorText}`);
+      
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitSeconds = retryAfter ? parseInt(retryAfter) : 60;
+        console.warn(`⚠️ Rate limit hit for ${account.email_address}. Retry after ${waitSeconds}s`);
+        return {
+          success: false,
+          error: `Rate limited. Retry after ${waitSeconds}s`,
+          rateLimited: true,
+          retryAfter: waitSeconds
+        };
+      }
+      
       return { success: false, error: `Gmail API error: ${response.status}` };
     }
 

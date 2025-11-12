@@ -45,19 +45,23 @@ import "@/styles/controls.css";
 const AppContent = () => {
   const navigate = useNavigate();
   
-  // Phase 5: Add navigation interceptor
+  // Navigation interceptor - DEV only
   useEffect(() => {
-    const logNavigation = () => {
-      console.log('🚀 [Navigation] Page changed to:', window.location.pathname);
-    };
-    window.addEventListener('popstate', logNavigation);
-    return () => window.removeEventListener('popstate', logNavigation);
+    if (import.meta.env.MODE !== 'production') {
+      const logNavigation = () => {
+        console.log('🚀 [Navigation] Page changed to:', window.location.pathname);
+      };
+      window.addEventListener('popstate', logNavigation);
+      return () => window.removeEventListener('popstate', logNavigation);
+    }
   }, []);
 
-  // Phase 1 & 2: Listen for auth navigation events
+  // Auth navigation events
   useEffect(() => {
     const handleAuthNavigate = (event: CustomEvent<{ path: string }>) => {
-      console.log('🚀 [App] Auth navigation event received:', event.detail.path);
+      if (import.meta.env.MODE !== 'production') {
+        console.log('🚀 [App] Auth navigation event received:', event.detail.path);
+      }
       navigate(event.detail.path, { replace: true });
     };
     
@@ -89,7 +93,6 @@ const AppContent = () => {
 
   return (
     <>
-    {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <ControlDoctor />}
     <Routes>
       <Route path="/auth" element={<Auth />} />
       
@@ -198,11 +201,13 @@ const AircallWorkspaceManager = () => {
     } 
     // Only hide if disconnected AND not in any initialization phase
     else if (!isConnected && initializationPhase === 'idle') {
-      console.log('[App] 🙈 Hiding workspace:', { 
-        isConnected, 
-        showLoginModal, 
-        initializationPhase 
-      });
+      if (import.meta.env.MODE !== 'production') {
+        console.log('[App] 🙈 Hiding workspace:', { 
+          isConnected, 
+          showLoginModal, 
+          initializationPhase 
+        });
+      }
       hideAircallWorkspace();
     }
     // In all other states ('diagnostics', 'creating-workspace', 'workspace-ready', 'needs-login'),
@@ -249,8 +254,6 @@ const App = () => (
                       </I18nWrapper>
                        <Toaster />
                        <Sonner />
-                       {/* Performance Debug Panel - DEV only */}
-                       {import.meta.env.DEV && <PerformanceDebugPanel />}
                      </TooltipProvider>
                   </DesignSystemProvider>
                 </AircallProvider>
