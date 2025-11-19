@@ -21,15 +21,29 @@ Deno.serve(async (req) => {
       recoveryLog.push(`[${new Date().toISOString()}] ${message}`);
     };
 
+    // Helper function to count duplicates directly
+    const countDuplicates = async () => {
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select('external_id')
+        .not('external_id', 'is', null);
+      
+      if (error) {
+        log(`Error counting duplicates: ${error.message}`);
+        return 0;
+      }
+      
+      // Count unique external_ids
+      const uniqueIds = new Set(messages.map(m => m.external_id));
+      const duplicateCount = messages.length - uniqueIds.size;
+      
+      return duplicateCount;
+    };
+
     // Step 1: Check initial duplicate count
     log('Step 1: Checking for duplicates...');
-    const { data: initialCheck, error: checkError } = await supabase.rpc('count_duplicate_messages');
-    
-    if (checkError) {
-      log(`Error checking duplicates: ${checkError.message}`);
-    } else {
-      log(`Found ${initialCheck || 0} messages with duplicate external_ids`);
-    }
+    const initialDuplicateCount = await countDuplicates();
+    log(`Found ${initialDuplicateCount} messages with duplicate external_ids`);
 
     // Step 2: Run cleanup in loop until no duplicates remain
     log('Step 2: Starting iterative cleanup process...');
@@ -76,22 +90,23 @@ Deno.serve(async (req) => {
 
     // Step 3: Verify no duplicates remain
     log('Step 3: Verifying cleanup...');
-    const { data: verifyCount, error: verifyError } = await supabase.rpc('count_duplicate_messages');
+    const verifyCount = await countDuplicates();
+    log(`Verification: ${verifyCount} duplicate messages remaining`);
     
-    if (verifyError) {
-      log(`Warning: Could not verify cleanup: ${verifyError.message}`);
-    } else {
-      log(`Verification: ${verifyCount || 0} duplicate messages remaining`);
-      
-      if (verifyCount && verifyCount > 0) {
-        throw new Error(`Verification failed: ${verifyCount} duplicates still exist`);
-      }
+    if (verifyCount > 0) {
+      throw new Error(`Verification failed: ${verifyCount} duplicates still exist`);
     }
 
-    // Step 4: Apply unique constraint migration
-    log('Step 4: Applying unique constraint migration...');
-    log('Note: This step requires manual SQL execution in Supabase dashboard');
-    log('Run: CREATE UNIQUE INDEX CONCURRENTLY idx_messages_external_id_unique ON messages(external_id);');
+    // Step 4: Instructions for creating unique index
+    log('Step 4: Database cleanup complete. Next steps:');
+    log('');
+    log('To prevent future duplicates, create a unique index by running this SQL in Supabase:');
+    log('');
+    log('CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_external_id_unique');
+    log('ON public.messages(external_id)');
+    log('WHERE external_id IS NOT NULL;');
+    log('');
+    log('After creating the index, re-enable email-sync-scheduler in config.toml');
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     log(`===== DATABASE RECOVERY COMPLETED in ${duration}s =====`);
@@ -101,11 +116,15 @@ Deno.serve(async (req) => {
       totalIterations: iteration,
       totalDuplicatesDeleted: totalDeleted,
       durationSeconds: parseFloat(duration),
-      verificationPassed: (verifyCount || 0) === 0,
+      verificationPassed: verifyCount === 0,
       nextSteps: [
-        'Apply unique constraint migration in Supabase SQL editor',
-        'Re-enable email-sync-scheduler in config.toml',
-        'Monitor with monitor-database-health function'
+        '1. Create unique index in Supabase SQL editor:',
+        '   CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_external_id_unique',
+        '   ON public.messages(external_id)',
+        '   WHERE external_id IS NOT NULL;',
+        '',
+        '2. Re-enable email-sync-scheduler in config.toml',
+        '3. Monitor with monitor-database-health function'
       ],
       fullLog: recoveryLog
     };

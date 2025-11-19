@@ -16,22 +16,16 @@ Deno.serve(async (req) => {
 
     // Check 1: Count duplicate messages
     console.log('[monitor-database-health] Checking for duplicate messages...');
-    const { data: duplicates, error: dupError } = await supabase
+    const { data: messages, error: dupError } = await supabase
       .from('messages')
-      .select('external_id, count')
+      .select('external_id')
       .not('external_id', 'is', null);
 
     let duplicateCount = 0;
-    if (!dupError && duplicates) {
-      const externalIdCounts = new Map<string, number>();
-      for (const msg of duplicates) {
-        externalIdCounts.set(msg.external_id, (externalIdCounts.get(msg.external_id) || 0) + 1);
-      }
-      for (const count of externalIdCounts.values()) {
-        if (count > 1) {
-          duplicateCount += count - 1; // Count extras only
-        }
-      }
+    if (!dupError && messages) {
+      // Count unique external_ids
+      const uniqueIds = new Set(messages.map(m => m.external_id));
+      duplicateCount = messages.length - uniqueIds.size;
     }
 
     // Check 2: Database storage usage
