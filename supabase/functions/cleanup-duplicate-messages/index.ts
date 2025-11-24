@@ -74,8 +74,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Delete in batches of 1000 to avoid overloading the database
-    const batchSize = 1000;
+    // Delete in batches of 50 to avoid PostgREST query parameter limits
+    const batchSize = 50;
     let totalDeleted = 0;
     let batchNumber = 0;
 
