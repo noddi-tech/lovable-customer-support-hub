@@ -65,7 +65,14 @@ Deno.serve(async (req) => {
         throw cleanupError;
       }
 
-      const result = await cleanupResult.json();
+      // supabase.functions.invoke returns parsed JSON directly, not a Response object
+      const result = cleanupResult as any;
+      
+      if (!result) {
+        log('ERROR: cleanup-duplicate-messages returned no data');
+        throw new Error('cleanup-duplicate-messages returned no data');
+      }
+      
       log(`Iteration ${iteration} result: ${JSON.stringify(result)}`);
 
       if (result.success) {
