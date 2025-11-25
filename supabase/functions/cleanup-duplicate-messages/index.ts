@@ -100,8 +100,8 @@ Deno.serve(async (req) => {
 
       // Add delay between batches to prevent database overload
       if (i + batchSize < messagesToDelete.length) {
-        console.log('[cleanup-duplicate-messages] Waiting 2 seconds before next batch...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('[cleanup-duplicate-messages] Waiting 0.5 seconds before next batch...');
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
