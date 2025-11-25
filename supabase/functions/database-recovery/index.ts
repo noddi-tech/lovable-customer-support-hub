@@ -146,8 +146,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message,
-        stack: error.stack
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       }),
       { 
         status: 500,
