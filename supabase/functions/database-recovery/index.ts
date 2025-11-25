@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
     
     console.log('[database-recovery] ===== DATABASE RECOVERY STARTED =====');
     const startTime = Date.now();
+    const MAX_EXECUTION_TIME = 45000; // 45 seconds (leave 15s buffer before 60s timeout)
 
     const recoveryLog: string[] = [];
     const log = (message: string) => {
@@ -55,6 +56,49 @@ Deno.serve(async (req) => {
       iteration++;
       log(`--- Cleanup Iteration ${iteration} ---`);
 
+      // Check if we're approaching timeout
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime > MAX_EXECUTION_TIME) {
+        log(`Approaching timeout (${elapsedTime}ms elapsed), scheduling continuation...`);
+        
+        // Check remaining duplicates
+        const remainingCount = await countDuplicates();
+        log(`${remainingCount} duplicates remain, triggering self-invocation`);
+        
+        // Self-invoke to continue cleanup in a new function instance
+        EdgeRuntime.waitUntil(
+          fetch(`${supabaseUrl}/functions/v1/database-recovery`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'Content-Type': 'application/json'
+            }
+          }).then(res => {
+            console.log('[database-recovery] Self-invocation triggered, status:', res.status);
+          }).catch(err => {
+            console.error('[database-recovery] Self-invocation failed:', err);
+          })
+        );
+        
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+        
+        // Return immediate response indicating continuation
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: 'continuing',
+            message: 'Cleanup continuing in background',
+            totalIterations: iteration,
+            totalDuplicatesDeleted: totalDeleted,
+            remainingDuplicates: remainingCount,
+            durationSeconds: parseFloat(duration),
+            nextInvocationTriggered: true,
+            fullLog: recoveryLog
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { data: cleanupResult, error: cleanupError } = await supabase.functions.invoke(
         'cleanup-duplicate-messages',
         { body: {} }
@@ -89,7 +133,7 @@ Deno.serve(async (req) => {
 
       // Small delay between iterations
       if (hasMoreDuplicates) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
