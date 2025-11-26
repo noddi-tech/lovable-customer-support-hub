@@ -23,7 +23,11 @@ interface ImportJob {
   created_at: string;
 }
 
-export const ImportHistory = () => {
+interface ImportHistoryProps {
+  onResume?: (jobId: string) => void;
+}
+
+export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
   const [jobs, setJobs] = useState<ImportJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
@@ -84,6 +88,12 @@ export const ImportHistory = () => {
     }
   };
 
+  const handleResumeJob = async (jobId: string) => {
+    if (onResume) {
+      onResume(jobId);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -98,6 +108,13 @@ export const ImportHistory = () => {
           <Badge variant="default" className="bg-blue-500/10 text-blue-700 border-blue-500/20">
             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
             Running
+          </Badge>
+        );
+      case 'paused':
+        return (
+          <Badge variant="default" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20">
+            <Clock className="w-3 h-3 mr-1" />
+            Paused (auto-resuming)
           </Badge>
         );
       case 'error':
@@ -221,6 +238,16 @@ export const ImportHistory = () => {
                       >
                         <XCircle className="h-4 w-4 mr-1" />
                         {updatingJobId === job.id ? 'Updating...' : 'Mark as Error'}
+                      </Button>
+                    )}
+                    {job.status === 'paused' && onResume && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResumeJob(job.id)}
+                      >
+                        <Clock className="h-4 w-4 mr-1" />
+                        Resume Now
                       </Button>
                     )}
                   </TableCell>

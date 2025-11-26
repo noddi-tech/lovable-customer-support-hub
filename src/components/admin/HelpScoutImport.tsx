@@ -64,6 +64,7 @@ export const HelpScoutImport = () => {
     errors: [],
     status: 'idle',
   });
+  const [currentMailboxName, setCurrentMailboxName] = useState<string>('');
 
   // Fetch organizations and set initial org
   useEffect(() => {
@@ -247,6 +248,16 @@ export const HelpScoutImport = () => {
           }
           
           if (job) {
+            // Extract current mailbox info from checkpoint
+            const metadata = job.metadata as any;
+            const checkpoint = metadata?.checkpoint;
+            if (checkpoint && typeof checkpoint.currentMailboxIndex === 'number') {
+              const currentMailbox = mailboxes[checkpoint.currentMailboxIndex];
+              if (currentMailbox) {
+                setCurrentMailboxName(currentMailbox.name);
+              }
+            }
+
             setProgress({
               totalMailboxes: job.total_mailboxes || 0,
               totalConversations: job.total_conversations || 0,
@@ -257,9 +268,18 @@ export const HelpScoutImport = () => {
               status: job.status as 'idle' | 'running' | 'completed' | 'error'
             });
             
-            if (job.status === 'completed') {
+            // Handle paused status - it will auto-continue
+            if (job.status === 'paused') {
+              toast({
+                title: 'Import Continuing',
+                description: `Processed ${job.conversations_imported} conversations so far. Automatically continuing...`,
+              });
+              // Keep status as running in UI
+              setProgress(prev => ({ ...prev, status: 'running' }));
+            } else if (job.status === 'completed') {
               clearInterval(pollInterval);
               setIsImporting(false);
+              setCurrentMailboxName('');
               toast({
                 title: 'Import Complete',
                 description: `Successfully imported ${job.conversations_imported} conversations with ${job.messages_imported} messages.`,
@@ -267,6 +287,7 @@ export const HelpScoutImport = () => {
             } else if (job.status === 'error') {
               clearInterval(pollInterval);
               setIsImporting(false);
+              setCurrentMailboxName('');
               toast({
                 title: 'Import Failed',
                 description: 'The import encountered errors. Check the error log below.',
@@ -296,6 +317,36 @@ export const HelpScoutImport = () => {
     progress.totalConversations > 0
       ? Math.round((progress.conversationsImported / progress.totalConversations) * 100)
       : 0;
+
+  const handleResumeImport = async (pausedJobId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('helpscout-import', {
+        body: {
+          organizationId: selectedOrgId,
+          resume: true,
+          jobId: pausedJobId,
+        },
+      });
+
+      if (error) throw error;
+
+      setJobId(pausedJobId);
+      setCurrentStep('importing');
+      setIsImporting(true);
+      setProgress(prev => ({ ...prev, status: 'running' }));
+
+      toast({
+        title: 'Import Resumed',
+        description: 'Continuing import from where it left off...',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Failed to Resume',
+        description: error.message || 'Could not resume import',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -516,6 +567,13 @@ export const HelpScoutImport = () => {
                 <Progress value={progressPercentage} className="h-2" />
               </div>
 
+              {/* Current Mailbox */}
+              {currentMailboxName && (
+                <p className="text-xs text-muted-foreground">
+                  Currently processing: <strong>{currentMailboxName}</strong>
+                </p>
+              )}
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
@@ -612,7 +670,7 @@ export const HelpScoutImport = () => {
       </Card>
 
       {/* Import History */}
-      <ImportHistory />
+      <ImportHistory onResume={handleResumeImport} />
     </div>
   );
 };
