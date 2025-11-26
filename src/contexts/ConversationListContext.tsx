@@ -831,8 +831,8 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       // Fetch the next page
       const result = await fetchNextPage();
       
-      // Add a small delay to allow React to update the UI
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Increase delay to 100ms for better stabilization between batches
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Check the result to see if there's more data
       if (result.hasNextPage && !result.isFetchingNextPage) {

@@ -2,13 +2,62 @@ import { memo, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import InfiniteLoader from 'react-window-infinite-loader';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConversationTableRow } from './ConversationTableRow';
 import { TableHeaderCell } from './TableHeaderCell';
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
 import { useTranslation } from 'react-i18next';
 import { Clock, Inbox } from 'lucide-react';
+
+// Separate memoized row component to prevent re-creation on every parent render
+interface VirtualizedRowProps {
+  index: number;
+  style: React.CSSProperties;
+  data: {
+    conversations: Conversation[];
+    selectedConversation?: Conversation;
+    onSelectConversation: (conversation: Conversation) => void;
+    bulkSelectionMode: boolean;
+    selectedConversations: Set<string>;
+    dispatch: any;
+  };
+}
+
+const VirtualizedRow = memo(({ index, style, data }: VirtualizedRowProps) => {
+  const { conversations, selectedConversation, onSelectConversation, bulkSelectionMode, selectedConversations, dispatch } = data;
+  const conversation = conversations[index];
+
+  if (!conversation) {
+    return (
+      <div style={style} className="flex items-center px-4 border-b animate-pulse">
+        <div className="h-6 w-6 bg-muted rounded-full mr-3"></div>
+        <div className="flex-1 flex gap-4">
+          <div className="h-4 bg-muted rounded w-32"></div>
+          <div className="h-4 bg-muted rounded flex-1"></div>
+          <div className="h-4 bg-muted rounded w-20"></div>
+          <div className="h-4 bg-muted rounded w-24"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ConversationTableRow
+      conversation={conversation}
+      isSelected={selectedConversation?.id === conversation.id}
+      onSelect={onSelectConversation}
+      isBulkSelected={selectedConversations.has(conversation.id)}
+      onBulkSelect={(id, selected) =>
+        dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id, selected } })
+      }
+      showBulkCheckbox={bulkSelectionMode}
+      style={style}
+    />
+  );
+});
+
+VirtualizedRow.displayName = 'VirtualizedRow';
 
 interface VirtualizedConversationTableProps {
   onSelectConversation: (conversation: Conversation) => void;
@@ -60,39 +109,15 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
     conversations.length > 0 &&
     conversations.every(conv => state.selectedConversations.has(conv.id));
 
-  const Row = memo(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const conversation = conversations[index];
-
-    if (!conversation) {
-      return (
-        <div style={style} className="flex items-center px-4 border-b animate-pulse">
-          <div className="h-6 w-6 bg-muted rounded-full mr-3"></div>
-          <div className="flex-1 flex gap-4">
-            <div className="h-4 bg-muted rounded w-32"></div>
-            <div className="h-4 bg-muted rounded flex-1"></div>
-            <div className="h-4 bg-muted rounded w-20"></div>
-            <div className="h-4 bg-muted rounded w-24"></div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <ConversationTableRow
-        conversation={conversation}
-        isSelected={selectedConversation?.id === conversation.id}
-        onSelect={onSelectConversation}
-        isBulkSelected={state.selectedConversations.has(conversation.id)}
-        onBulkSelect={(id, selected) =>
-          dispatch({ type: 'TOGGLE_BULK_SELECTION', payload: { id, selected } })
-        }
-        showBulkCheckbox={state.bulkSelectionMode}
-        style={style}
-      />
-    );
-  });
-
-  Row.displayName = 'VirtualizedRow';
+  // Prepare itemData for react-window - memoize to prevent unnecessary re-renders
+  const itemData = useMemo(() => ({
+    conversations,
+    selectedConversation,
+    onSelectConversation,
+    bulkSelectionMode: state.bulkSelectionMode,
+    selectedConversations: state.selectedConversations,
+    dispatch,
+  }), [conversations, selectedConversation, onSelectConversation, state.bulkSelectionMode, state.selectedConversations, dispatch]);
 
   if (isLoading) {
     return (
@@ -100,6 +125,19 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
         <div className="text-center">
           <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
           <p>{t('dashboard.conversationList.loadingConversations', 'Loading conversations...')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading indicator during bulk load to prevent render loop
+  if (isFetchingNextPage && hasNextPage && conversationCount > 50) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        <div className="text-center">
+          <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
+          <p>{t('dashboard.conversationList.loadingAllConversations', 'Loading all conversations...')}</p>
+          <p className="text-sm mt-2">{conversationCount} loaded so far</p>
         </div>
       </div>
     );
@@ -204,10 +242,11 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
                   width={width}
                   itemCount={hasNextPage ? conversationCount + 1 : conversationCount}
                   itemSize={ITEM_HEIGHT}
+                  itemData={itemData}
                   onItemsRendered={onItemsRendered}
                   overscanCount={OVERSCAN_COUNT}
                 >
-                  {Row}
+                  {VirtualizedRow}
                 </List>
               )}
             </InfiniteLoader>
