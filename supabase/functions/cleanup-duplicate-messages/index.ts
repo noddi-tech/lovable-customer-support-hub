@@ -14,25 +14,46 @@ Deno.serve(async (req) => {
     
     console.log('[cleanup-duplicate-messages] Starting duplicate cleanup process');
 
-    // Find duplicates grouped by external_id, keeping the oldest message
-    const { data: duplicates, error: findError } = await supabase
-      .from('messages')
-      .select('external_id, id, created_at')
-      .not('external_id', 'is', null)
-      .order('external_id')
-      .order('created_at');
+    // Fetch ALL messages with pagination to handle datasets larger than 1000
+    console.log('[cleanup-duplicate-messages] Fetching all messages with external_id...');
+    let allMessages: Array<{ external_id: string; id: string; created_at: string }> = [];
+    let offset = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+    let pageNumber = 0;
 
-    if (findError) {
-      console.error('[cleanup-duplicate-messages] Error finding duplicates:', findError);
-      throw findError;
+    while (hasMore) {
+      pageNumber++;
+      console.log(`[cleanup-duplicate-messages] Fetching page ${pageNumber} (offset: ${offset})...`);
+      
+      const { data: batch, error: fetchError } = await supabase
+        .from('messages')
+        .select('external_id, id, created_at')
+        .not('external_id', 'is', null)
+        .order('created_at')
+        .range(offset, offset + pageSize - 1);
+
+      if (fetchError) {
+        console.error('[cleanup-duplicate-messages] Error fetching messages:', fetchError);
+        throw fetchError;
+      }
+
+      if (batch && batch.length > 0) {
+        allMessages = allMessages.concat(batch);
+        console.log(`[cleanup-duplicate-messages] Page ${pageNumber}: fetched ${batch.length} messages. Total so far: ${allMessages.length}`);
+        offset += pageSize;
+        hasMore = batch.length === pageSize; // Continue if we got a full page
+      } else {
+        hasMore = false;
+      }
     }
 
-    console.log(`[cleanup-duplicate-messages] Found ${duplicates?.length || 0} messages to analyze`);
+    console.log(`[cleanup-duplicate-messages] Finished fetching. Total messages to analyze: ${allMessages.length}`);
 
     // Group by external_id and identify duplicates
     const groupedByExternalId = new Map<string, Array<{ id: string; created_at: string }>>();
     
-    for (const msg of duplicates || []) {
+    for (const msg of allMessages) {
       if (!groupedByExternalId.has(msg.external_id)) {
         groupedByExternalId.set(msg.external_id, []);
       }
