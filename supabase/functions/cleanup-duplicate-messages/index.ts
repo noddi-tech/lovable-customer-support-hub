@@ -12,6 +12,10 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Track execution time to avoid timeout
+    const startTime = Date.now();
+    const MAX_EXECUTION_TIME = 45000; // 45 seconds (15s buffer before 60s timeout)
+    
     console.log('[cleanup-duplicate-messages] Starting duplicate cleanup process');
 
     // Fetch ALL messages with pagination to handle datasets larger than 1000
@@ -101,6 +105,27 @@ Deno.serve(async (req) => {
     let batchNumber = 0;
 
     for (let i = 0; i < messagesToDelete.length; i += batchSize) {
+      // Check if approaching timeout
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime > MAX_EXECUTION_TIME) {
+        const remainingToDelete = messagesToDelete.length - totalDeleted;
+        console.log(`[cleanup-duplicate-messages] Approaching timeout after ${elapsedTime}ms, stopping early`);
+        console.log(`[cleanup-duplicate-messages] Deleted ${totalDeleted} duplicates, ${remainingToDelete} remaining`);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            duplicatesDeleted: totalDeleted,
+            remainingDuplicates: remainingToDelete,
+            duplicateGroupsFound,
+            batchesProcessed: batchNumber,
+            message: `Deleted ${totalDeleted} duplicates before timeout. ${remainingToDelete} duplicates remaining.`,
+            timedOut: true
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       batchNumber++;
       const batch = messagesToDelete.slice(i, i + batchSize);
       
