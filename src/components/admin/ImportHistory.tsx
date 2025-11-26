@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle2, XCircle, Loader2, Clock, History } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface ImportJob {
   id: string;
@@ -24,6 +26,8 @@ interface ImportJob {
 export const ImportHistory = () => {
   const [jobs, setJobs] = useState<ImportJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -41,6 +45,44 @@ export const ImportHistory = () => {
 
     fetchJobs();
   }, []);
+
+  const handleMarkAsError = async (jobId: string) => {
+    setUpdatingJobId(jobId);
+    try {
+      const { error } = await supabase.functions.invoke('manage-import-job', {
+        body: { 
+          jobId, 
+          action: 'mark_error',
+          errorMessage: 'Import timed out - CPU time limit exceeded. Marked as error by user.'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Job marked as error",
+        description: "You can now restart the import fresh"
+      });
+
+      // Refresh the jobs list
+      const { data } = await supabase
+        .from('import_jobs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (data) setJobs(data as ImportJob[]);
+    } catch (error) {
+      console.error('Failed to mark job as error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update job status",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingJobId(null);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -133,6 +175,7 @@ export const ImportHistory = () => {
                 <TableHead>Customers</TableHead>
                 <TableHead>Started</TableHead>
                 <TableHead>Duration</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -167,6 +210,19 @@ export const ImportHistory = () => {
                       : job.status === 'running'
                       ? 'In progress'
                       : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {job.status === 'running' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMarkAsError(job.id)}
+                        disabled={updatingJobId === job.id}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        {updatingJobId === job.id ? 'Updating...' : 'Mark as Error'}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
