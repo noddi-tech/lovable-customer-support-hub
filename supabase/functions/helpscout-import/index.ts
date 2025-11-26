@@ -84,9 +84,9 @@ async function importCustomer(
   supabase: any,
   organizationId: string,
   customerData: any
-): Promise<string | null> {
+): Promise<{ customerId: string | null; isNew: boolean }> {
   if (!customerData?.email && !customerData?.phone) {
-    return null;
+    return { customerId: null, isNew: false };
   }
 
   const { data: existing } = await supabase
@@ -97,7 +97,7 @@ async function importCustomer(
     .single();
 
   if (existing) {
-    return existing.id;
+    return { customerId: existing.id, isNew: false };
   }
 
   const { data, error } = await supabase
@@ -113,10 +113,10 @@ async function importCustomer(
 
   if (error) {
     console.error('Error creating customer:', error);
-    return null;
+    return { customerId: null, isNew: false };
   }
 
-  return data.id;
+  return { customerId: data.id, isNew: true };
 }
 
 // Import conversation with messages
@@ -143,7 +143,10 @@ async function importConversation(
     }
 
     // Import customer
-    const customerId = await importCustomer(supabase, organizationId, conversation.primaryCustomer);
+    const { customerId, isNew } = await importCustomer(supabase, organizationId, conversation.primaryCustomer);
+    if (isNew) {
+      progress.customersImported++;
+    }
     
     // Create conversation
     const { data: newConv, error: convError } = await supabase
@@ -263,6 +266,33 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
+    // Create import job record
+    const { data: job, error: jobError } = await supabase
+      .from('import_jobs')
+      .insert({
+        organization_id: organizationId,
+        source: 'helpscout',
+        status: 'running',
+        started_at: new Date().toISOString(),
+        metadata: {
+          dateFrom,
+          mailboxMappingCount: Object.keys(mailboxMapping || {}).length
+        }
+      })
+      .select('id')
+      .single();
+
+    if (jobError || !job) {
+      console.error('Failed to create import job:', jobError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to create import job' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const jobId = job.id;
+    console.log(`Created import job: ${jobId}`);
+    
     const progress: ImportProgress = {
       totalMailboxes: 0,
       totalConversations: 0,
@@ -354,6 +384,15 @@ serve(async (req) => {
             }
 
             progress.totalConversations += conversations.length;
+            
+            // Update total in database
+            await supabase
+              .from('import_jobs')
+              .update({ 
+                total_conversations: progress.totalConversations,
+                total_mailboxes: progress.totalMailboxes
+              })
+              .eq('id', jobId);
 
             // Import each conversation
             for (const conversation of conversations) {
@@ -365,6 +404,20 @@ serve(async (req) => {
                 conversation,
                 progress
               );
+              
+              // Update progress every 5 conversations
+              if (progress.conversationsImported % 5 === 0) {
+                await supabase
+                  .from('import_jobs')
+                  .update({
+                    conversations_imported: progress.conversationsImported,
+                    messages_imported: progress.messagesImported,
+                    customers_imported: progress.customersImported
+                  })
+                  .eq('id', jobId);
+                
+                console.log(`Progress: ${progress.conversationsImported}/${progress.totalConversations}`);
+              }
             }
 
             // Check if there are more pages
@@ -376,20 +429,43 @@ serve(async (req) => {
           }
         }
 
+        // Final progress update
+        await supabase
+          .from('import_jobs')
+          .update({
+            status: 'completed',
+            conversations_imported: progress.conversationsImported,
+            messages_imported: progress.messagesImported,
+            customers_imported: progress.customersImported,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+        
         progress.status = 'completed';
         console.log('Import completed successfully', progress);
       } catch (error) {
+        // Update job with error
+        await supabase
+          .from('import_jobs')
+          .update({
+            status: 'error',
+            errors: [...progress.errors, { message: error.message, timestamp: new Date().toISOString() }],
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+        
         progress.status = 'error';
         progress.errors.push(error.message);
         console.error('Import failed:', error);
       }
     })());
 
-    // Return immediate response
+    // Return immediate response with job ID
     return new Response(
       JSON.stringify({
-        message: 'Import started',
-        progress,
+        status: 'started',
+        jobId,
+        message: 'Import started in background'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
