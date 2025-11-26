@@ -6,6 +6,7 @@ import { Crown, TrendingUp, Activity, Users, MessageSquare } from 'lucide-react'
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 
 export default function SystemAnalytics() {
   // Fetch system-wide analytics
@@ -38,8 +39,9 @@ export default function SystemAnalytics() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10">
-      <div className="container mx-auto p-6 space-y-6">
+    <UnifiedAppLayout>
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10">
+        <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="space-y-1">
           <div className="flex items-center gap-3">
@@ -180,7 +182,8 @@ export default function SystemAnalytics() {
             </p>
           </CardContent>
         </Card>
+        </div>
       </div>
-    </div>
+    </UnifiedAppLayout>
   );
 }
