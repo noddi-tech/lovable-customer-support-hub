@@ -31,6 +31,7 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
   const [jobs, setJobs] = useState<ImportJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
+  const [resumingJobId, setResumingJobId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,7 +91,12 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
 
   const handleResumeJob = async (jobId: string) => {
     if (onResume) {
-      onResume(jobId);
+      setResumingJobId(jobId);
+      try {
+        await onResume(jobId);
+      } finally {
+        setResumingJobId(null);
+      }
     }
   };
 
@@ -245,9 +251,14 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleResumeJob(job.id)}
+                        disabled={resumingJobId === job.id}
                       >
-                        <Clock className="h-4 w-4 mr-1" />
-                        Resume Now
+                        {resumingJobId === job.id ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Clock className="h-4 w-4 mr-1" />
+                        )}
+                        {resumingJobId === job.id ? 'Resuming...' : 'Resume Now'}
                       </Button>
                     )}
                   </TableCell>
