@@ -188,7 +188,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
 
       {/* Virtualized Table Body */}
       <div className="flex-1" style={{ minHeight: 200 }}>
-        <AutoSizer key={`virtualized-list-${state.bulkSelectionMode}`}>
+        <AutoSizer>
           {({ height, width }) => {
             const safeHeight = Math.max(height, 200);
             return (
@@ -198,21 +198,17 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
               loadMoreItems={loadMoreItems}
             >
               {({ onItemsRendered, ref }) => (
-                <Table>
-                  <TableBody>
-                    <List
-                      ref={ref}
-                      height={safeHeight}
-                      width={width}
-                      itemCount={hasNextPage ? conversationCount + 1 : conversationCount}
-                      itemSize={ITEM_HEIGHT}
-                      onItemsRendered={onItemsRendered}
-                      overscanCount={OVERSCAN_COUNT}
-                    >
-                      {Row}
-                    </List>
-                  </TableBody>
-                </Table>
+                <List
+                  ref={ref}
+                  height={safeHeight}
+                  width={width}
+                  itemCount={hasNextPage ? conversationCount + 1 : conversationCount}
+                  itemSize={ITEM_HEIGHT}
+                  onItemsRendered={onItemsRendered}
+                  overscanCount={OVERSCAN_COUNT}
+                >
+                  {Row}
+                </List>
               )}
             </InfiniteLoader>
             );

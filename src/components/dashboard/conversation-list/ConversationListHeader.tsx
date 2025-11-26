@@ -77,8 +77,8 @@ export const ConversationListHeader = ({
       setIsLoadingAll(true);
       toast.info('Loading all conversations...');
       await loadAllConversations();
-      // Add stabilization delay for virtualized list to render
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Add longer stabilization delay for virtualized list to render
+      await new Promise(resolve => setTimeout(resolve, 300));
       setIsLoadingAll(false);
     }
     onToggleBulkMode?.();
