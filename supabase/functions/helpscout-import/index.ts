@@ -271,19 +271,13 @@ serve(async (req) => {
       }
     }
 
-    if (!organizationId) {
-      return new Response(
-        JSON.stringify({ error: 'organizationId is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
     let jobId: string;
     let checkpoint: ImportCheckpoint | null = null;
+    let effectiveOrganizationId = organizationId;
 
-    // Resume mode - load existing job
+    // Resume mode - load existing job FIRST to get organizationId
     if (resume && existingJobId) {
       const { data: existingJob } = await supabase
         .from('import_jobs')
@@ -300,14 +294,22 @@ serve(async (req) => {
 
       jobId = existingJobId;
       checkpoint = existingJob.metadata?.checkpoint;
+      effectiveOrganizationId = existingJob.organization_id; // Use from job!
 
       console.log(`Resuming import job: ${jobId} at mailbox ${checkpoint?.currentMailboxIndex}, page ${checkpoint?.currentPage}`);
     } else {
-      // Create new import job
+      // Create new import job - now need organizationId
+      if (!effectiveOrganizationId) {
+        return new Response(
+          JSON.stringify({ error: 'organizationId is required for new imports' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { data: job, error: jobError } = await supabase
         .from('import_jobs')
         .insert({
-          organization_id: organizationId,
+          organization_id: effectiveOrganizationId,
           source: 'helpscout',
           status: 'running',
           started_at: new Date().toISOString(),
@@ -492,7 +494,7 @@ serve(async (req) => {
                     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
                   },
                   body: JSON.stringify({
-                    organizationId,
+                    // Don't need to pass organizationId - will be fetched from job
                     resume: true,
                     jobId,
                   })

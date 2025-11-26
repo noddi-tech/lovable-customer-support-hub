@@ -319,30 +319,91 @@ export const HelpScoutImport = () => {
       : 0;
 
   const handleResumeImport = async (pausedJobId: string) => {
+    setIsImporting(true);
     try {
-      const { error } = await supabase.functions.invoke('helpscout-import', {
+      // Don't pass organizationId - backend will fetch from job record
+      const { data, error } = await supabase.functions.invoke('helpscout-import', {
         body: {
-          organizationId: selectedOrgId,
           resume: true,
           jobId: pausedJobId,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Resume error:', error);
+        throw error;
+      }
 
       setJobId(pausedJobId);
       setCurrentStep('importing');
-      setIsImporting(true);
       setProgress(prev => ({ ...prev, status: 'running' }));
 
       toast({
         title: 'Import Resumed',
         description: 'Continuing import from where it left off...',
       });
+
+      // Start polling for progress (same as regular import)
+      const pollInterval = setInterval(async () => {
+        const { data: job, error: jobError } = await supabase
+          .from('import_jobs')
+          .select('*')
+          .eq('id', pausedJobId)
+          .single();
+        
+        if (jobError) {
+          console.error('Failed to fetch job progress:', jobError);
+          return;
+        }
+        
+        if (job) {
+          const metadata = job.metadata as any;
+          const checkpoint = metadata?.checkpoint;
+          if (checkpoint && typeof checkpoint.currentMailboxIndex === 'number') {
+            const currentMailbox = mailboxes[checkpoint.currentMailboxIndex];
+            if (currentMailbox) {
+              setCurrentMailboxName(currentMailbox.name);
+            }
+          }
+
+          setProgress({
+            totalMailboxes: job.total_mailboxes || 0,
+            totalConversations: job.total_conversations || 0,
+            conversationsImported: job.conversations_imported || 0,
+            messagesImported: job.messages_imported || 0,
+            customersImported: job.customers_imported || 0,
+            errors: Array.isArray(job.errors) ? job.errors.map((e: any) => e.message || e) : [],
+            status: job.status as 'idle' | 'running' | 'completed' | 'error'
+          });
+          
+          if (job.status === 'paused') {
+            setProgress(prev => ({ ...prev, status: 'running' }));
+          } else if (job.status === 'completed') {
+            clearInterval(pollInterval);
+            setIsImporting(false);
+            setCurrentMailboxName('');
+            toast({
+              title: 'Import Complete',
+              description: `Successfully imported ${job.conversations_imported} conversations with ${job.messages_imported} messages.`,
+            });
+          } else if (job.status === 'error') {
+            clearInterval(pollInterval);
+            setIsImporting(false);
+            setCurrentMailboxName('');
+            toast({
+              title: 'Import Failed',
+              description: 'The import encountered errors. Check the error log below.',
+              variant: 'destructive',
+            });
+          }
+        }
+      }, 3000);
     } catch (error: any) {
+      console.error('Resume failed:', error);
+      setIsImporting(false);
       toast({
         title: 'Failed to Resume',
-        description: error.message || 'Could not resume import',
+        description: error.message || 'Could not resume import. Please try again.',
         variant: 'destructive',
       });
     }
