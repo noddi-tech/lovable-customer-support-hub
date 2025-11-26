@@ -687,6 +687,33 @@ export const HelpScoutImport = () => {
                   </div>
                 </div>
               )}
+
+              {/* Start New Import Button */}
+              {(progress.status === 'completed' || progress.status === 'error' || (progress.status === 'idle' && !isImporting)) && (
+                <Button
+                  onClick={() => {
+                    setCurrentStep('setup');
+                    setMailboxes([]);
+                    setMailboxMapping({});
+                    setJobId('');
+                    setCurrentMailboxName('');
+                    setProgress({
+                      totalMailboxes: 0,
+                      totalConversations: 0,
+                      conversationsImported: 0,
+                      messagesImported: 0,
+                      customersImported: 0,
+                      errors: [],
+                      status: 'idle',
+                    });
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Start New Import
+                </Button>
+              )}
             </div>
           )}
 
