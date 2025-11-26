@@ -76,6 +76,9 @@ export const ConversationListHeader = ({
     // Prevent double-click during loading
     if (isLoadingRef.current) return;
     
+    // Toggle bulk mode FIRST - this locks the virtualization decision
+    onToggleBulkMode?.();
+    
     if (!bulkSelectionMode && hasNextPage) {
       isLoadingRef.current = true;
       setIsLoadingAll(true);
@@ -93,7 +96,6 @@ export const ConversationListHeader = ({
       setIsLoadingAll(false);
       isLoadingRef.current = false;
     }
-    onToggleBulkMode?.();
   };
 
   return (
