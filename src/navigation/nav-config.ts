@@ -16,7 +16,8 @@ import {
   Workflow,
   Wrench,
   Inbox,
-  Bug
+  Bug,
+  Download
 } from "lucide-react";
 
 export type NavItem = {
@@ -201,6 +202,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: "System Analytics", 
     to: "/super-admin/analytics", 
     icon: BarChart3, 
+    group: "super_admin", 
+    requiredRole: "super_admin" 
+  },
+  { 
+    id: "super-admin-import", 
+    label: "Import Data", 
+    to: "/super-admin/import", 
+    icon: Download, 
     group: "super_admin", 
     requiredRole: "super_admin" 
   },
