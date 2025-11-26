@@ -133,3 +133,7 @@ verify_jwt = true
 
 [functions.sync-unlinked-calls]
 verify_jwt = true
+
+[functions.helpscout-import]
+verify_jwt = true
+

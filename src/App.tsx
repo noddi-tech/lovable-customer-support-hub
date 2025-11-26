@@ -139,6 +139,7 @@ const AppContent = () => {
       <Route path="/admin/design" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/design/components" element={<ProtectedRoute><AdminRoute><AdminDesignComponentsPage /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/debug" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/import" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
       
       {/* Super Admin Routes */}
