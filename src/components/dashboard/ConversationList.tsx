@@ -123,7 +123,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
       />
       
       {/* Conversation List - Table layout */}
-      <div className="pane flex-1 overflow-hidden min-h-0 h-full bg-white">
+      <div className="pane flex-1 flex flex-col overflow-hidden min-h-0 h-full bg-white">
         {shouldUseVirtualization ? (
           <VirtualizedConversationTable
             onSelectConversation={onSelectConversation}

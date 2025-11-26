@@ -143,7 +143,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 relative">
+    <div className="flex-1 flex flex-col min-h-0 h-full relative">
       {/* Loading overlay - doesn't unmount the list */}
       {isFetchingNextPage && hasNextPage && (
         <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 bg-background/90 border rounded-full px-3 py-1 text-xs flex items-center gap-2 shadow-lg">
@@ -220,7 +220,7 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
       </div>
 
       {/* Virtualized Table Body */}
-      <div className="flex-1 min-h-0" style={{ minHeight: 300 }}>
+      <div className="flex-1 min-h-0 h-full">
         <AutoSizer>
           {({ height, width }) => {
             const safeHeight = Math.max(height || 300, 300);
