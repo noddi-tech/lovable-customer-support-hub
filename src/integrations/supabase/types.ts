@@ -623,6 +623,71 @@ export type Database = {
         }
         Relationships: []
       }
+      import_jobs: {
+        Row: {
+          completed_at: string | null
+          conversations_imported: number | null
+          created_at: string
+          created_by: string | null
+          customers_imported: number | null
+          errors: Json | null
+          id: string
+          messages_imported: number | null
+          metadata: Json | null
+          organization_id: string
+          source: string
+          started_at: string | null
+          status: string
+          total_conversations: number | null
+          total_mailboxes: number | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          conversations_imported?: number | null
+          created_at?: string
+          created_by?: string | null
+          customers_imported?: number | null
+          errors?: Json | null
+          id?: string
+          messages_imported?: number | null
+          metadata?: Json | null
+          organization_id: string
+          source: string
+          started_at?: string | null
+          status?: string
+          total_conversations?: number | null
+          total_mailboxes?: number | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          conversations_imported?: number | null
+          created_at?: string
+          created_by?: string | null
+          customers_imported?: number | null
+          errors?: Json | null
+          id?: string
+          messages_imported?: number | null
+          metadata?: Json | null
+          organization_id?: string
+          source?: string
+          started_at?: string | null
+          status?: string
+          total_conversations?: number | null
+          total_mailboxes?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbound_routes: {
         Row: {
           address: string

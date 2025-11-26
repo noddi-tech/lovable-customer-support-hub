@@ -50,6 +50,7 @@ export const HelpScoutImport = () => {
   const [mailboxes, setMailboxes] = useState<HelpScoutMailbox[]>([]);
   const [mailboxMapping, setMailboxMapping] = useState<Record<string, string>>({});
   const [dateFrom, setDateFrom] = useState<string>('');
+  const [jobId, setJobId] = useState<string>('');
   const [isFetchingMailboxes, setIsFetchingMailboxes] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -209,33 +210,57 @@ export const HelpScoutImport = () => {
 
       if (error) throw error;
 
-      setProgress(data.progress);
-
-      toast({
-        title: 'Import Started',
-        description: 'HelpScout data is being imported in the background. This may take several minutes.',
-      });
-
-      // Simulate progress polling
-      const pollInterval = setInterval(async () => {
-        if (progress.status === 'completed' || progress.status === 'error') {
-          clearInterval(pollInterval);
-          setIsImporting(false);
-        }
-      }, 5000);
-
-      // Simulate completion
-      setTimeout(() => {
-        setProgress(prev => ({
-          ...prev,
-          status: 'completed',
-        }));
-        setIsImporting(false);
+      if (data.status === 'started' && data.jobId) {
+        setJobId(data.jobId);
+        
         toast({
-          title: 'Import Completed',
-          description: `Successfully imported conversations and messages from HelpScout.`,
+          title: 'Import Started',
+          description: 'HelpScout data import is running in the background. Progress will update automatically.',
         });
-      }, 120000);
+        
+        // Start polling for progress
+        const pollInterval = setInterval(async () => {
+          const { data: job, error: jobError } = await supabase
+            .from('import_jobs')
+            .select('*')
+            .eq('id', data.jobId)
+            .single();
+          
+          if (jobError) {
+            console.error('Failed to fetch job progress:', jobError);
+            return;
+          }
+          
+          if (job) {
+            setProgress({
+              totalMailboxes: job.total_mailboxes || 0,
+              totalConversations: job.total_conversations || 0,
+              conversationsImported: job.conversations_imported || 0,
+              messagesImported: job.messages_imported || 0,
+              customersImported: job.customers_imported || 0,
+              errors: Array.isArray(job.errors) ? job.errors.map((e: any) => e.message || e) : [],
+              status: job.status as 'idle' | 'running' | 'completed' | 'error'
+            });
+            
+            if (job.status === 'completed') {
+              clearInterval(pollInterval);
+              setIsImporting(false);
+              toast({
+                title: 'Import Complete',
+                description: `Successfully imported ${job.conversations_imported} conversations with ${job.messages_imported} messages.`,
+              });
+            } else if (job.status === 'error') {
+              clearInterval(pollInterval);
+              setIsImporting(false);
+              toast({
+                title: 'Import Failed',
+                description: 'The import encountered errors. Check the error log below.',
+                variant: 'destructive',
+              });
+            }
+          }
+        }, 3000); // Poll every 3 seconds
+      }
     } catch (error: any) {
       console.error('Import error:', error);
       setProgress(prev => ({
