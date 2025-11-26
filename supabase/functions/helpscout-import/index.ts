@@ -15,6 +15,8 @@ interface ImportProgress {
   totalMailboxes: number;
   totalConversations: number;
   conversationsImported: number;
+  conversationsProcessed: number;
+  conversationsSkipped: number;
   messagesImported: number;
   customersImported: number;
   errors: string[];
@@ -29,6 +31,7 @@ interface ImportCheckpoint {
   currentPage: number;
   processedConvIds: string[];
   resolvedInboxIds: Record<string, string>;
+  completedMailboxIds: string[];
   continuationCount: number;
 }
 
@@ -153,6 +156,8 @@ async function importConversation(
 
     if (existingConv) {
       console.log(`Conversation ${conversation.id} already imported, skipping`);
+      progress.conversationsProcessed++;
+      progress.conversationsSkipped++;
       return;
     }
 
@@ -187,6 +192,7 @@ async function importConversation(
     }
 
     progress.conversationsImported++;
+    progress.conversationsProcessed++;
 
     // Fetch and import threads (messages)
     const threadsData = await fetchHelpScout(accessToken, `/conversations/${conversation.id}/threads`);
@@ -337,6 +343,8 @@ serve(async (req) => {
       totalMailboxes: 0,
       totalConversations: 0,
       conversationsImported: 0,
+      conversationsProcessed: 0,
+      conversationsSkipped: 0,
       messagesImported: 0,
       customersImported: 0,
       errors: [],
@@ -368,6 +376,8 @@ serve(async (req) => {
             progress.totalMailboxes = existingJob.total_mailboxes || checkpoint.mailboxIds?.length || 0;
             progress.totalConversations = existingJob.total_conversations || 0;
             progress.conversationsImported = existingJob.conversations_imported || 0;
+            progress.conversationsProcessed = existingJob.metadata?.progress?.conversationsProcessed || 0;
+            progress.conversationsSkipped = existingJob.metadata?.progress?.conversationsSkipped || 0;
             progress.messagesImported = existingJob.messages_imported || 0;
             progress.customersImported = existingJob.customers_imported || 0;
           }
@@ -397,6 +407,7 @@ serve(async (req) => {
         const startPage = checkpoint?.currentPage || 1;
         const skipConvIds = new Set(checkpoint?.processedConvIds || []);
         const resolvedInboxIds = checkpoint?.resolvedInboxIds || {};
+        const completedMailboxIds = new Set(checkpoint?.completedMailboxIds || []);
         const continuationCount = checkpoint?.continuationCount || 0;
 
         // Check continuation limit
@@ -407,10 +418,18 @@ serve(async (req) => {
         // Process mailboxes
         for (let mIdx = startMailboxIndex; mIdx < targetMailboxes.length; mIdx++) {
           const mailbox = targetMailboxes[mIdx];
+          
+          // Skip if mailbox already fully processed
+          if (completedMailboxIds.has(mailbox.id)) {
+            console.log(`Mailbox ${mailbox.name} (${mailbox.id}) already completed, skipping to next`);
+            continue;
+          }
+          
           const targetInboxId = effectiveMapping?.[mailbox.id];
           
           if (!targetInboxId || targetInboxId === 'skip') {
             console.log(`Skipping mailbox: ${mailbox.name}`);
+            completedMailboxIds.add(mailbox.id);
             continue;
           }
 
@@ -470,6 +489,10 @@ serve(async (req) => {
                   metadata: {
                     dateFrom: checkpoint?.dateFrom || dateFrom,
                     mailboxMappingCount: Object.keys(effectiveMapping || {}).length,
+                    progress: {
+                      conversationsProcessed: progress.conversationsProcessed,
+                      conversationsSkipped: progress.conversationsSkipped,
+                    },
                     checkpoint: {
                       mailboxIds: targetMailboxIds,
                       mailboxMapping: effectiveMapping,
@@ -478,6 +501,7 @@ serve(async (req) => {
                       currentPage: page,
                       processedConvIds: processedOnPage,
                       resolvedInboxIds,
+                      completedMailboxIds: Array.from(completedMailboxIds),
                       continuationCount: continuationCount + 1,
                     }
                   }
@@ -514,6 +538,8 @@ serve(async (req) => {
             
             if (conversations.length === 0) {
               hasMore = false;
+              completedMailboxIds.add(mailbox.id);
+              console.log(`Mailbox ${mailbox.name} completed`);
               break;
             }
 
@@ -552,6 +578,10 @@ serve(async (req) => {
                     metadata: {
                       dateFrom: checkpoint?.dateFrom || dateFrom,
                       mailboxMappingCount: Object.keys(effectiveMapping || {}).length,
+                      progress: {
+                        conversationsProcessed: progress.conversationsProcessed,
+                        conversationsSkipped: progress.conversationsSkipped,
+                      },
                       checkpoint: {
                         mailboxIds: targetMailboxIds,
                         mailboxMapping: effectiveMapping,
@@ -560,6 +590,7 @@ serve(async (req) => {
                         currentPage: page,
                         processedConvIds: processedOnPage,
                         resolvedInboxIds,
+                        completedMailboxIds: Array.from(completedMailboxIds),
                         continuationCount: continuationCount + 1,
                       }
                     }
@@ -596,17 +627,24 @@ serve(async (req) => {
               processedOnPage.push(conversation.id);
               
               // Update progress every 5 conversations
-              if (progress.conversationsImported % 5 === 0) {
+              if (progress.conversationsProcessed % 5 === 0) {
                 await supabase
                   .from('import_jobs')
                   .update({
                     conversations_imported: progress.conversationsImported,
                     messages_imported: progress.messagesImported,
-                    customers_imported: progress.customersImported
+                    customers_imported: progress.customersImported,
+                    metadata: {
+                      ...(await supabase.from('import_jobs').select('metadata').eq('id', jobId).single()).data?.metadata,
+                      progress: {
+                        conversationsProcessed: progress.conversationsProcessed,
+                        conversationsSkipped: progress.conversationsSkipped,
+                      }
+                    }
                   })
                   .eq('id', jobId);
                 
-                console.log(`Progress: ${progress.conversationsImported}/${progress.totalConversations}`);
+                console.log(`Progress: ${progress.conversationsProcessed} processed (${progress.conversationsImported} new, ${progress.conversationsSkipped} skipped)/${progress.totalConversations}`);
               }
             }
 
@@ -617,6 +655,13 @@ serve(async (req) => {
 
             // Check if there are more pages
             hasMore = conversationsData.page?.number < conversationsData.page?.totalPages;
+            
+            // If no more pages, mark mailbox as complete
+            if (!hasMore) {
+              completedMailboxIds.add(mailbox.id);
+              console.log(`Mailbox ${mailbox.name} completed after page ${page}`);
+            }
+            
             page++;
             processedOnPage.length = 0; // Clear for next page
 

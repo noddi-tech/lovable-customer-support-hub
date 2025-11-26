@@ -17,10 +17,12 @@ interface ImportProgress {
   totalMailboxes: number;
   totalConversations: number;
   conversationsImported: number;
+  conversationsProcessed: number;
+  conversationsSkipped: number;
   messagesImported: number;
   customersImported: number;
   errors: string[];
-  status: 'idle' | 'running' | 'completed' | 'error';
+  status: 'idle' | 'running' | 'completed' | 'error' | 'paused';
 }
 
 interface HelpScoutMailbox {
@@ -59,6 +61,8 @@ export const HelpScoutImport = () => {
     totalMailboxes: 0,
     totalConversations: 0,
     conversationsImported: 0,
+    conversationsProcessed: 0,
+    conversationsSkipped: 0,
     messagesImported: 0,
     customersImported: 0,
     errors: [],
@@ -209,6 +213,8 @@ export const HelpScoutImport = () => {
       totalMailboxes: 0,
       totalConversations: 0,
       conversationsImported: 0,
+      conversationsProcessed: 0,
+      conversationsSkipped: 0,
       messagesImported: 0,
       customersImported: 0,
       errors: [],
@@ -262,10 +268,12 @@ export const HelpScoutImport = () => {
               totalMailboxes: job.total_mailboxes || 0,
               totalConversations: job.total_conversations || 0,
               conversationsImported: job.conversations_imported || 0,
+              conversationsProcessed: (job.metadata as any)?.progress?.conversationsProcessed || 0,
+              conversationsSkipped: (job.metadata as any)?.progress?.conversationsSkipped || 0,
               messagesImported: job.messages_imported || 0,
               customersImported: job.customers_imported || 0,
               errors: Array.isArray(job.errors) ? job.errors.map((e: any) => e.message || e) : [],
-              status: job.status as 'idle' | 'running' | 'completed' | 'error'
+              status: job.status as 'idle' | 'running' | 'completed' | 'error' | 'paused'
             });
             
             // Handle paused status - it will auto-continue
@@ -370,10 +378,12 @@ export const HelpScoutImport = () => {
             totalMailboxes: job.total_mailboxes || 0,
             totalConversations: job.total_conversations || 0,
             conversationsImported: job.conversations_imported || 0,
+            conversationsProcessed: (job.metadata as any)?.progress?.conversationsProcessed || 0,
+            conversationsSkipped: (job.metadata as any)?.progress?.conversationsSkipped || 0,
             messagesImported: job.messages_imported || 0,
             customersImported: job.customers_imported || 0,
             errors: Array.isArray(job.errors) ? job.errors.map((e: any) => e.message || e) : [],
-            status: job.status as 'idle' | 'running' | 'completed' | 'error'
+            status: job.status as 'idle' | 'running' | 'completed' | 'error' | 'paused'
           });
           
           if (job.status === 'paused') {
@@ -701,6 +711,8 @@ export const HelpScoutImport = () => {
                       totalMailboxes: 0,
                       totalConversations: 0,
                       conversationsImported: 0,
+                      conversationsProcessed: 0,
+                      conversationsSkipped: 0,
                       messagesImported: 0,
                       customersImported: 0,
                       errors: [],
