@@ -26,7 +26,8 @@ import {
   Mail,
   Route,
   Brain,
-  Crown
+  Crown,
+  Download
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -107,6 +108,12 @@ const AdminSidebar = () => {
       title: 'All Users',
       url: '/super-admin/users',
       icon: Users,
+      group: 'super-admin'
+    },
+    {
+      title: 'Import Data',
+      url: '/super-admin/import',
+      icon: Download,
       group: 'super-admin'
     }
   ];

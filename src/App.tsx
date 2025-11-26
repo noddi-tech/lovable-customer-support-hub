@@ -39,6 +39,7 @@ import AuditLogAnalytics from "./pages/AuditLogAnalytics";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import SuperAdminImport from "./pages/SuperAdminImport";
 import "@/lib/i18n";
 import "@/styles/controls.css";
 
@@ -149,6 +150,7 @@ const AppContent = () => {
       <Route path="/super-admin/organizations" element={<ProtectedRoute><SuperAdminRoute><OrganizationManagement /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/organizations/:id" element={<ProtectedRoute><SuperAdminRoute><OrganizationDetails /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/users" element={<ProtectedRoute><SuperAdminRoute><AllUsersManagement /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/import" element={<ProtectedRoute><SuperAdminRoute><SuperAdminImport /></SuperAdminRoute></ProtectedRoute>} />
             <Route path="/super-admin/roles" element={<ProtectedRoute><SuperAdminRoute><RoleManagement /></SuperAdminRoute></ProtectedRoute>} />
             <Route path="/super-admin/audit-logs" element={<ProtectedRoute><SuperAdminRoute><AuditLogs /></SuperAdminRoute></ProtectedRoute>} />
             <Route path="/super-admin/audit-logs/analytics" element={<ProtectedRoute><SuperAdminRoute><AuditLogAnalytics /></SuperAdminRoute></ProtectedRoute>} />
