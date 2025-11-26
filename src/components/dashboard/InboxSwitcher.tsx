@@ -21,6 +21,10 @@ export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
   const { inboxes, conversations } = useOptimizedCounts();
   const { t } = useTranslation();
 
+  // Only show "All Inboxes" if there's more than one active inbox
+  const activeInboxes = inboxes.filter(inbox => inbox.is_active);
+  const shouldShowAllOption = showAllOption && activeInboxes.length > 1;
+
   const handleValueChange = (value: string) => {
     onInboxChange(value);
   };
@@ -60,7 +64,7 @@ export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
         </div>
       </SelectTrigger>
       <SelectContent>
-        {showAllOption && (
+        {shouldShowAllOption && (
           <SelectItem value="all">
             <div className="flex items-center gap-2">
               <Inbox className="w-4 h-4 text-muted-foreground" />
