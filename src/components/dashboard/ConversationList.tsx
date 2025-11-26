@@ -33,6 +33,8 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
     hasSessionError, 
     state, 
     dispatch,
+    hasNextPage,
+    isFetchingNextPage,
     bulkMarkAsRead,
     bulkMarkAsUnread,
     bulkChangeStatus,
@@ -67,7 +69,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
 
   // Stable virtualization decision - use virtualization if there's potential for large dataset
   // This prevents switching between table types during bulk load
-  const shouldUseVirtualization = filteredConversations.length > 50 || hasSessionError || state.bulkSelectionMode;
+  const shouldUseVirtualization = filteredConversations.length > 50 || hasNextPage || isFetchingNextPage || hasSessionError || state.bulkSelectionMode;
 
   return (
     <div className="flex flex-col h-full min-h-0">

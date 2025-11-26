@@ -220,10 +220,10 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
       </div>
 
       {/* Virtualized Table Body */}
-      <div className="flex-1" style={{ minHeight: 200 }}>
+      <div className="flex-1 min-h-0" style={{ minHeight: 300 }}>
         <AutoSizer>
           {({ height, width }) => {
-            const safeHeight = Math.max(height, 200);
+            const safeHeight = Math.max(height || 300, 300);
             return (
             <InfiniteLoader
               isItemLoaded={isItemLoaded}
