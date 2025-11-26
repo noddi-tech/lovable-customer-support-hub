@@ -65,8 +65,9 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
   // Note: Real-time subscriptions are now centralized in useOptimizedCounts
   // to prevent duplicate subscriptions and improve performance
 
-  // Use virtualized list for large datasets - Phase 3: Lower threshold for better UX
-  const shouldUseVirtualization = filteredConversations.length > 100;
+  // Stable virtualization decision - use virtualization if there's potential for large dataset
+  // This prevents switching between table types during bulk load
+  const shouldUseVirtualization = filteredConversations.length > 50 || hasSessionError || state.bulkSelectionMode;
 
   return (
     <div className="flex flex-col h-full min-h-0">
