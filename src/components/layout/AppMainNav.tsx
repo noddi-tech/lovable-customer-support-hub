@@ -11,18 +11,20 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
-import { Crown } from 'lucide-react';
+import { Crown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export const AppMainNav = () => {
   const location = useLocation();
   const { t } = useTranslation();
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
   const { isSuperAdmin } = useAuth();
   
@@ -124,6 +126,24 @@ export const AppMainNav = () => {
           );
         })}
       </SidebarContent>
+
+      <SidebarFooter className="mt-auto border-t border-sidebar-border">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleSidebar}
+          className="w-full flex items-center justify-center gap-2"
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <>
+              <ChevronLeft className="h-4 w-4" />
+              <span>Collapse</span>
+            </>
+          )}
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 };
