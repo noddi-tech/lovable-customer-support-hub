@@ -8,6 +8,9 @@ const HELPSCOUT_APP_SECRET = Deno.env.get('HELPSCOUT_APP_SECRET');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+const MAX_EXECUTION_TIME = 45000; // 45 seconds (leave 15s buffer before 60s timeout)
+const MAX_CONTINUATIONS = 50; // Prevent infinite loops
+
 interface ImportProgress {
   totalMailboxes: number;
   totalConversations: number;
@@ -15,7 +18,18 @@ interface ImportProgress {
   messagesImported: number;
   customersImported: number;
   errors: string[];
-  status: 'running' | 'completed' | 'error';
+  status: 'running' | 'completed' | 'error' | 'paused';
+}
+
+interface ImportCheckpoint {
+  mailboxIds: string[];
+  mailboxMapping: Record<string, string>;
+  dateFrom?: string;
+  currentMailboxIndex: number;
+  currentPage: number;
+  processedConvIds: string[];
+  resolvedInboxIds: Record<string, string>;
+  continuationCount: number;
 }
 
 // OAuth2 token exchange
@@ -180,7 +194,7 @@ async function importConversation(
 
     for (const thread of threads) {
       if (thread.type !== 'message' && thread.type !== 'customer' && thread.type !== 'note') {
-        continue; // Skip non-message threads
+        continue;
       }
 
       const { error: msgError } = await supabase
@@ -216,7 +230,7 @@ serve(async (req) => {
   }
 
   try {
-    const { organizationId, mailboxIds, dateFrom, preview, test, mailboxMapping } = await req.json();
+    const { organizationId, mailboxIds, dateFrom, preview, test, mailboxMapping, resume, jobId: existingJobId } = await req.json();
 
     // Test mode - just verify credentials
     if (test) {
@@ -266,32 +280,56 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Create import job record
-    const { data: job, error: jobError } = await supabase
-      .from('import_jobs')
-      .insert({
-        organization_id: organizationId,
-        source: 'helpscout',
-        status: 'running',
-        started_at: new Date().toISOString(),
-        metadata: {
-          dateFrom,
-          mailboxMappingCount: Object.keys(mailboxMapping || {}).length
-        }
-      })
-      .select('id')
-      .single();
+    let jobId: string;
+    let checkpoint: ImportCheckpoint | null = null;
 
-    if (jobError || !job) {
-      console.error('Failed to create import job:', jobError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create import job' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Resume mode - load existing job
+    if (resume && existingJobId) {
+      const { data: existingJob } = await supabase
+        .from('import_jobs')
+        .select('*')
+        .eq('id', existingJobId)
+        .single();
+      
+      if (!existingJob) {
+        return new Response(
+          JSON.stringify({ error: 'Job not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      jobId = existingJobId;
+      checkpoint = existingJob.metadata?.checkpoint;
+
+      console.log(`Resuming import job: ${jobId} at mailbox ${checkpoint?.currentMailboxIndex}, page ${checkpoint?.currentPage}`);
+    } else {
+      // Create new import job
+      const { data: job, error: jobError } = await supabase
+        .from('import_jobs')
+        .insert({
+          organization_id: organizationId,
+          source: 'helpscout',
+          status: 'running',
+          started_at: new Date().toISOString(),
+          metadata: {
+            dateFrom,
+            mailboxMappingCount: Object.keys(mailboxMapping || {}).length
+          }
+        })
+        .select('id')
+        .single();
+
+      if (jobError || !job) {
+        console.error('Failed to create import job:', jobError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create import job' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      jobId = job.id;
+      console.log(`Created import job: ${jobId}`);
     }
-
-    const jobId = job.id;
-    console.log(`Created import job: ${jobId}`);
     
     const progress: ImportProgress = {
       totalMailboxes: 0,
@@ -305,59 +343,103 @@ serve(async (req) => {
 
     // Start background task
     EdgeRuntime.waitUntil((async () => {
+      const startTime = Date.now();
+      
+      const shouldPause = (): boolean => {
+        return Date.now() - startTime > MAX_EXECUTION_TIME;
+      };
+
       try {
         console.log('Starting HelpScout import...');
         const accessToken = await getAccessToken();
         console.log('Authenticated with HelpScout');
 
+        // Load existing progress if resuming
+        if (checkpoint) {
+          const { data: existingJob } = await supabase
+            .from('import_jobs')
+            .select('*')
+            .eq('id', jobId)
+            .single();
+          
+          if (existingJob) {
+            progress.totalMailboxes = existingJob.total_mailboxes || checkpoint.mailboxIds?.length || 0;
+            progress.totalConversations = existingJob.total_conversations || 0;
+            progress.conversationsImported = existingJob.conversations_imported || 0;
+            progress.messagesImported = existingJob.messages_imported || 0;
+            progress.customersImported = existingJob.customers_imported || 0;
+          }
+        }
+
         // Fetch mailboxes
         const mailboxesData = await fetchHelpScout(accessToken, '/mailboxes');
         const mailboxes = mailboxesData._embedded?.mailboxes || [];
-        progress.totalMailboxes = mailboxes.length;
+        
+        if (!checkpoint) {
+          progress.totalMailboxes = mailboxes.length;
+        }
 
         console.log(`Found ${mailboxes.length} mailboxes`);
 
+        // Get mailbox IDs and mapping (from checkpoint or request)
+        const targetMailboxIds = checkpoint?.mailboxIds || mailboxIds;
+        const effectiveMapping = checkpoint?.mailboxMapping || mailboxMapping;
+
         // Filter mailboxes if specified
-        const targetMailboxes = mailboxIds?.length > 0
-          ? mailboxes.filter((mb: any) => mailboxIds.includes(mb.id))
+        const targetMailboxes = targetMailboxIds?.length > 0
+          ? mailboxes.filter((mb: any) => targetMailboxIds.includes(mb.id))
           : mailboxes;
 
-        // Process mailboxes based on mapping
-        for (const mailbox of targetMailboxes) {
-          // Check if this mailbox should be imported
-          const targetInboxId = mailboxMapping?.[mailbox.id];
+        // Resume state
+        const startMailboxIndex = checkpoint?.currentMailboxIndex || 0;
+        const startPage = checkpoint?.currentPage || 1;
+        const skipConvIds = new Set(checkpoint?.processedConvIds || []);
+        const resolvedInboxIds = checkpoint?.resolvedInboxIds || {};
+        const continuationCount = checkpoint?.continuationCount || 0;
+
+        // Check continuation limit
+        if (continuationCount >= MAX_CONTINUATIONS) {
+          throw new Error('Maximum continuation limit reached - possible infinite loop detected');
+        }
+
+        // Process mailboxes
+        for (let mIdx = startMailboxIndex; mIdx < targetMailboxes.length; mIdx++) {
+          const mailbox = targetMailboxes[mIdx];
+          const targetInboxId = effectiveMapping?.[mailbox.id];
           
           if (!targetInboxId || targetInboxId === 'skip') {
             console.log(`Skipping mailbox: ${mailbox.name}`);
             continue;
           }
 
-          console.log(`Processing mailbox: ${mailbox.name}`);
+          console.log(`Processing mailbox ${mIdx + 1}/${targetMailboxes.length}: ${mailbox.name}`);
 
-          // Determine target inbox
-          let inboxId: string;
+          // Get or create inbox
+          let inboxId = resolvedInboxIds[mailbox.id];
           
-          if (targetInboxId === 'create_new') {
-            // Create new inbox
-            const { data: newInbox, error: inboxError } = await supabase
-              .from('inboxes')
-              .insert({
-                organization_id: organizationId,
-                name: mailbox.name,
-                description: `Imported from HelpScout`,
-                is_active: true,
-              })
-              .select('id')
-              .single();
-            
-            if (inboxError || !newInbox) {
-              progress.errors.push(`Failed to create inbox for mailbox ${mailbox.name}`);
-              continue;
+          if (!inboxId) {
+            if (targetInboxId === 'create_new') {
+              const { data: newInbox, error: inboxError } = await supabase
+                .from('inboxes')
+                .insert({
+                  organization_id: organizationId,
+                  name: mailbox.name,
+                  description: `Imported from HelpScout`,
+                  is_active: true,
+                })
+                .select('id')
+                .single();
+              
+              if (inboxError || !newInbox) {
+                progress.errors.push(`Failed to create inbox for mailbox ${mailbox.name}`);
+                continue;
+              }
+              inboxId = newInbox.id;
+            } else {
+              inboxId = targetInboxId;
             }
-            inboxId = newInbox.id;
-          } else {
-            // Use existing inbox
-            inboxId = targetInboxId;
+            
+            resolvedInboxIds[mailbox.id] = inboxId;
           }
 
           if (!inboxId) {
@@ -366,13 +448,63 @@ serve(async (req) => {
           }
 
           // Fetch conversations for this mailbox
-          let page = 1;
+          let page = (mIdx === startMailboxIndex) ? startPage : 1;
           let hasMore = true;
+          const processedOnPage: string[] = [];
 
           while (hasMore) {
+            // Check if we should pause BEFORE fetching
+            if (shouldPause()) {
+              console.log(`Pausing at mailbox ${mIdx}, page ${page} after ${Date.now() - startTime}ms`);
+              
+              // Save checkpoint
+              await supabase
+                .from('import_jobs')
+                .update({
+                  status: 'paused',
+                  conversations_imported: progress.conversationsImported,
+                  messages_imported: progress.messagesImported,
+                  customers_imported: progress.customersImported,
+                  metadata: {
+                    dateFrom: checkpoint?.dateFrom || dateFrom,
+                    mailboxMappingCount: Object.keys(effectiveMapping || {}).length,
+                    checkpoint: {
+                      mailboxIds: targetMailboxIds,
+                      mailboxMapping: effectiveMapping,
+                      dateFrom: checkpoint?.dateFrom || dateFrom,
+                      currentMailboxIndex: mIdx,
+                      currentPage: page,
+                      processedConvIds: processedOnPage,
+                      resolvedInboxIds,
+                      continuationCount: continuationCount + 1,
+                    }
+                  }
+                })
+                .eq('id', jobId);
+              
+              // Self-invoke for continuation
+              console.log('Triggering self-continuation...');
+              EdgeRuntime.waitUntil(
+                fetch(`${SUPABASE_URL}/functions/v1/helpscout-import`, {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                  },
+                  body: JSON.stringify({
+                    organizationId,
+                    resume: true,
+                    jobId,
+                  })
+                })
+              );
+              
+              return; // Exit current invocation
+            }
+
             let endpoint = `/conversations?mailbox=${mailbox.id}&page=${page}&status=all`;
-            if (dateFrom) {
-              endpoint += `&modifiedSince=${dateFrom}`;
+            if (checkpoint?.dateFrom || dateFrom) {
+              endpoint += `&modifiedSince=${checkpoint?.dateFrom || dateFrom}`;
             }
 
             const conversationsData = await fetchHelpScout(accessToken, endpoint);
@@ -383,7 +515,9 @@ serve(async (req) => {
               break;
             }
 
-            progress.totalConversations += conversations.length;
+            if (!checkpoint || mIdx !== startMailboxIndex || page !== startPage) {
+              progress.totalConversations += conversations.length;
+            }
             
             // Update total in database
             await supabase
@@ -396,6 +530,58 @@ serve(async (req) => {
 
             // Import each conversation
             for (const conversation of conversations) {
+              // Skip already processed conversations on first resumed page
+              if (mIdx === startMailboxIndex && page === startPage && skipConvIds.has(conversation.id)) {
+                console.log(`Skipping already processed conversation ${conversation.id}`);
+                continue;
+              }
+
+              // Check pause again before processing each conversation
+              if (shouldPause()) {
+                console.log(`Pausing mid-page at mailbox ${mIdx}, page ${page}, conv ${conversation.id}`);
+                
+                await supabase
+                  .from('import_jobs')
+                  .update({
+                    status: 'paused',
+                    conversations_imported: progress.conversationsImported,
+                    messages_imported: progress.messagesImported,
+                    customers_imported: progress.customersImported,
+                    metadata: {
+                      dateFrom: checkpoint?.dateFrom || dateFrom,
+                      mailboxMappingCount: Object.keys(effectiveMapping || {}).length,
+                      checkpoint: {
+                        mailboxIds: targetMailboxIds,
+                        mailboxMapping: effectiveMapping,
+                        dateFrom: checkpoint?.dateFrom || dateFrom,
+                        currentMailboxIndex: mIdx,
+                        currentPage: page,
+                        processedConvIds: processedOnPage,
+                        resolvedInboxIds,
+                        continuationCount: continuationCount + 1,
+                      }
+                    }
+                  })
+                  .eq('id', jobId);
+                
+                EdgeRuntime.waitUntil(
+                  fetch(`${SUPABASE_URL}/functions/v1/helpscout-import`, {
+                    method: 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+                    },
+                    body: JSON.stringify({
+                      organizationId,
+                      resume: true,
+                      jobId,
+                    })
+                  })
+                );
+                
+                return;
+              }
+
               await importConversation(
                 supabase,
                 accessToken,
@@ -404,6 +590,8 @@ serve(async (req) => {
                 conversation,
                 progress
               );
+              
+              processedOnPage.push(conversation.id);
               
               // Update progress every 5 conversations
               if (progress.conversationsImported % 5 === 0) {
@@ -420,16 +608,22 @@ serve(async (req) => {
               }
             }
 
+            // Clear skip list after first resumed page
+            if (mIdx === startMailboxIndex && page === startPage) {
+              skipConvIds.clear();
+            }
+
             // Check if there are more pages
             hasMore = conversationsData.page?.number < conversationsData.page?.totalPages;
             page++;
+            processedOnPage.length = 0; // Clear for next page
 
-            // Rate limiting: ~150ms between batches (400 req/min = ~150ms per request)
+            // Rate limiting
             await new Promise(resolve => setTimeout(resolve, 150));
           }
         }
 
-        // Final progress update
+        // Final progress update - completed
         await supabase
           .from('import_jobs')
           .update({
@@ -463,9 +657,9 @@ serve(async (req) => {
     // Return immediate response with job ID
     return new Response(
       JSON.stringify({
-        status: 'started',
+        status: resume ? 'resumed' : 'started',
         jobId,
-        message: 'Import started in background'
+        message: resume ? 'Import resumed in background' : 'Import started in background'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
