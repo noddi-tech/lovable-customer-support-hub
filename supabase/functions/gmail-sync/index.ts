@@ -601,11 +601,11 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
           }
         }
 
-        // Create message
+        // Create message (upsert to handle duplicates gracefully)
         console.log(`Inserting message for conversation ${conversation.id}: ${messageId}`);
         const { data: insertedMessage, error: insertError } = await supabaseClient
           .from('messages')
-          .insert({
+          .upsert({
             conversation_id: conversation.id,
             content: content.substring(0, 50000),
             content_type: contentType,
@@ -617,6 +617,9 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
             email_headers: headers,
             attachments: attachments,
             email_status: folder === 'sent' ? 'sent' : 'pending'
+          }, {
+            onConflict: 'external_id',
+            ignoreDuplicates: true
           })
           .select('id')
           .single();
