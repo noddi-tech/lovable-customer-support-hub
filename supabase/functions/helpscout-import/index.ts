@@ -213,7 +213,46 @@ serve(async (req) => {
   }
 
   try {
-    const { organizationId, mailboxIds, dateFrom } = await req.json();
+    const { organizationId, mailboxIds, dateFrom, preview, test, mailboxMapping } = await req.json();
+
+    // Test mode - just verify credentials
+    if (test) {
+      try {
+        const accessToken = await getAccessToken();
+        return new Response(
+          JSON.stringify({ success: true, message: 'Credentials are valid' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid credentials' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Preview mode - fetch mailboxes only
+    if (preview) {
+      try {
+        const accessToken = await getAccessToken();
+        const mailboxesData = await fetchHelpScout(accessToken, '/mailboxes');
+        const mailboxes = (mailboxesData._embedded?.mailboxes || []).map((mb: any) => ({
+          id: mb.id,
+          name: mb.name,
+          email: mb.email,
+        }));
+        
+        return new Response(
+          JSON.stringify({ mailboxes }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     if (!organizationId) {
       return new Response(
@@ -253,20 +292,24 @@ serve(async (req) => {
           ? mailboxes.filter((mb: any) => mailboxIds.includes(mb.id))
           : mailboxes;
 
-        // Get or create inboxes for each mailbox
+        // Process mailboxes based on mapping
         for (const mailbox of targetMailboxes) {
+          // Check if this mailbox should be imported
+          const targetInboxId = mailboxMapping?.[mailbox.id];
+          
+          if (!targetInboxId || targetInboxId === 'skip') {
+            console.log(`Skipping mailbox: ${mailbox.name}`);
+            continue;
+          }
+
           console.log(`Processing mailbox: ${mailbox.name}`);
 
-          // Get or create inbox
-          let { data: inbox } = await supabase
-            .from('inboxes')
-            .select('id')
-            .eq('organization_id', organizationId)
-            .eq('name', mailbox.name)
-            .single();
-
-          if (!inbox) {
-            const { data: newInbox } = await supabase
+          // Determine target inbox
+          let inboxId: string;
+          
+          if (targetInboxId === 'create_new') {
+            // Create new inbox
+            const { data: newInbox, error: inboxError } = await supabase
               .from('inboxes')
               .insert({
                 organization_id: organizationId,
@@ -276,11 +319,19 @@ serve(async (req) => {
               })
               .select('id')
               .single();
-            inbox = newInbox;
+            
+            if (inboxError || !newInbox) {
+              progress.errors.push(`Failed to create inbox for mailbox ${mailbox.name}`);
+              continue;
+            }
+            inboxId = newInbox.id;
+          } else {
+            // Use existing inbox
+            inboxId = targetInboxId;
           }
 
-          if (!inbox) {
-            progress.errors.push(`Failed to create inbox for mailbox ${mailbox.name}`);
+          if (!inboxId) {
+            progress.errors.push(`No inbox ID for mailbox ${mailbox.name}`);
             continue;
           }
 
@@ -310,7 +361,7 @@ serve(async (req) => {
                 supabase,
                 accessToken,
                 organizationId,
-                inbox.id,
+                inboxId,
                 conversation,
                 progress
               );

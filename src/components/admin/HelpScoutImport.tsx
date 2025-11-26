@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Download, CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Download, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowRight, Calendar } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ImportProgress {
@@ -20,10 +22,35 @@ interface ImportProgress {
   status: 'idle' | 'running' | 'completed' | 'error';
 }
 
+interface HelpScoutMailbox {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+}
+
+interface Inbox {
+  id: string;
+  name: string;
+}
+
+type ImportStep = 'setup' | 'mapping' | 'importing';
+
 export const HelpScoutImport = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const { user, isSuperAdmin } = useAuth();
+  const [currentStep, setCurrentStep] = useState<ImportStep>('setup');
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+  const [inboxes, setInboxes] = useState<Inbox[]>([]);
+  const [mailboxes, setMailboxes] = useState<HelpScoutMailbox[]>([]);
+  const [mailboxMapping, setMailboxMapping] = useState<Record<string, string>>({});
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [isFetchingMailboxes, setIsFetchingMailboxes] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [progress, setProgress] = useState<ImportProgress>({
@@ -36,20 +63,46 @@ export const HelpScoutImport = () => {
     status: 'idle',
   });
 
-  // Fetch organization ID on mount
+  // Fetch organizations and set initial org
   useEffect(() => {
-    const fetchOrgId = async () => {
-      const { data } = await supabase.rpc('get_user_organization_id');
-      if (data) setOrganizationId(data);
+    const fetchData = async () => {
+      if (isSuperAdmin) {
+        const { data: orgs } = await supabase.from('organizations').select('id, name').order('name');
+        setOrganizations(orgs || []);
+      }
+      
+      const { data: userOrgId } = await supabase.rpc('get_user_organization_id');
+      if (userOrgId) setSelectedOrgId(userOrgId);
     };
-    fetchOrgId();
-  }, []);
+    fetchData();
+  }, [isSuperAdmin]);
+
+  // Fetch inboxes when organization changes
+  useEffect(() => {
+    const fetchInboxes = async () => {
+      if (!selectedOrgId) return;
+      
+      const { data } = await supabase
+        .from('inboxes')
+        .select('id, name')
+        .eq('organization_id', selectedOrgId)
+        .order('name');
+      
+      setInboxes(data || []);
+    };
+    fetchInboxes();
+  }, [selectedOrgId]);
 
   const handleTestConnection = async () => {
+    if (!selectedOrgId) {
+      toast({ title: 'Error', description: 'Please select an organization', variant: 'destructive' });
+      return;
+    }
+
     setIsTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke('helpscout-import', {
-        body: { test: true, organizationId },
+        body: { test: true, organizationId: selectedOrgId },
       });
 
       if (error) throw error;
@@ -69,17 +122,72 @@ export const HelpScoutImport = () => {
     }
   };
 
-  const handleStartImport = async () => {
-    if (!organizationId) {
+  const handleFetchMailboxes = async () => {
+    if (!selectedOrgId) {
+      toast({ title: 'Error', description: 'Please select an organization', variant: 'destructive' });
+      return;
+    }
+
+    setIsFetchingMailboxes(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('helpscout-import', {
+        body: { preview: true, organizationId: selectedOrgId },
+      });
+
+      if (error) throw error;
+
+      setMailboxes(data.mailboxes || []);
+      
+      // Auto-map to existing inboxes with matching names
+      const autoMapping: Record<string, string> = {};
+      data.mailboxes.forEach((mb: HelpScoutMailbox) => {
+        const matchingInbox = inboxes.find(
+          inbox => inbox.name.toLowerCase() === mb.name.toLowerCase()
+        );
+        if (matchingInbox) {
+          autoMapping[mb.id] = matchingInbox.id;
+        } else {
+          autoMapping[mb.id] = 'create_new';
+        }
+      });
+      setMailboxMapping(autoMapping);
+      
+      setCurrentStep('mapping');
+      
       toast({
-        title: 'Error',
-        description: 'Organization ID not found. Please try again.',
+        title: 'Mailboxes Fetched',
+        description: `Found ${data.mailboxes.length} mailboxes. Configure mapping below.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Failed to Fetch Mailboxes',
+        description: error.message || 'Could not retrieve mailboxes from HelpScout.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFetchingMailboxes(false);
+    }
+  };
+
+  const handleStartImport = async () => {
+    if (!selectedOrgId) {
+      toast({ title: 'Error', description: 'Please select an organization', variant: 'destructive' });
+      return;
+    }
+
+    // Check if all mailboxes are mapped
+    const unmappedMailboxes = mailboxes.filter(mb => !mailboxMapping[mb.id] || mailboxMapping[mb.id] === 'skip');
+    if (unmappedMailboxes.length === mailboxes.length) {
+      toast({
+        title: 'No Mailboxes Selected',
+        description: 'Please map at least one mailbox to an inbox.',
         variant: 'destructive',
       });
       return;
     }
 
     setIsImporting(true);
+    setCurrentStep('importing');
     setProgress({
       totalMailboxes: 0,
       totalConversations: 0,
@@ -93,8 +201,9 @@ export const HelpScoutImport = () => {
     try {
       const { data, error } = await supabase.functions.invoke('helpscout-import', {
         body: {
-          organizationId,
-          // Optional: add mailboxIds or dateFrom filters here
+          organizationId: selectedOrgId,
+          mailboxMapping,
+          dateFrom: dateFrom || undefined,
         },
       });
 
@@ -107,17 +216,15 @@ export const HelpScoutImport = () => {
         description: 'HelpScout data is being imported in the background. This may take several minutes.',
       });
 
-      // Poll for progress updates (optional - you could implement a realtime subscription)
+      // Simulate progress polling
       const pollInterval = setInterval(async () => {
-        // In production, you'd query a progress tracking table or use realtime subscriptions
-        // For now, we'll just show the initial progress
         if (progress.status === 'completed' || progress.status === 'error') {
           clearInterval(pollInterval);
           setIsImporting(false);
         }
       }, 5000);
 
-      // Simulate completion after 2 minutes for demo
+      // Simulate completion
       setTimeout(() => {
         setProgress(prev => ({
           ...prev,
@@ -173,48 +280,175 @@ export const HelpScoutImport = () => {
             </AlertDescription>
           </Alert>
 
-          {/* Test Connection */}
-          <div className="flex gap-3">
-            <Button
-              onClick={handleTestConnection}
-              disabled={isTesting || isImporting}
-              variant="outline"
-              className="flex-1"
-            >
-              {isTesting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Testing...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Test Connection
-                </>
-              )}
-            </Button>
+          {/* Step 1: Organization Selection */}
+          {currentStep === 'setup' && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="organization">Target Organization</Label>
+                {isSuperAdmin && organizations.length > 0 ? (
+                  <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                    <SelectTrigger id="organization">
+                      <SelectValue placeholder="Select organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizations.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={selectedOrgId} disabled className="bg-muted" />
+                )}
+                <p className="text-xs text-muted-foreground">
+                  All imported data will be assigned to this organization
+                </p>
+              </div>
 
-            <Button
-              onClick={handleStartImport}
-              disabled={isImporting || isTesting}
-              className="flex-1"
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  Start Import
-                </>
-              )}
-            </Button>
-          </div>
+              <div className="space-y-3">
+                <Label htmlFor="dateFrom">Import From Date (Optional)</Label>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="dateFrom"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    placeholder="Leave empty to import all history"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Leave empty to import all historical data, or select a date to limit the import
+                </p>
+              </div>
 
-          {/* Progress Display */}
-          {(isImporting || progress.status !== 'idle') && (
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={handleTestConnection}
+                  disabled={isTesting || !selectedOrgId}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  {isTesting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Test Connection
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleFetchMailboxes}
+                  disabled={isFetchingMailboxes || !selectedOrgId}
+                  className="flex-1"
+                >
+                  {isFetchingMailboxes ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Fetching...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Next: Fetch Mailboxes
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Mailbox Mapping */}
+          {currentStep === 'mapping' && (
+            <div className="space-y-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Map each HelpScout mailbox to a target inbox in your organization. You can create new inboxes or skip mailboxes you don't want to import.
+                </AlertDescription>
+              </Alert>
+
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>HelpScout Mailbox</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Target Inbox</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mailboxes.map((mailbox) => (
+                      <TableRow key={mailbox.id}>
+                        <TableCell className="font-medium">{mailbox.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{mailbox.email}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={mailboxMapping[mailbox.id] || ''}
+                            onValueChange={(value) =>
+                              setMailboxMapping((prev) => ({ ...prev, [mailbox.id]: value }))
+                            }
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select target inbox" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="create_new">
+                                ✨ Create new inbox: "{mailbox.name}"
+                              </SelectItem>
+                              {inboxes.map((inbox) => (
+                                <SelectItem key={inbox.id} value={inbox.id}>
+                                  {inbox.name}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="skip">⏭️ Skip - don't import</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={() => {
+                    setCurrentStep('setup');
+                    setMailboxes([]);
+                    setMailboxMapping({});
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+
+                <Button onClick={handleStartImport} disabled={isImporting} className="flex-1">
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Start Import
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Import Progress */}
+          {currentStep === 'importing' && (
             <div className="space-y-4 pt-4 border-t">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -283,14 +517,16 @@ export const HelpScoutImport = () => {
           )}
 
           {/* Instructions */}
-          {progress.status === 'idle' && !isImporting && (
+          {currentStep === 'setup' && !isFetchingMailboxes && (
             <div className="space-y-3 pt-4 border-t text-sm text-muted-foreground">
               <h4 className="font-medium text-foreground">How it works:</h4>
               <ol className="list-decimal list-inside space-y-2">
-                <li>Test your HelpScout API connection first</li>
-                <li>Click "Start Import" to begin importing all historical data</li>
-                <li>The import runs in the background and may take 5-15 minutes</li>
-                <li>All mailboxes, conversations, and messages will be imported</li>
+                <li>Select the target organization for imported data</li>
+                <li>Test your HelpScout API connection to verify credentials</li>
+                <li>Fetch mailboxes to see what's available for import</li>
+                <li>Map each HelpScout mailbox to a target inbox in your organization</li>
+                <li>Start the import - it runs in the background and may take 5-15 minutes</li>
+                <li>All mapped conversations and messages will be imported</li>
                 <li>Customers will be automatically created and matched by email</li>
                 <li>The import is idempotent - you can safely run it multiple times</li>
               </ol>
