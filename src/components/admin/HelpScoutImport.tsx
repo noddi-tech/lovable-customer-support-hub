@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Download, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowRight, Calendar } from 'lucide-react';
+import { Download, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowRight, Calendar, Sparkles } from 'lucide-react';
+import { ImportHistory } from './ImportHistory';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ImportProgress {
@@ -139,14 +140,28 @@ export const HelpScoutImport = () => {
 
       setMailboxes(data.mailboxes || []);
       
-      // Auto-map to existing inboxes with matching names
+      // Improved auto-mapping with fuzzy matching
       const autoMapping: Record<string, string> = {};
+      
       data.mailboxes.forEach((mb: HelpScoutMailbox) => {
-        const matchingInbox = inboxes.find(
+        // First try exact match
+        let matchingInbox = inboxes.find(
           inbox => inbox.name.toLowerCase() === mb.name.toLowerCase()
         );
+        
+        // Then try fuzzy match (e.g., "Noddi Customer Service" matches "Noddi")
+        if (!matchingInbox) {
+          matchingInbox = inboxes.find(inbox => 
+            mb.name.toLowerCase().includes(inbox.name.toLowerCase()) ||
+            inbox.name.toLowerCase().includes(mb.name.toLowerCase())
+          );
+        }
+        
         if (matchingInbox) {
           autoMapping[mb.id] = matchingInbox.id;
+        } else if (inboxes.length === 1) {
+          // If there's only one inbox, default to it
+          autoMapping[mb.id] = inboxes[0].id;
         } else {
           autoMapping[mb.id] = 'create_new';
         }
@@ -424,14 +439,30 @@ export const HelpScoutImport = () => {
                               <SelectValue placeholder="Select target inbox" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="create_new">
-                                ✨ Create new inbox: "{mailbox.name}"
-                              </SelectItem>
+                              {mailboxMapping[mailbox.id] === 'create_new' && (
+                                <SelectItem value="create_new">
+                                  <div className="flex items-center gap-2">
+                                    <Sparkles className="w-3 h-3" />
+                                    <span className="font-medium">Create new inbox: "{mailbox.name}"</span>
+                                  </div>
+                                </SelectItem>
+                              )}
                               {inboxes.map((inbox) => (
                                 <SelectItem key={inbox.id} value={inbox.id}>
-                                  {inbox.name}
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="w-3 h-3 text-green-600" />
+                                    <span>{inbox.name}</span>
+                                  </div>
                                 </SelectItem>
                               ))}
+                              {mailboxMapping[mailbox.id] !== 'create_new' && (
+                                <SelectItem value="create_new">
+                                  <div className="flex items-center gap-2">
+                                    <Sparkles className="w-3 h-3" />
+                                    <span>Create new inbox: "{mailbox.name}"</span>
+                                  </div>
+                                </SelectItem>
+                              )}
                               <SelectItem value="skip">⏭️ Skip - don't import</SelectItem>
                             </SelectContent>
                           </Select>
@@ -579,6 +610,9 @@ export const HelpScoutImport = () => {
           </ol>
         </CardContent>
       </Card>
+
+      {/* Import History */}
+      <ImportHistory />
     </div>
   );
 };

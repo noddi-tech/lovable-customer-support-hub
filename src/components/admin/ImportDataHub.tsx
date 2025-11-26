@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpScoutImport } from "./HelpScoutImport";
+import { ImportDataCleanup } from "./ImportDataCleanup";
 import { Database, FileText, Mail, Upload } from "lucide-react";
 
 export const ImportDataHub = () => {
@@ -35,6 +36,7 @@ export const ImportDataHub = () => {
         </TabsList>
 
         <TabsContent value="helpscout" className="space-y-4">
+          <ImportDataCleanup />
           <HelpScoutImport />
         </TabsContent>
 
