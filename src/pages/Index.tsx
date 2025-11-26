@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { InteractionsSidebar } from '@/components/layout/InteractionsSidebar';
 import { MarketingSidebar } from '@/components/layout/MarketingSidebar';
@@ -16,6 +16,8 @@ import VoiceSettingsPage from '@/pages/VoiceSettingsPage';
 
 const Index = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const selectedInboxId = searchParams.get('inbox') || '';
 
   const getCurrentSection = () => {
     const path = location.pathname;
@@ -58,7 +60,7 @@ const Index = () => {
             activeSubTab={subSection}
             selectedTab="all"
             onTabChange={() => {}}
-            selectedInboxId=""
+            selectedInboxId={selectedInboxId}
           />
         );
       

@@ -1,5 +1,6 @@
 import { Clock, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSearchParams } from "react-router-dom";
 import { ConversationListProvider, useConversationList, type Conversation } from "@/contexts/ConversationListContext";
 import { ConversationListHeader } from "./conversation-list/ConversationListHeader";
 import { ConversationListDeleteDialog } from "./conversation-list/ConversationListDeleteDialog";
@@ -44,6 +45,7 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
   const { t } = useTranslation();
   const [showSessionBanner, setShowSessionBanner] = useState(false);
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Memory leak prevention for this component
   const memoryUtils = useMemoryLeakPrevention('ConversationList', {
@@ -91,14 +93,14 @@ const ConversationListContent = ({ onSelectConversation, selectedConversation, o
         onToggleCollapse={onToggleCollapse} 
         selectedInboxId={selectedInboxId}
         onInboxChange={(inboxId) => {
-          // Update URL with new inbox selection
-          const url = new URL(window.location.href);
+          // Update URL with new inbox selection using React Router
+          const newParams = new URLSearchParams(searchParams);
           if (inboxId === 'all') {
-            url.searchParams.delete('inbox');
+            newParams.delete('inbox');
           } else {
-            url.searchParams.set('inbox', inboxId);
+            newParams.set('inbox', inboxId);
           }
-          window.history.pushState({}, '', url.toString());
+          setSearchParams(newParams, { replace: true });
         }}
         bulkSelectionMode={state.bulkSelectionMode}
         onToggleBulkMode={() => dispatch({ type: 'TOGGLE_BULK_MODE' })}
