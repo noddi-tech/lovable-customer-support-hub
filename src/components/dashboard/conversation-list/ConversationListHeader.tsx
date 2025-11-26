@@ -73,12 +73,18 @@ export const ConversationListHeader = ({
 
   const handleToggleBulkMode = async () => {
     if (!bulkSelectionMode && hasNextPage) {
-      // Entering bulk mode - load all conversations first
       setIsLoadingAll(true);
       toast.info('Loading all conversations...');
-      await loadAllConversations();
-      // Add longer stabilization delay for virtualized list to render
-      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      try {
+        await loadAllConversations();
+      } catch (error) {
+        console.error('Failed to load all conversations:', error);
+        toast.error('Failed to load all conversations');
+      }
+      
+      // Increase stabilization delay to 500ms for full stabilization
+      await new Promise(resolve => setTimeout(resolve, 500));
       setIsLoadingAll(false);
     }
     onToggleBulkMode?.();
