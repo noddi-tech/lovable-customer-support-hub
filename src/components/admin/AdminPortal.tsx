@@ -166,9 +166,6 @@ export const AdminPortal = () => {
       case 'debug':
         return <DebugPanel />;
 
-      case 'import':
-        return <HelpScoutImport />;
-
       case 'general':
       default:
         return <GeneralSettings />;
