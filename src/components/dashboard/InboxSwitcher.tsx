@@ -10,13 +10,15 @@ interface InboxSwitcherProps {
   onInboxChange: (inboxId: string) => void;
   showAllOption?: boolean;
   className?: string;
+  disabled?: boolean;
 }
 
 export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
   selectedInboxId,
   onInboxChange,
   showAllOption = true,
-  className = ""
+  className = "",
+  disabled = false
 }) => {
   const { inboxes, conversations } = useOptimizedCounts();
   const { t } = useTranslation();
@@ -48,7 +50,7 @@ export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
   };
 
   return (
-    <Select value={selectedInboxId} onValueChange={handleValueChange}>
+    <Select value={selectedInboxId} onValueChange={handleValueChange} disabled={disabled}>
       <SelectTrigger className={`w-auto min-w-[180px] ${className}`}>
         <div className="flex items-center gap-2">
           <div 

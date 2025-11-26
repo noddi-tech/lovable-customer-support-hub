@@ -130,19 +130,6 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
     );
   }
 
-  // Show loading indicator during bulk load to prevent render loop
-  if (isFetchingNextPage && hasNextPage && conversationCount > 50) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        <div className="text-center">
-          <Clock className="w-12 h-12 mx-auto mb-4 opacity-50 animate-spin" />
-          <p>{t('dashboard.conversationList.loadingAllConversations', 'Loading all conversations...')}</p>
-          <p className="text-sm mt-2">{conversationCount} loaded so far</p>
-        </div>
-      </div>
-    );
-  }
-
   if (conversationCount === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -156,8 +143,16 @@ const VirtualizedConversationTable = memo(({ onSelectConversation, selectedConve
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      {/* Fixed Table Header */}
+    <div className="flex-1 flex flex-col min-h-0 relative">
+      {/* Loading overlay - doesn't unmount the list */}
+      {isFetchingNextPage && hasNextPage && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 bg-background/90 border rounded-full px-3 py-1 text-xs flex items-center gap-2 shadow-lg">
+          <Clock className="w-3 h-3 animate-spin" />
+          Loading more... ({conversationCount})
+        </div>
+      )}
+      
+      {/* Fixed Table Header - always mounted */}
       <div className="border-b bg-background">
         <Table>
           <TableHeader>
