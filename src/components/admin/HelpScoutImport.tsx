@@ -365,9 +365,8 @@ export const HelpScoutImport = () => {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              HelpScout API credentials are configured as environment secrets. Make sure you've added
-              <strong> HELPSCOUT_APP_ID</strong> and <strong>HELPSCOUT_APP_SECRET</strong> to your
-              Lovable Cloud secrets.
+              HelpScout API credentials are configured as Supabase secrets. Make sure you've added
+              <strong> HELPSCOUT_APP_ID</strong> and <strong>HELPSCOUT_APP_SECRET</strong> with valid credentials from your HelpScout developer console.
             </AlertDescription>
           </Alert>
 
