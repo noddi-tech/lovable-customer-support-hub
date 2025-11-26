@@ -22,21 +22,48 @@ Deno.serve(async (req) => {
       recoveryLog.push(`[${new Date().toISOString()}] ${message}`);
     };
 
-    // Helper function to count duplicates directly
+    // Helper function to count duplicates directly with pagination
     const countDuplicates = async () => {
-      const { data: messages, error } = await supabase
-        .from('messages')
-        .select('external_id')
-        .not('external_id', 'is', null);
+      let allExternalIds: string[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      let pageNumber = 0;
+
+      log('Counting duplicates with pagination...');
       
-      if (error) {
-        log(`Error counting duplicates: ${error.message}`);
-        return 0;
+      while (hasMore) {
+        pageNumber++;
+        
+        const { data: batch, error } = await supabase
+          .from('messages')
+          .select('external_id')
+          .not('external_id', 'is', null)
+          .range(offset, offset + pageSize - 1);
+        
+        if (error) {
+          log(`Error fetching page ${pageNumber} for duplicate count: ${error.message}`);
+          return 0;
+        }
+        
+        if (batch && batch.length > 0) {
+          allExternalIds = allExternalIds.concat(batch.map(m => m.external_id));
+          offset += pageSize;
+          hasMore = batch.length === pageSize;
+          
+          if (pageNumber % 10 === 0) {
+            log(`Fetched ${pageNumber} pages, ${allExternalIds.length} messages so far...`);
+          }
+        } else {
+          hasMore = false;
+        }
       }
       
+      log(`Fetched ${allExternalIds.length} total messages for duplicate count`);
+      
       // Count unique external_ids
-      const uniqueIds = new Set(messages.map(m => m.external_id));
-      const duplicateCount = messages.length - uniqueIds.size;
+      const uniqueIds = new Set(allExternalIds);
+      const duplicateCount = allExternalIds.length - uniqueIds.size;
       
       return duplicateCount;
     };
