@@ -32,6 +32,7 @@ interface ImportCheckpoint {
   processedConvIds: string[];
   resolvedInboxIds: Record<string, string>;
   completedMailboxIds: string[];
+  completedPages: Record<string, number>; // mailboxId -> last completed page
   continuationCount: number;
 }
 
@@ -408,6 +409,7 @@ serve(async (req) => {
         const skipConvIds = new Set(checkpoint?.processedConvIds || []);
         const resolvedInboxIds = checkpoint?.resolvedInboxIds || {};
         const completedMailboxIds = new Set(checkpoint?.completedMailboxIds || []);
+        const completedPages = checkpoint?.completedPages || {};
         const continuationCount = checkpoint?.continuationCount || 0;
 
         // Check continuation limit
@@ -472,6 +474,8 @@ serve(async (req) => {
           let page = (mIdx === startMailboxIndex) ? startPage : 1;
           let hasMore = true;
           const processedOnPage: string[] = [];
+          let consecutiveSkippedPages = 0;
+          let newImportsOnPage = 0;
 
           while (hasMore) {
             // Check if we should pause BEFORE fetching
@@ -499,10 +503,11 @@ serve(async (req) => {
                       dateFrom: checkpoint?.dateFrom || dateFrom,
                       currentMailboxIndex: mIdx,
                       currentPage: page,
-                      processedConvIds: processedOnPage,
-                      resolvedInboxIds,
-                      completedMailboxIds: Array.from(completedMailboxIds),
-                      continuationCount: continuationCount + 1,
+                        processedConvIds: processedOnPage,
+                        resolvedInboxIds,
+                        completedMailboxIds: Array.from(completedMailboxIds),
+                        completedPages,
+                        continuationCount: continuationCount + 1,
                     }
                   }
                 })
@@ -536,10 +541,14 @@ serve(async (req) => {
             const conversationsData = await fetchHelpScout(accessToken, endpoint);
             const conversations = conversationsData._embedded?.conversations || [];
             
+            // Reset counter for new imports on this page
+            newImportsOnPage = 0;
+            
             if (conversations.length === 0) {
               hasMore = false;
               completedMailboxIds.add(mailbox.id);
-              console.log(`Mailbox ${mailbox.name} completed`);
+              completedPages[mailbox.id] = page;
+              console.log(`Mailbox ${mailbox.name} completed (no more conversations)`);
               break;
             }
 
@@ -591,6 +600,7 @@ serve(async (req) => {
                         processedConvIds: processedOnPage,
                         resolvedInboxIds,
                         completedMailboxIds: Array.from(completedMailboxIds),
+                        completedPages,
                         continuationCount: continuationCount + 1,
                       }
                     }
@@ -615,6 +625,8 @@ serve(async (req) => {
                 return;
               }
 
+              const beforeImportCount = progress.conversationsImported;
+              
               await importConversation(
                 supabase,
                 accessToken,
@@ -623,6 +635,11 @@ serve(async (req) => {
                 conversation,
                 progress
               );
+              
+              // Track if this was a new import (not skipped)
+              if (progress.conversationsImported > beforeImportCount) {
+                newImportsOnPage++;
+              }
               
               processedOnPage.push(conversation.id);
               
@@ -653,13 +670,30 @@ serve(async (req) => {
               skipConvIds.clear();
             }
 
+            // Track consecutive pages with no new imports
+            if (newImportsOnPage === 0) {
+              consecutiveSkippedPages++;
+            } else {
+              consecutiveSkippedPages = 0;
+            }
+
             // Check if there are more pages
             hasMore = conversationsData.page?.number < conversationsData.page?.totalPages;
             
-            // If no more pages, mark mailbox as complete
-            if (!hasMore) {
+            // Mark page as completed
+            completedPages[mailbox.id] = page;
+            
+            // Mark mailbox as complete if:
+            // 1. No more pages, OR
+            // 2. We've processed 3+ consecutive pages with no new imports (all already exist)
+            if (!hasMore || (consecutiveSkippedPages >= 3 && conversations.length > 0)) {
               completedMailboxIds.add(mailbox.id);
-              console.log(`Mailbox ${mailbox.name} completed after page ${page}`);
+              if (!hasMore) {
+                console.log(`Mailbox ${mailbox.name} completed after page ${page} (last page)`);
+              } else {
+                console.log(`Mailbox ${mailbox.name} completed early - ${consecutiveSkippedPages} consecutive pages with all conversations already imported`);
+              }
+              hasMore = false; // Force exit from loop
             }
             
             page++;
