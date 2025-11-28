@@ -113,24 +113,26 @@ export const NoddiCustomerSearch = ({
     setSearchResults([]);
 
     try {
+      // Use the existing noddi-customer-lookup function (supports both phone AND email)
       const { data, error } = await supabase.functions.invoke(
-        'noddi-lookup-by-email',
+        'noddi-customer-lookup',
         { body: { email: alternativeEmail, organizationId } }
       );
 
       if (error) throw error;
 
-      if (data?.customer) {
+      if (data?.data?.found) {
+        // Map the response to the expected Customer format
         const customer = {
-          id: data.customer.local_customer_id || `noddi-${data.customer.noddi_user_id}`,
-          full_name: data.customer.full_name,
-          email: conversationEmail || null,
-          phone: data.customer.phone,
+          id: `noddi-${data.data.noddi_user_id}`,
+          full_name: data.data.ui_meta?.display_name || alternativeEmail,
+          email: alternativeEmail,
+          phone: data.data.user?.phone || null,
           metadata: {
-            noddi_user_id: data.customer.noddi_user_id,
-            user_group_id: data.customer.user_group_id,
-            is_new: data.customer.is_new,
-            noddi_email: data.customer.noddi_email
+            noddi_user_id: data.data.noddi_user_id?.toString(),
+            user_group_id: data.data.user_group_id?.toString(),
+            is_new: true,
+            noddi_email: data.data.email || alternativeEmail
           }
         };
         
