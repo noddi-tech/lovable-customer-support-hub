@@ -42,14 +42,25 @@ export const NoddiCustomerDetails: React.FC<NoddiCustomerDetailsProps> = ({
   // Use noddiEmail for lookups if provided, fallback to customerEmail
   const lookupEmail = noddiEmail || customerEmail;
   
+  // Debug logging to verify props
+  console.log('[NoddiCustomerDetails] Props received:', {
+    customerId,
+    customerEmail,
+    noddiEmail,
+    lookupEmail,
+    hasMetadata: !!noddiEmail
+  });
+  
   // Only fetch if no external data provided
+  // CRITICAL: Pass customerId so edge function can fetch alternative_emails from DB
   const { data: fetchedData, isLoading } = useNoddihKundeData(
     externalNoddiData ? null : {
       id: customerId || '',
       email: lookupEmail,
       phone: customerPhone,
       full_name: customerName,
-    }
+    },
+    customerId // Pass customerId explicitly for edge function to use
   );
 
   // Use external data if provided, otherwise use fetched data

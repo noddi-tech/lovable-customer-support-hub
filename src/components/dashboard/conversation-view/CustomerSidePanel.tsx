@@ -118,12 +118,32 @@ export const CustomerSidePanel = ({
           description: `Found booking data for ${alternativeEmail}!`,
         });
 
-        // 4. Refetch queries to ensure UI updates with fresh data
-        const cacheKey = getCustomerCacheKey(conversation.customer);
-        await queryClient.refetchQueries({ 
-          queryKey: [cacheKey],
-          exact: false 
-        });
+        // 4. Invalidate cache for BOTH old and new email keys
+        if (organizationId) {
+          // Invalidate old cache key (primary email)
+          const oldCacheKey = getCustomerCacheKey({
+            email: conversation.customer.email,
+            phone: conversation.customer.phone
+          });
+          await queryClient.invalidateQueries({ 
+            queryKey: ['noddi-customer-lookup', oldCacheKey, organizationId],
+            exact: true 
+          });
+          
+          // Invalidate new cache key (alternative email)
+          const newCacheKey = getCustomerCacheKey({
+            email: alternativeEmail,
+            phone: conversation.customer.phone
+          });
+          await queryClient.invalidateQueries({ 
+            queryKey: ['noddi-customer-lookup', newCacheKey, organizationId],
+            exact: true 
+          });
+          
+          console.log('[AlternativeEmailSearch] Invalidated cache keys:', { oldCacheKey, newCacheKey });
+        }
+        
+        // Refetch conversation data to get updated metadata
         await queryClient.refetchQueries({
           queryKey: ["conversation", conversation.id],
           exact: false
@@ -376,20 +396,38 @@ export const CustomerSidePanel = ({
           description: `Found booking data for ${selectedCustomer.full_name}!`,
         });
 
-        // Refresh conversation data
+        // CRITICAL: Invalidate cache for BOTH old and new email keys
+        if (organizationId) {
+          // Invalidate old cache key (primary email)
+          const oldCacheKey = getCustomerCacheKey({
+            email: conversation.customer?.email,
+            phone: selectedCustomer.phone
+          });
+          await queryClient.invalidateQueries({ 
+            queryKey: ['noddi-customer-lookup', oldCacheKey, organizationId],
+            exact: true 
+          });
+          
+          // Invalidate new cache key (Noddi email)
+          if (selectedCustomer.metadata?.noddi_email) {
+            const newCacheKey = getCustomerCacheKey({
+              email: selectedCustomer.metadata.noddi_email,
+              phone: selectedCustomer.phone
+            });
+            await queryClient.invalidateQueries({ 
+              queryKey: ['noddi-customer-lookup', newCacheKey, organizationId],
+              exact: true 
+            });
+            
+            console.log('[SelectCustomer] Invalidated cache keys:', { oldCacheKey, newCacheKey });
+          }
+        }
+        
+        // Refresh conversation data to get updated customer metadata
         await queryClient.refetchQueries({ 
           queryKey: ["conversation", conversation.id],
           exact: false 
         });
-        
-        // CRITICAL: Invalidate noddi-customer-lookup cache to force fresh data fetch
-        // This ensures the alternative_emails we just added will be used
-        await queryClient.invalidateQueries({ 
-          queryKey: ['noddi-customer-lookup'],
-          exact: false 
-        });
-        
-        console.log(`✅ Cache invalidated for noddi-customer-lookup - fresh data will be fetched`);
       } else {
         toast({
           title: "No booking data",
@@ -474,7 +512,7 @@ export const CustomerSidePanel = ({
             customerEmail={conversation.customer?.email}
             customerPhone={conversation.customer?.phone}
             customerName={conversation.customer?.full_name}
-            noddiEmail={conversation.customer?.metadata?.alternative_emails?.[0]}
+            noddiEmail={(conversation.customer?.metadata as any)?.primary_noddi_email || (conversation.customer?.metadata as any)?.alternative_emails?.[0]}
             onDataLoaded={setNoddiData}
             noddiData={noddiData}
             onUserGroupChange={handleUserGroupChange}
