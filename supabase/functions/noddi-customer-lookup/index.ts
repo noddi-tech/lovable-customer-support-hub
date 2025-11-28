@@ -850,19 +850,87 @@ Deno.serve(async (req) => {
       console.log('Force refresh requested, skipping cache');
     }
 
-    // Step 2: Call new comprehensive customer lookup endpoint (FAST!)
+    // Step 2: Call new comprehensive customer lookup endpoint - TRY ALL EMAILS
     console.log('🚀 Calling new customer-lookup-support endpoint');
+    console.log(`📧 Will try ${emailsToTry.length} email(s): ${emailsToTry.map(e => e?.substring(0, 3) + '***').join(', ')}`);
     
-    const lookupUrl = new URL(`${API_BASE}/v1/users/customer-lookup-support/`);
-    if (emailsToTry[0]) lookupUrl.searchParams.set('email', emailsToTry[0]);
-    if (phone) lookupUrl.searchParams.set('phone', phone);
-    
+    let lookupResponse: Response | null = null;
+    let successfulEmail: string | null = null;
     let lookupMode: "phone" | "email" = phone ? "phone" : "email";
     let conflict = false;
     
-    const lookupResponse = await fetch(lookupUrl.toString(), {
-      headers: noddiAuthHeaders()
-    });
+    // Try each email until we get a successful response
+    for (let i = 0; i < emailsToTry.length; i++) {
+      const emailToTry = emailsToTry[i];
+      const lookupUrl = new URL(`${API_BASE}/v1/users/customer-lookup-support/`);
+      if (emailToTry) lookupUrl.searchParams.set('email', emailToTry);
+      if (phone) lookupUrl.searchParams.set('phone', phone);
+      
+      console.log(`📧 [${i + 1}/${emailsToTry.length}] Trying lookup with email: ${emailToTry?.substring(0, 3)}***`);
+      
+      const response = await fetch(lookupUrl.toString(), {
+        headers: noddiAuthHeaders()
+      });
+      
+      // If successful, use this response
+      if (response.ok) {
+        lookupResponse = response;
+        successfulEmail = emailToTry;
+        console.log(`✅ Found user with email: ${emailToTry?.substring(0, 3)}***`);
+        break;
+      }
+      
+      // Check if it's a "user not found" error - if so, try next email
+      if (response.status === 400 || response.status === 404) {
+        const errorText = await response.text();
+        
+        let isNotFound = false;
+        try {
+          if (response.status === 404) {
+            isNotFound = true;
+          } else {
+            const errorData = JSON.parse(errorText);
+            const errors = errorData?.errors || [];
+            isNotFound = errors.some((err: any) => 
+              err?.code === 'user_does_not_exist' || 
+              err?.detail?.includes('does not exist')
+            );
+          }
+        } catch {
+          isNotFound = response.status === 404;
+        }
+        
+        if (isNotFound && i < emailsToTry.length - 1) {
+          console.log(`⚠️ User not found with ${emailToTry?.substring(0, 3)}***, trying next email...`);
+          continue; // Try next email
+        }
+        
+        // If this is the last email or it's not a "not found" error, create a Response-like object
+        // We need to recreate the Response because we already read the body
+        lookupResponse = new Response(errorText, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers
+        });
+        successfulEmail = emailToTry;
+        break;
+      }
+      
+      // For other errors, use this response and stop trying
+      lookupResponse = response;
+      successfulEmail = emailToTry;
+      break;
+    }
+    
+    // If no response was set (shouldn't happen), create a 404
+    if (!lookupResponse) {
+      console.error('❌ No lookup response after trying all emails');
+      lookupResponse = new Response(JSON.stringify({ errors: [{ code: 'user_does_not_exist' }] }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      successfulEmail = emailsToTry[0];
+    }
     
     // Read error response once and reuse it
     let errorResponseText: string | null = null;
@@ -881,7 +949,7 @@ Deno.serve(async (req) => {
             .upsert({
               organization_id: body.organizationId,
               customer_id: body.customerId,
-              email: emailsToTry[0] || null,
+              email: successfulEmail || null,
               phone: phone || null,
               noddi_user_id: null,
               user_group_id: null,
@@ -903,7 +971,7 @@ Deno.serve(async (req) => {
           ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
           data: {
             found: false,
-            email: emailsToTry[0] || "",
+            email: successfulEmail || "",
             noddi_user_id: null,
             user_group_id: null,
             user: null,
@@ -912,7 +980,7 @@ Deno.serve(async (req) => {
             unpaid_count: 0,
             unpaid_bookings: [],
             ui_meta: {
-              display_name: emailsToTry[0] ? emailsToTry[0].split("@")[0] : "Unknown Name",
+              display_name: successfulEmail ? successfulEmail.split("@")[0] : "Unknown Name",
               user_group_badge: null,
               unpaid_count: 0,
               status_label: null,
@@ -955,7 +1023,7 @@ Deno.serve(async (req) => {
               .upsert({
                 organization_id: body.organizationId,
                 customer_id: body.customerId,
-                email: emailsToTry[0] || null,
+                email: successfulEmail || null,
                 phone: phone || null,
                 noddi_user_id: null,
                 user_group_id: null,
@@ -979,7 +1047,7 @@ Deno.serve(async (req) => {
             ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
             data: {
               found: false,
-              email: emailsToTry[0] || "",
+              email: successfulEmail || "",
               noddi_user_id: null,
               user_group_id: null,
               user: null,
@@ -988,7 +1056,7 @@ Deno.serve(async (req) => {
               unpaid_count: 0,
               unpaid_bookings: [],
               ui_meta: {
-                display_name: emailsToTry[0] ? emailsToTry[0].split("@")[0] : "Unknown Name",
+                display_name: successfulEmail ? successfulEmail.split("@")[0] : "Unknown Name",
                 user_group_badge: null,
                 unpaid_count: 0,
                 status_label: null,
@@ -1046,7 +1114,7 @@ Deno.serve(async (req) => {
                 .upsert({
                   organization_id: body.organizationId,
                   customer_id: body.customerId,
-                  email: emailsToTry[0] || null,
+                  email: successfulEmail || null,
                   phone: phone || null,
                   noddi_user_id: null,
                   user_group_id: null,
@@ -1068,7 +1136,7 @@ Deno.serve(async (req) => {
               ttl_seconds: NEGATIVE_CACHE_TTL_SECONDS,
               data: {
                 found: false,
-                email: emailsToTry[0] || email || "",
+                email: successfulEmail || email || "",
                 noddi_user_id: null,
                 user_group_id: null,
                 user: null,
@@ -1077,7 +1145,7 @@ Deno.serve(async (req) => {
                 unpaid_count: 0,
                 unpaid_bookings: [],
                 ui_meta: {
-                  display_name: emailsToTry[0] ? emailsToTry[0].split("@")[0] : (phone || "Unknown"),
+                  display_name: successfulEmail ? successfulEmail.split("@")[0] : (phone || "Unknown"),
                   user_group_badge: null,
                   unpaid_count: 0,
                   status_label: null,
@@ -1146,7 +1214,7 @@ Deno.serve(async (req) => {
           
           // Continue with normal flow - extract data from response
           const noddihUser = lookupData.user;
-          const successfulEmail = noddihUser?.email || emailsToTry[0] || "";
+          const matchedEmail = noddihUser?.email || successfulEmail || "";
           
           if (!noddihUser || userGroups.length === 0) {
             throw new Error('Invalid response structure from legacy lookup');
@@ -1304,7 +1372,7 @@ Deno.serve(async (req) => {
             ttl_seconds: 60,
             data: {
               found: false,
-              email: emailsToTry[0] || email || "",
+              email: successfulEmail || email || "",
               noddi_user_id: null,
               user_group_id: null,
               user: null,
@@ -1345,7 +1413,7 @@ Deno.serve(async (req) => {
     const userGroups = lookupData.user_groups || [];
     const allUnpaidBookings = lookupData.unpaid_bookings || [];
     const metadata = lookupData.metadata;
-    const successfulEmail = noddihUser?.email || emailsToTry[0] || "";
+    const matchedEmail = noddihUser?.email || successfulEmail || "";
     
     if (!noddihUser || userGroups.length === 0) {
       throw new Error('Invalid response structure from customer lookup');
