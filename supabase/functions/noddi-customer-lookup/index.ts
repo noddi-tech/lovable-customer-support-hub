@@ -793,6 +793,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    // CRITICAL: Ensure we make at least one API call even without email
+    // For phone-only lookups, add empty placeholder so the loop executes
+    if (emailsToTry.length === 0 && phone) {
+      emailsToTry.push(''); // Empty placeholder - API will be called with phone only
+      console.log('📱 No emails to try, will attempt phone-only lookup');
+    }
+
     console.log('Starting Noddi lookup for:', { emails: emailsToTry.length, phone });
 
     // Step 1: Check cache first unless force refresh - try all emails
