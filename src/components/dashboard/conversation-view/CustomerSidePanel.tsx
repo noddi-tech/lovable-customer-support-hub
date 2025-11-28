@@ -143,10 +143,12 @@ export const CustomerSidePanel = ({
           console.log('[AlternativeEmailSearch] Invalidated cache keys:', { oldCacheKey, newCacheKey });
         }
         
-        // Refetch conversation data to get updated metadata
-        await queryClient.refetchQueries({
-          queryKey: ["conversation", conversation.id],
-          exact: false
+        // Invalidate conversation metadata to refresh with updated customer data
+        await queryClient.invalidateQueries({
+          queryKey: ['conversation-meta'],
+          predicate: (query) => 
+            query.queryKey[0] === 'conversation-meta' && 
+            query.queryKey[1] === conversation.id
         });
       } else {
         toast({
@@ -423,10 +425,12 @@ export const CustomerSidePanel = ({
           }
         }
         
-        // Refresh conversation data to get updated customer metadata
-        await queryClient.refetchQueries({ 
-          queryKey: ["conversation", conversation.id],
-          exact: false 
+        // Invalidate conversation metadata to refresh with updated customer data
+        await queryClient.invalidateQueries({
+          queryKey: ['conversation-meta'],
+          predicate: (query) => 
+            query.queryKey[0] === 'conversation-meta' && 
+            query.queryKey[1] === conversation.id
         });
       } else {
         toast({
