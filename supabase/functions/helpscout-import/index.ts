@@ -442,10 +442,12 @@ serve(async (req) => {
           
           if (!inboxId) {
             if (targetInboxId === 'create_new') {
+              console.log(`Creating new inbox for mailbox ${mailbox.name} (${mailbox.id}), org: ${effectiveOrganizationId}`);
+              
               const { data: newInbox, error: inboxError } = await supabase
                 .from('inboxes')
                 .insert({
-                  organization_id: organizationId,
+                  organization_id: effectiveOrganizationId,
                   name: mailbox.name,
                   description: `Imported from HelpScout`,
                   is_active: true,
@@ -454,9 +456,12 @@ serve(async (req) => {
                 .single();
               
               if (inboxError || !newInbox) {
-                progress.errors.push(`Failed to create inbox for mailbox ${mailbox.name}`);
+                console.error(`Failed to create inbox for mailbox ${mailbox.name}:`, inboxError);
+                progress.errors.push(`Failed to create inbox for mailbox ${mailbox.name}: ${inboxError?.message || 'Unknown error'}`);
                 continue;
               }
+              
+              console.log(`Successfully created inbox ${newInbox.id} for mailbox ${mailbox.name}`);
               inboxId = newInbox.id;
             } else {
               inboxId = targetInboxId;
