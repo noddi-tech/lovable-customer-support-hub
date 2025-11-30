@@ -57,10 +57,33 @@ Deno.serve(async (req) => {
       importJobsDeleted: 0,
       customersDeleted: 0,
       inboxesDeleted: 0,
+      syncPaused: 0,
+      syncResumed: 0,
       errors: [] as string[],
     };
 
     console.log('[WipeOrgData] Starting wipe for organization:', organizationId);
+
+    // Step 0: Pause Gmail sync for this organization
+    console.log('[WipeOrgData] Pausing Gmail sync for organization...');
+    const { data: pausedAccounts, error: pauseError } = await supabaseServiceClient
+      .from('email_accounts')
+      .update({ auto_sync_enabled: false })
+      .eq('organization_id', organizationId)
+      .eq('auto_sync_enabled', true)
+      .select('id, email_address');
+
+    if (pauseError) {
+      console.error('[WipeOrgData] Error pausing sync:', pauseError);
+      progress.errors.push(`Failed to pause Gmail sync: ${pauseError.message}`);
+    } else {
+      const pausedCount = pausedAccounts?.length || 0;
+      progress.syncPaused = pausedCount;
+      console.log(`[WipeOrgData] Paused sync for ${pausedCount} email accounts`);
+    }
+
+    // Store IDs of paused accounts to re-enable later
+    const pausedAccountIds = pausedAccounts?.map(a => a.id) || [];
 
     // Step 1: Delete messages (cascading will handle some related records)
     if (wipeMessages) {
@@ -279,6 +302,23 @@ Deno.serve(async (req) => {
       } else {
         progress.inboxesDeleted = data?.length || 0;
         console.log(`[WipeOrgData] Deleted ${progress.inboxesDeleted} inboxes`);
+      }
+    }
+
+    // Final Step: Resume Gmail sync for paused accounts
+    if (pausedAccountIds.length > 0) {
+      console.log('[WipeOrgData] Resuming Gmail sync...');
+      const { error: resumeError } = await supabaseServiceClient
+        .from('email_accounts')
+        .update({ auto_sync_enabled: true })
+        .in('id', pausedAccountIds);
+
+      if (resumeError) {
+        console.error('[WipeOrgData] Error resuming sync:', resumeError);
+        progress.errors.push(`Failed to resume Gmail sync: ${resumeError.message}`);
+      } else {
+        progress.syncResumed = pausedAccountIds.length;
+        console.log(`[WipeOrgData] Resumed sync for ${pausedAccountIds.length} email accounts`);
       }
     }
 
