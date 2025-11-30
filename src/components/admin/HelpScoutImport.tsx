@@ -76,6 +76,7 @@ export const HelpScoutImport = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [validationPassed, setValidationPassed] = useState(false);
   const [estimatedConversations, setEstimatedConversations] = useState<number>(0);
+  const [connectionTested, setConnectionTested] = useState(false);
 
   // Fetch organizations and set initial org
   useEffect(() => {
@@ -121,11 +122,13 @@ export const HelpScoutImport = () => {
 
       if (error) throw error;
 
+      setConnectionTested(true);
       toast({
         title: 'Connection Successful',
         description: 'HelpScout credentials are valid and working.',
       });
     } catch (error: any) {
+      setConnectionTested(false);
       toast({
         title: 'Connection Failed',
         description: error.message || 'Failed to connect to HelpScout. Check your credentials.',
@@ -479,7 +482,7 @@ export const HelpScoutImport = () => {
             id: '3',
             label: 'Test HelpScout API connection',
             description: 'Verify credentials are valid',
-            status: (mailboxes.length > 0 ? 'completed' : 'pending')
+            status: (connectionTested || mailboxes.length > 0 ? 'completed' : 'pending')
           },
           {
             id: '4',
