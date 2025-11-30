@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DataWipeConfirmationProps {
@@ -26,6 +26,7 @@ export const DataWipeConfirmation = ({ organizationId, organizationName }: DataW
     wipeInboxes: false,
   });
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const expectedText = `WIPE ${organizationName.toUpperCase()} DATA`;
 
@@ -92,8 +93,8 @@ export const DataWipeConfirmation = ({ organizationId, organizationName }: DataW
       // Reset form
       setConfirmText("");
       
-      // Refetch data counts
-      await supabase.from('conversations').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId);
+      // Properly invalidate React Query cache to refresh data counts
+      await queryClient.invalidateQueries({ queryKey: ['org-data-counts', organizationId] });
 
     } catch (error: any) {
       console.error('[DataWipe] Error:', error);
