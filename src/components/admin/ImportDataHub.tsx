@@ -13,19 +13,16 @@ export const ImportDataHub = () => {
   const { data: userOrg } = useQuery({
     queryKey: ['user-organization'],
     queryFn: async () => {
-      // Step 1: Get the user's profile with organization_id
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .single();
+      // Use RPC function that works correctly
+      const { data: orgId } = await supabase.rpc('get_user_organization_id');
       
-      if (!profile?.organization_id) return null;
+      if (!orgId) return null;
       
-      // Step 2: Fetch the organization details separately
+      // Fetch the organization details
       const { data: org } = await supabase
         .from('organizations')
         .select('id, name')
-        .eq('id', profile.organization_id)
+        .eq('id', orgId)
         .single();
       
       return org;
