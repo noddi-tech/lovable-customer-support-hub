@@ -60,6 +60,10 @@ export const DataWipeConfirmation = ({ organizationId, organizationName }: DataW
         inboxes: inboxes.count || 0,
       };
     },
+    // Override global defaults - always fetch fresh counts for data wipe
+    staleTime: 0,           // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when component mounts
+    gcTime: 0,              // Don't persist this query to localStorage
   });
 
   const handleWipe = async () => {
