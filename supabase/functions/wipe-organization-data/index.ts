@@ -77,29 +77,41 @@ Deno.serve(async (req) => {
         progress.errors.push(`Failed to fetch conversation IDs: ${convError.message}`);
       } else if (orgConversations && orgConversations.length > 0) {
         const conversationIds = orgConversations.map(c => c.id);
+        const CONV_BATCH_SIZE = 50; // Batch conversation IDs for .in() queries to avoid URL length limit
         let deletedCount = 0;
         let hasMore = true;
 
         while (hasMore) {
-          // Get a batch of message IDs to delete
-          const { data: messages, error: fetchError } = await supabaseServiceClient
-            .from('messages')
-            .select('id')
-            .in('conversation_id', conversationIds)
-            .limit(BATCH_SIZE);
-
-          if (fetchError) {
-            console.error('[WipeOrgData] Error fetching messages:', fetchError);
-            progress.errors.push(`Failed to fetch messages: ${fetchError.message}`);
-            break;
+          // Get a batch of message IDs to delete, processing conversation IDs in batches
+          let messageIds: string[] = [];
+          
+          for (let i = 0; i < conversationIds.length; i += CONV_BATCH_SIZE) {
+            const convBatch = conversationIds.slice(i, i + CONV_BATCH_SIZE);
+            
+            const { data: batchMessages, error: fetchError } = await supabaseServiceClient
+              .from('messages')
+              .select('id')
+              .in('conversation_id', convBatch)
+              .limit(BATCH_SIZE);
+            
+            if (fetchError) {
+              console.error('[WipeOrgData] Error fetching messages for conv batch:', fetchError);
+              progress.errors.push(`Failed to fetch messages batch: ${fetchError.message}`);
+              continue;
+            }
+            
+            if (batchMessages) {
+              messageIds.push(...batchMessages.map(m => m.id));
+            }
+            
+            // Stop early if we have enough IDs for this deletion batch
+            if (messageIds.length >= BATCH_SIZE) break;
           }
-
-          if (!messages || messages.length === 0) {
+          
+          if (messageIds.length === 0) {
             hasMore = false;
             break;
           }
-
-          const messageIds = messages.map(m => m.id);
 
           const { error: deleteError } = await supabaseServiceClient
             .from('messages')
@@ -112,12 +124,12 @@ Deno.serve(async (req) => {
             break;
           }
 
-          deletedCount += messages.length;
+          deletedCount += messageIds.length;
           progress.messagesDeleted = deletedCount;
           console.log(`[WipeOrgData] Deleted ${deletedCount} messages so far...`);
 
           // If we got less than BATCH_SIZE, we're done
-          if (messages.length < BATCH_SIZE) {
+          if (messageIds.length < BATCH_SIZE) {
             hasMore = false;
           }
 
