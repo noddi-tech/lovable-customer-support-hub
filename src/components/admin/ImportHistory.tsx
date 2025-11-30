@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle2, XCircle, Loader2, Clock, History } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Clock, History, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -259,6 +259,21 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
                           <Clock className="h-4 w-4 mr-1" />
                         )}
                         {resumingJobId === job.id ? 'Resuming...' : 'Resume Now'}
+                      </Button>
+                    )}
+                    {job.status === 'error' && onResume && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResumeJob(job.id)}
+                        disabled={resumingJobId === job.id}
+                      >
+                        {resumingJobId === job.id ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                        )}
+                        {resumingJobId === job.id ? 'Resuming...' : 'Retry Import'}
                       </Button>
                     )}
                   </TableCell>
