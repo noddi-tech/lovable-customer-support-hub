@@ -9,9 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Download, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowRight, Calendar, Sparkles } from 'lucide-react';
+import { Download, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowRight, Calendar, Sparkles, Zap } from 'lucide-react';
 import { ImportHistory } from './ImportHistory';
+import { ImportChecklist } from './ImportChecklist';
+import { PreImportValidation } from './PreImportValidation';
+import { ImportVerificationReport } from './ImportVerificationReport';
 import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 interface ImportProgress {
   totalMailboxes: number;
@@ -69,6 +73,9 @@ export const HelpScoutImport = () => {
     status: 'idle',
   });
   const [currentMailboxName, setCurrentMailboxName] = useState<string>('');
+  const [showValidation, setShowValidation] = useState(false);
+  const [validationPassed, setValidationPassed] = useState(false);
+  const [estimatedConversations, setEstimatedConversations] = useState<number>(0);
 
   // Fetch organizations and set initial org
   useEffect(() => {
@@ -190,6 +197,23 @@ export const HelpScoutImport = () => {
     }
   };
 
+  // Helper: Map all mailboxes to single inbox
+  const mapAllToSingleInbox = () => {
+    if (inboxes.length === 0) return;
+    const mapping: Record<string, string> = {};
+    mailboxes.forEach(mb => { mapping[mb.id] = inboxes[0].id; });
+    setMailboxMapping(mapping);
+    toast({ title: 'All Mapped', description: `All mailboxes mapped to "${inboxes[0].name}"` });
+  };
+
+  // Helper: Create all as new inboxes
+  const createAllAsNew = () => {
+    const mapping: Record<string, string> = {};
+    mailboxes.forEach(mb => { mapping[mb.id] = 'create_new'; });
+    setMailboxMapping(mapping);
+    toast({ title: 'All New', description: 'All mailboxes will create new inboxes' });
+  };
+
   const handleStartImport = async () => {
     if (!selectedOrgId) {
       toast({ title: 'Error', description: 'Please select an organization', variant: 'destructive' });
@@ -207,8 +231,22 @@ export const HelpScoutImport = () => {
       return;
     }
 
+    // If validation not shown yet, show it first
+    if (!showValidation) {
+      setShowValidation(true);
+      return;
+    }
+
+    // If validation shown and passed, proceed with import
+    if (showValidation && validationPassed) {
+      handleConfirmImport();
+    }
+  };
+
+  const handleConfirmImport = async () => {
     setIsImporting(true);
     setCurrentStep('importing');
+    setShowValidation(false);
     setProgress({
       totalMailboxes: 0,
       totalConversations: 0,
@@ -421,6 +459,49 @@ export const HelpScoutImport = () => {
 
   return (
     <div className="space-y-6">
+      {/* Import Checklist */}
+      <ImportChecklist 
+        items={[
+          { 
+            id: '1', 
+            label: 'Backup current data (optional)', 
+            description: 'Use the Data Wipe tool if you want a clean slate',
+            status: 'completed',
+            optional: true
+          },
+          {
+            id: '2',
+            label: 'Select target organization',
+            description: 'Choose where imported data will be stored',
+            status: (selectedOrgId ? 'completed' : 'pending')
+          },
+          {
+            id: '3',
+            label: 'Test HelpScout API connection',
+            description: 'Verify credentials are valid',
+            status: (mailboxes.length > 0 ? 'completed' : 'pending')
+          },
+          {
+            id: '4',
+            label: 'Fetch and map mailboxes',
+            description: 'Map HelpScout mailboxes to target inboxes',
+            status: (currentStep === 'mapping' || currentStep === 'importing' ? 'completed' : 'pending')
+          },
+          {
+            id: '5',
+            label: 'Start import',
+            description: 'Import runs in background for 5-15 minutes',
+            status: (isImporting || progress.status === 'completed' ? 'completed' : 'pending')
+          },
+          {
+            id: '6',
+            label: 'Verify import results',
+            description: 'Check data integrity and completeness',
+            status: (progress.status === 'completed' ? 'completed' : 'pending')
+          },
+        ]}
+      />
+
       <Card className="bg-gradient-surface border-border/50 shadow-surface">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
@@ -528,6 +609,29 @@ export const HelpScoutImport = () => {
           {/* Step 2: Mailbox Mapping */}
           {currentStep === 'mapping' && (
             <div className="space-y-6">
+              {/* Quick Mapping Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={mapAllToSingleInbox}
+                  disabled={inboxes.length === 0}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Map All to Single Inbox
+                </Button>
+                <Button
+                  onClick={createAllAsNew}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Create All as New
+                </Button>
+              </div>
+
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -556,7 +660,12 @@ export const HelpScoutImport = () => {
                               setMailboxMapping((prev) => ({ ...prev, [mailbox.id]: value }))
                             }
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className={cn(
+                              "w-full",
+                              mailboxMapping[mailbox.id] === 'create_new' && "border-yellow-500",
+                              mailboxMapping[mailbox.id] && mailboxMapping[mailbox.id] !== 'skip' && mailboxMapping[mailbox.id] !== 'create_new' && "border-green-500",
+                              mailboxMapping[mailbox.id] === 'skip' && "border-muted"
+                            )}>
                               <SelectValue placeholder="Select target inbox" />
                             </SelectTrigger>
                             <SelectContent>
@@ -594,6 +703,15 @@ export const HelpScoutImport = () => {
                 </Table>
               </div>
 
+              {/* Pre-Import Validation */}
+              {showValidation && (
+                <PreImportValidation
+                  organizationId={selectedOrgId}
+                  mailboxMapping={mailboxMapping}
+                  onValidationComplete={(passed) => setValidationPassed(passed)}
+                />
+              )}
+
               <div className="flex gap-3 pt-4">
                 <Button
                   onClick={() => {
@@ -613,10 +731,15 @@ export const HelpScoutImport = () => {
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Starting...
                     </>
-                  ) : (
+                  ) : showValidation ? (
                     <>
                       <Download className="w-4 h-4 mr-2" />
-                      Start Import
+                      Confirm & Start Import
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Review & Validate
                     </>
                   )}
                 </Button>
@@ -770,6 +893,15 @@ export const HelpScoutImport = () => {
 
       {/* Import History */}
       <ImportHistory onResume={handleResumeImport} />
+
+      {/* Verification Report */}
+      {progress.status === 'completed' && jobId && (
+        <ImportVerificationReport
+          jobId={jobId}
+          organizationId={selectedOrgId}
+          expectedConversations={progress.totalConversations}
+        />
+      )}
     </div>
   );
 };
