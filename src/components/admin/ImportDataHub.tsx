@@ -13,12 +13,22 @@ export const ImportDataHub = () => {
   const { data: userOrg } = useQuery({
     queryKey: ['user-organization'],
     queryFn: async () => {
+      // Step 1: Get the user's profile with organization_id
       const { data: profile } = await supabase
         .from('profiles')
-        .select('organization_id, organizations(id, name)')
+        .select('organization_id')
         .single();
       
-      return profile?.organizations as { id: string; name: string } | null;
+      if (!profile?.organization_id) return null;
+      
+      // Step 2: Fetch the organization details separately
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('id', profile.organization_id)
+        .single();
+      
+      return org;
     },
   });
 
