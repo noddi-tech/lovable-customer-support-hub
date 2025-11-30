@@ -94,7 +94,7 @@ export const DataWipeConfirmation = ({ organizationId, organizationName }: DataW
       setConfirmText("");
       
       // Properly invalidate React Query cache to refresh data counts
-      await queryClient.invalidateQueries({ queryKey: ['org-data-counts', organizationId] });
+      await queryClient.refetchQueries({ queryKey: ['org-data-counts', organizationId] });
 
     } catch (error: any) {
       console.error('[DataWipe] Error:', error);
