@@ -9,7 +9,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const MAX_EXECUTION_TIME = 45000; // 45 seconds (leave 15s buffer before 60s timeout)
-const MAX_CONTINUATIONS = 50; // Prevent infinite loops
+const MAX_CONTINUATIONS = 150; // Prevent infinite loops - increased for large imports
 
 interface ImportProgress {
   totalMailboxes: number;
