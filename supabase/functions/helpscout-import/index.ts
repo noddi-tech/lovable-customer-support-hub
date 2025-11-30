@@ -635,7 +635,7 @@ serve(async (req) => {
               await importConversation(
                 supabase,
                 accessToken,
-                organizationId,
+                effectiveOrganizationId,
                 inboxId,
                 conversation,
                 progress

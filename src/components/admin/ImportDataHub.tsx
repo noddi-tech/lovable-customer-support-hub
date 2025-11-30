@@ -3,9 +3,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpScoutImport } from "./HelpScoutImport";
 import { ImportDataCleanup } from "./ImportDataCleanup";
+import { DataWipeConfirmation } from "./DataWipeConfirmation";
 import { Database, FileText, Mail, Upload } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const ImportDataHub = () => {
+  // Get user's organization for wipe tool
+  const { data: userOrg } = useQuery({
+    queryKey: ['user-organization'],
+    queryFn: async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id, organizations(id, name)')
+        .single();
+      
+      return profile?.organizations as { id: string; name: string } | null;
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -36,6 +52,12 @@ export const ImportDataHub = () => {
         </TabsList>
 
         <TabsContent value="helpscout" className="space-y-4">
+          {userOrg && (
+            <DataWipeConfirmation 
+              organizationId={userOrg.id} 
+              organizationName={userOrg.name} 
+            />
+          )}
           <ImportDataCleanup />
           <HelpScoutImport />
         </TabsContent>
