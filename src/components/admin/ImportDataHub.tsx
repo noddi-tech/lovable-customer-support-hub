@@ -1,33 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpScoutImport } from "./HelpScoutImport";
 import { ImportDataCleanup } from "./ImportDataCleanup";
 import { DataWipeConfirmation } from "./DataWipeConfirmation";
 import { Database, FileText, Mail, Upload } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const ImportDataHub = () => {
-  // Get user's organization for wipe tool
-  const { data: userOrg } = useQuery({
-    queryKey: ['user-organization'],
-    queryFn: async () => {
-      // Use RPC function that works correctly
-      const { data: orgId } = await supabase.rpc('get_user_organization_id');
-      
-      if (!orgId) return null;
-      
-      // Fetch the organization details
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('id, name')
-        .eq('id', orgId)
-        .single();
-      
-      return org;
-    },
-  });
+  const [userOrg, setUserOrg] = useState<{ id: string; name: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch user's organization for wipe tool - same pattern as HelpScoutImport
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      try {
+        const { data: orgId, error: rpcError } = await supabase.rpc('get_user_organization_id');
+        
+        console.log('[ImportDataHub] RPC result:', { orgId, rpcError });
+        
+        if (!orgId || rpcError) {
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data: org, error: orgError } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .eq('id', orgId)
+          .single();
+        
+        console.log('[ImportDataHub] Org result:', { org, orgError });
+        
+        if (org) {
+          setUserOrg(org);
+        }
+      } catch (error) {
+        console.error('[ImportDataHub] Error fetching organization:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchOrganization();
+  }, []);
 
   return (
     <div className="space-y-6">
