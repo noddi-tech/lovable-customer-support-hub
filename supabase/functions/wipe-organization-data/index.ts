@@ -65,60 +65,70 @@ Deno.serve(async (req) => {
     // Step 1: Delete messages (cascading will handle some related records)
     if (wipeMessages) {
       console.log('[WipeOrgData] Deleting messages...');
-      let deletedCount = 0;
-      let hasMore = true;
+      
+      // First, get all conversation IDs for this organization
+      const { data: orgConversations, error: convError } = await supabaseServiceClient
+        .from('conversations')
+        .select('id')
+        .eq('organization_id', organizationId);
+      
+      if (convError) {
+        console.error('[WipeOrgData] Error fetching conversation IDs:', convError);
+        progress.errors.push(`Failed to fetch conversation IDs: ${convError.message}`);
+      } else if (orgConversations && orgConversations.length > 0) {
+        const conversationIds = orgConversations.map(c => c.id);
+        let deletedCount = 0;
+        let hasMore = true;
 
-      while (hasMore) {
-        // Get a batch of message IDs to delete
-        const { data: messages, error: fetchError } = await supabaseServiceClient
-          .from('messages')
-          .select('id, conversation_id')
-          .in('conversation_id', 
-            supabaseServiceClient
-              .from('conversations')
-              .select('id')
-              .eq('organization_id', organizationId)
-          )
-          .limit(BATCH_SIZE);
+        while (hasMore) {
+          // Get a batch of message IDs to delete
+          const { data: messages, error: fetchError } = await supabaseServiceClient
+            .from('messages')
+            .select('id')
+            .in('conversation_id', conversationIds)
+            .limit(BATCH_SIZE);
 
-        if (fetchError) {
-          console.error('[WipeOrgData] Error fetching messages:', fetchError);
-          progress.errors.push(`Failed to fetch messages: ${fetchError.message}`);
-          break;
+          if (fetchError) {
+            console.error('[WipeOrgData] Error fetching messages:', fetchError);
+            progress.errors.push(`Failed to fetch messages: ${fetchError.message}`);
+            break;
+          }
+
+          if (!messages || messages.length === 0) {
+            hasMore = false;
+            break;
+          }
+
+          const messageIds = messages.map(m => m.id);
+
+          const { error: deleteError } = await supabaseServiceClient
+            .from('messages')
+            .delete()
+            .in('id', messageIds);
+
+          if (deleteError) {
+            console.error('[WipeOrgData] Error deleting messages batch:', deleteError);
+            progress.errors.push(`Failed to delete messages batch: ${deleteError.message}`);
+            break;
+          }
+
+          deletedCount += messages.length;
+          progress.messagesDeleted = deletedCount;
+          console.log(`[WipeOrgData] Deleted ${deletedCount} messages so far...`);
+
+          // If we got less than BATCH_SIZE, we're done
+          if (messages.length < BATCH_SIZE) {
+            hasMore = false;
+          }
+
+          // Small delay to avoid overwhelming the database
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        if (!messages || messages.length === 0) {
-          hasMore = false;
-          break;
-        }
-
-        const messageIds = messages.map(m => m.id);
-
-        const { error: deleteError } = await supabaseServiceClient
-          .from('messages')
-          .delete()
-          .in('id', messageIds);
-
-        if (deleteError) {
-          console.error('[WipeOrgData] Error deleting messages batch:', deleteError);
-          progress.errors.push(`Failed to delete messages batch: ${deleteError.message}`);
-          break;
-        }
-
-        deletedCount += messages.length;
-        progress.messagesDeleted = deletedCount;
-        console.log(`[WipeOrgData] Deleted ${deletedCount} messages so far...`);
-
-        // If we got less than BATCH_SIZE, we're done
-        if (messages.length < BATCH_SIZE) {
-          hasMore = false;
-        }
-
-        // Small delay to avoid overwhelming the database
-        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log(`[WipeOrgData] Deleted total ${deletedCount} messages`);
+      } else {
+        console.log('[WipeOrgData] No conversations found, skipping message deletion');
       }
-
-      console.log(`[WipeOrgData] Deleted total ${deletedCount} messages`);
     }
 
     // Step 2: Delete conversations
