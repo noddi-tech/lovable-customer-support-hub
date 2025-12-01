@@ -65,7 +65,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       // 1) Seed from newest few rows of these conversation(s)
       const seedSel = supabase
         .from("messages")
-        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address))")
+        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name))")
         .in("conversation_id", ids)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -91,7 +91,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       // 2) Build base query (DESC newest first); add cursor for older pages
       let base = supabase
         .from("messages")
-        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address))")
+        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name))")
         .in("conversation_id", ids) // Filter by conversation(s)
         .order("created_at", { ascending: false })
         .limit(pageParam ? PAGE : INITIAL);
@@ -161,7 +161,9 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       const conversationData = typedRows[0]?.conversation;
       const customerData = conversationData?.customer;
       const emailAccountData = conversationData?.email_account;
-      const inboxEmail = emailAccountData?.email_address;
+      const inboxData = conversationData?.inbox;
+      // Fallback chain: email_account.email_address → inbox.sender_display_name
+      const inboxEmail = emailAccountData?.email_address || inboxData?.sender_display_name;
       
       // Create conversation-specific normalization context
       const ctx = createNormalizationContext({
