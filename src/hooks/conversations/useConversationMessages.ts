@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { normalizeMessage, deduplicateMessages, createNormalizationContext, type NormalizedMessage, type NormalizationContext } from '@/lib/normalizeMessage';
@@ -37,9 +37,42 @@ interface MessagesPage {
 export function useConversationMessages(conversationId?: string, normalizationContext?: NormalizationContext) {
   const { user } = useAuth();
   
+  // Fetch conversation's inbox email for proper agent message attribution
+  const { data: inboxData } = useQuery({
+    queryKey: ['conversation-inbox-email', conversationId],
+    queryFn: async () => {
+      if (!conversationId) return null;
+      
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          inbox_id,
+          inboxes!inner (
+            id,
+            sender_display_name,
+            email_accounts (email_address, is_active),
+            inbound_routes (address, is_active)
+          )
+        `)
+        .eq('id', conversationId)
+        .single();
+      
+      if (error) throw error;
+      
+      // Prefer email_accounts over inbound_routes
+      const emailAccount = (data?.inboxes as any)?.email_accounts?.find((ea: any) => ea.is_active);
+      const inboundRoute = (data?.inboxes as any)?.inbound_routes?.find((ir: any) => ir.is_active);
+      
+      return emailAccount?.email_address || inboundRoute?.address || null;
+    },
+    enabled: !!conversationId && !normalizationContext,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+  
   // Create default normalization context if none provided
   const defaultContext = createNormalizationContext({
     currentUserEmail: user?.email || undefined,
+    inboxEmail: inboxData || undefined,
     // TODO: Add agent emails from organization data when available
     agentEmails: [],
     agentPhones: [],
