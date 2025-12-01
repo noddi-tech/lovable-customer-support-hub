@@ -59,11 +59,11 @@ export function useConversationMessages(conversationId?: string, normalizationCo
       
       if (error) throw error;
       
-      // Prefer email_accounts over inbound_routes
+      // Prefer email_accounts over inbound_routes over sender_display_name
       const emailAccount = (data?.inboxes as any)?.email_accounts?.find((ea: any) => ea.is_active);
       const inboundRoute = (data?.inboxes as any)?.inbound_routes?.find((ir: any) => ir.is_active);
       
-      return emailAccount?.email_address || inboundRoute?.address || null;
+      return emailAccount?.email_address || inboundRoute?.address || (data?.inboxes as any)?.sender_display_name || null;
     },
     enabled: !!conversationId && !normalizationContext,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
