@@ -1,9 +1,19 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Copy, Check, Mail, RefreshCw, Edit, Save, X, AlertTriangle } from "lucide-react";
+import { Copy, Check, Mail, RefreshCw, Edit, Save, X, AlertTriangle, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 // ... keep existing code (no Input needed here)
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,6 +47,8 @@ export function ConnectedEmailAccounts() {
   const [editingAccount, setEditingAccount] = useState<string | null>(null);
   const [editingInbox, setEditingInbox] = useState<string>("unassigned");
   const [copiedForwarding, setCopiedForwarding] = useState<string | null>(null);
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+  const [pendingDisableAccount, setPendingDisableAccount] = useState<{ id: string; conversationCount: number } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -92,6 +104,24 @@ export function ConnectedEmailAccounts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
       toast({ title: "Auto-sync updated", description: "Preferences saved." });
+    },
+  });
+
+  const cleanupAccountDataMutation = useMutation({
+    mutationFn: async (accountId: string) => {
+      const { data, error } = await supabase.functions.invoke('cleanup-email-account-data', {
+        body: { emailAccountId: accountId }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      toast({
+        title: "Cleanup complete",
+        description: `Deleted ${data.deletedConversations} conversations and ${data.deletedMessages} messages.`
+      });
     },
   });
 
@@ -154,6 +184,50 @@ export function ConnectedEmailAccounts() {
     return `${Math.floor(diffInHours / 24)} days ago`;
   };
 
+  const handleAutoSyncToggle = async (accountId: string, newValue: boolean, syncIntervalMinutes: number) => {
+    // If disabling, check for conversations to clean up
+    if (!newValue) {
+      const { count, error } = await supabase
+        .from('conversations')
+        .select('*', { count: 'exact', head: true })
+        .eq('email_account_id', accountId);
+
+      if (error) {
+        console.error('Error checking conversations:', error);
+      }
+
+      if (count && count > 0) {
+        setPendingDisableAccount({ id: accountId, conversationCount: count });
+        setShowCleanupDialog(true);
+        return;
+      }
+    }
+
+    // Proceed with toggle
+    updateAccountSyncMutation.mutate({ accountId, autoSyncEnabled: newValue, syncIntervalMinutes });
+  };
+
+  const handleCleanupConfirm = async (shouldCleanup: boolean) => {
+    if (!pendingDisableAccount) return;
+
+    if (shouldCleanup) {
+      await cleanupAccountDataMutation.mutateAsync(pendingDisableAccount.id);
+    }
+
+    // Disable sync after cleanup (or without cleanup)
+    const account = accounts.find(a => a.id === pendingDisableAccount.id);
+    if (account) {
+      updateAccountSyncMutation.mutate({
+        accountId: pendingDisableAccount.id,
+        autoSyncEnabled: false,
+        syncIntervalMinutes: account.sync_interval_minutes
+      });
+    }
+
+    setShowCleanupDialog(false);
+    setPendingDisableAccount(null);
+  };
+
   return (
     <Card className="bg-gradient-surface border-border/50 shadow-surface">
       <CardHeader>
@@ -197,12 +271,12 @@ export function ConnectedEmailAccounts() {
                           </div>
                           <Switch
                             checked={account.auto_sync_enabled}
-                            onCheckedChange={(checked) => updateAccountSyncMutation.mutate({
-                              accountId: account.id,
-                              autoSyncEnabled: checked,
-                              syncIntervalMinutes: account.sync_interval_minutes,
-                            })}
-                            disabled={updateAccountSyncMutation.isPending}
+                            onCheckedChange={(checked) => handleAutoSyncToggle(
+                              account.id,
+                              checked,
+                              account.sync_interval_minutes
+                            )}
+                            disabled={updateAccountSyncMutation.isPending || cleanupAccountDataMutation.isPending}
                           />
                         </div>
                         {account.auto_sync_enabled && (
@@ -238,12 +312,11 @@ export function ConnectedEmailAccounts() {
                         
                         {/* Warning when auto-sync enabled but no inbox assigned */}
                         {account.auto_sync_enabled && !account.inbox_id && (
-                          <Alert variant="warning" className="mt-3">
+                          <Alert variant="destructive" className="mt-3">
                             <AlertTriangle className="h-4 w-4" />
                             <AlertDescription>
-                              <strong>Misconfiguration warning:</strong> Auto-sync is enabled but no inbox is assigned. 
-                              Emails will be routed to the organization's <strong>default inbox</strong>. 
-                              Assign a specific inbox below to control where synced emails appear.
+                              <strong>Sync blocked:</strong> Auto-sync is enabled but no inbox is assigned. 
+                              Emails will <strong>not be synced</strong> until you assign an inbox below.
                             </AlertDescription>
                           </Alert>
                         )}
@@ -345,6 +418,42 @@ export function ConnectedEmailAccounts() {
             ))}
           </div>
         )}
+
+        {/* Cleanup confirmation dialog */}
+        <AlertDialog open={showCleanupDialog} onOpenChange={setShowCleanupDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete synced conversations?</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  You're disabling auto-sync for this account. This account has{" "}
+                  <strong>{pendingDisableAccount?.conversationCount || 0} conversations</strong> synced.
+                </p>
+                <p>
+                  Do you want to delete all conversations and messages synced from this account?
+                </p>
+                <Alert variant="warning" className="mt-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Warning:</strong> This action cannot be undone. All messages and conversation history will be permanently deleted.
+                  </AlertDescription>
+                </Alert>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => handleCleanupConfirm(false)}>
+                Keep conversations
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleCleanupConfirm(true)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete all
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
