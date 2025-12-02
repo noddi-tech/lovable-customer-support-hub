@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ResponsiveContainer, ResponsiveGrid, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, LayoutItem, AdaptiveSection } from '@/components/admin/design/components/layouts';
 import { UserManagement } from './UserManagement';
@@ -17,14 +17,17 @@ import { InboundRoutesList } from './InboundRoutesList';
 import { InboxManagement } from './InboxManagement';
 import { DebugPanel } from './DebugPanel';
 import { HelpScoutImport } from './HelpScoutImport';
+import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { useTranslation } from 'react-i18next';
-import { Mail, Phone, Shield } from 'lucide-react';
+import { Mail, Phone, Shield, Plus, Inbox } from 'lucide-react';
 
 export const AdminPortal = () => {
   const { t } = useTranslation();
   const location = useLocation();
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   
   // Extract the admin path to determine which content to show
   const adminPath = location.pathname.replace('/admin/', '') || 'general';
@@ -56,66 +59,93 @@ export const AdminPortal = () => {
 
       case 'integrations':
         return (
-          <ResponsiveTabs defaultValue="email" variant="pills" size="md" equalWidth>
-            <ResponsiveTabsList className="w-full">
-              <ResponsiveTabsTrigger value="email">
-                <Mail className="w-4 h-4 mr-2" />
-                Email & Routing
-              </ResponsiveTabsTrigger>
-              <ResponsiveTabsTrigger value="voice">
-                <Phone className="w-4 h-4 mr-2" />
-                Voice & Phone
-              </ResponsiveTabsTrigger>
-              <ResponsiveTabsTrigger value="messaging">
-                <Shield className="w-4 h-4 mr-2" />
-                Messaging
-              </ResponsiveTabsTrigger>
-            </ResponsiveTabsList>
+          <div className="space-y-6 px-5">
+            {/* Quick Start Card */}
+            <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Inbox className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">Quick Start: Add Email Integration</CardTitle>
+                      <CardDescription className="mt-1">
+                        Connect an email source and assign it to an inbox
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button onClick={() => setIsWizardOpen(true)} size="lg">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Email
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
             
-            <ResponsiveTabsContent value="email">
-              <ResponsiveTabs defaultValue="sendgrid" variant="pills" size="sm">
-              <ResponsiveTabsList>
-                <ResponsiveTabsTrigger value="email-accounts">Email Accounts</ResponsiveTabsTrigger>
-                <ResponsiveTabsTrigger value="sendgrid">SendGrid</ResponsiveTabsTrigger>
-                <ResponsiveTabsTrigger value="google-groups">Google Groups</ResponsiveTabsTrigger>
-                <ResponsiveTabsTrigger value="routes">Inbound Routes</ResponsiveTabsTrigger>
+            <EmailIntegrationWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
+            
+            <ResponsiveTabs defaultValue="email" variant="pills" size="md" equalWidth>
+              <ResponsiveTabsList className="w-full">
+                <ResponsiveTabsTrigger value="email">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Email & Routing
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="voice">
+                  <Phone className="w-4 h-4 mr-2" />
+                  Voice & Phone
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="messaging">
+                  <Shield className="w-4 h-4 mr-2" />
+                  Messaging
+                </ResponsiveTabsTrigger>
               </ResponsiveTabsList>
-              <ResponsiveTabsContent value="email-accounts">
-                <EmailAccountConnection />
-              </ResponsiveTabsContent>
-              <ResponsiveTabsContent value="sendgrid">
-                <SendgridSetupWizard />
-              </ResponsiveTabsContent>
-              <ResponsiveTabsContent value="google-groups">
-                  <Card className="bg-gradient-surface border-border/50 shadow-surface">
-                    <CardHeader>
-                      <CardTitle className="text-primary">Google Groups Setup</CardTitle>
-                      <CardDescription>Configure Google Groups for email routing</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <GoogleGroupSetup 
-                        alias="support" 
-                        domain="yourdomain.com" 
-                        parseSubdomain="inbound"
-                        inboxName="Support"
-                      />
-                    </CardContent>
-                  </Card>
+              
+              <ResponsiveTabsContent value="email">
+                <ResponsiveTabs defaultValue="sendgrid" variant="pills" size="sm">
+                <ResponsiveTabsList>
+                  <ResponsiveTabsTrigger value="email-accounts">Email Accounts</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="sendgrid">SendGrid</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="google-groups">Google Groups</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="routes">Inbound Routes</ResponsiveTabsTrigger>
+                </ResponsiveTabsList>
+                <ResponsiveTabsContent value="email-accounts">
+                  <EmailAccountConnection />
                 </ResponsiveTabsContent>
-                <ResponsiveTabsContent value="routes">
-                  <InboundRoutesList />
+                <ResponsiveTabsContent value="sendgrid">
+                  <SendgridSetupWizard />
                 </ResponsiveTabsContent>
-              </ResponsiveTabs>
-            </ResponsiveTabsContent>
-            
-            <ResponsiveTabsContent value="voice">
-              <VoiceIntegrationsList />
-            </ResponsiveTabsContent>
-            
-            <ResponsiveTabsContent value="messaging">
-              <MessagingSettings />
-            </ResponsiveTabsContent>
-          </ResponsiveTabs>
+                <ResponsiveTabsContent value="google-groups">
+                    <Card className="bg-gradient-surface border-border/50 shadow-surface">
+                      <CardHeader>
+                        <CardTitle className="text-primary">Google Groups Setup</CardTitle>
+                        <CardDescription>Configure Google Groups for email routing</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <GoogleGroupSetup 
+                          alias="support" 
+                          domain="yourdomain.com" 
+                          parseSubdomain="inbound"
+                          inboxName="Support"
+                        />
+                      </CardContent>
+                    </Card>
+                  </ResponsiveTabsContent>
+                  <ResponsiveTabsContent value="routes">
+                    <InboundRoutesList />
+                  </ResponsiveTabsContent>
+                </ResponsiveTabs>
+              </ResponsiveTabsContent>
+              
+              <ResponsiveTabsContent value="voice">
+                <VoiceIntegrationsList />
+              </ResponsiveTabsContent>
+              
+              <ResponsiveTabsContent value="messaging">
+                <MessagingSettings />
+              </ResponsiveTabsContent>
+            </ResponsiveTabs>
+          </div>
         );
 
       case 'voice':
