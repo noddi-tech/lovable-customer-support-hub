@@ -115,13 +115,9 @@ export function ConnectedEmailAccounts() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      toast({
-        title: "Cleanup complete",
-        description: `Deleted ${data.deletedConversations} conversations and ${data.deletedMessages} messages.`
-      });
     },
   });
 
@@ -210,17 +206,31 @@ export function ConnectedEmailAccounts() {
   const handleCleanupConfirm = async (shouldCleanup: boolean) => {
     if (!pendingDisableAccount) return;
 
+    let cleanupResult = null;
     if (shouldCleanup) {
-      await cleanupAccountDataMutation.mutateAsync(pendingDisableAccount.id);
+      cleanupResult = await cleanupAccountDataMutation.mutateAsync(pendingDisableAccount.id);
     }
 
     // Disable sync after cleanup (or without cleanup)
     const account = accounts.find(a => a.id === pendingDisableAccount.id);
     if (account) {
-      updateAccountSyncMutation.mutate({
+      await updateAccountSyncMutation.mutateAsync({
         accountId: pendingDisableAccount.id,
         autoSyncEnabled: false,
         syncIntervalMinutes: account.sync_interval_minutes
+      });
+    }
+
+    // Show combined toast after both operations complete
+    if (cleanupResult) {
+      toast({
+        title: "Auto-sync disabled & data cleaned",
+        description: `Deleted ${cleanupResult.deletedConversations} conversations and ${cleanupResult.deletedMessages} messages.`
+      });
+    } else {
+      toast({
+        title: "Auto-sync disabled",
+        description: "Email sync has been disabled for this account."
       });
     }
 
