@@ -569,6 +569,12 @@ async function syncGmailMessages(account: any, supabaseClient: any, folder: 'inb
               org_id: account.organization_id 
             });
 
+          // Skip message if no inbox configured (prevents sync to default inbox)
+          if (!inboxId) {
+            console.log(`⚠️ Skipping message ${messageId} - no inbox configured for ${recipientEmail}`);
+            continue;
+          }
+
           const { data: newConversation } = await supabaseClient
             .from('conversations')
             .insert({
