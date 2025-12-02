@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
+import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation";
 import { useIsMobile } from "@/hooks/use-responsive";
 import { cn } from "@/lib/utils";
 import { 
@@ -50,6 +51,7 @@ export const ReplyArea = () => {
   } = useConversationView();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+  const { clearConversation } = useInteractionsNavigation();
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const [replyStatus, setReplyStatus] = React.useState<string>('pending');
   const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
@@ -82,7 +84,14 @@ export const ReplyArea = () => {
     
     try {
       await sendReply(state.replyText, state.isInternalNote, replyStatus);
+      
+      // Clear reply text and collapse reply area
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
+      dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
+      dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+      
+      // Navigate back to inbox list
+      clearConversation();
     } catch (error) {
       // Error handling is done in the context
     }
@@ -363,8 +372,8 @@ export const ReplyArea = () => {
             onChange={(e) => dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value })}
             onKeyDown={handleKeyPress}
             placeholder={state.isInternalNote 
-              ? t('conversation.writeInternalNote')
-              : t('conversation.typeYourReply')
+              ? t('conversation.internalNotePlaceholder')
+              : t('conversation.replyPlaceholder')
             }
             className={cn(
               "min-h-[140px] resize-none transition-colors text-sm",
