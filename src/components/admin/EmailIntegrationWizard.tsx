@@ -36,6 +36,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
   const [newInboxDescription, setNewInboxDescription] = useState("");
   const [newInboxColor, setNewInboxColor] = useState("#3B82F6");
   const [newInboxDepartmentId, setNewInboxDepartmentId] = useState("no-department");
+  const [newInboxSenderDisplayName, setNewInboxSenderDisplayName] = useState("");
   const [createdInboxId, setCreatedInboxId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -64,6 +65,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
           organization_id: profile.organization_id,
           is_default: false,
           auto_assignment_rules: {},
+          sender_display_name: newInboxSenderDisplayName || newInboxName,
         })
         .select()
         .single();
@@ -160,6 +162,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
     setNewInboxDescription("");
     setNewInboxColor("#3B82F6");
     setNewInboxDepartmentId("no-department");
+    setNewInboxSenderDisplayName("");
     setCreatedInboxId(null);
   };
 
@@ -236,12 +239,14 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
             newInboxDescription={newInboxDescription}
             newInboxColor={newInboxColor}
             newInboxDepartmentId={newInboxDepartmentId}
+            newInboxSenderDisplayName={newInboxSenderDisplayName}
             onAssignmentModeChange={setAssignmentMode}
             onSelectedInboxChange={setSelectedInboxId}
             onNewInboxNameChange={setNewInboxName}
             onNewInboxDescriptionChange={setNewInboxDescription}
             onNewInboxColorChange={setNewInboxColor}
             onNewInboxDepartmentChange={setNewInboxDepartmentId}
+            onNewInboxSenderDisplayNameChange={setNewInboxSenderDisplayName}
           />
         );
       case 4:
