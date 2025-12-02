@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Copy, Check, Mail, RefreshCw, Edit, Save, X } from "lucide-react";
+import { Copy, Check, Mail, RefreshCw, Edit, Save, X, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 // ... keep existing code (no Input needed here)
 import { Label } from "@/components/ui/label";
@@ -234,6 +235,18 @@ export function ConnectedEmailAccounts() {
                             </Select>
                           </div>
                         )}
+                        
+                        {/* Warning when auto-sync enabled but no inbox assigned */}
+                        {account.auto_sync_enabled && !account.inbox_id && (
+                          <Alert variant="warning" className="mt-3">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              <strong>Misconfiguration warning:</strong> Auto-sync is enabled but no inbox is assigned. 
+                              Emails will be routed to the organization's <strong>default inbox</strong>. 
+                              Assign a specific inbox below to control where synced emails appear.
+                            </AlertDescription>
+                          </Alert>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-2 border-t pt-3">
@@ -285,7 +298,9 @@ export function ConnectedEmailAccounts() {
                                 <span className="font-medium">{inboxes.find(i => i.id === account.inbox_id)?.name || 'Unknown Inbox'}</span>
                               </div>
                             ) : (
-                              <span className="text-warning">{t('admin.notAssigned')}</span>
+                              <span className={account.auto_sync_enabled ? "text-destructive font-medium" : "text-warning"}>
+                                {account.auto_sync_enabled ? "⚠️ Not assigned (using default inbox)" : t('admin.notAssigned')}
+                              </span>
                             )}
                           </div>
                           <Button variant="ghost" size="sm" onClick={() => startEditingAccount(account.id, account.inbox_id)}>
