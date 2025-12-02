@@ -5,6 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SetupTypeSelector, type SetupType } from "./wizard/SetupTypeSelector";
 import { EmailConnectionStep } from "./wizard/EmailConnectionStep";
+import { GoogleGroupSetupStep } from "./wizard/GoogleGroupSetupStep";
+import { EmailForwardingSetupStep } from "./wizard/EmailForwardingSetupStep";
 import { InboxAssignmentStep } from "./wizard/InboxAssignmentStep";
 import { SetupSuccessStep } from "./wizard/SetupSuccessStep";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +23,11 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
   const [currentStep, setCurrentStep] = useState(1);
   const [setupType, setSetupType] = useState<SetupType | null>(null);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
+  
+  // New state for SendGrid/Google Group flow
+  const [publicEmail, setPublicEmail] = useState("");
+  const [forwardingAddress, setForwardingAddress] = useState("");
+  const [inboundRouteId, setInboundRouteId] = useState<string | null>(null);
   
   // Inbox assignment state
   const [assignmentMode, setAssignmentMode] = useState<'existing' | 'new' | 'skip'>('existing');
@@ -74,12 +81,35 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
     }
   });
 
+  // Link inbound route to inbox
+  const linkRouteToInbox = async (inboxId: string) => {
+    if (!inboundRouteId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('inbound_routes')
+        .update({ inbox_id: inboxId })
+        .eq('id', inboundRouteId);
+      
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Failed to link route to inbox:', error);
+      toast.error('Failed to link email route to inbox');
+    }
+  };
+
   const totalSteps = 4;
   const progress = (currentStep / totalSteps) * 100;
 
   const canGoNext = () => {
     if (currentStep === 1) return setupType !== null;
-    if (currentStep === 2) return connectedEmail !== null || setupType === 'team-email';
+    if (currentStep === 2) {
+      if (setupType === 'gmail') return connectedEmail !== null;
+      if (setupType === 'google-group' || setupType === 'team-email') {
+        return inboundRouteId !== null;
+      }
+      return true;
+    }
     if (currentStep === 3) {
       if (assignmentMode === 'existing') return selectedInboxId !== '';
       if (assignmentMode === 'new') return newInboxName.trim() !== '';
@@ -89,9 +119,21 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
   };
 
   const handleNext = async () => {
-    // Step 3: Create inbox if "new" is selected
-    if (currentStep === 3 && assignmentMode === 'new') {
-      await createInboxMutation.mutateAsync();
+    // Step 3: Create inbox if "new" is selected and link route
+    if (currentStep === 3) {
+      let finalInboxId: string | null = null;
+      
+      if (assignmentMode === 'new') {
+        const newInbox = await createInboxMutation.mutateAsync();
+        finalInboxId = newInbox.id;
+      } else if (assignmentMode === 'existing') {
+        finalInboxId = selectedInboxId;
+      }
+      
+      // Link the inbound route to the inbox
+      if (finalInboxId && inboundRouteId) {
+        await linkRouteToInbox(finalInboxId);
+      }
     }
     
     if (currentStep < totalSteps) {
@@ -109,6 +151,9 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
     setCurrentStep(1);
     setSetupType(null);
     setConnectedEmail(null);
+    setPublicEmail("");
+    setForwardingAddress("");
+    setInboundRouteId(null);
     setAssignmentMode('existing');
     setSelectedInboxId('');
     setNewInboxName("");
@@ -131,6 +176,12 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
     handleReset();
   };
 
+  const handleSetupComplete = () => {
+    // Called when Google Group or Email Forwarding setup is done
+    // Move to inbox assignment step
+    setCurrentStep(3);
+  };
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -141,17 +192,44 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
           />
         );
       case 2:
-        return setupType ? (
-          <EmailConnectionStep
-            setupType={setupType}
-            onEmailConnected={setConnectedEmail}
-            onSkip={() => handleNext()}
-          />
-        ) : null;
+        if (setupType === 'gmail') {
+          return (
+            <EmailConnectionStep
+              setupType={setupType}
+              onEmailConnected={setConnectedEmail}
+              onSkip={() => handleNext()}
+            />
+          );
+        }
+        if (setupType === 'google-group') {
+          return (
+            <GoogleGroupSetupStep
+              publicEmail={publicEmail}
+              forwardingAddress={forwardingAddress}
+              onPublicEmailChange={setPublicEmail}
+              onForwardingAddressGenerated={setForwardingAddress}
+              onInboundRouteCreated={setInboundRouteId}
+              onSetupComplete={handleSetupComplete}
+            />
+          );
+        }
+        if (setupType === 'team-email') {
+          return (
+            <EmailForwardingSetupStep
+              publicEmail={publicEmail}
+              forwardingAddress={forwardingAddress}
+              onPublicEmailChange={setPublicEmail}
+              onForwardingAddressGenerated={setForwardingAddress}
+              onInboundRouteCreated={setInboundRouteId}
+              onSetupComplete={handleSetupComplete}
+            />
+          );
+        }
+        return null;
       case 3:
         return (
           <InboxAssignmentStep
-            connectedEmail={connectedEmail || undefined}
+            connectedEmail={publicEmail || connectedEmail || undefined}
             assignmentMode={assignmentMode}
             selectedInboxId={selectedInboxId}
             newInboxName={newInboxName}
@@ -170,7 +248,8 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
         return (
           <SetupSuccessStep
             setupType={setupType!}
-            connectedEmail={connectedEmail || undefined}
+            connectedEmail={publicEmail || connectedEmail || undefined}
+            forwardingAddress={forwardingAddress || undefined}
             assignmentMode={assignmentMode}
             inboxName={assignmentMode === 'new' ? newInboxName : undefined}
             inboxColor={assignmentMode === 'new' ? newInboxColor : undefined}
@@ -182,6 +261,9 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
         return null;
     }
   };
+
+  // For Google Group and Email Forwarding, step 2 has its own navigation
+  const showDefaultNavigation = currentStep !== 2 || setupType === 'gmail';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,8 +290,8 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
             {renderStep()}
           </div>
 
-          {/* Navigation buttons */}
-          {currentStep < 4 && (
+          {/* Navigation buttons - show only for steps with default navigation */}
+          {currentStep < 4 && showDefaultNavigation && (
             <div className="flex items-center justify-between pt-4 border-t">
               <Button
                 variant="ghost"
@@ -233,6 +315,19 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
                     <ChevronRight className="h-4 w-4 ml-2" />
                   </>
                 )}
+              </Button>
+            </div>
+          )}
+          
+          {/* Back button only for step 2 with custom flow */}
+          {currentStep === 2 && !showDefaultNavigation && (
+            <div className="flex items-center pt-4 border-t">
+              <Button
+                variant="ghost"
+                onClick={handleBack}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Back
               </Button>
             </div>
           )}
