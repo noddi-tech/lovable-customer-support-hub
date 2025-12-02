@@ -295,7 +295,7 @@ export function InboxManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-5">
       <div className="flex items-center justify-between">
         <div>
           <Heading level={2}>Inbox Management</Heading>
