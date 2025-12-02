@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare } from 'lucide-react';
+import { InboxSetupWizard } from './InboxSetupWizard';
 
 
 interface InboxData {
@@ -56,6 +57,7 @@ interface EmailAccount {
 
 export function InboxManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingInbox, setEditingInbox] = useState<InboxData | null>(null);
   const [newInboxData, setNewInboxData] = useState({
     name: '',
@@ -298,17 +300,24 @@ export function InboxManagement() {
         <div>
           <Heading level={2}>Inbox Management</Heading>
           <p className="text-muted-foreground mt-1">
-            Create and manage inboxes. Email setup is now in Admin → Integrations.
+            Create and manage inboxes with guided setup for email connections.
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Inbox
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
+            Quick Create
+          </Button>
+          <Button onClick={() => setIsWizardOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Inbox (Guided)
+          </Button>
+        </div>
+      </div>
+
+      <InboxSetupWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
+
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Inbox</DialogTitle>
               <DialogDescription>
@@ -391,8 +400,6 @@ export function InboxManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-
 
       <Separator />
 

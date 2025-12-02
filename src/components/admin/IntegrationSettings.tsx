@@ -1,19 +1,47 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { EmailAccountConnection } from '@/components/dashboard/EmailAccountConnection';
 import { Separator } from '@/components/ui/separator';
-import { Mail, MessageSquare, Instagram, Phone } from 'lucide-react';
+import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { InboxManagement } from '@/components/admin/InboxManagement';
 import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
+import { InboxSetupWizard } from './InboxSetupWizard';
 import { useTranslation } from 'react-i18next';
 
 export const IntegrationSettings = () => {
   const { t } = useTranslation();
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   
   return (
     <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Inbox className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Quick Start: Set Up New Inbox</CardTitle>
+                <CardDescription className="mt-1">
+                  Follow our guided wizard to create an inbox and connect email in minutes
+                </CardDescription>
+              </div>
+            </div>
+            <Button onClick={() => setIsWizardOpen(true)} size="lg">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Inbox
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <InboxSetupWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
+
       <ResponsiveTabs 
         defaultValue="email" 
         variant="pills" 
