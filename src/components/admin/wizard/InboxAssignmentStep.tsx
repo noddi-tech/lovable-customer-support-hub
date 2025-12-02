@@ -4,9 +4,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Inbox } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 interface InboxAssignmentStepProps {
   connectedEmail?: string;
@@ -16,12 +17,14 @@ interface InboxAssignmentStepProps {
   newInboxDescription: string;
   newInboxColor: string;
   newInboxDepartmentId: string;
+  newInboxSenderDisplayName: string;
   onAssignmentModeChange: (mode: 'existing' | 'new' | 'skip') => void;
   onSelectedInboxChange: (inboxId: string) => void;
   onNewInboxNameChange: (name: string) => void;
   onNewInboxDescriptionChange: (description: string) => void;
   onNewInboxColorChange: (color: string) => void;
   onNewInboxDepartmentChange: (departmentId: string) => void;
+  onNewInboxSenderDisplayNameChange: (name: string) => void;
 }
 
 const colorOptions = [
@@ -41,14 +44,28 @@ export function InboxAssignmentStep({
   newInboxDescription,
   newInboxColor,
   newInboxDepartmentId,
+  newInboxSenderDisplayName,
   onAssignmentModeChange,
   onSelectedInboxChange,
   onNewInboxNameChange,
   onNewInboxDescriptionChange,
   onNewInboxColorChange,
   onNewInboxDepartmentChange,
+  onNewInboxSenderDisplayNameChange,
 }: InboxAssignmentStepProps) {
   
+  // Auto-suggest sender display name based on inbox name
+  useEffect(() => {
+    if (assignmentMode === 'new' && newInboxName && !newInboxSenderDisplayName) {
+      // Capitalize first letter of each word
+      const suggested = newInboxName
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      onNewInboxSenderDisplayNameChange(suggested);
+    }
+  }, [newInboxName, assignmentMode]);
+
   const { data: inboxes } = useQuery({
     queryKey: ['inboxes'],
     queryFn: async () => {
@@ -165,6 +182,20 @@ export function InboxAssignmentStep({
                   placeholder="e.g., Support, Sales, General"
                   className="mt-1.5"
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="sender-display-name">Sender Display Name</Label>
+                <Input
+                  id="sender-display-name"
+                  value={newInboxSenderDisplayName}
+                  onChange={(e) => onNewInboxSenderDisplayNameChange(e.target.value)}
+                  placeholder="e.g., Noddi Support"
+                  className="mt-1.5"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  How this inbox appears in email "From:" field (e.g., "Noddi Support" &lt;support@noddi.no&gt;)
+                </p>
               </div>
 
               <div>
