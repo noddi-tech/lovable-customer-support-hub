@@ -1,31 +1,35 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SetupTypeSelector, type SetupType } from "./wizard/SetupTypeSelector";
-import { InboxConfigForm } from "./wizard/InboxConfigForm";
 import { EmailConnectionStep } from "./wizard/EmailConnectionStep";
+import { InboxAssignmentStep } from "./wizard/InboxAssignmentStep";
 import { SetupSuccessStep } from "./wizard/SetupSuccessStep";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-interface InboxSetupWizardProps {
+interface EmailIntegrationWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function InboxSetupWizard({ open, onOpenChange }: InboxSetupWizardProps) {
+export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [setupType, setSetupType] = useState<SetupType | null>(null);
-  const [inboxName, setInboxName] = useState("");
-  const [inboxDescription, setInboxDescription] = useState("");
-  const [inboxColor, setInboxColor] = useState("#3B82F6");
-  const [departmentId, setDepartmentId] = useState("no-department");
-  const [createdInboxId, setCreatedInboxId] = useState<string | null>(null);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
+  
+  // Inbox assignment state
+  const [assignmentMode, setAssignmentMode] = useState<'existing' | 'new' | 'skip'>('existing');
+  const [selectedInboxId, setSelectedInboxId] = useState<string>('');
+  const [newInboxName, setNewInboxName] = useState("");
+  const [newInboxDescription, setNewInboxDescription] = useState("");
+  const [newInboxColor, setNewInboxColor] = useState("#3B82F6");
+  const [newInboxDepartmentId, setNewInboxDepartmentId] = useState("no-department");
+  const [createdInboxId, setCreatedInboxId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -46,10 +50,10 @@ export function InboxSetupWizard({ open, onOpenChange }: InboxSetupWizardProps) 
       const { data, error } = await supabase
         .from('inboxes')
         .insert({
-          name: inboxName,
-          description: inboxDescription || null,
-          color: inboxColor,
-          department_id: departmentId === 'no-department' ? null : departmentId,
+          name: newInboxName,
+          description: newInboxDescription || null,
+          color: newInboxColor,
+          department_id: newInboxDepartmentId === 'no-department' ? null : newInboxDepartmentId,
           organization_id: profile.organization_id,
           is_default: false,
           auto_assignment_rules: {},
@@ -75,15 +79,21 @@ export function InboxSetupWizard({ open, onOpenChange }: InboxSetupWizardProps) 
 
   const canGoNext = () => {
     if (currentStep === 1) return setupType !== null;
-    if (currentStep === 2) return inboxName.trim() !== '';
+    if (currentStep === 2) return connectedEmail !== null || setupType === 'team-email';
+    if (currentStep === 3) {
+      if (assignmentMode === 'existing') return selectedInboxId !== '';
+      if (assignmentMode === 'new') return newInboxName.trim() !== '';
+      return true; // skip
+    }
     return true;
   };
 
   const handleNext = async () => {
-    if (currentStep === 2) {
-      // Create inbox before moving to step 3
+    // Step 3: Create inbox if "new" is selected
+    if (currentStep === 3 && assignmentMode === 'new') {
       await createInboxMutation.mutateAsync();
     }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -98,17 +108,20 @@ export function InboxSetupWizard({ open, onOpenChange }: InboxSetupWizardProps) 
   const handleReset = () => {
     setCurrentStep(1);
     setSetupType(null);
-    setInboxName("");
-    setInboxDescription("");
-    setInboxColor("#3B82F6");
-    setDepartmentId("no-department");
-    setCreatedInboxId(null);
     setConnectedEmail(null);
+    setAssignmentMode('existing');
+    setSelectedInboxId('');
+    setNewInboxName("");
+    setNewInboxDescription("");
+    setNewInboxColor("#3B82F6");
+    setNewInboxDepartmentId("no-department");
+    setCreatedInboxId(null);
   };
 
   const handleGoToInbox = () => {
-    if (createdInboxId) {
-      navigate(`/?inbox=${createdInboxId}`);
+    const finalInboxId = createdInboxId || selectedInboxId;
+    if (finalInboxId) {
+      navigate(`/?inbox=${finalInboxId}`);
       onOpenChange(false);
       handleReset();
     }
@@ -128,34 +141,39 @@ export function InboxSetupWizard({ open, onOpenChange }: InboxSetupWizardProps) 
           />
         );
       case 2:
-        return (
-          <InboxConfigForm
-            name={inboxName}
-            description={inboxDescription}
-            color={inboxColor}
-            departmentId={departmentId}
-            onNameChange={setInboxName}
-            onDescriptionChange={setInboxDescription}
-            onColorChange={setInboxColor}
-            onDepartmentChange={setDepartmentId}
-          />
-        );
-      case 3:
-        return setupType && createdInboxId ? (
+        return setupType ? (
           <EmailConnectionStep
             setupType={setupType}
-            inboxId={createdInboxId}
-            onGmailConnected={setConnectedEmail}
+            onEmailConnected={setConnectedEmail}
             onSkip={() => handleNext()}
           />
         ) : null;
+      case 3:
+        return (
+          <InboxAssignmentStep
+            connectedEmail={connectedEmail || undefined}
+            assignmentMode={assignmentMode}
+            selectedInboxId={selectedInboxId}
+            newInboxName={newInboxName}
+            newInboxDescription={newInboxDescription}
+            newInboxColor={newInboxColor}
+            newInboxDepartmentId={newInboxDepartmentId}
+            onAssignmentModeChange={setAssignmentMode}
+            onSelectedInboxChange={setSelectedInboxId}
+            onNewInboxNameChange={setNewInboxName}
+            onNewInboxDescriptionChange={setNewInboxDescription}
+            onNewInboxColorChange={setNewInboxColor}
+            onNewInboxDepartmentChange={setNewInboxDepartmentId}
+          />
+        );
       case 4:
         return (
           <SetupSuccessStep
-            inboxName={inboxName}
-            inboxColor={inboxColor}
             setupType={setupType!}
             connectedEmail={connectedEmail || undefined}
+            assignmentMode={assignmentMode}
+            inboxName={assignmentMode === 'new' ? newInboxName : undefined}
+            inboxColor={assignmentMode === 'new' ? newInboxColor : undefined}
             onGoToInbox={handleGoToInbox}
             onSetupAnother={handleSetupAnother}
           />
@@ -169,7 +187,10 @@ export function InboxSetupWizard({ open, onOpenChange }: InboxSetupWizardProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Inbox</DialogTitle>
+          <DialogTitle>Add Email Integration</DialogTitle>
+          <DialogDescription>
+            Connect an email source and choose where to route incoming emails
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -202,7 +223,7 @@ export function InboxSetupWizard({ open, onOpenChange }: InboxSetupWizardProps) 
                 onClick={handleNext}
                 disabled={!canGoNext() || createInboxMutation.isPending}
               >
-                {currentStep === 2 && createInboxMutation.isPending ? (
+                {currentStep === 3 && createInboxMutation.isPending ? (
                   'Creating...'
                 ) : currentStep === totalSteps - 1 ? (
                   'Finish'
