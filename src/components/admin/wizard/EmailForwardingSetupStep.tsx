@@ -29,20 +29,20 @@ export function EmailForwardingSetupStep({
   const [routeCreated, setRouteCreated] = useState(false);
   
   const { 
-    getActiveDomain, 
+    getConfiguredDomain, 
     generateForwardingAddress, 
     isLoading: domainsLoading 
   } = useDomainConfiguration();
 
-  const activeDomain = getActiveDomain();
+  const configuredDomain = getConfiguredDomain();
 
   // Generate forwarding address when email changes
   useEffect(() => {
     if (publicEmail && publicEmail.includes('@')) {
-      const generated = generateForwardingAddress(publicEmail, activeDomain);
+      const generated = generateForwardingAddress(publicEmail, configuredDomain);
       onForwardingAddressGenerated(generated);
     }
-  }, [publicEmail, activeDomain]);
+  }, [publicEmail, configuredDomain]);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -69,7 +69,7 @@ export function EmailForwardingSetupStep({
       
       if (!profile) throw new Error('Profile not found');
 
-      const domain = activeDomain;
+      const domain = configuredDomain;
       if (!domain) throw new Error('No configured domain found');
 
       const localPart = publicEmail.split('@')[0];
@@ -143,15 +143,15 @@ export function EmailForwardingSetupStep({
 
       {/* Domain Status */}
       {publicEmail && !domainsLoading && (
-        <Alert className={activeDomain ? "border-success/50 bg-success/5" : "border-warning/50 bg-warning/5"}>
-          {activeDomain ? (
+        <Alert className={configuredDomain ? "border-success/50 bg-success/5" : "border-warning/50 bg-warning/5"}>
+          {configuredDomain ? (
             <CheckCircle2 className="h-4 w-4 text-success" />
           ) : (
             <AlertCircle className="h-4 w-4 text-warning" />
           )}
           <AlertDescription>
-            {activeDomain ? (
-              <span>Email forwarding is ready! Domain <strong>{activeDomain.domain}</strong> is configured.</span>
+            {configuredDomain ? (
+              <span>Email forwarding is ready! Domain <strong>{configuredDomain.domain}</strong> is configured.</span>
             ) : (
               <span>Domain configuration required. Contact support to set up email forwarding.</span>
             )}
@@ -160,7 +160,7 @@ export function EmailForwardingSetupStep({
       )}
 
       {/* Forwarding Address Preview */}
-      {publicEmail && forwardingAddress && activeDomain && (
+      {publicEmail && forwardingAddress && configuredDomain && (
         <div className="space-y-2">
           <Label>Forward emails to this address</Label>
           <div className="flex items-center gap-2">
@@ -181,7 +181,7 @@ export function EmailForwardingSetupStep({
       )}
 
       {/* Create Route Button */}
-      {publicEmail && forwardingAddress && activeDomain && !routeCreated && (
+      {publicEmail && forwardingAddress && configuredDomain && !routeCreated && (
         <Button
           onClick={createInboundRoute}
           disabled={isCreatingRoute}

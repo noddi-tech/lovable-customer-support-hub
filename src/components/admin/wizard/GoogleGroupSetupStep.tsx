@@ -42,24 +42,24 @@ export function GoogleGroupSetupStep({
   const [showInstructions, setShowInstructions] = useState(false);
   
   const { 
-    getActiveDomain, 
+    getConfiguredDomain, 
     generateForwardingAddress, 
     extractDomainFromEmail,
     isDomainConfigured,
     isLoading: domainsLoading 
   } = useDomainConfiguration();
 
-  const activeDomain = getActiveDomain();
+  const configuredDomain = getConfiguredDomain();
   const emailDomain = extractDomainFromEmail(publicEmail);
   const domainConfigured = emailDomain ? isDomainConfigured(emailDomain) : false;
 
   // Generate forwarding address when email changes
   useEffect(() => {
     if (publicEmail && publicEmail.includes('@')) {
-      const generated = generateForwardingAddress(publicEmail, activeDomain);
+      const generated = generateForwardingAddress(publicEmail, configuredDomain);
       onForwardingAddressGenerated(generated);
     }
-  }, [publicEmail, activeDomain]);
+  }, [publicEmail, configuredDomain]);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -86,8 +86,8 @@ export function GoogleGroupSetupStep({
       
       if (!profile) throw new Error('Profile not found');
 
-      // Get or use the active domain
-      const domain = activeDomain;
+      // Get or use the configured domain
+      const domain = configuredDomain;
       if (!domain) throw new Error('No configured domain found');
 
       const localPart = publicEmail.split('@')[0];
@@ -164,15 +164,15 @@ export function GoogleGroupSetupStep({
 
       {/* Domain Status */}
       {publicEmail && emailDomain && !domainsLoading && (
-        <Alert className={activeDomain ? "border-success/50 bg-success/5" : "border-warning/50 bg-warning/5"}>
-          {activeDomain ? (
+        <Alert className={configuredDomain ? "border-success/50 bg-success/5" : "border-warning/50 bg-warning/5"}>
+          {configuredDomain ? (
             <CheckCircle2 className="h-4 w-4 text-success" />
           ) : (
             <AlertCircle className="h-4 w-4 text-warning" />
           )}
           <AlertDescription>
-            {activeDomain ? (
-              <span>Domain <strong>{activeDomain.domain}</strong> is configured and ready!</span>
+            {configuredDomain ? (
+              <span>Domain <strong>{configuredDomain.domain}</strong> is configured and ready!</span>
             ) : (
               <span>Domain configuration required. Contact support to set up {emailDomain}.</span>
             )}
@@ -181,7 +181,7 @@ export function GoogleGroupSetupStep({
       )}
 
       {/* Forwarding Address Preview */}
-      {publicEmail && forwardingAddress && activeDomain && (
+      {publicEmail && forwardingAddress && configuredDomain && (
         <div className="space-y-2">
           <Label>Your forwarding address</Label>
           <div className="flex items-center gap-2">
@@ -205,7 +205,7 @@ export function GoogleGroupSetupStep({
       )}
 
       {/* Create Route Button */}
-      {publicEmail && forwardingAddress && activeDomain && !routeCreated && (
+      {publicEmail && forwardingAddress && configuredDomain && !routeCreated && (
         <Button
           onClick={createInboundRoute}
           disabled={isCreatingRoute}
