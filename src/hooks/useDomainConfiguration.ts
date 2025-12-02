@@ -7,6 +7,7 @@ export interface DomainConfig {
   parse_subdomain: string;
   status: string;
   dns_records: Record<string, any>;
+  route_count?: number;
 }
 
 export function useDomainConfiguration() {
@@ -24,18 +25,52 @@ export function useDomainConfiguration() {
       
       if (!profile) throw new Error('Profile not found');
 
-      const { data, error } = await supabase
+      // Fetch domains
+      const { data: domainsData, error: domainsError } = await supabase
         .from('email_domains')
         .select('*')
         .eq('organization_id', profile.organization_id);
 
-      if (error) throw error;
-      return data as DomainConfig[];
+      if (domainsError) throw domainsError;
+      
+      // Fetch route counts for each domain
+      const domainsWithRoutes = await Promise.all(
+        (domainsData || []).map(async (domain) => {
+          const { count } = await supabase
+            .from('inbound_routes')
+            .select('*', { count: 'exact', head: true })
+            .eq('domain_id', domain.id);
+          
+          return {
+            ...domain,
+            route_count: count || 0,
+          };
+        })
+      );
+
+      return domainsWithRoutes as DomainConfig[];
     },
   });
 
+  // Get domain with 'active' status
   const getActiveDomain = () => {
     return domains?.find(d => d.status === 'active');
+  };
+
+  // Get a configured domain - either active OR has existing routes (proof it works)
+  const getConfiguredDomain = () => {
+    // First priority: active status
+    const active = domains?.find(d => d.status === 'active');
+    if (active) return active;
+    
+    // Second priority: pending domain with existing routes (demonstrably working)
+    const pendingWithRoutes = domains?.find(d => 
+      d.status === 'pending' && (d.route_count || 0) > 0
+    );
+    if (pendingWithRoutes) return pendingWithRoutes;
+    
+    // Last resort: any domain (even pending without routes)
+    return domains?.[0];
   };
 
   const getDomainByName = (domainName: string) => {
@@ -44,7 +79,9 @@ export function useDomainConfiguration() {
 
   const isDomainConfigured = (domainName: string) => {
     const domain = getDomainByName(domainName);
-    return domain?.status === 'active';
+    if (!domain) return false;
+    // Domain is configured if active OR has existing routes
+    return domain.status === 'active' || (domain.route_count || 0) > 0;
   };
 
   const extractDomainFromEmail = (email: string): string | null => {
@@ -52,9 +89,9 @@ export function useDomainConfiguration() {
     return match ? match[1].toLowerCase() : null;
   };
 
-  const generateForwardingAddress = (email: string, activeDomain?: DomainConfig) => {
+  const generateForwardingAddress = (email: string, configuredDomain?: DomainConfig) => {
     const localPart = email.split('@')[0];
-    const domain = activeDomain || getActiveDomain();
+    const domain = configuredDomain || getConfiguredDomain();
     
     if (domain) {
       return `${localPart}@${domain.parse_subdomain}.${domain.domain}`;
@@ -70,6 +107,7 @@ export function useDomainConfiguration() {
     error,
     refetch,
     getActiveDomain,
+    getConfiguredDomain,
     getDomainByName,
     isDomainConfigured,
     extractDomainFromEmail,
