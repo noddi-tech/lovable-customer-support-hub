@@ -10,12 +10,11 @@ import type { SetupType } from "./SetupTypeSelector";
 
 interface EmailConnectionStepProps {
   setupType: SetupType;
-  inboxId: string;
-  onGmailConnected?: (email: string) => void;
+  onEmailConnected?: (email: string) => void;
   onSkip?: () => void;
 }
 
-export function EmailConnectionStep({ setupType, inboxId, onGmailConnected, onSkip }: EmailConnectionStepProps) {
+export function EmailConnectionStep({ setupType, onEmailConnected, onSkip }: EmailConnectionStepProps) {
   const [groupEmail, setGroupEmail] = useState("");
   const [forwardingAddress, setForwardingAddress] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
@@ -48,7 +47,7 @@ export function EmailConnectionStep({ setupType, inboxId, onGmailConnected, onSk
 
       const handleMessage = (event: MessageEvent) => {
         if (event.data.type === 'gmail_connected') {
-          onGmailConnected?.(event.data.email);
+          onEmailConnected?.(event.data.email);
           window.removeEventListener('message', handleMessage);
         }
       };
@@ -94,24 +93,6 @@ export function EmailConnectionStep({ setupType, inboxId, onGmailConnected, onSk
     }
   };
 
-  if (setupType === 'just-inbox') {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold mb-2">✅ Inbox Ready</h3>
-          <p className="text-sm text-muted-foreground">
-            Your inbox has been created. You can connect an email address later from the inbox settings.
-          </p>
-        </div>
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            To connect an email later, go to Admin → Integrations and use the email connection tools.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   if (setupType === 'gmail') {
     return (

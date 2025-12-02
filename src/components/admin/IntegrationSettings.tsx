@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { InboxManagement } from '@/components/admin/InboxManagement';
 import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
-import { InboxSetupWizard } from './InboxSetupWizard';
+import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { useTranslation } from 'react-i18next';
 
 export const IntegrationSettings = () => {
@@ -17,7 +17,7 @@ export const IntegrationSettings = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-5">
       <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
         <CardHeader>
           <div className="flex items-start justify-between">
@@ -26,21 +26,21 @@ export const IntegrationSettings = () => {
                 <Inbox className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-xl">Quick Start: Set Up New Inbox</CardTitle>
+                <CardTitle className="text-xl">Quick Start: Add Email Integration</CardTitle>
                 <CardDescription className="mt-1">
-                  Follow our guided wizard to create an inbox and connect email in minutes
+                  Connect an email source (Gmail, Google Group, or forwarding) and assign it to an inbox
                 </CardDescription>
               </div>
             </div>
             <Button onClick={() => setIsWizardOpen(true)} size="lg">
               <Plus className="h-4 w-4 mr-2" />
-              Add Inbox
+              Add Email
             </Button>
           </div>
         </CardHeader>
       </Card>
 
-      <InboxSetupWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
+      <EmailIntegrationWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
 
       <ResponsiveTabs 
         defaultValue="email" 

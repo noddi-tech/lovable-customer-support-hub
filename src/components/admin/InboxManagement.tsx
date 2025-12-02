@@ -15,7 +15,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare } from 'lucide-react';
-import { InboxSetupWizard } from './InboxSetupWizard';
 
 
 interface InboxData {
@@ -57,7 +56,6 @@ interface EmailAccount {
 
 export function InboxManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingInbox, setEditingInbox] = useState<InboxData | null>(null);
   const [newInboxData, setNewInboxData] = useState({
     name: '',
@@ -304,17 +302,12 @@ export function InboxManagement() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
-            Quick Create
-          </Button>
-          <Button onClick={() => setIsWizardOpen(true)}>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Add Inbox (Guided)
+            Create Inbox
           </Button>
         </div>
       </div>
-
-      <InboxSetupWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>

@@ -1,22 +1,24 @@
-import { CheckCircle2, Mail, Send } from "lucide-react";
+import { CheckCircle2, Mail, Send, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { SetupType } from "./SetupTypeSelector";
 
 interface SetupSuccessStepProps {
-  inboxName: string;
-  inboxColor: string;
   setupType: SetupType;
   connectedEmail?: string;
+  assignmentMode: 'existing' | 'new' | 'skip';
+  inboxName?: string;
+  inboxColor?: string;
   onGoToInbox: () => void;
   onSetupAnother: () => void;
 }
 
 export function SetupSuccessStep({
-  inboxName,
-  inboxColor,
   setupType,
   connectedEmail,
+  assignmentMode,
+  inboxName,
+  inboxColor,
   onGoToInbox,
   onSetupAnother
 }: SetupSuccessStepProps) {
@@ -28,19 +30,13 @@ export function SetupSuccessStep({
         return 'Google Group';
       case 'team-email':
         return 'Email Forwarding';
-      case 'just-inbox':
-        return 'Inbox Only';
     }
   };
 
-  const getEmailStatus = () => {
-    if (setupType === 'just-inbox') {
-      return 'No email connected yet';
-    }
-    if (connectedEmail) {
-      return connectedEmail;
-    }
-    return 'Configuration in progress';
+  const getAssignmentLabel = () => {
+    if (assignmentMode === 'skip') return 'Not assigned yet';
+    if (assignmentMode === 'new' && inboxName) return inboxName;
+    return 'Assigned to existing inbox';
   };
 
   return (
@@ -49,9 +45,12 @@ export function SetupSuccessStep({
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10 mb-4">
           <CheckCircle2 className="h-8 w-8 text-success" />
         </div>
-        <h3 className="text-2xl font-bold mb-2">✅ Inbox Created Successfully!</h3>
+        <h3 className="text-2xl font-bold mb-2">✅ Email Integration Created!</h3>
         <p className="text-muted-foreground">
-          Your "{inboxName}" inbox is ready to receive emails
+          {connectedEmail 
+            ? `Successfully connected ${connectedEmail}`
+            : 'Your email integration is ready'
+          }
         </p>
       </div>
 
@@ -60,29 +59,33 @@ export function SetupSuccessStep({
         
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground min-w-[100px]">Inbox:</span>
+            <span className="text-muted-foreground min-w-[120px]">Integration Type:</span>
+            <span className="font-medium">{getSetupTypeLabel()}</span>
+          </div>
+          
+          {connectedEmail && (
             <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: inboxColor }}
-              />
-              <span className="font-medium">{inboxName}</span>
+              <span className="text-muted-foreground min-w-[120px]">Connected Email:</span>
+              <span>{connectedEmail}</span>
             </div>
-          </div>
+          )}
           
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground min-w-[100px]">Setup Type:</span>
-            <span>{getSetupTypeLabel()}</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground min-w-[100px]">Email:</span>
-            <span>{getEmailStatus()}</span>
+            <span className="text-muted-foreground min-w-[120px]">Inbox Assignment:</span>
+            <div className="flex items-center gap-2">
+              {inboxColor && (
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: inboxColor }}
+                />
+              )}
+              <span>{getAssignmentLabel()}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {setupType !== 'just-inbox' && (
+      {assignmentMode !== 'skip' && (
         <Alert>
           <Mail className="h-4 w-4" />
           <AlertDescription>
@@ -99,13 +102,24 @@ export function SetupSuccessStep({
         </Alert>
       )}
 
+      {assignmentMode === 'skip' && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Remember to assign this integration to an inbox from Admin → Integrations before emails will be synced.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex gap-3 pt-4">
-        <Button onClick={onGoToInbox} className="flex-1">
-          <Send className="h-4 w-4 mr-2" />
-          Go to Inbox
-        </Button>
-        <Button onClick={onSetupAnother} variant="outline" className="flex-1">
-          Set Up Another
+        {assignmentMode !== 'skip' && (
+          <Button onClick={onGoToInbox} className="flex-1">
+            <Send className="h-4 w-4 mr-2" />
+            Go to Inbox
+          </Button>
+        )}
+        <Button onClick={onSetupAnother} variant="outline" className={assignmentMode === 'skip' ? 'w-full' : 'flex-1'}>
+          Add Another Integration
         </Button>
       </div>
     </div>
