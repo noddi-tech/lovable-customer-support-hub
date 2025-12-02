@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Reply } from "lucide-react";
@@ -29,8 +29,15 @@ const ReplyAreaSkeleton = () => (
 
 export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) => {
   const { t } = useTranslation();
-  const { dispatch } = useConversationView();
+  const { dispatch, state } = useConversationView();
   const [showReplyArea, setShowReplyArea] = useState(false);
+
+  // Sync local state with context state (for collapse after send)
+  useEffect(() => {
+    if (!state.showReplyArea && showReplyArea) {
+      setShowReplyArea(false);
+    }
+  }, [state.showReplyArea, showReplyArea]);
 
   const handleShowReply = () => {
     // Set both local state (for lazy loading) and context state (for reply functionality)
