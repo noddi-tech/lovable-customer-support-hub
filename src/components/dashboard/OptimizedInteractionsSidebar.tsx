@@ -45,28 +45,22 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
   const sidebarConfig = useMemo(() => ({
     inboxItems: [
       { 
-        id: 'all', 
-        label: t('sidebar.allConversations', 'All'), 
-        icon: Inbox, 
-        count: conversations.all 
-      },
-      { 
-        id: 'unread', 
-        label: t('sidebar.unread', 'Unread'), 
-        icon: MessageCircle, 
-        count: conversations.unread 
-      },
-      { 
-        id: 'assigned', 
-        label: t('sidebar.assigned', 'Assigned'), 
-        icon: Users, 
-        count: conversations.assigned 
+        id: 'open', 
+        label: t('sidebar.open', 'Open'), 
+        icon: Mail, 
+        count: conversations.open 
       },
       { 
         id: 'pending', 
         label: t('common.sidebar.pending', 'Pending'), 
         icon: Clock, 
         count: conversations.pending 
+      },
+      { 
+        id: 'assigned', 
+        label: t('sidebar.assignedToMe', 'Assigned to Me'), 
+        icon: Users, 
+        count: conversations.assigned 
       },
       { 
         id: 'closed', 
@@ -79,6 +73,12 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
         label: t('common.sidebar.archived', 'Archived'), 
         icon: Archive, 
         count: conversations.archived 
+      },
+      { 
+        id: 'all', 
+        label: t('sidebar.allMessages', 'All Messages'), 
+        icon: Inbox, 
+        count: conversations.all 
       },
     ],
     channelItems: [
@@ -110,12 +110,12 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
     activeInboxes: inboxes.filter(inbox => inbox.is_active)
   }), [
     t,
-    conversations.all,
-    conversations.unread,
-    conversations.assigned,
+    conversations.open,
     conversations.pending,
+    conversations.assigned,
     conversations.closed,
     conversations.archived,
+    conversations.all,
     channels.email,
     channels.facebook,
     channels.instagram,

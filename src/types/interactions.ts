@@ -1,4 +1,4 @@
-export type StatusFilter = 'all' | 'unread' | 'assigned' | 'pending' | 'closed' | 'archived';
+export type StatusFilter = 'all' | 'open' | 'unread' | 'assigned' | 'pending' | 'closed' | 'archived';
 export type PriorityFilter = 'all' | 'low' | 'normal' | 'high' | 'urgent';
 
 export type InboxId = string;
