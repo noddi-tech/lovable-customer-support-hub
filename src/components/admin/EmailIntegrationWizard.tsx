@@ -2,14 +2,15 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ChevronLeft, ChevronRight, CheckCircle2, Mail, Inbox, ArrowRight, Pencil } from "lucide-react";
 import { SetupTypeSelector, type SetupType } from "./wizard/SetupTypeSelector";
 import { EmailConnectionStep } from "./wizard/EmailConnectionStep";
 import { GoogleGroupSetupStep } from "./wizard/GoogleGroupSetupStep";
 import { EmailForwardingSetupStep } from "./wizard/EmailForwardingSetupStep";
 import { InboxAssignmentStep } from "./wizard/InboxAssignmentStep";
 import { SetupSuccessStep } from "./wizard/SetupSuccessStep";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -38,9 +39,31 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
   const [newInboxDepartmentId, setNewInboxDepartmentId] = useState("no-department");
   const [newInboxSenderDisplayName, setNewInboxSenderDisplayName] = useState("");
   const [createdInboxId, setCreatedInboxId] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Fetch inboxes for displaying selected inbox name in confirmation
+  const { data: inboxes } = useQuery({
+    queryKey: ['inboxes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_inboxes');
+      if (error) throw error;
+      return data as Array<{ id: string; name: string; color: string }>;
+    }
+  });
+
+  const selectedInboxData = inboxes?.find(i => i.id === selectedInboxId);
+
+  const getSetupTypeLabel = () => {
+    switch (setupType) {
+      case 'gmail': return 'Gmail OAuth';
+      case 'google-group': return 'Google Group';
+      case 'team-email': return 'Email Forwarding';
+      default: return 'Unknown';
+    }
+  };
 
   const createInboxMutation = useMutation({
     mutationFn: async () => {
@@ -116,6 +139,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
       return true;
     }
     if (currentStep === 3) {
+      if (showConfirmation) return true; // Can always proceed from confirmation
       if (assignmentMode === 'existing') return selectedInboxId !== '';
       if (assignmentMode === 'new') return newInboxName.trim() !== '';
       return true; // skip
@@ -124,8 +148,15 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
   };
 
   const handleNext = async () => {
-    // Step 3: Create inbox if "new" is selected and link route
+    // Step 3: Show confirmation first, then create inbox and link route
     if (currentStep === 3) {
+      if (!showConfirmation) {
+        // First click: show confirmation
+        setShowConfirmation(true);
+        return;
+      }
+      
+      // Second click: actually create inbox and link route
       let finalInboxId: string | null = null;
       
       if (assignmentMode === 'new') {
@@ -147,6 +178,11 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
   };
 
   const handleBack = () => {
+    if (currentStep === 3 && showConfirmation) {
+      // Go back from confirmation to editing
+      setShowConfirmation(false);
+      return;
+    }
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
@@ -167,6 +203,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
     setNewInboxDepartmentId("no-department");
     setNewInboxSenderDisplayName("");
     setCreatedInboxId(null);
+    setShowConfirmation(false);
   };
 
   const handleGoToInbox = () => {
@@ -181,6 +218,91 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
   const handleSetupAnother = () => {
     handleReset();
   };
+
+  const renderConfirmationSummary = () => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 text-primary">
+        <CheckCircle2 className="h-6 w-6" />
+        <h3 className="text-lg font-semibold">Review Your Configuration</h3>
+      </div>
+
+      <div className="rounded-lg border bg-muted/30 p-5 space-y-4">
+        {/* Integration Type */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Integration Type</span>
+          <span className="font-medium">{getSetupTypeLabel()}</span>
+        </div>
+
+        <Separator />
+
+        {/* Email Source */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Mail className="h-4 w-4" />
+            <span className="text-sm">Email Source</span>
+          </div>
+          <div className="text-right">
+            {(publicEmail || connectedEmail) && (
+              <div className="font-medium">{publicEmail || connectedEmail}</div>
+            )}
+            {forwardingAddress && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Forwarding to: <code className="bg-muted px-1 rounded">{forwardingAddress}</code>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center">
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        </div>
+
+        {/* Destination Inbox */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Inbox className="h-4 w-4" />
+            <span className="text-sm">Destination Inbox</span>
+          </div>
+          <div className="text-right">
+            {assignmentMode === 'new' && (
+              <div className="flex items-center gap-2 justify-end">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: newInboxColor }}
+                />
+                <span className="font-medium">{newInboxName}</span>
+                <span className="text-xs text-muted-foreground">(new)</span>
+              </div>
+            )}
+            {assignmentMode === 'existing' && selectedInboxData && (
+              <div className="flex items-center gap-2 justify-end">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: selectedInboxData.color }}
+                />
+                <span className="font-medium">{selectedInboxData.name}</span>
+              </div>
+            )}
+            {assignmentMode === 'skip' && (
+              <span className="text-muted-foreground italic">Not assigned (configure later)</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => setShowConfirmation(false)}
+          className="text-muted-foreground"
+        >
+          <Pencil className="h-4 w-4 mr-2" />
+          Edit Configuration
+        </Button>
+      </div>
+    </div>
+  );
 
   const handleSetupComplete = () => {
     // Called when Google Group or Email Forwarding setup is done
@@ -233,6 +355,9 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
         }
         return null;
       case 3:
+        if (showConfirmation) {
+          return renderConfirmationSummary();
+        }
         return (
           <InboxAssignmentStep
             connectedEmail={publicEmail || connectedEmail || undefined}
@@ -272,6 +397,16 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
 
   // For Google Group and Email Forwarding, step 2 has its own navigation
   const showDefaultNavigation = currentStep !== 2 || setupType === 'gmail';
+
+  const getNextButtonLabel = () => {
+    if (currentStep === 3) {
+      if (showConfirmation) {
+        return createInboxMutation.isPending ? 'Creating...' : 'Confirm & Create';
+      }
+      return 'Review & Finish';
+    }
+    return 'Next';
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -313,16 +448,8 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
                 onClick={handleNext}
                 disabled={!canGoNext() || createInboxMutation.isPending}
               >
-                {currentStep === 3 && createInboxMutation.isPending ? (
-                  'Creating...'
-                ) : currentStep === totalSteps - 1 ? (
-                  'Finish'
-                ) : (
-                  <>
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </>
-                )}
+                {getNextButtonLabel()}
+                {currentStep !== 3 && <ChevronRight className="h-4 w-4 ml-2" />}
               </Button>
             </div>
           )}
