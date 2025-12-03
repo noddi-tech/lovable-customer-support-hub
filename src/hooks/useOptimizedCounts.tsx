@@ -7,6 +7,7 @@ import { useAuth } from './useAuth';
 export interface OptimizedCounts {
   conversations: {
     all: number;
+    open: number;
     unread: number;
     assigned: number;
     pending: number;
@@ -44,7 +45,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
 
   // Default fallback data structure
   const defaultCounts = {
-    conversations: { all: 0, unread: 0, assigned: 0, pending: 0, closed: 0, archived: 0 },
+    conversations: { all: 0, open: 0, unread: 0, assigned: 0, pending: 0, closed: 0, archived: 0 },
     channels: { email: 0, facebook: 0, instagram: 0, whatsapp: 0 },
     notifications: 0,
     inboxes: []
@@ -79,6 +80,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
             return {
               conversations: {
                 all: Number(result.conversations_all) || 0,
+                open: Number(result.conversations_open) || 0,
                 unread: Number(result.conversations_unread) || 0,
                 assigned: Number(result.conversations_assigned) || 0,
                 pending: Number(result.conversations_pending) || 0,
@@ -116,6 +118,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
             return {
               conversations: {
                 all: Number(result.conversations_all) || 0,
+                open: Number(result.conversations_open) || 0,
                 unread: Number(result.conversations_unread) || 0,
                 assigned: Number(result.conversations_assigned) || 0,
                 pending: Number(result.conversations_pending) || 0,

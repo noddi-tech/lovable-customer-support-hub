@@ -2530,6 +2530,7 @@ export type Database = {
           conversations_archived: number
           conversations_assigned: number
           conversations_closed: number
+          conversations_open: number
           conversations_pending: number
           conversations_unread: number
           inboxes_data: Json
@@ -2537,6 +2538,36 @@ export type Database = {
         }[]
       }
       get_conversations:
+        | {
+            Args: {
+              p_inbox_id?: string
+              p_page?: number
+              p_page_size?: number
+              p_search_query?: string
+              p_status_filter?: string
+            }
+            Returns: {
+              assigned_to_id: string
+              assigned_to_name: string
+              channel: string
+              created_at: string
+              customer_email: string
+              customer_id: string
+              customer_name: string
+              first_response_at: string
+              id: string
+              inbox_id: string
+              inbox_name: string
+              is_archived: boolean
+              is_read: boolean
+              preview_text: string
+              priority: string
+              sla_breach_at: string
+              status: string
+              subject: string
+              updated_at: string
+            }[]
+          }
         | {
             Args: {
               inbox_filter?: string
@@ -2664,6 +2695,7 @@ export type Database = {
           conversations_archived: number
           conversations_assigned: number
           conversations_closed: number
+          conversations_open: number
           conversations_pending: number
           conversations_unread: number
         }[]
