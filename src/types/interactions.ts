@@ -34,6 +34,7 @@ export interface Inbox {
 export interface InboxCounts {
   inboxId: InboxId;
   total: number;
+  open: number;
   unread: number;
   assigned: number;
   pending: number;
