@@ -137,3 +137,6 @@ verify_jwt = true
 [functions.helpscout-import]
 verify_jwt = true
 
+[functions.admin-create-user]
+verify_jwt = true
+

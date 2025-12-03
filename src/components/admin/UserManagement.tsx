@@ -102,48 +102,26 @@ export function UserManagement() {
     },
   });
 
-  // Create user mutation
+  // Create user mutation - uses edge function for secure user creation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserData) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Create the user account
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: userData.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: userData.full_name
+      // Call edge function instead of direct admin API
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: userData.email,
+          password: userData.password,
+          full_name: userData.full_name,
+          department_id: userData.department_id,
+          primary_role: userData.primary_role,
         }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Failed to create user");
-
-      // Get user's organization
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (profileError || !profile) {
-        throw new Error("Failed to get user organization");
-      }
-
-      // Update the created profile with additional data
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: userData.full_name,
-          department_id: userData.department_id,
-          primary_role: userData.primary_role
-        })
-        .eq("user_id", authData.user.id);
-
-      if (updateError) throw updateError;
-
-      return { user: authData.user };
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      return { user: data.user };
     },
     onSuccess: async (data, variables) => {
       // Log audit action
