@@ -1185,8 +1185,10 @@ button, input, a {
   font-size: 16px; /* avoid iOS zoom on focus */
 }
 
-/* Minimum touch targets */
-button, [role="button"], [role="tab"] {
+/* Minimum touch targets - exclude form control primitives */
+button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]), 
+[role="button"], 
+[role="tab"] {
   min-height: 44px;
   min-width: 44px;
 }
