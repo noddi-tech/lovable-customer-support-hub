@@ -121,9 +121,9 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
     
     // If only wrapped in a single <p> tag, treat as plain text
     if (hasHTMLTags) {
-      const singlePWrapper = /^<p>(.*)<\/p>$/s;
-      if (singlePWrapper.test(content.trim())) {
-        return false; // Treat as plain text
+      const pTagCount = (content.match(/<p[\s>]/gi) || []).length;
+      if (pTagCount === 1) {
+        return false; // Single paragraph = plain text
       }
     }
     
