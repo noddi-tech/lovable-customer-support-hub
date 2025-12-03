@@ -32,6 +32,8 @@ export function useConversationPresence(organizationId?: string): UseConversatio
   const [isConnected, setIsConnected] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const currentConversationRef = useRef<string | null>(null);
+  const currentUserProfileRef = useRef<PresenceUser | null>(null);
+  const isProfileReadyRef = useRef(false);
 
   // Fetch current user's profile for presence data
   useEffect(() => {
@@ -50,30 +52,38 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       }
 
       if (data) {
-        setCurrentUserProfile({
+        const newProfile: PresenceUser = {
           user_id: data.user_id,
           full_name: data.full_name,
           avatar_url: data.avatar_url || undefined,
           email: data.email,
           conversation_id: null,
           entered_at: new Date().toISOString(),
-        });
+        };
+        
+        // Only update state if profile user_id changed (avoid reference changes)
+        if (!currentUserProfileRef.current || currentUserProfileRef.current.user_id !== newProfile.user_id) {
+          currentUserProfileRef.current = newProfile;
+          isProfileReadyRef.current = true;
+          setCurrentUserProfile(newProfile);
+        }
       }
     };
 
     fetchProfile();
   }, [user?.id]);
 
-  // Set up presence channel
+  // Set up presence channel - only depends on organizationId
   useEffect(() => {
-    if (!organizationId || !currentUserProfile) return;
+    if (!organizationId || !isProfileReadyRef.current || !currentUserProfileRef.current) return;
 
+    const profile = currentUserProfileRef.current;
     const channelName = `presence:org-${organizationId}`;
 
     const channel = supabase.channel(channelName, {
       config: {
         presence: {
-          key: currentUserProfile.user_id,
+          key: profile.user_id,
         },
       },
     });
@@ -82,24 +92,21 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState<PresenceUser>();
         updateViewersMap(state);
-        logger.debug('Presence sync', { userCount: Object.keys(state).length }, 'Presence');
       })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        logger.debug('Presence join', { key, count: newPresences.length }, 'Presence');
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        logger.debug('Presence leave', { key, count: leftPresences.length }, 'Presence');
-      })
+      .on('presence', { event: 'join' }, () => {})
+      .on('presence', { event: 'leave' }, () => {})
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
-          // Track initial state (not viewing any conversation)
-          await channel.track({
-            ...currentUserProfile,
-            conversation_id: currentConversationRef.current,
-            entered_at: new Date().toISOString(),
-          });
-          logger.debug('Presence subscribed and tracking', {}, 'Presence');
+          // Track initial state using ref
+          const currentProfile = currentUserProfileRef.current;
+          if (currentProfile) {
+            await channel.track({
+              ...currentProfile,
+              conversation_id: currentConversationRef.current,
+              entered_at: new Date().toISOString(),
+            });
+          }
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setIsConnected(false);
         }
@@ -108,12 +115,11 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     channelRef.current = channel;
 
     return () => {
-      logger.debug('Cleaning up presence channel', {}, 'Presence');
       channel.unsubscribe();
       channelRef.current = null;
       setIsConnected(false);
     };
-  }, [organizationId, currentUserProfile]);
+  }, [organizationId, currentUserProfile]); // Keep currentUserProfile to trigger on first load only
 
   const updateViewersMap = useCallback((state: PresenceState) => {
     const newMap = new Map<string, PresenceUser[]>();
@@ -135,36 +141,35 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     setViewersMap(newMap);
   }, []);
 
+  // Stable callbacks using refs - no dependencies that change
   const trackConversation = useCallback(
     async (conversationId: string) => {
-      if (!channelRef.current || !currentUserProfile) return;
+      const profile = currentUserProfileRef.current;
+      if (!channelRef.current || !profile) return;
 
       currentConversationRef.current = conversationId;
 
       await channelRef.current.track({
-        ...currentUserProfile,
+        ...profile,
         conversation_id: conversationId,
         entered_at: new Date().toISOString(),
       });
-
-      logger.debug('Tracking conversation', { conversationId }, 'Presence');
     },
-    [currentUserProfile]
+    [] // No dependencies - uses refs
   );
 
   const untrackConversation = useCallback(async () => {
-    if (!channelRef.current || !currentUserProfile) return;
+    const profile = currentUserProfileRef.current;
+    if (!channelRef.current || !profile) return;
 
     currentConversationRef.current = null;
 
     await channelRef.current.track({
-      ...currentUserProfile,
+      ...profile,
       conversation_id: null,
       entered_at: new Date().toISOString(),
     });
-
-    logger.debug('Untracked conversation', {}, 'Presence');
-  }, [currentUserProfile]);
+  }, []); // No dependencies - uses refs
 
   return {
     viewersMap,
