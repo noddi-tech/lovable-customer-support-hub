@@ -132,16 +132,20 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
     allExpanded
   }), [toggleAllMessages, allExpanded]);
 
-  // Initialize expanded state - all messages collapsed by default
+  // Initialize expanded state - newest message expanded by default
   useEffect(() => {
-    logger.debug('Initializing expanded state (all collapsed by default)', { 
-      messageKeysLength: messageKeys.length,
-      messagesCount: messages.length 
-    }, 'ProgressiveMessagesList');
-    
-    // Start with empty set = all collapsed
-    setExpandedMessageIds(new Set());
-  }, [messageKeys]); // ✅ Only depend on messageKeys for stability
+    if (messages.length > 0) {
+      // messages[0] is newest (DESC order from API)
+      const newestMessageKey = messages[0].dedupKey || messages[0].id;
+      setExpandedMessageIds(new Set([newestMessageKey]));
+      logger.debug('Initializing expanded state with newest message expanded', { 
+        newestMessageKey,
+        messagesCount: messages.length 
+      }, 'ProgressiveMessagesList');
+    } else {
+      setExpandedMessageIds(new Set());
+    }
+  }, [messageKeys]); // Only depend on messageKeys for stability
 
   // Auto-scroll to bottom when messages change (for new messages)
   useEffect(() => {
@@ -331,13 +335,14 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
           ) : (
               // Reverse to show oldest first (ASC)
               [...messages].reverse().map((message, index) => {
-                const actualIndex = messages.length - 1 - index; // Get actual index in original array
+                const isNewest = index === messages.length - 1; // Last in reversed array = newest
                 return (
                   <MessageCard
                     key={message.dedupKey || message.id}
                     message={message}
                     conversation={conversation}
-                    isFirstInThread={index === 0}  // First in chronological order (oldest)
+                    isFirstInThread={index === 0}
+                    isNewestMessage={isNewest}
                     defaultCollapsed={!expandedMessageIds.has(message.dedupKey || message.id)}
                     disableAnimation={isBulkToggling}
                     onEdit={onEditMessage}
