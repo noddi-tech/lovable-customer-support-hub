@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { useConversationPresence, PresenceUser } from '@/hooks/useConversationPresence';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
@@ -58,20 +58,27 @@ export const ConversationPresenceProvider: React.FC<{ children: React.ReactNode 
     isConnected,
   } = useConversationPresence(organizationId);
 
-  const viewersForConversation = (conversationId: string): PresenceUser[] => {
-    return viewersMap.get(conversationId) || [];
-  };
+  // Memoize to prevent infinite re-renders
+  const viewersForConversation = useCallback(
+    (conversationId: string): PresenceUser[] => {
+      return viewersMap.get(conversationId) || [];
+    },
+    [viewersMap]
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      viewersForConversation,
+      trackConversation,
+      untrackConversation,
+      currentUserProfile,
+      isConnected,
+    }),
+    [viewersForConversation, trackConversation, untrackConversation, currentUserProfile, isConnected]
+  );
 
   return (
-    <ConversationPresenceContext.Provider
-      value={{
-        viewersForConversation,
-        trackConversation,
-        untrackConversation,
-        currentUserProfile,
-        isConnected,
-      }}
-    >
+    <ConversationPresenceContext.Provider value={contextValue}>
       {children}
     </ConversationPresenceContext.Provider>
   );
