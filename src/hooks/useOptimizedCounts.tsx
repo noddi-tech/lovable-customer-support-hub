@@ -13,6 +13,7 @@ export interface OptimizedCounts {
     pending: number;
     closed: number;
     archived: number;
+    deleted: number;
   };
   channels: {
     email: number;
@@ -45,7 +46,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
 
   // Default fallback data structure
   const defaultCounts = {
-    conversations: { all: 0, open: 0, unread: 0, assigned: 0, pending: 0, closed: 0, archived: 0 },
+    conversations: { all: 0, open: 0, unread: 0, assigned: 0, pending: 0, closed: 0, archived: 0, deleted: 0 },
     channels: { email: 0, facebook: 0, instagram: 0, whatsapp: 0 },
     notifications: 0,
     inboxes: []
@@ -86,6 +87,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
                 pending: Number(result.conversations_pending) || 0,
                 closed: Number(result.conversations_closed) || 0,
                 archived: Number(result.conversations_archived) || 0,
+                deleted: Number(result.conversations_deleted) || 0,
               },
               channels: {
                 email: Number(result.channels_email) || 0,
@@ -124,6 +126,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
                 pending: Number(result.conversations_pending) || 0,
                 closed: Number(result.conversations_closed) || 0,
                 archived: Number(result.conversations_archived) || 0,
+                deleted: Number(result.conversations_deleted) || 0,
               },
               channels: {
                 email: Number(result.channels_email) || 0,
