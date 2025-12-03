@@ -5,8 +5,11 @@ import { Reply } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 
+// Preload function - starts downloading the chunk without waiting
+const preloadReplyArea = () => import('@/components/dashboard/conversation-view/ReplyArea');
+
 // Lazy load the actual reply component
-const ReplyArea = lazy(() => import('@/components/dashboard/conversation-view/ReplyArea').then(module => ({ default: module.ReplyArea })));
+const ReplyArea = lazy(() => preloadReplyArea().then(module => ({ default: module.ReplyArea })));
 
 interface LazyReplyAreaProps {
   conversationId: string;
@@ -32,6 +35,11 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
   const { dispatch, state } = useConversationView();
   const [showReplyArea, setShowReplyArea] = useState(false);
 
+  // Preload the ReplyArea chunk when conversation opens
+  useEffect(() => {
+    preloadReplyArea();
+  }, []);
+
   // Sync local state with context state (for collapse after send)
   useEffect(() => {
     if (!state.showReplyArea && showReplyArea) {
@@ -50,6 +58,7 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
       <div className="p-4 border-t border-border">
         <Button
           onClick={handleShowReply}
+          onMouseEnter={preloadReplyArea}
           className="w-full"
           variant="default"
         >
