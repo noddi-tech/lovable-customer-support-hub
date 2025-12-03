@@ -1,0 +1,78 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useConversationPresence, PresenceUser } from '@/hooks/useConversationPresence';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthContext';
+
+// Re-export PresenceUser for consumers
+export type { PresenceUser };
+
+interface ConversationPresenceContextType {
+  viewersForConversation: (conversationId: string) => PresenceUser[];
+  trackConversation: (conversationId: string) => void;
+  untrackConversation: () => void;
+  currentUserProfile: PresenceUser | null;
+  isConnected: boolean;
+}
+
+const ConversationPresenceContext = createContext<ConversationPresenceContextType | undefined>(undefined);
+
+export const useConversationPresenceContext = () => {
+  const context = useContext(ConversationPresenceContext);
+  if (!context) {
+    throw new Error('useConversationPresenceContext must be used within ConversationPresenceProvider');
+  }
+  return context;
+};
+
+// Safe hook that returns null values if used outside the provider
+export const useConversationPresenceSafe = () => {
+  return useContext(ConversationPresenceContext);
+};
+
+export const ConversationPresenceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [organizationId, setOrganizationId] = useState<string | undefined>(undefined);
+
+  // Fetch organization ID for the current user
+  useEffect(() => {
+    if (!user?.id) {
+      setOrganizationId(undefined);
+      return;
+    }
+
+    const fetchOrgId = async () => {
+      const { data, error } = await supabase.rpc('get_user_organization_id');
+      if (data && !error) {
+        setOrganizationId(data);
+      }
+    };
+
+    fetchOrgId();
+  }, [user?.id]);
+
+  const {
+    viewersMap,
+    currentUserProfile,
+    trackConversation,
+    untrackConversation,
+    isConnected,
+  } = useConversationPresence(organizationId);
+
+  const viewersForConversation = (conversationId: string): PresenceUser[] => {
+    return viewersMap.get(conversationId) || [];
+  };
+
+  return (
+    <ConversationPresenceContext.Provider
+      value={{
+        viewersForConversation,
+        trackConversation,
+        untrackConversation,
+        currentUserProfile,
+        isConnected,
+      }}
+    >
+      {children}
+    </ConversationPresenceContext.Provider>
+  );
+};

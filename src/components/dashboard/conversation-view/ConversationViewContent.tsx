@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -18,6 +18,8 @@ import { CustomerSidePanel } from './CustomerSidePanel';
 import { useConversationShortcuts } from '@/hooks/useConversationShortcuts';
 import { cn } from '@/lib/utils';
 import { useConversationView } from '@/contexts/ConversationViewContext';
+import { useConversationPresenceSafe } from '@/contexts/ConversationPresenceContext';
+import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
 import { SnoozeDialog } from './SnoozeDialog';
 import { 
@@ -61,6 +63,18 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   
   // Get conversationIds from context for thread viewing
   const { conversationIds } = useConversationView();
+
+  // Presence tracking
+  const presenceContext = useConversationPresenceSafe();
+  
+  useEffect(() => {
+    if (presenceContext && conversationId) {
+      presenceContext.trackConversation(conversationId);
+      return () => {
+        presenceContext.untrackConversation();
+      };
+    }
+  }, [conversationId, presenceContext]);
 
   // Enable keyboard shortcuts for status changes
   useConversationShortcuts();
@@ -137,6 +151,13 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
             
             {/* Right Section: Actions */}
             <div className="flex items-center gap-2 shrink-0">
+              {/* Presence Avatars */}
+              <PresenceAvatarStack 
+                conversationId={conversationId} 
+                size="md"
+                maxAvatars={3}
+                className="mr-2"
+              />
               <Button
                 variant="outline"
                 size="sm"
