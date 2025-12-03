@@ -12,6 +12,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from "react-i18next";
 import { SLABadge } from './SLABadge';
 import { stripHtml } from '@/utils/stripHtml';
+import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 
 const priorityColors = {
   low: "bg-muted text-muted-foreground",
@@ -176,6 +177,12 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
         </div>
         
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Presence Avatars - show who's viewing this conversation */}
+          <PresenceAvatarStack 
+            conversationId={conversation.id} 
+            size="sm"
+            maxAvatars={2}
+          />
           <SLABadge status={conversation.slaStatus as any} slaBreachAt={conversation.sla_breach_at} />
           <Badge className={cn("px-1.5 py-0 text-xs", statusColors[conversation.status])}>
             {computedValues.statusLabel}
