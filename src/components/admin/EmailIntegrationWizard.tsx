@@ -94,6 +94,9 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
         .eq('id', inboundRouteId);
       
       if (error) throw error;
+      
+      // Invalidate cache so InboxManagement shows updated data
+      queryClient.invalidateQueries({ queryKey: ['inbound_routes'] });
     } catch (error: any) {
       console.error('Failed to link route to inbox:', error);
       toast.error('Failed to link email route to inbox');
