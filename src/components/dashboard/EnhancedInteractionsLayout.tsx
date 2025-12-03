@@ -144,7 +144,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['inbox-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
     }
   });
