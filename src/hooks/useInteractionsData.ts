@@ -79,8 +79,10 @@ export function useInboxCounts(inboxId: InboxId) {
     queryKey: ['inboxCounts', inboxId],
     queryFn: () => getInboxCounts(inboxId),
     enabled: !!inboxId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds - refresh more frequently
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }
 

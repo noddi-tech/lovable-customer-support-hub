@@ -96,6 +96,8 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
       }
       
       const result = data?.[0];
+      console.log('[getInboxCounts] RPC result for inbox', inboxId, ':', result);
+      
       if (!result) {
         return {
           inboxId,
@@ -110,7 +112,7 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
         };
       }
       
-      return {
+      const counts = {
         inboxId,
         total: Number(result.conversations_all) || 0,
         open: Number(result.conversations_open) || 0,
@@ -121,6 +123,8 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
         archived: Number(result.conversations_archived) || 0,
         deleted: Number(result.conversations_deleted) || 0,
       };
+      console.log('[getInboxCounts] Mapped counts:', counts);
+      return counts;
     } else {
       // Use global counts for 'all' inboxes
       const { data, error } = await supabase.rpc('get_all_counts');
