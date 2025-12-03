@@ -32,21 +32,34 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
   const presenceContext = useConversationPresenceSafe();
   
   // If no presence context (provider not mounted yet), return null
-  if (!presenceContext) return null;
+  if (!presenceContext) {
+    console.log('[PresenceAvatarStack] No presence context available');
+    return null;
+  }
   
-  const { viewersForConversation, currentUserProfile } = presenceContext;
+  const { viewersForConversation, currentUserProfile, isConnected } = presenceContext;
   const allViewers = viewersForConversation(conversationId);
   
-  // Filter out current user
-  const otherViewers = allViewers.filter(
-    (viewer) => viewer.user_id !== currentUserProfile?.user_id
-  );
+  console.log('[PresenceAvatarStack]', { 
+    conversationId, 
+    viewerCount: allViewers.length, 
+    isConnected,
+    currentUserId: currentUserProfile?.user_id,
+    viewers: allViewers.map(v => ({ id: v.user_id, name: v.full_name }))
+  });
+  
+  // Sort viewers: current user first, then others
+  const sortedViewers = [...allViewers].sort((a, b) => {
+    if (a.user_id === currentUserProfile?.user_id) return -1;
+    if (b.user_id === currentUserProfile?.user_id) return 1;
+    return 0;
+  });
 
-  // No other viewers, don't render anything
-  if (otherViewers.length === 0) return null;
+  // No viewers at all
+  if (sortedViewers.length === 0) return null;
 
-  const visibleViewers = otherViewers.slice(0, maxAvatars);
-  const overflowCount = otherViewers.length - maxAvatars;
+  const visibleViewers = sortedViewers.slice(0, maxAvatars);
+  const overflowCount = sortedViewers.length - maxAvatars;
 
   const getInitials = (name: string) => {
     return name
@@ -57,6 +70,8 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
       .slice(0, 2);
   };
 
+  const isCurrentUser = (userId: string) => userId === currentUserProfile?.user_id;
+
   return (
     <div className={cn('flex items-center', className)}>
       {visibleViewers.map((viewer, index) => (
@@ -66,7 +81,10 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
               className={cn(
                 sizeClasses[size],
                 index > 0 && overlapClasses[size],
-                'ring-2 ring-background cursor-default'
+                'ring-2 cursor-default',
+                isCurrentUser(viewer.user_id) 
+                  ? 'ring-green-500' 
+                  : 'ring-background'
               )}
             >
               {viewer.avatar_url && (
@@ -78,7 +96,10 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
             </Avatar>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="text-xs">
-            <p className="font-medium">{viewer.full_name}</p>
+            <p className="font-medium">
+              {viewer.full_name}
+              {isCurrentUser(viewer.user_id) && <span className="text-muted-foreground ml-1">(You)</span>}
+            </p>
             <p className="text-muted-foreground">{viewer.email}</p>
           </TooltipContent>
         </Tooltip>
@@ -98,7 +119,7 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="text-xs">
-            {otherViewers.slice(maxAvatars).map((viewer) => (
+            {sortedViewers.slice(maxAvatars).map((viewer) => (
               <p key={viewer.user_id}>{viewer.full_name}</p>
             ))}
           </TooltipContent>

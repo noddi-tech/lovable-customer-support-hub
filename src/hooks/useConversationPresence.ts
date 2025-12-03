@@ -35,16 +35,26 @@ export function useConversationPresence(organizationId?: string): UseConversatio
 
   // Fetch current user's profile for presence data
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('[Presence] No user ID available');
+      return;
+    }
 
     const fetchProfile = async () => {
+      console.log('[Presence] Fetching profile for user:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('user_id, full_name, avatar_url, email')
         .eq('user_id', user.id)
         .single();
 
-      if (data && !error) {
+      if (error) {
+        console.error('[Presence] Error fetching profile:', error);
+        return;
+      }
+
+      if (data) {
+        console.log('[Presence] Profile loaded:', data.full_name);
         setCurrentUserProfile({
           user_id: data.user_id,
           full_name: data.full_name,
@@ -61,10 +71,17 @@ export function useConversationPresence(organizationId?: string): UseConversatio
 
   // Set up presence channel
   useEffect(() => {
-    if (!organizationId || !currentUserProfile) return;
+    if (!organizationId) {
+      console.log('[Presence] No organization ID available');
+      return;
+    }
+    if (!currentUserProfile) {
+      console.log('[Presence] No current user profile available');
+      return;
+    }
 
     const channelName = `presence:org-${organizationId}`;
-    logger.debug('Setting up presence channel', { channelName }, 'Presence');
+    console.log('[Presence] Setting up channel:', channelName, 'for user:', currentUserProfile.full_name);
 
     const channel = supabase.channel(channelName, {
       config: {
