@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare } from 'lucide-react';
+import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare, RefreshCw } from 'lucide-react';
 
 // Design system color palette for inboxes (HSL converted to hex for display)
 const INBOX_COLOR_PALETTE = [
@@ -68,6 +68,7 @@ interface EmailAccount {
 export function InboxManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingInbox, setEditingInbox] = useState<InboxData | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [newInboxData, setNewInboxData] = useState({
     name: '',
     description: '',
@@ -83,6 +84,17 @@ export function InboxManagement() {
   const [editRouteId, setEditRouteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['inboxes'] }),
+      queryClient.invalidateQueries({ queryKey: ['inbound_routes'] }),
+      queryClient.invalidateQueries({ queryKey: ['email_accounts'] }),
+      queryClient.invalidateQueries({ queryKey: ['departments'] }),
+    ]);
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   // Fetch inboxes
   const { data: inboxes, isLoading: isLoadingInboxes } = useQuery({
@@ -313,6 +325,10 @@ export function InboxManagement() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Create Inbox
