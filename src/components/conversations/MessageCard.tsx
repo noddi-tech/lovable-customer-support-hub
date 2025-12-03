@@ -87,7 +87,8 @@ interface MessageCardProps {
   };
   defaultCollapsed?: boolean;
   disableAnimation?: boolean;
-  isFirstInThread?: boolean;  // NEW: Indicates if this is the first message in the thread
+  isFirstInThread?: boolean;
+  isNewestMessage?: boolean;
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
 }
@@ -98,6 +99,7 @@ const MessageCardComponent = ({
   defaultCollapsed = true,
   disableAnimation = false,
   isFirstInThread = false,
+  isNewestMessage = false,
   onEdit, 
   onDelete 
 }: MessageCardProps) => {
@@ -226,7 +228,8 @@ const MessageCardComponent = ({
         "border-y border-r border-gray-200 dark:border-gray-800",
         "hover:border-gray-300 dark:hover:border-gray-700",
         disableAnimation && "disable-animation",
-        effectiveCollapsed ? "py-0 min-h-[36px]" : "py-2"
+        effectiveCollapsed ? "py-0 min-h-[36px]" : "py-2",
+        isNewestMessage && "ring-2 ring-primary/30 ring-offset-1"
       )}
       aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
@@ -282,6 +285,16 @@ const MessageCardComponent = ({
                 <Badge className={cn("text-xs shrink-0", messageStyle.labelBadge)}>
                   {messageStyle.label}
                 </Badge>
+                
+                {/* New badge for newest message */}
+                {isNewestMessage && (
+                  <Badge 
+                    variant="outline" 
+                    className="text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/30 shrink-0"
+                  >
+                    New
+                  </Badge>
+                )}
                 
                 {/* Preview text inline when collapsed */}
                 {effectiveCollapsed && (
