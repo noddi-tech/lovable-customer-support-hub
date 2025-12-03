@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -468,12 +469,11 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({
                     </Badge>
                   </div>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selectedThreads.has(thread.threadId)}
-                  onChange={() => handleToggleThread(thread.threadId)}
-                  className="mt-1"
+                  onCheckedChange={() => handleToggleThread(thread.threadId)}
                   onClick={(e) => e.stopPropagation()}
+                  className="mt-1"
                 />
               </div>
             </div>
