@@ -64,17 +64,19 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   // Get conversationIds from context for thread viewing
   const { conversationIds } = useConversationView();
 
-  // Presence tracking
+  // Presence tracking - extract stable function references
   const presenceContext = useConversationPresenceSafe();
+  const trackConversation = presenceContext?.trackConversation;
+  const untrackConversation = presenceContext?.untrackConversation;
   
   useEffect(() => {
-    if (presenceContext && conversationId) {
-      presenceContext.trackConversation(conversationId);
+    if (trackConversation && conversationId) {
+      trackConversation(conversationId);
       return () => {
-        presenceContext.untrackConversation();
+        untrackConversation?.();
       };
     }
-  }, [conversationId, presenceContext]);
+  }, [conversationId, trackConversation, untrackConversation]);
 
   // Enable keyboard shortcuts for status changes
   useConversationShortcuts();

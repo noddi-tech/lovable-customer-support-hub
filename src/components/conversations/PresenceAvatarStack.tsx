@@ -32,21 +32,10 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(({
   const presenceContext = useConversationPresenceSafe();
   
   // If no presence context (provider not mounted yet), return null
-  if (!presenceContext) {
-    console.log('[PresenceAvatarStack] No presence context available');
-    return null;
-  }
+  if (!presenceContext) return null;
   
-  const { viewersForConversation, currentUserProfile, isConnected } = presenceContext;
+  const { viewersForConversation, currentUserProfile } = presenceContext;
   const allViewers = viewersForConversation(conversationId);
-  
-  console.log('[PresenceAvatarStack]', { 
-    conversationId, 
-    viewerCount: allViewers.length, 
-    isConnected,
-    currentUserId: currentUserProfile?.user_id,
-    viewers: allViewers.map(v => ({ id: v.user_id, name: v.full_name }))
-  });
   
   // Sort viewers: current user first, then others
   const sortedViewers = [...allViewers].sort((a, b) => {
