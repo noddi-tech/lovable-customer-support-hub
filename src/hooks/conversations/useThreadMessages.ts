@@ -65,7 +65,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       // 1) Seed from newest few rows of these conversation(s)
       const seedSel = supabase
         .from("messages")
-        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name))")
+        .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
         .in("conversation_id", ids)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -91,7 +91,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       // 2) Build base query (DESC newest first); add cursor for older pages
       let base = supabase
         .from("messages")
-        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name))")
+        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
         .in("conversation_id", ids) // Filter by conversation(s)
         .order("created_at", { ascending: false })
         .limit(pageParam ? PAGE : INITIAL);
@@ -161,9 +161,10 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       const conversationData = typedRows[0]?.conversation;
       const customerData = conversationData?.customer;
       const emailAccountData = conversationData?.email_account;
-      const inboxData = conversationData?.inbox;
-      // Fallback chain: email_account.email_address → inbox.sender_display_name
-      const inboxEmail = emailAccountData?.email_address || inboxData?.sender_display_name;
+      const inboxData = conversationData?.inbox as { sender_display_name?: string; inbound_routes?: { group_email?: string }[] } | undefined;
+      // Fallback chain: email_account.email_address → inbound_routes.group_email (NOT sender_display_name which is a name, not email)
+      const inboundRouteEmail = inboxData?.inbound_routes?.[0]?.group_email;
+      const inboxEmail = emailAccountData?.email_address || inboundRouteEmail;
       
       // Create conversation-specific normalization context
       const ctx = createNormalizationContext({

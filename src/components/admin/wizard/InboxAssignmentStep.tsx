@@ -27,13 +27,16 @@ interface InboxAssignmentStepProps {
   onNewInboxSenderDisplayNameChange: (name: string) => void;
 }
 
+// Design system color palette for inboxes (HSL converted to hex for display)
 const colorOptions = [
-  { value: '#3B82F6', label: 'Blue' },
-  { value: '#10B981', label: 'Green' },
-  { value: '#F59E0B', label: 'Orange' },
-  { value: '#EF4444', label: 'Red' },
-  { value: '#8B5CF6', label: 'Purple' },
-  { value: '#EC4899', label: 'Pink' },
+  { value: '#6656D9', label: 'Primary Purple' },    // primary: 247 63% 59%
+  { value: '#3B82F6', label: 'Blue' },              // channel-email: 217 91% 60%
+  { value: '#22C55E', label: 'Success Green' },     // success: 142 76% 36%
+  { value: '#F59E0B', label: 'Warning Orange' },    // warning: 32 95% 44%
+  { value: '#EF4444', label: 'Destructive Red' },   // destructive: 0 84% 60%
+  { value: '#8B5CF6', label: 'Violet' },            // accent variant
+  { value: '#EC4899', label: 'Pink' },              // instagram: 329 69% 56%
+  { value: '#06B6D4', label: 'Cyan' },              // additional option
 ];
 
 export function InboxAssignmentStep({

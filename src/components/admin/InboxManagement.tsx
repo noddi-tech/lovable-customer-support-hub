@@ -16,6 +16,17 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare } from 'lucide-react';
 
+// Design system color palette for inboxes (HSL converted to hex for display)
+const INBOX_COLOR_PALETTE = [
+  { value: '#6656D9', label: 'Primary Purple' },    // primary: 247 63% 59%
+  { value: '#3B82F6', label: 'Blue' },              // channel-email: 217 91% 60%
+  { value: '#22C55E', label: 'Success Green' },     // success: 142 76% 36%
+  { value: '#F59E0B', label: 'Warning Orange' },    // warning: 32 95% 44%
+  { value: '#EF4444', label: 'Destructive Red' },   // destructive: 0 84% 60%
+  { value: '#8B5CF6', label: 'Violet' },            // accent variant
+  { value: '#EC4899', label: 'Pink' },              // instagram: 329 69% 56%
+  { value: '#06B6D4', label: 'Cyan' },              // additional option
+];
 
 interface InboxData {
   id: string;
@@ -354,13 +365,23 @@ export function InboxManagement() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="color">Color</Label>
-                <Input
-                  id="color"
-                  type="color"
-                  value={newInboxData.color}
-                  onChange={(e) => setNewInboxData(prev => ({ ...prev, color: e.target.value }))}
-                />
+                <Label>Color</Label>
+                <div className="flex gap-2 mt-1.5 flex-wrap">
+                  {INBOX_COLOR_PALETTE.map((color) => (
+                    <button
+                      key={color.value}
+                      type="button"
+                      onClick={() => setNewInboxData(prev => ({ ...prev, color: color.value }))}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        newInboxData.color === color.value
+                          ? 'border-foreground scale-110 ring-2 ring-offset-2 ring-primary'
+                          : 'border-transparent hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.label}
+                    />
+                  ))}
+                </div>
               </div>
               <div>
                 <Label htmlFor="sender-name">Sender Display Name (Optional)</Label>
@@ -598,13 +619,23 @@ export function InboxManagement() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="edit-color">Color</Label>
-                <Input
-                  id="edit-color"
-                  type="color"
-                  value={editingInbox.color}
-                  onChange={(e) => setEditingInbox(prev => prev ? { ...prev, color: e.target.value } : null)}
-                />
+                <Label>Color</Label>
+                <div className="flex gap-2 mt-1.5 flex-wrap">
+                  {INBOX_COLOR_PALETTE.map((color) => (
+                    <button
+                      key={color.value}
+                      type="button"
+                      onClick={() => setEditingInbox(prev => prev ? { ...prev, color: color.value } : null)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        editingInbox.color === color.value
+                          ? 'border-foreground scale-110 ring-2 ring-offset-2 ring-primary'
+                          : 'border-transparent hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.label}
+                    />
+                  ))}
+                </div>
               </div>
               <div>
                 <Label htmlFor="edit-sender-name">Sender Display Name (Optional)</Label>
