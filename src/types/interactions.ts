@@ -1,4 +1,4 @@
-export type StatusFilter = 'all' | 'open' | 'unread' | 'assigned' | 'pending' | 'closed' | 'archived';
+export type StatusFilter = 'all' | 'open' | 'unread' | 'assigned' | 'pending' | 'closed' | 'archived' | 'deleted';
 export type PriorityFilter = 'all' | 'low' | 'normal' | 'high' | 'urgent';
 
 export type InboxId = string;
@@ -40,6 +40,7 @@ export interface InboxCounts {
   pending: number;
   closed: number;
   archived: number;
+  deleted: number;
 }
 
 export interface ConversationRow {

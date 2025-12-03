@@ -245,6 +245,7 @@ export type Database = {
           channel: Database["public"]["Enums"]["communication_channel"]
           created_at: string
           customer_id: string | null
+          deleted_at: string | null
           department_id: string | null
           email_account_id: string | null
           external_id: string | null
@@ -272,6 +273,7 @@ export type Database = {
           channel: Database["public"]["Enums"]["communication_channel"]
           created_at?: string
           customer_id?: string | null
+          deleted_at?: string | null
           department_id?: string | null
           email_account_id?: string | null
           external_id?: string | null
@@ -299,6 +301,7 @@ export type Database = {
           channel?: Database["public"]["Enums"]["communication_channel"]
           created_at?: string
           customer_id?: string | null
+          deleted_at?: string | null
           department_id?: string | null
           email_account_id?: string | null
           external_id?: string | null
@@ -2530,6 +2533,7 @@ export type Database = {
           conversations_archived: number
           conversations_assigned: number
           conversations_closed: number
+          conversations_deleted: number
           conversations_open: number
           conversations_pending: number
           conversations_unread: number
@@ -2695,6 +2699,7 @@ export type Database = {
           conversations_archived: number
           conversations_assigned: number
           conversations_closed: number
+          conversations_deleted: number
           conversations_open: number
           conversations_pending: number
           conversations_unread: number

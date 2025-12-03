@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Inbox, Mail, Users, Archive, Star, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Inbox, Mail, Users, Archive, Star, Clock, CheckCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsData';
 import type { StatusFilter, InboxId } from '@/types/interactions';
@@ -29,6 +29,7 @@ const statusFilters: StatusFilterItem[] = [
   { id: 'assigned', name: 'Assigned to Me', icon: <Star className="h-4 w-4" />, color: 'text-yellow-600' },
   { id: 'closed', name: 'Closed', icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-600' },
   { id: 'archived', name: 'Archived', icon: <Archive className="h-4 w-4" />, color: 'text-gray-500' },
+  { id: 'deleted', name: 'Deleted', icon: <Trash2 className="h-4 w-4" />, color: 'text-destructive' },
   { id: 'all', name: 'All Messages', icon: <Mail className="h-4 w-4" /> },
 ];
 
@@ -52,6 +53,7 @@ export const InboxList: React.FC<InboxListProps> = ({
       case 'pending': return counts.pending;
       case 'closed': return counts.closed;
       case 'archived': return counts.archived;
+      case 'deleted': return counts.deleted;
       default: return 0;
     }
   };

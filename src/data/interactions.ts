@@ -105,7 +105,8 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
           assigned: 0,
           pending: 0,
           closed: 0,
-          archived: 0
+          archived: 0,
+          deleted: 0
         };
       }
       
@@ -118,6 +119,7 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
         pending: Number(result.conversations_pending) || 0,
         closed: Number(result.conversations_closed) || 0,
         archived: Number(result.conversations_archived) || 0,
+        deleted: Number(result.conversations_deleted) || 0,
       };
     } else {
       // Use global counts for 'all' inboxes
@@ -138,7 +140,8 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
           assigned: 0,
           pending: 0,
           closed: 0,
-          archived: 0
+          archived: 0,
+          deleted: 0
         };
       }
       
@@ -151,6 +154,7 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
         pending: Number(result.conversations_pending) || 0,
         closed: Number(result.conversations_closed) || 0,
         archived: Number(result.conversations_archived) || 0,
+        deleted: Number(result.conversations_deleted) || 0,
       };
     }
   } catch (error) {
@@ -163,7 +167,8 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
       assigned: 0,
       pending: 0,
       closed: 0,
-      archived: 0
+      archived: 0,
+      deleted: 0
     };
   }
 }
