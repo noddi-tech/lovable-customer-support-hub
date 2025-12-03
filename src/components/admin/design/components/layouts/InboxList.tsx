@@ -24,12 +24,12 @@ interface InboxListProps {
 }
 
 const statusFilters: StatusFilterItem[] = [
-  { id: 'all', name: 'All Messages', icon: <Mail className="h-4 w-4" /> },
-  { id: 'unread', name: 'Unread', icon: <Inbox className="h-4 w-4" />, color: 'text-blue-600' },
-  { id: 'assigned', name: 'Assigned to Me', icon: <Star className="h-4 w-4" />, color: 'text-yellow-600' },
+  { id: 'open', name: 'Open', icon: <Inbox className="h-4 w-4" />, color: 'text-blue-600' },
   { id: 'pending', name: 'Pending', icon: <Clock className="h-4 w-4" />, color: 'text-orange-600' },
+  { id: 'assigned', name: 'Assigned to Me', icon: <Star className="h-4 w-4" />, color: 'text-yellow-600' },
   { id: 'closed', name: 'Closed', icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-600' },
   { id: 'archived', name: 'Archived', icon: <Archive className="h-4 w-4" />, color: 'text-gray-500' },
+  { id: 'all', name: 'All Messages', icon: <Mail className="h-4 w-4" /> },
 ];
 
 export const InboxList: React.FC<InboxListProps> = ({
@@ -47,7 +47,7 @@ export const InboxList: React.FC<InboxListProps> = ({
     if (!counts) return 0;
     switch (filter) {
       case 'all': return counts.total;
-      case 'unread': return counts.unread;
+      case 'open': return counts.open;
       case 'assigned': return counts.assigned;
       case 'pending': return counts.pending;
       case 'closed': return counts.closed;

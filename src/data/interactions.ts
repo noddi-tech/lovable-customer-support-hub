@@ -100,6 +100,7 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
         return {
           inboxId,
           total: 0,
+          open: 0,
           unread: 0,
           assigned: 0,
           pending: 0,
@@ -111,6 +112,7 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
       return {
         inboxId,
         total: Number(result.conversations_all) || 0,
+        open: Number(result.conversations_open) || 0,
         unread: Number(result.conversations_unread) || 0,
         assigned: Number(result.conversations_assigned) || 0,
         pending: Number(result.conversations_pending) || 0,
@@ -131,6 +133,7 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
         return {
           inboxId,
           total: 0,
+          open: 0,
           unread: 0,
           assigned: 0,
           pending: 0,
@@ -142,6 +145,7 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
       return {
         inboxId,
         total: Number(result.conversations_all) || 0,
+        open: Number(result.conversations_open) || 0,
         unread: Number(result.conversations_unread) || 0,
         assigned: Number(result.conversations_assigned) || 0,
         pending: Number(result.conversations_pending) || 0,
@@ -154,6 +158,7 @@ export async function getInboxCounts(inboxId: InboxId): Promise<InboxCounts> {
     return {
       inboxId,
       total: 0,
+      open: 0,
       unread: 0,
       assigned: 0,
       pending: 0,
