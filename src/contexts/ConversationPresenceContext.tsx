@@ -6,6 +6,9 @@ import { useAuth } from '@/components/auth/AuthContext';
 // Re-export PresenceUser for consumers
 export type { PresenceUser };
 
+// Stable empty array to prevent reference changes
+const EMPTY_VIEWERS: PresenceUser[] = [];
+
 interface ConversationPresenceContextType {
   viewersForConversation: (conversationId: string) => PresenceUser[];
   trackConversation: (conversationId: string) => void;
@@ -58,10 +61,10 @@ export const ConversationPresenceProvider: React.FC<{ children: React.ReactNode 
     isConnected,
   } = useConversationPresence(organizationId);
 
-  // Memoize to prevent infinite re-renders
+  // Memoize to prevent infinite re-renders - use stable empty array
   const viewersForConversation = useCallback(
     (conversationId: string): PresenceUser[] => {
-      return viewersMap.get(conversationId) || [];
+      return viewersMap.get(conversationId) ?? EMPTY_VIEWERS;
     },
     [viewersMap]
   );
