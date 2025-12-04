@@ -2203,6 +2203,8 @@ export type Database = {
         Row: {
           access_token: string | null
           bot_user_id: string | null
+          client_id: string | null
+          client_secret: string | null
           configuration: Json | null
           created_at: string | null
           default_channel_id: string | null
@@ -2210,6 +2212,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           organization_id: string
+          setup_completed: boolean | null
           team_id: string | null
           team_name: string | null
           updated_at: string | null
@@ -2217,6 +2220,8 @@ export type Database = {
         Insert: {
           access_token?: string | null
           bot_user_id?: string | null
+          client_id?: string | null
+          client_secret?: string | null
           configuration?: Json | null
           created_at?: string | null
           default_channel_id?: string | null
@@ -2224,6 +2229,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id: string
+          setup_completed?: boolean | null
           team_id?: string | null
           team_name?: string | null
           updated_at?: string | null
@@ -2231,6 +2237,8 @@ export type Database = {
         Update: {
           access_token?: string | null
           bot_user_id?: string | null
+          client_id?: string | null
+          client_secret?: string | null
           configuration?: Json | null
           created_at?: string | null
           default_channel_id?: string | null
@@ -2238,6 +2246,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id?: string
+          setup_completed?: boolean | null
           team_id?: string | null
           team_name?: string | null
           updated_at?: string | null

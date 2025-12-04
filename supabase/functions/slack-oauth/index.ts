@@ -16,14 +16,73 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const slackClientId = Deno.env.get('SLACK_CLIENT_ID');
-    const slackClientSecret = Deno.env.get('SLACK_CLIENT_SECRET');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (!slackClientId || !slackClientSecret) {
-      return new Response(
-        JSON.stringify({ error: 'Slack credentials not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Handle test-credentials action
+    if (action === 'test-credentials') {
+      const body = await req.json();
+      const { client_id, client_secret } = body;
+
+      if (!client_id || !client_secret) {
+        return new Response(
+          JSON.stringify({ error: 'Client ID and Client Secret are required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Test credentials by calling Slack's auth.test with a basic check
+      // We'll use the oauth.v2.access endpoint structure check - if credentials are invalid,
+      // Slack returns a specific error
+      try {
+        // Make a simple API call to verify the app exists
+        // We can't fully validate without a token, but we can check the client_id format
+        // and attempt a token exchange with an invalid code to see if credentials are recognized
+        const testResponse = await fetch('https://slack.com/api/oauth.v2.access', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            client_id: client_id,
+            client_secret: client_secret,
+            code: 'test_invalid_code',
+          }),
+        });
+
+        const testData = await testResponse.json();
+        
+        // If we get "invalid_code", credentials are valid but code is not
+        // If we get "invalid_client_id" or "bad_client_secret", credentials are wrong
+        if (testData.error === 'invalid_code' || testData.error === 'code_already_used') {
+          return new Response(
+            JSON.stringify({ success: true, message: 'Credentials are valid' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else if (testData.error === 'invalid_client_id') {
+          return new Response(
+            JSON.stringify({ error: 'Invalid Client ID' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else if (testData.error === 'bad_client_secret') {
+          return new Response(
+            JSON.stringify({ error: 'Invalid Client Secret' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          // Other errors might indicate valid credentials
+          console.log('Slack test response:', testData);
+          return new Response(
+            JSON.stringify({ success: true, message: 'Credentials appear valid' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (error) {
+        console.error('Error testing credentials:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to test credentials' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Handle OAuth callback
@@ -35,6 +94,24 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ error: 'Missing code or state parameter' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Fetch client credentials from database for this organization
+      const { data: integrationData, error: fetchError } = await supabase
+        .from('slack_integrations')
+        .select('client_id, client_secret')
+        .eq('organization_id', state)
+        .single();
+
+      let slackClientId = integrationData?.client_id || Deno.env.get('SLACK_CLIENT_ID');
+      let slackClientSecret = integrationData?.client_secret || Deno.env.get('SLACK_CLIENT_SECRET');
+
+      if (!slackClientId || !slackClientSecret) {
+        console.error('No Slack credentials found for organization:', state);
+        return new Response(
+          JSON.stringify({ error: 'Slack credentials not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -62,8 +139,6 @@ Deno.serve(async (req) => {
       }
 
       // Store the integration in database
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
       const { error: upsertError } = await supabase
         .from('slack_integrations')
         .upsert({
@@ -73,6 +148,7 @@ Deno.serve(async (req) => {
           team_id: tokenData.team?.id,
           team_name: tokenData.team?.name,
           bot_user_id: tokenData.bot_user_id,
+          setup_completed: true,
         }, {
           onConflict: 'organization_id',
         });
@@ -101,7 +177,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
@@ -119,6 +194,22 @@ Deno.serve(async (req) => {
       if (!organizationId) {
         return new Response(
           JSON.stringify({ error: 'Organization ID required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Fetch client credentials from database for this organization
+      const { data: integrationData } = await supabase
+        .from('slack_integrations')
+        .select('client_id, client_secret')
+        .eq('organization_id', organizationId)
+        .single();
+
+      let slackClientId = integrationData?.client_id || Deno.env.get('SLACK_CLIENT_ID');
+
+      if (!slackClientId) {
+        return new Response(
+          JSON.stringify({ error: 'Slack Client ID not configured. Please set up your Slack app credentials first.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -158,11 +249,16 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const organizationId = body.organization_id;
 
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
       const { error } = await supabase
         .from('slack_integrations')
-        .delete()
+        .update({
+          is_active: false,
+          access_token: null,
+          team_id: null,
+          team_name: null,
+          bot_user_id: null,
+          setup_completed: false,
+        })
         .eq('organization_id', organizationId);
 
       if (error) {

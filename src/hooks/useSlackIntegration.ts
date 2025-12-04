@@ -19,6 +19,9 @@ export interface SlackIntegration {
   default_channel_id: string | null;
   default_channel_name: string | null;
   configuration: SlackIntegrationConfig;
+  client_id: string | null;
+  client_secret: string | null;
+  setup_completed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +37,7 @@ export const useSlackIntegration = () => {
   const { currentOrganizationId } = useOrganizationStore();
 
   // Fetch Slack integration status
-  const { data: integration, isLoading, error } = useQuery({
+  const { data: integration, isLoading, error, refetch } = useQuery({
     queryKey: ['slack-integration', currentOrganizationId],
     queryFn: async () => {
       if (!currentOrganizationId) return null;
@@ -57,6 +60,9 @@ export const useSlackIntegration = () => {
           mention_assigned_user: config.mention_assigned_user !== false,
           include_message_preview: config.include_message_preview !== false,
         },
+        client_id: data.client_id || null,
+        client_secret: data.client_secret || null,
+        setup_completed: data.setup_completed || false,
       } as SlackIntegration;
     },
     enabled: !!currentOrganizationId,
@@ -81,17 +87,53 @@ export const useSlackIntegration = () => {
     enabled: !!currentOrganizationId && !!integration?.is_active,
   });
 
+  // Test credentials with Slack API
+  const testCredentials = useMutation({
+    mutationFn: async ({ client_id, client_secret }: { client_id: string; client_secret: string }) => {
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-oauth?action=test-credentials`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ client_id, client_secret }),
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data;
+    },
+  });
+
+  // Save credentials to database
+  const saveCredentials = useMutation({
+    mutationFn: async ({ client_id, client_secret }: { client_id: string; client_secret: string }) => {
+      if (!currentOrganizationId) throw new Error('No organization selected');
+
+      const { error } = await supabase
+        .from('slack_integrations')
+        .upsert({
+          organization_id: currentOrganizationId,
+          client_id,
+          client_secret,
+          setup_completed: false,
+          is_active: false,
+        }, {
+          onConflict: 'organization_id',
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
+    },
+  });
+
   // Get OAuth authorization URL
   const getAuthorizationUrl = useMutation({
     mutationFn: async () => {
       if (!currentOrganizationId) throw new Error('No organization selected');
 
-      const response = await supabase.functions.invoke('slack-oauth', {
-        body: { organization_id: currentOrganizationId },
-        headers: { 'x-action': 'authorize' },
-      });
-
-      // Handle the edge function's query param based action
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -108,7 +150,7 @@ export const useSlackIntegration = () => {
       const data = await authResponse.json();
       if (data.error) throw new Error(data.error);
       
-      return data.authorization_url as string;
+      return data as { authorization_url: string };
     },
   });
 
@@ -227,7 +269,10 @@ export const useSlackIntegration = () => {
     integration,
     isLoading,
     error,
+    refetch,
     isConnected: !!integration?.is_active && !!integration?.team_id,
+    hasCredentials: !!integration?.client_id,
+    setupCompleted: !!integration?.setup_completed,
     channels,
     isLoadingChannels,
     refetchChannels,
@@ -235,5 +280,7 @@ export const useSlackIntegration = () => {
     disconnectSlack,
     updateConfiguration,
     testConnection,
+    testCredentials,
+    saveCredentials,
   };
 };
