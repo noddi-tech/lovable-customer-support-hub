@@ -26,6 +26,7 @@ import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import { Auth } from "./pages/Auth";
 import Settings from "./pages/Settings";
+import NotificationsPage from "./pages/NotificationsPage";
 import AdminDesignComponentsPage from "./pages/AdminDesignComponentsPage";
 import KnowledgeManagement from "./pages/KnowledgeManagement";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -98,6 +99,9 @@ const AppContent = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       
+      {/* Notifications */}
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+
       {/* Main App Routes - Interactions */}
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/interactions/text" element={<Navigate to="/" replace />} />
