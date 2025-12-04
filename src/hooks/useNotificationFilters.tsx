@@ -30,14 +30,15 @@ export interface EnhancedNotification {
 const getPriority = (notification: any): NotificationPriority => {
   const type = notification.type?.toLowerCase() || '';
   const data = notification.data || {};
+  const urgency = data.urgency?.toLowerCase() || '';
   
-  // Urgent: Missed calls, escalations, overdue tickets
-  if (type.includes('missed') || type.includes('escalation') || data.overdue) {
+  // Urgent: SLA breaches, missed calls, escalations
+  if (type.includes('sla_breach') || type.includes('missed') || type.includes('escalation') || urgency === 'urgent' || data.overdue) {
     return 'urgent';
   }
   
-  // High: New assignments, mentions/tags
-  if (type.includes('assignment') || type.includes('mention') || type.includes('tag') || data.assigned_to) {
+  // High: SLA warnings, assignments, mentions, new assignments
+  if (type.includes('sla_warning') || type.includes('assignment') || type.includes('mention') || urgency === 'high') {
     return 'high';
   }
   
@@ -55,28 +56,31 @@ const getCategory = (notification: any, userId: string): NotificationCategory =>
   const type = notification.type?.toLowerCase() || '';
   const data = notification.data || {};
 
-  // Check for calls
-  if (data.call_id || type.includes('call')) {
+  // Check for calls (incoming, missed, voicemail, callback)
+  if (data.call_id || type.includes('call') || type.includes('voicemail') || type.includes('callback')) {
     return 'calls';
   }
 
   // Check for text/SMS
-  if (data.sms_id || type.includes('sms') || type.includes('text')) {
+  if (data.sms_id || type.includes('sms') || type.includes('text_message')) {
     return 'text';
   }
 
-  // Check for tickets
-  if (data.ticket_id || type.includes('ticket')) {
+  // Check for tickets (service tickets)
+  if (data.ticket_id || type.includes('ticket') || type.includes('sla_breach') || type.includes('sla_warning')) {
     return 'tickets';
   }
 
-  // Check for assignments
-  if (data.assigned_to_id === userId || type.includes('assigned')) {
+  // Check for assignments (assigned to current user)
+  if (type === 'assignment' || type.includes('assigned') || 
+      (data.assigned_to_id && data.assigned_to_id === userId)) {
     return 'assigned';
   }
 
-  // Check for email/conversations (default for conversation_id)
-  if (data.conversation_id || type.includes('conversation') || type.includes('message') || type.includes('email')) {
+  // Check for email/conversations (customer replies, new emails, mentions)
+  if (data.conversation_id || type.includes('conversation') || type.includes('email') || 
+      type.includes('reply') || type.includes('mention') || type === 'new_conversation' ||
+      type === 'customer_reply' || type === 'new_email') {
     return 'email';
   }
 
