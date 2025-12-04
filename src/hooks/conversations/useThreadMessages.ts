@@ -198,5 +198,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
     enabled: ids.length > 0,
     staleTime: 10_000,
     gcTime: 120_000,
+    refetchInterval: 30_000, // Fallback polling every 30s in case realtime fails
+    refetchIntervalInBackground: false, // Only when tab is focused
   });
 }

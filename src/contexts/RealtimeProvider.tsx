@@ -14,6 +14,8 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     { table: 'conversations', queryKey: 'conversations' },
     { table: 'notifications', queryKey: 'notifications' },
     { table: 'messages', queryKey: 'messages' },
+    { table: 'messages', queryKey: 'thread-messages' },
+    { table: 'messages', queryKey: 'conversation-messages' },
     { table: 'customers', queryKey: 'customers' },
   ], true);
 
