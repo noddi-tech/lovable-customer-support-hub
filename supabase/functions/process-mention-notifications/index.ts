@@ -12,6 +12,7 @@ interface MentionContext {
   ticket_id?: string;
   customer_id?: string;
   call_id?: string;
+  organization_id?: string;
 }
 
 interface RequestBody {
@@ -20,6 +21,33 @@ interface RequestBody {
   mentionerName: string;
   content: string;
   context: MentionContext;
+}
+
+// Helper function to send Slack notification (non-blocking)
+async function sendSlackNotification(payload: {
+  organization_id: string;
+  event_type: 'mention';
+  conversation_id?: string;
+  mentioned_user_name: string;
+  preview_text?: string;
+}) {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    await fetch(`${supabaseUrl}/functions/v1/send-slack-notification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceKey}`
+      },
+      body: JSON.stringify(payload)
+    });
+    console.log(`📱 Slack mention notification sent`);
+  } catch (error) {
+    // Non-blocking - just log the error
+    console.log('Slack notification failed (non-blocking):', error);
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -38,6 +66,27 @@ const handler = async (req: Request): Promise<Response> => {
     const { mentionedUserIds, mentionerUserId, mentionerName, content, context } = body;
 
     console.log(`Processing mentions for ${mentionedUserIds.length} users from ${mentionerName}`);
+
+    // Get organization_id from context or fetch it
+    let organizationId = context.organization_id;
+    
+    if (!organizationId && context.conversation_id) {
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('organization_id')
+        .eq('id', context.conversation_id)
+        .single();
+      organizationId = conv?.organization_id;
+    }
+    
+    if (!organizationId && context.ticket_id) {
+      const { data: ticket } = await supabase
+        .from('service_tickets')
+        .select('organization_id')
+        .eq('id', context.ticket_id)
+        .single();
+      organizationId = ticket?.organization_id;
+    }
 
     // Get context-specific title and link info
     const getContextInfo = () => {
@@ -77,6 +126,9 @@ const handler = async (req: Request): Promise<Response> => {
       ? content.slice(0, 150) + '...' 
       : content;
 
+    // Track if Slack notification was sent (only send once per mention event)
+    let slackNotificationSent = false;
+
     // Process each mentioned user
     const notificationPromises = mentionedUserIds
       .filter(userId => userId !== mentionerUserId) // Don't notify if you mention yourself
@@ -92,6 +144,13 @@ const handler = async (req: Request): Promise<Response> => {
           // Default to true if no preferences found
           const appEnabled = preferences?.app_on_mention ?? true;
           const emailEnabled = preferences?.email_on_mention ?? false;
+
+          // Get mentioned user's name for Slack notification
+          const { data: mentionedUser } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('user_id', userId)
+            .single();
 
           // Create in-app notification if enabled
           if (appEnabled) {
@@ -119,6 +178,18 @@ const handler = async (req: Request): Promise<Response> => {
               console.error(`Failed to create notification for user ${userId}:`, notifError);
             } else {
               console.log(`Created in-app notification for user ${userId}`);
+              
+              // Send Slack notification (only once per mention event, not per user)
+              if (!slackNotificationSent && organizationId) {
+                sendSlackNotification({
+                  organization_id: organizationId,
+                  event_type: 'mention',
+                  conversation_id: context.conversation_id,
+                  mentioned_user_name: mentionedUser?.full_name || 'Someone',
+                  preview_text: truncatedContent
+                });
+                slackNotificationSent = true;
+              }
             }
           }
 
@@ -136,7 +207,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        processed: mentionedUserIds.filter(id => id !== mentionerUserId).length 
+        processed: mentionedUserIds.filter(id => id !== mentionerUserId).length,
+        slackNotificationSent
       }),
       {
         status: 200,
