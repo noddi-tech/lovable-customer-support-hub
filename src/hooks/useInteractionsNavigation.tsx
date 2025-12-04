@@ -21,7 +21,7 @@ export const useInteractionsNavigation = () => {
       selectedInboxId: searchParams.get('inbox') || undefined,
       conversationId: searchParams.get('c') || searchParams.get('conversation') || undefined,
       inbox: searchParams.get('inbox') || undefined,
-      status: (searchParams.get('status') || 'all') as StatusFilter,
+      status: (searchParams.get('status') || 'open') as StatusFilter,
       search: searchParams.get('q') || undefined,
     };
   }, [searchParams]);
@@ -45,7 +45,7 @@ export const useInteractionsNavigation = () => {
       newParams.set('c', newState.conversationId);
     }
     
-    if (newState.status && newState.status !== 'all') {
+    if (newState.status && newState.status !== 'open') {
       newParams.set('status', newState.status);
     }
     
