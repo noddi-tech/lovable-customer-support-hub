@@ -2794,6 +2794,8 @@ export type Database = {
         }[]
       }
       sanitize_debug_data: { Args: { data: Json }; Returns: Json }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       strip_html_tags: { Args: { input_text: string }; Returns: string }
       validate_session_context: {
         Args: never

@@ -12,8 +12,7 @@ import { NewConversationDialog } from "../NewConversationDialog";
 import { useConversationList } from "@/contexts/ConversationListContext";
 import { useTranslation } from "react-i18next";
 import type { SortBy } from "@/contexts/ConversationListContext";
-import { useState, useRef } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 
 interface ConversationListHeaderProps {
   onToggleCollapse?: () => void;
@@ -30,12 +29,10 @@ export const ConversationListHeader = ({
   bulkSelectionMode = false,
   onToggleBulkMode
 }: ConversationListHeaderProps) => {
-  const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead, loadAllConversations, hasNextPage, isFetchingNextPage } = useConversationList();
+  const { state, dispatch, filteredConversations, markAllAsRead, isMarkingAllAsRead, hasNextPage, isFetchingNextPage } = useConversationList();
   const { t } = useTranslation();
   const [showMigrator, setShowMigrator] = useState(false);
   const [showThreadMerger, setShowThreadMerger] = useState(false);
-  const [isLoadingAll, setIsLoadingAll] = useState(false);
-  const isLoadingRef = useRef(false);
 
   const totalCount = filteredConversations.length;
   const unreadCount = filteredConversations.filter(c => !c.is_read).length;
@@ -71,30 +68,10 @@ export const ConversationListHeader = ({
     }
   };
 
-  const handleToggleBulkMode = async () => {
-    // Prevent double-click during loading
-    if (isLoadingRef.current) return;
-    
-    // Toggle bulk mode FIRST - this locks the virtualization decision
+  const handleToggleBulkMode = () => {
+    // Simply toggle bulk mode - don't load all conversations
+    // Users can select from the currently loaded list
     onToggleBulkMode?.();
-    
-    if (!bulkSelectionMode && hasNextPage) {
-      isLoadingRef.current = true;
-      setIsLoadingAll(true);
-      toast.info('Loading all conversations...');
-      
-      try {
-        await loadAllConversations();
-      } catch (error) {
-        console.error('Failed to load all conversations:', error);
-        toast.error('Failed to load all conversations');
-      }
-      
-      // Increase stabilization delay to 500ms for full stabilization
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setIsLoadingAll(false);
-      isLoadingRef.current = false;
-    }
   };
 
   return (
@@ -115,12 +92,11 @@ export const ConversationListHeader = ({
               variant={bulkSelectionMode ? "default" : "outline"}
               size="sm"
               onClick={handleToggleBulkMode}
-              disabled={isLoadingAll || isFetchingNextPage}
               className="h-7 px-2 gap-1 text-xs"
             >
               <CheckSquare className="!w-3 !h-3" />
               <span className="hidden sm:inline">
-                {isLoadingAll ? 'Loading...' : bulkSelectionMode ? t('dashboard.conversationList.exitSelection', 'Exit') : t('dashboard.conversationList.select', 'Select')}
+                {bulkSelectionMode ? t('dashboard.conversationList.exitSelection', 'Exit') : t('dashboard.conversationList.select', 'Select')}
               </span>
             </Button>
           )}
