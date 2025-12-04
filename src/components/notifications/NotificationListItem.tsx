@@ -7,13 +7,11 @@ import {
   Trash2, 
   ExternalLink,
   Bell,
-  AlertTriangle,
   UserCheck,
-  AtSign,
   Phone,
   MessageSquare,
+  Mail,
   Ticket,
-  Settings,
   Circle
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -35,13 +33,11 @@ const priorityConfig: Record<NotificationPriority, { color: string; label: strin
 
 const getCategoryIcon = (category: string) => {
   switch (category) {
-    case 'urgent': return AlertTriangle;
-    case 'assigned': return UserCheck;
-    case 'mentions': return AtSign;
     case 'calls': return Phone;
-    case 'conversations': return MessageSquare;
+    case 'text': return MessageSquare;
+    case 'email': return Mail;
     case 'tickets': return Ticket;
-    case 'system': return Settings;
+    case 'assigned': return UserCheck;
     default: return Bell;
   }
 };

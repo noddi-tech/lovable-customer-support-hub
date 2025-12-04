@@ -3,15 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
+// Notification categories for tab-based filtering
 export type NotificationCategory = 
   | 'all' 
-  | 'urgent' 
-  | 'assigned' 
-  | 'mentions' 
   | 'calls' 
-  | 'conversations' 
+  | 'text' 
+  | 'email' 
   | 'tickets' 
-  | 'system';
+  | 'assigned';
 
 export type NotificationPriority = 'urgent' | 'high' | 'normal' | 'low';
 
@@ -51,43 +50,37 @@ const getPriority = (notification: any): NotificationPriority => {
   return 'normal';
 };
 
-// Determine category based on notification data
+// Determine notification category based on type and data
 const getCategory = (notification: any, userId: string): NotificationCategory => {
-  const data = notification.data || {};
   const type = notification.type?.toLowerCase() || '';
-  
-  // Check for urgent items first
-  if (type.includes('missed') || type.includes('escalation') || data.overdue) {
-    return 'urgent';
-  }
-  
-  // Check for assignments to current user
-  if (data.assigned_to === userId || data.assigned_to_id === userId) {
-    return 'assigned';
-  }
-  
-  // Check for mentions
-  if (data.mentioned_user_id === userId || type.includes('mention') || type.includes('tag')) {
-    return 'mentions';
-  }
-  
+  const data = notification.data || {};
+
   // Check for calls
-  if (data.call_id) {
+  if (data.call_id || type.includes('call')) {
     return 'calls';
   }
-  
+
+  // Check for text/SMS
+  if (data.sms_id || type.includes('sms') || type.includes('text')) {
+    return 'text';
+  }
+
   // Check for tickets
-  if (data.ticket_id) {
+  if (data.ticket_id || type.includes('ticket')) {
     return 'tickets';
   }
-  
-  // Check for conversations
-  if (data.conversation_id) {
-    return 'conversations';
+
+  // Check for assignments
+  if (data.assigned_to_id === userId || type.includes('assigned')) {
+    return 'assigned';
   }
-  
-  // Default to system
-  return 'system';
+
+  // Check for email/conversations (default for conversation_id)
+  if (data.conversation_id || type.includes('conversation') || type.includes('message') || type.includes('email')) {
+    return 'email';
+  }
+
+  return 'email'; // Default to email category
 };
 
 export const useNotificationFilters = (selectedCategory: NotificationCategory = 'all') => {
@@ -159,37 +152,15 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     return groups;
   }, [filteredNotifications]);
 
-  // Count by category
-  const categoryCounts = useMemo(() => {
-    const counts: Record<NotificationCategory, number> = {
-      all: enhancedNotifications.length,
-      urgent: 0,
-      assigned: 0,
-      mentions: 0,
-      calls: 0,
-      conversations: 0,
-      tickets: 0,
-      system: 0,
-    };
-
-    enhancedNotifications.forEach(n => {
-      counts[n.category]++;
-    });
-
-    return counts;
-  }, [enhancedNotifications]);
-
   // Count unread by category
   const unreadCounts = useMemo(() => {
     const counts: Record<NotificationCategory, number> = {
       all: 0,
-      urgent: 0,
-      assigned: 0,
-      mentions: 0,
       calls: 0,
-      conversations: 0,
+      text: 0,
+      email: 0,
       tickets: 0,
-      system: 0,
+      assigned: 0,
     };
 
     enhancedNotifications.filter(n => !n.is_read).forEach(n => {
@@ -253,7 +224,6 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
   return {
     notifications: filteredNotifications,
     groupedNotifications,
-    categoryCounts,
     unreadCounts,
     isLoading,
     error,
