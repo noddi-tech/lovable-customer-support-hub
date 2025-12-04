@@ -15,10 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2, CheckCircle2, XCircle, Hash, Lock, Send, ExternalLink, Settings, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Hash, Lock, Send, ExternalLink, Settings, Eye, EyeOff, AlertTriangle, Slack } from 'lucide-react';
 import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { SlackSetupWizard } from './SlackSetupWizard';
-import { SiSlack } from 'react-icons/si';
 import { toast } from 'sonner';
 
 const EVENT_OPTIONS = [
@@ -195,7 +194,7 @@ export const SlackIntegrationSettings = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-[#4A154B]/10">
-                <SiSlack className="h-6 w-6 text-[#4A154B]" />
+                <Slack className="h-6 w-6 text-[#4A154B]" />
               </div>
               <div>
                 <CardTitle className="text-lg">Slack Integration</CardTitle>
@@ -330,7 +329,7 @@ export const SlackIntegrationSettings = () => {
                   {getAuthorizationUrl.isPending ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <SiSlack className="h-4 w-4 mr-2" />
+                    <Slack className="h-4 w-4 mr-2" />
                   )}
                   Connect to Slack
                 </Button>
