@@ -2199,6 +2199,59 @@ export type Database = {
           },
         ]
       }
+      slack_integrations: {
+        Row: {
+          access_token: string | null
+          bot_user_id: string | null
+          configuration: Json | null
+          created_at: string | null
+          default_channel_id: string | null
+          default_channel_name: string | null
+          id: string
+          is_active: boolean | null
+          organization_id: string
+          team_id: string | null
+          team_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          bot_user_id?: string | null
+          configuration?: Json | null
+          created_at?: string | null
+          default_channel_id?: string | null
+          default_channel_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_id: string
+          team_id?: string | null
+          team_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          bot_user_id?: string | null
+          configuration?: Json | null
+          created_at?: string | null
+          default_channel_id?: string | null
+          default_channel_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string
+          team_id?: string | null
+          team_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slack_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_email_templates: {
         Row: {
           created_at: string
