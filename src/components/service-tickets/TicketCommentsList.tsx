@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { MentionTextarea } from '@/components/ui/mention-textarea';
+import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { MessageSquare, Lock, Send } from 'lucide-react';
 import { useServiceTicketComments } from '@/hooks/useServiceTicketComments';
+import { useMentionNotifications } from '@/hooks/useMentionNotifications';
 import { formatDistanceToNow } from 'date-fns';
 
 interface TicketCommentsListProps {
@@ -16,7 +18,9 @@ interface TicketCommentsListProps {
 
 export const TicketCommentsList = ({ ticketId }: TicketCommentsListProps) => {
   const { comments, isLoading, addComment } = useServiceTicketComments(ticketId);
+  const { processMentions } = useMentionNotifications();
   const [newComment, setNewComment] = useState('');
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [isInternal, setIsInternal] = useState(false);
 
   const handleSubmit = async () => {
@@ -27,7 +31,16 @@ export const TicketCommentsList = ({ ticketId }: TicketCommentsListProps) => {
       isInternal,
     });
     
+    // Process mentions
+    if (mentionedUserIds.length > 0) {
+      await processMentions(newComment, mentionedUserIds, {
+        type: 'ticket_comment',
+        ticket_id: ticketId,
+      });
+    }
+    
     setNewComment('');
+    setMentionedUserIds([]);
     setIsInternal(false);
   };
 
@@ -40,11 +53,15 @@ export const TicketCommentsList = ({ ticketId }: TicketCommentsListProps) => {
       {/* Add Comment */}
       <Card className="p-4">
         <div className="space-y-3">
-          <Textarea
-            placeholder="Add a comment..."
+          <MentionTextarea
+            placeholder="Add a comment... (Type @ to mention team members)"
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            rows={3}
+            onChange={(value, mentions) => {
+              setNewComment(value);
+              setMentionedUserIds(mentions);
+            }}
+            mentionedUserIds={mentionedUserIds}
+            className="min-h-[80px]"
           />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -104,7 +121,7 @@ export const TicketCommentsList = ({ ticketId }: TicketCommentsListProps) => {
                       {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                     </span>
                   </div>
-                  <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                  <MentionRenderer content={comment.content} className="text-sm" />
                 </div>
               </div>
             </Card>

@@ -10,7 +10,8 @@ export type NotificationCategory =
   | 'text' 
   | 'email' 
   | 'tickets' 
-  | 'assigned';
+  | 'assigned'
+  | 'mentions';
 
 export type NotificationPriority = 'urgent' | 'high' | 'normal' | 'low';
 
@@ -56,6 +57,11 @@ const getCategory = (notification: any, userId: string): NotificationCategory =>
   const type = notification.type?.toLowerCase() || '';
   const data = notification.data || {};
 
+  // Check for mentions FIRST (highest priority)
+  if (type === 'mention' || type.includes('mentioned')) {
+    return 'mentions';
+  }
+
   // Check for calls (incoming, missed, voicemail, callback)
   if (data.call_id || type.includes('call') || type.includes('voicemail') || type.includes('callback')) {
     return 'calls';
@@ -77,9 +83,9 @@ const getCategory = (notification: any, userId: string): NotificationCategory =>
     return 'assigned';
   }
 
-  // Check for email/conversations (customer replies, new emails, mentions)
+  // Check for email/conversations (customer replies, new emails)
   if (data.conversation_id || type.includes('conversation') || type.includes('email') || 
-      type.includes('reply') || type.includes('mention') || type === 'new_conversation' ||
+      type.includes('reply') || type === 'new_conversation' ||
       type === 'customer_reply' || type === 'new_email') {
     return 'email';
   }
@@ -167,6 +173,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       email: 0,
       tickets: 0,
       assigned: 0,
+      mentions: 0,
     };
 
     enhancedNotifications.filter(n => !n.is_read).forEach(n => {

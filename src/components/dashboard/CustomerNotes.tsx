@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { MentionTextarea } from '@/components/ui/mention-textarea';
+import { MentionRenderer } from '@/components/ui/mention-renderer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Edit2, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useMentionNotifications } from '@/hooks/useMentionNotifications';
 
 interface CustomerNote {
   id: string;
@@ -38,14 +40,16 @@ const dummyNotes: CustomerNote[] = [
 
 export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
   const { t } = useTranslation();
+  const { processMentions } = useMentionNotifications();
   const [notes, setNotes] = useState<CustomerNote[]>(dummyNotes);
   const [isAdding, setIsAdding] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState('');
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!noteContent.trim()) return;
 
     const newNote: CustomerNote = {
@@ -55,8 +59,17 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
       created_by: 'Current User', // Will be replaced with actual user
     };
 
+    // Process mentions
+    if (mentionedUserIds.length > 0 && customerId) {
+      await processMentions(noteContent, mentionedUserIds, {
+        type: 'customer_note',
+        customer_id: customerId,
+      });
+    }
+
     setNotes([newNote, ...notes]);
     setNoteContent('');
+    setMentionedUserIds([]);
     setIsAdding(false);
     toast.success('Note added successfully');
   };
@@ -99,6 +112,7 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
 
   const handleCancel = () => {
     setNoteContent('');
+    setMentionedUserIds([]);
     setIsAdding(false);
     setEditingNoteId(null);
   };
@@ -131,11 +145,15 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
         {/* Add new note form */}
         {isAdding && (
           <div className="space-y-2 p-2 border border-border rounded-md bg-muted/50">
-            <Textarea
-              placeholder={t('conversation.enterCustomerNote')}
+            <MentionTextarea
+              placeholder={t('conversation.enterCustomerNote') + ' (Type @ to mention)'}
               value={noteContent}
-              onChange={(e) => setNoteContent(e.target.value)}
-              className="min-h-[60px] resize-none"
+              onChange={(value, mentions) => {
+                setNoteContent(value);
+                setMentionedUserIds(mentions);
+              }}
+              mentionedUserIds={mentionedUserIds}
+              className="min-h-[60px]"
             />
             <div className="flex items-center justify-end space-x-2">
               <Button variant="outline" size="sm" onClick={handleCancel}>
@@ -163,10 +181,14 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
               <div key={note.id} className="group p-2 border border-border rounded-md hover:bg-muted/50 transition-colors">
                 {editingNoteId === note.id ? (
                   <div className="space-y-2">
-                    <Textarea
+                    <MentionTextarea
                       value={noteContent}
-                      onChange={(e) => setNoteContent(e.target.value)}
-                      className="min-h-[60px] resize-none"
+                      onChange={(value, mentions) => {
+                        setNoteContent(value);
+                        setMentionedUserIds(mentions);
+                      }}
+                      mentionedUserIds={mentionedUserIds}
+                      className="min-h-[60px]"
                     />
                     <div className="flex items-center justify-end space-x-2">
                       <Button variant="outline" size="sm" onClick={handleCancel}>
@@ -184,7 +206,7 @@ export const CustomerNotes: React.FC<CustomerNotesProps> = ({ customerId }) => {
                 ) : (
                   <>
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm text-foreground flex-1 min-w-0">{note.content}</p>
+                      <MentionRenderer content={note.content} className="text-sm text-foreground flex-1 min-w-0" />
                       <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         <Button
                           variant="ghost"

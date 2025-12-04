@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
 import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation";
 import { useIsMobile } from "@/hooks/use-responsive";
+import { useMentionNotifications } from "@/hooks/useMentionNotifications";
 import { cn } from "@/lib/utils";
 import { 
   Select,
@@ -52,10 +54,12 @@ export const ReplyArea = () => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const { clearConversation } = useInteractionsNavigation();
+  const { processMentions } = useMentionNotifications();
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const [replyStatus, setReplyStatus] = React.useState<string>('pending');
   const [selectedSuggestionForDialog, setSelectedSuggestionForDialog] = useState<string | null>(null);
   const [originalSuggestionText, setOriginalSuggestionText] = useState<string>('');
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
 
   // Available languages for translation
   const languages = [
@@ -85,10 +89,19 @@ export const ReplyArea = () => {
     try {
       await sendReply(state.replyText, state.isInternalNote, replyStatus);
       
+      // Process mentions for internal notes
+      if (state.isInternalNote && mentionedUserIds.length > 0 && conversation?.id) {
+        await processMentions(state.replyText, mentionedUserIds, {
+          type: 'internal_note',
+          conversation_id: conversation.id,
+        });
+      }
+      
       // Clear reply text and collapse reply area
       dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
       dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
       dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+      setMentionedUserIds([]);
       
       // Navigate back to inbox list
       clearConversation();
@@ -366,22 +379,34 @@ export const ReplyArea = () => {
               </span>
             </div>
           )}
-          <Textarea
-            ref={replyRef}
-            value={state.replyText}
-            onChange={(e) => dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value })}
-            onKeyDown={handleKeyPress}
-            placeholder={state.isInternalNote 
-              ? t('conversation.internalNotePlaceholder')
-              : t('conversation.replyPlaceholder')
-            }
-            className={cn(
-              "min-h-[140px] resize-none transition-colors text-sm",
-              state.isInternalNote && "bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
-            )}
-          />
+          {state.isInternalNote ? (
+            <MentionTextarea
+              value={state.replyText}
+              onChange={(value, mentions) => {
+                dispatch({ type: 'SET_REPLY_TEXT', payload: value });
+                setMentionedUserIds(mentions);
+              }}
+              mentionedUserIds={mentionedUserIds}
+              onKeyDown={handleKeyPress}
+              placeholder={t('conversation.internalNotePlaceholder') + ' (Type @ to mention team members)'}
+              className={cn(
+                "min-h-[140px] resize-none transition-colors text-sm",
+                "bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
+              )}
+            />
+          ) : (
+            <Textarea
+              ref={replyRef}
+              value={state.replyText}
+              onChange={(e) => dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value })}
+              onKeyDown={handleKeyPress}
+              placeholder={t('conversation.replyPlaceholder')}
+              className="min-h-[140px] resize-none transition-colors text-sm"
+            />
+          )}
           <p className="text-xs text-muted-foreground">
             Press <kbd className="px-2 py-1 bg-muted rounded border text-xs font-medium">Ctrl+Enter</kbd> to send
+            {state.isInternalNote && <span className="ml-2">• Type <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">@</kbd> to mention team members</span>}
           </p>
         </div>
 
