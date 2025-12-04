@@ -10,7 +10,8 @@ import {
   ChevronsDown,
   ChevronsUp,
 } from 'lucide-react';
-import { getCustomerDisplay, getCustomerInitial } from '@/utils/customerDisplayName';
+import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';
+import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { ProgressiveMessagesList, ProgressiveMessagesListRef } from '@/components/conversations/ProgressiveMessagesList';
@@ -84,10 +85,13 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
 
   const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
 
-  // Smart customer display to prevent duplicate email
+  // Fetch Noddi data for customer display
+  const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
+
+  // Smart customer display - prioritize Noddi data for the name
   const customerDisplay = useMemo(() => 
-    getCustomerDisplay(conversation.customer?.full_name, conversation.customer?.email),
-    [conversation.customer?.full_name, conversation.customer?.email]
+    getCustomerDisplayWithNoddi(noddiData, conversation.customer?.full_name, conversation.customer?.email),
+    [noddiData, conversation.customer?.full_name, conversation.customer?.email]
   );
 
   const handleToggleAll = () => {

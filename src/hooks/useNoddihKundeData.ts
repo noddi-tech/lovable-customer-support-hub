@@ -198,15 +198,16 @@ export const useNoddihKundeData = (customer: Customer | null, callId?: string) =
 
         // Sync customer to database if found
         if (data?.data?.found && profile.organization_id) {
-          // Prioritize phone from customer object (which should come from call.customer_phone)
-          // Then fallback to phone from Noddi API response
           const phone = customer?.phone || data?.data?.user?.phone;
+          const displayName = data?.data?.ui_meta?.display_name;
           
+          // For phone-based lookups, use existing sync logic
           if (phone && phone.trim() !== '') {
-            console.log('[Noddi API] 💾 Syncing customer to database:', {
+            console.log('[Noddi API] 💾 Syncing customer to database (phone-based):', {
               customerPhone: customer?.phone,
               noddiPhone: data?.data?.user?.phone,
               selectedPhone: phone,
+              displayName,
               organizationId: profile.organization_id
             });
             
@@ -217,9 +218,37 @@ export const useNoddihKundeData = (customer: Customer | null, callId?: string) =
             } else {
               console.warn('[Noddi API] ⚠️ Customer sync returned null');
             }
+          }
+          // For email-only customers, sync the display name back to their record
+          else if (customer?.email && displayName && customer?.id) {
+            const currentName = customer?.full_name?.toLowerCase()?.trim();
+            const emailNormalized = customer?.email?.toLowerCase()?.trim();
+            const displayNameNormalized = displayName?.toLowerCase()?.trim();
+            
+            // Only update if we have a proper name and it's different from email
+            if (displayNameNormalized && displayNameNormalized !== emailNormalized && displayNameNormalized !== currentName) {
+              console.log('[Noddi API] 💾 Syncing display name for email-only customer:', {
+                customerId: customer.id,
+                currentName: customer.full_name,
+                newName: displayName,
+                email: customer.email
+              });
+              
+              const { error: updateError } = await supabase
+                .from('customers')
+                .update({ full_name: displayName })
+                .eq('id', customer.id);
+                
+              if (updateError) {
+                console.warn('[Noddi API] ⚠️ Failed to update customer name:', updateError);
+              } else {
+                console.log('[Noddi API] ✅ Customer name updated to:', displayName);
+              }
+            }
           } else {
-            console.warn('[Noddi API] ⚠️ No phone number available for customer sync', {
+            console.warn('[Noddi API] ⚠️ No phone or email available for customer sync', {
               customerPhone: customer?.phone,
+              customerEmail: customer?.email,
               noddiPhone: data?.data?.user?.phone
             });
           }

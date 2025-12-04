@@ -97,7 +97,7 @@ async function fetchHelpScout(
   throw new Error('Max retries exceeded');
 }
 
-// Import a customer
+// Import a customer - with proper duplicate prevention
 async function importCustomer(
   supabase: any,
   organizationId: string,
@@ -107,24 +107,54 @@ async function importCustomer(
     return { customerId: null, isNew: false };
   }
 
-  const { data: existing } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .or(`email.eq.${customerData.email || ''},phone.eq.${customerData.phone || ''}`)
-    .single();
+  const email = customerData.email?.toLowerCase()?.trim();
+  const phone = customerData.phone?.trim();
+  const fullName = `${customerData.firstName || ''} ${customerData.lastName || ''}`.trim();
 
-  if (existing) {
-    return { customerId: existing.id, isNew: false };
+  // Check for existing customer by email first (most reliable)
+  if (email) {
+    const { data: existingByEmail } = await supabase
+      .from('customers')
+      .select('id, full_name')
+      .eq('organization_id', organizationId)
+      .ilike('email', email)
+      .single();
+
+    if (existingByEmail) {
+      // Update full_name if we have a better one (not email-based)
+      if (fullName && fullName.toLowerCase() !== email && (!existingByEmail.full_name || existingByEmail.full_name.toLowerCase() === email)) {
+        await supabase
+          .from('customers')
+          .update({ full_name: fullName })
+          .eq('id', existingByEmail.id);
+        console.log(`[HelpScout Import] Updated customer name: ${existingByEmail.id} -> ${fullName}`);
+      }
+      return { customerId: existingByEmail.id, isNew: false };
+    }
   }
 
+  // Check for existing customer by phone if no email match
+  if (phone) {
+    const { data: existingByPhone } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('phone', phone)
+      .single();
+
+    if (existingByPhone) {
+      return { customerId: existingByPhone.id, isNew: false };
+    }
+  }
+
+  // Create new customer
   const { data, error } = await supabase
     .from('customers')
     .insert({
       organization_id: organizationId,
-      email: customerData.email,
-      full_name: `${customerData.firstName || ''} ${customerData.lastName || ''}`.trim() || customerData.email,
-      phone: customerData.phone,
+      email: email,
+      full_name: fullName || email,
+      phone: phone,
     })
     .select('id')
     .single();
