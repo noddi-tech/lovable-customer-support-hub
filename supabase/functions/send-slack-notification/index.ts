@@ -9,6 +9,7 @@ interface SlackNotificationRequest {
   organization_id: string;
   event_type: 'new_conversation' | 'customer_reply' | 'assignment' | 'mention' | 'sla_warning' | 'conversation_closed';
   conversation_id?: string;
+  inbox_id?: string;
   customer_name?: string;
   customer_email?: string;
   subject?: string;
@@ -57,6 +58,7 @@ Deno.serve(async (req) => {
       organization_id,
       event_type,
       conversation_id,
+      inbox_id,
       customer_name,
       customer_email,
       subject,
@@ -194,6 +196,11 @@ Deno.serve(async (req) => {
       // Get the app URL from environment or construct from Supabase URL
       const appUrl = Deno.env.get('APP_URL') || 'https://support.noddi.co';
       
+      // Construct URL with query params (inbox + conversation)
+      const conversationUrl = inbox_id 
+        ? `${appUrl}/?inbox=${inbox_id}&c=${conversation_id}`
+        : `${appUrl}/?c=${conversation_id}`;
+      
       attachmentBlocks.push({
         type: 'actions',
         elements: [
@@ -204,8 +211,7 @@ Deno.serve(async (req) => {
               text: '👀 View Conversation',
               emoji: true,
             },
-            url: `${appUrl}/conversations/${conversation_id}`,
-            style: 'primary',
+            url: conversationUrl,
           },
         ],
       });
