@@ -129,6 +129,40 @@ export const useSlackIntegration = () => {
     },
   });
 
+  // Save direct bot token (bypasses OAuth flow)
+  const saveDirectToken = useMutation({
+    mutationFn: async ({ bot_token }: { bot_token: string }) => {
+      if (!currentOrganizationId) throw new Error('No organization selected');
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-oauth?action=save-token`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          bot_token, 
+          organization_id: currentOrganizationId 
+        }),
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data as { success: boolean; team_name: string; team_id: string };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
+      toast.success(`Connected to ${data.team_name}!`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to save token: ${error.message}`);
+    },
+  });
+
   // Get OAuth authorization URL
   const getAuthorizationUrl = useMutation({
     mutationFn: async () => {
@@ -282,5 +316,6 @@ export const useSlackIntegration = () => {
     testConnection,
     testCredentials,
     saveCredentials,
+    saveDirectToken,
   };
 };

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { useOrganizationStore } from '@/stores/organizationStore';
 import { 
@@ -16,7 +17,9 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
-  Slack
+  Slack,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -48,9 +51,15 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
   const [credentialsTested, setCredentialsTested] = useState(false);
   const [isTestingCredentials, setIsTestingCredentials] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Direct token entry state
+  const [showDirectToken, setShowDirectToken] = useState(false);
+  const [directToken, setDirectToken] = useState('');
+  const [showDirectTokenInput, setShowDirectTokenInput] = useState(false);
+  const [isSavingToken, setIsSavingToken] = useState(false);
 
   const { currentOrganizationId } = useOrganizationStore();
-  const { saveCredentials, testCredentials, getAuthorizationUrl } = useSlackIntegration();
+  const { saveCredentials, testCredentials, getAuthorizationUrl, saveDirectToken } = useSlackIntegration();
 
   // Fetch organization name
   const { data: organization } = useQuery({
@@ -117,6 +126,28 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
       toast.error(error.message || 'Failed to save credentials');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveDirectToken = async () => {
+    if (!directToken) {
+      toast.error('Please enter your Bot Token');
+      return;
+    }
+
+    if (!directToken.startsWith('xoxb-')) {
+      toast.error('Bot tokens should start with xoxb-');
+      return;
+    }
+
+    setIsSavingToken(true);
+    try {
+      await saveDirectToken.mutateAsync({ bot_token: directToken });
+      onComplete?.();
+    } catch (error: any) {
+      // Error is already handled by the mutation
+    } finally {
+      setIsSavingToken(false);
     }
   };
 
@@ -290,10 +321,31 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                 </div>
               </div>
 
-              {/* Step 6 */}
+              {/* Step 6 - Enable Distribution */}
               <div className="flex gap-4 p-4 bg-muted/30 rounded-lg">
                 <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
                   6
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium">Enable Distribution (Required for OAuth)</p>
+                  <p className="text-sm text-muted-foreground">
+                    Go to "Manage Distribution" in the sidebar
+                  </p>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                    <li>Complete all checklist items (they should show green checkmarks)</li>
+                    <li>Click <strong>"Activate Public Distribution"</strong> button</li>
+                  </ul>
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-2 rounded text-xs">
+                    <strong className="text-amber-800 dark:text-amber-200">Note:</strong>
+                    <span className="text-amber-700 dark:text-amber-300"> If you don't see "Manage Distribution", ensure all previous steps are complete. This is required even for your own workspace.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 7 */}
+              <div className="flex gap-4 p-4 bg-muted/30 rounded-lg">
+                <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
+                  7
                 </div>
                 <div className="space-y-2">
                   <p className="font-medium">Copy your credentials</p>
@@ -426,6 +478,74 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                 </>
               )}
             </Button>
+
+            {/* Direct Token Entry Backup */}
+            <Collapsible open={showDirectToken} onOpenChange={setShowDirectToken}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full text-muted-foreground text-sm">
+                  {showDirectToken ? (
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 mr-2" />
+                  )}
+                  Having trouble with OAuth? Use direct token entry instead
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    If OAuth isn't working (e.g., "rejected connection" errors), you can paste your Bot Token directly:
+                  </p>
+                  <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                    <li>Go to your Slack App → "Install App" page</li>
+                    <li>Copy the <strong>Bot User OAuth Token</strong> (starts with <code className="bg-muted px-1 rounded">xoxb-</code>)</li>
+                    <li>Paste it below</li>
+                  </ol>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="direct-token">Bot User OAuth Token</Label>
+                  <div className="relative">
+                    <Input
+                      id="direct-token"
+                      type={showDirectTokenInput ? 'text' : 'password'}
+                      value={directToken}
+                      onChange={(e) => setDirectToken(e.target.value)}
+                      placeholder="xoxb-your-token-here"
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={() => setShowDirectTokenInput(!showDirectTokenInput)}
+                    >
+                      {showDirectTokenInput ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSaveDirectToken}
+                  disabled={!directToken || isSavingToken}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {isSavingToken ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving Token...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Save Token & Connect
+                    </>
+                  )}
+                </Button>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         )}
 
@@ -433,22 +553,22 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
         <div className="flex justify-between pt-4 border-t">
           <Button
             variant="outline"
-            onClick={() => setCurrentStep((s) => s - 1)}
+            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
             disabled={currentStep === 0}
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-
-          {currentStep < 3 && (
+          
+          {currentStep < STEPS.length - 1 ? (
             <Button
-              onClick={() => setCurrentStep((s) => s + 1)}
+              onClick={() => setCurrentStep(Math.min(STEPS.length - 1, currentStep + 1))}
               disabled={currentStep === 2 && !credentialsTested}
             >
               Next
-              <ArrowRight className="h-4 w-4 ml-1" />
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
-          )}
+          ) : null}
         </div>
       </CardContent>
     </Card>
