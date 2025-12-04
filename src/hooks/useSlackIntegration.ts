@@ -19,8 +19,6 @@ export interface SlackIntegration {
   default_channel_id: string | null;
   default_channel_name: string | null;
   configuration: SlackIntegrationConfig;
-  client_id: string | null;
-  client_secret: string | null;
   setup_completed: boolean;
   created_at: string;
   updated_at: string;
@@ -60,8 +58,6 @@ export const useSlackIntegration = () => {
           mention_assigned_user: config.mention_assigned_user !== false,
           include_message_preview: config.include_message_preview !== false,
         },
-        client_id: data.client_id || null,
-        client_secret: data.client_secret || null,
         setup_completed: data.setup_completed || false,
       } as SlackIntegration;
     },
@@ -87,49 +83,7 @@ export const useSlackIntegration = () => {
     enabled: !!currentOrganizationId && !!integration?.is_active,
   });
 
-  // Test credentials with Slack API
-  const testCredentials = useMutation({
-    mutationFn: async ({ client_id, client_secret }: { client_id: string; client_secret: string }) => {
-      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-oauth?action=test-credentials`;
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ client_id, client_secret }),
-      });
-
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      return data;
-    },
-  });
-
-  // Save credentials to database
-  const saveCredentials = useMutation({
-    mutationFn: async ({ client_id, client_secret }: { client_id: string; client_secret: string }) => {
-      if (!currentOrganizationId) throw new Error('No organization selected');
-
-      const { error } = await supabase
-        .from('slack_integrations')
-        .upsert({
-          organization_id: currentOrganizationId,
-          client_id,
-          client_secret,
-          setup_completed: false,
-          is_active: false,
-        }, {
-          onConflict: 'organization_id',
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
-    },
-  });
-
-  // Save direct bot token (bypasses OAuth flow)
+  // Save bot token (main connection method)
   const saveDirectToken = useMutation({
     mutationFn: async ({ bot_token }: { bot_token: string }) => {
       if (!currentOrganizationId) throw new Error('No organization selected');
@@ -137,7 +91,7 @@ export const useSlackIntegration = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-oauth?action=save-token`;
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=save-token`;
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -159,32 +113,7 @@ export const useSlackIntegration = () => {
       toast.success(`Connected to ${data.team_name}!`);
     },
     onError: (error: Error) => {
-      toast.error(`Failed to save token: ${error.message}`);
-    },
-  });
-
-  // Get OAuth authorization URL
-  const getAuthorizationUrl = useMutation({
-    mutationFn: async () => {
-      if (!currentOrganizationId) throw new Error('No organization selected');
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-oauth?action=authorize`;
-      const authResponse = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ organization_id: currentOrganizationId }),
-      });
-
-      const data = await authResponse.json();
-      if (data.error) throw new Error(data.error);
-      
-      return data as { authorization_url: string };
+      toast.error(`Failed to connect: ${error.message}`);
     },
   });
 
@@ -196,7 +125,7 @@ export const useSlackIntegration = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-oauth?action=disconnect`;
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=disconnect`;
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -305,17 +234,14 @@ export const useSlackIntegration = () => {
     error,
     refetch,
     isConnected: !!integration?.is_active && !!integration?.team_id,
-    hasCredentials: !!integration?.client_id,
+    hasCredentials: !!integration?.setup_completed,
     setupCompleted: !!integration?.setup_completed,
     channels,
     isLoadingChannels,
     refetchChannels,
-    getAuthorizationUrl,
     disconnectSlack,
     updateConfiguration,
     testConnection,
-    testCredentials,
-    saveCredentials,
     saveDirectToken,
   };
 };
