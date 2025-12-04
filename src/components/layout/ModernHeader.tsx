@@ -31,7 +31,7 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
   onSidebarToggle,
   showSidebarToggle = false
 }) => {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { dateTime, timezone } = useDateFormatting();
@@ -110,10 +110,10 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={user?.user_metadata?.avatar_url} />
+              <Avatar className="h-9 w-9">
+                  <AvatarImage src={profile?.avatar_url || user?.user_metadata?.avatar_url} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                    {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
+                    {profile?.full_name?.[0] || user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -121,7 +121,7 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
             <DropdownMenuContent className="w-64" align="end" forceMount>
               <div className="flex flex-col space-y-1 p-3 border-b border-border">
                 <p className="text-sm font-medium leading-none">
-                  {user?.user_metadata?.full_name || 'User'}
+                  {profile?.full_name || user?.user_metadata?.full_name || 'User'}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.email}
