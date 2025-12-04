@@ -1,7 +1,6 @@
-import { Search, Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus } from "lucide-react";
+import { Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -226,27 +225,8 @@ export const ConversationListHeader = ({
         </div>
       </div>
       
-      {/* Row 2: Search + Sort */}
-      <div className="flex items-center gap-2">
-        {/* Search Bar */}
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3.5 h-3.5" />
-          <Input
-            placeholder={t('dashboard.conversationList.searchPlaceholder', 'Search conversations... (Ctrl+K)')}
-            value={state.searchQuery}
-            onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
-            className="pl-9 h-7 bg-background text-xs"
-          />
-          {state.searchQuery && (
-            <button
-              onClick={() => dispatch({ type: 'SET_SEARCH_QUERY', payload: '' })}
-              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="!w-3 !h-3" />
-            </button>
-          )}
-        </div>
-        
+      {/* Row 2: Sort Only */}
+      <div className="flex items-center justify-end">
         {/* Sort Dropdown */}
         <Select 
           value={state.sortBy} 

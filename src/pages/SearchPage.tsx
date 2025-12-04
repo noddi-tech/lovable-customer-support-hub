@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { SearchResults } from '@/components/search/SearchResults';
 import { SearchFilters } from '@/components/search/SearchFilters';
-import { useGlobalSearch, type SearchFilters as SearchFiltersType } from '@/hooks/useGlobalSearch';
+import { useGlobalSearch, useGlobalSearchCounts, type SearchFilters as SearchFiltersType } from '@/hooks/useGlobalSearch';
 import { useTranslation } from 'react-i18next';
 import debounce from 'lodash.debounce';
 
@@ -47,6 +47,12 @@ const SearchPage = () => {
     enabled: debouncedQuery.length >= 2
   });
   
+  // Get counts for all tabs
+  const { data: counts } = useGlobalSearchCounts({
+    query: debouncedQuery,
+    filters
+  });
+  
   // Get recent searches from localStorage
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
@@ -72,12 +78,6 @@ const SearchPage = () => {
   
   // Flatten paginated results
   const results = data?.pages.flatMap(page => page.results) || [];
-  const totalCount = data?.pages[0]?.totalCount || 0;
-  
-  // Count results by type
-  const conversationCount = activeTab === 'conversations' ? totalCount : 0;
-  const customerCount = activeTab === 'customers' ? totalCount : 0;
-  const messageCount = activeTab === 'messages' ? totalCount : 0;
   
   // Keyboard shortcut
   useEffect(() => {
@@ -181,26 +181,32 @@ const SearchPage = () => {
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col min-h-0">
               <div className="border-b px-6">
-                <TabsList className="h-12 bg-transparent gap-4">
+              <TabsList className="h-12 bg-transparent gap-4">
                   <TabsTrigger value="conversations" className="gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
                     <Mail className="w-4 h-4" />
                     {t('search.conversations', 'Conversations')}
-                    {debouncedQuery.length >= 2 && activeTab === 'conversations' && (
-                      <Badge variant="secondary">{totalCount}</Badge>
+                    {debouncedQuery.length >= 2 && counts?.conversations !== undefined && (
+                      <Badge variant={activeTab === 'conversations' ? 'default' : 'secondary'}>
+                        {counts.conversations}
+                      </Badge>
                     )}
                   </TabsTrigger>
                   <TabsTrigger value="customers" className="gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
                     <Users className="w-4 h-4" />
                     {t('search.customers', 'Customers')}
-                    {debouncedQuery.length >= 2 && activeTab === 'customers' && (
-                      <Badge variant="secondary">{totalCount}</Badge>
+                    {debouncedQuery.length >= 2 && counts?.customers !== undefined && (
+                      <Badge variant={activeTab === 'customers' ? 'default' : 'secondary'}>
+                        {counts.customers}
+                      </Badge>
                     )}
                   </TabsTrigger>
                   <TabsTrigger value="messages" className="gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
                     <MessageSquare className="w-4 h-4" />
                     {t('search.messages', 'Messages')}
-                    {debouncedQuery.length >= 2 && activeTab === 'messages' && (
-                      <Badge variant="secondary">{totalCount}</Badge>
+                    {debouncedQuery.length >= 2 && counts?.messages !== undefined && (
+                      <Badge variant={activeTab === 'messages' ? 'default' : 'secondary'}>
+                        {counts.messages}
+                      </Badge>
                     )}
                   </TabsTrigger>
                 </TabsList>
