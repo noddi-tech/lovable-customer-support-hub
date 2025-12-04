@@ -119,11 +119,19 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
     const htmlTagPattern = /<\/?[a-z][\s\S]*>/i;
     const hasHTMLTags = htmlTagPattern.test(content);
     
-    // If only wrapped in a single <p> tag, treat as plain text
+    // If only wrapped in a single <p> or <pre> tag, treat as plain text
     if (hasHTMLTags) {
       const pTagCount = (content.match(/<p[\s>]/gi) || []).length;
-      if (pTagCount === 1) {
-        return false; // Single paragraph = plain text
+      const preTagCount = (content.match(/<pre[\s>]/gi) || []).length;
+      const totalSimpleTags = pTagCount + preTagCount;
+      
+      // Single wrapper tag with no other HTML = plain text
+      if (totalSimpleTags === 1 && pTagCount <= 1 && preTagCount <= 1) {
+        // Make sure there are no other significant HTML tags
+        const otherTags = content.match(/<(?!\/?(p|pre|br)\b)[a-z][^>]*>/gi) || [];
+        if (otherTags.length === 0) {
+          return false;
+        }
       }
     }
     
@@ -159,8 +167,15 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       const alreadyWrapped = /class=\"email-render\"/.test(normalized);
       result = alreadyWrapped ? normalized : sanitizeEmailHTML(normalized, attachments, true, messageId);
     } else {
+      // Strip single wrapper tags (p, pre) that shouldn't be there for plain text
+      let cleanContent = normalized;
+      const singlePMatch = cleanContent.match(/^<p[^>]*>([\s\S]*)<\/p>$/i);
+      const singlePreMatch = cleanContent.match(/^<pre[^>]*>([\s\S]*)<\/pre>$/i);
+      if (singlePMatch) cleanContent = singlePMatch[1];
+      else if (singlePreMatch) cleanContent = singlePreMatch[1];
+      
       // For plain text, format the decoded content (converts <br/> to newlines)
-      result = formatPlainTextEmail(normalized);
+      result = formatPlainTextEmail(cleanContent);
     }
     
     logger.timeEnd('processedContent', 'EmailRender');
