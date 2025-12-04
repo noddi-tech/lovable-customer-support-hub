@@ -13,6 +13,7 @@ import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { useTranslation } from 'react-i18next';
 import { SLABadge } from './SLABadge';
 import { formatDistanceToNow } from 'date-fns';
+import { getCustomerDisplay, getCustomerInitial } from '@/utils/customerDisplayName';
 
 const priorityColors = {
   low: "bg-muted text-muted-foreground",
@@ -63,8 +64,13 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
 
   const computedValues = useMemo(() => {
     const ChannelIcon = channelIcons[conversation.channel] || MessageCircle;
-    const customerName = conversation.customer?.full_name || 'Unknown';
-    const customerEmail = conversation.customer?.email || '';
+    
+    // Use smart display logic to prevent duplicate email display
+    const customerDisplay = getCustomerDisplay(
+      conversation.customer?.full_name,
+      conversation.customer?.email
+    );
+    
     const subjectText = conversation.subject || t('dashboard.conversation.noSubject', 'No Subject');
     const statusLabel = t(`conversation.${conversation.status}`, conversation.status);
     const priorityLabel = t(`conversation.${conversation.priority}`, conversation.priority);
@@ -76,13 +82,13 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
 
     return {
       ChannelIcon,
-      customerName,
-      customerEmail,
+      customerName: customerDisplay.displayName,
+      customerEmail: customerDisplay.showEmail ? customerDisplay.email : null,
       subjectText,
       statusLabel,
       priorityLabel,
       waitingTime,
-      customerInitial: customerName[0] || 'C',
+      customerInitial: getCustomerInitial(conversation.customer?.full_name, conversation.customer?.email),
       formattedTime: formatConversationTime(conversation.updated_at),
     };
   }, [conversation, t, formatConversationTime]);

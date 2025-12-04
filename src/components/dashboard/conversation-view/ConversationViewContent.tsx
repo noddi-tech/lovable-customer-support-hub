@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import {
   ChevronsDown,
   ChevronsUp,
 } from 'lucide-react';
+import { getCustomerDisplay, getCustomerInitial } from '@/utils/customerDisplayName';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { ProgressiveMessagesList, ProgressiveMessagesListRef } from '@/components/conversations/ProgressiveMessagesList';
@@ -83,6 +84,12 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
 
   const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
 
+  // Smart customer display to prevent duplicate email
+  const customerDisplay = useMemo(() => 
+    getCustomerDisplay(conversation.customer?.full_name, conversation.customer?.email),
+    [conversation.customer?.full_name, conversation.customer?.email]
+  );
+
   const handleToggleAll = () => {
     messagesListRef.current?.toggleAllMessages();
     setAllExpanded(messagesListRef.current?.allExpanded ?? false);
@@ -127,16 +134,18 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               <div className="flex items-center gap-4 min-w-0">
                 <Avatar className="h-14 w-14 ring-2 ring-border shrink-0">
                   <AvatarFallback className="text-xl font-bold">
-                    {(conversation.customer?.full_name || conversation.customer?.email || 'U').charAt(0).toUpperCase()}
+                    {getCustomerInitial(conversation.customer?.full_name, conversation.customer?.email)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <h1 className="text-xl font-bold mb-1">
-                    {conversation.customer?.full_name || 'Unknown Customer'}
+                    {customerDisplay.displayName}
                   </h1>
-                  <p className="text-sm text-muted-foreground">
-                    {conversation.customer?.email}
-                  </p>
+                  {customerDisplay.showEmail && customerDisplay.email && (
+                    <p className="text-sm text-muted-foreground">
+                      {customerDisplay.email}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
