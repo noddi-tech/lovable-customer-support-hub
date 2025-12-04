@@ -125,7 +125,7 @@ export const AppMainNav = () => {
                               <Icon className="mr-2 h-4 w-4" />
                               {/* Badge dot on icon when collapsed */}
                               {showBadge && isCollapsed && (
-                                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
+                                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
                               )}
                             </div>
                             {!isCollapsed && (
