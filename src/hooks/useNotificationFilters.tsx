@@ -5,7 +5,7 @@ import { useAuth } from './useAuth';
 
 // Notification categories for tab-based filtering
 export type NotificationCategory = 
-  | 'all' 
+  | 'unread' 
   | 'calls' 
   | 'text' 
   | 'email' 
@@ -87,7 +87,7 @@ const getCategory = (notification: any, userId: string): NotificationCategory =>
   return 'email'; // Default to email category
 };
 
-export const useNotificationFilters = (selectedCategory: NotificationCategory = 'all') => {
+export const useNotificationFilters = (selectedCategory: NotificationCategory = 'unread') => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -122,7 +122,9 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
 
   // Filter notifications by category
   const filteredNotifications = useMemo(() => {
-    if (selectedCategory === 'all') return enhancedNotifications;
+    if (selectedCategory === 'unread') {
+      return enhancedNotifications.filter(n => !n.is_read);
+    }
     return enhancedNotifications.filter(n => n.category === selectedCategory);
   }, [enhancedNotifications, selectedCategory]);
 
@@ -159,7 +161,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
   // Count unread by category
   const unreadCounts = useMemo(() => {
     const counts: Record<NotificationCategory, number> = {
-      all: 0,
+      unread: 0,
       calls: 0,
       text: 0,
       email: 0,
@@ -168,7 +170,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     };
 
     enhancedNotifications.filter(n => !n.is_read).forEach(n => {
-      counts.all++;
+      counts.unread++;
       counts[n.category]++;
     });
 
