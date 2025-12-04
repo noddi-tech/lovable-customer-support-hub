@@ -1,5 +1,6 @@
 import React from 'react';
-import { MasterDetailShell, InboxList } from '@/components/admin/design/components/layouts';
+import { MasterDetailShell } from '@/components/admin/design/components/layouts';
+import { InboxList } from '@/components/layout/InboxList';
 import { EntityListRow } from '@/components/admin/design/components/lists';
 import { ReplySidebar } from '@/components/admin/design/components/detail';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';

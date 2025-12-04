@@ -40,7 +40,7 @@ vi.mock("@/components/admin/design/components/detail/ReplySidebar", () => ({
   ReplySidebar: (props: any) => <div data-testid="reply-sidebar">Reply Sidebar</div>,
 }));
 
-vi.mock("@/components/admin/design/components/layouts/InboxList", () => ({
+vi.mock("@/components/layout/InboxList", () => ({
   InboxList: () => <div data-testid="inbox-list">Inbox List</div>,
 }));
 

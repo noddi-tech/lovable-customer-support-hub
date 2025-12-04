@@ -1,3 +1,8 @@
+/**
+ * @deprecated This sidebar component is NOT used on the main interactions page.
+ * The main sidebar is: @/components/layout/InboxList.tsx
+ * This file is kept for potential legacy usage but should not be edited for main app changes.
+ */
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

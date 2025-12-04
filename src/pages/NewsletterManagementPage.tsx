@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
 import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
 import { ReplySidebar } from '@/components/admin/design/components/detail/ReplySidebar';
-import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
+import { InboxList } from '@/components/layout/InboxList';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
