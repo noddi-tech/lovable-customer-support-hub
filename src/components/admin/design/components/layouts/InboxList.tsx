@@ -62,20 +62,43 @@ export const InboxList: React.FC<InboxListProps> = ({
     <div className={cn("space-y-4", className)}>
       {/* Inbox Selector */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-foreground/70 px-2">Workspace</h3>
+        <h3 className="text-sm font-semibold text-foreground/70 px-2">Inboxes</h3>
         
         {inboxesLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select value={selectedInbox || ''} onValueChange={onInboxSelect}>
             <SelectTrigger className="w-full bg-background border-border focus:ring-ring">
-              <SelectValue placeholder="Select inbox" />
+              <div className="flex items-center gap-2">
+                {selectedInbox && selectedInbox !== 'all' ? (
+                  <>
+                    <div 
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: inboxes.find(i => i.id === selectedInbox)?.color || '#6B7280' }}
+                    />
+                    <span className="truncate">{inboxes.find(i => i.id === selectedInbox)?.name || 'Select inbox'}</span>
+                  </>
+                ) : (
+                  <span>All Inboxes</span>
+                )}
+              </div>
             </SelectTrigger>
             <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">All Inboxes</SelectItem>
+              <SelectItem value="all">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
+                  <span>All Inboxes</span>
+                </div>
+              </SelectItem>
               {inboxes.map((inbox) => (
                 <SelectItem key={inbox.id} value={inbox.id}>
-                  {inbox.name}
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: inbox.color || '#6B7280' }}
+                    />
+                    <span>{inbox.name}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>

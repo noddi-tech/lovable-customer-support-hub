@@ -1,4 +1,4 @@
-import { Search, Filter, Inbox, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus } from "lucide-react";
+import { Search, Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ConversationListFilters } from "./ConversationListFilters";
-import { InboxSwitcher } from "../InboxSwitcher";
 import { ConversationMigrator } from "../ConversationMigrator";
 import { ThreadMerger } from "../ThreadMerger";
 import { NewConversationDialog } from "../NewConversationDialog";
@@ -100,18 +99,15 @@ export const ConversationListHeader = ({
 
   return (
     <div className="flex-shrink-0 p-2 md:p-3 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
-      {/* Row 1: Inbox Switcher + Unread Count + Select + Actions */}
+      {/* Row 1: Actions */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <InboxSwitcher 
-            selectedInboxId={selectedInboxId}
-            onInboxChange={onInboxChange || (() => {})}
-            className="h-7 text-xs"
-            disabled={isLoadingAll || isFetchingNextPage}
-          />
-          <Badge variant="destructive" className="h-4 px-1.5 text-xs">
-            {unreadCount}
-          </Badge>
+          {/* Unread Count Badge */}
+          {unreadCount > 0 && (
+            <Badge variant="destructive" className="h-5 px-2 text-xs">
+              {unreadCount} unread
+            </Badge>
+          )}
           
           {/* Select Button for Bulk Operations */}
           {onToggleBulkMode && (
