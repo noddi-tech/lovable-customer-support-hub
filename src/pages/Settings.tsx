@@ -17,6 +17,7 @@ import { DepartmentManagement } from '@/components/admin/DepartmentManagement';
 import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
 import { LanguageSettings } from '@/components/settings/LanguageSettings';
 import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
+import { UserNotificationSettings } from '@/components/settings/UserNotificationSettings';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -94,21 +95,7 @@ export default function Settings() {
         );
       
       case '/settings/notifications':
-        return (
-          <ResponsiveGrid cols={{ sm: '1', md: '2' }} gap="6">
-            <LayoutItem>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notification Settings</CardTitle>
-                  <CardDescription>Configure your notification preferences</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">Notification settings coming soon</p>
-                </CardContent>
-              </Card>
-            </LayoutItem>
-          </ResponsiveGrid>
-        );
+        return <UserNotificationSettings />;
       
       case '/settings/departments':
         return <DepartmentManagement />;
