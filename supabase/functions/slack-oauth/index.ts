@@ -162,7 +162,9 @@ Deno.serve(async (req) => {
       }
 
       // Redirect back to admin page with success
-      const redirectUrl = `${url.origin}/admin/integrations?slack=connected`;
+      // Use the app's base URL, not the Supabase function URL
+      const appBaseUrl = Deno.env.get('APP_BASE_URL') || 'https://qgfaycwsangsqzpveoup.lovableproject.com';
+      const redirectUrl = `${appBaseUrl}/admin/integrations?slack=connected`;
       return Response.redirect(redirectUrl, 302);
     }
 
