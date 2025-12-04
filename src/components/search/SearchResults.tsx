@@ -19,6 +19,26 @@ interface SearchResultsProps {
   onSelectCustomer?: (id: string) => void;
 }
 
+// Strip HTML tags from text
+const stripHtmlTags = (html: string): string => {
+  if (!html) return '';
+  // Remove style and script contents
+  let result = html.replace(/<style[^>]*>.*?<\/style>/gi, '');
+  result = result.replace(/<script[^>]*>.*?<\/script>/gi, '');
+  // Strip all HTML tags
+  result = result.replace(/<[^>]*>/g, '');
+  // Decode common entities
+  result = result.replace(/&nbsp;/g, ' ');
+  result = result.replace(/&amp;/g, '&');
+  result = result.replace(/&lt;/g, '<');
+  result = result.replace(/&gt;/g, '>');
+  result = result.replace(/&quot;/g, '"');
+  result = result.replace(/&#39;/g, "'");
+  // Clean excessive whitespace
+  result = result.replace(/\s+/g, ' ').trim();
+  return result;
+};
+
 // Highlight matching text
 const HighlightText = ({ text, query }: { text: string; query: string }) => {
   if (!query || !text) return <>{text}</>;
@@ -161,7 +181,7 @@ const MessageResult = memo(({
           </p>
         )}
         <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-          <HighlightText text={result.content || result.preview || ''} query={query} />
+          <HighlightText text={stripHtmlTags(result.content || result.preview || '').substring(0, 200)} query={query} />
         </p>
         {result.created_at && (
           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">

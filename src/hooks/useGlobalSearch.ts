@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SearchFilters {
@@ -59,6 +59,14 @@ export const useGlobalSearch = ({
       
       // Build the search query based on type
       if (type === 'conversations') {
+        // First, find customers matching the search query
+        const { data: matchingCustomers } = await supabase
+          .from('customers')
+          .select('id')
+          .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`);
+        
+        const customerIds = matchingCustomers?.map(c => c.id) || [];
+        
         let queryBuilder = supabase
           .from('conversations')
           .select(`
@@ -71,8 +79,16 @@ export const useGlobalSearch = ({
             inbox_id,
             customer:customers(id, full_name, email),
             inbox:inboxes(id, name)
-          `, { count: 'exact' })
-          .or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%`)
+          `, { count: 'exact' });
+        
+        // Search in subject, preview_text, OR if customer matches
+        if (customerIds.length > 0) {
+          queryBuilder = queryBuilder.or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%,customer_id.in.(${customerIds.join(',')})`);
+        } else {
+          queryBuilder = queryBuilder.or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%`);
+        }
+        
+        queryBuilder = queryBuilder
           .order('updated_at', { ascending: false })
           .range(pageParam, pageParam + pageSize - 1);
         
@@ -211,5 +227,66 @@ export const useGlobalSearch = ({
     getNextPageParam: (lastPage) => {
       return lastPage.nextOffset < lastPage.totalCount ? lastPage.nextOffset : undefined;
     },
+  });
+};
+
+// Hook to get counts for all search types
+export const useGlobalSearchCounts = ({ query, filters = {} }: { query: string; filters?: SearchFilters }) => {
+  return useQuery({
+    queryKey: ['global-search-counts', query, filters],
+    enabled: query.length >= 2,
+    queryFn: async () => {
+      // Run all 3 count queries in parallel
+      const [conversationsResult, customersResult, messagesResult] = await Promise.all([
+        // Conversations count - include customer name search
+        (async () => {
+          const { data: matchingCustomers } = await supabase
+            .from('customers')
+            .select('id')
+            .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`);
+          
+          const customerIds = matchingCustomers?.map(c => c.id) || [];
+          
+          let qb = supabase
+            .from('conversations')
+            .select('id', { count: 'exact', head: true });
+          
+          if (customerIds.length > 0) {
+            qb = qb.or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%,customer_id.in.(${customerIds.join(',')})`);
+          } else {
+            qb = qb.or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%`);
+          }
+          
+          // Apply filters
+          if (filters.status && filters.status !== 'all') {
+            qb = qb.eq('status', filters.status);
+          }
+          if (filters.inboxId && filters.inboxId !== 'all') {
+            qb = qb.eq('inbox_id', filters.inboxId);
+          }
+          
+          return qb;
+        })(),
+        
+        // Customers count
+        supabase
+          .from('customers')
+          .select('id', { count: 'exact', head: true })
+          .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`),
+        
+        // Messages count
+        supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .ilike('content', `%${query}%`)
+      ]);
+      
+      return {
+        conversations: conversationsResult.count || 0,
+        customers: customersResult.count || 0,
+        messages: messagesResult.count || 0
+      };
+    },
+    staleTime: 30000, // Cache for 30 seconds
   });
 };
