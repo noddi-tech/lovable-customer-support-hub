@@ -17,7 +17,8 @@ import {
   Wrench,
   Inbox,
   Bug,
-  Download
+  Download,
+  Search
 } from "lucide-react";
 
 export type NavItem = {
@@ -31,6 +32,15 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
+  // Search - Global search page
+  { 
+    id: "search", 
+    label: "Search", 
+    to: "/search", 
+    icon: Search, 
+    group: "notifications"
+  },
+  
   // Notifications - Above interactions
   { 
     id: "notifications", 

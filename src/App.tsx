@@ -42,6 +42,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import SuperAdminImport from "./pages/SuperAdminImport";
+import SearchPage from "./pages/SearchPage";
 import "@/lib/i18n";
 import "@/styles/controls.css";
 
@@ -98,6 +99,9 @@ const AppContent = () => {
     <>
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      
+      {/* Global Search */}
+      <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
       
       {/* Notifications */}
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
