@@ -273,21 +273,20 @@ export function NotificationDropdown() {
             )}
           </ScrollArea>
           
-          {notifications.length > 0 && (
-            <>
-              <Separator />
-              <div className="p-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => setOpen(false)}
-                >
-                  {t('dashboard.notifications.close')}
-                </Button>
-              </div>
-            </>
-          )}
+          <Separator />
+          <div className="p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => {
+                setOpen(false);
+                navigate('/notifications');
+              }}
+            >
+              {t('dashboard.notifications.viewAll', 'View all notifications')}
+            </Button>
+          </div>
         </PopoverContent>
       </Popover>
 
