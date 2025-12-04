@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { NotificationFilters } from '@/components/notifications/NotificationFilters';
+import { NotificationTabs } from '@/components/notifications/NotificationTabs';
 import { NotificationListItem } from '@/components/notifications/NotificationListItem';
 import { useNotificationFilters, NotificationCategory, EnhancedNotification } from '@/hooks/useNotificationFilters';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Bell, CheckCheck, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -19,7 +18,6 @@ const NotificationsPage = () => {
   const {
     notifications,
     groupedNotifications,
-    categoryCounts,
     unreadCounts,
     isLoading,
     refetch,
@@ -88,120 +86,116 @@ const NotificationsPage = () => {
 
   return (
     <UnifiedAppLayout>
-      <div className="flex h-full">
-        {/* Filters Sidebar */}
-        <NotificationFilters
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-          categoryCounts={categoryCounts}
-          unreadCounts={unreadCounts}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <div className="border-b border-border px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <h1 className="text-xl font-semibold">Notifications</h1>
-                {unreadCounts.all > 0 && (
-                  <span className="text-sm text-muted-foreground">
-                    {unreadCounts.all} unread
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-2">
+      <div className="flex flex-col h-full">
+        {/* Header with Tabs */}
+        <div className="border-b border-border px-6 py-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              <h1 className="text-xl font-semibold">Notifications</h1>
+              {unreadCounts.all > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {unreadCounts.all} unread
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                className="h-8"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
+              {unreadCounts.all > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => refetch()}
+                  onClick={handleMarkAllAsRead}
+                  disabled={isMarkingAllRead}
                   className="h-8"
                 >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Refresh
+                  <CheckCheck className="h-4 w-4 mr-1" />
+                  Mark all as read
                 </Button>
-                {unreadCounts.all > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleMarkAllAsRead}
-                    disabled={isMarkingAllRead}
-                    className="h-8"
-                  >
-                    <CheckCheck className="h-4 w-4 mr-1" />
-                    Mark all as read
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Search */}
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search notifications..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9"
-              />
+              )}
             </div>
           </div>
 
-          {/* Notifications List */}
-          <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="p-4 space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-start gap-4 p-4">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-1/3" />
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-2/3" />
-                    </div>
+          {/* Tabs */}
+          <NotificationTabs
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            unreadCounts={unreadCounts}
+          />
+
+          {/* Search */}
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search notifications..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+        </div>
+
+        {/* Notifications List */}
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="p-4 space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-start gap-4 p-4">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
                   </div>
-                ))}
-              </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                <Bell className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-1">
-                  No notifications
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {searchQuery 
-                    ? 'No notifications match your search'
-                    : selectedCategory === 'all' 
-                      ? "You're all caught up!"
-                      : `No ${selectedCategory} notifications`
-                  }
-                </p>
-              </div>
-            ) : searchQuery ? (
-              // Show flat list when searching
-              <div>
-                {filteredNotifications.map(notification => (
-                  <NotificationListItem
-                    key={notification.id}
-                    notification={notification}
-                    onMarkAsRead={markAsRead}
-                    onDelete={handleDelete}
-                    onNavigate={handleNavigate}
-                  />
-                ))}
-              </div>
-            ) : (
-              // Show grouped list
-              <div>
-                {renderNotificationGroup('Today', groupedNotifications.today)}
-                {renderNotificationGroup('Yesterday', groupedNotifications.yesterday)}
-                {renderNotificationGroup('This Week', groupedNotifications.thisWeek)}
-                {renderNotificationGroup('Earlier', groupedNotifications.earlier)}
-              </div>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <Bell className="h-12 w-12 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-medium text-muted-foreground mb-1">
+                No notifications
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {searchQuery 
+                  ? 'No notifications match your search'
+                  : selectedCategory === 'all' 
+                    ? "You're all caught up!"
+                    : `No ${selectedCategory} notifications`
+                }
+              </p>
+            </div>
+          ) : searchQuery ? (
+            // Show flat list when searching
+            <div>
+              {filteredNotifications.map(notification => (
+                <NotificationListItem
+                  key={notification.id}
+                  notification={notification}
+                  onMarkAsRead={markAsRead}
+                  onDelete={handleDelete}
+                  onNavigate={handleNavigate}
+                />
+              ))}
+            </div>
+          ) : (
+            // Show grouped list
+            <div>
+              {renderNotificationGroup('Today', groupedNotifications.today)}
+              {renderNotificationGroup('Yesterday', groupedNotifications.yesterday)}
+              {renderNotificationGroup('This Week', groupedNotifications.thisWeek)}
+              {renderNotificationGroup('Earlier', groupedNotifications.earlier)}
+            </div>
+          )}
         </div>
       </div>
     </UnifiedAppLayout>
