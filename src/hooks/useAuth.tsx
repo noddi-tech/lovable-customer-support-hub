@@ -15,6 +15,8 @@ export interface UserProfile {
   organization_id: string | null;
   department_id: string | null;
   is_active: boolean;
+  avatar_url: string | null;
+  created_at: string;
 }
 
 export const useAuth = () => {

@@ -18,6 +18,7 @@ import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettin
 import { LanguageSettings } from '@/components/settings/LanguageSettings';
 import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 import { UserNotificationSettings } from '@/components/settings/UserNotificationSettings';
+import { UserProfileSettings } from '@/components/settings/UserProfileSettings';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -78,21 +79,7 @@ export default function Settings() {
         );
       
       case '/settings/profile':
-        return (
-          <ResponsiveGrid cols={{ sm: '1', md: '2', lg: '3' }} gap="6">
-            <LayoutItem>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Settings</CardTitle>
-                  <CardDescription>Manage your personal profile information</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">Profile management coming soon</p>
-                </CardContent>
-              </Card>
-            </LayoutItem>
-          </ResponsiveGrid>
-        );
+        return <UserProfileSettings />;
       
       case '/settings/notifications':
         return <UserNotificationSettings />;
