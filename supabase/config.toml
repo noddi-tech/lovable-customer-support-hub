@@ -149,3 +149,12 @@ verify_jwt = true
 [functions.process-mention-notifications]
 verify_jwt = true
 
+[functions.slack-oauth]
+verify_jwt = false
+
+[functions.slack-list-channels]
+verify_jwt = true
+
+[functions.send-slack-notification]
+verify_jwt = false
+

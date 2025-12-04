@@ -3,13 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { EmailAccountConnection } from '@/components/dashboard/EmailAccountConnection';
 import { Separator } from '@/components/ui/separator';
-import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox } from 'lucide-react';
+import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { InboxManagement } from '@/components/admin/InboxManagement';
 import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
+import { SlackIntegrationSettings } from './SlackIntegrationSettings';
 import { useTranslation } from 'react-i18next';
 
 export const IntegrationSettings = () => {
@@ -61,6 +62,10 @@ export const IntegrationSettings = () => {
           <ResponsiveTabsTrigger value="voice">
             <Phone className="w-4 h-4" aria-hidden />
             <span>{t('admin.voice')}</span>
+          </ResponsiveTabsTrigger>
+          <ResponsiveTabsTrigger value="notifications">
+            <Bell className="w-4 h-4" aria-hidden />
+            <span>Notifications</span>
           </ResponsiveTabsTrigger>
         </ResponsiveTabsList>
 
@@ -171,6 +176,11 @@ export const IntegrationSettings = () => {
               <VoiceIntegrationsList />
             </CardContent>
           </Card>
+        </ResponsiveTabsContent>
+
+        {/* Notifications Integration Tab */}
+        <ResponsiveTabsContent value="notifications" className="space-y-6">
+          <SlackIntegrationSettings />
         </ResponsiveTabsContent>
       </ResponsiveTabs>
     </div>
