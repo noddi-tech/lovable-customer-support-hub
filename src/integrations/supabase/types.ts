@@ -1327,16 +1327,29 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          app_on_conversation_assigned: boolean | null
+          app_on_customer_reply: boolean | null
+          app_on_incoming_call: boolean | null
+          app_on_mention: boolean | null
+          app_on_missed_call: boolean | null
+          app_on_new_email: boolean | null
           app_on_sla_breach: boolean | null
           app_on_ticket_assigned: boolean | null
           app_on_ticket_commented: boolean | null
           app_on_ticket_updated: boolean | null
+          app_on_voicemail: boolean | null
           created_at: string
           daily_digest_enabled: boolean | null
+          email_on_conversation_assigned: boolean | null
+          email_on_customer_reply: boolean | null
+          email_on_mention: boolean | null
+          email_on_missed_call: boolean | null
+          email_on_new_email: boolean | null
           email_on_sla_breach: boolean | null
           email_on_ticket_assigned: boolean | null
           email_on_ticket_commented: boolean | null
           email_on_ticket_updated: boolean | null
+          email_on_voicemail: boolean | null
           id: string
           organization_id: string
           updated_at: string
@@ -1344,16 +1357,29 @@ export type Database = {
           weekly_digest_enabled: boolean | null
         }
         Insert: {
+          app_on_conversation_assigned?: boolean | null
+          app_on_customer_reply?: boolean | null
+          app_on_incoming_call?: boolean | null
+          app_on_mention?: boolean | null
+          app_on_missed_call?: boolean | null
+          app_on_new_email?: boolean | null
           app_on_sla_breach?: boolean | null
           app_on_ticket_assigned?: boolean | null
           app_on_ticket_commented?: boolean | null
           app_on_ticket_updated?: boolean | null
+          app_on_voicemail?: boolean | null
           created_at?: string
           daily_digest_enabled?: boolean | null
+          email_on_conversation_assigned?: boolean | null
+          email_on_customer_reply?: boolean | null
+          email_on_mention?: boolean | null
+          email_on_missed_call?: boolean | null
+          email_on_new_email?: boolean | null
           email_on_sla_breach?: boolean | null
           email_on_ticket_assigned?: boolean | null
           email_on_ticket_commented?: boolean | null
           email_on_ticket_updated?: boolean | null
+          email_on_voicemail?: boolean | null
           id?: string
           organization_id: string
           updated_at?: string
@@ -1361,16 +1387,29 @@ export type Database = {
           weekly_digest_enabled?: boolean | null
         }
         Update: {
+          app_on_conversation_assigned?: boolean | null
+          app_on_customer_reply?: boolean | null
+          app_on_incoming_call?: boolean | null
+          app_on_mention?: boolean | null
+          app_on_missed_call?: boolean | null
+          app_on_new_email?: boolean | null
           app_on_sla_breach?: boolean | null
           app_on_ticket_assigned?: boolean | null
           app_on_ticket_commented?: boolean | null
           app_on_ticket_updated?: boolean | null
+          app_on_voicemail?: boolean | null
           created_at?: string
           daily_digest_enabled?: boolean | null
+          email_on_conversation_assigned?: boolean | null
+          email_on_customer_reply?: boolean | null
+          email_on_mention?: boolean | null
+          email_on_missed_call?: boolean | null
+          email_on_new_email?: boolean | null
           email_on_sla_breach?: boolean | null
           email_on_ticket_assigned?: boolean | null
           email_on_ticket_commented?: boolean | null
           email_on_ticket_updated?: boolean | null
+          email_on_voicemail?: boolean | null
           id?: string
           organization_id?: string
           updated_at?: string

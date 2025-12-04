@@ -7,6 +7,23 @@ export interface NotificationPreferences {
   id: string;
   user_id: string;
   organization_id: string;
+  // Conversation/Email notifications
+  email_on_conversation_assigned: boolean;
+  email_on_new_email: boolean;
+  email_on_customer_reply: boolean;
+  app_on_conversation_assigned: boolean;
+  app_on_new_email: boolean;
+  app_on_customer_reply: boolean;
+  // Call notifications
+  email_on_missed_call: boolean;
+  email_on_voicemail: boolean;
+  app_on_incoming_call: boolean;
+  app_on_missed_call: boolean;
+  app_on_voicemail: boolean;
+  // Mention notifications
+  email_on_mention: boolean;
+  app_on_mention: boolean;
+  // Ticket notifications (legacy)
   email_on_ticket_assigned: boolean;
   email_on_ticket_updated: boolean;
   email_on_ticket_commented: boolean;
@@ -15,6 +32,7 @@ export interface NotificationPreferences {
   app_on_ticket_updated: boolean;
   app_on_ticket_commented: boolean;
   app_on_sla_breach: boolean;
+  // Digest settings
   daily_digest_enabled: boolean;
   weekly_digest_enabled: boolean;
 }
@@ -44,6 +62,23 @@ export function useNotificationPreferences() {
           .insert({
             user_id: user.id,
             organization_id: profile.organization_id,
+            // Conversation/Email defaults
+            email_on_conversation_assigned: true,
+            email_on_new_email: true,
+            email_on_customer_reply: true,
+            app_on_conversation_assigned: true,
+            app_on_new_email: true,
+            app_on_customer_reply: true,
+            // Call defaults
+            email_on_missed_call: true,
+            email_on_voicemail: false,
+            app_on_incoming_call: true,
+            app_on_missed_call: true,
+            app_on_voicemail: true,
+            // Mention defaults
+            email_on_mention: true,
+            app_on_mention: true,
+            // Ticket defaults (legacy)
             email_on_ticket_assigned: true,
             email_on_ticket_updated: false,
             email_on_ticket_commented: true,
@@ -52,6 +87,7 @@ export function useNotificationPreferences() {
             app_on_ticket_updated: true,
             app_on_ticket_commented: true,
             app_on_sla_breach: true,
+            // Digest defaults
             daily_digest_enabled: false,
             weekly_digest_enabled: true,
           })
