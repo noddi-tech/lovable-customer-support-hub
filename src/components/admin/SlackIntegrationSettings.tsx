@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, XCircle, Hash, Lock, Send, ExternalLink, Slack } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info } from 'lucide-react';
 import { useSlackIntegration } from '@/hooks/useSlackIntegration';
 import { SlackSetupWizard } from './SlackSetupWizard';
 
@@ -190,6 +191,21 @@ export const SlackIntegrationSettings = () => {
               <p className="text-xs text-muted-foreground">
                 All notifications will be sent to this channel unless overridden
               </p>
+
+              {/* Bot invitation instruction */}
+              {selectedChannelId && (
+                <Alert className="mt-3 bg-amber-500/10 border-amber-500/30">
+                  <Info className="h-4 w-4 text-amber-500" />
+                  <AlertDescription className="text-sm">
+                    <span className="font-medium">Important:</span> You must invite the bot to your channel before it can post notifications.
+                    <ol className="mt-2 ml-4 list-decimal space-y-1 text-muted-foreground">
+                      <li>Open <span className="font-mono text-foreground">#{channels.find(c => c.id === selectedChannelId)?.name || 'your-channel'}</span> in Slack</li>
+                      <li>Type <span className="font-mono bg-muted px-1.5 py-0.5 rounded">/invite @{integration?.team_name || 'YourBotName'}</span></li>
+                      <li>Press Enter to add the bot to the channel</li>
+                    </ol>
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             {/* Test Connection */}
