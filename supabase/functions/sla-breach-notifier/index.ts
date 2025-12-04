@@ -14,6 +14,35 @@ const corsHeaders = {
  * Prevents duplicate notifications by tracking in notification data
  */
 
+// Helper function to send Slack notification (non-blocking)
+async function sendSlackNotification(payload: {
+  organization_id: string;
+  event_type: 'sla_warning';
+  conversation_id: string;
+  customer_name?: string;
+  customer_email?: string;
+  subject?: string;
+  inbox_name?: string;
+}) {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    await fetch(`${supabaseUrl}/functions/v1/send-slack-notification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceKey}`
+      },
+      body: JSON.stringify(payload)
+    });
+    console.log(`📱 Slack notification sent for ${payload.event_type}`);
+  } catch (error) {
+    // Non-blocking - just log the error
+    console.log('Slack notification failed (non-blocking):', error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   console.log('🚨 SLA Breach Notifier started at:', new Date().toISOString());
   
@@ -38,6 +67,7 @@ Deno.serve(async (req: Request) => {
         subject,
         sla_breach_at,
         assigned_to_id,
+        organization_id,
         customer:customers(full_name, email),
         inbox:inboxes(name)
       `)
@@ -72,6 +102,7 @@ Deno.serve(async (req: Request) => {
 
     let warningsSent = 0;
     let breachesSent = 0;
+    let slackNotificationsSent = 0;
 
     // Process approaching breaches (warnings)
     if (approachingBreach && approachingBreach.length > 0) {
@@ -97,6 +128,7 @@ Deno.serve(async (req: Request) => {
 
         const timeUntilBreach = Math.round((new Date(conv.sla_breach_at).getTime() - now.getTime()) / (60 * 1000));
         const customerName = (conv.customer as any)?.full_name || 'Unknown';
+        const customerEmail = (conv.customer as any)?.email;
         const inboxName = (conv.inbox as any)?.name || 'Inbox';
 
         const { error: notifError } = await supabase
@@ -120,6 +152,18 @@ Deno.serve(async (req: Request) => {
         } else {
           warningsSent++;
           console.log(`✅ Warning sent for conversation ${conv.id}`);
+          
+          // Send Slack notification (non-blocking)
+          sendSlackNotification({
+            organization_id: conv.organization_id,
+            event_type: 'sla_warning',
+            conversation_id: conv.id,
+            customer_name: customerName,
+            customer_email: customerEmail,
+            subject: conv.subject,
+            inbox_name: inboxName
+          });
+          slackNotificationsSent++;
         }
       }
     }
@@ -152,6 +196,11 @@ Deno.serve(async (req: Request) => {
           }
         }
 
+        const customerName = (conv.customer as any)?.full_name || 'Unknown';
+        const customerEmail = (conv.customer as any)?.email;
+        const inboxName = (conv.inbox as any)?.name || 'Inbox';
+        let slackSentForThisConversation = false;
+
         for (const userId of userIdsToNotify) {
           // Check if breach notification already sent today for this conversation
           const { data: existingNotif } = await supabase
@@ -169,8 +218,6 @@ Deno.serve(async (req: Request) => {
           }
 
           const breachDuration = Math.round((now.getTime() - new Date(conv.sla_breach_at).getTime()) / (60 * 1000));
-          const customerName = (conv.customer as any)?.full_name || 'Unknown';
-          const inboxName = (conv.inbox as any)?.name || 'Inbox';
 
           const { error: notifError } = await supabase
             .from('notifications')
@@ -194,6 +241,21 @@ Deno.serve(async (req: Request) => {
           } else {
             breachesSent++;
             console.log(`✅ Breach notification sent for conversation ${conv.id} to user ${userId}`);
+            
+            // Send Slack notification only once per conversation (not per user)
+            if (!slackSentForThisConversation) {
+              sendSlackNotification({
+                organization_id: conv.organization_id,
+                event_type: 'sla_warning', // Using sla_warning event type for Slack
+                conversation_id: conv.id,
+                customer_name: customerName,
+                customer_email: customerEmail,
+                subject: conv.subject,
+                inbox_name: inboxName
+              });
+              slackNotificationsSent++;
+              slackSentForThisConversation = true;
+            }
           }
         }
       }
@@ -206,7 +268,8 @@ Deno.serve(async (req: Request) => {
         approachingBreachCount: approachingBreach?.length || 0,
         breachedCount: breached?.length || 0,
         warningsSent,
-        breachesSent
+        breachesSent,
+        slackNotificationsSent
       }
     };
 
