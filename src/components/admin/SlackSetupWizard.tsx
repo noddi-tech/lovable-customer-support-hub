@@ -257,7 +257,7 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                 <div className="space-y-2">
                   <p className="font-medium">Add Redirect URL</p>
                   <p className="text-sm text-muted-foreground">
-                    In "OAuth & Permissions" → "Redirect URLs", add:
+                    In "OAuth & Permissions" → "Redirect URLs", click "Add New Redirect URL" and add:
                   </p>
                   <div className="flex items-center gap-2">
                     <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
@@ -267,6 +267,10 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-2 rounded text-xs">
+                    <strong className="text-amber-800 dark:text-amber-200">Important:</strong>
+                    <span className="text-amber-700 dark:text-amber-300"> After clicking "Done", make sure to click the <strong>"Save URLs"</strong> button!</span>
+                  </div>
                 </div>
               </div>
 
@@ -274,6 +278,22 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
               <div className="flex gap-4 p-4 bg-muted/30 rounded-lg">
                 <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
                   5
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium">Install App to Workspace</p>
+                  <p className="text-sm text-muted-foreground">
+                    Go to "Install App" in the sidebar and click "Install to Workspace" (or "Reinstall" if you made changes after initial install)
+                  </p>
+                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-2 rounded text-xs">
+                    <span className="text-blue-700 dark:text-blue-300">This generates the Bot Token and activates your OAuth settings.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 6 */}
+              <div className="flex gap-4 p-4 bg-muted/30 rounded-lg">
+                <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
+                  6
                 </div>
                 <div className="space-y-2">
                   <p className="font-medium">Copy your credentials</p>
