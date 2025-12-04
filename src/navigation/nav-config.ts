@@ -25,11 +25,22 @@ export type NavItem = {
   label: string;
   to: string;
   icon: any;
-  group: "interactions" | "marketing" | "operations" | "settings" | "admin" | "super_admin";
+  group: "notifications" | "interactions" | "marketing" | "operations" | "settings" | "admin" | "super_admin";
   requiredRole?: "admin" | "super_admin";
+  showBadge?: boolean;
 };
 
 export const NAV_ITEMS: NavItem[] = [
+  // Notifications - Above interactions
+  { 
+    id: "notifications", 
+    label: "Notifications", 
+    to: "/notifications", 
+    icon: Bell, 
+    group: "notifications",
+    showBadge: true
+  },
+
   // Interactions
   { 
     id: "text", 

@@ -14,8 +14,10 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { SidebarCounter } from '@/components/ui/sidebar-counter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
+import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
 import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
 import { Crown, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -27,6 +29,7 @@ export const AppMainNav = () => {
   const { state, toggleSidebar } = useSidebar();
   const { isAdmin: checkIsAdmin, isLoading: permissionsLoading } = usePermissions();
   const { isSuperAdmin } = useAuth();
+  const { notifications: unreadNotifications } = useOptimizedCounts();
   
   const isCollapsed = state === 'collapsed';
   const isAdmin = checkIsAdmin();
@@ -44,7 +47,8 @@ export const AppMainNav = () => {
   const getNavClassName = (isItemActive: boolean) => 
     cn(isItemActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50");
 
-  const groupLabels = {
+  const groupLabels: Record<string, string> = {
+    notifications: t('navigation.notifications', 'Notifications'),
     interactions: t('navigation.interactions', 'Interactions'),
     marketing: t('navigation.marketing', 'Marketing'), 
     operations: t('navigation.operations', 'Operations'),
@@ -53,7 +57,7 @@ export const AppMainNav = () => {
     super_admin: t('navigation.superAdmin', 'Super Admin')
   };
 
-  const groupOrder = ['interactions', 'marketing', 'operations', 'settings', 'admin', 'super_admin'];
+  const groupOrder = ['notifications', 'interactions', 'marketing', 'operations', 'settings', 'admin', 'super_admin'];
 
   if (permissionsLoading) {
     return (
@@ -88,18 +92,22 @@ export const AppMainNav = () => {
 
           return (
             <SidebarGroup key={groupKey}>
-              <SidebarGroupLabel className={cn(
-                groupKey === 'super_admin' && "text-yellow-600 dark:text-yellow-500 font-semibold"
-              )}>
-                {groupKey === 'super_admin' && <Crown className="inline h-4 w-4 mr-1" />}
-                {groupLabels[groupKey as keyof typeof groupLabels]}
-              </SidebarGroupLabel>
+              {/* Hide label for notifications group */}
+              {groupKey !== 'notifications' && (
+                <SidebarGroupLabel className={cn(
+                  groupKey === 'super_admin' && "text-yellow-600 dark:text-yellow-500 font-semibold"
+                )}>
+                  {groupKey === 'super_admin' && <Crown className="inline h-4 w-4 mr-1" />}
+                  {groupLabels[groupKey as keyof typeof groupLabels]}
+                </SidebarGroupLabel>
+              )}
               
               <SidebarGroupContent>
                 <SidebarMenu>
                   {items.map((item) => {
                     const Icon = item.icon;
                     const itemIsActive = isActive(item.to);
+                    const showBadge = item.showBadge && item.id === 'notifications' && unreadNotifications > 0;
                     
                     return (
                       <SidebarMenuItem key={item.id}>
@@ -113,8 +121,21 @@ export const AppMainNav = () => {
                             )}
                             {...(itemIsActive && { "aria-current": "page" })}
                           >
-                            <Icon className="mr-2 h-4 w-4" />
-                            {!isCollapsed && <span>{item.label}</span>}
+                            <div className="relative">
+                              <Icon className="mr-2 h-4 w-4" />
+                              {/* Badge dot on icon when collapsed */}
+                              {showBadge && isCollapsed && (
+                                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
+                              )}
+                            </div>
+                            {!isCollapsed && (
+                              <span className="flex-1 flex items-center justify-between">
+                                <span>{item.label}</span>
+                                {showBadge && (
+                                  <SidebarCounter count={unreadNotifications} variant="unread" />
+                                )}
+                              </span>
+                            )}
                           </NavLink>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
