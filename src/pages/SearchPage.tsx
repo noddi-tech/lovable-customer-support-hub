@@ -96,7 +96,7 @@ const SearchPage = () => {
 
   return (
     <UnifiedAppLayout>
-      <div className="flex-1 flex flex-col min-h-0 bg-background">
+      <div className="h-full flex flex-col min-h-0 bg-background">
         {/* Search Header */}
         <div className="border-b bg-card px-6 py-6">
           <div className="max-w-4xl mx-auto">
@@ -165,7 +165,7 @@ const SearchPage = () => {
         </div>
         
         {/* Main Content */}
-        <div className="flex-1 flex min-h-0">
+        <div className="flex-1 flex min-h-0 h-0">
           {/* Filters Sidebar */}
           {showFilters && (
             <div className="w-64 border-r bg-card p-4 overflow-y-auto">
@@ -179,7 +179,7 @@ const SearchPage = () => {
           {/* Results Area */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col min-h-0">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-full flex flex-col">
               <div className="border-b px-6">
               <TabsList className="h-12 bg-transparent gap-4">
                   <TabsTrigger value="conversations" className="gap-2 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
@@ -212,7 +212,7 @@ const SearchPage = () => {
                 </TabsList>
               </div>
               
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto h-0">
                 {/* Empty State - No Query */}
                 {debouncedQuery.length < 2 && (
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
