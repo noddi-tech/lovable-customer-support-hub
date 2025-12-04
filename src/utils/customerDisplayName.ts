@@ -3,10 +3,37 @@
  * Prevents showing email twice and prioritizes actual names
  */
 
+import type { NoddiLookupResponse } from '@/hooks/useNoddihKundeData';
+
 interface CustomerDisplayResult {
   displayName: string;
   showEmail: boolean;
   email: string | null;
+}
+
+/**
+ * Determines the best display name for a customer and whether to show email separately
+ * Priority: noddi display_name > full_name (if different from email) > email (shown once)
+ */
+export function getCustomerDisplayWithNoddi(
+  noddiData: NoddiLookupResponse | null | undefined,
+  fullName: string | null | undefined,
+  email: string | null | undefined
+): CustomerDisplayResult {
+  const normalizedEmail = email?.trim() || '';
+  
+  // Priority 1: Noddi API display_name
+  const noddiDisplayName = noddiData?.data?.ui_meta?.display_name?.trim();
+  if (noddiDisplayName && noddiDisplayName.toLowerCase() !== normalizedEmail.toLowerCase()) {
+    return {
+      displayName: noddiDisplayName,
+      showEmail: !!normalizedEmail,
+      email: normalizedEmail || null
+    };
+  }
+  
+  // Fallback to standard logic
+  return getCustomerDisplay(fullName, email);
 }
 
 /**
