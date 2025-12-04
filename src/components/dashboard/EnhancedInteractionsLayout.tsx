@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import type { ConversationRow } from '@/types/interactions';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getCustomerDisplay } from '@/utils/customerDisplayName';
 
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
@@ -279,6 +280,9 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
       return null;
     }
 
+    // Smart customer display to prevent duplicate email
+    const customerDisplay = getCustomerDisplay(thread.customer?.full_name, thread.customer?.email);
+
     return (
       <Card className="h-full">
         <CardContent className="p-6">
@@ -286,9 +290,13 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
             <div>
               <h1 className="text-xl font-semibold mb-2">{thread.subject}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{thread.customer?.full_name || 'Unknown Customer'}</span>
-                <span>•</span>
-                <span>{thread.customer?.email}</span>
+                <span>{customerDisplay.displayName}</span>
+                {customerDisplay.showEmail && customerDisplay.email && (
+                  <>
+                    <span>•</span>
+                    <span>{customerDisplay.email}</span>
+                  </>
+                )}
               </div>
             </div>
             
