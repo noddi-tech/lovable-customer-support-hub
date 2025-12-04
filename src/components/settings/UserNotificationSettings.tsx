@@ -3,7 +3,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useNotificationPreferences, NotificationPreferences } from '@/hooks/useNotificationPreferences';
-import { Mail, Bell, Calendar, Loader2 } from 'lucide-react';
+import { Mail, Bell, Calendar, Loader2, AtSign } from 'lucide-react';
 
 interface NotificationToggleProps {
   id: string;
@@ -60,6 +60,38 @@ export function UserNotificationSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Mentions */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AtSign className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-lg">Mentions</CardTitle>
+          </div>
+          <CardDescription>
+            Get notified when someone @mentions you in notes or comments
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          <NotificationToggle
+            id="app_on_mention"
+            label="In-app notifications"
+            description="Show a notification when someone mentions you"
+            checked={preferences.app_on_mention ?? true}
+            onCheckedChange={handleToggle('app_on_mention')}
+            disabled={isUpdating}
+          />
+          <Separator />
+          <NotificationToggle
+            id="email_on_mention"
+            label="Email notifications"
+            description="Receive an email when someone mentions you"
+            checked={preferences.email_on_mention ?? false}
+            onCheckedChange={handleToggle('email_on_mention')}
+            disabled={isUpdating}
+          />
+        </CardContent>
+      </Card>
+
       {/* Email Notifications */}
       <Card>
         <CardHeader>
