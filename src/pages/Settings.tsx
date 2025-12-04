@@ -121,7 +121,9 @@ export default function Settings() {
 
   return (
     <UnifiedAppLayout>
-      {renderSettingsContent()}
+      <div className="p-6">
+        {renderSettingsContent()}
+      </div>
     </UnifiedAppLayout>
   );
 }
