@@ -16,7 +16,7 @@ const tabConfig: Array<{
   label: string;
   icon: React.ElementType;
 }> = [
-  { id: 'all', label: 'All', icon: Bell },
+  { id: 'unread', label: 'Unread', icon: Bell },
   { id: 'calls', label: 'Calls', icon: Phone },
   { id: 'text', label: 'Text', icon: MessageSquare },
   { id: 'email', label: 'Email', icon: Mail },

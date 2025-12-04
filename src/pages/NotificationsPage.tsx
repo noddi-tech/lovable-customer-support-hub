@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState<NotificationCategory>('all');
+  const [selectedCategory, setSelectedCategory] = useState<NotificationCategory>('unread');
   const [searchQuery, setSearchQuery] = useState('');
 
   const {
@@ -93,9 +93,9 @@ const NotificationsPage = () => {
             <div className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-muted-foreground" />
               <h1 className="text-xl font-semibold">Notifications</h1>
-              {unreadCounts.all > 0 && (
+              {unreadCounts.unread > 0 && (
                 <span className="text-sm text-muted-foreground">
-                  {unreadCounts.all} unread
+                  {unreadCounts.unread} unread
                 </span>
               )}
             </div>
@@ -110,7 +110,7 @@ const NotificationsPage = () => {
                 <RefreshCw className="h-4 w-4 mr-1" />
                 Refresh
               </Button>
-              {unreadCounts.all > 0 && (
+              {unreadCounts.unread > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -168,7 +168,7 @@ const NotificationsPage = () => {
               <p className="text-sm text-muted-foreground">
                 {searchQuery 
                   ? 'No notifications match your search'
-                  : selectedCategory === 'all' 
+                  : selectedCategory === 'unread' 
                     ? "You're all caught up!"
                     : `No ${selectedCategory} notifications`
                 }
