@@ -30,13 +30,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Test credentials by calling Slack's auth.test with a basic check
-      // We'll use the oauth.v2.access endpoint structure check - if credentials are invalid,
-      // Slack returns a specific error
       try {
-        // Make a simple API call to verify the app exists
-        // We can't fully validate without a token, but we can check the client_id format
-        // and attempt a token exchange with an invalid code to see if credentials are recognized
         const testResponse = await fetch('https://slack.com/api/oauth.v2.access', {
           method: 'POST',
           headers: {
@@ -51,8 +45,6 @@ Deno.serve(async (req) => {
 
         const testData = await testResponse.json();
         
-        // If we get "invalid_code", credentials are valid but code is not
-        // If we get "invalid_client_id" or "bad_client_secret", credentials are wrong
         if (testData.error === 'invalid_code' || testData.error === 'code_already_used') {
           return new Response(
             JSON.stringify({ success: true, message: 'Credentials are valid' }),
@@ -69,7 +61,6 @@ Deno.serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } else {
-          // Other errors might indicate valid credentials
           console.log('Slack test response:', testData);
           return new Response(
             JSON.stringify({ success: true, message: 'Credentials appear valid' }),
@@ -83,6 +74,97 @@ Deno.serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+    }
+
+    // Handle direct token save (bypasses OAuth flow)
+    if (action === 'save-token') {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Not authenticated' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const body = await req.json();
+      const { bot_token, organization_id } = body;
+
+      if (!bot_token || !organization_id) {
+        return new Response(
+          JSON.stringify({ error: 'Bot token and organization ID are required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate token format
+      if (!bot_token.startsWith('xoxb-')) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid token format. Bot tokens should start with xoxb-' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate token with Slack API
+      console.log('Testing bot token with auth.test...');
+      const testResponse = await fetch('https://slack.com/api/auth.test', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${bot_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const testData = await testResponse.json();
+      console.log('Slack auth.test response:', JSON.stringify(testData, null, 2));
+
+      if (!testData.ok) {
+        return new Response(
+          JSON.stringify({ error: `Invalid token: ${testData.error}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Save to database
+      const { error: upsertError } = await supabase
+        .from('slack_integrations')
+        .upsert({
+          organization_id: organization_id,
+          is_active: true,
+          access_token: bot_token,
+          team_id: testData.team_id,
+          team_name: testData.team,
+          bot_user_id: testData.user_id,
+          setup_completed: true,
+        }, {
+          onConflict: 'organization_id',
+        });
+
+      if (upsertError) {
+        console.error('Error saving Slack integration:', upsertError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save integration' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          team_name: testData.team,
+          team_id: testData.team_id,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Handle OAuth callback
@@ -115,7 +197,11 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Build redirect URI - must match exactly what was used in authorize step
+      const redirectUri = `${supabaseUrl}/functions/v1/slack-oauth?action=callback`;
+
       // Exchange code for access token
+      console.log('Exchanging code for token with redirect_uri:', redirectUri);
       const tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
         method: 'POST',
         headers: {
@@ -125,6 +211,7 @@ Deno.serve(async (req) => {
           client_id: slackClientId,
           client_secret: slackClientSecret,
           code: code,
+          redirect_uri: redirectUri, // Required when multiple redirect URLs are configured
         }),
       });
 
