@@ -1,3 +1,8 @@
+/**
+ * @deprecated This sidebar component is NOT used on the main interactions page.
+ * The main sidebar is: @/components/layout/InboxList.tsx
+ * This file is only used in MobileSidebarDrawer for mobile navigation.
+ */
 import React, { memo, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Inbox, MessageCircle, Users, Clock, CheckCircle, Archive, Bell, Mail, Facebook, Instagram, MessageCircle as WhatsApp } from 'lucide-react';

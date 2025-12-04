@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { VoiceDashboard } from './voice/VoiceDashboard';
 import { useTranslation } from "react-i18next";
 import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
-import { InboxList } from '@/components/admin/design/components/layouts/InboxList';
+import { InboxList } from '@/components/layout/InboxList';
 import { ConversationView } from './ConversationView';
 import { ConversationList } from './ConversationList';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
