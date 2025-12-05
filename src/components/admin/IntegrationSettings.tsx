@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
-import { EmailAccountConnection } from '@/components/dashboard/EmailAccountConnection';
 import { Separator } from '@/components/ui/separator';
 import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { InboxManagement } from '@/components/admin/InboxManagement';
 import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { SlackIntegrationSettings } from './SlackIntegrationSettings';
+import { IntegrationSection } from './integrations/IntegrationSection';
+import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
+import { ConnectedEmailAccountsContent } from '@/components/dashboard/ConnectedEmailAccounts';
+import { InboxManagementContent } from '@/components/admin/InboxManagement';
 import { useTranslation } from 'react-i18next';
 
 export const IntegrationSettings = () => {
@@ -19,28 +20,6 @@ export const IntegrationSettings = () => {
   
   return (
     <div className="space-y-6 px-5">
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Inbox className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-xl">Quick Start: Add Email Integration</CardTitle>
-                <CardDescription className="mt-1">
-                  Connect an email source (Gmail, Google Group, or forwarding) and assign it to an inbox
-                </CardDescription>
-              </div>
-            </div>
-            <Button onClick={() => setIsWizardOpen(true)} size="lg">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Email
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
-
       <EmailIntegrationWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
 
       <ResponsiveTabs 
@@ -70,35 +49,59 @@ export const IntegrationSettings = () => {
         </ResponsiveTabsList>
 
         {/* Email Integration Tab */}
-        <ResponsiveTabsContent value="email" className="space-y-6">
-          {/* Email accounts and inbox management */}
-          <Card className="bg-gradient-surface border-border/50 shadow-surface">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <Mail className="w-5 h-5" />
-                {t('admin.emailIntegration')}
-              </CardTitle>
-              <CardDescription>
-                {t('admin.connectAndManage')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <EmailAccountConnection />
-              <Separator />
-              <InboxManagement />
-            </CardContent>
-          </Card>
+        <ResponsiveTabsContent value="email" className="space-y-4">
+          {/* Quick Start CTA - inline banner */}
+          <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Inbox className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Quick Start: Add Email Integration</p>
+                <p className="text-sm text-muted-foreground">
+                  Connect Gmail, Google Group, or set up forwarding
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => setIsWizardOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Email
+            </Button>
+          </div>
 
-          {/* Email channel settings */}
-          <Card className="bg-gradient-surface border-border/50 shadow-surface">
-            <CardHeader>
-              <CardTitle className="text-primary">{t('admin.emailChannelSettings')}</CardTitle>
-              <CardDescription>
-                {t('admin.configureEmailSupport')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
+          {/* Gmail & Email Accounts Section */}
+          <IntegrationSection
+            icon={Mail}
+            title="Email Accounts & Connections"
+            description="Connect Gmail accounts or configure email forwarding"
+            defaultOpen={true}
+          >
+            <div className="space-y-6">
+              <EmailForwarding mode="gmailAndAccounts" />
+              <Separator />
+              <ConnectedEmailAccountsContent />
+            </div>
+          </IntegrationSection>
+
+          {/* Inbox Management Section */}
+          <IntegrationSection
+            icon={Inbox}
+            title="Inbox Management"
+            description="Create and manage inboxes for organizing conversations"
+            defaultOpen={true}
+          >
+            <InboxManagementContent />
+          </IntegrationSection>
+
+          {/* Email Channel Settings Section */}
+          <IntegrationSection
+            icon={MessageSquare}
+            title="Email Channel Settings"
+            description="Configure email support channels"
+            defaultOpen={false}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-channel-email" />
                   <div>
@@ -111,7 +114,7 @@ export const IntegrationSettings = () => {
 
               <Separator />
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
                   <MessageSquare className="w-5 h-5 text-channel-facebook" />
                   <div>
@@ -124,7 +127,7 @@ export const IntegrationSettings = () => {
 
               <Separator />
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
                   <Instagram className="w-5 h-5 text-channel-instagram" />
                   <div>
@@ -134,52 +137,40 @@ export const IntegrationSettings = () => {
                 </div>
                 <Switch id="instagram-channel" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </IntegrationSection>
         </ResponsiveTabsContent>
 
         {/* SMS Integration Tab */}
-        <ResponsiveTabsContent value="sms" className="space-y-6">
-          <Card className="bg-gradient-surface border-border/50 shadow-surface">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <MessageSquare className="w-5 h-5" />
-                {t('admin.smsIntegration')}
-              </CardTitle>
-              <CardDescription>
-                {t('admin.smsConfiguration')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-center py-8 text-muted-foreground">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>SMS integration configuration will be available here</p>
-                <p className="text-sm">Configure Twilio, Vonage, or other SMS providers</p>
-              </div>
-            </CardContent>
-          </Card>
+        <ResponsiveTabsContent value="sms" className="space-y-4">
+          <IntegrationSection
+            icon={MessageSquare}
+            title={t('admin.smsIntegration')}
+            description={t('admin.smsConfiguration')}
+            defaultOpen={true}
+          >
+            <div className="text-center py-8 text-muted-foreground">
+              <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>SMS integration configuration will be available here</p>
+              <p className="text-sm">Configure Twilio, Vonage, or other SMS providers</p>
+            </div>
+          </IntegrationSection>
         </ResponsiveTabsContent>
 
         {/* Voice Integration Tab */}
-        <ResponsiveTabsContent value="voice" className="space-y-6">
-          <Card className="bg-gradient-surface border-border/50 shadow-surface">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <Phone className="w-5 h-5" />
-                {t('admin.voiceIntegration')}
-              </CardTitle>
-              <CardDescription>
-                Configure voice communication providers and telephony integrations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <VoiceIntegrationsList />
-            </CardContent>
-          </Card>
+        <ResponsiveTabsContent value="voice" className="space-y-4">
+          <IntegrationSection
+            icon={Phone}
+            title={t('admin.voiceIntegration')}
+            description="Configure voice communication providers and telephony integrations"
+            defaultOpen={true}
+          >
+            <VoiceIntegrationsList />
+          </IntegrationSection>
         </ResponsiveTabsContent>
 
         {/* Notifications Integration Tab */}
-        <ResponsiveTabsContent value="notifications" className="space-y-6">
+        <ResponsiveTabsContent value="notifications" className="space-y-4">
           <SlackIntegrationSettings />
         </ResponsiveTabsContent>
       </ResponsiveTabs>

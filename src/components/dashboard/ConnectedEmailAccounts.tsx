@@ -42,8 +42,8 @@ interface Inbox {
   is_default: boolean;
 }
 
-// Reusable Connected Email Accounts card (no Gmail connect banner or alias form)
-export function ConnectedEmailAccounts() {
+// Content-only component (no Card wrapper) for use inside collapsible sections
+export function ConnectedEmailAccountsContent() {
   const [editingAccount, setEditingAccount] = useState<string | null>(null);
   const [editingInbox, setEditingInbox] = useState<string>("unassigned");
   const [copiedForwarding, setCopiedForwarding] = useState<string | null>(null);
@@ -238,16 +238,11 @@ export function ConnectedEmailAccounts() {
     setPendingDisableAccount(null);
   };
 
-  return (
-    <Card className="bg-gradient-surface border-border/50 shadow-surface">
-      <CardHeader>
-        <CardTitle className="text-primary">Connected Email Accounts</CardTitle>
-        <CardDescription>Manage your connected email accounts and their auto-sync settings.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="text-center py-4">Loading accounts...</div>
-        ) : accounts.length === 0 ? (
+  const content = (
+    <>
+      {isLoading ? (
+        <div className="text-center py-4">Loading accounts...</div>
+      ) : accounts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="font-medium mb-2">No email accounts connected yet.</p>
@@ -464,6 +459,22 @@ export function ConnectedEmailAccounts() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+    </>
+  );
+
+  return content;
+}
+
+// Wrapper with Card for standalone use
+export function ConnectedEmailAccounts() {
+  return (
+    <Card className="bg-gradient-surface border-border/50 shadow-surface">
+      <CardHeader>
+        <CardTitle className="text-primary">Connected Email Accounts</CardTitle>
+        <CardDescription>Manage your connected email accounts and their auto-sync settings.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ConnectedEmailAccountsContent />
       </CardContent>
     </Card>
   );
