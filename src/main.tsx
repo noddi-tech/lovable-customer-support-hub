@@ -1,7 +1,6 @@
 // =============================================================================
 // URL SANITIZATION - MUST RUN BEFORE REACT INITIALIZES
 // Fixes malformed URLs like /%3Finbox=... which should be /?inbox=...
-// This happens when the ? gets URL-encoded into the pathname
 // =============================================================================
 (function fixMalformedUrl() {
   const pathname = window.location.pathname;
@@ -15,10 +14,9 @@
         const correctedUrl = basePath + queryString + window.location.hash;
         console.log('[main] Fixing malformed URL:', pathname, '→', correctedUrl);
         window.location.replace(correctedUrl);
-        throw new Error('REDIRECT_IN_PROGRESS');
+        // Browser will redirect - page will reload with correct URL
       }
     } catch (e) {
-      if (e instanceof Error && e.message === 'REDIRECT_IN_PROGRESS') throw e;
       console.error('[main] URL decode failed:', e);
     }
   }
@@ -40,11 +38,9 @@ if (import.meta.env.DEV) {
 // Phase 3: Listen for error boundary reset events
 window.addEventListener('global-error-reset', () => {
   console.log('🔄 [ErrorBoundary] Global error reset triggered');
-  // On error, only clear potentially corrupted queries
   queryClient.removeQueries({ queryKey: ['conversations'] });
   queryClient.removeQueries({ queryKey: ['inbox-counts'] });
   queryClient.removeQueries({ queryKey: ['all-counts'] });
-  // Don't touch Noddi customer data - it's historical and doesn't get corrupted
 });
 
 window.addEventListener('voice-error-reset', () => {
