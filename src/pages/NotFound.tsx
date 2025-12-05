@@ -1,33 +1,15 @@
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 
 const NotFound = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    // Detect and fix malformed URLs with encoded query params (%3F = ?)
-    if (location.pathname.includes('%3F') || location.pathname.includes('%3f')) {
-      const correctedPath = decodeURIComponent(location.pathname);
-      const queryIndex = correctedPath.indexOf('?');
-      if (queryIndex !== -1) {
-        const newPath = correctedPath.substring(0, queryIndex) || '/';
-        const queryString = correctedPath.substring(queryIndex);
-        navigate(newPath + queryString, { replace: true });
-        return;
-      }
-    }
-
     console.error(
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
-  }, [location.pathname, navigate]);
-
-  // Don't render 404 page if we're redirecting
-  if (location.pathname.includes('%3F') || location.pathname.includes('%3f')) {
-    return null;
-  }
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-surface">

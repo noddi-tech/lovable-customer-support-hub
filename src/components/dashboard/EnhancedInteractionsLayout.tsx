@@ -111,12 +111,13 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const effectiveStatus = status || 'all';
   const effectiveSearch = search || searchQuery;
 
-  // Set default inbox if none selected
+  // Set default inbox if none selected - use stable reference to setInbox
+  const { setInbox: navigationSetInbox } = navigation;
   useEffect(() => {
     if (!inbox && !selectedInboxId && inboxes.length > 0) {
-      navigation.setInbox(inboxes[0].id);
+      navigationSetInbox(inboxes[0].id);
     }
-  }, [inbox, selectedInboxId, inboxes, navigation]);
+  }, [inbox, selectedInboxId, inboxes, navigationSetInbox]);
 
   // Get conversations and thread data
   const { data: conversations = [], isLoading: conversationsLoading } = useConversations({

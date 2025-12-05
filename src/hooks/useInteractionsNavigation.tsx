@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StatusFilter, InboxId, ConversationId } from '@/types/interactions';
 
@@ -120,8 +120,11 @@ export const useInteractionsNavigation = () => {
     updateNavigation({ conversationId: undefined });
   }, [updateNavigation]);
 
-  return {
-    currentState: getCurrentState(),
+  // Memoize current state to prevent unnecessary re-renders
+  const currentState = useMemo(() => getCurrentState(), [getCurrentState]);
+
+  return useMemo(() => ({
+    currentState,
     updateNavigation,
     navigateToTab,
     navigateToConversation,
@@ -132,5 +135,17 @@ export const useInteractionsNavigation = () => {
     setSearch,
     openConversation,
     backToList,
-  };
+  }), [
+    currentState,
+    updateNavigation,
+    navigateToTab,
+    navigateToConversation,
+    navigateToInbox,
+    clearConversation,
+    setInbox,
+    setStatus,
+    setSearch,
+    openConversation,
+    backToList,
+  ]);
 };
