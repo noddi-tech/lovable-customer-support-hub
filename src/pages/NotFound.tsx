@@ -1,51 +1,17 @@
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 
 const NotFound = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    // Detect malformed URLs with encoded query params (%3F = ?)
-    if (location.pathname.includes('%3F') || location.pathname.includes('%3f')) {
-      // Use sessionStorage to persist redirect guard across page reloads
-      const redirectKey = `redirect_attempted_${location.pathname}`;
-      const alreadyRedirected = sessionStorage.getItem(redirectKey);
-      
-      if (!alreadyRedirected) {
-        sessionStorage.setItem(redirectKey, 'true');
-        // Auto-clear after 5 seconds to allow future valid redirects
-        setTimeout(() => sessionStorage.removeItem(redirectKey), 5000);
-        
-        try {
-          const decodedPath = decodeURIComponent(location.pathname);
-          const queryIndex = decodedPath.indexOf('?');
-          
-          if (queryIndex !== -1) {
-            const basePath = decodedPath.substring(0, queryIndex) || '/';
-            const queryString = decodedPath.substring(queryIndex);
-            console.log('[NotFound] Fixing malformed URL:', location.pathname, '→', basePath + queryString);
-            navigate(basePath + queryString, { replace: true });
-            return;
-          }
-        } catch (e) {
-          console.error('[NotFound] Failed to decode URL:', e);
-        }
-      }
-      // Don't log anything if redirect already attempted - prevents spam
-      return;
-    }
-
+    // Malformed URLs are now handled in main.tsx before React loads
+    // This should only fire for genuine 404 errors
     console.error(
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
-  }, [location.pathname, navigate]);
-
-  // Don't render 404 page while redirecting malformed URLs
-  if (location.pathname.includes('%3F') || location.pathname.includes('%3f')) {
-    return null;
-  }
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-surface">
