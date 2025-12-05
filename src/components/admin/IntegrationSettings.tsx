@@ -124,11 +124,11 @@ export const IntegrationSettings = () => {
             </Button>
           </div>
 
-          {/* SendGrid Inbound Routes - Primary Email Integration */}
+          {/* SendGrid Email Channels - Primary Email Integration */}
           <IntegrationSection
             icon={MailCheck}
-            title="Email Receiving (SendGrid)"
-            description="Active email addresses receiving mail via SendGrid Inbound Parse"
+            title="Email Channels (SendGrid)"
+            description="Send and receive emails via SendGrid – bidirectional email routing"
             defaultOpen={true}
             statusBadge={
               <IntegrationStatusBadge status={getForwardingStatus()} />
