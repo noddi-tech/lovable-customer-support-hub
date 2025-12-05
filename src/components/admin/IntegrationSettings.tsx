@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { Separator } from '@/components/ui/separator';
-import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell, Forward } from 'lucide-react';
+import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell, MailCheck } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { SlackIntegrationSettings } from './SlackIntegrationSettings';
 import { IntegrationSection } from './integrations/IntegrationSection';
 import { IntegrationStatusBadge } from './IntegrationStatusBadge';
-import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
+import { InboundRoutesContent } from './integrations/InboundRoutesContent';
 import { ConnectedEmailAccountsContent } from '@/components/dashboard/ConnectedEmailAccounts';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -124,34 +124,30 @@ export const IntegrationSettings = () => {
             </Button>
           </div>
 
-          {/* Gmail Integration Section */}
+          {/* SendGrid Inbound Routes - Primary Email Integration */}
+          <IntegrationSection
+            icon={MailCheck}
+            title="Email Receiving (SendGrid)"
+            description="Active email addresses receiving mail via SendGrid Inbound Parse"
+            defaultOpen={true}
+            statusBadge={
+              <IntegrationStatusBadge status={getForwardingStatus()} />
+            }
+          >
+            <InboundRoutesContent />
+          </IntegrationSection>
+
+          {/* Gmail Direct Sync - Secondary */}
           <IntegrationSection
             icon={Mail}
-            title="Gmail Integration"
+            title="Gmail Direct Sync"
             description="Connect Gmail accounts via OAuth for direct email sync"
             defaultOpen={false}
             statusBadge={
               <IntegrationStatusBadge status={getGmailStatus()} />
             }
           >
-            <div className="space-y-4">
-              <ConnectedEmailAccountsContent />
-            </div>
-          </IntegrationSection>
-
-          {/* Google Groups / Forwarding Section */}
-          <IntegrationSection
-            icon={Forward}
-            title="Google Groups & Forwarding"
-            description="Set up email forwarding via SendGrid inbound parse"
-            defaultOpen={false}
-            statusBadge={
-              <IntegrationStatusBadge status={getForwardingStatus()} />
-            }
-          >
-            <div className="space-y-4">
-              <EmailForwarding mode="gmailAndAccounts" />
-            </div>
+            <ConnectedEmailAccountsContent />
           </IntegrationSection>
 
           {/* Email Channel Settings Section */}
