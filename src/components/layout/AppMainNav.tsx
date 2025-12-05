@@ -121,13 +121,7 @@ export const AppMainNav = () => {
                             )}
                             {...(itemIsActive && { "aria-current": "page" })}
                           >
-                            <div className="relative">
-                              <Icon className={cn("mr-2 h-4 w-4", showBadge && "text-destructive")} />
-                              {/* Badge dot on icon when collapsed */}
-                              {showBadge && isCollapsed && (
-                                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                              )}
-                            </div>
+                            <Icon className={cn("mr-2 h-4 w-4", showBadge && "text-destructive")} />
                             {!isCollapsed && (
                               <span className="flex-1 flex items-center justify-between">
                                 <span>{item.label}</span>

@@ -195,6 +195,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
     },
   });
 
@@ -212,6 +213,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
     },
   });
 
@@ -227,6 +229,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
     },
   });
 

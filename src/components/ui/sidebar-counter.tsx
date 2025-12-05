@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -15,6 +15,18 @@ export const SidebarCounter: React.FC<SidebarCounterProps> = ({
   className,
   maxDisplay = 999
 }) => {
+  const prevCountRef = useRef(count);
+  const [animate, setAnimate] = useState(false);
+  
+  useEffect(() => {
+    if (prevCountRef.current !== count && count > 0) {
+      setAnimate(true);
+      const timer = setTimeout(() => setAnimate(false), 300);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = count;
+  }, [count]);
+
   const displayCount = count > maxDisplay ? `${maxDisplay}+` : count.toString();
 
   const getVariantStyles = () => {
@@ -43,6 +55,7 @@ export const SidebarCounter: React.FC<SidebarCounterProps> = ({
         "h-4 min-w-4 px-1 text-xs font-medium rounded-full flex items-center justify-center shrink-0",
         "transition-colors duration-fast",
         getVariantStyles(),
+        animate && "animate-count-pop",
         className
       )}
     >
