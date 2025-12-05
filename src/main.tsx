@@ -1,3 +1,29 @@
+// =============================================================================
+// URL SANITIZATION - MUST RUN BEFORE REACT INITIALIZES
+// Fixes malformed URLs like /%3Finbox=... which should be /?inbox=...
+// This happens when the ? gets URL-encoded into the pathname
+// =============================================================================
+(function fixMalformedUrl() {
+  const pathname = window.location.pathname;
+  if (pathname.includes('%3F') || pathname.includes('%3f')) {
+    try {
+      const decoded = decodeURIComponent(pathname);
+      const queryStart = decoded.indexOf('?');
+      if (queryStart !== -1) {
+        const basePath = decoded.substring(0, queryStart) || '/';
+        const queryString = decoded.substring(queryStart);
+        const correctedUrl = basePath + queryString + window.location.hash;
+        console.log('[main] Fixing malformed URL:', pathname, '→', correctedUrl);
+        window.location.replace(correctedUrl);
+        throw new Error('REDIRECT_IN_PROGRESS');
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message === 'REDIRECT_IN_PROGRESS') throw e;
+      console.error('[main] URL decode failed:', e);
+    }
+  }
+})();
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
