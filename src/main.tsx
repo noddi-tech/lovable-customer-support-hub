@@ -2,6 +2,8 @@
 // URL SANITIZATION - MUST RUN BEFORE REACT INITIALIZES
 // Fixes malformed URLs like /%3Finbox=... which should be /?inbox=...
 // =============================================================================
+let __REDIRECTING__ = false;
+
 (function fixMalformedUrl() {
   const pathname = window.location.pathname;
   if (pathname.includes('%3F') || pathname.includes('%3f')) {
@@ -13,8 +15,8 @@
         const queryString = decoded.substring(queryStart);
         const correctedUrl = basePath + queryString + window.location.hash;
         console.log('[main] Fixing malformed URL:', pathname, '→', correctedUrl);
+        __REDIRECTING__ = true;
         window.location.replace(correctedUrl);
-        // Browser will redirect - page will reload with correct URL
       }
     } catch (e) {
       console.error('[main] URL decode failed:', e);
@@ -50,12 +52,15 @@ window.addEventListener('voice-error-reset', () => {
   queryClient.invalidateQueries({ queryKey: ['aircall'] });
 });
 
-createRoot(document.getElementById("root")!).render(
-  import.meta.env.DEV ? (
-    <StrictMode>
+// Only render React if we're not redirecting to fix malformed URL
+if (!__REDIRECTING__) {
+  createRoot(document.getElementById("root")!).render(
+    import.meta.env.DEV ? (
+      <StrictMode>
+        <App />
+      </StrictMode>
+    ) : (
       <App />
-    </StrictMode>
-  ) : (
-    <App />
-  )
-);
+    )
+  );
+}
