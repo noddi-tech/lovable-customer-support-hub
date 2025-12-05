@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { Separator } from '@/components/ui/separator';
-import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell } from 'lucide-react';
+import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell, Forward } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -9,14 +9,69 @@ import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList'
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { SlackIntegrationSettings } from './SlackIntegrationSettings';
 import { IntegrationSection } from './integrations/IntegrationSection';
+import { IntegrationStatusBadge } from './IntegrationStatusBadge';
 import { EmailForwarding } from '@/components/dashboard/EmailForwarding';
 import { ConnectedEmailAccountsContent } from '@/components/dashboard/ConnectedEmailAccounts';
-import { InboxManagementContent } from '@/components/admin/InboxManagement';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
 
 export const IntegrationSettings = () => {
   const { t } = useTranslation();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  
+  // Fetch email accounts for status badges
+  const { data: emailAccounts = [] } = useQuery({
+    queryKey: ['email-accounts-status'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('email_accounts')
+        .select('id, provider, is_active');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Fetch inbound routes for Google Group status
+  const { data: inboundRoutes = [] } = useQuery({
+    queryKey: ['inbound-routes-status'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('inbound_routes')
+        .select('id, is_active');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Get voice integration status
+  const { integrations: voiceIntegrations } = useVoiceIntegrations();
+
+  // Calculate counts
+  const gmailAccounts = emailAccounts.filter(acc => acc.provider === 'gmail');
+  const activeGmailCount = gmailAccounts.filter(acc => acc.is_active).length;
+  const activeRoutesCount = inboundRoutes.filter(r => r.is_active).length;
+  const hasActiveVoice = voiceIntegrations?.some(i => i.is_active);
+
+  // Determine statuses
+  const getGmailStatus = (): 'active' | 'inactive' | 'not-configured' => {
+    if (activeGmailCount > 0) return 'active';
+    if (gmailAccounts.length > 0) return 'inactive';
+    return 'not-configured';
+  };
+
+  const getForwardingStatus = (): 'active' | 'inactive' | 'not-configured' => {
+    if (activeRoutesCount > 0) return 'active';
+    if (inboundRoutes.length > 0) return 'inactive';
+    return 'not-configured';
+  };
+
+  const getVoiceStatus = (): 'active' | 'inactive' | 'not-configured' => {
+    if (hasActiveVoice) return 'active';
+    if (voiceIntegrations && voiceIntegrations.length > 0) return 'inactive';
+    return 'not-configured';
+  };
   
   return (
     <div className="space-y-6 px-5">
@@ -69,28 +124,34 @@ export const IntegrationSettings = () => {
             </Button>
           </div>
 
-          {/* Gmail & Email Accounts Section */}
+          {/* Gmail Integration Section */}
           <IntegrationSection
             icon={Mail}
-            title="Email Accounts & Connections"
-            description="Connect Gmail accounts or configure email forwarding"
+            title="Gmail Integration"
+            description="Connect Gmail accounts via OAuth for direct email sync"
             defaultOpen={false}
+            statusBadge={
+              <IntegrationStatusBadge status={getGmailStatus()} />
+            }
           >
-            <div className="space-y-6">
-              <EmailForwarding mode="gmailAndAccounts" />
-              <Separator />
+            <div className="space-y-4">
               <ConnectedEmailAccountsContent />
             </div>
           </IntegrationSection>
 
-          {/* Inbox Management Section */}
+          {/* Google Groups / Forwarding Section */}
           <IntegrationSection
-            icon={Inbox}
-            title="Inbox Management"
-            description="Create and manage inboxes for organizing conversations"
+            icon={Forward}
+            title="Google Groups & Forwarding"
+            description="Set up email forwarding via SendGrid inbound parse"
             defaultOpen={false}
+            statusBadge={
+              <IntegrationStatusBadge status={getForwardingStatus()} />
+            }
           >
-            <InboxManagementContent />
+            <div className="space-y-4">
+              <EmailForwarding mode="gmailAndAccounts" />
+            </div>
           </IntegrationSection>
 
           {/* Email Channel Settings Section */}
@@ -148,6 +209,9 @@ export const IntegrationSettings = () => {
             title={t('admin.smsIntegration')}
             description={t('admin.smsConfiguration')}
             defaultOpen={false}
+            statusBadge={
+              <IntegrationStatusBadge status="not-configured" />
+            }
           >
             <div className="text-center py-8 text-muted-foreground">
               <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -164,6 +228,9 @@ export const IntegrationSettings = () => {
             title={t('admin.voiceIntegration')}
             description="Configure voice communication providers and telephony integrations"
             defaultOpen={false}
+            statusBadge={
+              <IntegrationStatusBadge status={getVoiceStatus()} />
+            }
           >
             <VoiceIntegrationsList />
           </IntegrationSection>
