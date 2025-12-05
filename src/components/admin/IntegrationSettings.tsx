@@ -74,7 +74,7 @@ export const IntegrationSettings = () => {
             icon={Mail}
             title="Email Accounts & Connections"
             description="Connect Gmail accounts or configure email forwarding"
-            defaultOpen={true}
+            defaultOpen={false}
           >
             <div className="space-y-6">
               <EmailForwarding mode="gmailAndAccounts" />
@@ -88,7 +88,7 @@ export const IntegrationSettings = () => {
             icon={Inbox}
             title="Inbox Management"
             description="Create and manage inboxes for organizing conversations"
-            defaultOpen={true}
+            defaultOpen={false}
           >
             <InboxManagementContent />
           </IntegrationSection>
@@ -147,7 +147,7 @@ export const IntegrationSettings = () => {
             icon={MessageSquare}
             title={t('admin.smsIntegration')}
             description={t('admin.smsConfiguration')}
-            defaultOpen={true}
+            defaultOpen={false}
           >
             <div className="text-center py-8 text-muted-foreground">
               <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -163,7 +163,7 @@ export const IntegrationSettings = () => {
             icon={Phone}
             title={t('admin.voiceIntegration')}
             description="Configure voice communication providers and telephony integrations"
-            defaultOpen={true}
+            defaultOpen={false}
           >
             <VoiceIntegrationsList />
           </IntegrationSection>

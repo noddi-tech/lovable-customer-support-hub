@@ -97,9 +97,9 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch all notifications
+  // Fetch all notifications - use same query key as dropdown for cache sharing
   const { data: notifications = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['notifications-enhanced'],
+    queryKey: ['notifications'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notifications')
@@ -110,7 +110,6 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user,
     staleTime: 30000,
   });
 
@@ -194,7 +193,6 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-enhanced'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
     },
@@ -212,7 +210,6 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-enhanced'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
     },
@@ -228,7 +225,6 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-enhanced'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
     },
