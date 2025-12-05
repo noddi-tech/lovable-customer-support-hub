@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { ResponsiveContainer, ResponsiveGrid, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, LayoutItem, AdaptiveSection } from '@/components/admin/design/components/layouts';
 import { UserManagement } from './UserManagement';
 import { DepartmentManagement } from './DepartmentManagement';
@@ -75,9 +75,9 @@ export const AdminPortal = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 All voice and phone configurations have been consolidated under the new Integrations & Routing section.
               </p>
-              <a href="/admin/integrations" className="text-primary hover:underline">
+              <Link to="/admin/integrations" className="text-primary hover:underline">
                 Go to Integrations & Routing →
-              </a>
+              </Link>
             </CardContent>
           </Card>
         );
