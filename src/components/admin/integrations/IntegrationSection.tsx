@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ChevronDown, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
 
 interface IntegrationSectionProps {
   icon: LucideIcon;
@@ -10,6 +9,7 @@ interface IntegrationSectionProps {
   description?: string;
   defaultOpen?: boolean;
   action?: React.ReactNode;
+  statusBadge?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }
@@ -20,6 +20,7 @@ export function IntegrationSection({
   description,
   defaultOpen = false,
   action,
+  statusBadge,
   children,
   className
 }: IntegrationSectionProps) {
@@ -41,11 +42,14 @@ export function IntegrationSection({
               )}>
                 <Icon className="h-5 w-5" />
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground">{title}</h3>
-                {description && (
-                  <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-                )}
+              <div className="flex items-center gap-3">
+                <div>
+                  <h3 className="font-semibold text-foreground">{title}</h3>
+                  {description && (
+                    <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+                  )}
+                </div>
+                {statusBadge}
               </div>
             </div>
             <div className="flex items-center gap-2">
