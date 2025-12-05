@@ -21,6 +21,7 @@ import { AircallLoginModal } from "@/components/dashboard/voice/AircallLoginModa
 import { AircallFloatingButton } from "@/components/dashboard/voice/AircallFloatingButton";
 import { AircallErrorFallback } from "@/components/dashboard/voice/AircallErrorFallback";
 import { PerformanceDebugPanel } from "@/components/debug/PerformanceDebugPanel";
+import { URLSanitizer } from "@/components/routing/URLSanitizer";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
@@ -96,7 +97,7 @@ const AppContent = () => {
   }, []);
 
   return (
-    <>
+    <URLSanitizer>
     <Routes>
       <Route path="/auth" element={<Auth />} />
       
@@ -172,7 +173,7 @@ const AppContent = () => {
       {/* Catch-all */}
       <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
     </Routes>
-    </>
+    </URLSanitizer>
   );
 };
 
