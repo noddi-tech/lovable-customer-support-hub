@@ -65,7 +65,8 @@ interface EmailAccount {
   is_active: boolean | null;
 }
 
-export function InboxManagement() {
+// Content-only component for use inside collapsible sections
+export function InboxManagementContent() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingInbox, setEditingInbox] = useState<InboxData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -316,24 +317,17 @@ export function InboxManagement() {
   };
 
   return (
-    <div className="space-y-6 px-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <Heading level={2}>Inbox Management</Heading>
-          <p className="text-muted-foreground mt-1">
-            Create and manage inboxes with guided setup for email connections.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Inbox
-          </Button>
-        </div>
+    <div className="space-y-6">
+      {/* Action buttons */}
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+        <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Create Inbox
+        </Button>
       </div>
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -431,14 +425,8 @@ export function InboxManagement() {
           </DialogContent>
         </Dialog>
 
-      <Separator />
 
-      <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-primary">
-          <Inbox className="h-5 w-5" />
-          All Inboxes
-        </h3>
-        
+      {/* Inbox Grid */}
       {isLoadingInboxes ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(3)].map((_, i) => (
@@ -585,7 +573,6 @@ export function InboxManagement() {
           ))}
         </div>
       )}
-      </div>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingInbox} onOpenChange={(open) => !open && setEditingInbox(null)}>
@@ -723,6 +710,23 @@ export function InboxManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// Wrapper component with header for standalone page use
+export function InboxManagement() {
+  return (
+    <div className="space-y-6 px-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <Heading level={2}>Inbox Management</Heading>
+          <p className="text-muted-foreground mt-1">
+            Create and manage inboxes with guided setup for email connections.
+          </p>
+        </div>
+      </div>
+      <InboxManagementContent />
     </div>
   );
 }
