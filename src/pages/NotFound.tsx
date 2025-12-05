@@ -1,40 +1,45 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const hasRedirected = useRef(false);
 
   useEffect(() => {
     // Detect malformed URLs with encoded query params (%3F = ?)
-    // Only attempt redirect once to prevent infinite loops
-    if (!hasRedirected.current && (location.pathname.includes('%3F') || location.pathname.includes('%3f'))) {
-      hasRedirected.current = true;
+    if (location.pathname.includes('%3F') || location.pathname.includes('%3f')) {
+      // Use sessionStorage to persist redirect guard across page reloads
+      const redirectKey = `redirect_attempted_${location.pathname}`;
+      const alreadyRedirected = sessionStorage.getItem(redirectKey);
       
-      try {
-        const decodedPath = decodeURIComponent(location.pathname);
-        const queryIndex = decodedPath.indexOf('?');
+      if (!alreadyRedirected) {
+        sessionStorage.setItem(redirectKey, 'true');
+        // Auto-clear after 5 seconds to allow future valid redirects
+        setTimeout(() => sessionStorage.removeItem(redirectKey), 5000);
         
-        if (queryIndex !== -1) {
-          const basePath = decodedPath.substring(0, queryIndex) || '/';
-          const queryString = decodedPath.substring(queryIndex);
-          console.log('[NotFound] Fixing malformed URL:', location.pathname, '→', basePath + queryString);
-          navigate(basePath + queryString, { replace: true });
-          return;
+        try {
+          const decodedPath = decodeURIComponent(location.pathname);
+          const queryIndex = decodedPath.indexOf('?');
+          
+          if (queryIndex !== -1) {
+            const basePath = decodedPath.substring(0, queryIndex) || '/';
+            const queryString = decodedPath.substring(queryIndex);
+            console.log('[NotFound] Fixing malformed URL:', location.pathname, '→', basePath + queryString);
+            navigate(basePath + queryString, { replace: true });
+            return;
+          }
+        } catch (e) {
+          console.error('[NotFound] Failed to decode URL:', e);
         }
-      } catch (e) {
-        console.error('[NotFound] Failed to decode URL:', e);
       }
+      // Don't log anything if redirect already attempted - prevents spam
+      return;
     }
 
-    // Only log 404 error if not a malformed URL redirect
-    if (!location.pathname.includes('%3F') && !location.pathname.includes('%3f')) {
-      console.error(
-        "404 Error: User attempted to access non-existent route:",
-        location.pathname
-      );
-    }
+    console.error(
+      "404 Error: User attempted to access non-existent route:",
+      location.pathname
+    );
   }, [location.pathname, navigate]);
 
   // Don't render 404 page while redirecting malformed URLs
