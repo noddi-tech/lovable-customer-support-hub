@@ -5,7 +5,11 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const ToastProvider = ToastPrimitives.Provider
+const ToastProvider = ({ children, ...props }: React.ComponentProps<typeof ToastPrimitives.Provider>) => (
+  <ToastPrimitives.Provider swipeDirection="right" swipeThreshold={50} {...props}>
+    {children}
+  </ToastPrimitives.Provider>
+)
 
 const ToastViewport = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Viewport>,
