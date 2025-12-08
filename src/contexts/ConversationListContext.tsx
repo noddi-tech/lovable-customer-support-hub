@@ -224,10 +224,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       const statusFilter = selectedTab === 'all' ? null : selectedTab;
       
       const { data, error } = await supabase.rpc('get_conversations', {
-        inbox_filter: (selectedInboxId && selectedInboxId !== 'all') ? selectedInboxId : null,
-        status_filter: statusFilter,
-        page_limit: 50,
-        page_offset: pageParam
+        p_inbox_id: (selectedInboxId && selectedInboxId !== 'all') ? selectedInboxId : null,
+        p_status_filter: statusFilter || 'all',
+        p_page: Math.floor(pageParam / 50) + 1,
+        p_page_size: 50
       });
 
       if (error) {

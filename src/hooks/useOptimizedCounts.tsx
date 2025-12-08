@@ -178,7 +178,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
         queryClient.prefetchQuery({
           queryKey: ['conversations'],
           queryFn: async () => {
-            const { data } = await supabase.rpc('get_conversations');
+            const { data } = await supabase.rpc('get_conversations', { p_status_filter: 'all' });
             return data;
           },
           staleTime: 30000

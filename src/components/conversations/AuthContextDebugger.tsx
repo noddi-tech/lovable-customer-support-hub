@@ -154,7 +154,7 @@ export function AuthContextDebugger() {
 
       // Check conversations access
       try {
-        const { data: conversations, error: convError } = await supabase.rpc('get_conversations');
+        const { data: conversations, error: convError } = await supabase.rpc('get_conversations', { p_status_filter: 'all' });
         if (convError) {
           diagnostics.conversationsCount = -1;
           diagnostics.conversationsError = convError.message;

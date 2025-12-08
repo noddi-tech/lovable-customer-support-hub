@@ -207,7 +207,7 @@ export async function listConversations(params: {
       console.error('Emergency recovery failed:', recoveryError);
       
       // Fallback to original method
-      let fallbackQuery = supabase.rpc('get_conversations').select('*');
+      let fallbackQuery = supabase.rpc('get_conversations', { p_status_filter: 'all' }).select('*');
       
       const { data: fallbackData, error: fallbackError } = await fallbackQuery.limit(50);
       
