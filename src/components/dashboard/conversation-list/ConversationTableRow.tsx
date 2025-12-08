@@ -75,9 +75,10 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
     const statusLabel = t(`conversation.${conversation.status}`, conversation.status);
     const priorityLabel = t(`conversation.${conversation.priority}`, conversation.priority);
     
-    // Calculate waiting time
-    const waitingTime = conversation.updated_at
-      ? formatDistanceToNow(new Date(conversation.updated_at), { addSuffix: false })
+    // Calculate waiting time - use received_at (when last message arrived) instead of updated_at
+    // This shows actual customer activity time, not internal field changes
+    const waitingTime = (conversation.received_at || conversation.updated_at)
+      ? formatDistanceToNow(new Date(conversation.received_at || conversation.updated_at), { addSuffix: false })
       : '-';
 
     return {
