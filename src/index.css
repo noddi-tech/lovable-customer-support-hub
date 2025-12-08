@@ -348,6 +348,49 @@ Optimized for accessibility with WCAG AA compliance.
     margin: 0.5em 0;
   }
 
+  /* Email table rendering - Preserve original email table layouts */
+  .email-render__html-content table,
+  .email-render__plain-content table {
+    border-collapse: collapse;
+    width: auto;
+    max-width: 100%;
+    margin: 0.5em 0;
+    table-layout: auto;
+  }
+
+  .email-render__html-content td,
+  .email-render__html-content th,
+  .email-render__plain-content td,
+  .email-render__plain-content th {
+    padding: 4px 8px;
+    vertical-align: top;
+    text-align: left;
+    word-break: break-word;
+  }
+
+  .email-render__html-content tr,
+  .email-render__plain-content tr {
+    vertical-align: top;
+  }
+
+  /* Preserve inline styles for table cells when they exist */
+  .email-render__html-content td[style],
+  .email-render__html-content th[style],
+  .email-render__plain-content td[style],
+  .email-render__plain-content th[style] {
+    /* Allow inline styles to take precedence */
+  }
+
+  /* Responsive tables for mobile */
+  @media (max-width: 480px) {
+    .email-render__html-content table,
+    .email-render__plain-content table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
   /* Simple CSS-based collapse system - No Radix UI */
   .message-content {
     max-height: 5000px;

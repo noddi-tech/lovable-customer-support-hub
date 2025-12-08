@@ -47,6 +47,70 @@ const EVENT_TITLES: Record<string, string> = {
   conversation_closed: 'Conversation Closed',
 };
 
+/**
+ * Clean and extract readable preview text from email content
+ * Strips HTML, Google Group footers, and excessive whitespace
+ */
+function cleanPreviewText(text: string | undefined, maxLength: number = 200): string {
+  if (!text) return '';
+  
+  let result = text;
+  
+  // Remove DOCTYPE declarations
+  result = result.replace(/<!DOCTYPE[^>]*>/gi, '');
+  
+  // Remove XML declarations
+  result = result.replace(/<\?xml[^>]*\?>/gi, '');
+  
+  // Remove HEAD section entirely
+  result = result.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+  
+  // Remove STYLE and SCRIPT sections
+  result = result.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  result = result.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  
+  // Remove HTML comments
+  result = result.replace(/<!--[\s\S]*?-->/g, '');
+  
+  // Convert common block tags to newlines for readability
+  result = result.replace(/<\/?(p|div|br|tr|li)[^>]*>/gi, '\n');
+  
+  // Strip all remaining HTML tags
+  result = result.replace(/<[^>]*>/g, ' ');
+  
+  // Decode HTML entities
+  result = result
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num)))
+    .replace(/&([a-z]+);/gi, ' '); // Remove other entities
+  
+  // Remove Google Group / mailing list footers
+  result = result.replace(/To unsubscribe from this group[\s\S]*?@[^\s.]+\.[^\s]+/gi, '');
+  result = result.replace(/You received this message because you are subscribed[\s\S]*/gi, '');
+  result = result.replace(/--\s*\nYou received this message[\s\S]*/gi, '');
+  result = result.replace(/Unsubscribe from this group[\s\S]*/gi, '');
+  
+  // Remove common email signature delimiters and content after them
+  result = result.replace(/\n--\s*\n[\s\S]*/g, '');
+  
+  // Clean excessive whitespace
+  result = result.replace(/[\r\n]+/g, ' ');
+  result = result.replace(/\s+/g, ' ');
+  result = result.trim();
+  
+  // Truncate to max length
+  if (result.length > maxLength) {
+    result = result.substring(0, maxLength).trim() + '...';
+  }
+  
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -134,36 +198,42 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Customer info
+    // Customer info - make values bold for emphasis
     if (customer_name || customer_email) {
       attachmentBlocks.push({
         type: 'section',
         fields: [
           {
             type: 'mrkdwn',
-            text: `*From:*\n${customer_name || 'Unknown'}${customer_email ? ` (${customer_email})` : ''}`,
+            text: `From:\n*${customer_name || 'Unknown'}*${customer_email ? ` (${customer_email})` : ''}`,
           },
           ...(subject ? [{
             type: 'mrkdwn',
-            text: `*Subject:*\n${subject}`,
+            text: `Subject:\n*${subject}*`,
           }] : []),
         ],
       });
     }
 
-    // Message preview
+    // Message preview - clean HTML and strip footers
     if (preview_text && config.include_message_preview !== false) {
-      const truncatedPreview = preview_text.length > 200 
-        ? preview_text.substring(0, 200) + '...' 
-        : preview_text;
+      const cleanedPreview = cleanPreviewText(preview_text, 200);
       
-      attachmentBlocks.push({
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `> ${truncatedPreview}`,
-        },
-      });
+      if (cleanedPreview) {
+        // Escape Slack markdown special characters in preview
+        const escapedPreview = cleanedPreview
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        
+        attachmentBlocks.push({
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `> ${escapedPreview}`,
+          },
+        });
+      }
     }
 
     // Assignment or mention info

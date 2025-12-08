@@ -198,18 +198,40 @@ export const sanitizeEmailHTML = (
         }
         
         // Sanitize style attributes to only allow safe properties
+        // Be more permissive with table elements to preserve email layouts
         if (node.hasAttribute('style')) {
           const style = node.getAttribute('style') || '';
+          const isTableElement = ['TABLE', 'TR', 'TD', 'TH', 'THEAD', 'TBODY', 'TFOOT'].includes(node.tagName);
+          
           const safeStyles = style
             .split(';')
             .filter(rule => {
               const property = rule.split(':')[0]?.trim().toLowerCase();
-              const safeProperties = [
-                'color', 'background-color', 'font-family', 'font-size', 'font-weight',
+              // Base safe properties
+              const baseProperties = [
+                'color', 'background-color', 'background', 'font-family', 'font-size', 'font-weight',
                 'text-decoration', 'text-align', 'margin', 'padding', 'border',
-                'border-color', 'border-width', 'border-style', 'line-height', 'max-width'
+                'border-color', 'border-width', 'border-style', 'line-height', 'max-width',
+                'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
+                'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
+                'border-top', 'border-bottom', 'border-left', 'border-right'
               ];
-              return safeProperties.includes(property);
+              
+              // Additional properties for table elements to preserve email layouts
+              const tableProperties = [
+                'width', 'height', 'min-width', 'min-height', 'max-height',
+                'vertical-align', 'text-indent', 'letter-spacing', 'word-spacing',
+                'border-collapse', 'border-spacing', 'table-layout',
+                'background-image', 'background-repeat', 'background-position', 'background-size',
+                'display', 'white-space', 'overflow', 'visibility',
+                'cellpadding', 'cellspacing'
+              ];
+              
+              const allowedProperties = isTableElement 
+                ? [...baseProperties, ...tableProperties]
+                : baseProperties;
+              
+              return allowedProperties.includes(property);
             })
             .join(';');
           
