@@ -8,8 +8,10 @@ interface SimpleRealtimeConfig {
   queryKey: string;
 }
 
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+
 // Global registry to prevent duplicate subscriptions
-const activeChannels = new Map<string, { channel: any; refCount: number }>();
+const activeChannels = new Map<string, { channel: any; refCount: number; status: ConnectionStatus }>();
 
 export const useSimpleRealtimeSubscriptions = (
   configs: SimpleRealtimeConfig[],
@@ -19,7 +21,7 @@ export const useSimpleRealtimeSubscriptions = (
   const channelRef = useRef<any>(null);
   const retryCountRef = useRef(0);
   const retryTimeoutRef = useRef<NodeJS.Timeout>();
-  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const hasLoggedErrorRef = useRef(false);
   
   useEffect(() => {
@@ -41,7 +43,7 @@ export const useSimpleRealtimeSubscriptions = (
         
         channelRef.current = existing.channel;
         existing.refCount++;
-        setIsConnected(true);
+        setConnectionStatus(existing.status);
         return;
       }
 
@@ -87,8 +89,13 @@ export const useSimpleRealtimeSubscriptions = (
           activeSubscriptions: activeChannels.size
         }, 'Realtime');
         
-        if (status === 'CHANNEL_ERROR') {
-          setIsConnected(false);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          const newStatus: ConnectionStatus = retryCountRef.current >= 3 ? 'error' : 'disconnected';
+          setConnectionStatus(newStatus);
+          
+          // Update registry status
+          const existing = activeChannels.get(channelKey);
+          if (existing) existing.status = newStatus;
           
           // Only log error once to avoid spam
           if (!hasLoggedErrorRef.current) {
@@ -117,15 +124,16 @@ export const useSimpleRealtimeSubscriptions = (
           
           retryTimeoutRef.current = setTimeout(() => {
             retryCountRef.current++;
+            setConnectionStatus('connecting');
             setupSubscription();
           }, delay);
         } else if (status === 'SUBSCRIBED') {
-          setIsConnected(true);
+          setConnectionStatus('connected');
           retryCountRef.current = 0; // Reset retry count on success
           hasLoggedErrorRef.current = false; // Reset error log flag
           
           // Register this channel in the global registry
-          activeChannels.set(channelKey, { channel, refCount: 1 });
+          activeChannels.set(channelKey, { channel, refCount: 1, status: 'connected' });
           
           logger.info('Successfully subscribed to realtime', { 
             channelName,
@@ -133,6 +141,10 @@ export const useSimpleRealtimeSubscriptions = (
             tables: configs.map(c => c.table),
             activeSubscriptions: activeChannels.size
           }, 'Realtime');
+        } else if (status === 'CLOSED') {
+          setConnectionStatus('disconnected');
+          const existing = activeChannels.get(channelKey);
+          if (existing) existing.status = 'disconnected';
         }
       });
 
@@ -181,6 +193,7 @@ export const useSimpleRealtimeSubscriptions = (
   }, [enabled, configs, queryClient]);
 
   return {
-    isConnected
+    isConnected: connectionStatus === 'connected',
+    connectionStatus
   };
 };
