@@ -68,9 +68,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   return (
-    <div className="app-header-container bg-card/80 backdrop-blur-sm border-b border-border shadow-sm relative z-[200]">
+    <div className="app-header-container h-14 bg-card/80 backdrop-blur-sm border-b border-border shadow-sm relative z-[200]">
       {/* Main Header */}
-      <header className="flex items-center justify-between px-6 py-2.5">
+      <header className="h-full flex items-center justify-between px-6">
         {/* Left Section - Logo, Navigation */}
         <div className="flex items-center gap-4 flex-1 min-w-0">
           {/* Mobile Menu/Back Button */}
