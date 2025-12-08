@@ -635,83 +635,24 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
     }
   }
 
-  // STEP 5: Convert block elements and <br> to newlines BEFORE extracting text
-  // This preserves line break structure when using .textContent
-  const bodyClone = body.cloneNode(true) as HTMLElement;
-
-  // Convert <br> tags to newlines
-  bodyClone.querySelectorAll('br').forEach(br => {
-    br.replaceWith(doc.createTextNode('\n'));
-  });
-
-  // Convert block-level elements to add newlines before/after
-  const blockElements = ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'];
-  blockElements.forEach(tag => {
-    bodyClone.querySelectorAll(tag).forEach(el => {
-      // Add newline before the element content
-      if (el.previousSibling && el.previousSibling.nodeType === Node.TEXT_NODE) {
-        const text = el.previousSibling.textContent || '';
-        if (text && !text.endsWith('\n')) {
-          el.previousSibling.textContent = text + '\n';
-        }
-      } else if (el.previousSibling) {
-        el.before(doc.createTextNode('\n'));
-      }
-      
-      // Add newline after the element content
-      if (el.nextSibling && el.nextSibling.nodeType === Node.TEXT_NODE) {
-        const text = el.nextSibling.textContent || '';
-        if (text && !text.startsWith('\n')) {
-          el.nextSibling.textContent = '\n' + text;
-        }
-      } else if (el.nextSibling) {
-        el.after(doc.createTextNode('\n'));
-      }
-    });
-  });
-
-  // Now extract text content - newlines are preserved!
-  const bodyText = (bodyClone.textContent || bodyClone.innerText || '').trim();
-  const cleanedText = stripEmailListFooters(bodyText);
+  // STEP 5: Preserve original HTML structure instead of reconstructing as <p> tags
+  // This keeps table layouts, CSS classes, and rich email formatting intact
   
-  // Convert cleaned text back to minimal HTML structure with smart paragraph grouping
-  // Group consecutive non-empty lines into single paragraphs, preserve line break structure
-  const textLines = cleanedText.split('\n');
-  const paragraphs: string[] = [];
-  let currentParagraph: string[] = [];
-  let consecutiveEmptyLines = 0;
-
-  for (let i = 0; i < textLines.length; i++) {
-    const trimmed = textLines[i].trim();
-    
-    if (trimmed.length === 0) {
-      consecutiveEmptyLines++;
-    } else {
-      // Each non-empty line becomes its own paragraph
-      // Check if previous line(s) were empty to add extra spacing
-      const hasExtraSpacing = consecutiveEmptyLines >= 2;
-      const className = hasExtraSpacing ? ' class="mt-extra"' : '';
-      paragraphs.push(`<p${className}>${trimmed}</p>`);
-      consecutiveEmptyLines = 0;
-    }
-  }
-
-  // Detect and separate signature from content
-  const { contentHtml, signatureHtml } = detectAndSeparateSignature(paragraphs);
-  const visibleHTML = signatureHtml 
-    ? `${contentHtml}\n<div class="email-signature">${signatureHtml}</div>`
-    : contentHtml;
+  // Get plain text for bodyText return value (used for thread extraction)
+  const bodyText = (body.textContent || body.innerText || '').trim();
   
-  console.log('[parseQuotedEmail] Extraction complete:', {
+  // Return the ORIGINAL HTML structure with quotes removed
+  const visibleHTML = body.innerHTML;
+  
+  console.log('[parseQuotedEmail] Extraction complete (preserving HTML):', {
     visibleHTMLLength: visibleHTML.length,
     bodyTextLength: bodyText.length,
-    cleanedTextLength: cleanedText.length,
     quotedBlocksCount: quoted.length,
     visibleHTMLPreview: visibleHTML.substring(0, 200)
   });
   
   return { 
-    visibleHTML: visibleHTML || cleanedText || bodyText, 
+    visibleHTML: visibleHTML || bodyText, 
     quoted, 
     quotedMessages 
   };
