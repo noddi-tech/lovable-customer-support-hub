@@ -107,12 +107,14 @@ const AppContent = () => {
       {/* Global Search */}
       <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
       
-      {/* Notifications */}
-      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+      {/* ========== NOTIFICATIONS ========== */}
+      <Route path="/notifications" element={<Navigate to="/notifications/unread" replace />} />
+      <Route path="/notifications/:tab" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
       {/* ========== INTERACTIONS ========== */}
-      <Route path="/interactions" element={<Navigate to="/interactions/text" replace />} />
-      <Route path="/interactions/text" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/interactions" element={<Navigate to="/interactions/text/open" replace />} />
+      <Route path="/interactions/text" element={<Navigate to="/interactions/text/open" replace />} />
+      <Route path="/interactions/text/:filter" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/interactions/voice" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/interactions/voice/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/interactions/voice/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />

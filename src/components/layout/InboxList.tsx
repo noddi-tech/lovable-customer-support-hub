@@ -10,6 +10,7 @@
  * - OptimizedInteractionsSidebar.tsx (not used on main route)
  */
 import React from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -46,11 +47,14 @@ const statusFilters: StatusFilterItem[] = [
 
 export const InboxList: React.FC<InboxListProps> = ({
   selectedInbox,
-  selectedStatus = 'all',
+  selectedStatus = 'open',
   onInboxSelect,
   onStatusSelect,
   className
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { data: inboxes = [], isLoading: inboxesLoading } = useAccessibleInboxes();
   const { data: counts, isLoading: countsLoading } = useInboxCounts(selectedInbox || 'all');
 
@@ -69,6 +73,44 @@ export const InboxList: React.FC<InboxListProps> = ({
     }
   };
 
+  // Handle status filter click with URL navigation
+  const handleStatusClick = (status: StatusFilter) => {
+    // Build new path: /interactions/text/[status]
+    const pathParts = location.pathname.split('/');
+    // Get base path (e.g., /interactions/text)
+    const basePath = pathParts.slice(0, 3).join('/');
+    const newPath = `${basePath}/${status}`;
+    
+    // Preserve query params (inbox, conversation, etc.)
+    const queryString = searchParams.toString();
+    const fullPath = queryString ? `${newPath}?${queryString}` : newPath;
+    
+    navigate(fullPath, { replace: false });
+    
+    // Also call the callback for any side effects
+    onStatusSelect?.(status);
+  };
+
+  // Handle inbox selection with URL navigation
+  const handleInboxChange = (inboxId: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (inboxId && inboxId !== 'all') {
+      newParams.set('inbox', inboxId);
+    } else {
+      newParams.delete('inbox');
+    }
+    // Remove conversation when changing inbox
+    newParams.delete('c');
+    
+    const queryString = newParams.toString();
+    const newUrl = queryString ? `${location.pathname}?${queryString}` : location.pathname;
+    
+    navigate(newUrl, { replace: false });
+    
+    // Also call the callback
+    onInboxSelect?.(inboxId);
+  };
+
   return (
     <div className={cn("space-y-4", className)}>
       {/* Inbox Selector */}
@@ -78,7 +120,7 @@ export const InboxList: React.FC<InboxListProps> = ({
         {inboxesLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : (
-          <Select value={selectedInbox || ''} onValueChange={onInboxSelect}>
+          <Select value={selectedInbox || ''} onValueChange={handleInboxChange}>
             <SelectTrigger className="w-full bg-background border-border focus:ring-ring">
               <div className="flex items-center gap-2">
                 {selectedInbox && selectedInbox !== 'all' ? (
@@ -130,7 +172,7 @@ export const InboxList: React.FC<InboxListProps> = ({
                 "w-full justify-between h-auto px-3 py-2 text-left hover:bg-muted/50 focus-visible:ring-ring",
                 selectedStatus === filter.id && "bg-muted text-foreground"
               )}
-              onClick={() => onStatusSelect?.(filter.id)}
+              onClick={() => handleStatusClick(filter.id)}
             >
               <div className="flex items-center gap-2">
                 <span className={cn("flex-shrink-0", filter.color)}>

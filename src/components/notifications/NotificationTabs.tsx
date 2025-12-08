@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Phone, MessageSquare, Mail, Ticket, UserCheck, AtSign } from 'lucide-react';
@@ -30,8 +31,18 @@ export const NotificationTabs: React.FC<NotificationTabsProps> = ({
   onSelectCategory,
   unreadCounts,
 }) => {
+  const navigate = useNavigate();
+
+  const handleTabChange = (value: string) => {
+    const category = value as NotificationCategory;
+    // Navigate via URL for proper browser history
+    navigate(`/notifications/${category}`, { replace: false });
+    // Also call the callback for any side effects
+    onSelectCategory(category);
+  };
+
   return (
-    <Tabs value={selectedCategory} onValueChange={(v) => onSelectCategory(v as NotificationCategory)}>
+    <Tabs value={selectedCategory} onValueChange={handleTabChange}>
       <TabsList className="h-auto p-1 bg-muted/50">
         {tabConfig.map(({ id, label, icon: Icon }) => {
           const count = unreadCounts[id];
