@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users, MessageSquare, Activity, Crown, Mail, Database, RefreshCw, AlertTriangle, Loader2 } from 'lucide-react';
+import { Building2, Users, MessageSquare, Activity, Crown, Mail, Database, RefreshCw, AlertTriangle, Loader2, Archive } from 'lucide-react';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +20,14 @@ export default function SuperAdminDashboard() {
     status: string;
     duplicatesDeleted?: number;
     remainingDuplicates?: number;
+    message?: string;
+  } | null>(null);
+
+  // State for bulk close old conversations
+  const [isClosingOld, setIsClosingOld] = useState(false);
+  const [closeOldStatus, setCloseOldStatus] = useState<{
+    success: boolean;
+    count?: number;
     message?: string;
   } | null>(null);
 
@@ -102,6 +110,50 @@ export default function SuperAdminDashboard() {
       });
     } finally {
       setIsRecovering(false);
+    }
+  };
+
+  // Handle bulk close old conversations
+  const handleBulkCloseOld = async () => {
+    setIsClosingOld(true);
+    setCloseOldStatus(null);
+    
+    toast({
+      title: 'Closing Old Conversations',
+      description: 'Finding and closing conversations older than 3 months...',
+    });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('bulk-close-old-conversations', {
+        body: { monthsOld: 3, dryRun: false }
+      });
+      
+      if (error) throw error;
+      
+      setCloseOldStatus({
+        success: data.success,
+        count: data.count,
+        message: data.message
+      });
+
+      toast({
+        title: 'Bulk Close Complete',
+        description: `Closed ${data.count} old conversations.`,
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Bulk close failed';
+      setCloseOldStatus({
+        success: false,
+        message: errorMessage
+      });
+      
+      toast({
+        title: 'Bulk Close Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsClosingOld(false);
     }
   };
 
@@ -332,6 +384,63 @@ export default function SuperAdminDashboard() {
                   <p>Recovery automatically continues in background until complete. Check Supabase Edge Function logs for detailed progress.</p>
                 </div>
               </div>
+            </div>
+
+            {/* Bulk Close Old Conversations Section */}
+            <div className="border border-border rounded-lg p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Archive className="h-4 w-4 text-muted-foreground" />
+                    <h4 className="font-medium">Bulk Close Old Conversations</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Close all open conversations older than 3 months (e.g., HelpScout imports)
+                  </p>
+                </div>
+                <Button
+                  onClick={handleBulkCloseOld}
+                  disabled={isClosingOld}
+                  variant="outline"
+                  size="sm"
+                  className="border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30"
+                >
+                  {isClosingOld ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Closing...
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="h-4 w-4 mr-2" />
+                      Close Old
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Close Status */}
+              {closeOldStatus && (
+                <div className={`p-3 rounded-md border ${
+                  !closeOldStatus.success 
+                    ? 'bg-destructive/10 border-destructive/50' 
+                    : 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900'
+                }`}>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">
+                      {closeOldStatus.success ? '✅ Bulk Close Complete' : '❌ Bulk Close Failed'}
+                    </p>
+                    {closeOldStatus.message && (
+                      <p className="text-sm text-muted-foreground">{closeOldStatus.message}</p>
+                    )}
+                    {closeOldStatus.count !== undefined && closeOldStatus.success && (
+                      <p className="text-sm font-mono">
+                        Closed: {closeOldStatus.count.toLocaleString()} conversations
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
