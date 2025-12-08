@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+// Real-time subscriptions are now handled centrally by RealtimeProvider
 
 export interface CallbackRequest {
   id: string;
@@ -125,55 +125,8 @@ export function useCallbackRequests() {
     }
   });
 
-  // Set up real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel('callback-requests-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'internal_events',
-        filter: 'event_type=eq.callback_requested'
-      }, (payload) => {
-        console.log('Callback request change received:', payload);
-        
-        // Show toast notification for new callback requests
-        if (payload.eventType === 'INSERT') {
-          const newRequest = payload.new as CallbackRequest;
-          toast({
-            title: "Callback Request",
-            description: `New request from ${newRequest.customer_phone || 'Unknown'}`,
-          });
-        } else if (payload.eventType === 'UPDATE') {
-          const updatedRequest = payload.new as CallbackRequest;
-          const oldRequest = payload.old as CallbackRequest;
-          
-          if (oldRequest?.status !== updatedRequest.status) {
-            // Check if this was an auto-closure due to outbound call
-            if (updatedRequest.status === 'completed' && 
-                (oldRequest?.status === 'pending' || oldRequest?.status === 'processed')) {
-              toast({
-                title: "Callback Completed",
-                description: `Request auto-completed - outbound call made to ${updatedRequest.customer_phone}`,
-                className: "border-green-200 bg-green-50",
-              });
-            } else {
-              toast({
-                title: "Request Status Updated",
-                description: `Request marked as ${updatedRequest.status}`,
-              });
-            }
-          }
-        }
-        
-        queryClient.invalidateQueries({ queryKey: ['callback-requests'] });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Real-time subscriptions moved to centralized RealtimeProvider
+  // The provider invalidates 'callback-requests' query key on internal_events table changes
 
   // Derived data
   const pendingRequests = callbackRequests.filter((req: any) => req.status === 'pending');

@@ -1,9 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useRealtimeConnectionManager } from "./useRealtimeConnectionManager";
-
+// Real-time subscriptions are now handled centrally by RealtimeProvider
 export interface Call {
   id: string;
   organization_id: string;
@@ -50,11 +48,8 @@ export interface CallEvent {
 export function useCalls() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { createManagedSubscription, isConnected } = useRealtimeConnectionManager();
-
-  console.log('[useCalls] 🚀 Hook initialized - real-time + polling fallback enabled');
-  console.log('[useCalls] 📡 Real-time connected:', isConnected);
-
+  // Real-time subscriptions are now handled centrally by RealtimeProvider
+  // This hook only handles data fetching and mutations
   const { data: calls = [], isLoading, error } = useQuery({
     queryKey: ['calls'],
     queryFn: async () => {
@@ -123,103 +118,8 @@ export function useCalls() {
     refetchOnMount: false,
   });
 
-  // Set up managed real-time subscriptions
-  useEffect(() => {
-    console.log('[useCalls] 🔌 Setting up realtime subscriptions...');
-    
-    const unsubscribeCalls = createManagedSubscription(
-      'calls-changes',
-      (channel) => channel.on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'calls'
-      }, (payload) => {
-        const timestamp = new Date().toISOString();
-        console.log(`[Real-time] 📞 Calls table event received at ${timestamp}:`, {
-          eventType: payload.eventType,
-          table: payload.table,
-          timestamp
-        });
-        
-        // Show toast notification for new calls (only if not handled by main notifications)
-        if (payload.eventType === 'INSERT') {
-          const newCall = payload.new as Call;
-          console.log('[Real-time] 🆕 NEW CALL INSERTED:', {
-            id: newCall.id,
-            status: newCall.status,
-            direction: newCall.direction,
-            customer_phone: newCall.customer_phone,
-            started_at: newCall.started_at,
-            timestamp
-          });
-          
-          if (newCall.direction === 'inbound') {
-            console.log('[Real-time] 📲 Incoming call detected - should trigger notification');
-          }
-        } else if (payload.eventType === 'UPDATE') {
-          const updatedCall = payload.new as Call;
-          const oldCall = payload.old as Call;
-          console.log('[Real-time] 🔄 CALL UPDATED:', {
-            id: updatedCall.id,
-            oldStatus: oldCall?.status,
-            newStatus: updatedCall.status,
-            oldEndedAt: oldCall?.ended_at,
-            newEndedAt: updatedCall.ended_at,
-            timestamp
-          });
-          
-          if (oldCall?.status !== updatedCall.status) {
-            console.log(`[Real-time] ⚡ Status changed: ${oldCall?.status} → ${updatedCall.status}`);
-            
-            // Invalidate Noddi cache when call ends (completed or missed) to catch new bookings
-            const terminalStatuses = ['completed', 'missed'];
-            if (terminalStatuses.includes(updatedCall.status) && !terminalStatuses.includes(oldCall?.status || '')) {
-              console.log('[Real-time] 📝 Call ended - invalidating Noddi cache for customer');
-              queryClient.invalidateQueries({
-                queryKey: ['noddi-customer-lookup', updatedCall.customer_phone]
-              });
-            }
-          }
-        } else if (payload.eventType === 'DELETE') {
-          console.log('[Real-time] 🗑️ CALL DELETED:', {
-            id: payload.old?.id,
-            timestamp
-          });
-        }
-        
-        console.log('[Real-time] ♻️ Invalidating calls query to refresh UI');
-        queryClient.invalidateQueries({ queryKey: ['calls'] });
-      }),
-      [createManagedSubscription, queryClient]
-    );
-
-    const unsubscribeEvents = createManagedSubscription(
-      'call-events-changes',
-      (channel) => channel.on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'call_events'
-      }, (payload) => {
-        console.log('[useCalls] 📋 Call event received:', {
-          eventType: payload.eventType,
-          new: payload.new,
-          timestamp: new Date().toISOString()
-        });
-        
-        console.log('[useCalls] ♻️ Invalidating call-events query');
-        queryClient.invalidateQueries({ queryKey: ['call-events'] });
-      }),
-      [createManagedSubscription, queryClient]
-    );
-
-    console.log('[useCalls] ✅ Realtime subscriptions created');
-
-    return () => {
-      console.log('[useCalls] 🔌 Cleaning up realtime subscriptions');
-      unsubscribeCalls();
-      unsubscribeEvents();
-    };
-  }, [createManagedSubscription, queryClient]);
+  // Real-time subscriptions moved to centralized RealtimeProvider
+  // The provider invalidates 'calls' and 'call-events' query keys on table changes
 
   // Derived data
   const activeCalls = calls.filter(call => 

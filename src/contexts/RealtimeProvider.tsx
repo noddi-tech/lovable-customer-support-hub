@@ -9,14 +9,22 @@ const RealtimeContext = createContext<RealtimeContextValue>({ isConnected: false
 
 export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Single subscription point for the entire app
-  // Subscribes to all critical tables that need real-time updates
+  // Subscribes to ALL critical tables that need real-time updates
+  // This consolidates subscriptions that were previously scattered across hooks
   const { isConnected } = useSimpleRealtimeSubscriptions([
+    // Conversations & Messages
     { table: 'conversations', queryKey: 'conversations' },
-    { table: 'notifications', queryKey: 'notifications' },
     { table: 'messages', queryKey: 'messages' },
     { table: 'messages', queryKey: 'thread-messages' },
     { table: 'messages', queryKey: 'conversation-messages' },
     { table: 'customers', queryKey: 'customers' },
+    // Notifications
+    { table: 'notifications', queryKey: 'notifications' },
+    // Voice/Calls - consolidated from useCalls, useVoicemails, useCallbackRequests
+    { table: 'calls', queryKey: 'calls' },
+    { table: 'call_events', queryKey: 'call-events' },
+    { table: 'internal_events', queryKey: 'voicemails' },
+    { table: 'internal_events', queryKey: 'callback-requests' },
   ], true);
 
   return (

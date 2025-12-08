@@ -10,7 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { SyncButton } from '@/components/dashboard/SyncButton';
-import { 
+import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
+import {
   Search,
   User,
   LogOut,
@@ -102,6 +103,7 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1">
+            <ConnectionStatusIndicator />
             <SyncButton />
             <NotificationDropdown />
           </div>
