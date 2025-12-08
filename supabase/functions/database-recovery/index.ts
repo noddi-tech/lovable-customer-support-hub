@@ -12,7 +12,17 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Parse request body for organizationId
+    let organizationId: string | null = null;
+    try {
+      const body = await req.json();
+      organizationId = body.organizationId || null;
+    } catch {
+      // No body or invalid JSON - continue without org filter
+    }
+
     console.log('[database-recovery] ===== DATABASE RECOVERY STARTED =====');
+    console.log('[database-recovery] Organization ID:', organizationId || 'GLOBAL (all orgs)');
     const startTime = Date.now();
     const MAX_EXECUTION_TIME = 45000; // 45 seconds (leave 15s buffer before 60s timeout)
 
@@ -22,7 +32,7 @@ Deno.serve(async (req) => {
       recoveryLog.push(`[${new Date().toISOString()}] ${message}`);
     };
 
-    // Helper function to count duplicates directly with pagination
+    // Helper function to count duplicates with org filter
     const countDuplicates = async () => {
       let allExternalIds: string[] = [];
       let offset = 0;
@@ -35,11 +45,13 @@ Deno.serve(async (req) => {
       while (hasMore) {
         pageNumber++;
         
-        const { data: batch, error } = await supabase
+        let query = supabase
           .from('messages')
-          .select('external_id')
+          .select('external_id, conversation_id')
           .not('external_id', 'is', null)
           .range(offset, offset + pageSize - 1);
+        
+        const { data: batch, error } = await query;
         
         if (error) {
           log(`Error fetching page ${pageNumber} for duplicate count: ${error.message}`);
@@ -47,7 +59,28 @@ Deno.serve(async (req) => {
         }
         
         if (batch && batch.length > 0) {
-          allExternalIds = allExternalIds.concat(batch.map(m => m.external_id));
+          // If org filter is set, we need to check conversation ownership
+          if (organizationId) {
+            // Get conversation IDs for this batch
+            const convIds = [...new Set(batch.map(m => m.conversation_id).filter(Boolean))];
+            
+            if (convIds.length > 0) {
+              const { data: orgConvs } = await supabase
+                .from('conversations')
+                .select('id')
+                .eq('organization_id', organizationId)
+                .in('id', convIds);
+              
+              const orgConvIds = new Set(orgConvs?.map(c => c.id) || []);
+              
+              // Only include external_ids from messages in this org's conversations
+              const orgMessages = batch.filter(m => orgConvIds.has(m.conversation_id));
+              allExternalIds = allExternalIds.concat(orgMessages.map(m => m.external_id));
+            }
+          } else {
+            allExternalIds = allExternalIds.concat(batch.map(m => m.external_id));
+          }
+          
           offset += pageSize;
           hasMore = batch.length === pageSize;
           
@@ -99,7 +132,8 @@ Deno.serve(async (req) => {
             headers: {
               'Authorization': `Bearer ${supabaseServiceKey}`,
               'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ organizationId })
           }).then(res => {
             console.log('[database-recovery] Self-invocation triggered, status:', res.status);
           }).catch(err => {
@@ -115,6 +149,7 @@ Deno.serve(async (req) => {
             success: true,
             status: 'continuing',
             message: 'Cleanup continuing in background',
+            organizationId,
             totalIterations: iteration,
             totalDuplicatesDeleted: totalDeleted,
             remainingDuplicates: remainingCount,
@@ -128,7 +163,7 @@ Deno.serve(async (req) => {
 
       const { data: cleanupResult, error: cleanupError } = await supabase.functions.invoke(
         'cleanup-duplicate-messages',
-        { body: {} }
+        { body: { organizationId } }
       );
 
       if (cleanupError) {
@@ -191,6 +226,8 @@ Deno.serve(async (req) => {
 
     const summary = {
       success: true,
+      status: 'complete',
+      organizationId,
       totalIterations: iteration,
       totalDuplicatesDeleted: totalDeleted,
       durationSeconds: parseFloat(duration),

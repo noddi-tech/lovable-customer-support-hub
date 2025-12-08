@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users, MessageSquare, Activity, Crown, Mail, Database, RefreshCw, AlertTriangle, Loader2, Archive } from 'lucide-react';
+import { Building2, Users, MessageSquare, Crown, Mail, Database, RefreshCw, AlertTriangle, Loader2, Archive } from 'lucide-react';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -11,10 +11,19 @@ import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmailHealthDashboard } from '@/components/admin/EmailHealthDashboard';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+interface SelectedOrg {
+  id: string;
+  name: string;
+}
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Global organization selector
+  const [selectedOrg, setSelectedOrg] = useState<SelectedOrg | null>(null);
   
   // State for database recovery
   const [isRecovering, setIsRecovering] = useState(false);
@@ -27,14 +36,13 @@ export default function SuperAdminDashboard() {
 
   // State for bulk close old conversations
   const [isClosingOld, setIsClosingOld] = useState(false);
-  const [bulkCloseOrgId, setBulkCloseOrgId] = useState<string | null>(null);
   const [closeOldStatus, setCloseOldStatus] = useState<{
     success: boolean;
     count?: number;
     message?: string;
   } | null>(null);
 
-  // Fetch all organizations for bulk close selector
+  // Fetch all organizations
   const { data: allOrganizations = [] } = useQuery({
     queryKey: ['all-organizations'],
     queryFn: async () => {
@@ -47,25 +55,49 @@ export default function SuperAdminDashboard() {
     },
   });
 
-  // Fetch stats
+  // Fetch org-scoped stats
   const { data: stats } = useQuery({
-    queryKey: ['super-admin-stats'],
+    queryKey: ['super-admin-stats', selectedOrg?.id],
     queryFn: async () => {
-      const [orgsResult, usersResult, conversationsResult] = await Promise.all([
-        supabase.from('organizations').select('id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('conversations').select('id', { count: 'exact', head: true }),
+      if (!selectedOrg) {
+        // Global stats when no org selected
+        const [orgsResult, usersResult, conversationsResult] = await Promise.all([
+          supabase.from('organizations').select('id', { count: 'exact', head: true }),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('conversations').select('id', { count: 'exact', head: true }),
+        ]);
+
+        return {
+          totalOrganizations: orgsResult.count || 0,
+          totalUsers: usersResult.count || 0,
+          totalConversations: conversationsResult.count || 0,
+          isGlobal: true,
+        };
+      }
+
+      // Org-specific stats
+      const [usersResult, conversationsResult] = await Promise.all([
+        supabase
+          .from('organization_memberships')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', selectedOrg.id)
+          .eq('status', 'active'),
+        supabase
+          .from('conversations')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', selectedOrg.id),
       ]);
 
       return {
-        totalOrganizations: orgsResult.count || 0,
+        totalOrganizations: 1,
         totalUsers: usersResult.count || 0,
         totalConversations: conversationsResult.count || 0,
+        isGlobal: false,
       };
     },
   });
 
-  // Fetch recent organizations
+  // Fetch recent organizations (only when global view)
   const { data: recentOrgs = [] } = useQuery({
     queryKey: ['recent-organizations'],
     queryFn: async () => {
@@ -78,20 +110,42 @@ export default function SuperAdminDashboard() {
       if (error) throw error;
       return data || [];
     },
+    enabled: !selectedOrg,
   });
 
-  // Handle database recovery
+  // Handle organization selection
+  const handleOrgChange = (orgId: string) => {
+    const org = allOrganizations.find(o => o.id === orgId);
+    if (org) {
+      setSelectedOrg({ id: org.id, name: org.name });
+      // Clear previous statuses
+      setRecoveryStatus(null);
+      setCloseOldStatus(null);
+    }
+  };
+
+  const clearOrgSelection = () => {
+    setSelectedOrg(null);
+    setRecoveryStatus(null);
+    setCloseOldStatus(null);
+  };
+
+  // Handle database recovery (now org-scoped)
   const handleDatabaseRecovery = async () => {
+    if (!selectedOrg) return;
+    
     setIsRecovering(true);
-    setRecoveryStatus({ status: 'starting', message: 'Initiating database recovery...' });
+    setRecoveryStatus({ status: 'starting', message: `Initiating database recovery for ${selectedOrg.name}...` });
     
     toast({
       title: 'Database Recovery Started',
-      description: 'Cleaning up duplicate messages...',
+      description: `Cleaning up duplicate messages for ${selectedOrg.name}...`,
     });
     
     try {
-      const { data, error } = await supabase.functions.invoke('database-recovery');
+      const { data, error } = await supabase.functions.invoke('database-recovery', {
+        body: { organizationId: selectedOrg.id }
+      });
       
       if (error) throw error;
       
@@ -129,23 +183,21 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  // Handle bulk close old conversations
+  // Handle bulk close old conversations (now uses selected org)
   const handleBulkCloseOld = async () => {
-    if (!bulkCloseOrgId) return;
-    
-    const selectedOrg = allOrganizations.find(o => o.id === bulkCloseOrgId);
+    if (!selectedOrg) return;
     
     setIsClosingOld(true);
     setCloseOldStatus(null);
     
     toast({
       title: 'Closing Old Conversations',
-      description: `Finding and closing conversations older than 3 months for ${selectedOrg?.name || 'selected organization'}...`,
+      description: `Finding and closing conversations older than 3 months for ${selectedOrg.name}...`,
     });
     
     try {
       const { data, error } = await supabase.functions.invoke('bulk-close-old-conversations', {
-        body: { organizationId: bulkCloseOrgId, monthsOld: 3, dryRun: false }
+        body: { organizationId: selectedOrg.id, monthsOld: 3, dryRun: false }
       });
       
       if (error) throw error;
@@ -197,83 +249,136 @@ export default function SuperAdminDashboard() {
           </Badge>
         </div>
 
+        {/* Organization Selector - Primary control */}
+        <Card className="border-yellow-300 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-950/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Building2 className="h-5 w-5 text-yellow-600" />
+              Organization Context
+            </CardTitle>
+            <CardDescription>
+              Select an organization to view scoped data and perform maintenance operations
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Select value={selectedOrg?.id || ''} onValueChange={handleOrgChange}>
+                <SelectTrigger className="w-[320px]">
+                  <SelectValue placeholder="Select an organization..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {allOrganizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {selectedOrg && (
+                <Button variant="ghost" size="sm" onClick={clearOrgSelection}>
+                  View Global
+                </Button>
+              )}
+              
+              {selectedOrg && (
+                <Badge className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/50">
+                  {selectedOrg.name}
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card className="border-yellow-200 dark:border-yellow-900/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/super-admin/organizations')}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Organizations</CardTitle>
-              <Building2 className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalOrganizations || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">Active tenants in the system</p>
-            </CardContent>
-          </Card>
+          {!selectedOrg && (
+            <Card className="border-yellow-200 dark:border-yellow-900/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/super-admin/organizations')}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Organizations</CardTitle>
+                <Building2 className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalOrganizations || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">Active tenants in the system</p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="border-yellow-200 dark:border-yellow-900/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/super-admin/users')}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {selectedOrg ? 'Organization Users' : 'Total Users'}
+              </CardTitle>
               <Users className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">Across all organizations</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedOrg ? `Active members in ${selectedOrg.name}` : 'Across all organizations'}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-yellow-200 dark:border-yellow-900/50 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Conversations</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {selectedOrg ? 'Organization Conversations' : 'Total Conversations'}
+              </CardTitle>
               <MessageSquare className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.totalConversations || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">System-wide interactions</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedOrg ? `Conversations in ${selectedOrg.name}` : 'System-wide interactions'}
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Organizations */}
-        <Card className="border-yellow-200 dark:border-yellow-900/50">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Recent Organizations</CardTitle>
-                <CardDescription>Latest organizations added to the system</CardDescription>
-              </div>
-              <Button onClick={() => navigate('/super-admin/organizations')} variant="outline" className="border-yellow-300 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-950/30">
-                View All
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentOrgs.map((org) => (
-                <div
-                  key={org.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/super-admin/organizations/${org.id}`)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-                      <Building2 className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{org.name}</p>
-                      <p className="text-sm text-muted-foreground">/{org.slug}</p>
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(org.created_at).toLocaleDateString()}
-                  </div>
+        {/* Recent Organizations - Only show in global view */}
+        {!selectedOrg && (
+          <Card className="border-yellow-200 dark:border-yellow-900/50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Recent Organizations</CardTitle>
+                  <CardDescription>Latest organizations added to the system</CardDescription>
                 </div>
-              ))}
-              {recentOrgs.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No organizations yet</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                <Button onClick={() => navigate('/super-admin/organizations')} variant="outline" className="border-yellow-300 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-950/30">
+                  View All
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentOrgs.map((org) => (
+                  <div
+                    key={org.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/super-admin/organizations/${org.id}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
+                        <Building2 className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{org.name}</p>
+                        <p className="text-sm text-muted-foreground">/{org.slug}</p>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {new Date(org.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+                {recentOrgs.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">No organizations yet</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <Card className="border-yellow-200 dark:border-yellow-900/50">
@@ -320,18 +425,30 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* System Maintenance */}
+        {/* System Maintenance - Requires Org Selection */}
         <Card className="border-red-200 dark:border-red-900/50">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-red-600 dark:text-red-500" />
               <CardTitle>System Maintenance</CardTitle>
+              {selectedOrg && (
+                <Badge variant="outline" className="ml-2">{selectedOrg.name}</Badge>
+              )}
             </div>
             <CardDescription>Database health and recovery tools</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!selectedOrg && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Select an organization above to perform maintenance operations
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Database Recovery Section */}
-            <div className="border border-border rounded-lg p-4 space-y-3">
+            <div className={`border border-border rounded-lg p-4 space-y-3 ${!selectedOrg ? 'opacity-50' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -340,11 +457,12 @@ export default function SuperAdminDashboard() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Clean up duplicate messages and optimize database storage
+                    {selectedOrg && <span className="font-medium"> for {selectedOrg.name}</span>}
                   </p>
                 </div>
                 <Button
                   onClick={handleDatabaseRecovery}
-                  disabled={isRecovering}
+                  disabled={isRecovering || !selectedOrg}
                   variant="outline"
                   size="sm"
                   className="border-red-300 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30"
@@ -407,7 +525,7 @@ export default function SuperAdminDashboard() {
             </div>
 
             {/* Bulk Close Old Conversations Section */}
-            <div className="border border-border rounded-lg p-4 space-y-3">
+            <div className={`border border-border rounded-lg p-4 space-y-3 ${!selectedOrg ? 'opacity-50' : ''}`}>
               <div className="space-y-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -415,44 +533,30 @@ export default function SuperAdminDashboard() {
                     <h4 className="font-medium">Bulk Close Old Conversations</h4>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Close all open conversations older than 3 months (e.g., HelpScout imports)
+                    Close all open conversations older than 3 months
+                    {selectedOrg && <span className="font-medium"> for {selectedOrg.name}</span>}
                   </p>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                  <Select value={bulkCloseOrgId || ''} onValueChange={setBulkCloseOrgId}>
-                    <SelectTrigger className="w-[280px]">
-                      <SelectValue placeholder="Select organization..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allOrganizations.map((org) => (
-                        <SelectItem key={org.id} value={org.id}>
-                          {org.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Button
-                    onClick={handleBulkCloseOld}
-                    disabled={isClosingOld || !bulkCloseOrgId}
-                    variant="outline"
-                    size="sm"
-                    className="border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30"
-                  >
-                    {isClosingOld ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Closing...
-                      </>
-                    ) : (
-                      <>
-                        <Archive className="h-4 w-4 mr-2" />
-                        Close Old
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleBulkCloseOld}
+                  disabled={isClosingOld || !selectedOrg}
+                  variant="outline"
+                  size="sm"
+                  className="border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30"
+                >
+                  {isClosingOld ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Closing...
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="h-4 w-4 mr-2" />
+                      Close Old Conversations
+                    </>
+                  )}
+                </Button>
               </div>
 
               {/* Close Status */}
@@ -481,17 +585,29 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Email Health Dashboard */}
+        {/* Email Health Dashboard - Requires Org Selection */}
         <Card className="border-blue-200 dark:border-blue-900/50">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Mail className="h-5 w-5 text-blue-600 dark:text-blue-500" />
               <CardTitle>Email Health & Monitoring</CardTitle>
+              {selectedOrg && (
+                <Badge variant="outline" className="ml-2">{selectedOrg.name}</Badge>
+              )}
             </div>
             <CardDescription>Monitor email ingestion, webhook status, and troubleshoot delivery issues</CardDescription>
           </CardHeader>
           <CardContent>
-            <EmailHealthDashboard />
+            {!selectedOrg ? (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Select an organization above to view email health data
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <EmailHealthDashboard organizationId={selectedOrg.id} organizationName={selectedOrg.name} />
+            )}
           </CardContent>
         </Card>
       </div>
