@@ -412,7 +412,7 @@ Optimized for accessibility with WCAG AA compliance.
     word-break: break-word;
   }
 
-  /* NUCLEAR COMPRESSION: Zero line-height on table structure elements */
+  /* NUCLEAR COMPRESSION: Force ALL table cells to collapse by default */
   .email-render__html-content table,
   .email-render__html-content tbody,
   .email-render__html-content thead,
@@ -422,59 +422,74 @@ Optimized for accessibility with WCAG AA compliance.
     border-collapse: collapse !important;
   }
 
-  /* But cells need readable line-height for text content */
+  /* Table cells: force collapse with font-size: 0 so &nbsp; has no height */
   .email-render__html-content td,
   .email-render__html-content th {
-    line-height: 1.3 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
     border-spacing: 0 !important;
     border-collapse: collapse !important;
-  }
-
-  .email-render__html-content tr,
-  .email-render__html-content tr[height],
-  .email-render__html-content tr[style*="height"] {
-    height: auto !important;
     vertical-align: top;
   }
 
-  .email-render__plain-content tr {
-    vertical-align: top;
-  }
-
-  /* Restore line-height for text content and scale down headings */
-  .email-render__html-content p,
-  .email-render__html-content span,
-  .email-render__html-content a,
-  .email-render__html-content li,
-  .email-render__html-content strong,
-  .email-render__html-content em,
-  .email-render__html-content b,
-  .email-render__html-content i {
+  /* Restore font-size and line-height ONLY for actual text elements inside cells */
+  .email-render__html-content td p,
+  .email-render__html-content td span,
+  .email-render__html-content td a,
+  .email-render__html-content td strong,
+  .email-render__html-content td b,
+  .email-render__html-content td em,
+  .email-render__html-content td i,
+  .email-render__html-content td li,
+  .email-render__html-content th p,
+  .email-render__html-content th span,
+  .email-render__html-content th a,
+  .email-render__html-content th strong,
+  .email-render__html-content th b {
+    font-size: 0.875rem !important;
     line-height: 1.3 !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  /* Scale down headings for compact header */
-  .email-render__html-content h1 {
-    font-size: 1.25rem !important;
-    line-height: 1.3 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .email-render__html-content h2 {
+  /* Headings inside table cells - scaled down */
+  .email-render__html-content td h1,
+  .email-render__html-content th h1 {
     font-size: 1.1rem !important;
     line-height: 1.3 !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  .email-render__html-content h3,
-  .email-render__html-content h4,
-  .email-render__html-content h5,
-  .email-render__html-content h6 {
+  .email-render__html-content td h2,
+  .email-render__html-content th h2 {
     font-size: 1rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .email-render__html-content td h3,
+  .email-render__html-content td h4,
+  .email-render__html-content td h5,
+  .email-render__html-content td h6,
+  .email-render__html-content th h3,
+  .email-render__html-content th h4 {
+    font-size: 0.95rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Non-table text elements also need styling */
+  .email-render__html-content > p,
+  .email-render__html-content > span,
+  .email-render__html-content > a,
+  .email-render__html-content > div > p {
+    font-size: 0.875rem !important;
     line-height: 1.3 !important;
     margin: 0 !important;
     padding: 0 !important;
