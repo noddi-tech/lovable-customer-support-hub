@@ -235,8 +235,8 @@ const MessageCardComponent = ({
     >
         {/* Card Header - improved spacing */}
         <div className={cn(
-          "px-8",
-          effectiveCollapsed ? "py-0" : "py-5"
+          "px-4",
+          effectiveCollapsed ? "py-0" : "py-4"
         )}>
           <div className={cn(
             "flex",
@@ -452,7 +452,7 @@ const MessageCardComponent = ({
         {/* Full content - simple CSS collapse */}
         <div className={cn(
           "message-content",
-          effectiveCollapsed ? "is-collapsed" : "pl-[92px] pr-8 pb-8"
+          effectiveCollapsed ? "is-collapsed" : "pl-16 pr-4 pb-4"
         )}>
           <div className="space-y-4">
             {/* Email content */}
