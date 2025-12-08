@@ -36,14 +36,15 @@ serve(async (req) => {
       );
     }
 
-    // Check if user is super_admin
-    const { data: profile } = await supabase
-      .from("profiles")
+    // Check if user is super_admin using user_roles table
+    const { data: userRole } = await supabase
+      .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
+      .eq("role", "super_admin")
       .single();
 
-    if (profile?.role !== "super_admin") {
+    if (!userRole) {
       return new Response(
         JSON.stringify({ error: "Forbidden - super_admin only" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
