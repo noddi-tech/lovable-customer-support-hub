@@ -2666,6 +2666,7 @@ export type Database = {
           is_read: boolean
           preview_text: string
           priority: string
+          received_at: string
           sla_breach_at: string
           status: string
           subject: string
