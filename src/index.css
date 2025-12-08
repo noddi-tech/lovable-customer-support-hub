@@ -354,7 +354,7 @@ Optimized for accessibility with WCAG AA compliance.
     border-collapse: collapse;
     width: auto;
     max-width: 100%;
-    margin: 0.5em 0;
+    margin: 0;
     table-layout: auto;
   }
 
@@ -362,17 +362,17 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__html-content table[width="600"],
   .email-render__html-content table[width="100%"] {
     width: 100% !important;
-    max-width: 600px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
   }
 
   .email-render__html-content td,
   .email-render__html-content th,
   .email-render__plain-content td,
   .email-render__plain-content th {
-    padding: 4px 8px;
+    padding: unset;
     vertical-align: top;
-    text-align: left;
+    text-align: inherit;
     word-break: break-word;
   }
 
@@ -401,7 +401,7 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__html-content [class*="email-header"],
   .email-render__html-content [class*="email-footer"] {
     width: 100%;
-    max-width: 600px;
+    max-width: 100%;
   }
 
   /* Order table styling for e-commerce emails */
