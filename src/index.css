@@ -345,25 +345,48 @@ Optimized for accessibility with WCAG AA compliance.
     height: auto; 
     display: block;
     border-radius: 4px;
-    margin: 0.5em 0;
+    margin: 0;
   }
 
-  /* Email table rendering - Preserve original email table layouts */
+  /* Email table rendering - Force ALL tables to full width */
   .email-render__html-content table,
   .email-render__plain-content table {
     border-collapse: collapse;
-    width: auto;
-    max-width: 100%;
-    margin: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     table-layout: auto;
   }
 
-  /* Preserve explicit table widths from email HTML */
-  .email-render__html-content table[width="600"],
-  .email-render__html-content table[width="100%"] {
+  /* Override ANY table with width attribute */
+  .email-render__html-content table[width] {
     width: 100% !important;
-    max-width: 100%;
-    margin: 0;
+    max-width: 100% !important;
+  }
+
+  /* Override inline style widths on tables */
+  .email-render__html-content table[style*="width"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Override wrapper divs with fixed widths */
+  .email-render__html-content div[style*="width"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Remove margin/padding from top-level wrapper elements */
+  .email-render__html-content > table,
+  .email-render__html-content > div,
+  .email-render__html-content > center {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove margin from first child elements */
+  .email-render__html-content > *:first-child {
+    margin-top: 0 !important;
   }
 
   .email-render__html-content td,
@@ -418,10 +441,11 @@ Optimized for accessibility with WCAG AA compliance.
     font-weight: 600;
   }
 
-  /* Center tag support for legacy HTML emails */
+  /* Center tag - force full width, don't center layout */
   .email-render__html-content center {
-    text-align: center;
+    text-align: left !important;
     display: block;
+    width: 100% !important;
   }
 
   /* Font tag support for legacy emails */
