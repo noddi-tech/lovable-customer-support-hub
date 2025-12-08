@@ -126,15 +126,18 @@ export const sanitizeEmailHTML = (
       'a', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'img', 
       'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
-      'span', 'div', 'pre', 'code'
+      'span', 'div', 'pre', 'code',
+      'b', 'i', 'u', 's', 'sub', 'sup', 'address', 'center', 'font',
+      'caption', 'colgroup', 'col', 'hr', 'style'
     ],
     ALLOWED_ATTR: [
       'href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan', 
       'align', 'cellpadding', 'cellspacing', 'style', 'dir',
-      'valign', 'border', 'bgcolor'
+      'valign', 'border', 'bgcolor', 'background', 'class',
+      'color', 'face', 'size'
     ],
     ALLOWED_URI_REGEXP: /^(?:https:|data:|mailto:|tel:|#)/i,
-    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link', 'style'],
+    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link'],
     FORBID_ATTR: ['javascript:', 'vbscript:', 'on*'],
     // Enhanced data URL filtering - only allow safe image data URLs
     KEEP_CONTENT: true, // Preserve text content even if tags/attributes are removed
@@ -248,10 +251,46 @@ export const sanitizeEmailHTML = (
   // Build asset indexes for efficient lookups
   const { byContentId, byContentLocation } = buildAssetIndexes(attachments);
   
-  // Strip style and script tag contents before sanitization
-  processedContent = processedContent
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  // Extract and scope <style> tags instead of stripping them
+  const styleMatches = processedContent.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+  let scopedStyles = '';
+  if (styleMatches) {
+    styleMatches.forEach(style => {
+      const cssContent = style.replace(/<\/?style[^>]*>/gi, '');
+      // Scope all selectors to .email-render__html-content
+      const scopedCSS = cssContent.replace(
+        /([^{}@]+)(\{[^}]+\})/g, 
+        (match, selector, rules) => {
+          // Skip @-rules like @media, @font-face
+          if (selector.trim().startsWith('@')) {
+            return match;
+          }
+          // Handle each comma-separated selector
+          const scopedSelectors = selector.split(',')
+            .map((s: string) => {
+              const trimmed = s.trim();
+              if (!trimmed) return '';
+              return `.email-render__html-content ${trimmed}`;
+            })
+            .filter(Boolean)
+            .join(', ');
+          return scopedSelectors ? scopedSelectors + rules : '';
+        }
+      );
+      scopedStyles += scopedCSS;
+    });
+  }
+  
+  // Strip original <style> tags - we'll add scoped version back
+  processedContent = processedContent.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  
+  // Strip script tags
+  processedContent = processedContent.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  
+  // Add scoped styles back at the start
+  if (scopedStyles) {
+    processedContent = `<style>${scopedStyles}</style>` + processedContent;
+  }
   
   // Initial CID rewriting for immediate resolution
   processedContent = processedContent.replace(

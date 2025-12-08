@@ -358,6 +358,14 @@ Optimized for accessibility with WCAG AA compliance.
     table-layout: auto;
   }
 
+  /* Preserve explicit table widths from email HTML */
+  .email-render__html-content table[width="600"],
+  .email-render__html-content table[width="100%"] {
+    width: 100% !important;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
   .email-render__html-content td,
   .email-render__html-content th,
   .email-render__plain-content td,
@@ -381,6 +389,46 @@ Optimized for accessibility with WCAG AA compliance.
     /* Allow inline styles to take precedence */
   }
 
+  /* Preserve thead/tbody/tfoot structure */
+  .email-render__html-content thead th {
+    font-weight: 600;
+    background-color: hsl(var(--muted) / 0.5);
+  }
+
+  /* Common email class patterns (Oda, newsletters, etc.) */
+  .email-render__html-content [class*="email-section"],
+  .email-render__html-content [class*="ex-email"],
+  .email-render__html-content [class*="email-header"],
+  .email-render__html-content [class*="email-footer"] {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  /* Order table styling for e-commerce emails */
+  .email-render__html-content [class*="order-items"] th,
+  .email-render__html-content [class*="order-items"] td,
+  .email-render__html-content [class*="order-details"] th,
+  .email-render__html-content [class*="order-details"] td {
+    padding: 8px;
+    border-bottom: 1px solid hsl(var(--border));
+    text-align: left;
+  }
+
+  .email-render__html-content [class*="order-items"] th {
+    font-weight: 600;
+  }
+
+  /* Center tag support for legacy HTML emails */
+  .email-render__html-content center {
+    text-align: center;
+    display: block;
+  }
+
+  /* Font tag support for legacy emails */
+  .email-render__html-content font {
+    font-family: inherit;
+  }
+
   /* Responsive tables for mobile */
   @media (max-width: 480px) {
     .email-render__html-content table,
@@ -388,6 +436,10 @@ Optimized for accessibility with WCAG AA compliance.
       display: block;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+    }
+    
+    .email-render__html-content table[width="600"] {
+      max-width: 100%;
     }
   }
 
