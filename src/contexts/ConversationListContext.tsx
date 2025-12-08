@@ -564,7 +564,10 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           case 'channel':
             return multiplier * a.channel.localeCompare(b.channel);
           case 'waiting':
-            return multiplier * (new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime());
+            // Use received_at (last message arrival) for sorting, fallback to updated_at
+            const aTime = new Date(a.received_at || a.updated_at).getTime();
+            const bTime = new Date(b.received_at || b.updated_at).getTime();
+            return multiplier * (aTime - bTime);
           case 'sla':
             const slaOrder = { breached: 4, at_risk: 3, on_track: 2, met: 1 };
             const aSla = slaOrder[a.slaStatus || 'on_track'] || 2;
@@ -586,23 +589,27 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       });
     }
 
-    // Otherwise use legacy sortBy
+    // Otherwise use legacy sortBy - use received_at for time-based sorting
     return filtered.sort((a, b) => {
+      // Use received_at (last message arrival) instead of updated_at
+      const aTime = new Date(a.received_at || a.updated_at).getTime();
+      const bTime = new Date(b.received_at || b.updated_at).getTime();
+      
       switch (state.sortBy) {
         case 'oldest':
-          return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          return aTime - bTime;
         case 'priority':
           const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 };
           const aPriority = priorityOrder[a.priority] || 2;
           const bPriority = priorityOrder[b.priority] || 2;
           if (aPriority !== bPriority) return bPriority - aPriority;
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          return bTime - aTime;
         case 'unread':
           if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          return bTime - aTime;
         case 'latest':
         default:
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          return bTime - aTime;
       }
     });
   }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId]);
