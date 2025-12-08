@@ -18,17 +18,29 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const monthsOld = body.monthsOld || 3;
     const dryRun = body.dryRun !== false; // Default to dry run for safety
+    const organizationId = body.organizationId;
 
-    console.log(`Bulk close old conversations: monthsOld=${monthsOld}, dryRun=${dryRun}`);
+    if (!organizationId) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'organizationId is required'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log(`Bulk close old conversations: organizationId=${organizationId}, monthsOld=${monthsOld}, dryRun=${dryRun}`);
 
     // Get the cutoff date
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - monthsOld);
 
-    // First, find matching conversations
+    // First, find matching conversations for the specific organization
     const { data: conversations, error: findError } = await supabase
       .from('conversations')
       .select('id, subject, received_at, status')
+      .eq('organization_id', organizationId)
       .eq('status', 'open')
       .eq('is_archived', false)
       .lt('received_at', cutoffDate.toISOString())

@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -25,11 +26,25 @@ export default function SuperAdminDashboard() {
 
   // State for bulk close old conversations
   const [isClosingOld, setIsClosingOld] = useState(false);
+  const [bulkCloseOrgId, setBulkCloseOrgId] = useState<string | null>(null);
   const [closeOldStatus, setCloseOldStatus] = useState<{
     success: boolean;
     count?: number;
     message?: string;
   } | null>(null);
+
+  // Fetch all organizations for bulk close selector
+  const { data: allOrganizations = [] } = useQuery({
+    queryKey: ['all-organizations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Fetch stats
   const { data: stats } = useQuery({
@@ -115,17 +130,21 @@ export default function SuperAdminDashboard() {
 
   // Handle bulk close old conversations
   const handleBulkCloseOld = async () => {
+    if (!bulkCloseOrgId) return;
+    
+    const selectedOrg = allOrganizations.find(o => o.id === bulkCloseOrgId);
+    
     setIsClosingOld(true);
     setCloseOldStatus(null);
     
     toast({
       title: 'Closing Old Conversations',
-      description: 'Finding and closing conversations older than 3 months...',
+      description: `Finding and closing conversations older than 3 months for ${selectedOrg?.name || 'selected organization'}...`,
     });
     
     try {
       const { data, error } = await supabase.functions.invoke('bulk-close-old-conversations', {
-        body: { monthsOld: 3, dryRun: false }
+        body: { organizationId: bulkCloseOrgId, monthsOld: 3, dryRun: false }
       });
       
       if (error) throw error;
@@ -388,7 +407,7 @@ export default function SuperAdminDashboard() {
 
             {/* Bulk Close Old Conversations Section */}
             <div className="border border-border rounded-lg p-4 space-y-3">
-              <div className="flex items-start justify-between">
+              <div className="space-y-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Archive className="h-4 w-4 text-muted-foreground" />
@@ -398,25 +417,41 @@ export default function SuperAdminDashboard() {
                     Close all open conversations older than 3 months (e.g., HelpScout imports)
                   </p>
                 </div>
-                <Button
-                  onClick={handleBulkCloseOld}
-                  disabled={isClosingOld}
-                  variant="outline"
-                  size="sm"
-                  className="border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30"
-                >
-                  {isClosingOld ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Closing...
-                    </>
-                  ) : (
-                    <>
-                      <Archive className="h-4 w-4 mr-2" />
-                      Close Old
-                    </>
-                  )}
-                </Button>
+                
+                <div className="flex items-center gap-3">
+                  <Select value={bulkCloseOrgId || ''} onValueChange={setBulkCloseOrgId}>
+                    <SelectTrigger className="w-[280px]">
+                      <SelectValue placeholder="Select organization..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allOrganizations.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button
+                    onClick={handleBulkCloseOld}
+                    disabled={isClosingOld || !bulkCloseOrgId}
+                    variant="outline"
+                    size="sm"
+                    className="border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30"
+                  >
+                    {isClosingOld ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Closing...
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="h-4 w-4 mr-2" />
+                        Close Old
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               {/* Close Status */}
