@@ -101,6 +101,24 @@ export const DebugPanel = () => {
             ))}
           </div>
 
+          {/* Error Summary */}
+          {healthState.dataAccessError && (
+            <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+              <div className="flex items-start gap-2">
+                <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-destructive">Error accessing data</p>
+                  <p className="text-xs text-destructive/80 font-mono mt-1 break-all">
+                    {healthState.dataAccessError}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    See "Auth Context" tab below for detailed explanation and fix steps.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* User Info Summary */}
           {healthState.frontendUserEmail && (
             <div className="mt-4 pt-4 border-t border-border/50 text-sm text-muted-foreground">
