@@ -64,11 +64,46 @@ function getThreadKey(headersRaw?: string | null): string | null {
 }
 
 Deno.serve(async (req: Request) => {
+  const requestId = crypto.randomUUID().slice(0, 8);
+  const timestamp = new Date().toISOString();
+  
+  // VERBOSE ENTRY LOGGING - Log ALL requests for debugging
+  console.log(`[SendGrid-Inbound][${requestId}] ========== REQUEST RECEIVED ==========`);
+  console.log(`[SendGrid-Inbound][${requestId}] Timestamp: ${timestamp}`);
+  console.log(`[SendGrid-Inbound][${requestId}] Method: ${req.method}`);
+  console.log(`[SendGrid-Inbound][${requestId}] URL: ${req.url}`);
+  console.log(`[SendGrid-Inbound][${requestId}] Headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()))}`);
+
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
+    console.log(`[SendGrid-Inbound][${requestId}] Responding to OPTIONS preflight`);
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log(`[SendGrid-Inbound] ${new Date().toISOString()} - Incoming webhook request`);
+  // DIAGNOSTIC ENDPOINT - GET requests return health/config info
+  if (req.method === "GET") {
+    const diagnosticInfo = {
+      status: "alive",
+      timestamp,
+      requestId,
+      environment: {
+        hasInboundToken: !!Deno.env.get("SENDGRID_INBOUND_TOKEN"),
+        hasSendGridApiKey: !!Deno.env.get("SENDGRID_API_KEY"),
+        hasSupabaseUrl: !!Deno.env.get("SUPABASE_URL"),
+        hasServiceKey: !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+      },
+      expectedWebhookUrl: `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/sendgrid-inbound`,
+      instructions: "POST requests from SendGrid Inbound Parse will be processed. Ensure SendGrid webhook URL matches expectedWebhookUrl with ?token=YOUR_TOKEN appended.",
+    };
+    
+    console.log(`[SendGrid-Inbound][${requestId}] GET diagnostic request - returning config info`);
+    return new Response(JSON.stringify(diagnosticInfo, null, 2), { 
+      status: 200, 
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    });
+  }
+
+  console.log(`[SendGrid-Inbound][${requestId}] Processing ${req.method} webhook request`);
 
   try {
     // Authenticate the request using header-based token (improved security)
