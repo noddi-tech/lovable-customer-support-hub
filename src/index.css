@@ -389,11 +389,24 @@ Optimized for accessibility with WCAG AA compliance.
     margin-top: 0 !important;
   }
 
+  /* Force minimal height and no padding on ALL table cells - override inline styles */
   .email-render__html-content td,
   .email-render__html-content th,
+  .email-render__html-content td[height],
+  .email-render__html-content td[style*="height"],
+  .email-render__html-content td[style*="padding"],
+  .email-render__html-content th[style*="padding"] {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    vertical-align: top;
+    text-align: inherit;
+    word-break: break-word;
+  }
+
   .email-render__plain-content td,
   .email-render__plain-content th {
-    padding: unset;
+    padding: 0;
     vertical-align: top;
     text-align: inherit;
     word-break: break-word;
@@ -404,12 +417,26 @@ Optimized for accessibility with WCAG AA compliance.
     vertical-align: top;
   }
 
-  /* Preserve inline styles for table cells when they exist */
-  .email-render__html-content td[style],
-  .email-render__html-content th[style],
-  .email-render__plain-content td[style],
-  .email-render__plain-content th[style] {
-    /* Allow inline styles to take precedence */
+  /* Collapse spacer rows completely */
+  .email-render__html-content tr:empty,
+  .email-render__html-content td:empty {
+    height: 0 !important;
+    padding: 0 !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+  }
+
+  /* Override inline padding on divs */
+  .email-render__html-content div[style*="padding"] {
+    padding: 0 !important;
+  }
+
+  /* Hide spacer images (common in HTML emails) */
+  .email-render__html-content img[width="1"],
+  .email-render__html-content img[height="1"],
+  .email-render__html-content img[src*="spacer"],
+  .email-render__html-content img[src*="transparent"] {
+    display: none !important;
   }
 
   /* Preserve thead/tbody/tfoot structure */
