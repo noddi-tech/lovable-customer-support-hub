@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle, Clock, Mail, RefreshCw, Settings, Shield, Eye, EyeOff, Copy, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle, Clock, Mail, RefreshCw, Settings, Shield, Eye, EyeOff, Copy, ExternalLink, AlertTriangle, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format, subDays } from "date-fns";
 
@@ -35,6 +36,16 @@ interface EmailStats {
   last_email_at: string | null;
 }
 
+interface TokenConfig {
+  webhookBaseUrl: string;
+  envToken: string | null;
+  envTokenPreview: string | null;
+  dbToken: string | null;
+  tokensMatch: boolean;
+  fullWebhookUrl: string;
+  routes: { id: string; address: string; hasToken: boolean }[];
+}
+
 export function EmailHealthDashboard() {
   const queryClient = useQueryClient();
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -42,6 +53,7 @@ export function EmailHealthDashboard() {
   const [showToken, setShowToken] = useState(false);
   const [newToken, setNewToken] = useState("");
   const [isUpdatingToken, setIsUpdatingToken] = useState(false);
+  const [tokenTestResult, setTokenTestResult] = useState<{ match: boolean; message: string } | null>(null);
 
   // Fetch email stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -108,7 +120,22 @@ export function EmailHealthDashboard() {
     refetchInterval: 30000,
   });
 
-  // Fetch current inbound routes for token display
+  // Fetch current token configuration from edge function
+  const { data: tokenConfig, isLoading: tokenConfigLoading, refetch: refetchTokenConfig } = useQuery({
+    queryKey: ["sendgrid-token-config"],
+    queryFn: async (): Promise<TokenConfig | null> => {
+      const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
+        body: { action: "get-config" },
+      });
+      if (error) {
+        console.error("Failed to fetch token config:", error);
+        return null;
+      }
+      return data?.config || null;
+    },
+  });
+
+  // Fetch current inbound routes for fallback token display
   const { data: inboundRoutes } = useQuery({
     queryKey: ["inbound-routes-tokens"],
     queryFn: async () => {
@@ -143,25 +170,49 @@ export function EmailHealthDashboard() {
     },
   });
 
+  // Test token match mutation
+  const testTokenMatchMutation = useMutation({
+    mutationFn: async (testToken: string) => {
+      const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
+        body: { action: "test-token", testToken },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      setTokenTestResult({
+        match: data.tokenMatch,
+        message: data.message,
+      });
+      if (data.tokenMatch) {
+        toast.success("Token verified successfully!");
+      } else {
+        toast.error("Token mismatch detected");
+      }
+    },
+    onError: (error) => {
+      toast.error("Token test failed", { description: String(error) });
+    },
+  });
+
   // Update token mutation
   const updateTokenMutation = useMutation({
     mutationFn: async (token: string) => {
-      // Update all inbound routes with the new token
-      const { error } = await supabase
-        .from("inbound_routes")
-        .update({ secret_token: token })
-        .neq("id", "00000000-0000-0000-0000-000000000000"); // Update all
-      
+      const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
+        body: { action: "update-token", token },
+      });
       if (error) throw error;
-      return token;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Token updated in database", {
-        description: "Make sure to update SENDGRID_INBOUND_TOKEN in Supabase secrets to match",
+        description: data.nextStep,
       });
       setNewToken("");
       setIsUpdatingToken(false);
+      setTokenTestResult(null);
       queryClient.invalidateQueries({ queryKey: ["inbound-routes-tokens"] });
+      queryClient.invalidateQueries({ queryKey: ["sendgrid-token-config"] });
     },
     onError: (error) => {
       toast.error("Failed to update token", { description: String(error) });
@@ -198,8 +249,8 @@ export function EmailHealthDashboard() {
 
   const health = getHealthStatus();
   const HealthIcon = health.icon;
-  const webhookUrl = "https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/sendgrid-inbound";
-  const currentToken = inboundRoutes?.[0]?.secret_token || "";
+  const currentToken = tokenConfig?.dbToken || inboundRoutes?.[0]?.secret_token || "";
+  const fullWebhookUrl = tokenConfig?.fullWebhookUrl || `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/sendgrid-inbound${currentToken ? `?token=${currentToken}` : ""}`;
 
   return (
     <div className="space-y-6">
@@ -282,25 +333,75 @@ export function EmailHealthDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Token Status Alert */}
+          {tokenConfig && !tokenConfig.tokensMatch && tokenConfig.envToken && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Token mismatch detected!</strong> The database token does not match SENDGRID_INBOUND_TOKEN in Supabase secrets. 
+                Emails will be rejected until tokens match.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {tokenConfig && !tokenConfig.envToken && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>SENDGRID_INBOUND_TOKEN not configured!</strong> Add this secret in{" "}
+                <a
+                  href="https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/settings/functions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-medium"
+                >
+                  Supabase Secrets
+                </a>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {tokenConfig?.tokensMatch && (
+            <Alert className="border-green-500/50 bg-green-500/10">
+              <Check className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-600">
+                <strong>Tokens match!</strong> Webhook is configured correctly.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Full Webhook URL - Primary Display */}
           <div className="space-y-2">
-            <Label>Webhook URL</Label>
+            <Label className="flex items-center gap-2">
+              Complete Webhook URL
+              <Badge variant="outline" className="text-xs">Copy this to SendGrid</Badge>
+            </Label>
             <div className="flex gap-2">
-              <Input value={webhookUrl} readOnly className="font-mono text-sm" />
+              <Input 
+                value={fullWebhookUrl} 
+                readOnly 
+                className="font-mono text-sm bg-muted" 
+              />
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => {
-                  navigator.clipboard.writeText(`${webhookUrl}?token=${currentToken}`);
-                  toast.success("Copied webhook URL with token");
+                  navigator.clipboard.writeText(fullWebhookUrl);
+                  toast.success("Copied complete webhook URL");
                 }}
+                title="Copy URL"
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              This is the complete URL to paste into SendGrid Inbound Parse → Destination URL
+            </p>
           </div>
 
+          {/* Token Display & Edit */}
           <div className="space-y-2">
-            <Label>Authentication Token</Label>
+            <Label>Authentication Token (in database)</Label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Input
@@ -321,21 +422,39 @@ export function EmailHealthDashboard() {
               </div>
               <Button
                 variant="outline"
+                onClick={() => {
+                  testTokenMatchMutation.mutate(currentToken);
+                }}
+                disabled={!currentToken || testTokenMatchMutation.isPending}
+                title="Verify token matches Supabase secret"
+              >
+                <Shield className="h-4 w-4 mr-1" />
+                Verify
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setIsUpdatingToken(!isUpdatingToken)}
               >
                 Update
               </Button>
             </div>
+            
+            {tokenTestResult && (
+              <div className={`flex items-center gap-2 text-sm ${tokenTestResult.match ? 'text-green-600' : 'text-destructive'}`}>
+                {tokenTestResult.match ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                {tokenTestResult.message}
+              </div>
+            )}
           </div>
 
           {isUpdatingToken && (
-            <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
-              <Label>New Token</Label>
+            <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
+              <Label>Enter or Generate New Token</Label>
               <div className="flex gap-2">
                 <Input
                   value={newToken}
                   onChange={(e) => setNewToken(e.target.value)}
-                  placeholder="Enter new token..."
+                  placeholder="Paste your SendGrid URL token or generate a new one..."
                   className="font-mono"
                 />
                 <Button
@@ -354,21 +473,25 @@ export function EmailHealthDashboard() {
                   Save
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                After saving, update SENDGRID_INBOUND_TOKEN in{" "}
-                <a
-                  href="https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/settings/functions"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline inline-flex items-center gap-1"
-                >
-                  Supabase Secrets <ExternalLink className="h-3 w-3" />
-                </a>
-              </p>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  After saving, you must also update <code className="bg-muted px-1 rounded">SENDGRID_INBOUND_TOKEN</code> in{" "}
+                  <a
+                    href="https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/settings/functions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline inline-flex items-center gap-1"
+                  >
+                    Supabase Secrets <ExternalLink className="h-3 w-3" />
+                  </a>
+                  {" "}to match, then click "Verify" to confirm they match.
+                </AlertDescription>
+              </Alert>
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-2">
             <Button
               variant="outline"
               onClick={() => testWebhookMutation.mutate()}
@@ -380,8 +503,10 @@ export function EmailHealthDashboard() {
             <Button
               variant="outline"
               onClick={() => {
+                refetchTokenConfig();
                 queryClient.invalidateQueries({ queryKey: ["email-health-stats"] });
                 queryClient.invalidateQueries({ queryKey: ["email-ingestion-logs"] });
+                setTokenTestResult(null);
               }}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
