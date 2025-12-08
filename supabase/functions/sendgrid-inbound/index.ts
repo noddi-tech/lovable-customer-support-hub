@@ -63,9 +63,47 @@ function getThreadKey(headersRaw?: string | null): string | null {
   return (refFirst || inReply || messageId || null)?.replace(/[<>]/g, "") || null;
 }
 
+// Helper to log email ingestion events
+async function logIngestion(
+  supabase: any,
+  data: {
+    source: string;
+    status: string;
+    from_email?: string | null;
+    to_email?: string | null;
+    subject?: string | null;
+    external_id?: string | null;
+    conversation_id?: string | null;
+    error_message?: string | null;
+    metadata?: any;
+  }
+) {
+  try {
+    await supabase.from("email_ingestion_logs").insert({
+      source: data.source,
+      status: data.status,
+      from_email: data.from_email || null,
+      to_email: data.to_email || null,
+      subject: data.subject || null,
+      external_id: data.external_id || null,
+      conversation_id: data.conversation_id || null,
+      error_message: data.error_message || null,
+      metadata: data.metadata || {},
+    });
+  } catch (e) {
+    console.error("[SendGrid-Inbound] Failed to log ingestion:", e);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const requestId = crypto.randomUUID().slice(0, 8);
   const timestamp = new Date().toISOString();
+  
+  // Create supabase client early for logging
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
   
   // VERBOSE ENTRY LOGGING - Log ALL requests for debugging
   console.log(`[SendGrid-Inbound][${requestId}] ========== REQUEST RECEIVED ==========`);
@@ -105,11 +143,24 @@ Deno.serve(async (req: Request) => {
 
   console.log(`[SendGrid-Inbound][${requestId}] Processing ${req.method} webhook request`);
 
+  // Log that we received a request (before auth check)
+  await logIngestion(supabase, {
+    source: "sendgrid",
+    status: "received",
+    metadata: { requestId, method: req.method, timestamp },
+  });
+
   try {
     // Authenticate the request using header-based token (improved security)
     const expected = Deno.env.get("SENDGRID_INBOUND_TOKEN");
     if (!expected) {
       console.error(`[SendGrid-Inbound] SENDGRID_INBOUND_TOKEN not configured`);
+      await logIngestion(supabase, {
+        source: "sendgrid",
+        status: "failed",
+        error_message: "SENDGRID_INBOUND_TOKEN not configured on server",
+        metadata: { requestId },
+      });
       return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -127,7 +178,13 @@ Deno.serve(async (req: Request) => {
     console.log(`[SendGrid-Inbound] Authentication check - Header auth: ${!!providedToken}, Query auth: ${!!queryToken}`);
     
     if (finalToken !== expected) {
-      console.log(`[SendGrid-Inbound] Authentication failed - Invalid token`);
+      console.log(`[SendGrid-Inbound] Authentication failed - Invalid token. Expected length: ${expected.length}, Got length: ${finalToken?.length || 0}`);
+      await logIngestion(supabase, {
+        source: "sendgrid",
+        status: "auth_failed",
+        error_message: `Token mismatch. Expected length: ${expected.length}, Got: ${finalToken?.length || 0}`,
+        metadata: { requestId, hasQueryToken: !!queryToken, hasHeaderToken: !!providedToken },
+      });
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     
@@ -149,7 +206,7 @@ Deno.serve(async (req: Request) => {
     const headerTo = extractEmail(toRaw);
     const fromEmail = extractEmail(fromRaw);
     
-    console.log(`[SendGrid-Inbound] Parsed emails - Header To: ${headerTo}, From: ${fromEmail}`);
+    console.log(`[SendGrid-Inbound] Parsed emails - Header To: ${headerTo}, From: ${fromEmail}, Subject: ${subject}`);
 
     // Use the SMTP envelope recipient when present (Google Group forwarding keeps To: as public address)
     let rcptEmail: string | null = headerTo;
@@ -165,13 +222,17 @@ Deno.serve(async (req: Request) => {
     
     if (!rcptEmail || !fromEmail) {
       console.log(`[SendGrid-Inbound] Missing required fields - rcptEmail: ${rcptEmail}, fromEmail: ${fromEmail}`);
+      await logIngestion(supabase, {
+        source: "sendgrid",
+        status: "failed",
+        from_email: fromEmail,
+        to_email: rcptEmail,
+        subject,
+        error_message: `Missing to/from. rcptEmail: ${rcptEmail}, fromEmail: ${fromEmail}`,
+        metadata: { requestId },
+      });
       return new Response(JSON.stringify({ error: "Missing to/from", headerTo, rcptEmail }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     // Lookup inbound route using the actual SMTP recipient (rcptEmail)
     let { data: route, error: routeError } = await supabase
@@ -200,6 +261,15 @@ Deno.serve(async (req: Request) => {
       
       if (!org) {
         console.log(`[SendGrid-Inbound] Organization not found for domain: ${domain}`);
+        await logIngestion(supabase, {
+          source: "sendgrid",
+          status: "failed",
+          from_email: fromEmail,
+          to_email: rcptEmail,
+          subject,
+          error_message: `Organization not found for domain: ${domain}`,
+          metadata: { requestId, domain },
+        });
         return new Response(JSON.stringify({ error: "Organization not found", rcptEmail, domain }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       
@@ -341,6 +411,18 @@ Deno.serve(async (req: Request) => {
       .single();
     if (msgErr) throw msgErr;
 
+    // Log successful processing
+    await logIngestion(supabase, {
+      source: "sendgrid",
+      status: "processed",
+      from_email: authorEmail,
+      to_email: rcptEmail,
+      subject,
+      external_id: threadKey,
+      conversation_id,
+      metadata: { requestId, messageId: insertedMessage?.id, customerId: customer_id },
+    });
+
     // Create notification for new email (handled by database trigger for customer replies)
     // For new conversations, we create an explicit notification here
     if (!existingConv) {
@@ -386,6 +468,12 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error(`[SendGrid-Inbound] Error processing webhook:`, error);
+    await logIngestion(supabase, {
+      source: "sendgrid",
+      status: "failed",
+      error_message: error instanceof Error ? error.message : String(error),
+      metadata: { requestId },
+    });
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

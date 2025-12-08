@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EmailHealthDashboard } from '@/components/admin/EmailHealthDashboard';
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -477,6 +478,20 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Email Health Dashboard */}
+        <Card className="border-blue-200 dark:border-blue-900/50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+              <CardTitle>Email Health & Monitoring</CardTitle>
+            </div>
+            <CardDescription>Monitor email ingestion, webhook status, and troubleshoot delivery issues</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmailHealthDashboard />
           </CardContent>
         </Card>
       </div>

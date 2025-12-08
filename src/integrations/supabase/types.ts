@@ -575,6 +575,56 @@ export type Database = {
         }
         Relationships: []
       }
+      email_ingestion_logs: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          external_id: string | null
+          from_email: string | null
+          id: string
+          metadata: Json | null
+          source: string
+          status: string
+          subject: string | null
+          to_email: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_id?: string | null
+          from_email?: string | null
+          id?: string
+          metadata?: Json | null
+          source: string
+          status: string
+          subject?: string | null
+          to_email?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_id?: string | null
+          from_email?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string
+          status?: string
+          subject?: string | null
+          to_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_ingestion_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           body_background_color: string | null
@@ -2551,6 +2601,7 @@ export type Database = {
         }[]
       }
       calculate_sla_breach: { Args: never; Returns: undefined }
+      cleanup_old_email_ingestion_logs: { Args: never; Returns: undefined }
       count_old_audit_logs:
         | { Args: { p_age?: unknown }; Returns: number }
         | { Args: { days_old?: number }; Returns: number }
