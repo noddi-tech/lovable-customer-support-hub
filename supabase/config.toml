@@ -160,3 +160,6 @@ verify_jwt = false
 
 [functions.bulk-close-old-conversations]
 verify_jwt = true
+
+[functions.update-sendgrid-token]
+verify_jwt = true
