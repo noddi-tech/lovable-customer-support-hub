@@ -350,7 +350,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_p.mt-extra]:mt-4 [&_ul]:my-0.5 [&_ol]:my-0.5 [&_div]:my-0 [&_h1]:my-1 [&_h2]:my-1 [&_h3]:my-1 [&_blockquote]:my-1 [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
+          className="email-render__html-content prose prose-sm dark:prose-invert max-w-none [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       );
@@ -368,7 +368,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
-          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_p.mt-extra]:mt-4 [&_ul]:my-0.5 [&_ol]:my-0.5 [&_div]:my-0 [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
+          className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
           dangerouslySetInnerHTML={{ __html: formattedHtml }}
         />
       );
