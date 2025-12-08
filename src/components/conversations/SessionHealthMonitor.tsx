@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, Zap, Activity } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, Activity, CheckCircle2, XCircle } from 'lucide-react';
 import { useAggressiveSessionRecovery } from '@/hooks/useAggressiveSessionRecovery';
 
 interface SessionHealthMonitorProps {
@@ -20,10 +21,17 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
     canRecover
   } = useAggressiveSessionRecovery();
 
+  // Auto-run health check on mount when in debug/details mode
+  useEffect(() => {
+    if (showDetails && healthState.lastCheck === null) {
+      performHealthCheck();
+    }
+  }, [showDetails, healthState.lastCheck, performHealthCheck]);
+
   // Show critical alert when session is unhealthy
   if (!healthState.isHealthy && healthState.consecutiveFailures > 0) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 w-full">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
@@ -73,51 +81,51 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
     );
   }
 
-  // Show details card in development or when requested
-  if (showDetails && import.meta.env.DEV) {
+  // Show details card when requested (debug panel)
+  if (showDetails) {
+    const CheckItem = ({ ok, label }: { ok: boolean; label: string }) => (
+      <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+        <div className="flex items-center gap-2">
+          {ok ? (
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+          ) : (
+            <XCircle className="h-4 w-4 text-destructive" />
+          )}
+          <span className="text-sm">{label}</span>
+        </div>
+        <Badge variant={ok ? "default" : "destructive"} className="text-xs">
+          {ok ? "OK" : "FAIL"}
+        </Badge>
+      </div>
+    );
+
     return (
-      <Card className="w-full">
+      <Card className="w-full border-border/50">
         <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Session Health Monitor
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              Session Health & Recovery
+            </CardTitle>
+            <Badge variant={healthState.isHealthy ? "default" : "destructive"}>
+              {healthState.isHealthy ? "Healthy" : "Unhealthy"}
+            </Badge>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex justify-between">
-              <span>Auth UID:</span>
-              <Badge variant={healthState.authUidValid ? "default" : "destructive"}>
-                {healthState.authUidValid ? "Valid" : "Invalid"}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span>Session:</span>
-              <Badge variant={healthState.sessionValid ? "default" : "destructive"}>
-                {healthState.sessionValid ? "Valid" : "Invalid"}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span>Profile:</span>
-              <Badge variant={healthState.profileExists ? "default" : "destructive"}>
-                {healthState.profileExists ? "Exists" : "Missing"}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span>Organization:</span>
-              <Badge variant={healthState.organizationValid ? "default" : "destructive"}>
-                {healthState.organizationValid ? "Valid" : "Invalid"}
-              </Badge>
-            </div>
+        <CardContent className="space-y-4">
+          <div className="bg-muted/30 rounded-lg px-3">
+            <CheckItem ok={healthState.authUidValid} label="Auth UID Valid" />
+            <CheckItem ok={healthState.sessionValid} label="Session Valid" />
+            <CheckItem ok={healthState.profileExists} label="Profile Exists" />
+            <CheckItem ok={healthState.organizationValid} label="Organization Valid" />
           </div>
 
-          <div className="text-xs text-muted-foreground">
-            <div>Last Check: {healthState.lastCheck?.toLocaleTimeString() || 'Never'}</div>
-            <div>Failures: {healthState.consecutiveFailures}</div>
-            <div>Overall Health: 
-              <Badge variant={healthState.isHealthy ? "default" : "destructive"} className="ml-1">
-                {healthState.isHealthy ? "Healthy" : "Unhealthy"}
-              </Badge>
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div>
+              <span className="font-medium">Last Check:</span> {healthState.lastCheck?.toLocaleTimeString() || 'Never'}
+            </div>
+            <div>
+              <span className="font-medium">Failures:</span> {healthState.consecutiveFailures}
             </div>
           </div>
 
@@ -127,6 +135,7 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
               disabled={isRecovering}
               variant="outline"
               size="sm"
+              className="flex-1"
             >
               <Activity className={`h-4 w-4 mr-2 ${isRecovering ? 'animate-spin' : ''}`} />
               Check Now
@@ -144,6 +153,19 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
               </Button>
             )}
           </div>
+          
+          {healthState.consecutiveFailures >= 3 && (
+            <Button
+              onClick={nuclearSessionReset}
+              disabled={isRecovering}
+              variant="destructive"
+              size="sm"
+              className="w-full"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Force Re-login (Nuclear Reset)
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
