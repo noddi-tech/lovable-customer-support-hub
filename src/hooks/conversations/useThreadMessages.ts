@@ -96,13 +96,8 @@ export function useThreadMessages(conversationIds?: string | string[]) {
         .order("created_at", { ascending: false })
         .limit(pageParam ? PAGE : INITIAL);
 
-      base = applyThreadFilter(base, {
-        messageIds: [...new Set(messageIds)],
-        references: [...new Set(references)],
-        normSubject,
-        participants,
-        windowDays: 90,
-      });
+      // Note: Removed applyThreadFilter - it was adding a 90-day window that hid older messages
+      // The conversation_id filter is sufficient for fetching all messages in a conversation
 
       if (pageParam) {
         base = base.lt("created_at", pageParam); // older than cursor
@@ -128,13 +123,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
           .in("conversation_id", ids);
         
         // Apply the same thread filter to get accurate count
-        countQ = applyThreadFilter(countQ, {
-          messageIds: [...new Set(messageIds)],
-          references: [...new Set(references)],
-          normSubject,
-          participants,
-          windowDays: 90,
-        });
+        // Note: No date filter - count all messages in the conversation(s)
         
         const { count, error: cErr } = await countQ;
         if (cErr) throw cErr;
