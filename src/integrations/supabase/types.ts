@@ -2642,89 +2642,36 @@ export type Database = {
           notifications_unread: number
         }[]
       }
-      get_conversations:
-        | {
-            Args: {
-              p_inbox_id?: string
-              p_page?: number
-              p_page_size?: number
-              p_search_query?: string
-              p_status_filter?: string
-            }
-            Returns: {
-              assigned_to_id: string
-              assigned_to_name: string
-              channel: string
-              created_at: string
-              customer_email: string
-              customer_id: string
-              customer_name: string
-              first_response_at: string
-              id: string
-              inbox_id: string
-              inbox_name: string
-              is_archived: boolean
-              is_read: boolean
-              preview_text: string
-              priority: string
-              sla_breach_at: string
-              status: string
-              subject: string
-              updated_at: string
-            }[]
-          }
-        | {
-            Args: {
-              inbox_filter?: string
-              page_limit?: number
-              page_offset?: number
-              status_filter?: string
-            }
-            Returns: {
-              assigned_to: Json
-              channel: string
-              customer: Json
-              email_account: Json
-              first_response_at: string
-              id: string
-              inbox_id: string
-              is_archived: boolean
-              is_read: boolean
-              preview_text: string
-              priority: string
-              received_at: string
-              sla_breach_at: string
-              sla_status: string
-              snooze_until: string
-              status: string
-              subject: string
-              total_count: number
-              updated_at: string
-            }[]
-          }
-        | {
-            Args: never
-            Returns: {
-              assigned_to: Json
-              channel: string
-              customer: Json
-              email_account: Json
-              first_response_at: string
-              id: string
-              inbox_id: string
-              is_archived: boolean
-              is_read: boolean
-              preview_text: string
-              priority: string
-              received_at: string
-              sla_breach_at: string
-              sla_status: string
-              snooze_until: string
-              status: string
-              subject: string
-              updated_at: string
-            }[]
-          }
+      get_conversations: {
+        Args: {
+          p_inbox_id?: string
+          p_page?: number
+          p_page_size?: number
+          p_search_query?: string
+          p_status_filter?: string
+        }
+        Returns: {
+          assigned_to_id: string
+          assigned_to_name: string
+          channel: string
+          created_at: string
+          customer_email: string
+          customer_id: string
+          customer_name: string
+          first_response_at: string
+          id: string
+          inbox_id: string
+          inbox_name: string
+          is_archived: boolean
+          is_read: boolean
+          preview_text: string
+          priority: string
+          sla_breach_at: string
+          status: string
+          subject: string
+          updated_at: string
+        }[]
+      }
       get_conversations_monitored: {
         Args: {
           inbox_filter?: string

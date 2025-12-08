@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['unread-conversations'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_conversations');
+      const { data, error } = await supabase.rpc('get_conversations', { p_status_filter: 'all' });
       if (error) {
         console.error('Error fetching conversations for notifications:', error);
         return 0;

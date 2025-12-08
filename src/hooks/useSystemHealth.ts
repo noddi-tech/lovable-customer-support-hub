@@ -81,7 +81,7 @@ export function useSystemHealth() {
 
       // Check data access via conversations
       try {
-        const { data: conversations, error: convError } = await supabase.rpc('get_conversations');
+        const { data: conversations, error: convError } = await supabase.rpc('get_conversations', { p_status_filter: 'all' });
         if (convError) {
           newState.dataAccessOk = false;
           newState.dataAccessError = convError.message;

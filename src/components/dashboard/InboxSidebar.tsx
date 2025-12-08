@@ -69,7 +69,7 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({ selectedTab, onTabCh
 const { data: conversationCounts = {}, isLoading } = useQuery({
   queryKey: ['conversation-counts', effectiveInboxId, selectedTab],
   queryFn: async () => {
-    const { data, error } = await supabase.rpc('get_conversations');
+    const { data, error } = await supabase.rpc('get_conversations', { p_status_filter: 'all' });
     if (error) {
       console.error('Error fetching conversation counts:', error);
       return {} as Record<string, number>;
