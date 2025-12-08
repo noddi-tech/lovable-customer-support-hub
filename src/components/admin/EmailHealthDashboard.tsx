@@ -13,6 +13,11 @@ import { AlertCircle, CheckCircle, Clock, Mail, RefreshCw, Settings, Shield, Eye
 import { toast } from "sonner";
 import { formatDistanceToNow, format, subDays } from "date-fns";
 
+interface EmailHealthDashboardProps {
+  organizationId: string;
+  organizationName: string;
+}
+
 interface EmailIngestionLog {
   id: string;
   source: string;
@@ -46,7 +51,7 @@ interface TokenConfig {
   routes: { id: string; address: string; hasToken: boolean }[];
 }
 
-export function EmailHealthDashboard() {
+export function EmailHealthDashboard({ organizationId, organizationName }: EmailHealthDashboardProps) {
   const queryClient = useQueryClient();
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -55,33 +60,54 @@ export function EmailHealthDashboard() {
   const [isUpdatingToken, setIsUpdatingToken] = useState(false);
   const [tokenTestResult, setTokenTestResult] = useState<{ match: boolean; message: string } | null>(null);
 
-  // Fetch email stats
+  // Fetch org-scoped email stats
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["email-health-stats"],
+    queryKey: ["email-health-stats", organizationId],
     queryFn: async (): Promise<EmailStats> => {
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       const sevenDaysAgo = subDays(now, 7).toISOString();
 
-      // Get counts
+      // Get conversation IDs for this organization first
+      const { data: orgConversations } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("organization_id", organizationId);
+      
+      const conversationIds = orgConversations?.map(c => c.id) || [];
+
+      if (conversationIds.length === 0) {
+        return {
+          total_today: 0,
+          total_7_days: 0,
+          sendgrid_count: 0,
+          gmail_count: 0,
+          failed_count: 0,
+          last_email_at: null,
+        };
+      }
+
+      // Get logs for this org's conversations
       const [todayResult, weekResult, lastEmailResult] = await Promise.all([
         supabase
           .from("email_ingestion_logs")
           .select("id, source, status", { count: "exact" })
+          .in("conversation_id", conversationIds)
           .gte("created_at", todayStart),
         supabase
           .from("email_ingestion_logs")
           .select("id, source, status", { count: "exact" })
+          .in("conversation_id", conversationIds)
           .gte("created_at", sevenDaysAgo),
         supabase
           .from("email_ingestion_logs")
           .select("created_at")
+          .in("conversation_id", conversationIds)
           .order("created_at", { ascending: false })
           .limit(1)
           .single(),
       ]);
 
-      const todayLogs = todayResult.data || [];
       const weekLogs = weekResult.data || [];
 
       return {
@@ -93,16 +119,29 @@ export function EmailHealthDashboard() {
         last_email_at: lastEmailResult.data?.created_at || null,
       };
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
-  // Fetch recent logs
+  // Fetch org-scoped recent logs
   const { data: logs, isLoading: logsLoading } = useQuery({
-    queryKey: ["email-ingestion-logs", sourceFilter, statusFilter],
+    queryKey: ["email-ingestion-logs", organizationId, sourceFilter, statusFilter],
     queryFn: async (): Promise<EmailIngestionLog[]> => {
+      // Get conversation IDs for this organization
+      const { data: orgConversations } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("organization_id", organizationId);
+      
+      const conversationIds = orgConversations?.map(c => c.id) || [];
+
+      if (conversationIds.length === 0) {
+        return [];
+      }
+
       let query = supabase
         .from("email_ingestion_logs")
         .select("*")
+        .in("conversation_id", conversationIds)
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -120,12 +159,12 @@ export function EmailHealthDashboard() {
     refetchInterval: 30000,
   });
 
-  // Fetch current token configuration from edge function
+  // Fetch org-scoped token configuration
   const { data: tokenConfig, isLoading: tokenConfigLoading, refetch: refetchTokenConfig } = useQuery({
-    queryKey: ["sendgrid-token-config"],
+    queryKey: ["sendgrid-token-config", organizationId],
     queryFn: async (): Promise<TokenConfig | null> => {
       const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
-        body: { action: "get-config" },
+        body: { action: "get-config", organizationId },
       });
       if (error) {
         console.error("Failed to fetch token config:", error);
@@ -135,13 +174,14 @@ export function EmailHealthDashboard() {
     },
   });
 
-  // Fetch current inbound routes for fallback token display
+  // Fetch org-scoped inbound routes for fallback token display
   const { data: inboundRoutes } = useQuery({
-    queryKey: ["inbound-routes-tokens"],
+    queryKey: ["inbound-routes-tokens", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inbound_routes")
         .select("id, address, secret_token")
+        .eq("organization_id", organizationId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -174,7 +214,7 @@ export function EmailHealthDashboard() {
   const testTokenMatchMutation = useMutation({
     mutationFn: async (testToken: string) => {
       const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
-        body: { action: "test-token", testToken },
+        body: { action: "test-token", testToken, organizationId },
       });
       if (error) throw error;
       return data;
@@ -199,7 +239,7 @@ export function EmailHealthDashboard() {
   const updateTokenMutation = useMutation({
     mutationFn: async (token: string) => {
       const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
-        body: { action: "update-token", token },
+        body: { action: "update-token", token, organizationId },
       });
       if (error) throw error;
       return data;
@@ -211,8 +251,8 @@ export function EmailHealthDashboard() {
       setNewToken("");
       setIsUpdatingToken(false);
       setTokenTestResult(null);
-      queryClient.invalidateQueries({ queryKey: ["inbound-routes-tokens"] });
-      queryClient.invalidateQueries({ queryKey: ["sendgrid-token-config"] });
+      queryClient.invalidateQueries({ queryKey: ["inbound-routes-tokens", organizationId] });
+      queryClient.invalidateQueries({ queryKey: ["sendgrid-token-config", organizationId] });
     },
     onError: (error) => {
       toast.error("Failed to update token", { description: String(error) });
@@ -329,7 +369,7 @@ export function EmailHealthDashboard() {
             SendGrid Webhook Configuration
           </CardTitle>
           <CardDescription>
-            Configure and test your SendGrid Inbound Parse webhook
+            Configure and test your SendGrid Inbound Parse webhook for {organizationName}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -504,8 +544,8 @@ export function EmailHealthDashboard() {
               variant="outline"
               onClick={() => {
                 refetchTokenConfig();
-                queryClient.invalidateQueries({ queryKey: ["email-health-stats"] });
-                queryClient.invalidateQueries({ queryKey: ["email-ingestion-logs"] });
+                queryClient.invalidateQueries({ queryKey: ["email-health-stats", organizationId] });
+                queryClient.invalidateQueries({ queryKey: ["email-ingestion-logs", organizationId] });
                 setTokenTestResult(null);
               }}
             >
@@ -553,7 +593,7 @@ export function EmailHealthDashboard() {
             <div className="text-center py-8 text-muted-foreground">Loading logs...</div>
           ) : logs?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No email ingestion logs yet. Logs will appear here when emails are received.
+              No email ingestion logs for {organizationName}. Logs will appear here when emails are received.
             </div>
           ) : (
             <Table>
