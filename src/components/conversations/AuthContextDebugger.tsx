@@ -15,7 +15,76 @@ interface AuthDebugInfo {
   dbDeptId: string | null;
   profileExists: boolean;
   conversationsCount: number;
+  conversationsError: string | null;
   lastChecked: string;
+}
+
+// Helper to get error explanation and fix guidance
+function getErrorGuidance(error: string): { explanation: string; fix: string[] } {
+  const lowerError = error.toLowerCase();
+  
+  if (lowerError.includes('row-level security') || lowerError.includes('rls')) {
+    return {
+      explanation: 'Your session token is valid but Row Level Security policies are blocking database access. This usually happens when the session token is stale or the profile is not properly linked to an organization.',
+      fix: [
+        'Click "Force Refresh" to get a fresh session token',
+        'If that doesn\'t work, log out and log back in',
+        'If the issue persists, ask an admin to verify your profile is linked to an organization'
+      ]
+    };
+  }
+  
+  if (lowerError.includes('permission denied')) {
+    return {
+      explanation: 'Your account lacks the required permissions to access this data. This may be a role or permission configuration issue.',
+      fix: [
+        'Check that your profile has the correct role assigned',
+        'Ask an admin to verify your permissions',
+        'Try logging out and back in to refresh your role claims'
+      ]
+    };
+  }
+  
+  if (lowerError.includes('jwt') || lowerError.includes('token')) {
+    return {
+      explanation: 'Your authentication token is invalid or expired. This can happen after long periods of inactivity.',
+      fix: [
+        'Click "Force Refresh" to get a new token',
+        'If that fails, log out and log back in',
+        'Clear your browser cache if the issue persists'
+      ]
+    };
+  }
+  
+  if (lowerError.includes('function') && lowerError.includes('not exist')) {
+    return {
+      explanation: 'A required database function is missing. This is a configuration issue that requires admin intervention.',
+      fix: [
+        'Contact your system administrator',
+        'This may require a database migration to be applied'
+      ]
+    };
+  }
+  
+  if (lowerError.includes('organization') || lowerError.includes('org')) {
+    return {
+      explanation: 'Your profile is not linked to an organization. All users must belong to an organization to access data.',
+      fix: [
+        'Ask an admin to add you to an organization',
+        'If you are an admin, go to Organization Settings and verify your profile is linked'
+      ]
+    };
+  }
+  
+  // Default generic guidance
+  return {
+    explanation: 'An unexpected error occurred while accessing the database. This may be a temporary issue.',
+    fix: [
+      'Click "Force Refresh" to refresh your session',
+      'Try logging out and back in',
+      'If the issue persists, contact support with the error message'
+    ]
+  };
 }
 
 export function AuthContextDebugger() {
@@ -43,6 +112,7 @@ export function AuthContextDebugger() {
         dbDeptId: null,
         profileExists: false,
         conversationsCount: 0,
+        conversationsError: null,
         lastChecked: new Date().toISOString()
       };
 
@@ -87,11 +157,14 @@ export function AuthContextDebugger() {
         const { data: conversations, error: convError } = await supabase.rpc('get_conversations');
         if (convError) {
           diagnostics.conversationsCount = -1;
+          diagnostics.conversationsError = convError.message;
         } else {
           diagnostics.conversationsCount = conversations?.length || 0;
+          diagnostics.conversationsError = null;
         }
       } catch (error) {
         diagnostics.conversationsCount = -1;
+        diagnostics.conversationsError = (error as Error).message;
       }
 
       setDebugInfo(diagnostics);
@@ -239,8 +312,52 @@ export function AuthContextDebugger() {
               </div>
             </div>
             
-            {/* Critical Error Alert */}
-            {debugInfo.dbAuthUid !== 'working' && (
+            {/* Error Details with Explanation and Fix Guidance */}
+            {debugInfo.conversationsError && (
+              <div className="space-y-3 border border-destructive/30 rounded-lg p-4 bg-destructive/5">
+                <div className="flex items-start gap-2">
+                  <XCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-destructive">Data Access Error</h4>
+                    <p className="text-sm font-mono text-destructive/80 mt-1 break-all">
+                      {debugInfo.conversationsError}
+                    </p>
+                  </div>
+                </div>
+                
+                {(() => {
+                  const guidance = getErrorGuidance(debugInfo.conversationsError);
+                  return (
+                    <>
+                      <div className="flex items-start gap-2 pt-2 border-t border-destructive/20">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                        <div>
+                          <h5 className="text-sm font-medium text-foreground">What this means</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {guidance.explanation}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-2 pt-2 border-t border-destructive/20">
+                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <h5 className="text-sm font-medium text-foreground">How to fix</h5>
+                          <ol className="text-sm text-muted-foreground mt-1 space-y-1 list-decimal list-inside">
+                            {guidance.fix.map((step, i) => (
+                              <li key={i}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+            
+            {/* Critical Error Alert for Auth */}
+            {debugInfo.dbAuthUid !== 'working' && !debugInfo.conversationsError && (
               <div className="flex items-start gap-2 text-sm bg-destructive/10 text-destructive p-3 rounded-lg">
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
