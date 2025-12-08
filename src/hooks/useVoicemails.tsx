@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+// Real-time subscriptions are now handled centrally by RealtimeProvider
 
 export interface Voicemail {
   id: string;
@@ -109,35 +109,8 @@ export function useVoicemails() {
     }
   });
 
-  // Set up real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel('voicemails-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'internal_events',
-        filter: 'event_type=eq.voicemail_left'
-      }, (payload) => {
-        console.log('Voicemail change received:', payload);
-        
-        // Show toast notification for new voicemails
-        if (payload.eventType === 'INSERT') {
-          const newVoicemail = payload.new as Voicemail;
-          toast({
-            title: "New Voicemail",
-            description: `Voicemail from ${newVoicemail.customer_phone || 'Unknown'}`,
-          });
-        }
-        
-        queryClient.invalidateQueries({ queryKey: ['voicemails'] });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Real-time subscriptions moved to centralized RealtimeProvider
+  // The provider invalidates 'voicemails' query key on internal_events table changes
 
   // Derived data
   const recentVoicemails = voicemails.slice(0, 10);
