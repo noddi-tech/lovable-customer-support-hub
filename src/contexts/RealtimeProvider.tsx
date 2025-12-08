@@ -1,17 +1,21 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useSimpleRealtimeSubscriptions } from '@/hooks/useSimpleRealtimeSubscriptions';
+import { useSimpleRealtimeSubscriptions, ConnectionStatus } from '@/hooks/useSimpleRealtimeSubscriptions';
 
 interface RealtimeContextValue {
   isConnected: boolean;
+  connectionStatus: ConnectionStatus;
 }
 
-const RealtimeContext = createContext<RealtimeContextValue>({ isConnected: false });
+const RealtimeContext = createContext<RealtimeContextValue>({ 
+  isConnected: false, 
+  connectionStatus: 'connecting' 
+});
 
 export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Single subscription point for the entire app
   // Subscribes to ALL critical tables that need real-time updates
   // This consolidates subscriptions that were previously scattered across hooks
-  const { isConnected } = useSimpleRealtimeSubscriptions([
+  const { isConnected, connectionStatus } = useSimpleRealtimeSubscriptions([
     // Conversations & Messages
     { table: 'conversations', queryKey: 'conversations' },
     { table: 'messages', queryKey: 'messages' },
@@ -28,7 +32,7 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
   ], true);
 
   return (
-    <RealtimeContext.Provider value={{ isConnected }}>
+    <RealtimeContext.Provider value={{ isConnected, connectionStatus }}>
       {children}
     </RealtimeContext.Provider>
   );
