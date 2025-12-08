@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/components/auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, Database, User, Clock, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Database, Clock, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AuthDebugInfo {
@@ -27,8 +27,6 @@ export function AuthContextDebugger() {
     setIsChecking(true);
     
     try {
-      console.log('=== FULL AUTH DIAGNOSTICS ===');
-      
       const diagnostics: AuthDebugInfo = {
         frontendUser: {
           id: user?.id,
@@ -52,14 +50,12 @@ export function AuthContextDebugger() {
       try {
         const { data: authCheck, error: authError } = await supabase.rpc('get_user_organization_id');
         if (authError) {
-          console.error('DB auth check failed:', authError);
           diagnostics.dbAuthUid = 'ERROR: ' + authError.message;
         } else {
           diagnostics.dbOrgId = authCheck;
           diagnostics.dbAuthUid = 'working';
         }
       } catch (error) {
-        console.error('DB auth check exception:', error);
         diagnostics.dbAuthUid = 'EXCEPTION';
       }
 
@@ -68,7 +64,7 @@ export function AuthContextDebugger() {
         const { data: deptCheck } = await supabase.rpc('get_user_department_id');
         diagnostics.dbDeptId = deptCheck;
       } catch (error) {
-        console.error('Department check failed:', error);
+        // Ignore
       }
 
       // Check if profile exists
@@ -81,13 +77,8 @@ export function AuthContextDebugger() {
             .maybeSingle();
           
           diagnostics.profileExists = !!profile && !profileError;
-          if (profileError) {
-            console.error('Profile check error:', profileError);
-          } else {
-            console.log('Profile found:', profile);
-          }
         } catch (error) {
-          console.error('Profile check exception:', error);
+          // Ignore
         }
       }
 
@@ -95,21 +86,17 @@ export function AuthContextDebugger() {
       try {
         const { data: conversations, error: convError } = await supabase.rpc('get_conversations');
         if (convError) {
-          console.error('Conversations check failed:', convError);
           diagnostics.conversationsCount = -1;
         } else {
           diagnostics.conversationsCount = conversations?.length || 0;
         }
       } catch (error) {
-        console.error('Conversations check exception:', error);
         diagnostics.conversationsCount = -1;
       }
 
-      console.log('=== DIAGNOSTICS COMPLETE ===', diagnostics);
       setDebugInfo(diagnostics);
 
     } catch (error) {
-      console.error('Full diagnostics failed:', error);
       toast.error('Diagnostics failed: ' + (error as Error).message);
     } finally {
       setIsChecking(false);
@@ -117,36 +104,19 @@ export function AuthContextDebugger() {
   };
 
   const forceSessionRefresh = async () => {
-    console.log('=== FORCING SESSION REFRESH ===');
-    
     try {
-      // Clear any cached session data
       await supabase.auth.refreshSession();
-      
-      // Wait a moment for propagation
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Refresh our context
       await refreshSession();
-      
-      // Wait again
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Validate
       const isValid = await validateSession();
-      
       toast.success(`Session refresh ${isValid ? 'successful' : 'failed'}`);
-      
-      // Re-run diagnostics
       setTimeout(() => runFullDiagnostics(), 500);
-      
     } catch (error) {
-      console.error('Session refresh failed:', error);
       toast.error('Session refresh failed');
     }
   };
 
-  // Auto-run diagnostics on mount
   useEffect(() => {
     setTimeout(() => runFullDiagnostics(), 1000);
   }, []);
@@ -155,19 +125,59 @@ export function AuthContextDebugger() {
     return null;
   }
 
+  // Determine health status dynamically
+  const hasErrors = debugInfo && (
+    debugInfo.dbAuthUid !== 'working' ||
+    !debugInfo.profileExists ||
+    debugInfo.conversationsCount === -1
+  );
+  
+  const hasWarnings = debugInfo && (
+    !debugInfo.dbOrgId ||
+    !debugInfo.dbDeptId
+  );
+
+  const getStatusBadge = () => {
+    if (!debugInfo) return null;
+    if (hasErrors) return <Badge variant="destructive">Issues Detected</Badge>;
+    if (hasWarnings) return <Badge variant="secondary">Warnings</Badge>;
+    return <Badge variant="default">Healthy</Badge>;
+  };
+
+  const CheckItem = ({ ok, label, value }: { ok: boolean; label: string; value?: string }) => (
+    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+      <div className="flex items-center gap-2">
+        {ok ? (
+          <CheckCircle2 className="h-4 w-4 text-primary" />
+        ) : (
+          <XCircle className="h-4 w-4 text-destructive" />
+        )}
+        <span className="text-sm">{label}</span>
+      </div>
+      {value && (
+        <span className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
+          {value}
+        </span>
+      )}
+    </div>
+  );
+
   return (
-    <Card className="m-4 border-2 border-dashed border-destructive/50 bg-destructive/5">
+    <Card className="border-border/50">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-destructive" />
-          Auth Context Debugger
-          <Badge variant="destructive" className="ml-auto">CRITICAL</Badge>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Database className="w-4 h-4 text-primary" />
+            Auth Context Diagnostics
+          </CardTitle>
+          {getStatusBadge()}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Button
             size="sm"
+            variant="outline"
             onClick={runFullDiagnostics}
             disabled={isChecking}
             className="flex-1"
@@ -180,13 +190,13 @@ export function AuthContextDebugger() {
             ) : (
               <>
                 <Database className="w-3 h-3 mr-2" />
-                Run Full Diagnostics
+                Run Diagnostics
               </>
             )}
           </Button>
           <Button 
             size="sm" 
-            variant="destructive" 
+            variant="default" 
             onClick={forceSessionRefresh}
           >
             <RefreshCw className="w-3 h-3 mr-2" />
@@ -195,25 +205,51 @@ export function AuthContextDebugger() {
         </div>
 
         {debugInfo && (
-          <div className="space-y-3">
-            <div className="text-xs font-mono bg-muted p-2 rounded space-y-1">
-              <div>Frontend User: {debugInfo.frontendUser.id ? '✓' : '✗'} {debugInfo.frontendUser.email}</div>
-              <div>Frontend Session: {debugInfo.frontendSession.access_token === 'present' ? '✓' : '✗'}</div>
-              <div>DB auth.uid(): {debugInfo.dbAuthUid === 'working' ? '✓' : '✗'} {debugInfo.dbAuthUid}</div>
-              <div>DB Org ID: {debugInfo.dbOrgId || 'null'}</div>
-              <div>DB Dept ID: {debugInfo.dbDeptId || 'null'}</div>
-              <div>Profile Exists: {debugInfo.profileExists ? '✓' : '✗'}</div>
-              <div>Conversations: {debugInfo.conversationsCount === -1 ? 'ERROR' : debugInfo.conversationsCount}</div>
+          <div className="space-y-4">
+            {/* Frontend Checks */}
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Frontend</h4>
+              <div className="bg-muted/30 rounded-lg px-3">
+                <CheckItem ok={!!debugInfo.frontendUser.id} label="User Exists" value={debugInfo.frontendUser.email} />
+                <CheckItem ok={debugInfo.frontendSession.access_token === 'present'} label="Access Token" value={debugInfo.frontendSession.access_token} />
+                <CheckItem ok={debugInfo.frontendSession.refresh_token === 'present'} label="Refresh Token" value={debugInfo.frontendSession.refresh_token} />
+              </div>
+            </div>
+
+            {/* Database Checks */}
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Database</h4>
+              <div className="bg-muted/30 rounded-lg px-3">
+                <CheckItem ok={debugInfo.dbAuthUid === 'working'} label="auth.uid()" value={debugInfo.dbAuthUid || 'null'} />
+                <CheckItem ok={debugInfo.profileExists} label="Profile Exists" />
+                <CheckItem ok={!!debugInfo.dbOrgId} label="Organization" value={debugInfo.dbOrgId?.slice(0, 8) || 'null'} />
+                <CheckItem ok={!!debugInfo.dbDeptId} label="Department" value={debugInfo.dbDeptId?.slice(0, 8) || 'null'} />
+              </div>
+            </div>
+
+            {/* Data Access */}
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Data Access</h4>
+              <div className="bg-muted/30 rounded-lg px-3">
+                <CheckItem 
+                  ok={debugInfo.conversationsCount >= 0} 
+                  label="Conversations Query" 
+                  value={debugInfo.conversationsCount >= 0 ? `${debugInfo.conversationsCount} found` : 'ERROR'} 
+                />
+              </div>
             </div>
             
+            {/* Critical Error Alert */}
             {debugInfo.dbAuthUid !== 'working' && (
-              <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-                <strong>CRITICAL:</strong> Database auth context is broken. This is why conversations aren't loading.
-                The frontend has a session but the database can't see it.
+              <div className="flex items-start gap-2 text-sm bg-destructive/10 text-destructive p-3 rounded-lg">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <div>
+                  <strong>Database auth context is broken.</strong> The frontend has a session but the database can't see it. Try Force Refresh.
+                </div>
               </div>
             )}
             
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2">
               <Clock className="w-3 h-3" />
               Last checked: {new Date(debugInfo.lastChecked).toLocaleTimeString()}
             </div>

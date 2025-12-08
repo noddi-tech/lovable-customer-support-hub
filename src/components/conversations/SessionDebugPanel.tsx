@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, Database, User, Building } from 'lucide-react';
+import { RefreshCw, Database, User, Building, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 interface SessionDebugInfo {
   frontend_user: any;
@@ -50,12 +50,6 @@ export function SessionDebugPanel() {
     fetchDebugInfo();
   }, []);
 
-  const getStatusBadge = (condition: boolean, label: string) => (
-    <Badge variant={condition ? "default" : "destructive"}>
-      {condition ? '✓' : '✗'} {label}
-    </Badge>
-  );
-
   const isHealthy = debugInfo && 
     debugInfo.frontend_user && 
     debugInfo.frontend_session && 
@@ -63,85 +57,102 @@ export function SessionDebugPanel() {
     debugInfo.db_organization_id && 
     debugInfo.db_profile_exists;
 
+  const CheckItem = ({ ok, label, value }: { ok: boolean; label: string; value?: string }) => (
+    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+      <div className="flex items-center gap-2">
+        {ok ? (
+          <CheckCircle2 className="h-4 w-4 text-primary" />
+        ) : (
+          <XCircle className="h-4 w-4 text-destructive" />
+        )}
+        <span className="text-sm">{label}</span>
+      </div>
+      {value && (
+        <span className="text-xs text-muted-foreground font-mono truncate max-w-[180px]">
+          {value}
+        </span>
+      )}
+    </div>
+  );
+
   return (
-    <Card className="w-full max-w-2xl mb-4 mx-4">
+    <Card className="w-full max-w-2xl border-border/50">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Session Debug Panel</CardTitle>
-        <Button
-          onClick={fetchDebugInfo}
-          disabled={isLoading}
-          variant="outline"
-          size="sm"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Database className="h-4 w-4 text-primary" />
+          <CardTitle className="text-sm font-medium">Session Status</CardTitle>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={isHealthy ? "default" : "destructive"}>
+            {isHealthy ? 'Healthy' : 'Issues'}
+          </Badge>
+          <Button
+            onClick={fetchDebugInfo}
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {debugInfo && (
           <>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <span className="font-medium">Frontend State</span>
-                </div>
-                {getStatusBadge(!!debugInfo.frontend_user, 'User Exists')}
-                {getStatusBadge(!!debugInfo.frontend_session, 'Session Active')}
-                {debugInfo.frontend_user && (
-                  <div className="text-xs text-muted-foreground">
-                    ID: {debugInfo.frontend_user.id}
-                  </div>
-                )}
+            {/* Frontend State */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Frontend</span>
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  <span className="font-medium">Database State</span>
-                </div>
-                {getStatusBadge(!!debugInfo.db_auth_uid, 'Auth UID')}
-                {getStatusBadge(debugInfo.db_profile_exists, 'Profile Exists')}
-                {debugInfo.db_auth_uid && (
-                  <div className="text-xs text-muted-foreground">
-                    UID: {debugInfo.db_auth_uid}
-                  </div>
-                )}
+              <div className="bg-muted/30 rounded-lg px-3">
+                <CheckItem ok={!!debugInfo.frontend_user} label="User Exists" value={debugInfo.frontend_user?.email} />
+                <CheckItem ok={!!debugInfo.frontend_session} label="Session Active" />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Building className="h-4 w-4" />
-                <span className="font-medium">Organization</span>
+            {/* Database State */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Database className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Database</span>
               </div>
-              {getStatusBadge(!!debugInfo.db_organization_id, 'Organization ID')}
-              {debugInfo.db_organization_id && (
-                <div className="text-xs text-muted-foreground">
-                  Org: {debugInfo.db_organization_id}
-                </div>
-              )}
-            </div>
-            
-            <div className="pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Overall Health</span>
-                <Badge variant={isHealthy ? "default" : "destructive"}>
-                  {isHealthy ? '✓ Healthy' : '✗ Issues Detected'}
-                </Badge>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Last check: {new Date(debugInfo.timestamp).toLocaleTimeString()}
+              <div className="bg-muted/30 rounded-lg px-3">
+                <CheckItem ok={!!debugInfo.db_auth_uid} label="Auth UID" value={debugInfo.db_auth_uid?.slice(0, 8)} />
+                <CheckItem ok={debugInfo.db_profile_exists} label="Profile Exists" />
               </div>
             </div>
             
+            {/* Organization */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Building className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Organization</span>
+              </div>
+              <div className="bg-muted/30 rounded-lg px-3">
+                <CheckItem ok={!!debugInfo.db_organization_id} label="Org ID" value={debugInfo.db_organization_id?.slice(0, 8)} />
+              </div>
+            </div>
+            
+            {/* Profile Info */}
             {profile && (
-              <div className="pt-2 border-t text-xs space-y-1">
-                <div><strong>Profile:</strong> {profile.full_name} ({profile.email})</div>
-                <div><strong>Role:</strong> {profile.role}</div>
-                <div><strong>Org ID:</strong> {profile.organization_id}</div>
+              <div className="pt-2 border-t border-border/50 text-sm space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Name</span>
+                  <span className="font-medium">{profile.full_name}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Role</span>
+                  <span className="font-medium">{profile.role}</span>
+                </div>
               </div>
             )}
+            
+            {/* Timestamp */}
+            <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2">
+              <Clock className="w-3 h-3" />
+              Last check: {new Date(debugInfo.timestamp).toLocaleTimeString()}
+            </div>
           </>
         )}
       </CardContent>

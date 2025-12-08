@@ -261,10 +261,11 @@ export function useAggressiveSessionRecovery() {
   }, []);
 
   // Drastically less aggressive health check with exponential backoff
+  // Note: Auto health checks disabled in dev mode, but manual performHealthCheck() still works
   useEffect(() => {
-    // Disable in dev mode
+    // Disable automatic health checks in dev mode
     if (IS_DEV_MODE) {
-      console.log('⚠️ Session health checks disabled in dev mode');
+      console.log('⚠️ Automatic session health checks disabled in dev mode (manual checks still work)');
       return;
     }
 
