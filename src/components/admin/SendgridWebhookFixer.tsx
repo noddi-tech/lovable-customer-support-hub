@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Loader2, RefreshCw, Activity, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,10 +19,54 @@ interface WebhookStatus {
   details?: any;
 }
 
+interface DiagnosticInfo {
+  status: string;
+  timestamp: string;
+  requestId: string;
+  environment: {
+    hasInboundToken: boolean;
+    hasSendGridApiKey: boolean;
+    hasSupabaseUrl: boolean;
+    hasServiceKey: boolean;
+  };
+  expectedWebhookUrl: string;
+  instructions: string;
+}
+
 export const SendgridWebhookFixer: React.FC = () => {
   const [isFixing, setIsFixing] = useState(false);
+  const [isLoadingDiagnostics, setIsLoadingDiagnostics] = useState(false);
   const [status, setStatus] = useState<WebhookStatus | null>(null);
+  const [diagnostics, setDiagnostics] = useState<DiagnosticInfo | null>(null);
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const fetchDiagnostics = async () => {
+    setIsLoadingDiagnostics(true);
+    setDiagnosticError(null);
+    
+    try {
+      const response = await fetch('https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/sendgrid-inbound', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setDiagnostics(data);
+    } catch (error: any) {
+      setDiagnosticError(error.message || 'Failed to fetch diagnostics');
+    } finally {
+      setIsLoadingDiagnostics(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDiagnostics();
+  }, []);
 
   const fixWebhook = async () => {
     setIsFixing(true);
@@ -74,19 +118,122 @@ export const SendgridWebhookFixer: React.FC = () => {
     <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-warning" />
-          SendGrid Webhook Fixer
+          <Activity className="h-5 w-5 text-primary" />
+          SendGrid Inbound Webhook Diagnostics
         </CardTitle>
         <CardDescription>
-          Fix authentication issues with hei@noddi.no email webhook
+          Debug and fix SendGrid inbound email webhook configuration
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Diagnostic Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium">Edge Function Status</h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={fetchDiagnostics}
+              disabled={isLoadingDiagnostics}
+            >
+              {isLoadingDiagnostics ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+
+          {diagnosticError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Error fetching diagnostics:</strong> {diagnosticError}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {diagnostics && (
+            <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant={diagnostics.status === 'alive' ? 'default' : 'destructive'}>
+                  {diagnostics.status === 'alive' ? '✓ Online' : '✗ Offline'}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  Last checked: {new Date(diagnostics.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  {diagnostics.environment.hasInboundToken ? (
+                    <CheckCircle className="h-4 w-4 text-success" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  )}
+                  <span>SENDGRID_INBOUND_TOKEN</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {diagnostics.environment.hasSendGridApiKey ? (
+                    <CheckCircle className="h-4 w-4 text-success" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  )}
+                  <span>SENDGRID_API_KEY</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {diagnostics.environment.hasSupabaseUrl ? (
+                    <CheckCircle className="h-4 w-4 text-success" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  )}
+                  <span>SUPABASE_URL</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {diagnostics.environment.hasServiceKey ? (
+                    <CheckCircle className="h-4 w-4 text-success" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  )}
+                  <span>SUPABASE_SERVICE_ROLE_KEY</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-1">Expected Webhook URL:</p>
+                <code className="text-xs break-all block bg-background p-2 rounded border">
+                  {diagnostics.expectedWebhookUrl}?token=YOUR_TOKEN
+                </code>
+              </div>
+            </div>
+          )}
+
+          {!diagnostics.environment?.hasInboundToken && diagnostics && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Missing SENDGRID_INBOUND_TOKEN!</strong> The edge function cannot authenticate incoming webhooks.
+                <a 
+                  href="https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/settings/functions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-primary underline mt-1"
+                >
+                  Add secret in Supabase <ExternalLink className="h-3 w-3" />
+                </a>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        <hr className="my-4" />
+
+        {/* Fix Webhook Section */}
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Issue:</strong> Emails to hei@noddi.no are failing with 401 Unauthorized. 
-            This tool will update the SendGrid webhook URL with the correct authentication token.
+            <strong>Fix Webhook:</strong> If emails aren't being received, the SendGrid webhook URL may be misconfigured.
+            This tool will update the SendGrid Inbound Parse settings with the correct URL and token.
           </AlertDescription>
         </Alert>
 
@@ -103,7 +250,7 @@ export const SendgridWebhookFixer: React.FC = () => {
           ) : (
             <>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Fix SendGrid Webhook
+              Fix SendGrid Webhook Configuration
             </>
           )}
         </Button>
