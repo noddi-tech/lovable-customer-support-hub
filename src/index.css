@@ -412,7 +412,15 @@ Optimized for accessibility with WCAG AA compliance.
     word-break: break-word;
   }
 
+  /* Force ALL table rows to minimal height */
   .email-render__html-content tr,
+  .email-render__html-content tr[height],
+  .email-render__html-content tr[style*="height"] {
+    height: auto !important;
+    line-height: 1.2 !important;
+    vertical-align: top;
+  }
+
   .email-render__plain-content tr {
     vertical-align: top;
   }
@@ -426,9 +434,29 @@ Optimized for accessibility with WCAG AA compliance.
     font-size: 0 !important;
   }
 
-  /* Override inline padding on divs */
-  .email-render__html-content div[style*="padding"] {
+  /* Zero out margins on ALL text elements */
+  .email-render__html-content p,
+  .email-render__html-content h1,
+  .email-render__html-content h2,
+  .email-render__html-content h3,
+  .email-render__html-content h4,
+  .email-render__html-content h5,
+  .email-render__html-content h6,
+  .email-render__html-content div {
+    margin: 0 !important;
     padding: 0 !important;
+  }
+
+  /* Override inline margin/padding styles on divs */
+  .email-render__html-content div[style*="padding"],
+  .email-render__html-content div[style*="margin"] {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Reduce line-height throughout */
+  .email-render__html-content [style*="line-height"] {
+    line-height: 1.2 !important;
   }
 
   /* Hide spacer images (common in HTML emails) */
