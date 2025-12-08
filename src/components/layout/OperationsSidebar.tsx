@@ -32,7 +32,7 @@ export const OperationsSidebar: React.FC = () => {
   const operationsItems = [
     {
       title: 'Service Tickets',
-      path: '/operations',
+      path: '/operations/tickets',
       icon: Ticket
     },
     {
@@ -46,12 +46,12 @@ export const OperationsSidebar: React.FC = () => {
       icon: Users
     },
     {
-      title: 'Operations Analytics',
+      title: 'Analytics',
       path: '/operations/analytics',
       icon: BarChart3
     },
     {
-      title: 'Operations Settings',
+      title: 'Settings',
       path: '/operations/settings',
       icon: Settings
     }
@@ -87,7 +87,7 @@ export const OperationsSidebar: React.FC = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/interactions/text')}
           className="w-full"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />

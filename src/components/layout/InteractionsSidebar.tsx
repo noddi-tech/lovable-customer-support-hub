@@ -36,13 +36,13 @@ export const InteractionsSidebar: React.FC = () => {
     {
       title: 'Text Messages',
       icon: MessageSquare,
-      path: '/',
+      path: '/interactions/text',
       badge: '24'
     },
     {
       title: 'Voice Calls',
       icon: Phone,
-      path: '/voice',
+      path: '/interactions/voice',
       badge: '5'
     }
   ];
@@ -51,12 +51,12 @@ export const InteractionsSidebar: React.FC = () => {
     {
       title: 'Inbox',
       icon: Inbox,
-      path: '/inbox'
+      path: '/interactions/text#inbox'
     },
     {
       title: 'Archive',
       icon: Archive,
-      path: '/archive'
+      path: '/interactions/text#archive'
     }
   ];
 
@@ -64,19 +64,19 @@ export const InteractionsSidebar: React.FC = () => {
     {
       title: 'Voice Analytics',
       icon: BarChart3,
-      path: '/voice/analytics'
+      path: '/interactions/voice/analytics'
     },
     {
       title: 'Voice Settings',
       icon: Settings,
-      path: '/voice/settings'
+      path: '/interactions/voice/settings'
     }
   ];
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <Button className="w-full gap-2" onClick={() => navigate('/new-conversation')}>
+        <Button className="w-full gap-2" onClick={() => navigate('/interactions/text?new=1')}>
           <Plus className="h-4 w-4" />
           New Conversation
         </Button>
@@ -125,7 +125,7 @@ export const InteractionsSidebar: React.FC = () => {
           <SidebarMenu>
             {quickFilters.map((item) => {
               const Icon = item.icon;
-              const itemIsActive = isActive(item.path);
+              const itemIsActive = location.pathname + location.hash === item.path;
               
               return (
                 <SidebarMenuItem key={item.path}>

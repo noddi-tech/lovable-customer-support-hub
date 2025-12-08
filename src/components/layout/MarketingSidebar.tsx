@@ -31,22 +31,22 @@ export const MarketingSidebar: React.FC = () => {
   const marketingItems = [
     {
       title: 'Newsletter Builder',
-      path: '/marketing',
+      path: '/marketing/campaigns',
       icon: Mail
     },
     {
       title: 'Campaigns',
-      path: '/marketing/campaigns', 
+      path: '/marketing/campaigns#list', 
       icon: Megaphone
     },
     {
       title: 'Analytics',
-      path: '/marketing/analytics',
+      path: '/marketing/campaigns#analytics',
       icon: BarChart3
     },
     {
       title: 'Performance',
-      path: '/marketing/performance',
+      path: '/marketing/campaigns#performance',
       icon: TrendingUp
     }
   ];
@@ -59,11 +59,16 @@ export const MarketingSidebar: React.FC = () => {
           <SidebarMenu>
             {marketingItems.map((item) => {
               const Icon = item.icon;
+              const itemPath = item.path.split('#')[0];
+              const itemHash = item.path.includes('#') ? '#' + item.path.split('#')[1] : '';
+              const itemIsActive = location.pathname === itemPath && 
+                (itemHash ? location.hash === itemHash : !location.hash);
+              
               return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild
-                    isActive={isActive(item.path)}
+                    isActive={itemIsActive}
                   >
                     <Link to={item.path}>
                       <Icon className="h-4 w-4" />
@@ -81,7 +86,7 @@ export const MarketingSidebar: React.FC = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/interactions/text')}
           className="w-full"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />

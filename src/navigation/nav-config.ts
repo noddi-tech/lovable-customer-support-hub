@@ -51,27 +51,27 @@ export const NAV_ITEMS: NavItem[] = [
     showBadge: true
   },
 
-  // Interactions
+  // Interactions - hierarchical paths
   { 
     id: "text", 
     label: "Text Messages", 
-    to: "/", 
+    to: "/interactions/text", 
     icon: MessageSquare, 
     group: "interactions" 
   },
   { 
     id: "voice", 
     label: "Voice Calls", 
-    to: "/voice", 
+    to: "/interactions/voice", 
     icon: Phone, 
     group: "interactions" 
   },
 
-  // Marketing
+  // Marketing - hierarchical paths
   { 
     id: "campaigns", 
     label: "Campaigns", 
-    to: "/marketing", 
+    to: "/marketing/campaigns", 
     icon: Megaphone, 
     group: "marketing" 
   },
@@ -83,11 +83,11 @@ export const NAV_ITEMS: NavItem[] = [
     group: "marketing" 
   },
 
-  // Operations
+  // Operations - hierarchical paths
   { 
     id: "service-tickets", 
     label: "Service Tickets", 
-    to: "/operations", 
+    to: "/operations/tickets", 
     icon: Ticket, 
     group: "operations" 
   },
