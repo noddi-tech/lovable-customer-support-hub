@@ -158,3 +158,5 @@ verify_jwt = true
 [functions.send-slack-notification]
 verify_jwt = false
 
+[functions.bulk-close-old-conversations]
+verify_jwt = true
