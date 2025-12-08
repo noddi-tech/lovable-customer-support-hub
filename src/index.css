@@ -412,14 +412,20 @@ Optimized for accessibility with WCAG AA compliance.
     word-break: break-word;
   }
 
-  /* NUCLEAR COMPRESSION: Zero line-height on ALL table elements */
+  /* NUCLEAR COMPRESSION: Zero line-height on table structure elements */
   .email-render__html-content table,
   .email-render__html-content tbody,
   .email-render__html-content thead,
-  .email-render__html-content tr,
+  .email-render__html-content tr {
+    line-height: 0 !important;
+    border-spacing: 0 !important;
+    border-collapse: collapse !important;
+  }
+
+  /* But cells need readable line-height for text content */
   .email-render__html-content td,
   .email-render__html-content th {
-    line-height: 0 !important;
+    line-height: 1.3 !important;
     border-spacing: 0 !important;
     border-collapse: collapse !important;
   }
@@ -435,16 +441,10 @@ Optimized for accessibility with WCAG AA compliance.
     vertical-align: top;
   }
 
-  /* Restore line-height ONLY for actual text content */
+  /* Restore line-height for text content and scale down headings */
   .email-render__html-content p,
   .email-render__html-content span,
   .email-render__html-content a,
-  .email-render__html-content h1,
-  .email-render__html-content h2,
-  .email-render__html-content h3,
-  .email-render__html-content h4,
-  .email-render__html-content h5,
-  .email-render__html-content h6,
   .email-render__html-content li,
   .email-render__html-content strong,
   .email-render__html-content em,
@@ -455,10 +455,34 @@ Optimized for accessibility with WCAG AA compliance.
     padding: 0 !important;
   }
 
-  /* Kill br spacing in table cells */
-  .email-render__html-content td br,
-  .email-render__html-content th br {
-    display: none !important;
+  /* Scale down headings for compact header */
+  .email-render__html-content h1 {
+    font-size: 1.25rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .email-render__html-content h2 {
+    font-size: 1.1rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .email-render__html-content h3,
+  .email-render__html-content h4,
+  .email-render__html-content h5,
+  .email-render__html-content h6 {
+    font-size: 1rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Limit logo/header image heights */
+  .email-render__html-content img:not([height="1"]):not([height="2"]):not([height="3"]):not([height="4"]):not([height="5"]):not([height="10"]):not([height="15"]):not([height="20"]):not([height="30"]):not([height="40"]):not([height="50"]):not([width="1"]) {
+    max-height: 40px !important;
   }
 
   /* Override inline margin/padding styles on divs */
