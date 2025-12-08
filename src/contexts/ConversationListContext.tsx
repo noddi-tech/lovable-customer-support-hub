@@ -243,8 +243,16 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       
       const conversations = (data || []).map((conv: any) => ({
         ...conv,
-        customer: conv.customer as Customer,
-        assigned_to: conv.assigned_to as AssignedTo,
+        // Transform flat RPC fields to nested objects
+        customer: conv.customer_id ? {
+          id: conv.customer_id,
+          full_name: conv.customer_name || conv.customer_email || 'Unknown',
+          email: conv.customer_email || ''
+        } : undefined,
+        assigned_to: conv.assigned_to_id ? {
+          id: conv.assigned_to_id,
+          full_name: conv.assigned_to_name || 'Unassigned'
+        } : undefined,
       })) as Conversation[];
       
       const totalCount = (data as any)?.[0]?.total_count || 0;
