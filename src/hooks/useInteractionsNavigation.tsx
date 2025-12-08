@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { StatusFilter, InboxId, ConversationId } from '@/types/interactions';
 
 export interface NavigationState {
@@ -9,24 +9,28 @@ export interface NavigationState {
   inbox?: InboxId;
   status: StatusFilter;
   search?: string;
+  hash?: string; // For hash-based tab state
 }
 
 export const useInteractionsNavigation = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
 
-  // Get current state from URL
+  // Get current state from URL (query params + hash)
   const getCurrentState = useCallback((): NavigationState => {
+    const hash = location.hash.replace('#', '');
     return {
       selectedTab: searchParams.get('tab') || 'all',
       selectedInboxId: searchParams.get('inbox') || undefined,
       conversationId: searchParams.get('c') || searchParams.get('conversation') || undefined,
       inbox: searchParams.get('inbox') || undefined,
-      status: (searchParams.get('status') || 'open') as StatusFilter,
+      status: (searchParams.get('status') || hash || 'open') as StatusFilter,
       search: searchParams.get('q') || undefined,
+      hash: hash || undefined,
     };
-  }, [searchParams]);
+  }, [searchParams, location.hash]);
 
-  // Update navigation state
+  // Update navigation state (preserves hash separately)
   const updateNavigation = useCallback((updates: Partial<NavigationState>) => {
     const current = getCurrentState();
     const newState = { ...current, ...updates };
@@ -45,7 +49,8 @@ export const useInteractionsNavigation = () => {
       newParams.set('c', newState.conversationId);
     }
     
-    if (newState.status && newState.status !== 'open') {
+    // Only set status in query params if it's not the default and not using hash
+    if (newState.status && newState.status !== 'open' && !updates.hash) {
       newParams.set('status', newState.status);
     }
     
@@ -53,8 +58,20 @@ export const useInteractionsNavigation = () => {
       newParams.set('q', newState.search);
     }
     
-    setSearchParams(newParams, { replace: true });
-  }, [getCurrentState, setSearchParams]);
+    // Update URL with hash if provided
+    if (updates.hash !== undefined) {
+      const newUrl = `${location.pathname}?${newParams.toString()}${updates.hash ? '#' + updates.hash : ''}`;
+      window.history.replaceState(null, '', newUrl);
+    } else {
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [getCurrentState, setSearchParams, location.pathname]);
+
+  // Set hash-based tab state (for filter tabs like open/closed/archived)
+  const setHashTab = useCallback((tab: string) => {
+    const newUrl = `${location.pathname}${location.search}#${tab}`;
+    window.history.replaceState(null, '', newUrl);
+  }, [location.pathname, location.search]);
 
   // Navigate to tab
   const navigateToTab = useCallback((tab: string) => {
@@ -133,6 +150,7 @@ export const useInteractionsNavigation = () => {
     setInbox,
     setStatus,
     setSearch,
+    setHashTab,
     openConversation,
     backToList,
   }), [
@@ -145,6 +163,7 @@ export const useInteractionsNavigation = () => {
     setInbox,
     setStatus,
     setSearch,
+    setHashTab,
     openConversation,
     backToList,
   ]);

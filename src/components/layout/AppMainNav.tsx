@@ -41,6 +41,13 @@ export const AppMainNav = () => {
   }, [location.pathname]);
 
   const isActive = (path: string) => {
+    // Handle hierarchical paths correctly
+    if (path === '/interactions/text') {
+      return location.pathname === '/interactions/text' || location.pathname.startsWith('/interactions/text/');
+    }
+    if (path === '/interactions/voice') {
+      return location.pathname === '/interactions/voice' || location.pathname.startsWith('/interactions/voice/');
+    }
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 

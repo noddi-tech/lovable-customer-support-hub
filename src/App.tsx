@@ -101,46 +101,55 @@ const AppContent = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       
+      {/* Root redirect to default section */}
+      <Route path="/" element={<Navigate to="/interactions/text" replace />} />
+      
       {/* Global Search */}
       <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
       
       {/* Notifications */}
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
-      {/* Main App Routes - Interactions */}
-      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/interactions/text" element={<Navigate to="/" replace />} />
-      <Route path="/interactions/voice" element={<Navigate to="/voice" replace />} />
-      <Route path="/voice" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      {/* ========== INTERACTIONS ========== */}
+      <Route path="/interactions" element={<Navigate to="/interactions/text" replace />} />
+      <Route path="/interactions/text" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/interactions/voice" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/interactions/voice/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/interactions/voice/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       
-      {/* Marketing Routes */}
-      <Route path="/marketing" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/marketing/campaigns" element={<Navigate to="/marketing" replace />} />
+      {/* Legacy voice redirects */}
+      <Route path="/voice" element={<Navigate to="/interactions/voice" replace />} />
+      <Route path="/voice/analytics" element={<Navigate to="/interactions/voice/analytics" replace />} />
+      <Route path="/voice/settings" element={<Navigate to="/interactions/voice/settings" replace />} />
+      
+      {/* ========== MARKETING ========== */}
+      <Route path="/marketing" element={<Navigate to="/marketing/campaigns" replace />} />
+      <Route path="/marketing/campaigns" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/marketing/newsletters" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       
-      {/* Operations Routes */}
-      <Route path="/operations" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/operations/service-tickets" element={<Navigate to="/operations" replace />} />
+      {/* ========== OPERATIONS ========== */}
+      <Route path="/operations" element={<Navigate to="/operations/tickets" replace />} />
+      <Route path="/operations/tickets" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/operations/tickets/:id" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/doorman" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/recruitment" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/operations/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       
-      {/* Settings Routes */}
+      {/* Legacy operations redirects */}
+      <Route path="/operations/service-tickets" element={<Navigate to="/operations/tickets" replace />} />
+      
+      {/* ========== SETTINGS (Personal) ========== */}
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/settings/general" element={<Navigate to="/settings" replace />} />
       <Route path="/settings/profile" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/settings/notifications" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/settings/email-templates" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
-      {/* Voice Routes */}
-      <Route path="/voice/analytics" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/voice/settings" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      
-      {/* Admin Routes */}
+      {/* ========== ADMIN ========== */}
       <Route path="/admin" element={<Navigate to="/admin/general" replace />} />
       <Route path="/admin/general" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/email-design" element={<Navigate to="/settings/email-templates" replace />} />
-      <Route path="/settings/email-templates" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/admin/departments" element={<Navigate to="/admin/users" replace />} />
       <Route path="/settings/departments" element={<Navigate to="/admin/users" replace />} />
       <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
@@ -153,7 +162,7 @@ const AppContent = () => {
       <Route path="/admin/import" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
       
-      {/* Super Admin Routes */}
+      {/* ========== SUPER ADMIN ========== */}
       <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
       <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/email-templates" element={<ProtectedRoute><SuperAdminRoute><SuperAdminEmailTemplates /></SuperAdminRoute></ProtectedRoute>} />
@@ -161,9 +170,9 @@ const AppContent = () => {
       <Route path="/super-admin/organizations/:id" element={<ProtectedRoute><SuperAdminRoute><OrganizationDetails /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/users" element={<ProtectedRoute><SuperAdminRoute><AllUsersManagement /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/import" element={<ProtectedRoute><SuperAdminRoute><SuperAdminImport /></SuperAdminRoute></ProtectedRoute>} />
-            <Route path="/super-admin/roles" element={<ProtectedRoute><SuperAdminRoute><RoleManagement /></SuperAdminRoute></ProtectedRoute>} />
-            <Route path="/super-admin/audit-logs" element={<ProtectedRoute><SuperAdminRoute><AuditLogs /></SuperAdminRoute></ProtectedRoute>} />
-            <Route path="/super-admin/audit-logs/analytics" element={<ProtectedRoute><SuperAdminRoute><AuditLogAnalytics /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/roles" element={<ProtectedRoute><SuperAdminRoute><RoleManagement /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/audit-logs" element={<ProtectedRoute><SuperAdminRoute><AuditLogs /></SuperAdminRoute></ProtectedRoute>} />
+      <Route path="/super-admin/audit-logs/analytics" element={<ProtectedRoute><SuperAdminRoute><AuditLogAnalytics /></SuperAdminRoute></ProtectedRoute>} />
       <Route path="/super-admin/analytics" element={<ProtectedRoute><SuperAdminRoute><SystemAnalytics /></SuperAdminRoute></ProtectedRoute>} />
       
       {/* Static Pages */}
@@ -195,24 +204,10 @@ const AircallWorkspaceManager = () => {
     isWorkspaceReady
   } = useAircallPhone();
   
-  // ============================================================================
-  // Aircall Workspace Visibility Control
-  // ============================================================================
-  // CRITICAL: This useEffect controls workspace visibility ONLY for:
-  // - Showing workspace when login modal is explicitly requested
-  // - Hiding workspace when app is COMPLETELY IDLE (before any initialization)
-  //
-  // During initialization phases ('diagnostics', 'creating-workspace', 
-  // 'workspace-ready', 'needs-login'), the AircallContext OWNS visibility control.
-  //
-  // DO NOT modify this logic without understanding the initialization lifecycle!
-  // ============================================================================
   React.useEffect(() => {
-    // Show workspace when login modal is open
     if (showLoginModal) {
       showAircallWorkspace();
     } 
-    // Only hide if disconnected AND not in any initialization phase
     else if (!isConnected && initializationPhase === 'idle') {
       if (import.meta.env.MODE !== 'production') {
         console.log('[App] 🙈 Hiding workspace:', { 
@@ -223,11 +218,8 @@ const AircallWorkspaceManager = () => {
       }
       hideAircallWorkspace();
     }
-    // In all other states ('diagnostics', 'creating-workspace', 'workspace-ready', 'needs-login'),
-    // let AircallContext control visibility
   }, [showLoginModal, isConnected, initializationPhase, showAircallWorkspace, hideAircallWorkspace]);
   
-  // Render the login modal and floating button
   return (
     <>
       <AircallLoginModal

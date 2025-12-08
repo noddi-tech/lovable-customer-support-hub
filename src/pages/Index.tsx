@@ -19,26 +19,37 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const selectedInboxId = searchParams.get('inbox') || '';
 
+  // Determine section from hierarchical path structure
   const getCurrentSection = () => {
     const path = location.pathname;
-    if (path.includes('marketing')) return 'marketing';
-    if (path.includes('operations')) return 'operations';
-    return 'interactions';
+    if (path.startsWith('/interactions')) return 'interactions';
+    if (path.startsWith('/marketing')) return 'marketing';
+    if (path.startsWith('/operations')) return 'operations';
+    return 'interactions'; // default fallback
   };
 
+  // Determine sub-section from path
   const getCurrentSubSection = () => {
     const path = location.pathname;
-    if (path.includes('/voice/analytics')) return 'voice-analytics';
-    if (path.includes('/voice/settings')) return 'voice-settings';
-    if (path.includes('/voice')) return 'voice';
-    if (path.includes('/newsletters')) return 'newsletters';
-    if (path.includes('/tickets') || path === '/operations') return 'tickets';
-    if (path.includes('/doorman')) return 'doorman';
-    if (path.includes('/recruitment')) return 'recruitment';
-    if (path.includes('/analytics')) return 'analytics';
+    
+    // Interactions sub-sections
+    if (path.includes('/interactions/voice/analytics')) return 'voice-analytics';
+    if (path.includes('/interactions/voice/settings')) return 'voice-settings';
+    if (path.includes('/interactions/voice')) return 'voice';
+    if (path.includes('/interactions/text')) return 'text';
+    
+    // Marketing sub-sections
+    if (path.includes('/marketing/newsletters')) return 'newsletters';
+    if (path.includes('/marketing/campaigns') || path === '/marketing') return 'campaigns';
+    
+    // Operations sub-sections
+    if (path.includes('/operations/tickets')) return 'tickets';
+    if (path.includes('/operations/doorman')) return 'doorman';
+    if (path.includes('/operations/recruitment')) return 'recruitment';
+    if (path.includes('/operations/analytics')) return 'analytics';
     if (path.includes('/operations/settings')) return 'operations-settings';
-    if (path.includes('/campaigns') || path === '/marketing') return 'campaigns';
-    return 'text';
+    
+    return 'text'; // default
   };
 
   const renderContent = () => {
