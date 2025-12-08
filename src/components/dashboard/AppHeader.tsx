@@ -4,26 +4,24 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
+import { SyncButton } from '@/components/dashboard/SyncButton';
+import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
+import { OrganizationSwitcher } from '@/components/organization/OrganizationSwitcher';
 import { useState } from 'react';
 import { 
   Search,
-  User,
   LogOut,
   Palette,
   Menu,
   ArrowLeft,
   Settings
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface AppHeaderProps {
   onMenuClick?: () => void;
@@ -59,22 +57,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     setSearchOpen(false);
     setSearchQuery('');
   };
-
-  // Fetch unread conversations count
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['unread-conversations-count'],
-    queryFn: async () => {  
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('id', { count: 'exact' })
-        .eq('is_read', false)
-        .neq('status', 'closed');
-      if (error) throw error;
-      return data?.length || 0;
-    },
-    refetchInterval: 30000,
-  });
-
 
   const handleSignOut = async () => {
     try {
@@ -122,6 +104,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             )}
           </div>
 
+          {/* Organization Switcher - for super admins */}
+          <OrganizationSwitcher />
         </div>
 
         {/* Right Section - Actions, User Menu */}
@@ -135,6 +119,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* Connection Status */}
+            <ConnectionStatusIndicator />
+            
+            {/* Sync Button - Desktop only */}
+            {!isMobile && <SyncButton />}
+
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="hidden sm:flex">
