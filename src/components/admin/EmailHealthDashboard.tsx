@@ -60,23 +60,24 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
   const [isUpdatingToken, setIsUpdatingToken] = useState(false);
   const [tokenTestResult, setTokenTestResult] = useState<{ match: boolean; message: string } | null>(null);
 
-  // Fetch org-scoped email stats
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["email-health-stats", organizationId],
-    queryFn: async (): Promise<EmailStats> => {
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      const sevenDaysAgo = subDays(now, 7).toISOString();
-
-      // Get conversation IDs for this organization first
-      const { data: orgConversations } = await supabase
-        .from("conversations")
-        .select("id")
+  // Fetch org inbound route addresses for email matching
+  const { data: routeAddresses } = useQuery({
+    queryKey: ["org-inbound-addresses", organizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inbound_routes")
+        .select("address")
         .eq("organization_id", organizationId);
-      
-      const conversationIds = orgConversations?.map(c => c.id) || [];
+      if (error) throw error;
+      return data?.map(r => r.address) || [];
+    },
+  });
 
-      if (conversationIds.length === 0) {
+  // Fetch org-scoped email stats using inbound route addresses
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ["email-health-stats", organizationId, routeAddresses],
+    queryFn: async (): Promise<EmailStats> => {
+      if (!routeAddresses || routeAddresses.length === 0) {
         return {
           total_today: 0,
           total_7_days: 0,
@@ -87,25 +88,29 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
         };
       }
 
-      // Get logs for this org's conversations
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const sevenDaysAgo = subDays(now, 7).toISOString();
+
+      // Query logs by matching to_email with org's inbound routes
       const [todayResult, weekResult, lastEmailResult] = await Promise.all([
         supabase
           .from("email_ingestion_logs")
           .select("id, source, status", { count: "exact" })
-          .in("conversation_id", conversationIds)
+          .in("to_email", routeAddresses)
           .gte("created_at", todayStart),
         supabase
           .from("email_ingestion_logs")
           .select("id, source, status", { count: "exact" })
-          .in("conversation_id", conversationIds)
+          .in("to_email", routeAddresses)
           .gte("created_at", sevenDaysAgo),
         supabase
           .from("email_ingestion_logs")
           .select("created_at")
-          .in("conversation_id", conversationIds)
+          .in("to_email", routeAddresses)
           .order("created_at", { ascending: false })
           .limit(1)
-          .single(),
+          .maybeSingle(),
       ]);
 
       const weekLogs = weekResult.data || [];
@@ -116,32 +121,25 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
         sendgrid_count: weekLogs.filter((l: any) => l.source === "sendgrid").length,
         gmail_count: weekLogs.filter((l: any) => l.source === "gmail_sync").length,
         failed_count: weekLogs.filter((l: any) => l.status === "failed" || l.status === "auth_failed").length,
-        last_email_at: lastEmailResult.data?.created_at || null,
+        last_email_at: lastEmailResult?.data?.created_at || null,
       };
     },
+    enabled: !!routeAddresses,
     refetchInterval: 30000,
   });
 
-  // Fetch org-scoped recent logs
+  // Fetch org-scoped recent logs using inbound route addresses
   const { data: logs, isLoading: logsLoading } = useQuery({
-    queryKey: ["email-ingestion-logs", organizationId, sourceFilter, statusFilter],
+    queryKey: ["email-ingestion-logs", organizationId, sourceFilter, statusFilter, routeAddresses],
     queryFn: async (): Promise<EmailIngestionLog[]> => {
-      // Get conversation IDs for this organization
-      const { data: orgConversations } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("organization_id", organizationId);
-      
-      const conversationIds = orgConversations?.map(c => c.id) || [];
-
-      if (conversationIds.length === 0) {
+      if (!routeAddresses || routeAddresses.length === 0) {
         return [];
       }
 
       let query = supabase
         .from("email_ingestion_logs")
         .select("*")
-        .in("conversation_id", conversationIds)
+        .in("to_email", routeAddresses)
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -156,6 +154,7 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
       if (error) throw error;
       return data as EmailIngestionLog[];
     },
+    enabled: !!routeAddresses,
     refetchInterval: 30000,
   });
 
