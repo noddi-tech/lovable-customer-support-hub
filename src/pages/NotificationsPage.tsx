@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
 import { NotificationTabs } from '@/components/notifications/NotificationTabs';
 import { NotificationListItem } from '@/components/notifications/NotificationListItem';
@@ -10,10 +10,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Bell, CheckCheck, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
+const VALID_TABS: NotificationCategory[] = ['unread', 'mentions', 'calls', 'text', 'email', 'tickets', 'assigned'];
+
 const NotificationsPage = () => {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState<NotificationCategory>('unread');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { tab } = useParams<{ tab: string }>();
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  // Validate tab from URL, default to 'unread'
+  const selectedCategory: NotificationCategory = 
+    tab && VALID_TABS.includes(tab as NotificationCategory) 
+      ? (tab as NotificationCategory) 
+      : 'unread';
+
+  // Handle tab change via URL navigation
+  const handleTabChange = (category: NotificationCategory) => {
+    navigate(`/notifications/${category}`, { replace: false });
+  };
 
   const {
     notifications,
@@ -45,11 +58,11 @@ const NotificationsPage = () => {
     }
 
     if (data.conversation_id) {
-      navigate(`/?c=${data.conversation_id}`);
+      navigate(`/interactions/text/open?c=${data.conversation_id}`);
     } else if (data.ticket_id) {
-      navigate(`/operations?ticket=${data.ticket_id}`);
+      navigate(`/operations/tickets?ticket=${data.ticket_id}`);
     } else if (data.call_id) {
-      navigate(`/voice?call=${data.call_id}`);
+      navigate(`/interactions/voice?call=${data.call_id}`);
     }
   };
 
@@ -128,7 +141,7 @@ const NotificationsPage = () => {
           {/* Tabs */}
           <NotificationTabs
             selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
+            onSelectCategory={handleTabChange}
             unreadCounts={unreadCounts}
           />
 

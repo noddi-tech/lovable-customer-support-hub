@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { StatusFilter, InboxId, ConversationId } from '@/types/interactions';
 
 export interface NavigationState {
@@ -9,32 +9,62 @@ export interface NavigationState {
   inbox?: InboxId;
   status: StatusFilter;
   search?: string;
-  hash?: string; // For hash-based tab state
+  hash?: string;
 }
 
 export const useInteractionsNavigation = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const params = useParams<{ filter?: string }>();
 
-  // Get current state from URL (query params + hash)
+  // Get current state from URL (path + query params)
   const getCurrentState = useCallback((): NavigationState => {
     const hash = location.hash.replace('#', '');
+    
+    // Get status from path segment (e.g., /interactions/text/open)
+    const statusFromPath = params.filter || 'open';
+    
     return {
       selectedTab: searchParams.get('tab') || 'all',
       selectedInboxId: searchParams.get('inbox') || undefined,
       conversationId: searchParams.get('c') || searchParams.get('conversation') || undefined,
       inbox: searchParams.get('inbox') || undefined,
-      status: (searchParams.get('status') || hash || 'open') as StatusFilter,
+      status: statusFromPath as StatusFilter,
       search: searchParams.get('q') || undefined,
       hash: hash || undefined,
     };
-  }, [searchParams, location.hash]);
+  }, [searchParams, location.hash, params.filter]);
 
-  // Update navigation state (preserves hash separately)
+  // Update navigation state via URL
   const updateNavigation = useCallback((updates: Partial<NavigationState>) => {
     const current = getCurrentState();
     const newState = { ...current, ...updates };
     
+    // If status is being updated, navigate to new path
+    if (updates.status !== undefined && updates.status !== current.status) {
+      const pathParts = location.pathname.split('/');
+      const basePath = pathParts.slice(0, 3).join('/');
+      const newPath = `${basePath}/${updates.status}`;
+      
+      const newParams = new URLSearchParams();
+      if (newState.selectedInboxId || newState.inbox) {
+        newParams.set('inbox', newState.selectedInboxId || newState.inbox || '');
+      }
+      if (newState.conversationId && updates.conversationId !== undefined) {
+        newParams.set('c', newState.conversationId);
+      }
+      if (newState.search) {
+        newParams.set('q', newState.search);
+      }
+      
+      const queryString = newParams.toString();
+      const fullPath = queryString ? `${newPath}?${queryString}` : newPath;
+      navigate(fullPath, { replace: true });
+      return;
+    }
+    
+    // Otherwise just update query params
     const newParams = new URLSearchParams();
     
     if (newState.selectedTab && newState.selectedTab !== 'all') {
@@ -49,11 +79,6 @@ export const useInteractionsNavigation = () => {
       newParams.set('c', newState.conversationId);
     }
     
-    // Only set status in query params if it's not the default and not using hash
-    if (newState.status && newState.status !== 'open' && !updates.hash) {
-      newParams.set('status', newState.status);
-    }
-    
     if (newState.search) {
       newParams.set('q', newState.search);
     }
@@ -65,7 +90,7 @@ export const useInteractionsNavigation = () => {
     } else {
       setSearchParams(newParams, { replace: true });
     }
-  }, [getCurrentState, setSearchParams, location.pathname]);
+  }, [getCurrentState, setSearchParams, location.pathname, navigate]);
 
   // Set hash-based tab state (for filter tabs like open/closed/archived)
   const setHashTab = useCallback((tab: string) => {
@@ -97,13 +122,22 @@ export const useInteractionsNavigation = () => {
     });
   }, [updateNavigation]);
 
-  // Set status filter (clears conversation)
+  // Set status filter (navigates to new path)
   const setStatus = useCallback((status: StatusFilter) => {
-    updateNavigation({ 
-      status,
-      conversationId: undefined 
-    });
-  }, [updateNavigation]);
+    // Build new path: /interactions/text/[status]
+    const pathParts = location.pathname.split('/');
+    const basePath = pathParts.slice(0, 3).join('/');
+    const newPath = `${basePath}/${status}`;
+    
+    // Preserve query params except conversation
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('c');
+    
+    const queryString = newParams.toString();
+    const fullPath = queryString ? `${newPath}?${queryString}` : newPath;
+    
+    navigate(fullPath, { replace: false });
+  }, [location.pathname, searchParams, navigate]);
 
   // Set search query (debounced)
   const setSearch = useCallback((search: string) => {
