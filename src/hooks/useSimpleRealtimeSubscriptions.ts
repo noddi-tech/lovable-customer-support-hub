@@ -29,12 +29,17 @@ export const useSimpleRealtimeSubscriptions = (
   // Generate unique channel key based on tables
   const channelKey = configs.map(c => c.table).sort().join('-');
   const channelName = `app-changes-${channelKey}`;
+  
+  // Store channelKey in ref to avoid dependency loops
+  const channelKeyRef = useRef(channelKey);
+  channelKeyRef.current = channelKey;
 
-  // Force reconnect function - exposed to consumers
+  // Force reconnect function - exposed to consumers (stable reference)
   const forceReconnect = useCallback(() => {
     if (!enabled || configs.length === 0) return;
     
-    logger.info('Force reconnect triggered', { channelKey }, 'Realtime');
+    const currentChannelKey = channelKeyRef.current;
+    logger.info('Force reconnect triggered', { channelKey: currentChannelKey }, 'Realtime');
     
     // Reset retry state
     retryCountRef.current = 0;
@@ -48,7 +53,7 @@ export const useSimpleRealtimeSubscriptions = (
     // Remove existing channel from registry and Supabase
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
-      activeChannels.delete(channelKey);
+      activeChannels.delete(currentChannelKey);
       channelRef.current = null;
     }
     
@@ -59,7 +64,11 @@ export const useSimpleRealtimeSubscriptions = (
     if (setupSubscriptionRef.current) {
       setupSubscriptionRef.current();
     }
-  }, [enabled, configs.length, channelKey]);
+  }, [enabled, configs.length]); // Removed channelKey - use ref instead
+  
+  // Store forceReconnect in ref for auto-retry effect
+  const forceReconnectRef = useRef(forceReconnect);
+  forceReconnectRef.current = forceReconnect;
 
   useEffect(() => {
     if (!enabled || configs.length === 0) return;
@@ -228,14 +237,14 @@ export const useSimpleRealtimeSubscriptions = (
     };
   }, [enabled, configs, queryClient, channelKey, channelName]);
 
-  // Auto-retry every 30 seconds when in error state
+  // Auto-retry every 30 seconds when in error state (use refs to avoid dependency loops)
   useEffect(() => {
     if (connectionStatus === 'error' && enabled) {
-      logger.debug('Starting auto-retry interval (30s)', { channelKey }, 'Realtime');
+      logger.debug('Starting auto-retry interval (30s)', { channelKey: channelKeyRef.current }, 'Realtime');
       
       autoRetryIntervalRef.current = setInterval(() => {
-        logger.info('Auto-retry: Attempting reconnection...', { channelKey }, 'Realtime');
-        forceReconnect();
+        logger.info('Auto-retry: Attempting reconnection...', { channelKey: channelKeyRef.current }, 'Realtime');
+        forceReconnectRef.current();
       }, 30000); // 30 seconds
       
       return () => {
@@ -244,7 +253,7 @@ export const useSimpleRealtimeSubscriptions = (
         }
       };
     }
-  }, [connectionStatus, enabled, forceReconnect, channelKey]);
+  }, [connectionStatus, enabled]); // Removed forceReconnect and channelKey - use refs
 
   return {
     isConnected: connectionStatus === 'connected',
