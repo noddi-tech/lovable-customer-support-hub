@@ -1,21 +1,24 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { useSimpleRealtimeSubscriptions, ConnectionStatus } from '@/hooks/useSimpleRealtimeSubscriptions';
+import { toast } from 'sonner';
 
 interface RealtimeContextValue {
   isConnected: boolean;
   connectionStatus: ConnectionStatus;
+  forceReconnect: () => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextValue>({ 
   isConnected: false, 
-  connectionStatus: 'connecting' 
+  connectionStatus: 'connecting',
+  forceReconnect: () => {}
 });
 
 export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Single subscription point for the entire app
   // Subscribes to ALL critical tables that need real-time updates
   // This consolidates subscriptions that were previously scattered across hooks
-  const { isConnected, connectionStatus } = useSimpleRealtimeSubscriptions([
+  const { isConnected, connectionStatus, forceReconnect } = useSimpleRealtimeSubscriptions([
     // Conversations & Messages
     { table: 'conversations', queryKey: 'conversations' },
     { table: 'messages', queryKey: 'messages' },
@@ -31,8 +34,31 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     { table: 'internal_events', queryKey: 'callback-requests' },
   ], true);
 
+  // Track previous status to detect recovery
+  const previousStatusRef = useRef<ConnectionStatus>('connecting');
+
+  useEffect(() => {
+    const wasDisconnected = previousStatusRef.current === 'disconnected' || 
+                            previousStatusRef.current === 'error';
+    const isNowConnected = connectionStatus === 'connected';
+    
+    if (wasDisconnected && isNowConnected) {
+      toast.success('Live updates restored', {
+        description: 'Real-time connection has been re-established.',
+        duration: 3000,
+      });
+    }
+    
+    previousStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
+
+  // Memoize forceReconnect to prevent unnecessary re-renders
+  const memoizedForceReconnect = useCallback(() => {
+    forceReconnect();
+  }, [forceReconnect]);
+
   return (
-    <RealtimeContext.Provider value={{ isConnected, connectionStatus }}>
+    <RealtimeContext.Provider value={{ isConnected, connectionStatus, forceReconnect: memoizedForceReconnect }}>
       {children}
     </RealtimeContext.Provider>
   );

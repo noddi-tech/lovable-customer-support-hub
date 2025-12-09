@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
@@ -21,15 +21,48 @@ export const useSimpleRealtimeSubscriptions = (
   const channelRef = useRef<any>(null);
   const retryCountRef = useRef(0);
   const retryTimeoutRef = useRef<NodeJS.Timeout>();
+  const autoRetryIntervalRef = useRef<NodeJS.Timeout>();
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const hasLoggedErrorRef = useRef(false);
+  const setupSubscriptionRef = useRef<() => void>();
   
+  // Generate unique channel key based on tables
+  const channelKey = configs.map(c => c.table).sort().join('-');
+  const channelName = `app-changes-${channelKey}`;
+
+  // Force reconnect function - exposed to consumers
+  const forceReconnect = useCallback(() => {
+    if (!enabled || configs.length === 0) return;
+    
+    logger.info('Force reconnect triggered', { channelKey }, 'Realtime');
+    
+    // Reset retry state
+    retryCountRef.current = 0;
+    hasLoggedErrorRef.current = false;
+    
+    // Clear any pending retries
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+    }
+    
+    // Remove existing channel from registry and Supabase
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      activeChannels.delete(channelKey);
+      channelRef.current = null;
+    }
+    
+    // Set to connecting and re-run setup
+    setConnectionStatus('connecting');
+    
+    // Re-run setup subscription
+    if (setupSubscriptionRef.current) {
+      setupSubscriptionRef.current();
+    }
+  }, [enabled, configs.length, channelKey]);
+
   useEffect(() => {
     if (!enabled || configs.length === 0) return;
-
-    // Generate unique channel key based on tables
-    const channelKey = configs.map(c => c.table).sort().join('-');
-    const channelName = `app-changes-${channelKey}`;
 
     const setupSubscription = () => {
       // Check if this subscription already exists
@@ -109,10 +142,10 @@ export const useSimpleRealtimeSubscriptions = (
 
           // Stop retrying after 3 attempts - just use polling
           if (retryCountRef.current >= 3) {
-            logger.debug('Max retries reached, using polling mode', { 
+            logger.debug('Max retries reached, using polling mode with 30s auto-retry', { 
               tables: configs.map(c => c.table) 
             }, 'Realtime');
-            return; // No more retries
+            return; // No more immediate retries, auto-retry interval will handle it
           }
 
           // Exponential backoff retry
@@ -151,6 +184,9 @@ export const useSimpleRealtimeSubscriptions = (
       channelRef.current = channel;
     };
 
+    // Store ref for forceReconnect to use
+    setupSubscriptionRef.current = setupSubscription;
+    
     setupSubscription();
 
     // Cleanup
@@ -190,10 +226,29 @@ export const useSimpleRealtimeSubscriptions = (
       retryCountRef.current = 0;
       hasLoggedErrorRef.current = false;
     };
-  }, [enabled, configs, queryClient]);
+  }, [enabled, configs, queryClient, channelKey, channelName]);
+
+  // Auto-retry every 30 seconds when in error state
+  useEffect(() => {
+    if (connectionStatus === 'error' && enabled) {
+      logger.debug('Starting auto-retry interval (30s)', { channelKey }, 'Realtime');
+      
+      autoRetryIntervalRef.current = setInterval(() => {
+        logger.info('Auto-retry: Attempting reconnection...', { channelKey }, 'Realtime');
+        forceReconnect();
+      }, 30000); // 30 seconds
+      
+      return () => {
+        if (autoRetryIntervalRef.current) {
+          clearInterval(autoRetryIntervalRef.current);
+        }
+      };
+    }
+  }, [connectionStatus, enabled, forceReconnect, channelKey]);
 
   return {
     isConnected: connectionStatus === 'connected',
-    connectionStatus
+    connectionStatus,
+    forceReconnect
   };
 };
