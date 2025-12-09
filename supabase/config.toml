@@ -10,6 +10,12 @@ max_rows = 1000
 [functions.sla-breach-notifier]
 verify_jwt = false
 
+[functions.snooze-notifier]
+verify_jwt = false
+
+[functions.timezone-aware-scheduler]
+verify_jwt = false
+
 [db]
 port = 54322
 
