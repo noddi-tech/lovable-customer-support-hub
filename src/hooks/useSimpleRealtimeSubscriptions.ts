@@ -133,7 +133,41 @@ export const useSimpleRealtimeSubscriptions = (
               schema: payload.schema
             }, 'Realtime');
             
-            // Use refetchQueries instead of invalidateQueries for immediate updates
+            // For conversation updates, apply optimistic cache update for instant UI feedback
+            if (table === 'conversations' && payload.eventType === 'UPDATE' && payload.new) {
+              const updatedConv = payload.new as Record<string, unknown>;
+              
+              queryClient.setQueriesData(
+                { queryKey: ['conversations'], exact: false },
+                (oldData: any) => {
+                  if (!oldData) return oldData;
+                  
+                  // Handle infinite query structure (pages array)
+                  if (oldData.pages) {
+                    return {
+                      ...oldData,
+                      pages: oldData.pages.map((page: any) => ({
+                        ...page,
+                        conversations: page.conversations?.map((conv: any) =>
+                          conv.id === updatedConv.id ? { ...conv, ...updatedConv } : conv
+                        ) || page
+                      }))
+                    };
+                  }
+                  
+                  // Handle regular query structure (array)
+                  if (Array.isArray(oldData)) {
+                    return oldData.map((conv: any) =>
+                      conv.id === updatedConv.id ? { ...conv, ...updatedConv } : conv
+                    );
+                  }
+                  
+                  return oldData;
+                }
+              );
+            }
+            
+            // Also refetch to ensure consistency (backup)
             queryClient.refetchQueries({ 
               predicate: (query) => query.queryKey[0] === queryKey,
               type: 'active', // Only refetch currently active queries

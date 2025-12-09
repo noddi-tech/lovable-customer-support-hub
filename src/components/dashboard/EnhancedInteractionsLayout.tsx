@@ -133,7 +133,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const selectedConversation = conversationId ? 
     conversations.find(c => c.id === conversationId) : null;
 
-  // Mark conversation as read mutation
+  // Mark conversation as read mutation - with optimistic cache update for instant UI feedback
   const markAsReadMutation = useMutation({
     mutationFn: async (conversationId: string) => {
       const { error } = await supabase
@@ -143,12 +143,53 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
         .eq('is_read', false); // Only update if currently unread
       
       if (error) throw error;
+      return conversationId;
+    },
+    onMutate: async (conversationId: string) => {
+      // Cancel any outgoing refetches to avoid race conditions
+      await queryClient.cancelQueries({ queryKey: ['conversations'] });
+      
+      // Optimistically update ALL conversation caches immediately
+      // This handles both infinite query (ConversationListContext) and regular query (useConversations)
+      queryClient.setQueriesData(
+        { queryKey: ['conversations'], exact: false },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          // Handle infinite query structure (pages array) - from ConversationListContext
+          if (oldData.pages) {
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                conversations: page.conversations?.map((conv: any) =>
+                  conv.id === conversationId ? { ...conv, is_read: true } : conv
+                ) || page
+              }))
+            };
+          }
+          
+          // Handle regular query structure (array) - from useConversations
+          if (Array.isArray(oldData)) {
+            return oldData.map((conv: any) =>
+              conv.id === conversationId ? { ...conv, is_read: true } : conv
+            );
+          }
+          
+          return oldData;
+        }
+      );
+      
+      return { conversationId };
     },
     onSuccess: () => {
-      // Force immediate refetch instead of invalidate (staleTime can prevent refetch)
-      queryClient.refetchQueries({ queryKey: ['conversations'], type: 'active' });
-      queryClient.refetchQueries({ queryKey: ['inboxCounts'], type: 'active' });
-      queryClient.refetchQueries({ queryKey: ['all-counts'], type: 'active' });
+      // Update counts (these don't have staleTime issues)
+      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+    },
+    onError: (err, conversationId, context) => {
+      // Rollback on error - refetch to get correct state
+      queryClient.refetchQueries({ queryKey: ['conversations'] });
     }
   });
 
