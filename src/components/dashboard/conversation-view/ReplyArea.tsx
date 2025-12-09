@@ -83,31 +83,42 @@ export const ReplyArea = () => {
     }
   }, [state.showReplyArea]);
 
-  const handleSendReply = async () => {
+  const handleSendReply = () => {
     if (!state.replyText.trim()) return;
     
-    try {
-      await sendReply(state.replyText, state.isInternalNote, replyStatus);
-      
-      // Process mentions for internal notes
-      if (state.isInternalNote && mentionedUserIds.length > 0 && conversation?.id) {
-        await processMentions(state.replyText, mentionedUserIds, {
-          type: 'internal_note',
-          conversation_id: conversation.id,
-        });
-      }
-      
-      // Clear reply text and collapse reply area
-      dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
-      dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
-      dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
-      setMentionedUserIds([]);
-      
-      // Navigate back to inbox list
-      clearConversation();
-    } catch (error) {
-      // Error handling is done in the context
-    }
+    // Capture values before clearing state
+    const replyText = state.replyText;
+    const isInternal = state.isInternalNote;
+    const currentMentionedUserIds = [...mentionedUserIds];
+    const conversationIdForMentions = conversation?.id;
+    
+    // IMMEDIATELY clear UI, show toast, and navigate (optimistic UX)
+    dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
+    dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
+    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+    setMentionedUserIds([]);
+    
+    // Show toast immediately
+    toast.success(isInternal ? 'Internal note added' : 'Reply sent');
+    
+    // Navigate back immediately
+    clearConversation();
+    
+    // Fire mutation in background (non-blocking)
+    sendReply(replyText, isInternal, replyStatus)
+      .then(() => {
+        // Process mentions after successful send
+        if (isInternal && currentMentionedUserIds.length > 0 && conversationIdForMentions) {
+          processMentions(replyText, currentMentionedUserIds, {
+            type: 'internal_note',
+            conversation_id: conversationIdForMentions,
+          });
+        }
+      })
+      .catch((error) => {
+        // Error toast is handled by mutation's onError in context
+        console.error('Reply failed in background:', error);
+      });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
