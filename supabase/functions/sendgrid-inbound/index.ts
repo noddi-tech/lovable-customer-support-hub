@@ -366,12 +366,13 @@ Deno.serve(async (req: Request) => {
     } else {
       console.log(`[SendGrid-Inbound] Found existing conversation with ID: ${conversation_id}`);
       
-      // Update existing conversation - reopen and mark as unread when customer replies
+      // Update existing conversation - reopen, mark as unread, and update received_at to move to top
       const { error: updateErr } = await supabase
         .from("conversations")
         .update({
           status: "open",
           is_read: false,
+          received_at: new Date().toISOString(), // Move conversation to top of list
           updated_at: new Date().toISOString()
         })
         .eq("id", conversation_id);
