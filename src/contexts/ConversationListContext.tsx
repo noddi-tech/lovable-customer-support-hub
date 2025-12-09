@@ -209,7 +209,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   } = useInfiniteQuery({
     queryKey: ['conversations', user?.id, selectedInboxId, selectedTab],
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds - faster real-time responsiveness
     refetchOnWindowFocus: false,
     gcTime: 10 * 60 * 1000,
     initialPageParam: 0,
