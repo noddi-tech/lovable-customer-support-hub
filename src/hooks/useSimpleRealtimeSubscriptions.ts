@@ -112,8 +112,16 @@ export const useSimpleRealtimeSubscriptions = (
             schema: 'public',
             table,
           },
-          () => {
-            logger.info(`Realtime update received`, { table, queryKey }, 'Realtime');
+          (payload) => {
+            // Log detailed payload info for debugging real-time events
+            logger.info(`Realtime event received`, { 
+              table, 
+              queryKey, 
+              event: payload.eventType,
+              recordId: (payload.new as Record<string, unknown>)?.id || (payload.old as Record<string, unknown>)?.id,
+              schema: payload.schema
+            }, 'Realtime');
+            
             queryClient.invalidateQueries({ 
               predicate: (query) => query.queryKey[0] === queryKey 
             });
