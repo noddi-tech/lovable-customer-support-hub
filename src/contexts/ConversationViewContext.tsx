@@ -428,7 +428,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       
       // Only invalidate essential queries
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      toast.success(state.isInternalNote ? 'Internal note added' : 'Reply sent successfully');
+      // Toast is now shown immediately in ReplyArea.tsx for instant feedback
     },
     onError: (error) => {
       logger.error('Failed to send reply', error, 'ConversationViewProvider');
