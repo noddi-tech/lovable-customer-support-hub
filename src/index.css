@@ -522,7 +522,7 @@ Optimized for accessibility with WCAG AA compliance.
     margin: 0 !important;
   }
 
-  /* Hide spacer images (1-50px height) */
+  /* Hide true spacer images (1-15px height and spacer/transparent URLs) */
   .email-render__html-content img[width="1"],
   .email-render__html-content img[height="1"],
   .email-render__html-content img[height="2"],
@@ -531,10 +531,6 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__html-content img[height="5"],
   .email-render__html-content img[height="10"],
   .email-render__html-content img[height="15"],
-  .email-render__html-content img[height="20"],
-  .email-render__html-content img[height="30"],
-  .email-render__html-content img[height="40"],
-  .email-render__html-content img[height="50"],
   .email-render__html-content img[src*="spacer"],
   .email-render__html-content img[src*="transparent"] {
     display: none !important;
