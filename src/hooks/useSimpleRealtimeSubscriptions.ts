@@ -26,6 +26,10 @@ export const useSimpleRealtimeSubscriptions = (
   const hasLoggedErrorRef = useRef(false);
   const setupSubscriptionRef = useRef<() => void>();
   
+  // Store configs in ref to prevent effect recreation on reference changes
+  const configsRef = useRef(configs);
+  configsRef.current = configs;
+  
   // Generate unique channel key based on tables
   const channelKey = configs.map(c => c.table).sort().join('-');
   const channelName = `app-changes-${channelKey}`;
@@ -113,7 +117,14 @@ export const useSimpleRealtimeSubscriptions = (
             table,
           },
           (payload) => {
-            // Log detailed payload info for debugging real-time events
+            // PROMINENT LOG for debugging - confirm real-time events are firing
+            console.log('🔔 [REALTIME EVENT]', {
+              table,
+              queryKey,
+              event: payload.eventType,
+              recordId: (payload.new as Record<string, unknown>)?.id || (payload.old as Record<string, unknown>)?.id,
+            });
+            
             logger.info(`Realtime event received`, { 
               table, 
               queryKey, 
@@ -122,8 +133,10 @@ export const useSimpleRealtimeSubscriptions = (
               schema: payload.schema
             }, 'Realtime');
             
-            queryClient.invalidateQueries({ 
-              predicate: (query) => query.queryKey[0] === queryKey 
+            // Use refetchQueries instead of invalidateQueries for immediate updates
+            queryClient.refetchQueries({ 
+              predicate: (query) => query.queryKey[0] === queryKey,
+              type: 'active', // Only refetch currently active queries
             });
           }
         );
@@ -185,6 +198,14 @@ export const useSimpleRealtimeSubscriptions = (
           // Register this channel in the global registry
           activeChannels.set(channelKey, { channel, refCount: 1, status: 'connected' });
           
+          // PROMINENT LOG to verify subscription is active
+          console.log('🔌 [REALTIME] Connected!', {
+            channelName,
+            tables: configs.map(c => c.table),
+            queryKeys: configs.map(c => c.queryKey),
+            totalActiveChannels: activeChannels.size
+          });
+          
           logger.info('Successfully subscribed to realtime', { 
             channelName,
             channelKey,
@@ -243,7 +264,7 @@ export const useSimpleRealtimeSubscriptions = (
       retryCountRef.current = 0;
       hasLoggedErrorRef.current = false;
     };
-  }, [enabled, configs, queryClient, channelKey, channelName]);
+  }, [enabled, configs.length, queryClient, channelKey, channelName]);
 
   // Auto-retry every 30 seconds when in error state (use refs to avoid dependency loops)
   useEffect(() => {

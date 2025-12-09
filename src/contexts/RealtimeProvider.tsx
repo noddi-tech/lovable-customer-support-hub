@@ -16,7 +16,7 @@ const RealtimeContext = createContext<RealtimeContextValue>({
 
 // CRITICAL: Define configs OUTSIDE the component to prevent recreation on every render
 // This was causing constant re-subscriptions and connection instability
-const REALTIME_CONFIGS = [
+const REALTIME_CONFIGS: Array<{ table: string; queryKey: string }> = [
   // Conversations & Messages
   { table: 'conversations', queryKey: 'conversations' },
   { table: 'messages', queryKey: 'messages' },
@@ -30,13 +30,13 @@ const REALTIME_CONFIGS = [
   { table: 'call_events', queryKey: 'call-events' },
   { table: 'internal_events', queryKey: 'voicemails' },
   { table: 'internal_events', queryKey: 'callback-requests' },
-] as const;
+];
 
 export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Single subscription point for the entire app
   // Subscribes to ALL critical tables that need real-time updates
   const { isConnected, connectionStatus, forceReconnect } = useSimpleRealtimeSubscriptions(
-    REALTIME_CONFIGS as unknown as Array<{ table: string; queryKey: string }>,
+    REALTIME_CONFIGS,
     true
   );
 
