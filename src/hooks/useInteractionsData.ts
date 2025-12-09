@@ -187,8 +187,10 @@ export function useConversations({
       }
     },
     enabled: !!inboxId && !!user,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 1000, // 5 seconds - faster updates for real-time responsiveness
     gcTime: 2 * 60 * 1000,
+    refetchInterval: 60 * 1000, // Fallback polling every 60 seconds to catch missed events
+    refetchIntervalInBackground: false, // Only when tab is focused
     retry: (failureCount, error: any) => {
       if (error?.message?.includes('Session') || error?.message?.includes('auth.uid()')) {
         return false; // Don't retry session errors
