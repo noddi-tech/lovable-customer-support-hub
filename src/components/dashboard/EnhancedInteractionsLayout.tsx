@@ -145,9 +145,10 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      // Force immediate refetch instead of invalidate (staleTime can prevent refetch)
+      queryClient.refetchQueries({ queryKey: ['conversations'], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ['inboxCounts'], type: 'active' });
+      queryClient.refetchQueries({ queryKey: ['all-counts'], type: 'active' });
     }
   });
 
