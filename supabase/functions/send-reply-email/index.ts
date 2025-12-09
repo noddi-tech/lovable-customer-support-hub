@@ -286,6 +286,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) console.warn('Failed to update message status:', updateError);
 
+    // Update conversation received_at to move it to top of list after agent reply
+    const { error: convUpdateError } = await supabaseClient
+      .from('conversations')
+      .update({ 
+        received_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', message.conversation_id);
+    
+    if (convUpdateError) console.warn('Failed to update conversation received_at:', convUpdateError);
+
     return new Response(
       JSON.stringify({ success: true, sentTo: toEmail, sentFrom: fromEmailFinal, messageId: messageIdHeader }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
