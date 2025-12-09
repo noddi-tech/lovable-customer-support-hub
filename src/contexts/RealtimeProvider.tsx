@@ -34,19 +34,27 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     { table: 'internal_events', queryKey: 'callback-requests' },
   ], true);
 
-  // Track previous status to detect recovery
+  // Track previous status and whether we've already shown recovery toast
   const previousStatusRef = useRef<ConnectionStatus>('connecting');
+  const hasShownRecoveryToastRef = useRef(false);
 
   useEffect(() => {
     const wasDisconnected = previousStatusRef.current === 'disconnected' || 
                             previousStatusRef.current === 'error';
     const isNowConnected = connectionStatus === 'connected';
     
-    if (wasDisconnected && isNowConnected) {
+    // Only show toast once per recovery cycle
+    if (wasDisconnected && isNowConnected && !hasShownRecoveryToastRef.current) {
+      hasShownRecoveryToastRef.current = true;
       toast.success('Live updates restored', {
         description: 'Real-time connection has been re-established.',
         duration: 3000,
       });
+    }
+    
+    // Reset the flag when we go back to disconnected/error state
+    if (connectionStatus === 'disconnected' || connectionStatus === 'error') {
+      hasShownRecoveryToastRef.current = false;
     }
     
     previousStatusRef.current = connectionStatus;
