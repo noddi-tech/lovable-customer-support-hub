@@ -422,26 +422,28 @@ Optimized for accessibility with WCAG AA compliance.
     border-collapse: collapse !important;
   }
 
-  /* Table cells: RESTORE font-size so direct text is visible */
+  /* Table cells: MINIMAL padding by default to collapse spacer rows */
   .email-render__html-content td,
   .email-render__html-content th {
     font-size: 0.875rem !important;
     line-height: 1.3 !important;
     margin: 0 !important;
+    padding: 2px 4px !important; /* Minimal default - collapses spacer rows */
     height: auto !important;
     vertical-align: top;
   }
 
-  /* Header tables - compress padding for compact header section */
-  .email-render__html-content table[class*="header"] td,
-  .email-render__html-content table[class*="header"] th,
-  .email-render__html-content .ex-email-header td,
-  .email-render__html-content .ex-email-header th {
-    padding: 0 !important;
+  /* Product/order tables - RESTORE readable padding */
+  .email-render__html-content table[cellpadding] td,
+  .email-render__html-content table[cellpadding] th,
+  .email-render__html-content [class*="order-items"] td,
+  .email-render__html-content [class*="order-items"] th,
+  .email-render__html-content [class*="order-details"] td,
+  .email-render__html-content [class*="order-details"] th,
+  .email-render__html-content [class*="product"] td,
+  .email-render__html-content [class*="product"] th {
+    padding: 8px !important; /* Restore for data tables */
   }
-
-  /* Product/order tables - PRESERVE cellpadding by NOT forcing padding: 0 */
-  /* Tables with cellpadding attribute or order/items classes keep natural padding */
 
   /* Empty cells (no content at all) - collapse them */
   .email-render__html-content td:empty,
