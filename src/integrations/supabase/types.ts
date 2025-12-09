@@ -2603,8 +2603,8 @@ export type Database = {
       calculate_sla_breach: { Args: never; Returns: undefined }
       cleanup_old_email_ingestion_logs: { Args: never; Returns: undefined }
       count_old_audit_logs:
-        | { Args: { p_age?: unknown }; Returns: number }
         | { Args: { days_old?: number }; Returns: number }
+        | { Args: { p_age?: unknown }; Returns: number }
       create_test_notification: { Args: never; Returns: undefined }
       delete_email_account: { Args: { account_id: string }; Returns: undefined }
       detect_suspicious_audit_activity:
@@ -2644,22 +2644,6 @@ export type Database = {
             Args: {
               match_count?: number
               match_threshold?: number
-              org_id: string
-              query_embedding: string
-            }
-            Returns: {
-              agent_response: string
-              customer_context: string
-              id: string
-              quality_score: number
-              usage_count: number
-              was_refined: boolean
-            }[]
-          }
-        | {
-            Args: {
-              match_count?: number
-              match_threshold?: number
               org_id?: string
               query_embedding: string
             }
@@ -2671,6 +2655,22 @@ export type Database = {
               quality_score: number
               similarity: number
               tags: string[]
+            }[]
+          }
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              org_id: string
+              query_embedding: string
+            }
+            Returns: {
+              agent_response: string
+              customer_context: string
+              id: string
+              quality_score: number
+              usage_count: number
+              was_refined: boolean
             }[]
           }
       generate_ticket_number: { Args: { org_id: string }; Returns: string }
