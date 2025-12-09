@@ -160,8 +160,8 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     
     navigation.openConversation(conversation.id, conversationIdsToFetch);
     
-    // Mark as read if it's unread
-    if (conversation.unread) {
+    // Mark as read if it's unread (use conv since ConversationRow may not have is_read typed)
+    if (conv.is_read === false) {
       markAsReadMutation.mutate(conversation.id);
     }
     
