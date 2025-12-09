@@ -405,7 +405,7 @@ Deno.serve(async (req: Request) => {
         email_headers: headersObj,
         email_message_id: emailMessageId,
         email_thread_id: threadKey,
-        external_id: threadKey,
+        external_id: emailMessageId || `sg_${crypto.randomUUID()}`,
       })
       .select('id')
       .single();
