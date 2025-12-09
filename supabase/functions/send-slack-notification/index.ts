@@ -49,34 +49,54 @@ const EVENT_TITLES: Record<string, string> = {
 
 /**
  * Clean and extract readable preview text from email content
- * Strips HTML, Google Group footers, and excessive whitespace
+ * Aggressively strips ALL HTML including namespaced tags, footers, and whitespace
  */
 function cleanPreviewText(text: string | undefined, maxLength: number = 200): string {
   if (!text) return '';
   
   let result = text;
   
+  // FIRST: Remove entire document structure wrapper tags (including namespaced attributes)
+  result = result.replace(/<html[^>]*>/gi, '');
+  result = result.replace(/<\/html>/gi, '');
+  result = result.replace(/<body[^>]*>/gi, '');
+  result = result.replace(/<\/body>/gi, '');
+  
   // Remove DOCTYPE declarations
   result = result.replace(/<!DOCTYPE[^>]*>/gi, '');
   
-  // Remove XML declarations
+  // Remove XML declarations and processing instructions
   result = result.replace(/<\?xml[^>]*\?>/gi, '');
+  result = result.replace(/<\?[^>]*\?>/gi, '');
   
-  // Remove HEAD section entirely
+  // Remove namespaced tags (o:p, v:shape, etc.)
+  result = result.replace(/<[a-z]+:[^>]*>[\s\S]*?<\/[a-z]+:[^>]*>/gi, '');
+  result = result.replace(/<[a-z]+:[^>]*\/>/gi, '');
+  result = result.replace(/<[a-z]+:[^>]*>/gi, '');
+  result = result.replace(/<\/[a-z]+:[^>]*>/gi, '');
+  
+  // Remove HEAD section entirely (including all content)
   result = result.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
   
-  // Remove STYLE and SCRIPT sections
+  // Remove STYLE, SCRIPT, TITLE sections
   result = result.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
   result = result.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  result = result.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
   
-  // Remove HTML comments
+  // Remove HTML comments (including conditional comments)
   result = result.replace(/<!--[\s\S]*?-->/g, '');
+  result = result.replace(/<!\[if[^>]*\]>[\s\S]*?<!\[endif\]>/gi, '');
   
   // Convert common block tags to newlines for readability
-  result = result.replace(/<\/?(p|div|br|tr|li)[^>]*>/gi, '\n');
+  result = result.replace(/<\/?(p|div|br|tr|li|td|th|h[1-6])[^>]*>/gi, '\n');
   
-  // Strip all remaining HTML tags
-  result = result.replace(/<[^>]*>/g, ' ');
+  // AGGRESSIVE: Strip ALL remaining HTML tags (including malformed and namespaced)
+  result = result.replace(/<[^>]+>/g, ' ');
+  result = result.replace(/<[^>]*$/g, ''); // Remove incomplete tags at end
+  result = result.replace(/^[^<]*>/g, ''); // Remove incomplete tags at start
+  
+  // Remove any leftover angle brackets
+  result = result.replace(/[<>]/g, ' ');
   
   // Decode HTML entities
   result = result
@@ -86,8 +106,10 @@ function cleanPreviewText(text: string | undefined, maxLength: number = 200): st
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num)))
-    .replace(/&([a-z]+);/gi, ' '); // Remove other entities
+    .replace(/&[a-z]+;/gi, ' '); // Remove remaining entities
   
   // Remove Google Group / mailing list footers
   result = result.replace(/To unsubscribe from this group[\s\S]*?@[^\s.]+\.[^\s]+/gi, '');
@@ -99,7 +121,7 @@ function cleanPreviewText(text: string | undefined, maxLength: number = 200): st
   result = result.replace(/\n--\s*\n[\s\S]*/g, '');
   
   // Clean excessive whitespace
-  result = result.replace(/[\r\n]+/g, ' ');
+  result = result.replace(/[\r\n\t]+/g, ' ');
   result = result.replace(/\s+/g, ' ');
   result = result.trim();
   
