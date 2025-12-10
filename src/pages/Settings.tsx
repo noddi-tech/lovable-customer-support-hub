@@ -33,8 +33,8 @@ export default function Settings() {
   const canManageSettings = hasPermission('manage_settings');
   
   // Determine if we're in admin mode based on the URL path
-  const isAdminPath = location.pathname.startsWith('/admin/');
-  const adminPath = location.pathname.replace('/admin/', '');
+  const isAdminPath = location.pathname.startsWith('/admin');
+  const adminPath = location.pathname.replace('/admin/', '').replace('/admin', '');
   const activeTab = isAdminPath ? adminPath : 'general';
 
   if (loading || permissionsLoading) {
@@ -46,7 +46,7 @@ export default function Settings() {
   }
 
   // Check if we're in admin mode or settings
-  const isAdminMode = location.pathname.startsWith('/admin/');
+  const isAdminMode = location.pathname.startsWith('/admin');
   
   function renderAdminContent() {
     if (location.pathname === '/admin/design/components') {

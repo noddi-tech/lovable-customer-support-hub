@@ -120,7 +120,7 @@ export const AdminPortal = () => {
   };
 
   return (
-    <div className="h-full">
+    <div className="h-full px-4 md:px-6 lg:px-8 py-6">
       {renderContent()}
     </div>
   );
