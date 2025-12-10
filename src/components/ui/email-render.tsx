@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, Suspense, lazy, useEffect, useRef, memo } from 'react';
-import { ChevronDown, ChevronUp, Download, Eye, Copy, Check, Image as ImageIcon } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Eye, Copy, Check, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
@@ -8,6 +8,7 @@ import { sanitizeEmailHTML as sanitizeForXSS } from '@/utils/htmlSanitizer';
 import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
 import { debug } from '@/utils/debug';
 import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EmailRenderProps {
   content: string;
@@ -77,6 +78,95 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         </div>
       )}
     </div>
+  );
+};
+
+// Component to handle attachment download with auth
+const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment }> = ({ attachment }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { toast } = useToast();
+
+  const handleDownload = async () => {
+    if (!attachment.storageKey) {
+      toast({
+        title: "Download unavailable",
+        description: "This attachment cannot be downloaded",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-attachment', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: null,
+      });
+
+      // Use direct fetch with auth header for binary download
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(
+        `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download complete",
+        description: attachment.filename,
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: error instanceof Error ? error.message : "Could not download file",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="text-xs"
+      aria-label={`Download ${attachment.filename}`}
+      onClick={handleDownload}
+      disabled={isDownloading || !attachment.storageKey}
+    >
+      {isDownloading ? (
+        <Loader2 className="h-3 w-3 mr-1 animate-spin" aria-hidden="true" />
+      ) : (
+        <Download className="h-3 w-3 mr-1" aria-hidden="true" />
+      )}
+      Download
+    </Button>
   );
 };
 
@@ -496,17 +586,17 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       </div>
       
       {/* Attachments */}
-      {attachments && attachments.length > 0 && (
+      {attachments && attachments.filter(a => !a.isInline).length > 0 && (
         <div className="email-render__attachments" role="region" aria-label="Email attachments">
           <h4 className="email-render__attachments-title" id="attachments-heading">
-            Attachments ({attachments.length})
+            Attachments ({attachments.filter(a => !a.isInline).length})
           </h4>
           <ul 
             className="email-render__attachments-list" 
             role="list"
             aria-labelledby="attachments-heading"
           >
-            {attachments.map((attachment, index) => (
+            {attachments.filter(a => !a.isInline).map((attachment, index) => (
               <li key={index} className="email-render__attachment-item" role="listitem">
                 <div className="email-render__attachment-info">
                   <span className="email-render__attachment-name" title={attachment.filename}>
@@ -517,39 +607,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
                   </span>
                 </div>
                 <div className="email-render__attachment-actions">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs"
-                    aria-label={`Download ${attachment.filename}`}
-                    onClick={() => {
-                      // Download functionality would be implemented here
-                      const downloadUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}&download=true`;
-                      const link = document.createElement('a');
-                      link.href = downloadUrl;
-                      link.download = attachment.filename;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                  >
-                    <Download className="h-3 w-3 mr-1" aria-hidden="true" />
-                    Download
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs"
-                    aria-label={`Preview ${attachment.filename}`}
-                    onClick={() => {
-                      // Preview functionality would be implemented here
-                      const previewUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}`;
-                      window.open(previewUrl, '_blank', 'noopener,noreferrer');
-                    }}
-                  >
-                    <Eye className="h-3 w-3 mr-1" aria-hidden="true" />
-                    Preview
-                  </Button>
+                  <AttachmentDownloadButton attachment={attachment} />
                 </div>
               </li>
             ))}

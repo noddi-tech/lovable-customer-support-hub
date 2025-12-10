@@ -10,7 +10,8 @@ import { logger } from '@/utils/logger';
 export interface EmailAttachment {
   filename: string;
   mimeType: string;
-  attachmentId: string;
+  attachmentId?: string; // Legacy Gmail attachment ID
+  storageKey?: string | null; // Supabase Storage path (new)
   size: number;
   contentId?: string;
   contentLocation?: string;
