@@ -94,9 +94,9 @@ export const SettingsSidebar: React.FC = () => {
       permission: 'manage_settings' as const
     },
     {
-      title: 'Debug',
+      title: 'System Health',
       icon: Bug,
-      path: '/admin/debug',
+      path: '/admin/health',
       permission: 'manage_settings' as const
     }
   ];
