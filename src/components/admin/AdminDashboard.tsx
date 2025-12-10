@@ -235,7 +235,7 @@ export function AdminDashboard() {
               <CardTitle className="text-lg">System Health</CardTitle>
             </div>
             <button
-              onClick={() => navigate('/admin/integrations')}
+              onClick={() => navigate('/admin/health')}
               className="text-sm text-primary hover:underline flex items-center gap-1"
             >
               View Details <ArrowRight className="w-3 h-3" />
