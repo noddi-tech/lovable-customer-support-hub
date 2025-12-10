@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
+import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -136,7 +136,7 @@ export default function AuditLogs() {
   };
 
   return (
-    <UnifiedAppLayout>
+    <AdminPortalLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -335,6 +335,6 @@ export default function AuditLogs() {
           onOpenChange={setShowReportGenerator}
         />
       </div>
-    </UnifiedAppLayout>
+    </AdminPortalLayout>
   );
 }

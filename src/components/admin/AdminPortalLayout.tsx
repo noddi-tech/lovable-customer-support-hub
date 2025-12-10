@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -11,25 +11,26 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
 import { PaneColumn, PaneScroll } from '@/components/layout';
 import { 
   Users, 
   Settings, 
   Plug2, 
   Palette, 
-  Phone, 
   Inbox, 
   Building,
   Shield,
-  Mail,
-  Route,
   Brain,
   Crown,
   Download,
   Activity,
-  LayoutDashboard
+  LayoutDashboard,
+  ArrowLeft,
+  ScrollText
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +43,7 @@ interface AdminPortalLayoutProps {
 const AdminSidebar = () => {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { state } = useSidebar();
   const { isSuperAdmin } = useAuth();
 
@@ -50,32 +52,27 @@ const AdminSidebar = () => {
       title: 'Overview',
       url: '/admin',
       icon: LayoutDashboard,
-      group: 'organization',
       exact: true
     },
     {
       title: t('admin.userManagement'),
       url: '/admin/users',
-      icon: Users,
-      group: 'organization'
+      icon: Users
     },
     {
       title: t('admin.inboxes'),
       url: '/admin/inboxes',
-      icon: Inbox,
-      group: 'organization'
+      icon: Inbox
     },
     {
       title: t('admin.general'),
       url: '/admin/general',
-      icon: Settings,
-      group: 'organization'
+      icon: Settings
     },
     {
       title: 'System Health',
       url: '/admin/health',
-      icon: Activity,
-      group: 'organization'
+      icon: Activity
     }
   ];
 
@@ -83,8 +80,7 @@ const AdminSidebar = () => {
     {
       title: 'Integrations & Routing',
       url: '/admin/integrations',
-      icon: Plug2,
-      group: 'integrations'
+      icon: Plug2
     }
   ];
 
@@ -92,8 +88,7 @@ const AdminSidebar = () => {
     {
       title: t('admin.design'),
       url: '/admin/design',
-      icon: Palette,
-      group: 'customization'
+      icon: Palette
     }
   ];
 
@@ -101,35 +96,35 @@ const AdminSidebar = () => {
     {
       title: 'Knowledge Management',
       url: '/admin/knowledge',
-      icon: Brain,
-      group: 'intelligence'
+      icon: Brain
     }
   ];
 
   const superAdminItems = [
     {
-      title: 'Super Admin Dashboard',
+      title: 'Dashboard',
       url: '/super-admin/dashboard',
-      icon: Crown,
-      group: 'super-admin'
+      icon: Crown
     },
     {
-      title: 'Manage Organizations',
+      title: 'Organizations',
       url: '/super-admin/organizations',
-      icon: Building,
-      group: 'super-admin'
+      icon: Building
     },
     {
       title: 'All Users',
       url: '/super-admin/users',
-      icon: Users,
-      group: 'super-admin'
+      icon: Users
     },
     {
       title: 'Import Data',
       url: '/super-admin/import',
-      icon: Download,
-      group: 'super-admin'
+      icon: Download
+    },
+    {
+      title: 'Audit Logs',
+      url: '/super-admin/audit-logs',
+      icon: ScrollText
     }
   ];
 
@@ -138,14 +133,19 @@ const AdminSidebar = () => {
     return location.pathname === url || location.pathname.startsWith(url + '/');
   };
 
+  const handleBackToApp = () => {
+    navigate('/interactions/text');
+  };
+
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarContent className="bg-sidebar">
+        {/* Header with Back to App button */}
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-sidebar-primary" />
+            <Shield className="h-6 w-6 text-sidebar-primary shrink-0" />
             {state === 'expanded' && (
-              <div>
+              <div className="flex-1 min-w-0">
                 <Heading level={3} className="text-lg text-sidebar-foreground font-semibold">
                   {t('admin.title')}
                 </Heading>
@@ -155,6 +155,17 @@ const AdminSidebar = () => {
               </div>
             )}
           </div>
+          {state === 'expanded' && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleBackToApp}
+              className="w-full mt-3 gap-2 justify-start text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to App
+            </Button>
+          )}
         </div>
         
         <SidebarGroup>
@@ -260,20 +271,45 @@ const AdminSidebar = () => {
           </SidebarGroup>
         )}
       </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border p-4">
+        <Button 
+          variant="outline" 
+          onClick={handleBackToApp}
+          className="w-full gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {state === 'expanded' && <span>Back to App</span>}
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 };
 
 export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }) => {
+  const navigate = useNavigate();
+
   return (
     <SidebarProvider defaultOpen>
       <div className="flex h-screen w-full bg-background">
         <AdminSidebar />
         
         <main className="flex-1 flex flex-col min-w-0">
-          {/* Header with mobile trigger */}
-          <header className="flex items-center gap-4 p-4 border-b border-border bg-card/50 backdrop-blur-sm">
+          {/* Header with mobile trigger and back button */}
+          <header className="flex items-center gap-4 p-4 border-b border-border bg-primary/5 backdrop-blur-sm">
             <SidebarTrigger className="lg:hidden" />
+            
+            {/* Back to App button - visible on mobile/tablet */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/interactions/text')}
+              className="gap-2 lg:hidden"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to App</span>
+            </Button>
+            
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div className="lg:hidden">

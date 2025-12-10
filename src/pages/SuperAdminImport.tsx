@@ -1,13 +1,11 @@
-import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout";
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout";
 import { ImportDataHub } from "@/components/admin/ImportDataHub";
 
 const SuperAdminImport = () => {
   return (
-    <UnifiedAppLayout>
-      <div className="p-6">
-        <ImportDataHub />
-      </div>
-    </UnifiedAppLayout>
+    <AdminPortalLayout>
+      <ImportDataHub />
+    </AdminPortalLayout>
   );
 };
 

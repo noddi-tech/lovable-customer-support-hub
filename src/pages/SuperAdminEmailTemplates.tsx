@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout";
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout";
 import { Mail, AlertCircle, CheckCircle, ExternalLink, Loader2, RotateCcw, Save, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -579,16 +579,16 @@ __html: sanitizeTemplateHTML(
 
   if (isLoading) {
     return (
-      <UnifiedAppLayout>
+      <AdminPortalLayout>
         <div className="flex items-center justify-center h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </UnifiedAppLayout>
+      </AdminPortalLayout>
     );
   }
 
   return (
-    <UnifiedAppLayout>
+    <AdminPortalLayout>
       <div className="container max-w-6xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="space-y-2">
@@ -765,6 +765,6 @@ __html: sanitizeTemplateHTML(
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </UnifiedAppLayout>
+    </AdminPortalLayout>
   );
 }
