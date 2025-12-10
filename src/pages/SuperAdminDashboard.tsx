@@ -7,7 +7,7 @@ import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
+import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmailHealthDashboard } from '@/components/admin/EmailHealthDashboard';
@@ -230,7 +230,7 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <UnifiedAppLayout>
+    <AdminPortalLayout>
       <div className="bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10 min-h-full p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -611,6 +611,6 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
       </div>
-    </UnifiedAppLayout>
+    </AdminPortalLayout>
   );
 }

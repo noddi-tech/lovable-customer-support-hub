@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
+import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
 
 interface OrgMembership {
   org_id: string;
@@ -260,7 +260,7 @@ export default function AllUsersManagement() {
   };
 
   return (
-    <UnifiedAppLayout>
+    <AdminPortalLayout>
       <div className="bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10 min-h-full p-6 space-y-6">
         {/* Header */}
         <div className="space-y-1">
@@ -518,6 +518,6 @@ export default function AllUsersManagement() {
           />
         )}
       </div>
-    </UnifiedAppLayout>
+    </AdminPortalLayout>
   );
 }

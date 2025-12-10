@@ -14,7 +14,7 @@ import { AddMemberDialog } from '@/components/organization/AddMemberDialog';
 import { MemberActionMenu } from '@/components/organization/MemberActionMenu';
 import { ConfirmDeleteDialog } from '@/components/admin/ConfirmDeleteDialog';
 import { Organization, useOrganizations } from '@/hooks/useOrganizations';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
+import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
 
 export default function OrganizationDetails() {
   const { id } = useParams<{ id: string }>();
@@ -130,18 +130,18 @@ export default function OrganizationDetails() {
 
   if (isLoading) {
     return (
-      <UnifiedAppLayout>
+      <AdminPortalLayout>
         <div className="p-6 space-y-6">
           <Skeleton className="h-12 w-3/4" />
           <Skeleton className="h-64 w-full" />
         </div>
-      </UnifiedAppLayout>
+      </AdminPortalLayout>
     );
   }
 
   if (!organization) {
     return (
-      <UnifiedAppLayout>
+      <AdminPortalLayout>
         <div className="p-6">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -153,7 +153,7 @@ export default function OrganizationDetails() {
             </CardContent>
           </Card>
         </div>
-      </UnifiedAppLayout>
+      </AdminPortalLayout>
     );
   }
 
@@ -170,7 +170,7 @@ export default function OrganizationDetails() {
   });
 
   return (
-    <UnifiedAppLayout>
+    <AdminPortalLayout>
       <div className="bg-gradient-to-br from-yellow-50/30 via-background to-amber-50/20 dark:from-yellow-950/10 dark:via-background dark:to-amber-950/10 min-h-full p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -395,6 +395,6 @@ export default function OrganizationDetails() {
           />
         </>
       )}
-    </UnifiedAppLayout>
+    </AdminPortalLayout>
   );
 }

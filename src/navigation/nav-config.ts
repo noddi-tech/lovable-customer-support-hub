@@ -11,15 +11,8 @@ import {
   Cog,
   User,
   Bell,
-  MailOpen,
-  Building2,
-  Workflow,
-  Wrench,
-  Inbox,
-  Activity,
-  Download,
-  Search,
-  LayoutDashboard
+  Shield,
+  Search
 } from "lucide-react";
 
 export type NavItem = {
@@ -27,7 +20,7 @@ export type NavItem = {
   label: string;
   to: string;
   icon: any;
-  group: "notifications" | "interactions" | "marketing" | "operations" | "settings" | "admin" | "super_admin";
+  group: "notifications" | "interactions" | "marketing" | "operations" | "settings";
   requiredRole?: "admin" | "super_admin";
   showBadge?: boolean;
 };
@@ -143,112 +136,21 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Bell, 
     group: "settings" 
   },
-
-  // Admin (RBAC) - Consolidated modular items
+  // Single Admin Portal link - visible only to admins
   { 
-    id: "admin-overview", 
-    label: "Overview", 
+    id: "admin-portal", 
+    label: "Admin Portal", 
     to: "/admin", 
-    icon: LayoutDashboard, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-  { 
-    id: "admin-users", 
-    label: "Users & Teams", 
-    to: "/admin/users", 
-    icon: Users, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-  { 
-    id: "admin-inboxes", 
-    label: "Inboxes", 
-    to: "/admin/inboxes", 
-    icon: Inbox, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-  { 
-    id: "admin-integrations", 
-    label: "Integrations & Routing", 
-    to: "/admin/integrations", 
-    icon: Workflow, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-  { 
-    id: "admin-design", 
-    label: "Design", 
-    to: "/admin/design", 
-    icon: Wrench, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-  { 
-    id: "admin-general", 
-    label: "General Settings", 
-    to: "/admin/general", 
-    icon: Cog, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-  { 
-    id: "admin-health", 
-    label: "System Health", 
-    to: "/admin/health", 
-    icon: Activity, 
-    group: "admin", 
-    requiredRole: "admin" 
-  },
-
-  // Super Admin - System-wide administration
-  { 
-    id: "super-admin-dashboard", 
-    label: "Dashboard", 
-    to: "/super-admin/dashboard", 
-    icon: BarChart3, 
-    group: "super_admin", 
-    requiredRole: "super_admin" 
-  },
-  { 
-    id: "super-admin-organizations", 
-    label: "Organizations", 
-    to: "/super-admin/organizations", 
-    icon: Building2, 
-    group: "super_admin", 
-    requiredRole: "super_admin" 
-  },
-  { 
-    id: "super-admin-users", 
-    label: "All Users", 
-    to: "/super-admin/users", 
-    icon: Users, 
-    group: "super_admin", 
-    requiredRole: "super_admin" 
-  },
-  { 
-    id: "super-admin-analytics", 
-    label: "System Analytics", 
-    to: "/super-admin/analytics", 
-    icon: BarChart3, 
-    group: "super_admin", 
-    requiredRole: "super_admin" 
-  },
-  { 
-    id: "super-admin-import", 
-    label: "Import Data", 
-    to: "/super-admin/import", 
-    icon: Download, 
-    group: "super_admin", 
-    requiredRole: "super_admin" 
+    icon: Shield, 
+    group: "settings",
+    requiredRole: "admin"
   },
 ];
 
 export const getGroupedNavItems = (isAdmin: boolean = false, isSuperAdmin: boolean = false) => {
   return NAV_ITEMS.filter(item => {
     if (!item.requiredRole) return true;
-    if (item.requiredRole === "admin" && isAdmin) return true;
+    if (item.requiredRole === "admin" && (isAdmin || isSuperAdmin)) return true;
     if (item.requiredRole === "super_admin" && isSuperAdmin) return true;
     return false;
   })

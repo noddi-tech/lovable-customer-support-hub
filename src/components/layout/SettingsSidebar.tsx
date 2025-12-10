@@ -15,23 +15,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { 
   User,
-  Mail, 
   Settings,
-  Palette,
-  Building,
-  LinkIcon,
-  Phone,
-  Layout,
   Shield,
   Bell,
-  Home,
-  Activity,
-  LayoutDashboard
+  Home
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
-import { Crown } from 'lucide-react';
 
 export const SettingsSidebar: React.FC = () => {
   const location = useLocation();
@@ -63,51 +54,8 @@ export const SettingsSidebar: React.FC = () => {
     }
   ];
 
-  const adminItems = [
-    {
-      title: 'Overview',
-      icon: LayoutDashboard,
-      path: '/admin',
-      permission: 'manage_settings' as const,
-      exact: true
-    },
-    {
-      title: t('settings.tabs.users', 'User Management'),
-      icon: User,
-      path: '/admin/users',
-      permission: 'manage_users' as const
-    },
-    {
-      title: 'Inboxes',
-      icon: Mail,
-      path: '/admin/inboxes',
-      permission: 'manage_settings' as const
-    },
-    {
-      title: 'Integrations & Routing',
-      icon: LinkIcon,
-      path: '/admin/integrations',
-      permission: 'manage_settings' as const
-    },
-    {
-      title: 'Design',
-      icon: Layout,
-      path: '/admin/design',
-      permission: 'manage_settings' as const
-    },
-    {
-      title: 'General',
-      icon: Shield,
-      path: '/admin/general',
-      permission: 'manage_settings' as const
-    },
-    {
-      title: 'System Health',
-      icon: Activity,
-      path: '/admin/health',
-      permission: 'manage_settings' as const
-    }
-  ];
+  // Show admin portal link if user has admin permissions
+  const showAdminLink = hasPermission('manage_users') || hasPermission('manage_settings') || isSuperAdmin;
 
   return (
     <Sidebar>
@@ -150,63 +98,25 @@ export const SettingsSidebar: React.FC = () => {
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
-          <SidebarMenu>
-            {adminItems.map((item) => {
-              if (item.permission && !hasPermission(item.permission)) {
-                return null;
-              }
-              
-              const Icon = item.icon;
-              const itemIsActive = item.exact 
-                ? location.pathname === item.path
-                : isActive(item.path);
-              
-              return (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton 
-                    asChild
-                    isActive={itemIsActive}
-                  >
-                    <button
-                      onClick={() => navigate(item.path)}
-                      className={cn(
-                        "w-full justify-start gap-2",
-                        itemIsActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.title}
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {isSuperAdmin && (
+        {showAdminLink && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-yellow-600 dark:text-yellow-500 font-semibold flex items-center gap-2">
-              <Crown className="h-4 w-4" />
-              Super Admin
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   asChild
-                  isActive={isActive('/super-admin')}
+                  isActive={location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin')}
                 >
                   <button
-                    onClick={() => navigate('/super-admin/dashboard')}
+                    onClick={() => navigate('/admin')}
                     className={cn(
-                      "w-full justify-start gap-2 text-yellow-700 dark:text-yellow-400",
-                      isActive('/super-admin') && "bg-yellow-100 dark:bg-yellow-950/30"
+                      "w-full justify-start gap-2",
+                      (location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin')) && 
+                        "bg-sidebar-accent text-sidebar-accent-foreground"
                     )}
                   >
-                    <Crown className="h-4 w-4" />
-                    Super Admin Portal
+                    <Shield className="h-4 w-4" />
+                    Admin Portal
                   </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>

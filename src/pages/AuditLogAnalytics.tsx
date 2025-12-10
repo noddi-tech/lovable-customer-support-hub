@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
+import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
 import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -69,7 +69,7 @@ export default function AuditLogAnalytics() {
   const riskLevel = riskScore > 50 ? 'high' : riskScore > 20 ? 'medium' : 'low';
 
   return (
-    <UnifiedAppLayout>
+    <AdminPortalLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -219,6 +219,6 @@ export default function AuditLogAnalytics() {
           </div>
         </Card>
       </div>
-    </UnifiedAppLayout>
+    </AdminPortalLayout>
   );
 }

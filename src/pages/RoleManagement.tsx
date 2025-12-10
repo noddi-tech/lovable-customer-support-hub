@@ -8,7 +8,7 @@ import { Shield, Search, Users, Crown, UserCog, User as UserIcon } from 'lucide-
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
+import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface UserWithRoles {
@@ -135,7 +135,7 @@ export default function RoleManagement() {
   };
 
   return (
-    <UnifiedAppLayout>
+    <AdminPortalLayout>
       <div className="bg-gradient-to-br from-blue-50/30 via-background to-indigo-50/20 dark:from-blue-950/10 dark:via-background dark:to-indigo-950/10 min-h-full p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -284,6 +284,6 @@ export default function RoleManagement() {
           </CardContent>
         </Card>
       </div>
-    </UnifiedAppLayout>
+    </AdminPortalLayout>
   );
 }
