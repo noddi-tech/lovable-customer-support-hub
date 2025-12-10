@@ -16,7 +16,7 @@ import {
   Workflow,
   Wrench,
   Inbox,
-  Bug,
+  Activity,
   Download,
   Search
 } from "lucide-react";
@@ -185,10 +185,10 @@ export const NAV_ITEMS: NavItem[] = [
     requiredRole: "admin" 
   },
   { 
-    id: "admin-debug", 
-    label: "Debug", 
-    to: "/admin/debug", 
-    icon: Bug, 
+    id: "admin-health", 
+    label: "System Health", 
+    to: "/admin/health", 
+    icon: Activity, 
     group: "admin", 
     requiredRole: "admin" 
   },
