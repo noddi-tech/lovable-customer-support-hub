@@ -149,7 +149,7 @@ const AppContent = () => {
       <Route path="/settings/email-templates" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
       {/* ========== ADMIN ========== */}
-      <Route path="/admin" element={<Navigate to="/admin/general" replace />} />
+      <Route path="/admin" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/general" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/email-design" element={<Navigate to="/settings/email-templates" replace />} />
       <Route path="/admin/departments" element={<Navigate to="/admin/users" replace />} />
@@ -160,7 +160,7 @@ const AppContent = () => {
       <Route path="/admin/voice" element={<Navigate to="/admin/integrations" replace />} />
       <Route path="/admin/design" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/design/components" element={<ProtectedRoute><AdminRoute><AdminDesignComponentsPage /></AdminRoute></ProtectedRoute>} />
-      <Route path="/admin/debug" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/health" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/import" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
       
