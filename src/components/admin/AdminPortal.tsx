@@ -19,6 +19,7 @@ import { DebugPanel } from './DebugPanel';
 import { HelpScoutImport } from './HelpScoutImport';
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { IntegrationSettings } from './IntegrationSettings';
+import { AdminDashboard } from './AdminDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
@@ -110,8 +111,11 @@ export const AdminPortal = () => {
         return <DebugPanel />;
 
       case 'general':
-      default:
         return <GeneralSettings />;
+        
+      case 'admin':
+      default:
+        return <AdminDashboard />;
     }
   };
 
