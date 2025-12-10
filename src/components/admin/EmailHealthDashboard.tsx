@@ -125,7 +125,7 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
       };
     },
     enabled: !!routeAddresses,
-    refetchInterval: 30000,
+    refetchInterval: 10000,
   });
 
   // Fetch org-scoped recent logs using inbound route addresses
@@ -155,7 +155,7 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
       return data as EmailIngestionLog[];
     },
     enabled: !!routeAddresses,
-    refetchInterval: 30000,
+    refetchInterval: 10000,
   });
 
   // Fetch org-scoped token configuration

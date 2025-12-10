@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationStore } from "@/stores/organizationStore";
 import { useRealtimeConnection } from "@/contexts/RealtimeProvider";
+import { Button } from "@/components/ui/button";
 import { 
   Users, 
   Inbox, 
@@ -16,7 +17,8 @@ import {
   Mail,
   ArrowRight,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 
 interface NavigationCard {
@@ -31,7 +33,7 @@ interface NavigationCard {
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { currentOrganizationId } = useOrganizationStore();
-  const { connectionStatus } = useRealtimeConnection();
+  const { connectionStatus, forceReconnect } = useRealtimeConnection();
 
   // Fetch user count
   const { data: userCount } = useQuery({
@@ -156,6 +158,10 @@ export function AdminDashboard() {
         return { icon: CheckCircle2, text: 'Connected', color: 'text-green-500' };
       case 'connecting':
         return { icon: Activity, text: 'Connecting...', color: 'text-yellow-500' };
+      case 'disconnected':
+        return { icon: AlertCircle, text: 'Reconnecting...', color: 'text-yellow-500' };
+      case 'error':
+        return { icon: AlertCircle, text: 'Using backup sync (10s refresh)', color: 'text-yellow-500' };
       default:
         return { icon: AlertCircle, text: 'Disconnected', color: 'text-destructive' };
     }
@@ -242,6 +248,12 @@ export function AdminDashboard() {
             <div className="flex items-center gap-2">
               <ConnectionIcon className={`w-4 h-4 ${connectionDisplay.color}`} />
               <span className="text-sm font-medium">{connectionDisplay.text}</span>
+              {(connectionStatus === 'error' || connectionStatus === 'disconnected') && (
+                <Button variant="ghost" size="sm" onClick={forceReconnect} className="h-6 px-2 text-xs">
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Reconnect
+                </Button>
+              )}
             </div>
 
             {/* Last Email */}
