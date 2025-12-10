@@ -48,10 +48,16 @@
   "admin": {
     "title": "Portal Admin",
     "description": "Gerir configurações do sistema",
+    "inboxes": "Caixas de Entrada",
+    "design": "Design & Marca",
+    "overview": "Visão Geral",
+    "users": "Utilizadores & Equipas",
+    "health": "Estado do Sistema",
+    "knowledge": "Gestão de Conhecimento",
     "userManagement": "Gestão de Utilizadores",
-    "integrations": "Integrações",
+    "integrations": "Integrações & Encaminhamento",
     "designLibrary": "Biblioteca de Design",
-    "general": "Geral", 
+    "general": "Configurações Gerais",
     "createUser": "Criar Utilizador",
     "createDepartment": "Criar Departamento",
     "organizeDepartments": "Organizar departamentos e equipas para a sua estrutura de apoio ao cliente",
@@ -166,7 +172,16 @@
       "error": "Falha ao iniciar sincronização"
     }
   },
+  "mail": {
+    "to": "Para",
+    "from": "De",
+    "cc": "Cc",
+    "bcc": "Cco",
+    "subject": "Assunto",
+    "attachments": "Anexos"
+  },
   "conversation": {
+    "send": "Enviar",
     "customer": "Cliente",
     "agent": "Agente",
     "getAISuggestions": "Obter sugerências de IA",

@@ -48,10 +48,16 @@
   "admin": {
     "title": "Admin Portal",
     "description": "Hantera systeminställningar och konfigurationer",
+    "inboxes": "Inkorgar",
+    "design": "Design & Varumärke",
+    "overview": "Översikt",
+    "users": "Användare & Team",
+    "health": "Systemhälsa",
+    "knowledge": "Kunskapshantering",
     "userManagement": "Användarhantering",
-    "integrations": "Integrationer",
+    "integrations": "Integrationer & Routing",
     "designLibrary": "Designbibliotek",
-    "general": "Allmänt",
+    "general": "Allmänna Inställningar",
     "createUser": "Skapa användare",
     "createDepartment": "Skapa avdelning",
     "organizeDepartments": "Organisera avdelningar och team för din kundtjänststruktur",
@@ -166,7 +172,16 @@
       "error": "Misslyckades med att starta synkronisering"
     }
   },
+  "mail": {
+    "to": "Till",
+    "from": "Från",
+    "cc": "Kopia",
+    "bcc": "Hemlig kopia",
+    "subject": "Ämne",
+    "attachments": "Bilagor"
+  },
   "conversation": {
+    "send": "Skicka",
     "customer": "Kund",
     "agent": "Agent",
     "getAISuggestions": "Få AI-förslag",

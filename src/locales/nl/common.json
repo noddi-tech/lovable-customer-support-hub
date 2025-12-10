@@ -48,10 +48,16 @@
   "admin": {
     "title": "Admin Portaal",
     "description": "Beheer systeeminstellingen en configuraties",
+    "inboxes": "Inboxen",
+    "design": "Design & Huisstijl",
+    "overview": "Overzicht",
+    "users": "Gebruikers & Teams",
+    "health": "Systeemgezondheid",
+    "knowledge": "Kennisbeheer",
     "userManagement": "Gebruikersbeheer",
-    "integrations": "Integraties",
+    "integrations": "Integraties & Routing",
     "designLibrary": "Ontwerpbibliotheek",
-    "general": "Algemeen",
+    "general": "Algemene Instellingen",
     "createUser": "Gebruiker aanmaken",
     "createDepartment": "Afdeling aanmaken",
     "organizeDepartments": "Organiseer afdelingen en teams voor je klantenservice structuur",
@@ -166,7 +172,16 @@
       "error": "Fout bij starten van synchronisatie"
     }
   },
+  "mail": {
+    "to": "Aan",
+    "from": "Van",
+    "cc": "Cc",
+    "bcc": "Bcc",
+    "subject": "Onderwerp",
+    "attachments": "Bijlagen"
+  },
   "conversation": {
+    "send": "Verzenden",
     "customer": "Klant",
     "agent": "Agent",
     "getAISuggestions": "AI-suggesties verkrijgen",

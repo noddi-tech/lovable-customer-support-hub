@@ -48,10 +48,16 @@
   "admin": {
     "title": "Portale Admin",
     "description": "Gestisci impostazioni di sistema e configurazioni",
+    "inboxes": "Caselle di posta",
+    "design": "Design & Branding",
+    "overview": "Panoramica",
+    "users": "Utenti & Team",
+    "health": "Stato del sistema",
+    "knowledge": "Gestione conoscenza",
     "userManagement": "Gestione Utenti",
-    "integrations": "Integrazioni",
+    "integrations": "Integrazioni & Routing",
     "designLibrary": "Libreria di Design",
-    "general": "Generale",
+    "general": "Impostazioni generali",
     "createUser": "Crea Utente",
     "createDepartment": "Crea Dipartimento",
     "organizeDepartments": "Organizza dipartimenti e team per la tua struttura di supporto clienti",
@@ -204,9 +210,18 @@
       "error": "Errore nell'avvio della sincronizzazione"
     }
   },
+  "mail": {
+    "to": "A",
+    "from": "Da",
+    "cc": "Cc",
+    "bcc": "Ccn",
+    "subject": "Oggetto",
+    "attachments": "Allegati"
+  },
   "conversation": {
     "customer": "Cliente",
     "agent": "Agente",
+    "send": "Invia",
     "getAISuggestions": "Ottieni suggerimenti IA",
     "emailStatus": {
       "sent": "Inviato",

@@ -163,10 +163,16 @@
   "admin": {
     "title": "Admin Portal",
     "description": "Manage system settings and configurations",
+    "inboxes": "Inboxes",
+    "design": "Design & Branding",
+    "overview": "Overview",
+    "users": "Users & Teams",
+    "health": "System Health",
+    "knowledge": "Knowledge Management",
     "userManagement": "User Management",
-    "integrations": "Integrations",
+    "integrations": "Integrations & Routing",
     "designLibrary": "Design Library",
-    "general": "General",
+    "general": "General Settings",
     "createUser": "Create User",
     "createDepartment": "Create Department",
     "organizeDepartments": "Organize departments and teams for your customer support structure",
@@ -226,10 +232,19 @@
     "sv": "Swedish",
     "da": "Danish"
   },
+  "mail": {
+    "to": "To",
+    "from": "From",
+    "cc": "Cc",
+    "bcc": "Bcc",
+    "subject": "Subject",
+    "attachments": "Attachments"
+  },
   "conversation": {
     "customer": "Customer",
     "agent": "Agent",
     "backToInbox": "Back to Inbox",
+    "send": "Send",
     "getAISuggestions": "Get AI suggestions",
     "emailStatus": {
       "sent": "Sent",
