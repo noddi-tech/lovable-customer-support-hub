@@ -48,10 +48,16 @@
   "admin": {
     "title": "Portail Administrateur",
     "description": "Gérer les paramètres et configurations du système",
+    "inboxes": "Boîtes de réception",
+    "design": "Design & Image de marque",
+    "overview": "Aperçu",
+    "users": "Utilisateurs & Équipes",
+    "health": "Santé du système",
+    "knowledge": "Gestion des connaissances",
     "userManagement": "Gestion des Utilisateurs",
-    "integrations": "Intégrations",
+    "integrations": "Intégrations & Routage",
     "designLibrary": "Bibliothèque de Design",
-    "general": "Général",
+    "general": "Paramètres généraux",
     "createUser": "Créer un Utilisateur",
     "createDepartment": "Créer un Département",
     "organizeDepartments": "Organiser les départements et équipes pour votre structure de support client",
@@ -206,11 +212,20 @@
       "success": "Synchronisation Gmail démarrée avec succès",
       "error": "Échec du démarrage de la synchronisation"
     }
-    },
-    "conversation": {
-      "customer": "Client",
-      "agent": "Agent",
-      "getAISuggestions": "Obtenir des suggestions IA",
+  },
+  "mail": {
+    "to": "À",
+    "from": "De",
+    "cc": "Cc",
+    "bcc": "Cci",
+    "subject": "Objet",
+    "attachments": "Pièces jointes"
+  },
+  "conversation": {
+    "customer": "Client",
+    "agent": "Agent",
+    "send": "Envoyer",
+    "getAISuggestions": "Obtenir des suggestions IA",
       "emailStatus": {
         "sent": "Envoyé",
         "sending": "Envoi",

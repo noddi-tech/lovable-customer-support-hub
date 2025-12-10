@@ -48,10 +48,16 @@
   "admin": {
     "title": "Admin Portal",
     "description": "Systemeinstellungen und Konfigurationen verwalten",
+    "inboxes": "Postfächer",
+    "design": "Design & Branding",
+    "overview": "Übersicht",
+    "users": "Benutzer & Teams",
+    "health": "Systemstatus",
+    "knowledge": "Wissensverwaltung",
     "userManagement": "Benutzerverwaltung",
-    "integrations": "Integrationen",
+    "integrations": "Integrationen & Routing",
     "designLibrary": "Design-Bibliothek",
-    "general": "Allgemein",
+    "general": "Allgemeine Einstellungen",
     "createUser": "Benutzer erstellen",
     "createDepartment": "Abteilung erstellen",
     "organizeDepartments": "Organisieren Sie Abteilungen und Teams für Ihre Kundensupport-Struktur",
@@ -204,9 +210,18 @@
       "error": "Fehler beim Starten der Synchronisation"
     }
   },
+  "mail": {
+    "to": "An",
+    "from": "Von",
+    "cc": "Kopie",
+    "bcc": "Blindkopie",
+    "subject": "Betreff",
+    "attachments": "Anhänge"
+  },
   "conversation": {
     "customer": "Kunde",
     "agent": "Agent",
+    "send": "Senden",
     "getAISuggestions": "KI-Vorschläge erhalten",
     "emailStatus": {
       "sent": "Gesendet",

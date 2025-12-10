@@ -48,10 +48,16 @@
   "admin": {
     "title": "Admin Portal",
     "description": "Administrer systeminnstillinger og konfigurasjoner",
+    "inboxes": "Innbokser",
+    "design": "Design & Merkevare",
+    "overview": "Oversikt",
+    "users": "Brukere & Team",
+    "health": "Systemhelse",
+    "knowledge": "Kunnskapsstyring",
     "userManagement": "Brukerstyring",
-    "integrations": "Integrasjoner",
+    "integrations": "Integrasjoner & Ruting",
     "designLibrary": "Designbibliotek",
-    "general": "Generelt",
+    "general": "Generelle Innstillinger",
     "createUser": "Opprett Bruker",
     "createDepartment": "Opprett Avdeling",
     "organizeDepartments": "Organiser avdelinger og team for din kundestøtte struktur",
@@ -166,9 +172,18 @@
       "error": "Feil ved start av synkronisering"
     }
   },
+  "mail": {
+    "to": "Til",
+    "from": "Fra",
+    "cc": "Kopi",
+    "bcc": "Blindkopi",
+    "subject": "Emne",
+    "attachments": "Vedlegg"
+  },
   "conversation": {
     "customer": "Kunde",
     "agent": "Agent",
+    "send": "Send",
     "getAISuggestions": "Få AI-forslag",
     "emailStatus": {
       "sent": "Sendt",

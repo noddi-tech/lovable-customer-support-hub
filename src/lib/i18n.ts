@@ -62,10 +62,13 @@ const initializeI18n = async () => {
         // Immediate initialization without waiting
         initImmediate: false,
         
-        // Handle missing translations gracefully
-        saveMissing: false, // Disable to reduce noise
+        // Handle missing translations gracefully - enable in development for debugging
+        saveMissing: import.meta.env.DEV,
         missingKeyHandler: (lng, ns, key) => {
-          // Only log in DEBUG mode
+          // Log missing keys in development for easy detection
+          if (import.meta.env.DEV) {
+            console.warn(`[i18n MISSING] ${key} (${lng}/${ns})`);
+          }
           logger.debug('Missing translation key', { lng, ns, key }, 'i18n');
         },
       });
