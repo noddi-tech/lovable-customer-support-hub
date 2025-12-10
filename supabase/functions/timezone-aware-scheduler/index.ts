@@ -29,6 +29,7 @@ Deno.serve(async (req: Request) => {
     console.log(`Current UTC time: ${nowUTC.toISOString()}`);
 
     // Find conversations with active snooze that might need processing
+    // Note: Query profiles separately since there's no direct FK relationship
     const { data: snoozedConversations, error: fetchError } = await supabase
       .from("conversations")
       .select(`
@@ -37,8 +38,7 @@ Deno.serve(async (req: Request) => {
         assigned_to_id, 
         snoozed_by_id, 
         organization_id,
-        snooze_until,
-        profiles!conversations_snoozed_by_id_fkey(timezone, time_format)
+        snooze_until
       `)
       .not("snooze_until", "is", null)
       .eq("is_archived", false);
@@ -55,7 +55,23 @@ Deno.serve(async (req: Request) => {
 
     for (const conv of snoozedConversations || []) {
       const snoozeUntil = new Date(conv.snooze_until);
-      const userTimezone = (conv.profiles as any)?.timezone || 'UTC';
+      
+      // Fetch user profile for timezone info if we have a snoozed_by_id
+      let userTimezone = 'UTC';
+      let timeFormat = '12h';
+      
+      if (conv.snoozed_by_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("timezone, time_format")
+          .eq("user_id", conv.snoozed_by_id)
+          .single();
+        
+        if (profile) {
+          userTimezone = profile.timezone || 'UTC';
+          timeFormat = profile.time_format || '12h';
+        }
+      }
       
       console.log(`Checking conversation ${conv.id}:`);
       console.log(`  - Snooze until: ${snoozeUntil.toISOString()}`);
@@ -77,7 +93,7 @@ Deno.serve(async (req: Request) => {
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-          hour12: (conv.profiles as any)?.time_format !== '24h'
+          hour12: timeFormat !== '24h'
         }).format(nowUTC);
 
         // Insert notification if we have a target user
