@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
 import { Separator } from '@/components/ui/separator';
-import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell, MailCheck } from 'lucide-react';
+import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell, MailCheck, Activity } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { IntegrationSection } from './integrations/IntegrationSection';
 import { IntegrationStatusBadge } from './IntegrationStatusBadge';
 import { InboundRoutesContent } from './integrations/InboundRoutesContent';
 import { ConnectedEmailAccountsContent } from '@/components/dashboard/ConnectedEmailAccounts';
+import { OrganizationHealthDashboard } from './OrganizationHealthDashboard';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,6 +101,10 @@ export const IntegrationSettings = () => {
           <ResponsiveTabsTrigger value="notifications">
             <Bell className="w-4 h-4" aria-hidden />
             <span>Notifications</span>
+          </ResponsiveTabsTrigger>
+          <ResponsiveTabsTrigger value="health">
+            <Activity className="w-4 h-4" aria-hidden />
+            <span>Health</span>
           </ResponsiveTabsTrigger>
         </ResponsiveTabsList>
 
@@ -235,6 +240,11 @@ export const IntegrationSettings = () => {
         {/* Notifications Integration Tab */}
         <ResponsiveTabsContent value="notifications" className="space-y-4">
           <SlackIntegrationSettings />
+        </ResponsiveTabsContent>
+
+        {/* Health Monitoring Tab */}
+        <ResponsiveTabsContent value="health" className="space-y-4">
+          <OrganizationHealthDashboard />
         </ResponsiveTabsContent>
       </ResponsiveTabs>
     </div>
