@@ -18,7 +18,8 @@ import {
   Inbox,
   Activity,
   Download,
-  Search
+  Search,
+  LayoutDashboard
 } from "lucide-react";
 
 export type NavItem = {
@@ -144,6 +145,14 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // Admin (RBAC) - Consolidated modular items
+  { 
+    id: "admin-overview", 
+    label: "Overview", 
+    to: "/admin", 
+    icon: LayoutDashboard, 
+    group: "admin", 
+    requiredRole: "admin" 
+  },
   { 
     id: "admin-users", 
     label: "Users & Teams", 

@@ -28,7 +28,8 @@ import {
   Brain,
   Crown,
   Download,
-  Activity
+  Activity,
+  LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -45,6 +46,13 @@ const AdminSidebar = () => {
   const { isSuperAdmin } = useAuth();
 
   const organizationItems = [
+    {
+      title: 'Overview',
+      url: '/admin',
+      icon: LayoutDashboard,
+      group: 'organization',
+      exact: true
+    },
     {
       title: t('admin.userManagement'),
       url: '/admin/users',
@@ -125,7 +133,8 @@ const AdminSidebar = () => {
     }
   ];
 
-  const isActive = (url: string) => {
+  const isActive = (url: string, exact?: boolean) => {
+    if (exact) return location.pathname === url;
     return location.pathname === url || location.pathname.startsWith(url + '/');
   };
 
@@ -156,7 +165,7 @@ const AdminSidebar = () => {
             <SidebarMenu>
               {organizationItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url, item.exact)}>
                     <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -277,7 +286,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
           {/* Content area with proper pane scrolling */}
           <PaneColumn className="flex-1 min-h-0">
             <PaneScroll className="h-full">
-              <div className="p-6 max-w-7xl mx-auto">
+              <div className="px-8 py-6 max-w-7xl mx-auto">
                 {children}
               </div>
             </PaneScroll>
