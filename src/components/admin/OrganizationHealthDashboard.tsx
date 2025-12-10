@@ -100,9 +100,10 @@ export function OrganizationHealthDashboard() {
     }
   };
 
-  const failureRate = emailStats?.weekCount 
-    ? ((emailStats.failureCount / (emailStats.weekCount + emailStats.failureCount)) * 100).toFixed(1)
-    : '0';
+  // Calculate success rate with proper rounding
+  const successRate = emailStats?.weekCount 
+    ? (100 - (emailStats.failureCount / (emailStats.weekCount + emailStats.failureCount)) * 100).toFixed(1)
+    : '100';
 
   return (
     <div className="space-y-6">
@@ -206,7 +207,7 @@ export function OrganizationHealthDashboard() {
               <div className="h-6 bg-muted animate-pulse rounded" />
             ) : (
               <>
-                <span className="text-2xl font-bold">{100 - parseFloat(failureRate)}%</span>
+                <span className="text-2xl font-bold">{successRate}%</span>
                 <p className="text-xs text-muted-foreground mt-1">
                   {emailStats?.weekCount || 0} processed, {emailStats?.failureCount || 0} failed
                 </p>
