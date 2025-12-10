@@ -206,7 +206,7 @@ export const useSimpleRealtimeSubscriptions = (
 
           // Stop retrying after 3 attempts - just use polling
           if (retryCountRef.current >= 3) {
-            logger.debug('Max retries reached, using polling mode with 30s auto-retry', { 
+            logger.debug('Max retries reached, using polling mode with 10s auto-retry', { 
               tables: configs.map(c => c.table) 
             }, 'Realtime');
             return; // No more immediate retries, auto-retry interval will handle it
@@ -303,12 +303,12 @@ export const useSimpleRealtimeSubscriptions = (
   // Auto-retry every 30 seconds when in error state (use refs to avoid dependency loops)
   useEffect(() => {
     if (connectionStatus === 'error' && enabled) {
-      logger.debug('Starting auto-retry interval (30s)', { channelKey: channelKeyRef.current }, 'Realtime');
+      logger.debug('Starting auto-retry interval (10s)', { channelKey: channelKeyRef.current }, 'Realtime');
       
       autoRetryIntervalRef.current = setInterval(() => {
         logger.info('Auto-retry: Attempting reconnection...', { channelKey: channelKeyRef.current }, 'Realtime');
         forceReconnectRef.current();
-      }, 30000); // 30 seconds
+      }, 10000); // 10 seconds
       
       return () => {
         if (autoRetryIntervalRef.current) {

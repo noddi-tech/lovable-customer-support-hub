@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
       // Count unread conversations
       return data?.filter((conv: any) => !conv.is_read).length || 0;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 
   // Fetch inboxes for header selector

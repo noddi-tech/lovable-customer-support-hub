@@ -95,7 +95,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
       whatsapp: filtered.filter((conv: any) => conv.channel === 'whatsapp').length,
     } as Record<string, number>;
   },
-  refetchInterval: 30000, // Refetch every 30 seconds
+  refetchInterval: 10000, // Refetch every 10 seconds
 });
 
   // Fetch context-aware notifications count for current user
@@ -133,7 +133,7 @@ const { data: conversationCounts = {}, isLoading } = useQuery({
       
       return filteredNotifications.length;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 
   const sidebarItems = [

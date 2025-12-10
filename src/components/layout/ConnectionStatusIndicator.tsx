@@ -79,7 +79,7 @@ export const ConnectionStatusIndicator: React.FC = () => {
               Real-time unavailable
             </span>
             <span className="text-muted-foreground text-[10px]">
-              Emails arrive normally. Auto-retrying every 30s.
+              Emails arrive normally. Using 10s backup refresh.
             </span>
             <Button 
               variant="link" 
