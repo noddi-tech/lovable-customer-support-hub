@@ -25,7 +25,8 @@ import {
   Shield,
   Bell,
   Home,
-  Bug
+  Activity,
+  LayoutDashboard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -64,6 +65,13 @@ export const SettingsSidebar: React.FC = () => {
 
   const adminItems = [
     {
+      title: 'Overview',
+      icon: LayoutDashboard,
+      path: '/admin',
+      permission: 'manage_settings' as const,
+      exact: true
+    },
+    {
       title: t('settings.tabs.users', 'User Management'),
       icon: User,
       path: '/admin/users',
@@ -95,7 +103,7 @@ export const SettingsSidebar: React.FC = () => {
     },
     {
       title: 'System Health',
-      icon: Bug,
+      icon: Activity,
       path: '/admin/health',
       permission: 'manage_settings' as const
     }
@@ -151,7 +159,9 @@ export const SettingsSidebar: React.FC = () => {
               }
               
               const Icon = item.icon;
-              const itemIsActive = isActive(item.path);
+              const itemIsActive = item.exact 
+                ? location.pathname === item.path
+                : isActive(item.path);
               
               return (
                 <SidebarMenuItem key={item.path}>
