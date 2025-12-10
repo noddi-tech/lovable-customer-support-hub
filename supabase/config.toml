@@ -169,3 +169,6 @@ verify_jwt = true
 
 [functions.update-sendgrid-token]
 verify_jwt = true
+
+[functions.get-attachment]
+verify_jwt = true

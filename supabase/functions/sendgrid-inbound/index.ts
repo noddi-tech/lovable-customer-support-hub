@@ -385,6 +385,83 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Extract and upload attachments
+    const attachmentInfoRaw = form.get("attachment-info");
+    const attachments: Array<{
+      filename: string;
+      mimeType: string;
+      size: number;
+      contentId?: string;
+      isInline: boolean;
+      storageKey: string | null;
+    }> = [];
+
+    if (attachmentInfoRaw) {
+      try {
+        const attachmentMeta = JSON.parse(String(attachmentInfoRaw));
+        console.log(`[SendGrid-Inbound] Found attachment-info with ${Object.keys(attachmentMeta).length} attachments`);
+        
+        for (const [key, info] of Object.entries(attachmentMeta)) {
+          const file = form.get(key) as File | null;
+          if (file && typeof info === 'object') {
+            const attachmentData = info as Record<string, unknown>;
+            const filename = (attachmentData.filename as string) || file.name || 'attachment';
+            const mimeType = (attachmentData.type as string) || file.type || 'application/octet-stream';
+            const contentId = (attachmentData['content-id'] as string)?.replace(/[<>]/g, '');
+            const isInline = mimeType.startsWith('image/') && !!contentId;
+            
+            // Upload to Supabase Storage
+            const storagePath = `${organization_id}/${conversation_id}/${crypto.randomUUID()}_${filename}`;
+            
+            try {
+              const arrayBuffer = await file.arrayBuffer();
+              const { error: uploadError } = await supabase.storage
+                .from('message-attachments')
+                .upload(storagePath, arrayBuffer, {
+                  contentType: mimeType,
+                  upsert: false,
+                });
+              
+              if (uploadError) {
+                console.error(`[SendGrid-Inbound] Failed to upload attachment ${filename}:`, uploadError);
+                attachments.push({
+                  filename,
+                  mimeType,
+                  size: file.size,
+                  contentId,
+                  isInline,
+                  storageKey: null, // Failed to upload
+                });
+              } else {
+                console.log(`[SendGrid-Inbound] Uploaded attachment: ${storagePath}`);
+                attachments.push({
+                  filename,
+                  mimeType,
+                  size: file.size,
+                  contentId,
+                  isInline,
+                  storageKey: storagePath,
+                });
+              }
+            } catch (uploadErr) {
+              console.error(`[SendGrid-Inbound] Error uploading attachment ${filename}:`, uploadErr);
+              attachments.push({
+                filename,
+                mimeType,
+                size: file.size,
+                contentId,
+                isInline,
+                storageKey: null,
+              });
+            }
+          }
+        }
+        console.log(`[SendGrid-Inbound] Processed ${attachments.length} attachments`);
+      } catch (e) {
+        console.error('[SendGrid-Inbound] Failed to parse attachment-info:', e);
+      }
+    }
+
     // Insert message
     const contentHtml = html || (text ? `<pre>${text}</pre>` : "");
     const contentType = html ? "html" : (text ? "text" : "html");
@@ -392,7 +469,7 @@ Deno.serve(async (req: Request) => {
     const headersObj = headersRaw ? { raw: headersRaw } : null;
     const emailMessageId = parseHeaderValue(headersRaw, "Message-ID") || parseHeaderValue(headersRaw, "Message-Id");
     
-    console.log(`[SendGrid-Inbound] Inserting message - Content type: ${contentType}, Length: ${contentHtml.length}, Message-ID: ${emailMessageId}`);
+    console.log(`[SendGrid-Inbound] Inserting message - Content type: ${contentType}, Length: ${contentHtml.length}, Message-ID: ${emailMessageId}, Attachments: ${attachments.length}`);
     
     const { data: insertedMessage, error: msgErr } = await supabase
       .from("messages")
@@ -407,6 +484,7 @@ Deno.serve(async (req: Request) => {
         email_message_id: emailMessageId,
         email_thread_id: threadKey,
         external_id: emailMessageId || `sg_${crypto.randomUUID()}`,
+        attachments: attachments.length > 0 ? attachments : null,
       })
       .select('id')
       .single();
