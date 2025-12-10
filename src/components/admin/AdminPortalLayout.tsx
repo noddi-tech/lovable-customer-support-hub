@@ -27,7 +27,8 @@ import {
   Route,
   Brain,
   Crown,
-  Download
+  Download,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +61,12 @@ const AdminSidebar = () => {
       title: t('admin.general'),
       url: '/admin/general',
       icon: Settings,
+      group: 'organization'
+    },
+    {
+      title: 'System Health',
+      url: '/admin/health',
+      icon: Activity,
       group: 'organization'
     }
   ];

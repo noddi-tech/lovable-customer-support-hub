@@ -15,7 +15,7 @@ import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettin
 import { VoiceIntegrationsList } from './VoiceIntegrationsList';
 import { InboundRoutesList } from './InboundRoutesList';
 import { InboxManagement } from './InboxManagement';
-import { DebugPanel } from './DebugPanel';
+import { SystemHealthPage } from './SystemHealthPage';
 import { HelpScoutImport } from './HelpScoutImport';
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { IntegrationSettings } from './IntegrationSettings';
@@ -32,7 +32,8 @@ export const AdminPortal = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   
   // Extract the admin path to determine which content to show
-  const adminPath = location.pathname.replace('/admin/', '') || 'general';
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const adminPath = pathParts.length > 1 ? pathParts[1] : '';
 
   const renderContent = () => {
     switch (adminPath) {
@@ -61,6 +62,9 @@ export const AdminPortal = () => {
 
       case 'integrations':
         return <IntegrationSettings />;
+
+      case 'health':
+        return <SystemHealthPage />;
 
       case 'voice':
         // Redirect to integrations tab
@@ -107,13 +111,9 @@ export const AdminPortal = () => {
           </ResponsiveGrid>
         );
 
-      case 'debug':
-        return <DebugPanel />;
-
       case 'general':
         return <GeneralSettings />;
         
-      case 'admin':
       default:
         return <AdminDashboard />;
     }
