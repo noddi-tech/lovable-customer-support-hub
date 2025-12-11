@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
+import { useOrganizationStore } from '@/stores/organizationStore';
 
 interface OrgMembership {
   org_id: string;
@@ -30,8 +31,16 @@ interface OrgMembership {
 }
 
 export default function AllUsersManagement() {
+  const { currentOrganizationId } = useOrganizationStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [orgFilter, setOrgFilter] = useState<string>('all');
+  const [orgFilter, setOrgFilter] = useState<string>(currentOrganizationId || 'all');
+  
+  // Sync orgFilter with global organization store
+  useEffect(() => {
+    if (currentOrganizationId) {
+      setOrgFilter(currentOrganizationId);
+    }
+  }, [currentOrganizationId]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserEmail, setSelectedUserEmail] = useState<string>('');
   const [showActivityTimeline, setShowActivityTimeline] = useState(false);
