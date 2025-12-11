@@ -15,10 +15,25 @@ export function OrganizationSwitcher() {
   const { memberships, isSuperAdmin } = useAuth();
   const { currentOrganizationId, setCurrentOrganization } = useOrganizationStore();
 
-  // Fetch organization names
+  // Fetch organization names - Super Admins see ALL organizations
   const { data: organizations = [] } = useQuery({
-    queryKey: ['organizations-for-switcher', memberships.map(m => m.organization_id)],
+    queryKey: ['organizations-for-switcher', isSuperAdmin, memberships.map(m => m.organization_id)],
     queryFn: async () => {
+      // Super Admins can see ALL organizations
+      if (isSuperAdmin) {
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('id, name, slug')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching organizations:', error);
+          return [];
+        }
+        return data || [];
+      }
+
+      // Regular users only see their memberships
       if (memberships.length === 0) return [];
 
       const orgIds = memberships.map(m => m.organization_id);
@@ -34,10 +49,10 @@ export function OrganizationSwitcher() {
 
       return data || [];
     },
-    enabled: memberships.length > 0,
+    enabled: isSuperAdmin || memberships.length > 0,
   });
 
-  // Don't show switcher if user only has access to one organization
+  // Don't show switcher if user only has access to one organization (unless Super Admin)
   if (memberships.length <= 1 && !isSuperAdmin) {
     return null;
   }
@@ -52,7 +67,7 @@ export function OrganizationSwitcher() {
       <Building2 className="h-4 w-4 text-muted-foreground" />
       <Select
         value={currentOrganizationId || undefined}
-        onValueChange={setCurrentOrganization}
+        onValueChange={(value) => setCurrentOrganization(value, isSuperAdmin)}
       >
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="Select organization">

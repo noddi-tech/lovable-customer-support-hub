@@ -14,6 +14,7 @@ import { AuditLogFilters } from '@/components/admin/AuditLogFilters';
 import { ComplianceReportGenerator } from '@/components/admin/ComplianceReportGenerator';
 import { useNavigate } from 'react-router-dom';
 import { DateRange as CalendarDateRange } from 'react-day-picker';
+import { useOrganizationStore } from '@/stores/organizationStore';
 
 type DateRangePreset = '7d' | '30d' | '90d' | 'all' | 'custom';
 
@@ -28,6 +29,7 @@ interface AuditLog {
   target_identifier: string;
   changes: Record<string, any>;
   metadata: Record<string, any>;
+  organization_id: string | null;
 }
 
 const actionCategoryInfo: Record<string, { icon: any; label: string; color: string }> = {
@@ -39,6 +41,7 @@ const actionCategoryInfo: Record<string, { icon: any; label: string; color: stri
 
 export default function AuditLogs() {
   const navigate = useNavigate();
+  const { currentOrganizationId } = useOrganizationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<DateRangePreset>('30d');
   const [customDateRange, setCustomDateRange] = useState<CalendarDateRange | undefined>();
@@ -51,13 +54,18 @@ export default function AuditLogs() {
   const [showReportGenerator, setShowReportGenerator] = useState(false);
 
   const { data: logs = [], isLoading, refetch } = useQuery({
-    queryKey: ['audit-logs', dateRange, customDateRange, categoryFilter, selectedActionTypes, selectedActorRoles],
+    queryKey: ['audit-logs', dateRange, customDateRange, categoryFilter, selectedActionTypes, selectedActorRoles, currentOrganizationId],
     queryFn: async () => {
       let query = supabase
         .from('admin_audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(500);
+
+      // Apply organization filter when selected
+      if (currentOrganizationId) {
+        query = query.eq('organization_id', currentOrganizationId);
+      }
 
       // Apply date range filter
       if (dateRange === 'custom' && customDateRange?.from && customDateRange?.to) {

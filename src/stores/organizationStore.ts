@@ -18,7 +18,7 @@ interface OrganizationStore {
   memberships: OrganizationMembership[];
   isSuperAdminMode: boolean;
   
-  setCurrentOrganization: (orgId: string) => void;
+  setCurrentOrganization: (orgId: string, force?: boolean) => void;
   setMemberships: (memberships: OrganizationMembership[]) => void;
   setSuperAdminMode: (enabled: boolean) => void;
   clearOrganizationContext: () => void;
@@ -35,11 +35,12 @@ export const useOrganizationStore = create<OrganizationStore>()(
       memberships: [],
       isSuperAdminMode: false,
 
-      setCurrentOrganization: (orgId) => {
-        const { memberships } = get();
+      setCurrentOrganization: (orgId, force = false) => {
+        const { memberships, isSuperAdminMode } = get();
         const membership = memberships.find(m => m.organization_id === orgId);
         
-        if (membership) {
+        // Allow if user is member OR if forced (Super Admin) OR if in super admin mode
+        if (membership || force || isSuperAdminMode) {
           set({ currentOrganizationId: orgId });
         } else {
           console.error('Cannot set organization - user is not a member');

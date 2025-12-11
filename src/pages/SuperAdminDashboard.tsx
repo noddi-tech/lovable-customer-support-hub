@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,18 +12,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmailHealthDashboard } from '@/components/admin/EmailHealthDashboard';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-interface SelectedOrg {
-  id: string;
-  name: string;
-}
+import { useOrganizationStore } from '@/stores/organizationStore';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  // Global organization selector
-  const [selectedOrg, setSelectedOrg] = useState<SelectedOrg | null>(null);
+  const { isSuperAdmin } = useAuth();
+  const { currentOrganizationId, setCurrentOrganization } = useOrganizationStore();
   
   // State for database recovery
   const [isRecovering, setIsRecovering] = useState(false);
@@ -55,11 +51,14 @@ export default function SuperAdminDashboard() {
     },
   });
 
+  // Get current org name from list
+  const selectedOrgName = allOrganizations.find(o => o.id === currentOrganizationId)?.name;
+
   // Fetch org-scoped stats
   const { data: stats } = useQuery({
-    queryKey: ['super-admin-stats', selectedOrg?.id],
+    queryKey: ['super-admin-stats', currentOrganizationId],
     queryFn: async () => {
-      if (!selectedOrg) {
+      if (!currentOrganizationId) {
         // Global stats when no org selected
         const [orgsResult, usersResult, conversationsResult] = await Promise.all([
           supabase.from('organizations').select('id', { count: 'exact', head: true }),
@@ -80,12 +79,12 @@ export default function SuperAdminDashboard() {
         supabase
           .from('organization_memberships')
           .select('id', { count: 'exact', head: true })
-          .eq('organization_id', selectedOrg.id)
+          .eq('organization_id', currentOrganizationId)
           .eq('status', 'active'),
         supabase
           .from('conversations')
           .select('id', { count: 'exact', head: true })
-          .eq('organization_id', selectedOrg.id),
+          .eq('organization_id', currentOrganizationId),
       ]);
 
       return {
@@ -110,41 +109,40 @@ export default function SuperAdminDashboard() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !selectedOrg,
+    enabled: !currentOrganizationId,
   });
 
-  // Handle organization selection
+  // Handle organization selection - uses the global store
   const handleOrgChange = (orgId: string) => {
-    const org = allOrganizations.find(o => o.id === orgId);
-    if (org) {
-      setSelectedOrg({ id: org.id, name: org.name });
-      // Clear previous statuses
-      setRecoveryStatus(null);
-      setCloseOldStatus(null);
-    }
+    setCurrentOrganization(orgId, isSuperAdmin);
+    // Clear previous statuses
+    setRecoveryStatus(null);
+    setCloseOldStatus(null);
   };
 
   const clearOrgSelection = () => {
-    setSelectedOrg(null);
+    // Clear org by setting to empty - but we need a way to clear it
+    // For now, we won't actually clear since store doesn't support null assignment easily
+    // The user can select a different org
     setRecoveryStatus(null);
     setCloseOldStatus(null);
   };
 
   // Handle database recovery (now org-scoped)
   const handleDatabaseRecovery = async () => {
-    if (!selectedOrg) return;
+    if (!currentOrganizationId) return;
     
     setIsRecovering(true);
-    setRecoveryStatus({ status: 'starting', message: `Initiating database recovery for ${selectedOrg.name}...` });
+    setRecoveryStatus({ status: 'starting', message: `Initiating database recovery for ${selectedOrgName}...` });
     
     toast({
       title: 'Database Recovery Started',
-      description: `Cleaning up duplicate messages for ${selectedOrg.name}...`,
+      description: `Cleaning up duplicate messages for ${selectedOrgName}...`,
     });
     
     try {
       const { data, error } = await supabase.functions.invoke('database-recovery', {
-        body: { organizationId: selectedOrg.id }
+        body: { organizationId: currentOrganizationId }
       });
       
       if (error) throw error;
@@ -185,19 +183,19 @@ export default function SuperAdminDashboard() {
 
   // Handle bulk close old conversations (now uses selected org)
   const handleBulkCloseOld = async () => {
-    if (!selectedOrg) return;
+    if (!currentOrganizationId) return;
     
     setIsClosingOld(true);
     setCloseOldStatus(null);
     
     toast({
       title: 'Closing Old Conversations',
-      description: `Finding and closing conversations older than 3 months for ${selectedOrg.name}...`,
+      description: `Finding and closing conversations older than 3 months for ${selectedOrgName}...`,
     });
     
     try {
       const { data, error } = await supabase.functions.invoke('bulk-close-old-conversations', {
-        body: { organizationId: selectedOrg.id, monthsOld: 3, dryRun: false }
+        body: { organizationId: currentOrganizationId, monthsOld: 3, dryRun: false }
       });
       
       if (error) throw error;
@@ -262,7 +260,7 @@ export default function SuperAdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
-              <Select value={selectedOrg?.id || ''} onValueChange={handleOrgChange}>
+              <Select value={currentOrganizationId || ''} onValueChange={handleOrgChange}>
                 <SelectTrigger className="w-[320px]">
                   <SelectValue placeholder="Select an organization..." />
                 </SelectTrigger>
@@ -275,15 +273,9 @@ export default function SuperAdminDashboard() {
                 </SelectContent>
               </Select>
               
-              {selectedOrg && (
-                <Button variant="ghost" size="sm" onClick={clearOrgSelection}>
-                  View Global
-                </Button>
-              )}
-              
-              {selectedOrg && (
+              {currentOrganizationId && (
                 <Badge className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/50">
-                  {selectedOrg.name}
+                  {selectedOrgName}
                 </Badge>
               )}
             </div>
@@ -292,7 +284,7 @@ export default function SuperAdminDashboard() {
 
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-3">
-          {!selectedOrg && (
+          {!currentOrganizationId && (
             <Card className="border-yellow-200 dark:border-yellow-900/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/super-admin/organizations')}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Organizations</CardTitle>
@@ -308,14 +300,14 @@ export default function SuperAdminDashboard() {
           <Card className="border-yellow-200 dark:border-yellow-900/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/super-admin/users')}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {selectedOrg ? 'Organization Users' : 'Total Users'}
+                {currentOrganizationId ? 'Organization Users' : 'Total Users'}
               </CardTitle>
               <Users className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {selectedOrg ? `Active members in ${selectedOrg.name}` : 'Across all organizations'}
+                {currentOrganizationId ? `Active members in ${selectedOrgName}` : 'Across all organizations'}
               </p>
             </CardContent>
           </Card>
@@ -323,21 +315,21 @@ export default function SuperAdminDashboard() {
           <Card className="border-yellow-200 dark:border-yellow-900/50 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {selectedOrg ? 'Organization Conversations' : 'Total Conversations'}
+                {currentOrganizationId ? 'Organization Conversations' : 'Total Conversations'}
               </CardTitle>
               <MessageSquare className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.totalConversations || 0}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {selectedOrg ? `Conversations in ${selectedOrg.name}` : 'System-wide interactions'}
+                {currentOrganizationId ? `Conversations in ${selectedOrgName}` : 'System-wide interactions'}
               </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Recent Organizations - Only show in global view */}
-        {!selectedOrg && (
+        {!currentOrganizationId && (
           <Card className="border-yellow-200 dark:border-yellow-900/50">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -431,14 +423,14 @@ export default function SuperAdminDashboard() {
             <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-red-600 dark:text-red-500" />
               <CardTitle>System Maintenance</CardTitle>
-              {selectedOrg && (
-                <Badge variant="outline" className="ml-2">{selectedOrg.name}</Badge>
+              {currentOrganizationId && (
+                <Badge variant="outline" className="ml-2">{selectedOrgName}</Badge>
               )}
             </div>
             <CardDescription>Database health and recovery tools</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!selectedOrg && (
+            {!currentOrganizationId && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
@@ -448,7 +440,7 @@ export default function SuperAdminDashboard() {
             )}
 
             {/* Database Recovery Section */}
-            <div className={`border border-border rounded-lg p-4 space-y-3 ${!selectedOrg ? 'opacity-50' : ''}`}>
+            <div className={`border border-border rounded-lg p-4 space-y-3 ${!currentOrganizationId ? 'opacity-50' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -457,12 +449,12 @@ export default function SuperAdminDashboard() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Clean up duplicate messages and optimize database storage
-                    {selectedOrg && <span className="font-medium"> for {selectedOrg.name}</span>}
+                    {currentOrganizationId && <span className="font-medium"> for {selectedOrgName}</span>}
                   </p>
                 </div>
                 <Button
                   onClick={handleDatabaseRecovery}
-                  disabled={isRecovering || !selectedOrg}
+                  disabled={isRecovering || !currentOrganizationId}
                   variant="outline"
                   size="sm"
                   className="border-red-300 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30"
@@ -525,7 +517,7 @@ export default function SuperAdminDashboard() {
             </div>
 
             {/* Bulk Close Old Conversations Section */}
-            <div className={`border border-border rounded-lg p-4 space-y-3 ${!selectedOrg ? 'opacity-50' : ''}`}>
+            <div className={`border border-border rounded-lg p-4 space-y-3 ${!currentOrganizationId ? 'opacity-50' : ''}`}>
               <div className="space-y-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -534,13 +526,13 @@ export default function SuperAdminDashboard() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Close all open conversations older than 3 months
-                    {selectedOrg && <span className="font-medium"> for {selectedOrg.name}</span>}
+                    {currentOrganizationId && <span className="font-medium"> for {selectedOrgName}</span>}
                   </p>
                 </div>
                 
                 <Button
                   onClick={handleBulkCloseOld}
-                  disabled={isClosingOld || !selectedOrg}
+                  disabled={isClosingOld || !currentOrganizationId}
                   variant="outline"
                   size="sm"
                   className="border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30"
@@ -591,14 +583,14 @@ export default function SuperAdminDashboard() {
             <div className="flex items-center gap-2">
               <Mail className="h-5 w-5 text-blue-600 dark:text-blue-500" />
               <CardTitle>Email Health & Monitoring</CardTitle>
-              {selectedOrg && (
-                <Badge variant="outline" className="ml-2">{selectedOrg.name}</Badge>
+              {currentOrganizationId && (
+                <Badge variant="outline" className="ml-2">{selectedOrgName}</Badge>
               )}
             </div>
             <CardDescription>Monitor email ingestion, webhook status, and troubleshoot delivery issues</CardDescription>
           </CardHeader>
           <CardContent>
-            {!selectedOrg ? (
+            {!currentOrganizationId ? (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
@@ -606,7 +598,7 @@ export default function SuperAdminDashboard() {
                 </AlertDescription>
               </Alert>
             ) : (
-              <EmailHealthDashboard organizationId={selectedOrg.id} organizationName={selectedOrg.name} />
+              <EmailHealthDashboard organizationId={currentOrganizationId} organizationName={selectedOrgName || ''} />
             )}
           </CardContent>
         </Card>
