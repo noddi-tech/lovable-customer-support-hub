@@ -150,26 +150,30 @@ Deno.serve(async (req) => {
 
     console.log("User created:", authData.user.id);
 
-    // 7. Update profile with additional data (profile is created by trigger)
-    // Wait a bit for the trigger to create the profile
+    // 7. Create or update profile (use upsert to handle both cases)
+    // Wait a bit for the trigger to potentially create the profile
     await new Promise(resolve => setTimeout(resolve, 500));
 
     // Use the first organization as the primary one for the profile
     const primaryOrg = orgsToAssign[0];
 
-    const { error: updateError } = await adminClient
+    // Try to upsert the profile - this handles both trigger-created and missing profiles
+    const { error: upsertError } = await adminClient
       .from("profiles")
-      .update({
+      .upsert({
+        user_id: authData.user.id,
+        email: email,
         full_name,
         department_id: department_id || null,
         primary_role: primaryOrg.role as any,
         organization_id: primaryOrg.org_id,
-      })
-      .eq("user_id", authData.user.id);
+      }, {
+        onConflict: 'user_id',
+      });
 
-    if (updateError) {
-      console.error("Error updating profile:", updateError);
-      // Don't fail the whole operation if profile update fails
+    if (upsertError) {
+      console.error("Error upserting profile:", upsertError);
+      // Don't fail the whole operation if profile upsert fails
     }
 
     // 8. Create organization memberships for ALL specified organizations

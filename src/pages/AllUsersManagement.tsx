@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
-import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X } from 'lucide-react';
+import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog } from 'lucide-react';
 import { UserActionMenu } from '@/components/admin/UserActionMenu';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -53,6 +53,8 @@ export default function AllUsersManagement() {
   });
   const [selectedOrg, setSelectedOrg] = useState('');
   const [selectedRole, setSelectedRole] = useState<'admin' | 'agent' | 'user' | 'super_admin'>('user');
+  const [showAddExistingDialog, setShowAddExistingDialog] = useState(false);
+  const [existingUserEmail, setExistingUserEmail] = useState('');
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -202,6 +204,56 @@ export default function AllUsersManagement() {
           : message,
         variant: "destructive",
       });
+    },
+  });
+
+  // Add existing user to organization mutation
+  const addExistingUserMutation = useMutation({
+    mutationFn: async ({ email, orgId, role }: { email: string; orgId: string; role: string }) => {
+      // Find user by email in profiles
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (profileError) throw new Error(profileError.message);
+      if (!profile) throw new Error('No user found with this email. The user may need to be created first.');
+
+      // Check if membership already exists
+      const { data: existing } = await supabase
+        .from('organization_memberships')
+        .select('id')
+        .eq('user_id', profile.user_id)
+        .eq('organization_id', orgId)
+        .maybeSingle();
+
+      if (existing) throw new Error('User is already a member of this organization.');
+
+      // Create membership
+      const { error: membershipError } = await supabase
+        .from('organization_memberships')
+        .insert({
+          user_id: profile.user_id,
+          organization_id: orgId,
+          role: role as 'admin' | 'agent' | 'user' | 'super_admin',
+          status: 'active',
+          joined_at: new Date().toISOString(),
+        });
+
+      if (membershipError) throw new Error(membershipError.message);
+      return { email, orgId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      toast({ title: "User added to organization", description: `${data.email} has been added.` });
+      setShowAddExistingDialog(false);
+      setExistingUserEmail('');
+      setSelectedOrg('');
+      setSelectedRole('user');
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to add user", description: error.message, variant: "destructive" });
     },
   });
 
@@ -439,6 +491,86 @@ export default function AllUsersManagement() {
                       </Button>
                     </div>
                   </form>
+                </DialogContent>
+              </Dialog>
+              
+              {/* Add Existing User to Organization */}
+              <Dialog open={showAddExistingDialog} onOpenChange={setShowAddExistingDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full md:w-auto">
+                    <UserCog className="h-4 w-4 mr-2" />
+                    Add to Org
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Existing User to Organization</DialogTitle>
+                    <DialogDescription>
+                      Add an existing user to an organization they're not already part of.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <Label htmlFor="existingEmail">User Email</Label>
+                      <Input
+                        id="existingEmail"
+                        type="email"
+                        value={existingUserEmail}
+                        onChange={(e) => setExistingUserEmail(e.target.value)}
+                        placeholder="user@company.com"
+                      />
+                    </div>
+                    <div>
+                      <Label>Organization</Label>
+                      <Select value={selectedOrg} onValueChange={setSelectedOrg}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select organization" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {organizations.map((org) => (
+                            <SelectItem key={org.id} value={org.id}>
+                              {org.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Role</Label>
+                      <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as any)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="agent">Agent</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="super_admin">Super Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setShowAddExistingDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (!existingUserEmail || !selectedOrg) {
+                          toast({ title: "Please fill all fields", variant: "destructive" });
+                          return;
+                        }
+                        addExistingUserMutation.mutate({
+                          email: existingUserEmail,
+                          orgId: selectedOrg,
+                          role: selectedRole,
+                        });
+                      }}
+                      disabled={addExistingUserMutation.isPending}
+                    >
+                      {addExistingUserMutation.isPending ? 'Adding...' : 'Add to Organization'}
+                    </Button>
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>
