@@ -7,10 +7,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Shield, Building2, Trash2, Mail } from 'lucide-react';
+import { MoreVertical, Shield, Building2, Trash2, Mail, History } from 'lucide-react';
 import { ManageUserRolesDialog } from './ManageUserRolesDialog';
 import { ManageUserOrganizationsDialog } from './ManageUserOrganizationsDialog';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
+import { InviteHistoryDialog } from './InviteHistoryDialog';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -37,6 +38,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [orgsDialogOpen, setOrgsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [inviteHistoryOpen, setInviteHistoryOpen] = useState(false);
   const { deleteUser, isDeletingUser, resendInvite, isResendingInvite } = useUserManagement();
   const { user: currentUser } = useAuth();
 
@@ -69,6 +71,10 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
               >
                 <Mail className="h-4 w-4 mr-2" />
                 {isResendingInvite ? 'Sending...' : 'Resend Invite Email'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setInviteHistoryOpen(true)}>
+                <History className="h-4 w-4 mr-2" />
+                View Invite History
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -113,6 +119,12 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
         description={`Are you sure you want to delete ${user.full_name || user.email}?`}
         itemName={user.email}
         isLoading={isDeletingUser}
+      />
+
+      <InviteHistoryDialog
+        email={user.email}
+        open={inviteHistoryOpen}
+        onOpenChange={setInviteHistoryOpen}
       />
     </>
   );

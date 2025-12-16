@@ -150,6 +150,26 @@ Deno.serve(async (req) => {
 
     console.log('[resend-user-invite] Successfully sent invite to:', email);
 
+    // Get user_id for the target email
+    const { data: targetUsers } = await adminClient.auth.admin.listUsers();
+    const targetUser = targetUsers?.users?.find(u => u.email === email);
+
+    // Log the invite email attempt
+    try {
+      await adminClient.from('invite_email_logs').insert({
+        user_id: targetUser?.id || null,
+        email: email,
+        email_type: 'resend_invite',
+        status: 'sent',
+        provider: 'supabase_auth',
+        sent_by_id: user.id,
+        metadata: { resent_by: user.email, method: otpError ? 'recovery' : 'otp' },
+      });
+      console.log('[resend-user-invite] Invite logged for:', email);
+    } catch (logError) {
+      console.error('[resend-user-invite] Error logging invite:', logError);
+    }
+
     // Log audit action
     try {
       await adminClient.from('admin_audit_logs').insert({
