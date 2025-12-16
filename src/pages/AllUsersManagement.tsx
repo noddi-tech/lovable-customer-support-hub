@@ -75,61 +75,27 @@ export default function AllUsersManagement() {
     },
   });
 
-  // Fetch all users with their organization memberships and system roles
+  // Fetch all users with their organization memberships and system roles via edge function
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['all-users', orgFilter],
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache (formerly cacheTime)
     queryFn: async () => {
-      // Query 1: Fetch all profiles
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email, full_name, created_at')
-        .order('created_at', { ascending: false });
+      // Use edge function to bypass RLS and fetch all user data
+      const { data, error } = await supabase.functions.invoke('admin-get-all-users', {
+        body: { orgFilter }
+      });
 
-      if (profilesError) throw profilesError;
-
-      // Query 2: Fetch all organization memberships with organizations
-      const { data: membershipsData, error: membershipsError } = await supabase
-        .from('organization_memberships')
-        .select(`
-          id,
-          user_id,
-          role,
-          status,
-          organization:organizations(id, name)
-        `);
-
-      if (membershipsError) throw membershipsError;
-
-      // Query 3: Fetch all system roles from user_roles table
-      const { data: userRolesData, error: userRolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (userRolesError) throw userRolesError;
-
-      // Join the data in frontend by matching user_id
-      const usersWithMemberships = (profilesData || []).map(profile => ({
-        ...profile,
-        organization_memberships: (membershipsData || []).filter(
-          m => m.user_id === profile.user_id
-        ),
-        system_roles: (userRolesData || []).filter(
-          r => r.user_id === profile.user_id
-        ).map(r => r.role)
-      }));
-
-      // Filter by organization if needed
-      if (orgFilter !== 'all') {
-        return usersWithMemberships.filter((user: any) =>
-          user.organization_memberships?.some(
-            (m: any) => m.organization?.id === orgFilter
-          )
-        );
+      if (error) {
+        console.error('Error fetching users:', error);
+        throw new Error(error.message || 'Failed to fetch users');
       }
 
-      return usersWithMemberships;
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to fetch users');
+      }
+
+      return data.users || [];
     },
   });
 
