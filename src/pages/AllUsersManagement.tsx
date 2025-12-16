@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
-import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog } from 'lucide-react';
+import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield } from 'lucide-react';
 import { UserActionMenu } from '@/components/admin/UserActionMenu';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
+import { OrphanedUsersCleanup } from '@/components/admin/OrphanedUsersCleanup';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -74,7 +75,7 @@ export default function AllUsersManagement() {
     },
   });
 
-  // Fetch all users with their organization memberships using separate queries
+  // Fetch all users with their organization memberships and system roles
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['all-users', orgFilter],
     staleTime: 0, // Always fetch fresh data
@@ -101,12 +102,22 @@ export default function AllUsersManagement() {
 
       if (membershipsError) throw membershipsError;
 
+      // Query 3: Fetch all system roles from user_roles table
+      const { data: userRolesData, error: userRolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (userRolesError) throw userRolesError;
+
       // Join the data in frontend by matching user_id
       const usersWithMemberships = (profilesData || []).map(profile => ({
         ...profile,
         organization_memberships: (membershipsData || []).filter(
           m => m.user_id === profile.user_id
-        )
+        ),
+        system_roles: (userRolesData || []).filter(
+          r => r.user_id === profile.user_id
+        ).map(r => r.role)
       }));
 
       // Filter by organization if needed
@@ -577,6 +588,9 @@ export default function AllUsersManagement() {
           </CardContent>
         </Card>
 
+        {/* Orphaned Users Cleanup (Super Admin only) */}
+        <OrphanedUsersCleanup />
+
         {/* Users List */}
         <Card className="border-yellow-200 dark:border-yellow-900/50">
           <CardHeader>
@@ -604,7 +618,22 @@ export default function AllUsersManagement() {
                         <Users className="h-6 w-6 text-white" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium">{user.full_name || user.email}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{user.full_name || user.email}</p>
+                          {/* System roles from user_roles table */}
+                          {user.system_roles?.includes('super_admin') && (
+                            <Badge className="text-xs bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30">
+                              <Crown className="h-3 w-3 mr-1" />
+                              Super Admin
+                            </Badge>
+                          )}
+                          {user.system_roles?.includes('admin') && !user.system_roles?.includes('super_admin') && (
+                            <Badge className="text-xs bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30">
+                              <Shield className="h-3 w-3 mr-1" />
+                              Admin
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {user.organization_memberships?.map((membership: any) => (
