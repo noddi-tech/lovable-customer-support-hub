@@ -24,26 +24,30 @@ interface ManageUserRolesDialogProps {
   };
 }
 
-const roleInfo: Record<AppRole, { label: string; description: string; color: string }> = {
+const roleInfo: Record<AppRole, { label: string; description: string; color: string; order: number }> = {
   super_admin: {
     label: 'Super Admin',
-    description: 'Full system access, can manage all organizations and users',
+    description: 'Full system access across ALL organizations — inherits all permissions, no additional roles needed',
     color: 'bg-yellow-500',
+    order: 1,
   },
   admin: {
     label: 'Admin',
-    description: 'Can manage users and settings within organizations',
+    description: 'Organization administrator — can manage users, settings, and inboxes within their organization',
     color: 'bg-blue-500',
+    order: 2,
   },
   agent: {
     label: 'Agent',
-    description: 'Can handle conversations and interact with customers',
+    description: 'Active user — can handle conversations, make calls, reply to emails, and interact with customers',
     color: 'bg-green-500',
+    order: 3,
   },
   user: {
     label: 'User',
-    description: 'Basic access to assigned resources',
+    description: 'View-only access — can see conversations and data but cannot reply or take actions',
     color: 'bg-gray-500',
+    order: 4,
   },
 };
 
@@ -97,6 +101,21 @@ export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRo
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Super Admin Info Banner */}
+          {currentRoleValues.includes('super_admin') && (
+            <Card className="border-yellow-500/30 bg-yellow-500/10">
+              <CardContent className="py-3">
+                <div className="flex gap-2">
+                  <Shield className="h-4 w-4 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                  <div className="text-xs text-yellow-700 dark:text-yellow-400">
+                    <p className="font-medium">This user is a Super Admin</p>
+                    <p>They have full access to all features across all organizations. Additional roles are not required.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Current Roles */}
           <div>
             <h4 className="text-sm font-medium mb-3">Current Roles</h4>
@@ -113,7 +132,14 @@ export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRo
               </Card>
             ) : (
               <div className="space-y-2">
-                {currentRoles.map((roleItem) => {
+                {currentRoles
+                  .slice()
+                  .sort((a, b) => {
+                    const aOrder = roleInfo[a.role as AppRole]?.order ?? 99;
+                    const bOrder = roleInfo[b.role as AppRole]?.order ?? 99;
+                    return aOrder - bOrder;
+                  })
+                  .map((roleItem) => {
                   if (!roleItem.role) return null;
                   const info = roleInfo[roleItem.role as AppRole] || defaultRoleInfo;
                   return (
@@ -123,7 +149,7 @@ export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRo
                           <div className={`h-2 w-2 rounded-full ${info?.color || 'bg-gray-400'}`} />
                           <div>
                             <p className="font-medium text-sm">{info?.label || 'Unknown'}</p>
-                            <p className="text-xs text-muted-foreground">{info?.description || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground max-w-md">{info?.description || 'N/A'}</p>
                           </div>
                         </div>
                         <Button

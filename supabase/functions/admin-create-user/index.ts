@@ -14,6 +14,8 @@ interface CreateUserRequest {
   email: string;
   full_name: string;
   organizations?: OrganizationAssignment[];
+  send_invite?: boolean; // Default true - sends invite email
+  password?: string; // Only used when send_invite is false
   // Backwards compatibility
   department_id?: string | null;
   primary_role?: string;
@@ -94,13 +96,26 @@ Deno.serve(async (req) => {
     }
 
     // 4. Parse request
-    const { email, full_name, organizations, department_id, primary_role }: CreateUserRequest = await req.json();
+    const { email, full_name, organizations, send_invite, password, department_id, primary_role }: CreateUserRequest = await req.json();
 
     if (!email || !full_name) {
       return new Response(JSON.stringify({ error: "Email and full name are required" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
+    }
+
+    // Determine if we should send invite (default: true)
+    const shouldSendInvite = send_invite !== false;
+
+    // Validate password if not sending invite
+    if (!shouldSendInvite) {
+      if (!password || password.length < 6) {
+        return new Response(JSON.stringify({ error: "Password must be at least 6 characters when not sending invite" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     // 5. Determine organizations to assign
@@ -122,23 +137,41 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log("Creating user via invite:", { email, full_name, organizations: orgsToAssign });
+    console.log("Creating user:", { email, full_name, organizations: orgsToAssign, sendInvite: shouldSendInvite });
 
-    // 6. Use service_role client to invite user (sends welcome email automatically)
-    const { data: authData, error: createError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { full_name },
-      redirectTo: `${Deno.env.get('SITE_URL') || 'https://support.noddi.co'}/auth`,
-    });
+    // 6. Create user - either via invite or direct creation
+    let authData: { user: any } | null = null;
+    let createError: any = null;
+
+    if (shouldSendInvite) {
+      // Use invite flow - sends welcome email automatically
+      const result = await adminClient.auth.admin.inviteUserByEmail(email, {
+        data: { full_name },
+        redirectTo: `${Deno.env.get('SITE_URL') || 'https://support.noddi.co'}/auth`,
+      });
+      authData = result.data;
+      createError = result.error;
+    } else {
+      // Direct creation with admin-set password
+      const result = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Auto-confirm email since admin is creating
+        user_metadata: { full_name },
+      });
+      authData = result.data;
+      createError = result.error;
+    }
 
     if (createError) {
-      console.error("Error inviting user:", createError);
+      console.error("Error creating user:", createError);
       return new Response(JSON.stringify({ error: createError.message }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    if (!authData.user) {
+    if (!authData?.user) {
       return new Response(JSON.stringify({ error: "Failed to create user" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -212,7 +245,7 @@ Deno.serve(async (req) => {
       // Don't fail the whole operation if role assignment fails
     }
 
-    console.log("User setup complete:", authData.user.id, "with", orgsToAssign.length, "organization(s)");
+    console.log("User setup complete:", authData.user.id, "with", orgsToAssign.length, "organization(s)", shouldSendInvite ? "(invite sent)" : "(password set)");
 
     return new Response(JSON.stringify({ success: true, user: authData.user }), {
       status: 200,

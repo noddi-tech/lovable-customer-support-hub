@@ -68,8 +68,9 @@ export function useUserManagement() {
         console.error('Failed to log audit action:', error);
       }
 
-      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      // Force immediate refetch to prevent stale data
+      await queryClient.invalidateQueries({ queryKey: ['user-roles'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['all-users'], refetchType: 'all' });
       toast.success('Role assigned successfully');
     },
     onError: (error: any) => {
@@ -114,8 +115,9 @@ export function useUserManagement() {
         console.error('Failed to log audit action:', error);
       }
 
-      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      // Force immediate refetch to prevent stale data
+      await queryClient.invalidateQueries({ queryKey: ['user-roles'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['all-users'], refetchType: 'all' });
       toast.success('Role removed successfully');
     },
     onError: (error: any) => {
