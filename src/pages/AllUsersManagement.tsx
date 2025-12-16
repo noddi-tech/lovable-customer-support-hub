@@ -55,7 +55,7 @@ export default function AllUsersManagement() {
   const [selectedOrg, setSelectedOrg] = useState('');
   const [selectedRole, setSelectedRole] = useState<'admin' | 'agent' | 'user' | 'super_admin'>('user');
   const [showAddExistingDialog, setShowAddExistingDialog] = useState(false);
-  const [existingUserEmail, setExistingUserEmail] = useState('');
+  const [selectedExistingUserId, setSelectedExistingUserId] = useState('');
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -186,22 +186,12 @@ export default function AllUsersManagement() {
 
   // Add existing user to organization mutation
   const addExistingUserMutation = useMutation({
-    mutationFn: async ({ email, orgId, role }: { email: string; orgId: string; role: string }) => {
-      // Find user by email in profiles
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (profileError) throw new Error(profileError.message);
-      if (!profile) throw new Error('No user found with this email. The user may need to be created first.');
-
+    mutationFn: async ({ userId, orgId, role }: { userId: string; orgId: string; role: string }) => {
       // Check if membership already exists
       const { data: existing } = await supabase
         .from('organization_memberships')
         .select('id')
-        .eq('user_id', profile.user_id)
+        .eq('user_id', userId)
         .eq('organization_id', orgId)
         .maybeSingle();
 
@@ -211,7 +201,7 @@ export default function AllUsersManagement() {
       const { error: membershipError } = await supabase
         .from('organization_memberships')
         .insert({
-          user_id: profile.user_id,
+          user_id: userId,
           organization_id: orgId,
           role: role as 'admin' | 'agent' | 'user' | 'super_admin',
           status: 'active',
@@ -219,13 +209,13 @@ export default function AllUsersManagement() {
         });
 
       if (membershipError) throw new Error(membershipError.message);
-      return { email, orgId };
+      return { userId, orgId };
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      toast({ title: "User added to organization", description: `${data.email} has been added.` });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-users-admin'] });
+      toast({ title: "User added to organization" });
       setShowAddExistingDialog(false);
-      setExistingUserEmail('');
+      setSelectedExistingUserId('');
       setSelectedOrg('');
       setSelectedRole('user');
     },
@@ -488,14 +478,19 @@ export default function AllUsersManagement() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div>
-                      <Label htmlFor="existingEmail">User Email</Label>
-                      <Input
-                        id="existingEmail"
-                        type="email"
-                        value={existingUserEmail}
-                        onChange={(e) => setExistingUserEmail(e.target.value)}
-                        placeholder="user@company.com"
-                      />
+                      <Label>User</Label>
+                      <Select value={selectedExistingUserId} onValueChange={setSelectedExistingUserId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users?.map((user) => (
+                            <SelectItem key={user.user_id} value={user.user_id}>
+                              {user.full_name || user.email} ({user.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label>Organization</Label>
@@ -533,12 +528,12 @@ export default function AllUsersManagement() {
                     </Button>
                     <Button
                       onClick={() => {
-                        if (!existingUserEmail || !selectedOrg) {
+                        if (!selectedExistingUserId || !selectedOrg) {
                           toast({ title: "Please fill all fields", variant: "destructive" });
                           return;
                         }
                         addExistingUserMutation.mutate({
-                          email: existingUserEmail,
+                          userId: selectedExistingUserId,
                           orgId: selectedOrg,
                           role: selectedRole,
                         });
