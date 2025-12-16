@@ -134,13 +134,37 @@ Deno.serve(async (req) => {
 
     if (otpError) {
       console.error('[resend-user-invite] OTP error:', otpError);
-      // Try password recovery as fallback
+      
+      // Check if it's a rate limit error
+      if (otpError.status === 429 || otpError.message?.includes('security purposes')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Please wait 60 seconds before sending another invite to this email.',
+            code: 'rate_limit'
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Try password recovery as fallback for other errors
       const { error: recoveryError } = await adminClient.auth.resetPasswordForEmail(email, {
         redirectTo: `${siteUrl}/auth`,
       });
       
       if (recoveryError) {
         console.error('[resend-user-invite] Recovery error:', recoveryError);
+        
+        // Check if recovery also hit rate limit
+        if (recoveryError.status === 429 || recoveryError.message?.includes('security purposes')) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Please wait 60 seconds before sending another invite to this email.',
+              code: 'rate_limit'
+            }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
         return new Response(
           JSON.stringify({ error: recoveryError.message || 'Failed to send invite email' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
