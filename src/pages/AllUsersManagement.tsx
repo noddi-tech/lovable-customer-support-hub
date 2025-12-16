@@ -145,8 +145,16 @@ export default function AllUsersManagement() {
         }
       });
 
-      if (error) throw new Error(error.message || 'Failed to create user');
-      if (!data?.success) throw new Error(data?.error || 'Failed to create user');
+      // Handle function invocation errors - extract message from response body if available
+      if (error) {
+        const errorMessage = error.context?.body?.error || error.message || 'Failed to create user';
+        throw new Error(errorMessage);
+      }
+      
+      // Handle application-level errors from the edge function
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to create user');
+      }
 
       return { user: data.user, userData };
     },
@@ -184,9 +192,14 @@ export default function AllUsersManagement() {
       });
     },
     onError: (error: any) => {
+      const message = error.message || "Please try again.";
+      const isDuplicateEmail = message.includes('already been registered') || message.includes('already exists');
+      
       toast({
-        title: "Failed to create user",
-        description: error.message || "Please try again.",
+        title: isDuplicateEmail ? "User already exists" : "Failed to create user",
+        description: isDuplicateEmail 
+          ? "This email is already registered. Use 'Manage Organizations' from the user's menu (⋮) to add them to another organization."
+          : message,
         variant: "destructive",
       });
     },
