@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
-import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User, Mail } from 'lucide-react';
 import { UserActionMenu } from '@/components/admin/UserActionMenu';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
 import { OrphanedUsersCleanup } from '@/components/admin/OrphanedUsersCleanup';
@@ -52,6 +53,8 @@ export default function AllUsersManagement() {
     full_name: '',
     organizations: [] as OrgMembership[]
   });
+  const [letUserSetPassword, setLetUserSetPassword] = useState(true);
+  const [adminSetPassword, setAdminSetPassword] = useState('');
   const [selectedOrg, setSelectedOrg] = useState('');
   const [selectedRole, setSelectedRole] = useState<'admin' | 'agent' | 'user' | 'super_admin'>('user');
   const [showAddExistingDialog, setShowAddExistingDialog] = useState(false);
@@ -118,7 +121,7 @@ export default function AllUsersManagement() {
         throw new Error("At least one organization is required");
       }
 
-      // Call the secure edge function to create user (sends invite email)
+      // Call the secure edge function to create user
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
         body: {
           email: userData.email,
@@ -127,6 +130,8 @@ export default function AllUsersManagement() {
             org_id: o.org_id, 
             role: o.role 
           })),
+          send_invite: letUserSetPassword,
+          password: letUserSetPassword ? undefined : adminSetPassword,
         }
       });
 
@@ -165,8 +170,10 @@ export default function AllUsersManagement() {
 
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       toast({
-        title: "Invite sent successfully",
-        description: `${variables.full_name} will receive an email to set up their password.`,
+        title: letUserSetPassword ? "Invite sent successfully" : "User created successfully",
+        description: letUserSetPassword 
+          ? `${variables.full_name} will receive an email to set up their password.`
+          : `${variables.full_name} has been created. Share the password securely.`,
       });
       setShowCreateDialog(false);
       setCreateUserData({
@@ -174,6 +181,8 @@ export default function AllUsersManagement() {
         full_name: '',
         organizations: []
       });
+      setLetUserSetPassword(true);
+      setAdminSetPassword('');
     },
     onError: (error: any) => {
       const message = error.message || "Please try again.";
@@ -282,6 +291,15 @@ export default function AllUsersManagement() {
       return;
     }
 
+    if (!letUserSetPassword && adminSetPassword.length < 6) {
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (createUserData.organizations.length === 0) {
       toast({
         title: "Validation Error",
@@ -375,9 +393,43 @@ export default function AllUsersManagement() {
                           required
                         />
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        The user will receive an email invitation to set up their own password.
-                      </p>
+                      
+                      {/* Password toggle */}
+                      <div className="flex items-center space-x-2 py-2">
+                        <Checkbox 
+                          id="letUserSetPassword" 
+                          checked={letUserSetPassword}
+                          onCheckedChange={(checked) => setLetUserSetPassword(!!checked)}
+                        />
+                        <Label htmlFor="letUserSetPassword" className="text-sm font-normal cursor-pointer">
+                          Let user set their own password via email
+                        </Label>
+                      </div>
+
+                      {letUserSetPassword ? (
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                          <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            User will receive an email invitation to set up their own password.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="password">Temporary Password *</Label>
+                          <Input
+                            id="password"
+                            type="password"
+                            value={adminSetPassword}
+                            onChange={(e) => setAdminSetPassword(e.target.value)}
+                            placeholder="Min 6 characters"
+                            required={!letUserSetPassword}
+                            minLength={6}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            User won't receive an email. Share this password with them securely.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3 pt-4 border-t">
