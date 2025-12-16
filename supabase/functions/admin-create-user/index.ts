@@ -12,7 +12,6 @@ interface OrganizationAssignment {
 
 interface CreateUserRequest {
   email: string;
-  password: string;
   full_name: string;
   organizations?: OrganizationAssignment[];
   // Backwards compatibility
@@ -95,10 +94,10 @@ Deno.serve(async (req) => {
     }
 
     // 4. Parse request
-    const { email, password, full_name, organizations, department_id, primary_role }: CreateUserRequest = await req.json();
+    const { email, full_name, organizations, department_id, primary_role }: CreateUserRequest = await req.json();
 
-    if (!email || !password || !full_name) {
-      return new Response(JSON.stringify({ error: "Email, password, and full name are required" }), {
+    if (!email || !full_name) {
+      return new Response(JSON.stringify({ error: "Email and full name are required" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
@@ -123,18 +122,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log("Creating user:", { email, full_name, organizations: orgsToAssign });
+    console.log("Creating user via invite:", { email, full_name, organizations: orgsToAssign });
 
-    // 6. Use service_role client to create user
-    const { data: authData, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name },
+    // 6. Use service_role client to invite user (sends welcome email automatically)
+    const { data: authData, error: createError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+      data: { full_name },
+      redirectTo: `${Deno.env.get('SITE_URL') || 'https://support.noddi.co'}/auth`,
     });
 
     if (createError) {
-      console.error("Error creating user:", createError);
+      console.error("Error inviting user:", createError);
       return new Response(JSON.stringify({ error: createError.message }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },

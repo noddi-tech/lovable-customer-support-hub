@@ -49,7 +49,6 @@ export default function AllUsersManagement() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createUserData, setCreateUserData] = useState({
     email: '',
-    password: '',
     full_name: '',
     organizations: [] as OrgMembership[]
   });
@@ -119,11 +118,10 @@ export default function AllUsersManagement() {
         throw new Error("At least one organization is required");
       }
 
-      // Call the secure edge function to create user
+      // Call the secure edge function to create user (sends invite email)
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
         body: {
           email: userData.email,
-          password: userData.password,
           full_name: userData.full_name,
           organizations: userData.organizations.map(o => ({ 
             org_id: o.org_id, 
@@ -167,13 +165,12 @@ export default function AllUsersManagement() {
 
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       toast({
-        title: "User created successfully",
-        description: `${variables.full_name} has been added to ${variables.organizations.length} organization(s).`,
+        title: "Invite sent successfully",
+        description: `${variables.full_name} will receive an email to set up their password.`,
       });
       setShowCreateDialog(false);
       setCreateUserData({
         email: '',
-        password: '',
         full_name: '',
         organizations: []
       });
@@ -276,10 +273,10 @@ export default function AllUsersManagement() {
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!createUserData.email.trim() || !createUserData.password.trim() || !createUserData.full_name.trim()) {
+    if (!createUserData.email.trim() || !createUserData.full_name.trim()) {
       toast({
         title: "Validation Error",
-        description: "Email, password, and full name are required.",
+        description: "Email and full name are required.",
         variant: "destructive",
       });
       return;
@@ -369,17 +366,6 @@ export default function AllUsersManagement() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="password">Temporary Password *</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={createUserData.password}
-                          onChange={(e) => setCreateUserData(prev => ({ ...prev, password: e.target.value }))}
-                          placeholder="Minimum 6 characters"
-                          required
-                        />
-                      </div>
-                      <div>
                         <Label htmlFor="full_name">Full Name *</Label>
                         <Input
                           id="full_name"
@@ -389,6 +375,9 @@ export default function AllUsersManagement() {
                           required
                         />
                       </div>
+                      <p className="text-sm text-muted-foreground">
+                        The user will receive an email invitation to set up their own password.
+                      </p>
                     </div>
 
                     <div className="space-y-3 pt-4 border-t">
