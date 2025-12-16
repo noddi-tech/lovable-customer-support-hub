@@ -42,7 +42,6 @@ interface Department {
 
 interface CreateUserData {
   email: string;
-  password: string;
   full_name: string;
   department_id: string | null;
   primary_role: 'admin' | 'user';
@@ -53,7 +52,6 @@ export function UserManagement() {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [createUserData, setCreateUserData] = useState<CreateUserData>({
     email: '',
-    password: '',
     full_name: '',
     department_id: null,
     primary_role: 'user'
@@ -111,7 +109,6 @@ export function UserManagement() {
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
         body: {
           email: userData.email,
-          password: userData.password,
           full_name: userData.full_name,
           department_id: userData.department_id,
           primary_role: userData.primary_role,
@@ -144,13 +141,12 @@ export function UserManagement() {
 
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({
-        title: "User created",
-        description: "The user has been created successfully.",
+        title: "Invite sent",
+        description: "The user will receive an email to set up their password.",
       });
       setShowCreateDialog(false);
       setCreateUserData({
         email: '',
-        password: '',
         full_name: '',
         department_id: null,
         primary_role: 'user'
@@ -222,10 +218,10 @@ export function UserManagement() {
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createUserData.email.trim() || !createUserData.password.trim() || !createUserData.full_name.trim()) {
+    if (!createUserData.email.trim() || !createUserData.full_name.trim()) {
       toast({
         title: "Validation Error",
-        description: "Email, password, and full name are required.",
+        description: "Email and full name are required.",
         variant: "destructive",
       });
       return;
@@ -312,17 +308,6 @@ export function UserManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="password">Temporary Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={createUserData.password}
-                  onChange={(e) => setCreateUserData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Temporary password for the user"
-                  required
-                />
-              </div>
-              <div>
                 <Label htmlFor="full_name">Full Name</Label>
                 <Input
                   id="full_name"
@@ -332,6 +317,9 @@ export function UserManagement() {
                   required
                 />
               </div>
+              <p className="text-sm text-muted-foreground">
+                The user will receive an email invitation to set up their own password.
+              </p>
               <div>
                 <Label htmlFor="department">Department</Label>
                 <Select 
