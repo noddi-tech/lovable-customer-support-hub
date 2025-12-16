@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
     const roles = rolesResult.data || [];
 
     console.log(`[admin-get-all-users] Fetched ${profiles.length} profiles, ${memberships.length} memberships, ${roles.length} roles`);
+    console.log('[admin-get-all-users] Roles data:', JSON.stringify(roles.slice(0, 10)));
 
     // Join data by user_id
     const usersWithData = profiles.map(profile => ({

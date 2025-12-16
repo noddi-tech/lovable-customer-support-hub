@@ -95,6 +95,12 @@ export default function AllUsersManagement() {
         throw new Error(data?.error || 'Failed to fetch users');
       }
 
+      // Debug: Log sample user data to check system_roles
+      console.log('[AllUsersManagement] Sample user data:', data.users?.slice(0, 3)?.map((u: any) => ({
+        email: u.email,
+        system_roles: u.system_roles,
+      })));
+
       return data.users || [];
     },
   });
@@ -212,7 +218,7 @@ export default function AllUsersManagement() {
       return { userId, orgId };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-users-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
       toast({ title: "User added to organization" });
       setShowAddExistingDialog(false);
       setSelectedExistingUserId('');
