@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,8 +39,32 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   const [orgsDialogOpen, setOrgsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [inviteHistoryOpen, setInviteHistoryOpen] = useState(false);
+
+  // Prevent accidental double-clicking / rate-limit errors by applying a local 60s cooldown.
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
   const { deleteUser, isDeletingUser, resendInvite, isResendingInvite } = useUserManagement();
   const { user: currentUser } = useAuth();
+
+  useEffect(() => {
+    if (!cooldownUntil) return;
+
+    if (nowMs >= cooldownUntil) {
+      setCooldownUntil(null);
+      return;
+    }
+
+    const t = window.setTimeout(() => setNowMs(Date.now()), 500);
+    return () => window.clearTimeout(t);
+  }, [cooldownUntil, nowMs]);
+
+  const cooldownRemainingSeconds = useMemo(() => {
+    if (!cooldownUntil) return 0;
+    return Math.max(0, Math.ceil((cooldownUntil - nowMs) / 1000));
+  }, [cooldownUntil, nowMs]);
+
+  const isCooldownActive = cooldownRemainingSeconds > 0;
 
   const handleDeleteUser = () => {
     deleteUser(user.user_id);
@@ -48,6 +72,8 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   };
 
   const handleResendInvite = () => {
+    setNowMs(Date.now());
+    setCooldownUntil(Date.now() + 60_000);
     resendInvite(user.email);
   };
 
@@ -67,10 +93,14 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
             <>
               <DropdownMenuItem 
                 onClick={handleResendInvite}
-                disabled={isResendingInvite}
+                disabled={isResendingInvite || isCooldownActive}
               >
                 <Mail className="h-4 w-4 mr-2" />
-                {isResendingInvite ? 'Sending...' : 'Resend Invite Email'}
+                {isResendingInvite
+                  ? 'Sending...'
+                  : isCooldownActive
+                    ? `Resend in ${cooldownRemainingSeconds}s`
+                    : 'Resend Invite Email'}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setInviteHistoryOpen(true)}>
                 <History className="h-4 w-4 mr-2" />
