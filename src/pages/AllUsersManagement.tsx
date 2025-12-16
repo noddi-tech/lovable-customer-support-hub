@@ -1,3 +1,4 @@
+// Force rebuild: 2025-12-16T12:58:00Z
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -588,7 +589,7 @@ export default function AllUsersManagement() {
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{user.full_name || user.email}</p>
                           {/* System roles from user_roles table */}
-                          {user.system_roles?.map((role: string) => {
+                          {(user.system_roles ?? []).map((role: string) => {
                             const roleConfig: Record<string, { icon: any; className: string; label: string }> = {
                               super_admin: { 
                                 icon: Crown, 
