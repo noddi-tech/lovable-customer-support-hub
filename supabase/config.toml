@@ -175,3 +175,6 @@ verify_jwt = true
 
 [functions.admin-cleanup-users]
 verify_jwt = true
+
+[functions.admin-get-all-users]
+verify_jwt = true
