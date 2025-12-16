@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all data using service client (bypasses RLS)
-    const [profilesResult, membershipsResult, rolesResult] = await Promise.all([
+    const [profilesResult, membershipsResult, rolesResult, authUsersResult] = await Promise.all([
       serviceClient
         .from('profiles')
         .select('id, user_id, email, full_name, created_at')
@@ -96,7 +96,9 @@ Deno.serve(async (req) => {
         `),
       serviceClient
         .from('user_roles')
-        .select('user_id, role')
+        .select('user_id, role'),
+      // Fetch auth.users data for login status
+      serviceClient.auth.admin.listUsers()
     ]);
 
     if (profilesResult.error) {
@@ -111,19 +113,34 @@ Deno.serve(async (req) => {
       console.error('[admin-get-all-users] Roles error:', rolesResult.error);
       throw rolesResult.error;
     }
+    if (authUsersResult.error) {
+      console.error('[admin-get-all-users] Auth users error:', authUsersResult.error);
+      // Don't throw - auth data is supplementary, continue without it
+    }
 
     const profiles = profilesResult.data || [];
     const memberships = membershipsResult.data || [];
     const roles = rolesResult.data || [];
+    const authUsers = authUsersResult.data?.users || [];
 
-    console.log(`[admin-get-all-users] Fetched ${profiles.length} profiles, ${memberships.length} memberships, ${roles.length} roles`);
-    console.log('[admin-get-all-users] Roles data:', JSON.stringify(roles.slice(0, 10)));
+    console.log(`[admin-get-all-users] Fetched ${profiles.length} profiles, ${memberships.length} memberships, ${roles.length} roles, ${authUsers.length} auth users`);
+
+    // Map auth data by user id for quick lookup
+    const authDataMap = new Map<string, { last_sign_in_at: string | null; email_confirmed_at: string | null; created_at: string }>();
+    authUsers.forEach((u: any) => {
+      authDataMap.set(u.id, {
+        last_sign_in_at: u.last_sign_in_at,
+        email_confirmed_at: u.email_confirmed_at,
+        created_at: u.created_at,
+      });
+    });
 
     // Join data by user_id
     const usersWithData = profiles.map(profile => ({
       ...profile,
       organization_memberships: memberships.filter(m => m.user_id === profile.user_id),
-      system_roles: roles.filter(r => r.user_id === profile.user_id).map(r => r.role)
+      system_roles: roles.filter(r => r.user_id === profile.user_id).map(r => r.role),
+      auth_data: authDataMap.get(profile.user_id) || null,
     }));
 
     // Filter by organization if specified

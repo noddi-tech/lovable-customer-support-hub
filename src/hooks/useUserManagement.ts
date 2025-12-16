@@ -291,6 +291,33 @@ export function useUserManagement() {
     },
   });
 
+  // Resend invite email to user who hasn't logged in
+  const resendInvite = useMutation({
+    mutationFn: async (email: string) => {
+      const { data, error } = await supabase.functions.invoke('resend-user-invite', {
+        body: { email }
+      });
+
+      if (error) {
+        const errorMessage = error.context?.body?.error || error.message || 'Failed to send invite';
+        throw new Error(errorMessage);
+      }
+      
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to send invite');
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Invite email sent successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error sending invite:', error);
+      toast.error(error.message || 'Failed to send invite');
+    },
+  });
+
   return {
     getUserRoles,
     assignRole: assignRole.mutate,
@@ -298,10 +325,12 @@ export function useUserManagement() {
     updateUser: updateUser.mutate,
     deleteUser: deleteUser.mutate,
     updateMembershipRole: updateMembershipRole.mutate,
+    resendInvite: resendInvite.mutate,
     isAssigningRole: assignRole.isPending,
     isRemovingRole: removeRole.isPending,
     isUpdatingUser: updateUser.isPending,
     isDeletingUser: deleteUser.isPending,
     isUpdatingMembership: updateMembershipRole.isPending,
+    isResendingInvite: resendInvite.isPending,
   };
 }
