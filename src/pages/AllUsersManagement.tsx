@@ -10,13 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User, Mail, AlertCircle, Clock } from 'lucide-react';
+import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User, Mail, AlertCircle, Clock, Send, CheckCircle } from 'lucide-react';
 import { UserActionMenu } from '@/components/admin/UserActionMenu';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
 import { OrphanedUsersCleanup } from '@/components/admin/OrphanedUsersCleanup';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useInviteEmailLogs } from '@/hooks/useInviteEmailLogs';
 import {
   Select,
   SelectContent,
@@ -109,6 +110,16 @@ export default function AllUsersManagement() {
       return data.users || [];
     },
   });
+
+  // Fetch invite email logs for status display
+  const { data: inviteLogs = [] } = useInviteEmailLogs();
+
+  // Helper to get latest invite status for a user email
+  const getInviteStatus = (email: string) => {
+    const userLogs = inviteLogs.filter(log => log.email === email);
+    if (userLogs.length === 0) return null;
+    return userLogs[0]; // Most recent
+  };
 
   const filteredUsers = users.filter((user: any) =>
     (user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -674,10 +685,42 @@ export default function AllUsersManagement() {
                               Last seen {formatDistanceToNow(new Date(user.auth_data.last_sign_in_at))} ago
                             </span>
                           ) : (
-                            <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              Never logged in
-                            </Badge>
+                            <>
+                              <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Never logged in
+                              </Badge>
+                              {/* Invite status */}
+                              {(() => {
+                                const inviteStatus = getInviteStatus(user.email);
+                                if (!inviteStatus) return null;
+                                if (inviteStatus.status === 'sent') {
+                                  return (
+                                    <Badge variant="secondary" className="text-xs">
+                                      <Send className="h-3 w-3 mr-1" />
+                                      Invite sent {formatDistanceToNow(new Date(inviteStatus.created_at))} ago
+                                    </Badge>
+                                  );
+                                }
+                                if (inviteStatus.status === 'bounced' || inviteStatus.status === 'failed') {
+                                  return (
+                                    <Badge variant="destructive" className="text-xs">
+                                      <AlertCircle className="h-3 w-3 mr-1" />
+                                      Email {inviteStatus.status}
+                                    </Badge>
+                                  );
+                                }
+                                if (inviteStatus.status === 'delivered') {
+                                  return (
+                                    <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Delivered
+                                    </Badge>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">{user.email}</p>

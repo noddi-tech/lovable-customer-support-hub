@@ -978,6 +978,56 @@ export type Database = {
           },
         ]
       }
+      invite_email_logs: {
+        Row: {
+          created_at: string | null
+          email: string
+          email_type: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+          provider: string
+          sent_by_id: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          provider?: string
+          sent_by_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          provider?: string
+          sent_by_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_email_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_entries: {
         Row: {
           acceptance_count: number | null

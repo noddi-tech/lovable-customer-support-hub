@@ -247,6 +247,24 @@ Deno.serve(async (req) => {
 
     console.log("User setup complete:", authData.user.id, "with", orgsToAssign.length, "organization(s)", shouldSendInvite ? "(invite sent)" : "(password set)");
 
+    // 10. Log the invite email attempt
+    try {
+      await adminClient.from('invite_email_logs').insert({
+        user_id: authData.user.id,
+        email: email,
+        email_type: shouldSendInvite ? 'invite' : 'direct_creation',
+        status: shouldSendInvite ? 'sent' : 'not_applicable',
+        provider: 'supabase_auth',
+        sent_by_id: requestingUser.id,
+        organization_id: primaryOrg.org_id,
+        metadata: { full_name, organizations: orgsToAssign.map(o => ({ org_id: o.org_id, role: o.role })) },
+      });
+      console.log("Invite email logged for:", email);
+    } catch (logError) {
+      console.error("Error logging invite email:", logError);
+      // Don't fail the operation if logging fails
+    }
+
     return new Response(JSON.stringify({ success: true, user: authData.user }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
