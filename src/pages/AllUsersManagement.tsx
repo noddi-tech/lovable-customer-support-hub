@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
-import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield } from 'lucide-react';
+import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User } from 'lucide-react';
 import { UserActionMenu } from '@/components/admin/UserActionMenu';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
 import { OrphanedUsersCleanup } from '@/components/admin/OrphanedUsersCleanup';
@@ -621,18 +621,41 @@ export default function AllUsersManagement() {
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{user.full_name || user.email}</p>
                           {/* System roles from user_roles table */}
-                          {user.system_roles?.includes('super_admin') && (
-                            <Badge className="text-xs bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30">
-                              <Crown className="h-3 w-3 mr-1" />
-                              Super Admin
-                            </Badge>
-                          )}
-                          {user.system_roles?.includes('admin') && !user.system_roles?.includes('super_admin') && (
-                            <Badge className="text-xs bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30">
-                              <Shield className="h-3 w-3 mr-1" />
-                              Admin
-                            </Badge>
-                          )}
+                          {user.system_roles?.map((role: string) => {
+                            const roleConfig: Record<string, { icon: any; className: string; label: string }> = {
+                              super_admin: { 
+                                icon: Crown, 
+                                className: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
+                                label: 'Super Admin'
+                              },
+                              admin: { 
+                                icon: Shield, 
+                                className: 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30',
+                                label: 'Admin'
+                              },
+                              agent: { 
+                                icon: UserCheck, 
+                                className: 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30',
+                                label: 'Agent'
+                              },
+                              user: { 
+                                icon: User, 
+                                className: 'bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-500/30',
+                                label: 'User'
+                              },
+                            };
+                            
+                            const config = roleConfig[role];
+                            if (!config) return null;
+                            
+                            const Icon = config.icon;
+                            return (
+                              <Badge key={role} className={`text-xs ${config.className}`}>
+                                <Icon className="h-3 w-3 mr-1" />
+                                {config.label}
+                              </Badge>
+                            );
+                          })}
                         </div>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
