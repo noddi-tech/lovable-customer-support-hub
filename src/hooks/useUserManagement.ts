@@ -299,7 +299,16 @@ export function useUserManagement() {
       });
 
       if (error) {
-        const errorMessage = error.context?.body?.error || error.message || 'Failed to send invite';
+        // Try to parse the error body for rate limit messages
+        let errorMessage = 'Failed to send invite';
+        try {
+          const errorBody = typeof error.context?.body === 'string' 
+            ? JSON.parse(error.context.body) 
+            : error.context?.body;
+          errorMessage = errorBody?.error || error.message || errorMessage;
+        } catch {
+          errorMessage = error.message || errorMessage;
+        }
         throw new Error(errorMessage);
       }
       
@@ -310,6 +319,7 @@ export function useUserManagement() {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invite-email-logs'] });
       toast.success('Invite email sent successfully');
     },
     onError: (error: any) => {
