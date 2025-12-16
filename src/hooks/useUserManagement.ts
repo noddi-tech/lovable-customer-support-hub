@@ -301,26 +301,47 @@ export function useUserManagement() {
       if (error) {
         // error.context is a Response object - need to call json() to extract body
         let errorMessage = 'Failed to send invite';
+        let errorCode: string | undefined;
+        let status: number | undefined;
+
         try {
-          if (error.context && typeof error.context.json === 'function') {
-            const errorBody = await error.context.json();
+          status = (error.context as any)?.status;
+
+          if (error.context && typeof (error.context as any).json === 'function') {
+            const errorBody = await (error.context as any).json();
             errorMessage = errorBody?.error || error.message || errorMessage;
+            errorCode = errorBody?.code;
           } else {
             errorMessage = error.message || errorMessage;
           }
         } catch {
           errorMessage = error.message || errorMessage;
         }
+
+        // Rate limit is expected behavior from Supabase Auth; surface it without treating it as a hard error.
+        if (status === 429 || errorCode === 'rate_limit') {
+          return {
+            success: false,
+            code: 'rate_limit',
+            error: errorMessage,
+          };
+        }
+
         throw new Error(errorMessage);
       }
-      
+
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to send invite');
       }
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
+      if (result?.success === false && result?.code === 'rate_limit') {
+        toast.error(result?.error || 'Please wait before sending another invite.');
+        return;
+      }
+
       queryClient.invalidateQueries({ queryKey: ['invite-email-logs'] });
       toast.success('Invite email sent successfully');
     },
