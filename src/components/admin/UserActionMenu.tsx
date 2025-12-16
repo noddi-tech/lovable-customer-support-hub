@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Shield, Building2, Trash2, UserX } from 'lucide-react';
+import { MoreVertical, Shield, Building2, Trash2, Mail } from 'lucide-react';
 import { ManageUserRolesDialog } from './ManageUserRolesDialog';
 import { ManageUserOrganizationsDialog } from './ManageUserOrganizationsDialog';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
@@ -25,6 +25,11 @@ interface UserActionMenuProps {
       role: string;
       organization?: { id: string; name: string };
     }>;
+    auth_data?: {
+      last_sign_in_at: string | null;
+      email_confirmed_at: string | null;
+      created_at: string;
+    } | null;
   };
 }
 
@@ -32,7 +37,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [orgsDialogOpen, setOrgsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const { deleteUser, isDeletingUser } = useUserManagement();
+  const { deleteUser, isDeletingUser, resendInvite, isResendingInvite } = useUserManagement();
   const { user: currentUser } = useAuth();
 
   const handleDeleteUser = () => {
@@ -40,7 +45,12 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
     setDeleteDialogOpen(false);
   };
 
+  const handleResendInvite = () => {
+    resendInvite(user.email);
+  };
+
   const isSelf = currentUser?.id === user.user_id;
+  const hasNeverLoggedIn = !user.auth_data?.last_sign_in_at;
 
   return (
     <>
@@ -51,6 +61,18 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {hasNeverLoggedIn && (
+            <>
+              <DropdownMenuItem 
+                onClick={handleResendInvite}
+                disabled={isResendingInvite}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {isResendingInvite ? 'Sending...' : 'Resend Invite Email'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem onClick={() => setRolesDialogOpen(true)}>
             <Shield className="h-4 w-4 mr-2" />
             Manage Roles

@@ -1,5 +1,6 @@
-// Force rebuild: 2025-12-16T12:58:00Z
+// Force rebuild: 2025-12-16T14:30:00Z
 import React, { useState, useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Heading } from '@/components/ui/heading';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User, Mail } from 'lucide-react';
+import { Crown, Users, Search, Building2, RefreshCw, Activity, UserPlus, X, UserCog, Shield, UserCheck, User, Mail, AlertCircle, Clock } from 'lucide-react';
 import { UserActionMenu } from '@/components/admin/UserActionMenu';
 import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
 import { OrphanedUsersCleanup } from '@/components/admin/OrphanedUsersCleanup';
@@ -666,6 +667,18 @@ export default function AllUsersManagement() {
                               </Badge>
                             );
                           })}
+                          {/* Login status indicator */}
+                          {user.auth_data?.last_sign_in_at ? (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Last seen {formatDistanceToNow(new Date(user.auth_data.last_sign_in_at))} ago
+                            </span>
+                          ) : (
+                            <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Never logged in
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
