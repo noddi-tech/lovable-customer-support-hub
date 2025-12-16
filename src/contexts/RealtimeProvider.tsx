@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { useSimpleRealtimeSubscriptions, ConnectionStatus } from '@/hooks/useSimpleRealtimeSubscriptions';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 interface RealtimeContextValue {
@@ -33,6 +34,8 @@ const REALTIME_CONFIGS: Array<{ table: string; queryKey: string }> = [
 ];
 
 export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const queryClient = useQueryClient();
+  
   // Single subscription point for the entire app
   // Subscribes to ALL critical tables that need real-time updates
   const { isConnected, connectionStatus, forceReconnect } = useSimpleRealtimeSubscriptions(
@@ -70,6 +73,29 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
   const memoizedForceReconnect = useCallback(() => {
     forceReconnect();
   }, [forceReconnect]);
+
+  // Handle tab visibility changes - reconnect and refresh data when tab becomes active
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[Realtime] Tab became visible, checking connection...');
+        
+        // Force reconnect if not connected
+        if (connectionStatus !== 'connected') {
+          console.log('[Realtime] Connection not active, forcing reconnect...');
+          memoizedForceReconnect();
+        }
+        
+        // Invalidate critical queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['messages'] });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [connectionStatus, memoizedForceReconnect, queryClient]);
 
   return (
     <RealtimeContext.Provider value={{ isConnected, connectionStatus, forceReconnect: memoizedForceReconnect }}>
