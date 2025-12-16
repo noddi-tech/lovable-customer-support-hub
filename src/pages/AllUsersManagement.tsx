@@ -81,6 +81,7 @@ export default function AllUsersManagement() {
     queryKey: ['all-users', orgFilter],
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache (formerly cacheTime)
+    refetchOnMount: 'always', // Force fresh fetch, override persisted cache
     queryFn: async () => {
       // Use edge function to bypass RLS and fetch all user data
       const { data, error } = await supabase.functions.invoke('admin-get-all-users', {
