@@ -5,10 +5,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface OrganizationAssignment {
+  org_id: string;
+  role: string;
+}
+
 interface CreateUserRequest {
   email: string;
   password: string;
   full_name: string;
+  organizations?: OrganizationAssignment[];
+  // Backwards compatibility
   department_id?: string | null;
   primary_role?: string;
 }
@@ -61,7 +68,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    const isSuperAdmin = roles?.some(r => r.role === 'super_admin');
     const hasAdminRole = roles?.some(r => r.role === 'admin' || r.role === 'super_admin');
+    
     if (!hasAdminRole) {
       console.log("User does not have admin role:", requestingUser.id, roles);
       return new Response(JSON.stringify({ error: "Forbidden: Admin privileges required" }), {
@@ -70,7 +79,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Get the requesting user's organization
+    // 3. Get the requesting user's organization (for backwards compat and non-super-admin validation)
     const { data: requestingProfile, error: profileFetchError } = await adminClient
       .from("profiles")
       .select("organization_id")
@@ -86,7 +95,7 @@ Deno.serve(async (req) => {
     }
 
     // 4. Parse request
-    const { email, password, full_name, department_id, primary_role }: CreateUserRequest = await req.json();
+    const { email, password, full_name, organizations, department_id, primary_role }: CreateUserRequest = await req.json();
 
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Email, password, and full name are required" }), {
@@ -95,9 +104,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log("Creating user:", { email, full_name, department_id, primary_role });
+    // 5. Determine organizations to assign
+    let orgsToAssign: OrganizationAssignment[] = organizations || [];
 
-    // 5. Use service_role client to create user
+    // Backwards compatibility: if no organizations provided, use requesting admin's org
+    if (orgsToAssign.length === 0) {
+      orgsToAssign = [{ org_id: requestingProfile.organization_id, role: primary_role || 'user' }];
+    }
+
+    // Non-super-admins can only assign users to their own organization
+    if (!isSuperAdmin) {
+      orgsToAssign = orgsToAssign.filter(o => o.org_id === requestingProfile.organization_id);
+      if (orgsToAssign.length === 0) {
+        return new Response(JSON.stringify({ error: "You can only add users to your own organization" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
+    console.log("Creating user:", { email, full_name, organizations: orgsToAssign });
+
+    // 6. Use service_role client to create user
     const { data: authData, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -122,17 +150,20 @@ Deno.serve(async (req) => {
 
     console.log("User created:", authData.user.id);
 
-    // 6. Update profile with additional data (profile is created by trigger)
+    // 7. Update profile with additional data (profile is created by trigger)
     // Wait a bit for the trigger to create the profile
     await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Use the first organization as the primary one for the profile
+    const primaryOrg = orgsToAssign[0];
 
     const { error: updateError } = await adminClient
       .from("profiles")
       .update({
         full_name,
         department_id: department_id || null,
-        primary_role: primary_role || 'user',
-        organization_id: requestingProfile.organization_id,
+        primary_role: primaryOrg.role as any,
+        organization_id: primaryOrg.org_id,
       })
       .eq("user_id", authData.user.id);
 
@@ -141,29 +172,37 @@ Deno.serve(async (req) => {
       // Don't fail the whole operation if profile update fails
     }
 
-    // 7. Create organization membership
-    const { error: membershipError } = await adminClient
-      .from("organization_memberships")
-      .insert({
-        user_id: authData.user.id,
-        organization_id: requestingProfile.organization_id,
-        role: primary_role || 'user',
-        status: 'active',
-        is_default: true,
-        joined_at: new Date().toISOString(),
-      });
+    // 8. Create organization memberships for ALL specified organizations
+    for (let i = 0; i < orgsToAssign.length; i++) {
+      const org = orgsToAssign[i];
+      const { error: membershipError } = await adminClient
+        .from("organization_memberships")
+        .insert({
+          user_id: authData.user.id,
+          organization_id: org.org_id,
+          role: org.role,
+          status: 'active',
+          is_default: i === 0, // First org is default
+          joined_at: new Date().toISOString(),
+        });
 
-    if (membershipError) {
-      console.error("Error creating organization membership:", membershipError);
-      // Don't fail the whole operation if membership creation fails
+      if (membershipError) {
+        console.error("Error creating organization membership:", membershipError);
+        // Continue with other memberships
+      }
     }
 
-    // 8. Assign role in user_roles table
+    // 9. Assign role in user_roles table based on highest role
+    const roleHierarchy = ['super_admin', 'admin', 'agent', 'user'];
+    const highestRole = orgsToAssign
+      .map(o => o.role)
+      .sort((a, b) => roleHierarchy.indexOf(a) - roleHierarchy.indexOf(b))[0] || 'user';
+
     const { error: roleError } = await adminClient
       .from("user_roles")
       .insert({
         user_id: authData.user.id,
-        role: primary_role || 'user',
+        role: highestRole,
         created_by_id: requestingUser.id,
       });
 
@@ -172,7 +211,7 @@ Deno.serve(async (req) => {
       // Don't fail the whole operation if role assignment fails
     }
 
-    console.log("User setup complete:", authData.user.id);
+    console.log("User setup complete:", authData.user.id, "with", orgsToAssign.length, "organization(s)");
 
     return new Response(JSON.stringify({ success: true, user: authData.user }), {
       status: 200,

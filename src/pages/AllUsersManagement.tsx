@@ -132,34 +132,23 @@ export default function AllUsersManagement() {
         throw new Error("At least one organization is required");
       }
 
-      // Create the auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: userData.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: userData.full_name
+      // Call the secure edge function to create user
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: userData.email,
+          password: userData.password,
+          full_name: userData.full_name,
+          organizations: userData.organizations.map(o => ({ 
+            org_id: o.org_id, 
+            role: o.role 
+          })),
         }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Failed to create user");
+      if (error) throw new Error(error.message || 'Failed to create user');
+      if (!data?.success) throw new Error(data?.error || 'Failed to create user');
 
-      // Create organization memberships
-      const memberships = userData.organizations.map(org => ({
-        user_id: authData.user.id,
-        organization_id: org.org_id,
-        role: org.role,
-        status: 'active'
-      }));
-
-      const { error: membershipError } = await supabase
-        .from('organization_memberships')
-        .insert(memberships);
-
-      if (membershipError) throw membershipError;
-
-      return { user: authData.user, userData };
+      return { user: data.user, userData };
     },
     onSuccess: async (data, variables) => {
       try {
