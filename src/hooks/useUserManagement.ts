@@ -299,13 +299,15 @@ export function useUserManagement() {
       });
 
       if (error) {
-        // Try to parse the error body for rate limit messages
+        // error.context is a Response object - need to call json() to extract body
         let errorMessage = 'Failed to send invite';
         try {
-          const errorBody = typeof error.context?.body === 'string' 
-            ? JSON.parse(error.context.body) 
-            : error.context?.body;
-          errorMessage = errorBody?.error || error.message || errorMessage;
+          if (error.context && typeof error.context.json === 'function') {
+            const errorBody = await error.context.json();
+            errorMessage = errorBody?.error || error.message || errorMessage;
+          } else {
+            errorMessage = error.message || errorMessage;
+          }
         } catch {
           errorMessage = error.message || errorMessage;
         }
