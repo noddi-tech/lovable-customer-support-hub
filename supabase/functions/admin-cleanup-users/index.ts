@@ -121,27 +121,44 @@ Deno.serve(async (req) => {
 
         console.log(`Deleting ${user_ids.length} orphaned users...`);
         
-        const results = { deleted: [] as string[], errors: [] as { id: string; error: string }[] };
+        const results = { 
+          deleted: [] as string[], 
+          already_deleted: [] as string[],
+          errors: [] as { id: string; error: string }[] 
+        };
 
         for (const userId of user_ids) {
           try {
             const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
             if (deleteError) {
-              results.errors.push({ id: userId, error: deleteError.message });
+              // Treat "user not found" as already deleted (success)
+              if (deleteError.message?.toLowerCase().includes('not found') || 
+                  deleteError.message?.toLowerCase().includes('user not found') ||
+                  (deleteError as any).status === 404) {
+                results.already_deleted.push(userId);
+              } else {
+                results.errors.push({ id: userId, error: deleteError.message });
+              }
             } else {
               results.deleted.push(userId);
             }
           } catch (e) {
-            results.errors.push({ id: userId, error: String(e) });
+            const errMsg = String(e).toLowerCase();
+            if (errMsg.includes('not found') || errMsg.includes('404')) {
+              results.already_deleted.push(userId);
+            } else {
+              results.errors.push({ id: userId, error: String(e) });
+            }
           }
         }
 
-        console.log(`Deleted ${results.deleted.length} users, ${results.errors.length} errors`);
+        console.log(`Deleted ${results.deleted.length} users, ${results.already_deleted.length} already deleted, ${results.errors.length} errors`);
 
         return new Response(
           JSON.stringify({ 
             success: true, 
             deleted_count: results.deleted.length,
+            already_deleted_count: results.already_deleted.length,
             error_count: results.errors.length,
             errors: results.errors
           }),
