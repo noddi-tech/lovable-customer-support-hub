@@ -42,6 +42,8 @@ export function OrphanedUsersCleanup() {
         total_profiles: number;
       };
     },
+    staleTime: 0, // Never use stale data for this sensitive operation
+    refetchOnMount: 'always', // Always fetch fresh data when component mounts
   });
 
   const deleteMutation = useMutation({
@@ -57,9 +59,16 @@ export function OrphanedUsersCleanup() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['orphaned-users'] });
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      
+      // Build descriptive message
+      const parts: string[] = [];
+      if (result.deleted_count > 0) parts.push(`${result.deleted_count} deleted`);
+      if (result.already_deleted_count > 0) parts.push(`${result.already_deleted_count} already removed`);
+      if (result.error_count > 0) parts.push(`${result.error_count} errors`);
+      
       toast({
         title: 'Cleanup complete',
-        description: `Deleted ${result.deleted_count} orphaned users. ${result.error_count > 0 ? `${result.error_count} errors.` : ''}`,
+        description: parts.length > 0 ? parts.join(', ') : 'No changes needed',
       });
     },
     onError: (error: any) => {
