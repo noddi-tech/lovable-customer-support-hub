@@ -75,14 +75,36 @@ export const getImageErrorStats = (): ImageErrorBucket => {
  */
 export const createBlobUrl = async (attachment: EmailAttachment, messageId?: string): Promise<string | null> => {
   try {
-    const response = await fetch(
-      `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}`
-    );
+    let fetchUrl: string;
+    
+    // Use storageKey for Supabase Storage attachments (new method)
+    if (attachment.storageKey) {
+      fetchUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`;
+      console.log('[EmailRender] Fetching from storage:', attachment.storageKey);
+    } 
+    // Fall back to contentId lookup
+    else if (attachment.contentId) {
+      const cleanCid = attachment.contentId.replace(/[<>]/g, '');
+      fetchUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${cleanCid}?messageId=${messageId || ''}`;
+      console.log('[EmailRender] Fetching by contentId:', cleanCid);
+    }
+    // Legacy: use attachmentId
+    else if (attachment.attachmentId) {
+      fetchUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}`;
+      console.log('[EmailRender] Fetching by attachmentId:', attachment.attachmentId);
+    }
+    else {
+      console.warn('[EmailRender] No storageKey, contentId, or attachmentId for attachment:', attachment.filename);
+      return null;
+    }
+    
+    const response = await fetch(fetchUrl);
     
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
         logImageError('auth-required', attachment.filename);
       }
+      console.warn('[EmailRender] Failed to fetch attachment:', response.status, attachment.filename);
       return null;
     }
     
@@ -90,6 +112,7 @@ export const createBlobUrl = async (attachment: EmailAttachment, messageId?: str
     const blobUrl = URL.createObjectURL(blob);
     createdObjectUrls.add(blobUrl);
     
+    console.log('[EmailRender] Created blob URL for:', attachment.filename);
     return blobUrl;
   } catch (error) {
     console.error('[EmailRender] Failed to create blob URL:', error);
