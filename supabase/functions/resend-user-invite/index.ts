@@ -89,46 +89,13 @@ Deno.serve(async (req) => {
     // Get site URL for redirect
     const siteUrl = Deno.env.get('SITE_URL') || 'https://support.noddi.co';
 
-    // Generate a magic link for the user to set up their account
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-      options: {
-        redirectTo: `${siteUrl}/auth`,
-      },
-    });
-
-    if (linkError) {
-      console.error('[resend-user-invite] Generate link error:', linkError);
-      return new Response(
-        JSON.stringify({ error: linkError.message || 'Failed to generate invite link' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // The magic link is generated but we need to send the email
-    // Use inviteUserByEmail which sends the email automatically
-    // But that only works for new users, so we use generateLink + custom email or 
-    // simply use the password recovery flow which sends an email
-    
-    // Actually, let's use the password recovery flow which sends an email to set password
-    const { error: resetError } = await adminClient.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-      options: {
-        redirectTo: `${siteUrl}/auth`,
-      },
-    });
-
-    // generateLink doesn't send email, we need to use resetPasswordForEmail
-    // But that requires the user to exist. Let's try a different approach.
-    
-    // Use the OTP sending endpoint which sends an email
+    // ONLY use signInWithOtp - this is the ONE API call that actually sends the email
+    // Previously we had 3 calls (generateLink x2 + signInWithOtp) which exhausted the rate limit
     const { error: otpError } = await adminClient.auth.signInWithOtp({
       email: email,
       options: {
         emailRedirectTo: `${siteUrl}/auth`,
-        shouldCreateUser: false, // Don't create new user, just send login link
+        shouldCreateUser: false, // Don't create new user, just send login link to existing user
       },
     });
 
@@ -187,7 +154,7 @@ Deno.serve(async (req) => {
         status: 'sent',
         provider: 'supabase_auth',
         sent_by_id: user.id,
-        metadata: { resent_by: user.email, method: otpError ? 'recovery' : 'otp' },
+        metadata: { resent_by: user.email, method: 'otp' },
       });
       console.log('[resend-user-invite] Invite logged for:', email);
     } catch (logError) {
