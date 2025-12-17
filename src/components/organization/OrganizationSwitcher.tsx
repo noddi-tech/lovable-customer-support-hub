@@ -7,9 +7,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2 } from "lucide-react";
+import { Building2, Globe } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 export function OrganizationSwitcher() {
   const { memberships, isSuperAdmin } = useAuth();
@@ -57,32 +58,73 @@ export function OrganizationSwitcher() {
     return null;
   }
 
+  // Determine if we're viewing a filtered (specific org) vs all orgs
+  const isFiltered = currentOrganizationId !== null && currentOrganizationId !== 'all';
+
   const getCurrentOrgName = () => {
+    if (!currentOrganizationId || currentOrganizationId === 'all') {
+      return 'All Organizations';
+    }
     const org = organizations.find(o => o.id === currentOrganizationId);
     return org?.name || 'Select Organization';
   };
 
+  const handleOrgChange = (value: string) => {
+    if (value === 'all') {
+      // Clear organization filter to show all
+      setCurrentOrganization(null as any, isSuperAdmin);
+    } else {
+      setCurrentOrganization(value, isSuperAdmin);
+    }
+  };
+
   return (
     <div className="flex items-center gap-2 px-3 py-2">
-      <Building2 className="h-4 w-4 text-muted-foreground" />
+      {isFiltered ? (
+        <Building2 className="h-4 w-4 text-amber-500" />
+      ) : (
+        <Globe className="h-4 w-4 text-muted-foreground" />
+      )}
       <Select
-        value={currentOrganizationId || undefined}
-        onValueChange={(value) => setCurrentOrganization(value, isSuperAdmin)}
+        value={currentOrganizationId || 'all'}
+        onValueChange={handleOrgChange}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger 
+          className={cn(
+            "w-[200px]",
+            isFiltered && "border-amber-500/50 bg-amber-500/10"
+          )}
+        >
           <SelectValue placeholder="Select organization">
             {getCurrentOrgName()}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
+          {/* All Organizations option - only for Super Admins */}
+          {isSuperAdmin && (
+            <SelectItem value="all">
+              <span className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                All Organizations
+              </span>
+            </SelectItem>
+          )}
           {organizations.map((org) => (
             <SelectItem key={org.id} value={org.id}>
-              {org.name}
+              <span className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                {org.name}
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      {isSuperAdmin && (
+      {isFiltered && (
+        <span className="text-xs text-amber-600 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+          Filtered
+        </span>
+      )}
+      {isSuperAdmin && !isFiltered && (
         <span className="text-xs text-muted-foreground px-2 py-1 bg-primary/10 rounded">
           Super Admin
         </span>
