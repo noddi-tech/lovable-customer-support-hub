@@ -35,10 +35,17 @@ interface UserActionMenuProps {
 }
 
 export function UserActionMenu({ user }: UserActionMenuProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [orgsDialogOpen, setOrgsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [inviteHistoryOpen, setInviteHistoryOpen] = useState(false);
+
+  // Helper to safely open a dialog - closes dropdown first to avoid focus conflict
+  const openDialogSafely = (setDialogOpen: (open: boolean) => void) => {
+    setDropdownOpen(false);
+    setTimeout(() => setDialogOpen(true), 100);
+  };
 
   // Prevent accidental double-clicking / rate-limit errors by applying a local 60s cooldown.
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
@@ -82,7 +89,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
             <MoreVertical className="h-4 w-4" />
@@ -102,24 +109,24 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
                     ? `Resend in ${cooldownRemainingSeconds}s`
                     : 'Resend Invite Email'}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setInviteHistoryOpen(true)}>
+              <DropdownMenuItem onClick={() => openDialogSafely(setInviteHistoryOpen)}>
                 <History className="h-4 w-4 mr-2" />
                 View Invite History
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
           )}
-          <DropdownMenuItem onClick={() => setRolesDialogOpen(true)}>
+          <DropdownMenuItem onClick={() => openDialogSafely(setRolesDialogOpen)}>
             <Shield className="h-4 w-4 mr-2" />
             Manage Roles
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setOrgsDialogOpen(true)}>
+          <DropdownMenuItem onClick={() => openDialogSafely(setOrgsDialogOpen)}>
             <Building2 className="h-4 w-4 mr-2" />
             Manage Organizations
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={() => setDeleteDialogOpen(true)}
+            onClick={() => openDialogSafely(setDeleteDialogOpen)}
             disabled={isSelf}
             className="text-destructive focus:text-destructive"
           >
