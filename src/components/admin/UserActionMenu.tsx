@@ -79,6 +79,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
   };
 
   const handleResendInvite = () => {
+    setDropdownOpen(false); // Close dropdown first to avoid focus issues
     setNowMs(Date.now());
     setCooldownUntil(Date.now() + 60_000);
     resendInvite(user.email);
