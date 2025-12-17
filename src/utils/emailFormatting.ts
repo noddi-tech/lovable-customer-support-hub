@@ -303,7 +303,13 @@ export const sanitizeEmailHTML = (
       const assetInfo = byContentId.get(normalizedCid);
       
       if (assetInfo) {
-        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}`;
+        // Prefer storageKey for Supabase Storage, fall back to contentId lookup
+        let attachmentUrl: string;
+        if (assetInfo.attachment.storageKey) {
+          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
+        } else {
+          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${normalizedCid}?messageId=${messageId || ''}`;
+        }
         console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}"`;
       }
@@ -328,7 +334,15 @@ export const sanitizeEmailHTML = (
       const assetInfo = byContentLocation.get(normalizedLocation);
       
       if (assetInfo) {
-        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}`;
+        // Prefer storageKey for Supabase Storage
+        let attachmentUrl: string;
+        if (assetInfo.attachment.storageKey) {
+          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
+        } else if (assetInfo.attachment.attachmentId) {
+          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}`;
+        } else {
+          return match;
+        }
         console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}"`;
       }
