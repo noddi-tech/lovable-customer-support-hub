@@ -70,15 +70,17 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   const presenceContext = useConversationPresenceSafe();
   const trackConversation = presenceContext?.trackConversation;
   const untrackConversation = presenceContext?.untrackConversation;
+  const isPresenceConnected = presenceContext?.isConnected;
   
   useEffect(() => {
-    if (trackConversation && conversationId) {
+    // Only track when channel is connected AND we have a conversation ID
+    if (trackConversation && conversationId && isPresenceConnected) {
       trackConversation(conversationId);
       return () => {
         untrackConversation?.();
       };
     }
-  }, [conversationId, trackConversation, untrackConversation]);
+  }, [conversationId, trackConversation, untrackConversation, isPresenceConnected]);
 
   // Enable keyboard shortcuts for status changes
   useConversationShortcuts();
