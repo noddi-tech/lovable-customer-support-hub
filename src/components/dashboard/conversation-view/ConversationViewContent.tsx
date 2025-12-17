@@ -73,10 +73,18 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   const isPresenceConnected = presenceContext?.isConnected;
   
   useEffect(() => {
+    console.log('[ConversationView] Presence tracking effect:', { 
+      conversationId, 
+      hasTrackFn: !!trackConversation, 
+      isConnected: isPresenceConnected 
+    });
+    
     // Only track when channel is connected AND we have a conversation ID
     if (trackConversation && conversationId && isPresenceConnected) {
+      console.log('[ConversationView] Calling trackConversation for:', conversationId);
       trackConversation(conversationId);
       return () => {
+        console.log('[ConversationView] Cleanup: untracking conversation');
         untrackConversation?.();
       };
     }

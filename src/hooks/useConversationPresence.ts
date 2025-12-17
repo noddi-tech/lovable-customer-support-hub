@@ -37,9 +37,13 @@ export function useConversationPresence(organizationId?: string): UseConversatio
 
   // Fetch current user's profile for presence data
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      logger.debug('No user ID, skipping profile fetch', undefined, 'Presence');
+      return;
+    }
 
     const fetchProfile = async () => {
+      logger.debug('Fetching profile for user', { userId: user.id }, 'Presence');
       const { data, error } = await supabase
         .from('profiles')
         .select('user_id, full_name, avatar_url, email')
@@ -47,7 +51,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
         .single();
 
       if (error) {
-        console.error('[Presence] Error fetching profile:', error);
+        logger.error('Error fetching profile', error, 'Presence');
         return;
       }
 
@@ -61,65 +65,23 @@ export function useConversationPresence(organizationId?: string): UseConversatio
           entered_at: new Date().toISOString(),
         };
         
+        logger.debug('Profile fetched successfully', { 
+          userId: newProfile.user_id, 
+          fullName: newProfile.full_name 
+        }, 'Presence');
+        
         // Only update state if profile user_id changed (avoid reference changes)
         if (!currentUserProfileRef.current || currentUserProfileRef.current.user_id !== newProfile.user_id) {
           currentUserProfileRef.current = newProfile;
           isProfileReadyRef.current = true;
           setCurrentUserProfile(newProfile);
+          logger.debug('Profile state updated', undefined, 'Presence');
         }
       }
     };
 
     fetchProfile();
   }, [user?.id]);
-
-  // Set up presence channel - only depends on organizationId
-  useEffect(() => {
-    if (!organizationId || !isProfileReadyRef.current || !currentUserProfileRef.current) return;
-
-    const profile = currentUserProfileRef.current;
-    const channelName = `presence:org-${organizationId}`;
-
-    const channel = supabase.channel(channelName, {
-      config: {
-        presence: {
-          key: profile.user_id,
-        },
-      },
-    });
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<PresenceUser>();
-        updateViewersMap(state);
-      })
-      .on('presence', { event: 'join' }, () => {})
-      .on('presence', { event: 'leave' }, () => {})
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsConnected(true);
-          // Track initial state using ref
-          const currentProfile = currentUserProfileRef.current;
-          if (currentProfile) {
-            await channel.track({
-              ...currentProfile,
-              conversation_id: currentConversationRef.current,
-              entered_at: new Date().toISOString(),
-            });
-          }
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          setIsConnected(false);
-        }
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      channel.unsubscribe();
-      channelRef.current = null;
-      setIsConnected(false);
-    };
-  }, [organizationId, currentUserProfile]); // Keep currentUserProfile to trigger on first load only
 
   const updateViewersMap = useCallback((state: PresenceState) => {
     const newMap = new Map<string, PresenceUser[]>();
@@ -141,34 +103,143 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     setViewersMap(newMap);
   }, []);
 
+  // Set up presence channel - only depends on organizationId and currentUserProfile
+  useEffect(() => {
+    logger.debug('Channel setup effect triggered', { 
+      organizationId, 
+      hasProfile: !!currentUserProfile,
+      profileUserId: currentUserProfile?.user_id 
+    }, 'Presence');
+    
+    // Use currentUserProfile state (not ref) for reliable React dependency tracking
+    if (!organizationId || !currentUserProfile) {
+      logger.debug('Skipping channel setup - missing dependencies', { 
+        hasOrgId: !!organizationId, 
+        hasProfile: !!currentUserProfile 
+      }, 'Presence');
+      return;
+    }
+
+    const channelName = `presence:org-${organizationId}`;
+    logger.debug('Setting up presence channel', { channelName }, 'Presence');
+
+    const channel = supabase.channel(channelName, {
+      config: {
+        presence: {
+          key: currentUserProfile.user_id,
+        },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState<PresenceUser>();
+        logger.debug('Presence sync event', { 
+          stateKeys: Object.keys(state),
+          userCount: Object.values(state).flat().length
+        }, 'Presence');
+        updateViewersMap(state);
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        logger.debug('Presence join event', { key, newPresences }, 'Presence');
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        logger.debug('Presence leave event', { key, leftPresences }, 'Presence');
+      })
+      .subscribe(async (status) => {
+        logger.debug('Channel subscription status', { status }, 'Presence');
+        if (status === 'SUBSCRIBED') {
+          setIsConnected(true);
+          logger.debug('Channel SUBSCRIBED, tracking initial state', { 
+            conversationId: currentConversationRef.current 
+          }, 'Presence');
+          
+          // Track initial state
+          await channel.track({
+            ...currentUserProfile,
+            conversation_id: currentConversationRef.current,
+            entered_at: new Date().toISOString(),
+          });
+          logger.debug('Initial track completed', undefined, 'Presence');
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          logger.warn('Channel disconnected', { status }, 'Presence');
+          setIsConnected(false);
+        }
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      logger.debug('Cleaning up presence channel', { channelName }, 'Presence');
+      channel.unsubscribe();
+      channelRef.current = null;
+      setIsConnected(false);
+    };
+  }, [organizationId, currentUserProfile, updateViewersMap]);
+
   // Stable callbacks using refs - no dependencies that change
   const trackConversation = useCallback(
     async (conversationId: string) => {
       const profile = currentUserProfileRef.current;
-      if (!channelRef.current || !profile) return;
+      const channel = channelRef.current;
+      
+      logger.debug('trackConversation called', { 
+        conversationId, 
+        hasChannel: !!channel, 
+        hasProfile: !!profile,
+        channelState: channel ? 'exists' : 'null'
+      }, 'Presence');
+      
+      if (!channel || !profile) {
+        logger.warn('trackConversation early return - missing dependencies', { 
+          hasChannel: !!channel, 
+          hasProfile: !!profile 
+        }, 'Presence');
+        return;
+      }
 
       currentConversationRef.current = conversationId;
 
-      await channelRef.current.track({
-        ...profile,
-        conversation_id: conversationId,
-        entered_at: new Date().toISOString(),
-      });
+      try {
+        await channel.track({
+          ...profile,
+          conversation_id: conversationId,
+          entered_at: new Date().toISOString(),
+        });
+        logger.debug('trackConversation completed successfully', { conversationId }, 'Presence');
+      } catch (error) {
+        logger.error('trackConversation failed', error, 'Presence');
+      }
     },
     [] // No dependencies - uses refs
   );
 
   const untrackConversation = useCallback(async () => {
     const profile = currentUserProfileRef.current;
-    if (!channelRef.current || !profile) return;
+    const channel = channelRef.current;
+    
+    logger.debug('untrackConversation called', { 
+      hasChannel: !!channel, 
+      hasProfile: !!profile 
+    }, 'Presence');
+    
+    if (!channel || !profile) {
+      logger.debug('untrackConversation early return', undefined, 'Presence');
+      return;
+    }
 
     currentConversationRef.current = null;
 
-    await channelRef.current.track({
-      ...profile,
-      conversation_id: null,
-      entered_at: new Date().toISOString(),
-    });
+    try {
+      await channel.track({
+        ...profile,
+        conversation_id: null,
+        entered_at: new Date().toISOString(),
+      });
+      logger.debug('untrackConversation completed', undefined, 'Presence');
+    } catch (error) {
+      logger.error('untrackConversation failed', error, 'Presence');
+    }
   }, []); // No dependencies - uses refs
 
   return {
