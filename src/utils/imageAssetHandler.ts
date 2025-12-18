@@ -12,6 +12,7 @@ interface ImageErrorBucket {
   'csp-block': number;
   'auth-required': number;
   'data-rejected': number;
+  'data-missing': number;
 }
 
 // Global error tracking for telemetry
@@ -21,7 +22,8 @@ const imageErrors: ImageErrorBucket = {
   'mixed-content': 0,
   'csp-block': 0,
   'auth-required': 0,
-  'data-rejected': 0
+  'data-rejected': 0,
+  'data-missing': 0
 };
 
 // Track object URLs for cleanup
@@ -37,7 +39,8 @@ export const createPlaceholder = (reason: keyof ImageErrorBucket): string => {
     'mixed-content': 'Mixed content blocked',
     'csp-block': 'CSP blocked',
     'auth-required': 'Authentication required',
-    'data-rejected': 'Data image rejected'
+    'data-rejected': 'Data image rejected',
+    'data-missing': 'Image not available'
   };
   
   const message = messages[reason] || 'Image unavailable';
@@ -81,21 +84,10 @@ export const createBlobUrl = async (attachment: EmailAttachment, messageId?: str
     if (attachment.storageKey) {
       fetchUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`;
       console.log('[EmailRender] Fetching from storage:', attachment.storageKey);
-    } 
-    // Fall back to contentId lookup
-    else if (attachment.contentId) {
-      const cleanCid = attachment.contentId.replace(/[<>]/g, '');
-      fetchUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${cleanCid}?messageId=${messageId || ''}`;
-      console.log('[EmailRender] Fetching by contentId:', cleanCid);
-    }
-    // Legacy: use attachmentId
-    else if (attachment.attachmentId) {
-      fetchUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${attachment.attachmentId}?messageId=${messageId || ''}`;
-      console.log('[EmailRender] Fetching by attachmentId:', attachment.attachmentId);
-    }
-    else {
-      console.warn('[EmailRender] No storageKey, contentId, or attachmentId for attachment:', attachment.filename);
-      return null;
+    } else {
+      // No storageKey means binary data was never uploaded - return placeholder
+      console.warn('[EmailRender] Attachment has no storageKey (binary data not stored):', attachment.filename);
+      return createPlaceholder('data-missing');
     }
     
     const response = await fetch(fetchUrl);
