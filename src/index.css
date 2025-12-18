@@ -288,11 +288,12 @@ Optimized for accessibility with WCAG AA compliance.
     height: 0.5em;
   }
 
-  /* Paragraph spacing - clear and consistent */
+  /* Paragraph spacing - compact and consistent */
   .email-render__html-content p,
   .email-render__plain-content p {
-    margin-bottom: 0.75em !important;
-    line-height: 1.6;
+    margin-bottom: 0.25em !important;
+    margin-top: 0 !important;
+    line-height: 1.5;
   }
 
   .email-render__html-content p:last-child,
@@ -1221,8 +1222,14 @@ Optimized for accessibility with WCAG AA compliance.
 @layer components {
   .email-render__html-content p,
   .email-render__plain-content p {
-    margin-top: 0.125rem !important;
-    margin-bottom: 0.125rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0.25em !important;
+    line-height: 1.5;
+  }
+  
+  /* Reduce gap between adjacent paragraphs in plain text emails */
+  .email-render__plain-content p + p {
+    margin-top: 0.125em !important;
   }
 
   .email-render__html-content > *:first-child,

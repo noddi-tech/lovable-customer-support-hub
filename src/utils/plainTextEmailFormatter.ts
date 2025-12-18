@@ -277,7 +277,7 @@ export const formatPlainTextEmail = (content: string): string => {
   // Convert <br> tags to newlines (handles decoded HTML entities)
   const normalized = content
     .replace(/<br\s*\/?>/gi, '\n')  // <br>, <br/>, <BR>, etc.
-    .replace(/\n{3,}/g, '\n\n');    // Normalize multiple newlines
+    .replace(/\n{2,}/g, '\n\n');    // Normalize 2+ consecutive newlines to exactly 2
   
   // First, process signatures (produces an HTML signature block if found)
   const withSignature = processSignature(normalized);
