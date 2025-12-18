@@ -240,6 +240,7 @@ export const MessagesList = () => {
                       content={message.content}
                       contentType={message.content_type || 'text/plain'}
                       attachments={message.attachments ? JSON.parse(message.attachments) as EmailAttachment[] : []}
+                      messageId={message.id}
                     />
                     
                     {/* Image Gallery */}
