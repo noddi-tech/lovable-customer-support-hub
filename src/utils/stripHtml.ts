@@ -5,10 +5,13 @@
 export function stripHtml(html: string | null | undefined): string {
   if (!html) return '';
   
-  // Remove style and script tags before parsing to prevent their content from appearing in text
+  // Remove style, script, and img tags before parsing to prevent:
+  // 1) Their content from appearing in text
+  // 2) Browser from attempting to load image URLs (including cid: URLs which cause console errors)
   const cleaned = html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<img[^>]*>/gi, '');
   
   // Create a temporary div element to parse HTML
   const temp = document.createElement('div');
