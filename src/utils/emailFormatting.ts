@@ -310,18 +310,14 @@ export const sanitizeEmailHTML = (
       const assetInfo = byContentId.get(normalizedCid);
       
       if (assetInfo) {
-        // Prefer storageKey for Supabase Storage, fall back to CID query parameter
-        let attachmentUrl: string;
-        if (assetInfo.attachment.storageKey) {
-          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
-        } else if (messageId && messageId.trim() !== '') {
-          // Only use CID lookup if we have a valid messageId
-          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?cid=${encodeURIComponent(normalizedCid)}&messageId=${encodeURIComponent(messageId)}`;
-        } else {
-          // No storageKey and no messageId - cannot resolve this CID
-          console.warn(`[EmailFormatting] Cannot resolve CID without messageId: "${normalizedCid}"`);
-          return `src="${createPlaceholder('cid-miss')}"`;
+        // Check if attachment has no binary data stored (no storageKey = data was never uploaded)
+        if (!assetInfo.attachment.storageKey) {
+          console.warn(`[EmailFormatting] Attachment has no binary data stored: "${assetInfo.attachment.filename}"`);
+          return `src="${createPlaceholder('data-missing')}"`;
         }
+        
+        // Use storageKey for Supabase Storage
+        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}"`;
       }
@@ -346,15 +342,14 @@ export const sanitizeEmailHTML = (
       const assetInfo = byContentLocation.get(normalizedLocation);
       
       if (assetInfo) {
-        // Prefer storageKey for Supabase Storage
-        let attachmentUrl: string;
-        if (assetInfo.attachment.storageKey) {
-          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
-        } else if (assetInfo.attachment.attachmentId) {
-          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${assetInfo.attachment.attachmentId}?messageId=${messageId || ''}`;
-        } else {
-          return match;
+        // Check if attachment has no binary data stored
+        if (!assetInfo.attachment.storageKey) {
+          console.warn(`[EmailFormatting] Content-Location attachment has no binary data: "${assetInfo.attachment.filename}"`);
+          return `src="${createPlaceholder('data-missing')}"`;
         }
+        
+        // Use storageKey for Supabase Storage
+        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}"`;
       }
