@@ -135,7 +135,8 @@ export const sanitizeEmailHTML = (
       'href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan', 
       'align', 'cellpadding', 'cellspacing', 'style', 'dir',
       'valign', 'border', 'bgcolor', 'background', 'class',
-      'color', 'face', 'size'
+      'color', 'face', 'size',
+      'data-attachment', 'data-attachment-index'
     ],
     ALLOWED_URI_REGEXP: /^(?:https:|data:|mailto:|tel:|#)/i,
     FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link'],
@@ -313,7 +314,7 @@ export const sanitizeEmailHTML = (
         // Check if attachment has no binary data stored (no storageKey = data was never uploaded)
         if (!assetInfo.attachment.storageKey) {
           console.warn(`[EmailFormatting] Attachment has no binary data stored: "${assetInfo.attachment.filename}"`);
-          return `src="${createPlaceholder('data-missing')}"`;
+          return `src="${createPlaceholder('data-missing')}" data-attachment="true"`;
         }
         
         // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
@@ -323,7 +324,7 @@ export const sanitizeEmailHTML = (
       }
       
       console.log(`[EmailFormatting] CID miss for: "${normalizedCid}"`);
-      return `src="${createPlaceholder('cid-miss')}"`;
+      return `src="${createPlaceholder('cid-miss')}" data-attachment="true"`;
     }
   );
   
@@ -345,7 +346,7 @@ export const sanitizeEmailHTML = (
         // Check if attachment has no binary data stored
         if (!assetInfo.attachment.storageKey) {
           console.warn(`[EmailFormatting] Content-Location attachment has no binary data: "${assetInfo.attachment.filename}"`);
-          return `src="${createPlaceholder('data-missing')}"`;
+          return `src="${createPlaceholder('data-missing')}" data-attachment="true"`;
         }
         
         // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
