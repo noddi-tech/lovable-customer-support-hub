@@ -250,13 +250,18 @@ const App = () => (
         client={queryClient} 
         persistOptions={{ 
           persister,
+          buster: 'v2', // Invalidates old cache to clear any corrupted pending queries
           dehydrateOptions: {
             shouldDehydrateQuery: (query) => {
-              // Only persist queries that have successfully resolved with data
-              // This prevents CancelledError spam when queries are invalidated/cancelled
+              // Only persist queries that:
+              // 1. Have successfully resolved (status === 'success')
+              // 2. Have actual data
+              // 3. Are NOT currently fetching (fetchStatus === 'idle')
+              // This prevents CancelledError spam when refetching queries are cancelled
               return (
                 query.state.status === 'success' && 
-                query.state.data !== undefined
+                query.state.data !== undefined &&
+                query.state.fetchStatus === 'idle'
               );
             },
           },
