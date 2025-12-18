@@ -303,12 +303,13 @@ export const sanitizeEmailHTML = (
       const assetInfo = byContentId.get(normalizedCid);
       
       if (assetInfo) {
-        // Prefer storageKey for Supabase Storage, fall back to contentId lookup
+        // Prefer storageKey for Supabase Storage, fall back to CID query parameter
         let attachmentUrl: string;
         if (assetInfo.attachment.storageKey) {
           attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         } else {
-          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment/${normalizedCid}?messageId=${messageId || ''}`;
+          // Use CID as query parameter (not path) to handle slashes in CID
+          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?cid=${encodeURIComponent(normalizedCid)}&messageId=${messageId || ''}`;
         }
         console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}"`;
@@ -363,6 +364,12 @@ export const sanitizeEmailHTML = (
     .replace(/align=(\w+)/g, 'align="$1"')
     .replace(/valign=(\w+)/g, 'valign="$1"')
     .replace(/bgcolor=([#\w]+)/g, 'bgcolor="$1"')
+    // SPACING FIX: Strip empty divs containing only <br> or whitespace
+    .replace(/<div[^>]*>\s*<br\s*\/?>\s*<\/div>/gi, '')
+    .replace(/<div[^>]*>\s*&nbsp;\s*<\/div>/gi, '')
+    .replace(/<div[^>]*>\s*<\/div>/gi, '')
+    // SPACING FIX: Collapse multiple consecutive <br> tags to single
+    .replace(/(<br\s*\/?>\s*){2,}/gi, '<br>')
     // Ensure all images are responsive
     .replace(/<img([^>]*?)>/gi, (match, attrs) => {
       if (!attrs.includes('style=')) {
