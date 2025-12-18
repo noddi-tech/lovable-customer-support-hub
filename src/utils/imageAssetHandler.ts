@@ -46,12 +46,12 @@ export const createPlaceholder = (reason: keyof ImageErrorBucket): string => {
   const message = messages[reason] || 'Image unavailable';
   
   return `data:image/svg+xml;base64,${btoa(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">
-      <rect width="200" height="100" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="1"/>
-      <text x="100" y="45" text-anchor="middle" fill="#9ca3af" font-size="11" font-family="system-ui">
+    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200">
+      <rect width="400" height="200" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+      <text x="200" y="90" text-anchor="middle" fill="#6b7280" font-size="16" font-family="system-ui" font-weight="500">
         ${message}
       </text>
-      <text x="100" y="65" text-anchor="middle" fill="#d1d5db" font-size="9" font-family="system-ui">
+      <text x="200" y="120" text-anchor="middle" fill="#9ca3af" font-size="12" font-family="system-ui">
         ${reason}
       </text>
     </svg>
