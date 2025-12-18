@@ -460,6 +460,7 @@ const MessageCardComponent = ({
               content={message.visibleBody || ''} 
               contentType={message.originalMessage?.content_type || 'text/plain'}
               attachments={attachments}
+              messageId={message.id}
             />
 
             {/* Toggle quoted content */}
