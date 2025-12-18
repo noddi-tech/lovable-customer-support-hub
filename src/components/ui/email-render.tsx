@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
 import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
-import { sanitizeEmailHTML as sanitizeForXSS } from '@/utils/htmlSanitizer';
+// NOTE: Removed redundant sanitizeForXSS import - content is already sanitized by sanitizeEmailHTML in emailFormatting.ts
 import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
 import { debug } from '@/utils/debug';
 import { logger } from '@/utils/logger';
@@ -397,13 +397,9 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       const collapsibleQuotes = tempDiv.querySelectorAll('.collapsible-quote');
       const collapsibleSignatures = tempDiv.querySelectorAll('.collapsible-signature');
       
-      // SECURITY: Sanitize HTML content before rendering to prevent XSS attacks
-      const sanitizedContent = sanitizeForXSS(contentWithCollapsibleSections || contentToRender);
-      
-      logger.debug('Content sanitized', {
-        sanitizedLength: sanitizedContent.length,
-        messageId
-      }, 'EmailRender');
+      // NOTE: Content is already sanitized by sanitizeEmailHTML in processedContent memo (uses DOMPurify)
+      // Do NOT double-sanitize here - the second pass strips our get-attachment URLs for inline images
+      const sanitizedContent = contentWithCollapsibleSections || contentToRender;
       
       // Additional check: if sanitized content has no actual text, show original as plain text
       const tempDiv2 = document.createElement('div');
