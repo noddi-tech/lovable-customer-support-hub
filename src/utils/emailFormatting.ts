@@ -144,7 +144,7 @@ export const sanitizeEmailHTML = (
     // Enhanced data URL filtering - only allow safe image data URLs
     KEEP_CONTENT: true, // Preserve text content even if tags/attributes are removed
     ADD_ATTR: ['target', 'rel'],
-    ALLOW_DATA_ATTR: false,
+    ALLOW_DATA_ATTR: true,
     // Custom hook to add security attributes to links
     HOOKS: {
       afterSanitizeAttributes: function (node: Element) {
@@ -314,17 +314,17 @@ export const sanitizeEmailHTML = (
         // Check if attachment has no binary data stored (no storageKey = data was never uploaded)
         if (!assetInfo.attachment.storageKey) {
           console.warn(`[EmailFormatting] Attachment has no binary data stored: "${assetInfo.attachment.filename}"`);
-          return `src="${createPlaceholder('data-missing')}" data-attachment="true"`;
+          return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image"`;
         }
         
         // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
         const attachmentUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
-        return `src="${attachmentUrl}" data-attachment="true"`;
+        return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image"`;
       }
       
       console.log(`[EmailFormatting] CID miss for: "${normalizedCid}"`);
-      return `src="${createPlaceholder('cid-miss')}" data-attachment="true"`;
+      return `src="${createPlaceholder('cid-miss')}" data-attachment="true" class="email-attachment-image"`;
     }
   );
   
@@ -346,13 +346,13 @@ export const sanitizeEmailHTML = (
         // Check if attachment has no binary data stored
         if (!assetInfo.attachment.storageKey) {
           console.warn(`[EmailFormatting] Content-Location attachment has no binary data: "${assetInfo.attachment.filename}"`);
-          return `src="${createPlaceholder('data-missing')}" data-attachment="true"`;
+          return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image"`;
         }
         
         // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
         const attachmentUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`);
-        return `src="${attachmentUrl}" data-attachment="true"`;
+        return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image"`;
       }
       
       console.log(`[EmailFormatting] Content-Location miss for: "${normalizedLocation}"`);
