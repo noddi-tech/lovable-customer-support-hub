@@ -185,6 +185,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
   const [imageProcessingComplete, setImageProcessingComplete] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const htmlContentRef = useRef<HTMLDivElement>(null);
   
   // Track renders
   const renderCount = useRef(0);
@@ -439,6 +440,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       
       return (
         <div 
+          ref={htmlContentRef}
           className="email-render__html-content prose prose-sm dark:prose-invert max-w-none [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
@@ -491,7 +493,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
 
     const processImages = async () => {
       try {
-        const container = document.querySelector('.email-render__html-content') as HTMLElement;
+        const container = htmlContentRef.current;
         if (!container) {
           logger.debug('No container found for image processing', { messageId }, 'EmailRender');
           return;
