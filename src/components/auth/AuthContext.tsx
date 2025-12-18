@@ -123,16 +123,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Clear user-specific cached data when authentication state changes
         if (event === 'SIGNED_OUT' || (!previousUser && !newUser) || (previousUser?.id !== newUser?.id)) {
-          // Cancel any in-flight queries first to prevent CancelledError spam during dehydration
-          await queryClient.cancelQueries();
-          
-          // Only clear user-specific queries, preserve historical data like Noddi
+          // Remove queries directly - removeQueries handles in-flight queries gracefully
+          // Don't use cancelQueries() as it causes CancelledError spam in the persister
           queryClient.removeQueries({ queryKey: ['conversations'] });
           queryClient.removeQueries({ queryKey: ['inbox-counts'] });
           queryClient.removeQueries({ queryKey: ['all-counts'] });
           queryClient.removeQueries({ queryKey: ['users'] });
           queryClient.removeQueries({ queryKey: ['inboxes'] });
           queryClient.removeQueries({ queryKey: ['notifications'] });
+          queryClient.removeQueries({ queryKey: ['profile'] });
+          queryClient.removeQueries({ queryKey: ['organization-memberships'] });
+          queryClient.removeQueries({ queryKey: ['user-roles'] });
+          queryClient.removeQueries({ queryKey: ['organization-design-system'] });
           logger.debug('Cleared user-specific query cache', { event }, 'Auth');
         }
         

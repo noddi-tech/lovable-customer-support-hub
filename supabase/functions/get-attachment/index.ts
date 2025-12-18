@@ -67,7 +67,17 @@ Deno.serve(async (req) => {
     }
     
     // Handle CID parameter - lookup attachment by Content-ID
-    if (cidParam && messageIdParam) {
+    // Return clear error if CID provided but messageId is missing/empty
+    if (cidParam && (!messageIdParam || messageIdParam.trim() === '')) {
+      console.warn('⚠️ CID lookup requested but messageId is missing or empty:', { cid: cidParam, messageId: messageIdParam })
+      return new Response(createNotFoundSvg('messageId-required'), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'image/svg+xml' }
+      })
+    }
+    
+    // Ensure messageIdParam is not empty (not just present but actually has content)
+    if (cidParam && messageIdParam && messageIdParam.trim() !== '') {
       console.log('🔍 Looking up attachment by CID:', { cid: cidParam, messageId: messageIdParam })
       
       // Query the message to find the attachment by contentId
