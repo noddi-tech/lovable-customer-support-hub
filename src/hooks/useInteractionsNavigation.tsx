@@ -6,6 +6,7 @@ export interface NavigationState {
   selectedTab: string;
   selectedInboxId?: string;
   conversationId?: string;
+  messageId?: string;
   inbox?: InboxId;
   status: StatusFilter;
   search?: string;
@@ -29,6 +30,7 @@ export const useInteractionsNavigation = () => {
       selectedTab: searchParams.get('tab') || 'all',
       selectedInboxId: searchParams.get('inbox') || undefined,
       conversationId: searchParams.get('c') || searchParams.get('conversation') || undefined,
+      messageId: searchParams.get('m') || undefined,
       inbox: searchParams.get('inbox') || undefined,
       status: statusFromPath as StatusFilter,
       search: searchParams.get('q') || undefined,
@@ -77,6 +79,10 @@ export const useInteractionsNavigation = () => {
     
     if (newState.conversationId) {
       newParams.set('c', newState.conversationId);
+    }
+    
+    if (newState.messageId) {
+      newParams.set('m', newState.messageId);
     }
     
     if (newState.search) {
@@ -146,7 +152,7 @@ export const useInteractionsNavigation = () => {
 
   // Open conversation
   const openConversation = useCallback((conversationId: ConversationId, threadIds?: string | string[]) => {
-    const updates: Partial<NavigationState> = { conversationId };
+    const updates: Partial<NavigationState> = { conversationId, messageId: undefined };
     
     // Store threadIds if provided (for thread viewing)
     if (threadIds && Array.isArray(threadIds) && threadIds.length > 1) {
@@ -154,12 +160,23 @@ export const useInteractionsNavigation = () => {
       const newParams = new URLSearchParams(searchParams);
       newParams.set('c', conversationId);
       newParams.set('thread', threadIds.join(','));
+      newParams.delete('m');
       setSearchParams(newParams, { replace: true });
       return;
     }
     
     updateNavigation(updates);
   }, [updateNavigation, searchParams, setSearchParams]);
+
+  // Open specific message within conversation
+  const openMessage = useCallback((conversationId: ConversationId, messageId: string) => {
+    updateNavigation({ conversationId, messageId });
+  }, [updateNavigation]);
+
+  // Set message ID (for scrolling to specific message)
+  const setMessageId = useCallback((messageId: string | undefined) => {
+    updateNavigation({ messageId });
+  }, [updateNavigation]);
 
   // Back to list (clear only conversation)
   const backToList = useCallback(() => {
@@ -186,6 +203,8 @@ export const useInteractionsNavigation = () => {
     setSearch,
     setHashTab,
     openConversation,
+    openMessage,
+    setMessageId,
     backToList,
   }), [
     currentState,
@@ -199,6 +218,8 @@ export const useInteractionsNavigation = () => {
     setSearch,
     setHashTab,
     openConversation,
+    openMessage,
+    setMessageId,
     backToList,
   ]);
 };

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,8 @@ import {
   Paperclip,
   MoreVertical,
   List,
-  Network
+  Network,
+  Link2
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { sanitizeEmailHTML, shouldRenderAsHTML, type EmailAttachment } from "@/utils/emailFormatting";
@@ -26,16 +27,21 @@ import { useImageLightbox } from "@/hooks/useImageLightbox";
 import { ThreadedMessagesList } from "./ThreadedMessagesList";
 import { useThreadTree } from "@/hooks/useThreadTree";
 import { normalizeMessage, createNormalizationContext } from "@/lib/normalizeMessage";
+import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation";
+import { toast } from "sonner";
 
 export const MessagesList = () => {
   const { messages, conversation, state, dispatch } = useConversationView();
   const { dateTime } = useDateFormatting();
   const { t } = useTranslation();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const { currentState, setMessageId } = useInteractionsNavigation();
   
   // Threading state
   const [viewMode, setViewMode] = useState<'chronological' | 'threaded'>('chronological');
   const [collapsedThreads, setCollapsedThreads] = useState<Set<string>>(new Set());
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   
   // Image lightbox state
   const [currentImageMessage, setCurrentImageMessage] = useState<any>(null);
@@ -58,8 +64,26 @@ export const MessagesList = () => {
     return attachment.mimeType?.startsWith('image/');
   };
 
-  // Auto-scroll to bottom when new messages arrive or reply area opens
+  // Scroll to specific message from URL parameter
   useEffect(() => {
+    const targetMessageId = currentState.messageId;
+    if (targetMessageId && messages.length > 0) {
+      // Wait for DOM to be ready
+      setTimeout(() => {
+        const messageElement = messageRefs.current.get(targetMessageId);
+        if (messageElement) {
+          messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setHighlightedMessageId(targetMessageId);
+          // Remove highlight after animation
+          setTimeout(() => setHighlightedMessageId(null), 2000);
+        }
+      }, 200);
+    }
+  }, [currentState.messageId, messages.length]);
+
+  // Auto-scroll to bottom when new messages arrive or reply area opens (only if no target message)
+  useEffect(() => {
+    if (currentState.messageId) return; // Don't auto-scroll if targeting specific message
     if (messagesContainerRef.current && (state.showReplyArea || messages.length > 0)) {
       const container = messagesContainerRef.current;
       setTimeout(() => {
@@ -69,7 +93,15 @@ export const MessagesList = () => {
         });
       }, 100);
     }
-  }, [messages.length, state.showReplyArea]);
+  }, [messages.length, state.showReplyArea, currentState.messageId]);
+
+  // Copy message link to clipboard
+  const copyMessageLink = useCallback((messageId: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('m', messageId);
+    navigator.clipboard.writeText(url.toString());
+    toast.success('Link copied to clipboard');
+  }, []);
 
   if (!conversation) return null;
 
@@ -154,7 +186,16 @@ export const MessagesList = () => {
       <ScrollArea className="flex-1" ref={messagesContainerRef}>
         <div className="p-4 space-y-6">
           {messages.map((message: any, index: number) => (
-            <div key={message.id} className="group">
+            <div 
+              key={message.id} 
+              className={cn(
+                "group transition-all duration-500",
+                highlightedMessageId === message.id && "ring-2 ring-primary ring-offset-2 rounded-lg bg-primary/5"
+              )}
+              ref={(el) => {
+                if (el) messageRefs.current.set(message.id, el);
+              }}
+            >
               <div className={cn(
                 "flex gap-3",
                 message.sender_type === 'agent' && "flex-row-reverse"
@@ -213,6 +254,10 @@ export const MessagesList = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => copyMessageLink(message.id)}>
+                            <Link2 className="w-4 h-4 mr-2" />
+                            Copy link
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditMessage(message.id, message.content)}>
                             <Edit3 className="w-4 h-4 mr-2" />
                             {t('conversation.editMessage')}
