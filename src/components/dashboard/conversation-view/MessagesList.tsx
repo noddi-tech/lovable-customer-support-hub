@@ -95,13 +95,12 @@ export const MessagesList = () => {
     }
   }, [messages.length, state.showReplyArea, currentState.messageId]);
 
-  // Copy message link to clipboard
+  // Copy message link to clipboard - uses clean shareable URL format
   const copyMessageLink = useCallback((messageId: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('m', messageId);
-    navigator.clipboard.writeText(url.toString());
+    const shareUrl = `${window.location.origin}/c/${conversation?.id}/m/${messageId}`;
+    navigator.clipboard.writeText(shareUrl);
     toast.success('Link copied to clipboard');
-  }, []);
+  }, [conversation?.id]);
 
   if (!conversation) return null;
 

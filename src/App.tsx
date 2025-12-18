@@ -22,6 +22,7 @@ import { AircallFloatingButton } from "@/components/dashboard/voice/AircallFloat
 import { AircallErrorFallback } from "@/components/dashboard/voice/AircallErrorFallback";
 import { PerformanceDebugPanel } from "@/components/debug/PerformanceDebugPanel";
 import { URLSanitizer } from "@/components/routing/URLSanitizer";
+import { ConversationRedirect } from "@/components/routing/ConversationRedirect";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
@@ -103,6 +104,10 @@ const AppContent = () => {
       
       {/* Root redirect to default section */}
       <Route path="/" element={<Navigate to="/interactions/text" replace />} />
+      
+      {/* ========== SHORT LINKS (for sharing) ========== */}
+      <Route path="/c/:conversationId" element={<ProtectedRoute><ConversationRedirect /></ProtectedRoute>} />
+      <Route path="/c/:conversationId/m/:messageId" element={<ProtectedRoute><ConversationRedirect /></ProtectedRoute>} />
       
       {/* Global Search */}
       <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
