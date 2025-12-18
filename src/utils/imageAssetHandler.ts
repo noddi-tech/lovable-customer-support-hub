@@ -153,6 +153,9 @@ export const rewriteImageSources = async (
         const blobUrl = await createBlobUrl(assetInfo.attachment, messageId);
         if (blobUrl) {
           img.src = blobUrl;
+          // Mark as attachment image for CSS styling and lightbox
+          img.setAttribute('data-attachment', 'true');
+          img.setAttribute('data-attachment-index', byContentId.size.toString());
         } else {
           img.src = createPlaceholder('auth-required');
           logImageError('auth-required', originalSrc);
@@ -171,6 +174,9 @@ export const rewriteImageSources = async (
         const blobUrl = await createBlobUrl(assetInfo.attachment, messageId);
         if (blobUrl) {
           img.src = blobUrl;
+          // Mark as attachment image for CSS styling and lightbox
+          img.setAttribute('data-attachment', 'true');
+          img.setAttribute('data-attachment-index', byContentLocation.size.toString());
         } else {
           img.src = createPlaceholder('auth-required');
           logImageError('auth-required', originalSrc);

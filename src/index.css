@@ -534,9 +534,25 @@ Optimized for accessibility with WCAG AA compliance.
     padding: 0 !important;
   }
 
-  /* Limit logo/header image heights */
-  .email-render__html-content img:not([height="1"]):not([height="2"]):not([height="3"]):not([height="4"]):not([height="5"]):not([height="10"]):not([height="15"]):not([height="20"]):not([height="30"]):not([height="40"]):not([height="50"]):not([width="1"]) {
+  /* Limit logo/header image heights - exclude attachment images */
+  .email-render__html-content img:not([height="1"]):not([height="2"]):not([height="3"]):not([height="4"]):not([height="5"]):not([height="10"]):not([height="15"]):not([height="20"]):not([height="30"]):not([height="40"]):not([height="50"]):not([width="1"]):not([data-attachment]) {
     max-height: 40px !important;
+  }
+
+  /* Inline attachment images - display at readable size with click-to-enlarge */
+  .email-render__html-content img[data-attachment] {
+    max-height: 300px !important;
+    max-width: 100% !important;
+    height: auto !important;
+    width: auto !important;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border));
+    transition: opacity 0.15s ease;
+  }
+
+  .email-render__html-content img[data-attachment]:hover {
+    opacity: 0.85;
   }
 
   /* Override inline margin/padding styles on divs */

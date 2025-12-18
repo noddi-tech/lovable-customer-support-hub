@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
 import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
+import { ImageLightbox } from '@/components/ui/image-lightbox';
 // NOTE: Removed redundant sanitizeForXSS import - content is already sanitized by sanitizeEmailHTML in emailFormatting.ts
 import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
 import { debug } from '@/utils/debug';
@@ -182,6 +183,8 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [imageProcessingComplete, setImageProcessingComplete] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   
   // Track renders
   const renderCount = useRef(0);
@@ -465,6 +468,12 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
     return isHTML && content.includes('Image blocked for privacy');
   }, [isHTML, content]);
 
+  // Get inline image attachments for lightbox
+  const inlineImages = useMemo(() => 
+    attachments.filter(a => a.isInline && a.mimeType?.startsWith('image/')),
+    [attachments]
+  );
+
   // Enhanced image processing effect
   useEffect(() => {
     logger.debug('Image processing triggered', {
@@ -528,6 +537,16 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
 
         // Process images with enhanced error handling
         await rewriteImageSources(container, byContentId, byContentLocation, messageId);
+        
+        // Add click handlers to attachment images for lightbox
+        const attachmentImgs = container.querySelectorAll('img[data-attachment="true"]');
+        attachmentImgs.forEach((img, idx) => {
+          (img as HTMLElement).addEventListener('click', () => {
+            setLightboxIndex(idx);
+            setLightboxOpen(true);
+          });
+        });
+        
         setImageProcessingComplete(true);
         
         // Log processing stats for debugging
@@ -609,6 +628,20 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
             ))}
           </ul>
         </div>
+      )}
+      
+      {/* Image Lightbox for inline attachments */}
+      {inlineImages.length > 0 && (
+        <ImageLightbox
+          images={inlineImages}
+          currentIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          messageId={messageId}
+          onClose={() => setLightboxOpen(false)}
+          onNext={() => setLightboxIndex(i => (i + 1) % inlineImages.length)}
+          onPrevious={() => setLightboxIndex(i => (i - 1 + inlineImages.length) % inlineImages.length)}
+          onIndexChange={setLightboxIndex}
+        />
       )}
     </article>
   );
