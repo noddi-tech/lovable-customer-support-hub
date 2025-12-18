@@ -316,8 +316,8 @@ export const sanitizeEmailHTML = (
           return `src="${createPlaceholder('data-missing')}"`;
         }
         
-        // Use storageKey for Supabase Storage
-        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
+        // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
+        const attachmentUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}"`;
       }
@@ -348,8 +348,8 @@ export const sanitizeEmailHTML = (
           return `src="${createPlaceholder('data-missing')}"`;
         }
         
-        // Use storageKey for Supabase Storage
-        const attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
+        // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
+        const attachmentUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
         console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}"`;
       }
