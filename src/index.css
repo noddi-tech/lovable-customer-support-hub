@@ -259,11 +259,33 @@ Optimized for accessibility with WCAG AA compliance.
   .email-render__plain-content {
     @apply prose prose-sm dark:prose-invert max-w-none;
     white-space: pre-wrap !important;
-    line-height: 1.6 !important;
+    line-height: 1.5 !important;
     margin-top: 0.25em !important;
     color: hsl(var(--foreground));
     font-size: 14px;
     overflow-wrap: anywhere;
+  }
+
+  /* SPACING FIX: Collapse empty divs containing only br */
+  .email-render__html-content div:empty,
+  .email-render__html-content div:has(> br:only-child) {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* SPACING FIX: Collapse consecutive br tags */
+  .email-render__html-content br + br {
+    display: none !important;
+  }
+
+  /* SPACING FIX: Minimize br impact */
+  .email-render__html-content br {
+    content: '';
+    display: block;
+    margin: 0 !important;
+    height: 0.5em;
   }
 
   /* Paragraph spacing - clear and consistent */

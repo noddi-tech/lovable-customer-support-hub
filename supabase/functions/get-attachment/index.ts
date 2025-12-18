@@ -23,6 +23,9 @@ Deno.serve(async (req) => {
     
     // Check for storageKey parameter (new method for Supabase Storage)
     const storageKey = url.searchParams.get('key')
+    // Check for CID parameter (Content-ID lookup)
+    const cidParam = url.searchParams.get('cid')
+    const messageIdParam = url.searchParams.get('messageId')
     
     if (storageKey) {
       console.log('📦 Fetching from Supabase Storage:', storageKey)
@@ -60,6 +63,113 @@ Deno.serve(async (req) => {
           'Content-Type': contentType,
           'Cache-Control': 'public, max-age=3600'
         }
+      })
+    }
+    
+    // Handle CID parameter - lookup attachment by Content-ID
+    if (cidParam && messageIdParam) {
+      console.log('🔍 Looking up attachment by CID:', { cid: cidParam, messageId: messageIdParam })
+      
+      // Query the message to find the attachment by contentId
+      let { data: message, error: messageError } = await supabaseClient
+        .from('messages')
+        .select('attachments')
+        .eq('id', messageIdParam)
+        .single()
+      
+      if (messageError) {
+        // Try by external_id
+        const { data: msgByExt, error: extError } = await supabaseClient
+          .from('messages')
+          .select('attachments')
+          .eq('external_id', messageIdParam)
+          .single()
+        
+        if (extError) {
+          console.error('❌ Message not found for CID lookup:', messageIdParam)
+          return new Response(createNotFoundSvg(cidParam), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'image/svg+xml' }
+          })
+        }
+        message = msgByExt
+      }
+      
+      const attachments = Array.isArray(message?.attachments) ? message.attachments : []
+      const normalizedCidSearch = cidParam.replace(/[<>]/g, '').toLowerCase()
+      
+      const attachment = attachments.find((att: any) => {
+        const normalizedCid = att.contentId?.replace(/[<>]/g, '').toLowerCase()
+        return normalizedCid === normalizedCidSearch
+      })
+      
+      if (!attachment) {
+        console.warn('📎 CID attachment not found:', { 
+          cidParam, 
+          availableCids: attachments.map((a: any) => a.contentId) 
+        })
+        return new Response(createNotFoundSvg(cidParam), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'image/svg+xml' }
+        })
+      }
+      
+      console.log('🎯 Found attachment by CID:', { 
+        filename: attachment.filename, 
+        storageKey: attachment.storageKey,
+        hasData: !!attachment.data
+      })
+      
+      // If attachment has storageKey, fetch from storage
+      if (attachment.storageKey) {
+        const { data, error } = await supabaseClient.storage
+          .from('message-attachments')
+          .download(attachment.storageKey)
+        
+        if (error) {
+          console.error('❌ Storage download error for CID attachment:', error)
+          return new Response(createUploadFailedSvg(attachment), {
+            headers: { ...corsHeaders, 'Content-Type': 'image/svg+xml' }
+          })
+        }
+        
+        return new Response(data, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': attachment.mimeType || 'application/octet-stream',
+            'Content-Disposition': `inline; filename="${attachment.filename || 'attachment'}"`,
+            'Cache-Control': 'public, max-age=3600'
+          }
+        })
+      }
+      
+      // If attachment has inline data, serve it
+      if (attachment.data) {
+        try {
+          const base64Data = attachment.data.replace(/-/g, '+').replace(/_/g, '/')
+          const binaryData = atob(base64Data)
+          const bytes = new Uint8Array(binaryData.length)
+          for (let i = 0; i < binaryData.length; i++) {
+            bytes[i] = binaryData.charCodeAt(i)
+          }
+          
+          return new Response(bytes, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': attachment.mimeType || 'application/octet-stream',
+              'Content-Disposition': `inline; filename="${attachment.filename || 'attachment'}"`,
+              'Cache-Control': 'public, max-age=3600'
+            }
+          })
+        } catch (error) {
+          console.error('❌ Error decoding CID attachment data:', error)
+        }
+      }
+      
+      // No storageKey and no data - upload failed
+      console.warn('⚠️ Attachment has no storageKey or data (upload failed):', attachment.filename)
+      return new Response(createUploadFailedSvg(attachment), {
+        headers: { ...corsHeaders, 'Content-Type': 'image/svg+xml' }
       })
     }
 
@@ -271,6 +381,25 @@ function createStorageErrorSvg(attachment: any): string {
       </text>
       <text x="200" y="230" text-anchor="middle" fill="#451a03" font-size="11" font-family="Arial, sans-serif">
         Content not available
+      </text>
+    </svg>
+  `
+}
+
+function createUploadFailedSvg(attachment: any): string {
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="180" viewBox="0 0 300 180">
+      <rect width="300" height="180" fill="#fef2f2" stroke="#fecaca" stroke-width="2" rx="8"/>
+      <circle cx="150" cy="60" r="25" fill="#ef4444" opacity="0.7"/>
+      <text x="150" y="67" text-anchor="middle" fill="white" font-size="20" font-weight="bold">!</text>
+      <text x="150" y="105" text-anchor="middle" fill="#dc2626" font-size="13" font-family="Arial, sans-serif" font-weight="bold">
+        Image Upload Failed
+      </text>
+      <text x="150" y="125" text-anchor="middle" fill="#7f1d1d" font-size="11" font-family="Arial, sans-serif">
+        ${(attachment.filename || 'Image').slice(0, 30)}
+      </text>
+      <text x="150" y="145" text-anchor="middle" fill="#991b1b" font-size="10" font-family="Arial, sans-serif">
+        ${Math.round((attachment.size || 0) / 1024)}KB • Upload incomplete
       </text>
     </svg>
   `
