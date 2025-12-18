@@ -246,7 +246,22 @@ const AircallWorkspaceManager = () => {
 const App = () => (
   <GlobalErrorBoundary suppressAnalyticsErrors suppressIframeErrors>
     <ErrorBoundary>
-      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+      <PersistQueryClientProvider 
+        client={queryClient} 
+        persistOptions={{ 
+          persister,
+          dehydrateOptions: {
+            shouldDehydrateQuery: (query) => {
+              // Only persist queries that have successfully resolved with data
+              // This prevents CancelledError spam when queries are invalidated/cancelled
+              return (
+                query.state.status === 'success' && 
+                query.state.data !== undefined
+              );
+            },
+          },
+        }}
+      >
         <BrowserRouter>
           <AuthProvider>
             <RealtimeProvider>

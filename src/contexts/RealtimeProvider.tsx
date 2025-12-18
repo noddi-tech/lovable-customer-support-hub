@@ -74,10 +74,20 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     forceReconnect();
   }, [forceReconnect]);
 
+  // Debounce ref for visibility change handler
+  const lastVisibilityChangeRef = useRef<number>(0);
+
   // Handle tab visibility changes - reconnect and refresh data when tab becomes active
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
+        // Debounce: skip if less than 1 second since last visibility change
+        const now = Date.now();
+        if (now - lastVisibilityChangeRef.current < 1000) {
+          return;
+        }
+        lastVisibilityChangeRef.current = now;
+
         console.log('[Realtime] Tab became visible, checking connection...');
         
         // Force reconnect if not connected
@@ -86,7 +96,12 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
           memoizedForceReconnect();
         }
         
-        // Invalidate critical queries to refresh data
+        // Cancel any in-flight queries first to prevent CancelledError spam during dehydration
+        await queryClient.cancelQueries({ queryKey: ['conversations'] });
+        await queryClient.cancelQueries({ queryKey: ['notifications'] });
+        await queryClient.cancelQueries({ queryKey: ['messages'] });
+        
+        // Then invalidate to trigger fresh refetch
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
         queryClient.invalidateQueries({ queryKey: ['messages'] });

@@ -123,6 +123,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Clear user-specific cached data when authentication state changes
         if (event === 'SIGNED_OUT' || (!previousUser && !newUser) || (previousUser?.id !== newUser?.id)) {
+          // Cancel any in-flight queries first to prevent CancelledError spam during dehydration
+          await queryClient.cancelQueries();
+          
           // Only clear user-specific queries, preserve historical data like Noddi
           queryClient.removeQueries({ queryKey: ['conversations'] });
           queryClient.removeQueries({ queryKey: ['inbox-counts'] });
