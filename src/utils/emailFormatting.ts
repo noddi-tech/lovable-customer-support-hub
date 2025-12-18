@@ -314,9 +314,13 @@ export const sanitizeEmailHTML = (
         let attachmentUrl: string;
         if (assetInfo.attachment.storageKey) {
           attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(assetInfo.attachment.storageKey)}`;
+        } else if (messageId && messageId.trim() !== '') {
+          // Only use CID lookup if we have a valid messageId
+          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?cid=${encodeURIComponent(normalizedCid)}&messageId=${encodeURIComponent(messageId)}`;
         } else {
-          // Use CID as query parameter (not path) to handle slashes in CID
-          attachmentUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?cid=${encodeURIComponent(normalizedCid)}&messageId=${messageId || ''}`;
+          // No storageKey and no messageId - cannot resolve this CID
+          console.warn(`[EmailFormatting] Cannot resolve CID without messageId: "${normalizedCid}"`);
+          return `src="${createPlaceholder('cid-miss')}"`;
         }
         console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
         return `src="${attachmentUrl}"`;
