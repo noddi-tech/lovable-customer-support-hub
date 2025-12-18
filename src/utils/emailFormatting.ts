@@ -193,7 +193,14 @@ export const sanitizeEmailHTML = (
             node.setAttribute('title', 'HTTP image blocked to prevent mixed content warnings');
           }
           // Block external images by default for privacy (HTTPS only)
-          else if (src && !src.startsWith('cid:') && !src.startsWith('/') && !src.startsWith('data:') && !src.startsWith('blob:')) {
+          // BUT allow our own get-attachment URLs for inline images
+          else if (src && 
+                   !src.startsWith('cid:') && 
+                   !src.startsWith('/') && 
+                   !src.startsWith('data:') && 
+                   !src.startsWith('blob:') &&
+                   !src.includes('/supabase/functions/v1/get-attachment') &&
+                   !src.includes('/functions/v1/get-attachment')) {
             node.setAttribute('data-original-src', src);
             node.setAttribute('src', '');
             node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
