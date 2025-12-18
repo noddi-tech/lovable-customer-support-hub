@@ -170,8 +170,9 @@ verify_jwt = true
 [functions.update-sendgrid-token]
 verify_jwt = true
 
+# PUBLIC: get-attachment is public - storageKey is unguessable UUID path
 [functions.get-attachment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-cleanup-users]
 verify_jwt = true

@@ -410,48 +410,63 @@ Deno.serve(async (req: Request) => {
             const contentId = (attachmentData['content-id'] as string)?.replace(/[<>]/g, '');
             const isInline = mimeType.startsWith('image/') && !!contentId;
             
-            // Upload to Supabase Storage
+            // Upload to Supabase Storage with retry logic
             const storagePath = `${organization_id}/${conversation_id}/${crypto.randomUUID()}_${filename}`;
+            const MAX_RETRIES = 3;
+            let uploadAttempt = 0;
+            let uploadSuccess = false;
+            let lastError: unknown = null;
             
-            try {
-              const arrayBuffer = await file.arrayBuffer();
-              const { error: uploadError } = await supabase.storage
-                .from('message-attachments')
-                .upload(storagePath, arrayBuffer, {
-                  contentType: mimeType,
-                  upsert: false,
-                });
-              
-              if (uploadError) {
-                console.error(`[SendGrid-Inbound] Failed to upload attachment ${filename}:`, uploadError);
-                attachments.push({
-                  filename,
-                  mimeType,
-                  size: file.size,
-                  contentId,
-                  isInline,
-                  storageKey: null, // Failed to upload
-                });
-              } else {
-                console.log(`[SendGrid-Inbound] Uploaded attachment: ${storagePath}`);
-                attachments.push({
-                  filename,
-                  mimeType,
-                  size: file.size,
-                  contentId,
-                  isInline,
-                  storageKey: storagePath,
-                });
+            const arrayBuffer = await file.arrayBuffer();
+            
+            while (uploadAttempt < MAX_RETRIES && !uploadSuccess) {
+              uploadAttempt++;
+              try {
+                const { error: uploadError } = await supabase.storage
+                  .from('message-attachments')
+                  .upload(storagePath, arrayBuffer, {
+                    contentType: mimeType,
+                    upsert: false,
+                  });
+                
+                if (uploadError) {
+                  lastError = uploadError;
+                  console.warn(`[SendGrid-Inbound] Upload attempt ${uploadAttempt}/${MAX_RETRIES} failed for ${filename}:`, uploadError);
+                  if (uploadAttempt < MAX_RETRIES) {
+                    await new Promise(r => setTimeout(r, 500 * uploadAttempt)); // Exponential backoff
+                  }
+                } else {
+                  uploadSuccess = true;
+                  console.log(`[SendGrid-Inbound] Uploaded attachment (attempt ${uploadAttempt}): ${storagePath}`);
+                }
+              } catch (err) {
+                lastError = err;
+                console.warn(`[SendGrid-Inbound] Upload exception attempt ${uploadAttempt}/${MAX_RETRIES} for ${filename}:`, err);
+                if (uploadAttempt < MAX_RETRIES) {
+                  await new Promise(r => setTimeout(r, 500 * uploadAttempt));
+                }
               }
-            } catch (uploadErr) {
-              console.error(`[SendGrid-Inbound] Error uploading attachment ${filename}:`, uploadErr);
-              attachments.push({
-                filename,
-                mimeType,
-                size: file.size,
-                contentId,
-                isInline,
-                storageKey: null,
+            }
+            
+            attachments.push({
+              filename,
+              mimeType,
+              size: file.size,
+              contentId,
+              isInline,
+              storageKey: uploadSuccess ? storagePath : null,
+            });
+            
+            if (!uploadSuccess) {
+              console.error(`[SendGrid-Inbound] All ${MAX_RETRIES} upload attempts failed for ${filename}:`, lastError);
+              // Log failed upload for monitoring
+              await logIngestion(supabase, {
+                source: "sendgrid",
+                status: "attachment_upload_failed",
+                from_email: authorEmail,
+                to_email: rcptEmail,
+                subject,
+                error_message: `Failed to upload ${filename} after ${MAX_RETRIES} attempts: ${String(lastError)}`,
               });
             }
           }
