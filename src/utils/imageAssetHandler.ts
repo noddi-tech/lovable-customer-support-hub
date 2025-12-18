@@ -82,7 +82,7 @@ export const createBlobUrl = async (attachment: EmailAttachment, messageId?: str
     
     // Use storageKey for Supabase Storage attachments (new method)
     if (attachment.storageKey) {
-      fetchUrl = `${window.location.origin}/supabase/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`;
+      fetchUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/get-attachment?key=${encodeURIComponent(attachment.storageKey)}`;
       console.log('[EmailRender] Fetching from storage:', attachment.storageKey);
     } else {
       // No storageKey means binary data was never uploaded - return placeholder
