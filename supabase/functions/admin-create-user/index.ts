@@ -139,7 +139,40 @@ Deno.serve(async (req) => {
 
     console.log("Creating user:", { email, full_name, organizations: orgsToAssign, sendInvite: shouldSendInvite });
 
-    // 6. Create user - either via invite or direct creation
+    // Get primary org for the pending membership
+    const primaryOrg = orgsToAssign[0];
+
+    // 6. For invite flow: Create pending organization membership BEFORE user creation
+    // This allows the handle_new_user trigger to find it and use the correct org
+    if (shouldSendInvite) {
+      const inviteExpiresAt = new Date();
+      inviteExpiresAt.setDate(inviteExpiresAt.getDate() + 7); // 7 day expiry
+      
+      const { error: pendingError } = await adminClient
+        .from("organization_memberships")
+        .insert({
+          email: email,
+          organization_id: primaryOrg.org_id,
+          role: primaryOrg.role,
+          status: 'pending',
+          invite_expires_at: inviteExpiresAt.toISOString(),
+          is_default: true,
+        });
+      
+      if (pendingError) {
+        console.error("Error creating pending membership:", pendingError);
+        // If it's a duplicate, that's okay - continue
+        if (!pendingError.message?.includes('duplicate')) {
+          return new Response(JSON.stringify({ error: "Failed to create invite: " + pendingError.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+      }
+      console.log("Created pending membership for:", email, "org:", primaryOrg.org_id);
+    }
+
+    // 7. Create user - either via invite or direct creation
     let authData: { user: any } | null = null;
     let createError: any = null;
 
@@ -185,7 +218,7 @@ Deno.serve(async (req) => {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     // Use the first organization as the primary one for the profile
-    const primaryOrg = orgsToAssign[0];
+    // (primaryOrg was already defined earlier)
 
     // Try to upsert the profile - this handles both trigger-created and missing profiles
     const { error: upsertError } = await adminClient
@@ -206,23 +239,47 @@ Deno.serve(async (req) => {
       // Don't fail the whole operation if profile upsert fails
     }
 
-    // 8. Create organization memberships for ALL specified organizations
-    for (let i = 0; i < orgsToAssign.length; i++) {
+    // 9. Create organization memberships for ADDITIONAL organizations
+    // Skip first org for invite flow since it was created as pending and activated by trigger
+    const startIndex = shouldSendInvite ? 1 : 0;
+    for (let i = startIndex; i < orgsToAssign.length; i++) {
       const org = orgsToAssign[i];
       const { error: membershipError } = await adminClient
         .from("organization_memberships")
-        .insert({
+        .upsert({
           user_id: authData.user.id,
           organization_id: org.org_id,
           role: org.role,
           status: 'active',
-          is_default: i === 0, // First org is default
+          is_default: false, // First org is already default
           joined_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,organization_id',
         });
 
       if (membershipError) {
         console.error("Error creating organization membership:", membershipError);
         // Continue with other memberships
+      }
+    }
+
+    // For direct creation (no invite), create the first org membership too
+    if (!shouldSendInvite) {
+      const { error: primaryMembershipError } = await adminClient
+        .from("organization_memberships")
+        .upsert({
+          user_id: authData.user.id,
+          organization_id: primaryOrg.org_id,
+          role: primaryOrg.role,
+          status: 'active',
+          is_default: true,
+          joined_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,organization_id',
+        });
+
+      if (primaryMembershipError) {
+        console.error("Error creating primary organization membership:", primaryMembershipError);
       }
     }
 
