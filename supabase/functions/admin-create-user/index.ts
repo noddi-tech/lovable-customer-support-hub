@@ -142,34 +142,34 @@ Deno.serve(async (req) => {
     // Get primary org for the pending membership
     const primaryOrg = orgsToAssign[0];
 
-    // 6. For invite flow: Create pending organization membership BEFORE user creation
+    // 6. For invite flow: Create invited organization membership BEFORE user creation
     // This allows the handle_new_user trigger to find it and use the correct org
     if (shouldSendInvite) {
       const inviteExpiresAt = new Date();
       inviteExpiresAt.setDate(inviteExpiresAt.getDate() + 7); // 7 day expiry
       
-      const { error: pendingError } = await adminClient
+      const { error: inviteError } = await adminClient
         .from("organization_memberships")
         .insert({
           email: email,
           organization_id: primaryOrg.org_id,
           role: primaryOrg.role,
-          status: 'pending',
+          status: 'invited',
           invite_expires_at: inviteExpiresAt.toISOString(),
           is_default: true,
         });
       
-      if (pendingError) {
-        console.error("Error creating pending membership:", pendingError);
+      if (inviteError) {
+        console.error("Error creating invited membership:", inviteError);
         // If it's a duplicate, that's okay - continue
-        if (!pendingError.message?.includes('duplicate')) {
-          return new Response(JSON.stringify({ error: "Failed to create invite: " + pendingError.message }), {
+        if (!inviteError.message?.includes('duplicate')) {
+          return new Response(JSON.stringify({ error: "Failed to create invite: " + inviteError.message }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           });
         }
       }
-      console.log("Created pending membership for:", email, "org:", primaryOrg.org_id);
+      console.log("Created invited membership for:", email, "org:", primaryOrg.org_id);
     }
 
     // 7. Create user - either via invite or direct creation
