@@ -2474,6 +2474,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_events: {
+        Row: {
+          created_at: string
+          email: string
+          event_data: Json | null
+          event_name: string
+          event_type: string
+          id: string
+          organization_id: string | null
+          page_path: string | null
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          event_data?: Json | null
+          event_name: string
+          event_type: string
+          id?: string
+          organization_id?: string | null
+          page_path?: string | null
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          event_data?: Json | null
+          event_name?: string
+          event_type?: string
+          id?: string
+          organization_id?: string | null
+          page_path?: string | null
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activity_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2497,6 +2551,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device_type: string | null
+          email: string
+          end_reason: string | null
+          ended_at: string | null
+          id: string
+          is_active: boolean | null
+          last_active_at: string
+          organization_id: string | null
+          session_type: string
+          started_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          email: string
+          end_reason?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_active_at?: string
+          organization_id?: string | null
+          session_type?: string
+          started_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          email?: string
+          end_reason?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_active_at?: string
+          organization_id?: string | null
+          session_type?: string
+          started_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       voice_integrations: {
         Row: {
