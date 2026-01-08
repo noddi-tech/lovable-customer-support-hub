@@ -3060,6 +3060,10 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       strip_html_tags: { Args: { input_text: string }; Returns: string }
+      user_has_any_role: {
+        Args: { _roles: string[]; _user_id: string }
+        Returns: boolean
+      }
       validate_session_context: {
         Args: never
         Returns: {
