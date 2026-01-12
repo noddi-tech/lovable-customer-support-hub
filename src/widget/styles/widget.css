@@ -1,0 +1,469 @@
+/* Noddi Widget - Scoped Styles */
+/* All styles are prefixed with .noddi-widget to avoid conflicts */
+
+.noddi-widget-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1f2937;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.noddi-widget-container * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Floating Button */
+.noddi-widget-button {
+  position: fixed;
+  bottom: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 999998;
+}
+
+.noddi-widget-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.noddi-widget-button:active {
+  transform: scale(0.95);
+}
+
+/* Panel */
+.noddi-widget-panel {
+  position: fixed;
+  bottom: 90px;
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 120px);
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 999999;
+  animation: noddi-slide-up 0.3s ease;
+}
+
+@keyframes noddi-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.noddi-widget-header {
+  padding: 16px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.noddi-widget-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.noddi-widget-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.noddi-widget-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.noddi-widget-subtitle {
+  font-size: 12px;
+  opacity: 0.9;
+  margin: 2px 0 0;
+}
+
+.noddi-widget-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: background 0.2s;
+}
+
+.noddi-widget-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Content */
+.noddi-widget-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  min-height: 200px;
+}
+
+/* Home View */
+.noddi-widget-home {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.noddi-widget-greeting {
+  font-size: 15px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.noddi-widget-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.noddi-widget-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-size: 14px;
+  color: #374151;
+}
+
+.noddi-widget-action:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.noddi-widget-action svg {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+/* View Container */
+.noddi-widget-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.noddi-widget-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 0;
+  margin-bottom: 4px;
+}
+
+.noddi-widget-back:hover {
+  color: #374151;
+}
+
+/* Contact Form */
+.noddi-widget-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.noddi-widget-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.noddi-widget-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.noddi-widget-field input,
+.noddi-widget-field textarea {
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: white;
+  color: #1f2937;
+}
+
+.noddi-widget-field input:focus,
+.noddi-widget-field textarea:focus {
+  outline: none;
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.1);
+}
+
+.noddi-widget-field input:disabled,
+.noddi-widget-field textarea:disabled {
+  background: #f9fafb;
+  cursor: not-allowed;
+}
+
+.noddi-widget-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.noddi-widget-error {
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.noddi-widget-submit {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 4px;
+}
+
+.noddi-widget-submit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.noddi-widget-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Knowledge Search */
+.noddi-widget-search {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.noddi-widget-search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.noddi-widget-search-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  color: #1f2937;
+}
+
+.noddi-widget-search-input:focus {
+  outline: none;
+  border-color: #9ca3af;
+}
+
+.noddi-widget-search-btn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.noddi-widget-search-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.noddi-widget-search-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.noddi-widget-spinner {
+  animation: noddi-spin 1s linear infinite;
+}
+
+@keyframes noddi-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.noddi-widget-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100px;
+}
+
+.noddi-widget-results-placeholder,
+.noddi-widget-results-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.noddi-widget-results-placeholder p,
+.noddi-widget-results-empty p {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.noddi-widget-results-empty span {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.noddi-widget-result {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+}
+
+.noddi-widget-result:hover {
+  border-color: #d1d5db;
+}
+
+.noddi-widget-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  gap: 8px;
+}
+
+.noddi-widget-result-question {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  flex: 1;
+}
+
+.noddi-widget-result-chevron {
+  color: #9ca3af;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.noddi-widget-result.expanded .noddi-widget-result-chevron {
+  transform: rotate(180deg);
+}
+
+.noddi-widget-result-answer {
+  padding: 0 12px 12px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+  margin-top: 0;
+}
+
+/* Success Message */
+.noddi-widget-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.noddi-widget-success h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 16px 0 8px;
+}
+
+.noddi-widget-success p {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Footer */
+.noddi-widget-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.noddi-widget-footer span {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Mobile Responsive */
+@media (max-width: 420px) {
+  .noddi-widget-panel {
+    width: calc(100vw - 20px);
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 80px;
+    max-height: calc(100vh - 100px);
+  }
+  
+  .noddi-widget-button {
+    width: 50px;
+    height: 50px;
+  }
+}
