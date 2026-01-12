@@ -2,6 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Widget } from './Widget';
 import type { WidgetInitOptions } from './types';
+// @ts-ignore - Vite handles this import
+import widgetStyles from './styles/widget.css?inline';
 
 // Queue for commands before initialization
 declare global {
@@ -15,7 +17,20 @@ declare global {
   }
 }
 
+function injectStyles() {
+  const styleId = 'noddi-widget-styles';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = widgetStyles;
+    document.head.appendChild(style);
+  }
+}
+
 function initializeWidget(options: WidgetInitOptions) {
+  // Inject CSS styles
+  injectStyles();
+  
   // Create container for the widget
   const containerId = 'noddi-widget-root';
   

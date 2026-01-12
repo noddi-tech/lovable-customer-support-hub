@@ -22,27 +22,23 @@ export default defineConfig({
     },
     outDir: 'dist/widget',
     emptyOutDir: true,
+    cssCodeSplit: false,
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: false, // Keep console.log for debugging
+        drop_console: false,
       },
     },
     rollupOptions: {
       output: {
-        // Ensure all dependencies are bundled
         inlineDynamicImports: true,
-        // Generate clean output
         entryFileNames: 'widget.js',
-        assetFileNames: 'widget.[ext]',
       },
     },
-    // Bundle everything including React
     commonjsOptions: {
       include: [/node_modules/],
     },
   },
-  // Don't externalize anything - bundle everything into the widget
   optimizeDeps: {
     include: ['react', 'react-dom'],
   },

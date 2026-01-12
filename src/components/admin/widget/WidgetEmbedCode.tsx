@@ -14,8 +14,8 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
   // Use the production Supabase URL
   const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
   
-  // For production, host the widget.js on your CDN or use the app origin
-  const widgetScriptUrl = `${window.location.origin}/widget.js`;
+  // Widget hosted on Supabase Storage
+  const widgetScriptUrl = `${supabaseUrl}/storage/v1/object/public/widget/widget.js`;
   
   const embedCode = `<!-- Noddi Contact Widget -->
 <script>

@@ -4,11 +4,12 @@ export interface WidgetConfig {
   position: 'bottom-right' | 'bottom-left';
   greetingText: string;
   responseTimeText: string;
+  enableChat: boolean;
   enableContactForm: boolean;
   enableKnowledgeSearch: boolean;
   companyName: string | null;
   logoUrl: string | null;
-  inboxId: string;
+  inboxName: string | null;
 }
 
 export interface WidgetInitOptions {
