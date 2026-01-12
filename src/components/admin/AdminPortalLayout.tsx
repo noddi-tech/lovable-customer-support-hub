@@ -30,7 +30,8 @@ import {
   Activity,
   LayoutDashboard,
   ArrowLeft,
-  ScrollText
+  ScrollText,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -97,6 +98,11 @@ const AdminSidebar = () => {
       title: 'Knowledge Management',
       url: '/admin/knowledge',
       icon: Brain
+    },
+    {
+      title: 'Contact Widget',
+      url: '/admin/widget',
+      icon: MessageCircle
     }
   ];
 
