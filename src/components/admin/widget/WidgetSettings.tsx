@@ -91,7 +91,7 @@ export const WidgetSettings: React.FC = () => {
     mutationFn: async (inboxId: string) => {
       if (!organizationId) throw new Error('No organization');
       
-      const widgetKey = crypto.randomUUID().slice(0, 8);
+      const widgetKey = crypto.randomUUID();
       
       const { data, error } = await supabase
         .from('widget_configs')

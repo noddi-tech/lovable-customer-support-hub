@@ -11,14 +11,11 @@ interface WidgetEmbedCodeProps {
 export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) => {
   const [copied, setCopied] = useState(false);
 
-  // Get the base URL for the widget script
-  const baseUrl = window.location.origin;
+  // Use the production Supabase URL
+  const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
   
-  // For production, you'd use your CDN URL
-  const widgetScriptUrl = `${baseUrl}/widget.js`;
-  
-  // Edge function URL for widget config
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+  // For production, host the widget.js on your CDN or use the app origin
+  const widgetScriptUrl = `${window.location.origin}/widget.js`;
   
   const embedCode = `<!-- Noddi Contact Widget -->
 <script>
@@ -30,6 +27,15 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
   }(window,document,'script','noddi','${widgetScriptUrl}'));
   
   noddi('init', {
+    widgetKey: '${widgetKey}',
+    apiUrl: '${supabaseUrl}/functions/v1'
+  });
+</script>`;
+
+  const simpleEmbedCode = `<!-- Noddi Contact Widget (Simple) -->
+<script src="${widgetScriptUrl}"></script>
+<script>
+  NoddiWidget.init({
     widgetKey: '${widgetKey}',
     apiUrl: '${supabaseUrl}/functions/v1'
   });
