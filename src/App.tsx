@@ -168,6 +168,7 @@ const AppContent = () => {
       <Route path="/admin/health" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/import" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/widget" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       
       {/* ========== SUPER ADMIN ========== */}
       <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />

@@ -20,6 +20,7 @@ import { HelpScoutImport } from './HelpScoutImport';
 import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { IntegrationSettings } from './IntegrationSettings';
 import { AdminDashboard } from './AdminDashboard';
+import { WidgetSettings } from './widget';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
@@ -113,6 +114,9 @@ export const AdminPortal = () => {
 
       case 'general':
         return <GeneralSettings />;
+
+      case 'widget':
+        return <WidgetSettings />;
         
       default:
         return <AdminDashboard />;
