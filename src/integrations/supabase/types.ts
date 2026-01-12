@@ -2752,6 +2752,132 @@ export type Database = {
           },
         ]
       }
+      widget_configs: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          enable_chat: boolean | null
+          enable_contact_form: boolean | null
+          enable_knowledge_search: boolean | null
+          greeting_text: string | null
+          id: string
+          inbox_id: string | null
+          is_active: boolean | null
+          logo_url: string | null
+          organization_id: string
+          position: string | null
+          primary_color: string | null
+          response_time_text: string | null
+          updated_at: string | null
+          widget_key: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          enable_chat?: boolean | null
+          enable_contact_form?: boolean | null
+          enable_knowledge_search?: boolean | null
+          greeting_text?: string | null
+          id?: string
+          inbox_id?: string | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          organization_id: string
+          position?: string | null
+          primary_color?: string | null
+          response_time_text?: string | null
+          updated_at?: string | null
+          widget_key?: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          enable_chat?: boolean | null
+          enable_contact_form?: boolean | null
+          enable_knowledge_search?: boolean | null
+          greeting_text?: string | null
+          id?: string
+          inbox_id?: string | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          organization_id?: string
+          position?: string | null
+          primary_color?: string | null
+          response_time_text?: string | null
+          updated_at?: string | null
+          widget_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_configs_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: true
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_configs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_sessions: {
+        Row: {
+          browser_info: Json | null
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          page_url: string | null
+          updated_at: string | null
+          visitor_email: string | null
+          visitor_id: string | null
+          visitor_name: string | null
+          widget_config_id: string | null
+        }
+        Insert: {
+          browser_info?: Json | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          page_url?: string | null
+          updated_at?: string | null
+          visitor_email?: string | null
+          visitor_id?: string | null
+          visitor_name?: string | null
+          widget_config_id?: string | null
+        }
+        Update: {
+          browser_info?: Json | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          page_url?: string | null
+          updated_at?: string | null
+          visitor_email?: string | null
+          visitor_id?: string | null
+          visitor_name?: string | null
+          widget_config_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_sessions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_sessions_widget_config_id_fkey"
+            columns: ["widget_config_id"]
+            isOneToOne: false
+            referencedRelation: "widget_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
