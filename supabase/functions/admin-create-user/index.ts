@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
 
     // 7. Create or update profile (use upsert to handle both cases)
     // Wait a bit for the trigger to potentially create the profile
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Use the first organization as the primary one for the profile
     // (primaryOrg was already defined earlier)
@@ -230,13 +230,17 @@ Deno.serve(async (req) => {
         department_id: department_id || null,
         primary_role: primaryOrg.role as any,
         organization_id: primaryOrg.org_id,
+        role: primaryOrg.role, // Also set the legacy role field
       }, {
         onConflict: 'user_id',
       });
 
     if (upsertError) {
       console.error("Error upserting profile:", upsertError);
-      // Don't fail the whole operation if profile upsert fails
+      return new Response(JSON.stringify({ error: "Database error saving new user: " + upsertError.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     // 9. Create organization memberships for ADDITIONAL organizations
