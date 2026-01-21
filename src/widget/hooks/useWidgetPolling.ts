@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getChatMessages } from '../api';
+import { getApiUrl } from '../api';
 import type { ChatMessage, ChatSessionStatus } from '../types';
 
 interface UseWidgetPollingResult {
@@ -26,8 +26,10 @@ export function useWidgetPolling(sessionId: string | null): UseWidgetPollingResu
     if (!sessionId) return;
 
     try {
+      const apiUrl = getApiUrl();
+      const sinceParam = lastMessageTimestamp.current ? `&since=${encodeURIComponent(lastMessageTimestamp.current)}` : '';
       const response = await fetch(
-        `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/widget-chat?sessionId=${encodeURIComponent(sessionId)}${lastMessageTimestamp.current ? `&since=${encodeURIComponent(lastMessageTimestamp.current)}` : ''}`
+        `${apiUrl}/widget-chat?sessionId=${encodeURIComponent(sessionId)}${sinceParam}`
       );
 
       if (!response.ok) {

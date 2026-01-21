@@ -34,6 +34,35 @@ interface TypingRequest {
 
 type ChatRequest = StartChatRequest | MessageRequest | EndChatRequest | TypingRequest;
 
+// ========== Rate Limiting ==========
+const rateLimits = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(identifier: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const record = rateLimits.get(identifier);
+  
+  // Clean up old entries periodically
+  if (rateLimits.size > 1000) {
+    for (const [key, value] of rateLimits.entries()) {
+      if (now > value.resetAt) {
+        rateLimits.delete(key);
+      }
+    }
+  }
+  
+  if (!record || now > record.resetAt) {
+    rateLimits.set(identifier, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  
+  if (record.count >= limit) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -55,6 +84,14 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ error: 'Session ID required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Rate limit GET requests: 60 requests per minute per session
+      if (!checkRateLimit(`get:${sessionId}`, 60, 60000)) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limit exceeded' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -245,10 +282,10 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
     );
   }
 
-  // Get session
+  // Get session with visitor_id for rate limiting
   const { data: session, error: sessionError } = await supabase
     .from('widget_chat_sessions')
-    .select('id, conversation_id, status')
+    .select('id, conversation_id, status, visitor_id')
     .eq('id', sessionId)
     .single();
 
@@ -263,6 +300,14 @@ async function handleSendMessage(supabase: any, data: MessageRequest) {
     return new Response(
       JSON.stringify({ error: 'Chat session has ended' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Rate limit messages: 30 messages per minute per visitor
+  if (!checkRateLimit(`msg:${session.visitor_id}`, 30, 60000)) {
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded. Please slow down.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 

@@ -18,38 +18,54 @@ export function useLiveChatSessions(organizationId: string | null) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSessions = useCallback(async () => {
-    if (!organizationId) return;
+    if (!organizationId) {
+      setIsLoading(false);
+      return;
+    }
 
-    const { data, error } = await supabase
-      .from('widget_chat_sessions')
-      .select(`
-        id,
-        conversation_id,
-        visitor_name,
-        visitor_email,
-        status,
-        started_at,
-        last_message_at,
-        assigned_agent_id,
-        widget_config_id
-      `)
-      .in('status', ['waiting', 'active'])
-      .order('started_at', { ascending: false });
+    try {
+      // Query sessions with widget config to filter by organization
+      const { data, error } = await supabase
+        .from('widget_chat_sessions')
+        .select(`
+          id,
+          conversation_id,
+          visitor_name,
+          visitor_email,
+          status,
+          started_at,
+          last_message_at,
+          assigned_agent_id,
+          widget_config_id,
+          widget_configs!inner(organization_id)
+        `)
+        .eq('widget_configs.organization_id', organizationId)
+        .in('status', ['waiting', 'active'])
+        .order('started_at', { ascending: false });
 
-    if (!error && data) {
-      const mapped = data.map((s: any) => ({
-        id: s.id,
-        conversationId: s.conversation_id,
-        visitorName: s.visitor_name,
-        visitorEmail: s.visitor_email,
-        status: s.status,
-        startedAt: s.started_at,
-        lastMessageAt: s.last_message_at,
-        assignedAgentId: s.assigned_agent_id,
-      }));
+      if (error) {
+        console.error('[useLiveChatSessions] Error fetching sessions:', error);
+        setIsLoading(false);
+        return;
+      }
 
-      setWaitingSessions(mapped.filter(s => s.status === 'waiting'));
-      setActiveSessions(mapped.filter(s => s.status === 'active'));
+      if (data) {
+        const mapped = data.map((s: any) => ({
+          id: s.id,
+          conversationId: s.conversation_id,
+          visitorName: s.visitor_name,
+          visitorEmail: s.visitor_email,
+          status: s.status,
+          startedAt: s.started_at,
+          lastMessageAt: s.last_message_at,
+          assignedAgentId: s.assigned_agent_id,
+        }));
+
+        setWaitingSessions(mapped.filter(s => s.status === 'waiting'));
+        setActiveSessions(mapped.filter(s => s.status === 'active'));
+      }
+    } catch (err) {
+      console.error('[useLiveChatSessions] Unexpected error:', err);
     }
 
     setIsLoading(false);
