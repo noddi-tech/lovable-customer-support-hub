@@ -204,7 +204,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
                     {showAgentResponse && (
                       <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="px-4 py-2 rounded-2xl rounded-bl-sm bg-muted max-w-[80%]">
-                          <span className="text-xs text-muted-foreground block mb-1">Sarah from Support</span>
+                          <span className="text-xs text-muted-foreground block mb-1">Support Team</span>
                           Hi there! I'd be happy to help with your order. Can you share your order number?
                         </div>
                       </div>

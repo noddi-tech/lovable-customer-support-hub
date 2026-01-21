@@ -219,7 +219,7 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
       </div>
 
       {/* Empty State */}
-      {analytics.totalSessions === 0 && (
+      {!isLoading && analytics.totalSessions === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center h-48 text-center">
             <MessageCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />

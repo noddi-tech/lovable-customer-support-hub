@@ -201,8 +201,8 @@ export const WidgetSettings: React.FC = () => {
                     {widget.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2 font-mono truncate">
-                  {widget.widget_key.slice(0, 8)}...
+                <div className="text-xs text-muted-foreground mt-2 font-mono truncate" title={widget.widget_key}>
+                  {widget.widget_key.slice(0, 12)}...
                 </div>
               </button>
             ))}
@@ -448,7 +448,7 @@ export const WidgetSettings: React.FC = () => {
                 </TabsContent>
 
                 {/* Embed Code Tab */}
-                <TabsContent value="embed" className="mt-0">
+                <TabsContent value="embed" className="mt-0 overflow-hidden">
                   <WidgetEmbedCode widgetKey={selectedWidget.widget_key} />
                 </TabsContent>
               </CardContent>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,12 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
   const [inputValue, setInputValue] = useState('');
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [testLog, setTestLog] = useState<TestLogEntry[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isAgentTyping]);
 
   const addLogEntry = useCallback((event: string, details?: string) => {
     setTestLog(prev => [...prev, {
@@ -272,7 +278,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                           >
                             {msg.sender === 'agent' && (
                               <span className="text-xs text-muted-foreground block mb-1">
-                                Sarah from Support
+                                Support Team
                               </span>
                             )}
                             {msg.content}
@@ -292,6 +298,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                           </div>
                         </div>
                       )}
+                      <div ref={messagesEndRef} />
                     </div>
 
                     {/* Input */}
@@ -301,7 +308,12 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                         className="flex-1"
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
                       />
                       <Button 
                         size="icon" 
