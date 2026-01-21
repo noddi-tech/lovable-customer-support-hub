@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -38,7 +37,6 @@ interface WidgetConfig {
 export const WidgetSettings: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('settings');
 
   // Fetch organization ID
   const { data: organizationId } = useQuery({
@@ -166,9 +164,9 @@ export const WidgetSettings: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Widget List */}
-        <Card>
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
@@ -183,19 +181,22 @@ export const WidgetSettings: React.FC = () => {
               <button
                 key={widget.id}
                 onClick={() => setSelectedWidgetId(widget.id)}
-                className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                   selectedWidgetId === widget.id
-                    ? 'border-primary bg-primary/5'
+                    ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/20'
                     : 'border-border hover:border-primary/50 hover:bg-muted/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{widget.inboxes?.name || 'Unknown Inbox'}</span>
-                  <Badge variant={widget.is_active ? 'default' : 'secondary'} className="text-xs">
+                  <span className="font-semibold text-sm">{widget.inboxes?.name || 'Unknown Inbox'}</span>
+                  <Badge 
+                    variant={widget.is_active ? 'default' : 'secondary'} 
+                    className={widget.is_active ? 'bg-green-500 hover:bg-green-500 text-white' : ''}
+                  >
                     {widget.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1 font-mono">
+                <div className="text-xs text-muted-foreground mt-2 font-mono truncate">
                   {widget.widget_key}
                 </div>
               </button>
@@ -227,10 +228,11 @@ export const WidgetSettings: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Widget Configuration */}
-        <div className="lg:col-span-2">
-          {selectedWidget ? (
-            <Card>
+        {/* Widget Configuration - Side by Side Layout */}
+        {selectedWidget ? (
+          <>
+            {/* Settings Column */}
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Settings className="h-4 w-4" />
@@ -240,198 +242,201 @@ export const WidgetSettings: React.FC = () => {
                   Customize appearance and behavior for {selectedWidget.inboxes?.name}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="settings" className="gap-2">
-                      <Settings className="h-4 w-4" />
-                      Settings
-                    </TabsTrigger>
-                    <TabsTrigger value="preview" className="gap-2">
-                      <Eye className="h-4 w-4" />
-                      Preview
-                    </TabsTrigger>
-                    <TabsTrigger value="embed" className="gap-2">
-                      <Code className="h-4 w-4" />
-                      Embed
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="settings" className="space-y-6 mt-6">
-                    {/* Appearance */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-sm">Appearance</h4>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Primary Color</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="color"
-                              value={selectedWidget.primary_color}
-                              onChange={(e) => handleUpdateWidget({ primary_color: e.target.value })}
-                              className="w-12 h-10 p-1 cursor-pointer"
-                            />
-                            <Input
-                              value={selectedWidget.primary_color}
-                              onChange={(e) => handleUpdateWidget({ primary_color: e.target.value })}
-                              placeholder="#7c3aed"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>Position</Label>
-                          <Select
-                            value={selectedWidget.position}
-                            onValueChange={(value) => handleUpdateWidget({ position: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                              <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Company Name</Label>
+              <CardContent className="space-y-6">
+                {/* Appearance */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    Appearance
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Primary Color</Label>
+                      <div className="flex gap-2">
                         <Input
-                          value={selectedWidget.company_name || ''}
-                          onChange={(e) => handleUpdateWidget({ company_name: e.target.value })}
-                          placeholder="Your Company"
+                          type="color"
+                          value={selectedWidget.primary_color}
+                          onChange={(e) => handleUpdateWidget({ primary_color: e.target.value })}
+                          className="w-12 h-10 p-1 cursor-pointer"
                         />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Logo URL</Label>
                         <Input
-                          value={selectedWidget.logo_url || ''}
-                          onChange={(e) => handleUpdateWidget({ logo_url: e.target.value })}
-                          placeholder="https://..."
+                          value={selectedWidget.primary_color}
+                          onChange={(e) => handleUpdateWidget({ primary_color: e.target.value })}
+                          placeholder="#7c3aed"
                         />
                       </div>
                     </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Position</Label>
+                      <Select
+                        value={selectedWidget.position}
+                        onValueChange={(value) => handleUpdateWidget({ position: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                          <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-                    {/* Messages */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-sm">Messages</h4>
-                      
-                      <div className="space-y-2">
-                        <Label>Greeting Text</Label>
-                        <Textarea
-                          value={selectedWidget.greeting_text}
-                          onChange={(e) => handleUpdateWidget({ greeting_text: e.target.value })}
-                          placeholder="Hi there! How can we help?"
-                          rows={2}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Response Time Text</Label>
-                        <Input
-                          value={selectedWidget.response_time_text}
-                          onChange={(e) => handleUpdateWidget({ response_time_text: e.target.value })}
-                          placeholder="We usually respond within..."
-                        />
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Company Name</Label>
+                      <Input
+                        value={selectedWidget.company_name || ''}
+                        onChange={(e) => handleUpdateWidget({ company_name: e.target.value })}
+                        placeholder="Your Company"
+                      />
                     </div>
 
-                    {/* Features */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-sm">Features</h4>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="flex items-center gap-2">
-                              <Mail className="h-4 w-4" />
-                              Contact Form
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Allow visitors to send messages
-                            </p>
-                          </div>
-                          <Switch
-                            checked={selectedWidget.enable_contact_form}
-                            onCheckedChange={(checked) => handleUpdateWidget({ enable_contact_form: checked })}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="flex items-center gap-2">
-                              <Search className="h-4 w-4" />
-                              Knowledge Search
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Let visitors search your FAQ
-                            </p>
-                          </div>
-                          <Switch
-                            checked={selectedWidget.enable_knowledge_search}
-                            onCheckedChange={(checked) => handleUpdateWidget({ enable_knowledge_search: checked })}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="flex items-center gap-2">
-                              <MessageCircle className="h-4 w-4" />
-                              Live Chat
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Real-time chat when agents are online
-                            </p>
-                          </div>
-                          <Switch
-                            checked={selectedWidget.enable_chat}
-                            onCheckedChange={(checked) => handleUpdateWidget({ enable_chat: checked })}
-                          />
-                        </div>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>Logo URL</Label>
+                      <Input
+                        value={selectedWidget.logo_url || ''}
+                        onChange={(e) => handleUpdateWidget({ logo_url: e.target.value })}
+                        placeholder="https://..."
+                      />
                     </div>
+                  </div>
+                </div>
 
-                    {/* Status */}
-                    <div className="flex items-center justify-between pt-4 border-t">
+                {/* Messages */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm">Messages</h4>
+                  
+                  <div className="space-y-2">
+                    <Label>Greeting Text</Label>
+                    <Textarea
+                      value={selectedWidget.greeting_text}
+                      onChange={(e) => handleUpdateWidget({ greeting_text: e.target.value })}
+                      placeholder="Hi there! How can we help?"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Response Time Text</Label>
+                    <Input
+                      value={selectedWidget.response_time_text}
+                      onChange={(e) => handleUpdateWidget({ response_time_text: e.target.value })}
+                      placeholder="We usually respond within..."
+                    />
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm">Features</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                       <div className="space-y-0.5">
-                        <Label>Widget Active</Label>
+                        <Label className="flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4" />
+                          Live Chat
+                        </Label>
                         <p className="text-xs text-muted-foreground">
-                          Enable or disable this widget
+                          Real-time chat when agents are online
                         </p>
                       </div>
                       <Switch
-                        checked={selectedWidget.is_active}
-                        onCheckedChange={(checked) => handleUpdateWidget({ is_active: checked })}
+                        checked={selectedWidget.enable_chat}
+                        onCheckedChange={(checked) => handleUpdateWidget({ enable_chat: checked })}
                       />
                     </div>
-                  </TabsContent>
 
-                  <TabsContent value="preview" className="mt-6">
+                    <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Contact Form
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Allow visitors to send messages
+                        </p>
+                      </div>
+                      <Switch
+                        checked={selectedWidget.enable_contact_form}
+                        onCheckedChange={(checked) => handleUpdateWidget({ enable_contact_form: checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <Search className="h-4 w-4" />
+                          Knowledge Search
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Let visitors search your FAQ
+                        </p>
+                      </div>
+                      <Switch
+                        checked={selectedWidget.enable_knowledge_search}
+                        onCheckedChange={(checked) => handleUpdateWidget({ enable_knowledge_search: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-center justify-between p-4 rounded-lg border-2 border-dashed">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-semibold">Widget Active</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Enable or disable this widget on your website
+                    </p>
+                  </div>
+                  <Switch
+                    checked={selectedWidget.is_active}
+                    onCheckedChange={(checked) => handleUpdateWidget({ is_active: checked })}
+                  />
+                </div>
+
+                {/* Embed Code Section */}
+                <div className="pt-4 border-t">
+                  <WidgetEmbedCode widgetKey={selectedWidget.widget_key} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Preview Column - Sticky */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      Live Preview
+                    </CardTitle>
+                    <CardDescription>
+                      Real-time preview of your widget
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
                     <WidgetPreview config={selectedWidget} />
-                  </TabsContent>
-
-                  <TabsContent value="embed" className="mt-6">
-                    <WidgetEmbedCode widgetKey={selectedWidget.widget_key} />
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center h-64 text-center">
-                <MessageCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="font-medium">Select or Create a Widget</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Choose a widget from the list or create a new one to configure
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </>
+        ) : (
+          <Card className="lg:col-span-3">
+            <CardContent className="flex flex-col items-center justify-center h-64 text-center">
+              <MessageCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <h3 className="font-medium">Select or Create a Widget</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose a widget from the list or create a new one to configure
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
