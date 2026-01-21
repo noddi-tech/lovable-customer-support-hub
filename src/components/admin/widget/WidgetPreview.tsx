@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle, X, Send, Search, ArrowLeft, Mail, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,32 @@ interface WidgetPreviewProps {
 export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [activeView, setActiveView] = useState<'home' | 'chat' | 'ask' | 'search'>('home');
+  const [showTypingDemo, setShowTypingDemo] = useState(false);
+  const [showAgentResponse, setShowAgentResponse] = useState(false);
+
+  // Reset typing demo when switching views
+  useEffect(() => {
+    if (activeView === 'chat') {
+      setShowTypingDemo(false);
+      setShowAgentResponse(false);
+      
+      // Start typing demo after a short delay
+      const typingTimer = setTimeout(() => {
+        setShowTypingDemo(true);
+      }, 1500);
+      
+      // Show agent response after typing
+      const responseTimer = setTimeout(() => {
+        setShowTypingDemo(false);
+        setShowAgentResponse(true);
+      }, 4000);
+      
+      return () => {
+        clearTimeout(typingTimer);
+        clearTimeout(responseTimer);
+      };
+    }
+  }, [activeView]);
 
   return (
     <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl p-8 min-h-[550px] flex items-center justify-center">
@@ -149,23 +175,53 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
 
               {activeView === 'chat' && (
                 <div className="space-y-4">
-                  <div className="text-center py-6">
-                    <div 
-                      className="h-12 w-12 rounded-full mx-auto flex items-center justify-center mb-3"
-                      style={{ backgroundColor: `${config.primary_color}20` }}
-                    >
-                      <Sparkles className="h-6 w-6" style={{ color: config.primary_color }} />
+                  {/* Demo conversation with typing indicator */}
+                  <div className="space-y-3 min-h-[180px]">
+                    {/* Visitor message (demo) */}
+                    <div className="flex justify-end">
+                      <div 
+                        className="px-4 py-2 rounded-2xl rounded-br-sm text-white max-w-[80%]"
+                        style={{ backgroundColor: config.primary_color }}
+                      >
+                        Hi, I need help with my order
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Live chat preview - agents will see messages here
-                    </p>
+                    
+                    {/* Agent typing indicator */}
+                    {showTypingDemo && (
+                      <div className="flex justify-start animate-in fade-in duration-300">
+                        <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-muted">
+                          <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.3s]" />
+                            <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.15s]" />
+                            <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Agent response */}
+                    {showAgentResponse && (
+                      <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="px-4 py-2 rounded-2xl rounded-bl-sm bg-muted max-w-[80%]">
+                          <span className="text-xs text-muted-foreground block mb-1">Sarah from Support</span>
+                          Hi there! I'd be happy to help with your order. Can you share your order number?
+                        </div>
+                      </div>
+                    )}
                   </div>
+
                   <div className="flex gap-2">
                     <Input placeholder="Type a message..." className="flex-1" />
                     <Button size="icon" style={{ backgroundColor: config.primary_color }}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
+                  
+                  {/* Preview label */}
+                  <p className="text-xs text-center text-muted-foreground">
+                    This preview shows typing indicators and message flow
+                  </p>
                 </div>
               )}
 
