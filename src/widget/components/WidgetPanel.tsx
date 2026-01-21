@@ -1,16 +1,31 @@
-import React, { useState } from 'react';
-import type { WidgetConfig, WidgetView } from '../types';
+import React, { useState, useCallback } from 'react';
+import type { WidgetConfig, WidgetView, ChatSession } from '../types';
 import { ContactForm } from './ContactForm';
 import { KnowledgeSearch } from './KnowledgeSearch';
+import { LiveChat } from './LiveChat';
+import { startChat } from '../api';
 
 interface WidgetPanelProps {
   config: WidgetConfig;
   onClose: () => void;
 }
 
+// Generate a unique visitor ID
+function getVisitorId(): string {
+  let visitorId = localStorage.getItem('noddi_visitor_id');
+  if (!visitorId) {
+    visitorId = 'v_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    localStorage.setItem('noddi_visitor_id', visitorId);
+  }
+  return visitorId;
+}
+
 export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => {
   const [view, setView] = useState<WidgetView>('home');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [chatSession, setChatSession] = useState<ChatSession | null>(null);
+  const [isStartingChat, setIsStartingChat] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   const handleContactSuccess = () => {
     setShowSuccess(true);
@@ -18,6 +33,39 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
       setShowSuccess(false);
       setView('home');
     }, 3000);
+  };
+
+  const handleStartChat = useCallback(async () => {
+    setIsStartingChat(true);
+    setChatError(null);
+
+    const session = await startChat({
+      widgetKey: config.widgetKey,
+      visitorId: getVisitorId(),
+      pageUrl: window.location.href,
+    });
+
+    if (session) {
+      setChatSession(session);
+      setView('chat');
+    } else {
+      setChatError('Unable to start chat. Please try again.');
+    }
+
+    setIsStartingChat(false);
+  }, [config.widgetKey]);
+
+  const handleEndChat = () => {
+    setChatSession(null);
+    setView('home');
+  };
+
+  const handleBackFromChat = () => {
+    // If chat hasn't started or ended, just go back
+    if (!chatSession || chatSession.status === 'ended') {
+      setChatSession(null);
+    }
+    setView('home');
   };
 
   const positionStyles = config.position === 'bottom-right' 
@@ -65,7 +113,27 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
           <div className="noddi-widget-home">
             <p className="noddi-widget-greeting">{config.greetingText}</p>
             
+            {chatError && (
+              <div className="noddi-widget-error">
+                {chatError}
+              </div>
+            )}
+            
             <div className="noddi-widget-actions">
+              {config.enableChat && (
+                <button
+                  className="noddi-widget-action noddi-widget-action-primary"
+                  onClick={handleStartChat}
+                  disabled={isStartingChat}
+                  style={{ borderColor: config.primaryColor }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  <span>{isStartingChat ? 'Starting chat...' : 'Start live chat'}</span>
+                </button>
+              )}
+
               {config.enableContactForm && (
                 <button
                   className="noddi-widget-action"
@@ -110,7 +178,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
               onSuccess={handleContactSuccess}
             />
           </div>
-        ) : (
+        ) : view === 'search' ? (
           <div className="noddi-widget-view">
             <button 
               className="noddi-widget-back" 
@@ -126,7 +194,14 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
               primaryColor={config.primaryColor}
             />
           </div>
-        )}
+        ) : view === 'chat' && chatSession ? (
+          <LiveChat
+            session={chatSession}
+            primaryColor={config.primaryColor}
+            onEnd={handleEndChat}
+            onBack={handleBackFromChat}
+          />
+        ) : null}
       </div>
 
       {/* Footer */}

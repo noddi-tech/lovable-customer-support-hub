@@ -382,7 +382,6 @@ export const WidgetSettings: React.FC = () => {
                             <Label className="flex items-center gap-2">
                               <MessageCircle className="h-4 w-4" />
                               Live Chat
-                              <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
                             </Label>
                             <p className="text-xs text-muted-foreground">
                               Real-time chat when agents are online
@@ -391,7 +390,6 @@ export const WidgetSettings: React.FC = () => {
                           <Switch
                             checked={selectedWidget.enable_chat}
                             onCheckedChange={(checked) => handleUpdateWidget({ enable_chat: checked })}
-                            disabled
                           />
                         </div>
                       </div>

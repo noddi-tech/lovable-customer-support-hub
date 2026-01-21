@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
         organization_id,
         inbox_id,
         customer_id: customerId,
-        channel: 'email',
+        channel: 'widget',
         subject: conversationSubject,
         preview_text: message.substring(0, 200),
         status: 'open',

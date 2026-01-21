@@ -237,6 +237,48 @@ export type Database = {
           },
         ]
       }
+      chat_typing_indicators: {
+        Row: {
+          conversation_id: string | null
+          id: string
+          is_typing: boolean | null
+          updated_at: string | null
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          id?: string
+          is_typing?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          id?: string
+          is_typing?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_typing_indicators_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_typing_indicators_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           assigned_to_id: string | null
@@ -2752,6 +2794,82 @@ export type Database = {
           },
         ]
       }
+      widget_chat_sessions: {
+        Row: {
+          assigned_agent_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          last_message_at: string | null
+          last_seen_at: string | null
+          metadata: Json | null
+          started_at: string | null
+          status: string
+          updated_at: string | null
+          visitor_email: string | null
+          visitor_id: string
+          visitor_name: string | null
+          widget_config_id: string | null
+        }
+        Insert: {
+          assigned_agent_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_seen_at?: string | null
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string | null
+          visitor_email?: string | null
+          visitor_id: string
+          visitor_name?: string | null
+          widget_config_id?: string | null
+        }
+        Update: {
+          assigned_agent_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_seen_at?: string | null
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string | null
+          visitor_email?: string | null
+          visitor_id?: string
+          visitor_name?: string | null
+          widget_config_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_chat_sessions_assigned_agent_id_fkey"
+            columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_chat_sessions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_chat_sessions_widget_config_id_fkey"
+            columns: ["widget_config_id"]
+            isOneToOne: false
+            referencedRelation: "widget_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_configs: {
         Row: {
           company_name: string | null
@@ -3244,6 +3362,7 @@ export type Database = {
         | "instagram"
         | "whatsapp"
         | "other"
+        | "widget"
       service_ticket_category:
         | "tire_issue"
         | "service_complaint"
@@ -3432,6 +3551,7 @@ export const Constants = {
         "instagram",
         "whatsapp",
         "other",
+        "widget",
       ],
       service_ticket_category: [
         "tire_issue",

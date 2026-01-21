@@ -182,3 +182,16 @@ verify_jwt = true
 
 [functions.resend-user-invite]
 verify_jwt = true
+
+# PUBLIC: Widget functions are public - validated by widget_key
+[functions.widget-config]
+verify_jwt = false
+
+[functions.widget-submit]
+verify_jwt = false
+
+[functions.widget-search-faq]
+verify_jwt = false
+
+[functions.widget-chat]
+verify_jwt = false
