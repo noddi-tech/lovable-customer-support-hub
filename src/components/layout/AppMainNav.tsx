@@ -22,6 +22,7 @@ import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
 import { Crown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AgentStatusToggle } from './AgentStatusToggle';
 
 export const AppMainNav = () => {
   const location = useLocation();
@@ -149,7 +150,10 @@ export const AppMainNav = () => {
         })}
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto border-t border-sidebar-border">
+      <SidebarFooter className="mt-auto border-t border-sidebar-border space-y-2 py-2">
+        {/* Agent Availability Toggle */}
+        <AgentStatusToggle collapsed={isCollapsed} />
+        
         <Button
           variant="ghost"
           size="sm"

@@ -1702,6 +1702,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          chat_availability: string | null
+          chat_availability_updated_at: string | null
           created_at: string
           department_id: string | null
           email: string
@@ -1719,6 +1721,8 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          chat_availability?: string | null
+          chat_availability_updated_at?: string | null
           created_at?: string
           department_id?: string | null
           email: string
@@ -1736,6 +1740,8 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          chat_availability?: string | null
+          chat_availability_updated_at?: string | null
           created_at?: string
           department_id?: string | null
           email?: string
@@ -3233,6 +3239,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_online_agent_count: { Args: { org_id: string }; Returns: number }
       get_organization_by_email_domain: {
         Args: { email_domain: string }
         Returns: string

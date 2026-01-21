@@ -63,21 +63,28 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
   const { t } = useTranslation();
 
   // Memoize computed values to prevent recalculation
-  const computedValues = useMemo(() => ({
-    ChannelIcon: channelIcons[conversation.channel] || MessageCircle,
-    isSnoozed: conversation.snooze_until && new Date(conversation.snooze_until) > new Date(),
-    customerName: conversation.customer?.full_name || 'Unknown',
-    customerEmail: conversation.customer?.email,
-    statusLabel: t(`conversation.${conversation.status}`, conversation.status),
-    priorityLabel: t(`conversation.${conversation.priority}`, conversation.priority),
-    subjectText: conversation.subject || t('dashboard.conversation.noSubject', 'No Subject'),
-    formattedTime: formatConversationTime(conversation.updated_at),
-    customerInitial: conversation.customer?.full_name?.[0] || 'C',
-    inboxName: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.name || 'Unknown Inbox' : 'No Inbox',
-    inboxColor: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.color || '#6B7280' : '#6B7280',
-    // Strip HTML from preview text as a safety measure (database should already handle this)
-    previewText: stripHtml(conversation.preview_text) || 'No preview available'
-  }), [
+  const computedValues = useMemo(() => {
+    // Check if this is a live chat conversation (widget channel with active session)
+    const isLiveChat = (conversation.channel as string) === 'widget' && 
+      (conversation as any).metadata?.chatSessionStatus === 'active';
+    
+    return {
+      ChannelIcon: channelIcons[conversation.channel] || MessageCircle,
+      isSnoozed: conversation.snooze_until && new Date(conversation.snooze_until) > new Date(),
+      customerName: conversation.customer?.full_name || 'Unknown',
+      customerEmail: conversation.customer?.email,
+      statusLabel: t(`conversation.${conversation.status}`, conversation.status),
+      priorityLabel: t(`conversation.${conversation.priority}`, conversation.priority),
+      subjectText: conversation.subject || t('dashboard.conversation.noSubject', 'No Subject'),
+      formattedTime: formatConversationTime(conversation.updated_at),
+      customerInitial: conversation.customer?.full_name?.[0] || 'C',
+      inboxName: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.name || 'Unknown Inbox' : 'No Inbox',
+      inboxColor: conversation.inbox_id ? inboxes.find(i => i.id === conversation.inbox_id)?.color || '#6B7280' : '#6B7280',
+      // Strip HTML from preview text as a safety measure (database should already handle this)
+      previewText: stripHtml(conversation.preview_text) || 'No preview available',
+      isLiveChat,
+    };
+  }, [
     conversation.channel,
     conversation.snooze_until,
     conversation.customer?.full_name,
@@ -87,6 +94,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
     conversation.subject,
     conversation.updated_at,
     conversation.preview_text,
+    (conversation as any).metadata,
     t,
     formatConversationTime,
     conversation.inbox_id,
@@ -173,6 +181,11 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
           {!conversation.is_read && (
             <Badge className="bg-blue-500 text-white px-1.5 py-0 text-xs shrink-0">
               Unread
+            </Badge>
+          )}
+          {computedValues.isLiveChat && (
+            <Badge className="bg-green-500 text-white px-1.5 py-0 text-xs shrink-0 animate-pulse">
+              LIVE
             </Badge>
           )}
         </div>

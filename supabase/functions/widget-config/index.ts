@@ -66,6 +66,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if any agents are online for this organization
+    const { data: onlineCount, error: countError } = await supabase
+      .rpc('get_online_agent_count', { org_id: config.organization_id });
+
+    if (countError) {
+      console.error('Error fetching online agent count:', countError);
+    }
+
+    const agentsOnline = (onlineCount ?? 0) > 0;
+
     // Return public configuration (no sensitive data)
     const publicConfig = {
       widgetKey: config.widget_key,
@@ -79,6 +89,7 @@ Deno.serve(async (req) => {
       logoUrl: config.logo_url || config.organizations?.logo_url,
       companyName: config.company_name || config.organizations?.name,
       inboxName: config.inboxes?.name,
+      agentsOnline,
     };
 
     return new Response(

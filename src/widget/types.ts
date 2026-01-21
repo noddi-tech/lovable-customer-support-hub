@@ -10,6 +10,7 @@ export interface WidgetConfig {
   companyName: string | null;
   logoUrl: string | null;
   inboxName: string | null;
+  agentsOnline: boolean; // True if at least one agent is available for chat
 }
 
 export interface WidgetInitOptions {

@@ -119,8 +119,9 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
               </div>
             )}
             
-            <div className="noddi-widget-actions">
-              {config.enableChat && (
+          <div className="noddi-widget-actions">
+              {/* Show live chat only when agents are online */}
+              {config.enableChat && config.agentsOnline && (
                 <button
                   className="noddi-widget-action noddi-widget-action-primary"
                   onClick={handleStartChat}
@@ -131,7 +132,22 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                   </svg>
                   <span>{isStartingChat ? 'Starting chat...' : 'Start live chat'}</span>
+                  <span className="noddi-widget-online-badge">● Online</span>
                 </button>
+              )}
+
+              {/* Show offline notice when chat is enabled but no agents online */}
+              {config.enableChat && !config.agentsOnline && (
+                <div className="noddi-widget-offline-notice">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 6v6l4 2"></path>
+                  </svg>
+                  <div className="noddi-widget-offline-text">
+                    <span className="noddi-widget-offline-title">We're currently offline</span>
+                    <span className="noddi-widget-offline-subtitle">Leave a message and we'll respond soon</span>
+                  </div>
+                </div>
               )}
 
               {config.enableContactForm && (
@@ -143,7 +159,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                     <polyline points="22,6 12,13 2,6"></polyline>
                   </svg>
-                  <span>Send us a message</span>
+                  <span>{config.enableChat && !config.agentsOnline ? 'Leave a message' : 'Send us a message'}</span>
                 </button>
               )}
               

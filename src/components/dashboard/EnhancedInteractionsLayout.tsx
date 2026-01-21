@@ -8,6 +8,7 @@ import { MasterDetailShell } from '@/components/admin/design/components/layouts/
 import { InboxList } from '@/components/layout/InboxList';
 import { ConversationView } from './ConversationView';
 import { ConversationList } from './ConversationList';
+import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
@@ -290,13 +291,18 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   // Render conversation list with full functionality
   const renderConversationList = () => {
     return (
-      <ConversationList
-        selectedTab={effectiveStatus}
-        onSelectConversation={(conversation) => handleConversationSelect(conversation as any)}
-        selectedConversation={selectedConversation as any}
-        selectedInboxId={effectiveInboxId}
-        onToggleCollapse={() => {}}
-      />
+      <div className="flex flex-col h-full">
+        {/* Live Chat Queue - prominent display for waiting/active chats */}
+        <LiveChatQueue className="mx-4 mt-4 mb-2" />
+        
+        <ConversationList
+          selectedTab={effectiveStatus}
+          onSelectConversation={(conversation) => handleConversationSelect(conversation as any)}
+          selectedConversation={selectedConversation as any}
+          selectedInboxId={effectiveInboxId}
+          onToggleCollapse={() => {}}
+        />
+      </div>
     );
   };
 
