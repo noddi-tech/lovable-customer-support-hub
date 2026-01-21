@@ -6,6 +6,10 @@ export function setApiUrl(url: string) {
   apiBaseUrl = url;
 }
 
+export function getApiUrl(): string {
+  return apiBaseUrl;
+}
+
 export async function fetchWidgetConfig(widgetKey: string): Promise<WidgetConfig | null> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-config?key=${encodeURIComponent(widgetKey)}`);
