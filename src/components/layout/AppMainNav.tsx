@@ -79,13 +79,16 @@ export const AppMainNav = () => {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
+      <SidebarHeader className="p-4 space-y-3">
         <h2 className={cn(
           "text-lg font-semibold text-foreground",
           isCollapsed && "sr-only"
         )}>
           Customer Platform
         </h2>
+        
+        {/* Agent Availability Toggle - at the top for prominence */}
+        <AgentStatusToggle collapsed={isCollapsed} />
       </SidebarHeader>
 
       <SidebarContent>
@@ -150,10 +153,7 @@ export const AppMainNav = () => {
         })}
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto border-t border-sidebar-border space-y-2 py-2">
-        {/* Agent Availability Toggle */}
-        <AgentStatusToggle collapsed={isCollapsed} />
-        
+      <SidebarFooter className="mt-auto border-t border-sidebar-border py-2">
         <Button
           variant="ghost"
           size="sm"

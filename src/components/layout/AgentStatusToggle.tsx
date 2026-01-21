@@ -44,7 +44,7 @@ export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({
 
   if (isLoading) {
     return (
-      <div className={cn("p-2", className)}>
+      <div className={cn(collapsed ? "flex justify-center" : "px-2", className)}>
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           {!collapsed && <span className="text-sm">Loading...</span>}
@@ -54,7 +54,14 @@ export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({
   }
 
   return (
-    <div className={cn("px-2", className)}>
+    <div className={cn(collapsed ? "flex justify-center" : "px-2", className)}>
+      {/* Descriptive header - only when expanded */}
+      {!collapsed && (
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1 px-2">
+          Chat Availability
+        </p>
+      )}
+      
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -62,11 +69,11 @@ export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({
             size="sm"
             className={cn(
               "w-full justify-start gap-2",
-              collapsed && "justify-center px-0"
+              collapsed && "w-8 h-8 p-0 justify-center"
             )}
             disabled={isUpdating}
           >
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <Circle className={cn("h-3 w-3 fill-current", currentConfig.color)} />
               {status === 'online' && (
                 <span className="absolute inset-0 animate-ping">
@@ -93,7 +100,10 @@ export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({
             ([statusKey, config]) => (
               <DropdownMenuItem
                 key={statusKey}
-                onClick={() => setStatus(statusKey)}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setStatus(statusKey);
+                }}
                 className={cn(
                   "flex items-center gap-2 cursor-pointer",
                   status === statusKey && "bg-muted"
