@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { useAgentAvailability, type AvailabilityStatus } from '@/hooks/useAgentAvailability';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,22 +98,42 @@ export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
           {(Object.entries(statusConfig) as [AvailabilityStatus, typeof currentConfig][]).map(
-            ([statusKey, config]) => (
-              <DropdownMenuItem
-                key={statusKey}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setStatus(statusKey);
-                }}
-                className={cn(
-                  "flex items-center gap-2 cursor-pointer",
-                  status === statusKey && "bg-muted"
-                )}
-              >
-                <Circle className={cn("h-3 w-3 fill-current", config.color)} />
-                <span>{config.label}</span>
-              </DropdownMenuItem>
-            )
+            ([statusKey, config]) => {
+              const statusMessages: Record<AvailabilityStatus, { title: string; description: string }> = {
+                online: {
+                  title: 'You are now online for chat',
+                  description: 'Visitors can start live chats with you'
+                },
+                away: {
+                  title: 'Status set to Away',
+                  description: 'You will still receive chat notifications'
+                },
+                offline: {
+                  title: 'You are now offline',
+                  description: 'Live chat is disabled for visitors'
+                }
+              };
+              
+              return (
+                <DropdownMenuItem
+                  key={statusKey}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setStatus(statusKey);
+                    toast.success(statusMessages[statusKey].title, {
+                      description: statusMessages[statusKey].description,
+                    });
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer",
+                    status === statusKey && "bg-muted"
+                  )}
+                >
+                  <Circle className={cn("h-3 w-3 fill-current", config.color)} />
+                  <span>{config.label}</span>
+                </DropdownMenuItem>
+              );
+            }
           )}
         </DropdownMenuContent>
       </DropdownMenu>
