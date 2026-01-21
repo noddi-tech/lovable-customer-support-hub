@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ChatSession {
   id: string;
@@ -12,10 +13,15 @@ interface ChatSession {
   assignedAgentId: string | null;
 }
 
+// Track if we've already shown notification for a session
+const notifiedSessions = new Set<string>();
+
 export function useLiveChatSessions(organizationId: string | null) {
   const [waitingSessions, setWaitingSessions] = useState<ChatSession[]>([]);
   const [activeSessions, setActiveSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const previousWaitingCountRef = useRef(0);
+  const originalTitleRef = useRef(document.title);
 
   const fetchSessions = useCallback(async () => {
     if (!organizationId) {
@@ -61,8 +67,36 @@ export function useLiveChatSessions(organizationId: string | null) {
           assignedAgentId: s.assigned_agent_id,
         }));
 
-        setWaitingSessions(mapped.filter(s => s.status === 'waiting'));
-        setActiveSessions(mapped.filter(s => s.status === 'active'));
+        const waiting = mapped.filter(s => s.status === 'waiting');
+        const active = mapped.filter(s => s.status === 'active');
+        
+        // Check for new waiting sessions and notify
+        waiting.forEach(session => {
+          if (!notifiedSessions.has(session.id)) {
+            notifiedSessions.add(session.id);
+            // Only show toast if this isn't the first load
+            if (previousWaitingCountRef.current > 0 || waitingSessions.length > 0) {
+              toast.info('New live chat waiting', {
+                description: session.visitorName || 'A visitor is waiting for assistance',
+                duration: 5000,
+              });
+              
+              // Try to play notification sound
+              try {
+                const audio = new Audio('/sounds/chat-notification.mp3');
+                audio.volume = 0.5;
+                audio.play().catch(() => {
+                  // Sound blocked or file not found, ignore
+                });
+              } catch {
+                // Audio not supported
+              }
+            }
+          }
+        });
+        
+        setWaitingSessions(waiting);
+        setActiveSessions(active);
       }
     } catch (err) {
       console.error('[useLiveChatSessions] Unexpected error:', err);
@@ -102,6 +136,7 @@ export function useLiveChatSessions(organizationId: string | null) {
     return !error;
   }, [fetchSessions]);
 
+  // Fetch sessions and poll
   useEffect(() => {
     fetchSessions();
     
@@ -109,6 +144,22 @@ export function useLiveChatSessions(organizationId: string | null) {
     const interval = setInterval(fetchSessions, 10000);
     return () => clearInterval(interval);
   }, [fetchSessions]);
+
+  // Update browser tab title with waiting count
+  useEffect(() => {
+    if (waitingSessions.length > 0) {
+      document.title = `(${waitingSessions.length}) ${originalTitleRef.current}`;
+    } else {
+      document.title = originalTitleRef.current;
+    }
+    
+    // Track count for next comparison
+    previousWaitingCountRef.current = waitingSessions.length;
+    
+    return () => {
+      document.title = originalTitleRef.current;
+    };
+  }, [waitingSessions.length]);
 
   return {
     waitingSessions,

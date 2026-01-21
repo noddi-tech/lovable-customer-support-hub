@@ -176,6 +176,48 @@
   flex-shrink: 0;
 }
 
+/* Online Badge */
+.noddi-widget-online-badge {
+  margin-left: auto;
+  font-size: 11px;
+  color: #22c55e;
+  font-weight: 600;
+}
+
+/* Offline Notice */
+.noddi-widget-offline-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid #fbbf24;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.noddi-widget-offline-notice svg {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+.noddi-widget-offline-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.noddi-widget-offline-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.noddi-widget-offline-subtitle {
+  font-size: 12px;
+  color: #a16207;
+}
+
 /* View Container */
 .noddi-widget-view {
   display: flex;

@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Inbox, Mail, Users, Archive, Star, Clock, CheckCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAccessibleInboxes, useInboxCounts } from '@/hooks/useInteractionsData';
+import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import type { StatusFilter, InboxId } from '@/types/interactions';
 
 interface StatusFilterItem {
@@ -113,6 +114,9 @@ export const InboxList: React.FC<InboxListProps> = ({
 
   return (
     <div className={cn("space-y-4", className)}>
+      {/* Live Chat Queue - highest priority */}
+      <LiveChatQueue compact className="px-2" />
+      
       {/* Inbox Selector */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-foreground/70 px-2">Inboxes</h3>
