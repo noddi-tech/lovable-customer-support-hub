@@ -1,4 +1,4 @@
-import type { WidgetConfig } from './types';
+import type { WidgetConfig, ChatSession, ChatMessage } from './types';
 
 let apiBaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1';
 
@@ -74,5 +74,109 @@ export async function searchFaq(widgetKey: string, query: string): Promise<Searc
   } catch (error) {
     console.error('[Noddi Widget] Error searching:', error);
     return [];
+  }
+}
+
+// ========== Live Chat API ==========
+
+export interface StartChatData {
+  widgetKey: string;
+  visitorId: string;
+  visitorName?: string;
+  visitorEmail?: string;
+  pageUrl?: string;
+}
+
+export async function startChat(data: StartChatData): Promise<ChatSession | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'start', ...data }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[Noddi Widget] Failed to start chat:', errorData.error);
+      return null;
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('[Noddi Widget] Error starting chat:', error);
+    return null;
+  }
+}
+
+export async function sendChatMessage(sessionId: string, content: string): Promise<ChatMessage | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'message', sessionId, content }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[Noddi Widget] Failed to send message:', errorData.error);
+      return null;
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('[Noddi Widget] Error sending message:', error);
+    return null;
+  }
+}
+
+export async function getChatMessages(sessionId: string, since?: string): Promise<ChatMessage[]> {
+  try {
+    let url = `${apiBaseUrl}/widget-chat?sessionId=${encodeURIComponent(sessionId)}`;
+    if (since) {
+      url += `&since=${encodeURIComponent(since)}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    if (!response.ok) {
+      console.error('[Noddi Widget] Failed to get messages:', response.status);
+      return [];
+    }
+    
+    const data = await response.json();
+    return data.messages || [];
+  } catch (error) {
+    console.error('[Noddi Widget] Error getting messages:', error);
+    return [];
+  }
+}
+
+export async function endChat(sessionId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'end', sessionId }),
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('[Noddi Widget] Error ending chat:', error);
+    return false;
+  }
+}
+
+export async function updateTypingStatus(sessionId: string, isTyping: boolean): Promise<void> {
+  try {
+    await fetch(`${apiBaseUrl}/widget-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'typing', sessionId, isTyping }),
+    });
+  } catch (error) {
+    // Silently fail for typing indicators
   }
 }
