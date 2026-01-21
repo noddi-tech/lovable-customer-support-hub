@@ -34,6 +34,16 @@ export function useWidgetAnalytics({ widgetId, days = 30 }: UseWidgetAnalyticsPr
       const endDate = endOfDay(now);
       const previousStartDate = startOfDay(subDays(startDate, days));
 
+      // Fetch all widget sessions (widget opens)
+      const { data: widgetSessions, error: sessionsError } = await supabase
+        .from('widget_sessions')
+        .select('id, visitor_id, created_at, metadata')
+        .eq('widget_config_id', widgetId)
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+
+      if (sessionsError) throw sessionsError;
+
       // Fetch chat sessions for current period
       const { data: chatSessions, error: chatError } = await supabase
         .from('widget_chat_sessions')
@@ -74,9 +84,10 @@ export function useWidgetAnalytics({ widgetId, days = 30 }: UseWidgetAnalyticsPr
       // Calculate metrics
       const currentChatCount = chatSessions?.length || 0;
       const previousChatCount = previousChatSessions?.length || 0;
+      const widgetOpensCount = widgetSessions?.length || 0;
       
-      // Total sessions = chat sessions + contact form submissions
-      const totalSessions = currentChatCount + contactFormCount;
+      // Total sessions = widget opens (all interactions with the widget)
+      const totalSessions = widgetOpensCount > 0 ? widgetOpensCount : (currentChatCount + contactFormCount);
 
       // Chat completion rate
       const completedChats = chatSessions?.filter(s => s.status === 'ended').length || 0;

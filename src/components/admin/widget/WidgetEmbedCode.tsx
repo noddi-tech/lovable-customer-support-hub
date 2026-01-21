@@ -61,9 +61,9 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
             Add this code snippet just before the closing &lt;/body&gt; tag on your website
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-hidden">
           <div className="relative">
-            <pre className="bg-muted rounded-lg p-4 text-xs overflow-x-auto font-mono">
+            <pre className="bg-muted rounded-lg p-4 text-xs font-mono max-w-full whitespace-pre-wrap break-all overflow-x-auto">
               <code>{embedCode}</code>
             </pre>
             <Button
@@ -95,9 +95,9 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
             Your unique widget identifier
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-muted rounded-lg px-4 py-2 text-sm font-mono">
+        <CardContent className="overflow-hidden">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <code className="flex-1 bg-muted rounded-lg px-4 py-2 text-sm font-mono truncate min-w-0">
               {widgetKey}
             </code>
             <Button
