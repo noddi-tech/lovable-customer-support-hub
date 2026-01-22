@@ -3,6 +3,8 @@
  * 
  * Enhanced call control buttons with agent transfer selector
  * Supports both compact and full variants
+ * 
+ * IMPORTANT: Transfer uses profiles.id (ProfileId), not user_id
  */
 
 import React, { useState } from 'react';
@@ -16,14 +18,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Volume2, VolumeX, Pause, Play, PhoneOff, PhoneForwarded, Loader2, User } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useAgents } from '@/hooks/useAgents';
 
 interface CallControlsProps {
   onMute?: () => void;
   onHold?: () => void;
+  /** Callback with ProfileId when call is transferred */
   onTransfer?: (agentId: string) => void;
   onHangUp?: () => void;
   isMuted?: boolean;
@@ -46,27 +48,19 @@ export const CallControls: React.FC<CallControlsProps> = ({
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const isCompact = variant === 'compact';
 
-  // Fetch available agents for transfer - use 'id' (ProfileId) for assignments
-  const { data: agents, isLoading: loadingAgents } = useQuery({
-    queryKey: ['available-agents'],
-    queryFn: async () => {
-      // IMPORTANT: Fetch 'id' (ProfileId) for transfers, not just user_id
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, user_id, full_name, email, role')
-        .eq('is_active', true)
-        .in('role', ['agent', 'admin'])
-        .order('full_name');
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: isTransferOpen,
+  // Uses shared hook - only fetch when transfer dropdown is open
+  const { data: agents = [], isLoading: loadingAgents } = useAgents({ 
+    enabled: isTransferOpen 
   });
+  
+  // Filter to only agents and admins for transfer
+  const transferableAgents = agents.filter(
+    agent => agent.role === 'agent' || agent.role === 'admin'
+  );
 
   const handleTransfer = (agentId: string, agentName: string) => {
     if (onTransfer) {
-      onTransfer(agentId);
+      onTransfer(agentId); // This is profiles.id (ProfileId)
       toast({
         title: 'Transfer initiated',
         description: `Transferring call to ${agentName}`,
@@ -144,8 +138,8 @@ export const CallControls: React.FC<CallControlsProps> = ({
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
-            ) : agents && agents.length > 0 ? (
-              agents.map((agent) => (
+            ) : transferableAgents.length > 0 ? (
+              transferableAgents.map((agent) => (
                 <DropdownMenuItem
                   key={agent.id}
                   // Use agent.id (ProfileId) NOT agent.user_id for transfers

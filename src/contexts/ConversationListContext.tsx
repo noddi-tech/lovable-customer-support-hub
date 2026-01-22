@@ -178,21 +178,22 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const { user } = useAuth();
 
 
-  // Fetch agents for assignment
+  // Fetch agents for assignment - uses profiles.id (ProfileId) for foreign key references
   const { data: agentsData = [] } = useQuery({
     queryKey: ['agents', user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, full_name')
+        .select('id, user_id, full_name')
         .eq('is_active', true)
         .order('full_name');
       
       if (error) throw error;
       
+      // IMPORTANT: Use profiles.id (not user_id) for assignment foreign keys
       return (data || []).map((profile: any) => ({
-        id: profile.user_id,
+        id: profile.id,  // ProfileId - correct for assigned_to_id FK
         name: profile.full_name,
       }));
     },

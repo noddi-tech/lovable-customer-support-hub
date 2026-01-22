@@ -24,6 +24,14 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      // Warn when user_id is used as SelectItem value - should use profiles.id (ProfileId) instead
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "JSXAttribute[name.name='value'][value.expression.property.name='user_id']",
+          message: "Avoid using user_id for assignment values. Use profiles.id (ProfileId) instead for foreign key references like assigned_to_id."
+        }
+      ],
     },
   }
 );

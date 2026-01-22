@@ -97,9 +97,9 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
   if (isError || (data?.error && !data?.notFound)) {
     const errorMessage = data?.rateLimited 
       ? 'Rate limited by Noddi API. Please try again later.' 
-      : data?.error === 'Email and organization ID are required'
+        : data?.error === 'Email and organization ID are required'
         ? 'Missing required information for Noddi lookup'
-        : data?.error === 'Noddi API key not configured'
+        : data?.error === 'Noddi API token not configured'
           ? 'Noddi integration not configured'
           : error?.message || data?.error || 'Failed to load Noddi data';
     

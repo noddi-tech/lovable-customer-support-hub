@@ -3,48 +3,32 @@ import { Users, UserCheck } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { ProfileId } from '@/types/ids';
-
-/**
- * Agent interface - uses ProfileId (profiles.id) for assignments
- * NOT user_id which is the Auth service ID
- */
-interface Agent {
-  id: string; // ProfileId - the primary key, used for foreign key references
-  user_id: string; // AuthUserId - kept for reference but NOT used for assignments
-  full_name: string;
-  avatar_url?: string;
-}
+import { useAgents } from '@/hooks/useAgents';
 
 interface AgentAssignmentSelectProps {
-  currentAssigneeId?: string; // This should be a ProfileId
-  onAssign: (agentId: string) => void; // Passes ProfileId
+  /** ProfileId of the current assignee - use profiles.id, NOT user_id */
+  currentAssigneeId?: string;
+  /** Callback with ProfileId when agent is assigned */
+  onAssign: (agentId: string) => void;
   isAssigning?: boolean;
   placeholder?: string;
 }
 
+/**
+ * Agent assignment select component
+ * 
+ * IMPORTANT: This component uses profiles.id (ProfileId) for assignments,
+ * which is the correct foreign key reference for assigned_to_id columns.
+ * Do NOT use user_id here - that's for auth comparisons only.
+ */
 export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
   currentAssigneeId,
   onAssign,
   isAssigning = false,
   placeholder = "Assign to agent"
 }) => {
-  const { data: agents = [], isLoading: loadingAgents } = useQuery({
-    queryKey: ['agents'],
-    queryFn: async () => {
-      // IMPORTANT: Fetch 'id' (ProfileId) for assignments, not just user_id
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, user_id, full_name, avatar_url')
-        .eq('is_active', true)
-        .order('full_name');
-
-      if (error) throw error;
-      return data as Agent[];
-    },
-  });
+  // Uses shared hook that fetches profiles.id correctly
+  const { data: agents = [], isLoading: loadingAgents } = useAgents();
 
   // Match by ProfileId (profiles.id), not user_id
   const currentAssignee = agents.find(agent => agent.id === currentAssigneeId);

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import type { SearchFilters as SearchFiltersType } from '@/hooks/useGlobalSearch';
+import { useAgents } from '@/hooks/useAgents';
 
 interface SearchFiltersProps {
   filters: SearchFiltersType;
@@ -25,19 +26,8 @@ export const SearchFilters = ({ filters, onFiltersChange }: SearchFiltersProps) 
     },
   });
   
-  // Fetch agents
-  const { data: agents = [] } = useQuery({
-    queryKey: ['agents-filter'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .eq('is_active', true)
-        .order('full_name');
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  // Fetch agents - uses profiles.id for foreign key references
+  const { data: agents = [] } = useAgents();
   
   const updateFilter = (key: keyof SearchFiltersType, value: any) => {
     onFiltersChange({
@@ -105,8 +95,8 @@ export const SearchFilters = ({ filters, onFiltersChange }: SearchFiltersProps) 
           <SelectContent>
             <SelectItem value="all">{t('search.anyone', 'Anyone')}</SelectItem>
             <SelectItem value="unassigned">{t('search.unassigned', 'Unassigned')}</SelectItem>
-            {agents.map((agent: any) => (
-              <SelectItem key={agent.user_id} value={agent.user_id}>
+            {agents.map((agent) => (
+              <SelectItem key={agent.id} value={agent.id}>
                 {agent.full_name}
               </SelectItem>
             ))}
