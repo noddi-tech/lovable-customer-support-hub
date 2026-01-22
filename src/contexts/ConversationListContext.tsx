@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { groupConversationsByThread } from '@/lib/conversationThreading';
+import { useAgents, toAgentSimple } from '@/hooks/useAgents';
 
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type ConversationPriority = "low" | "normal" | "high" | "urgent";
@@ -178,26 +179,9 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
   const { user } = useAuth();
 
 
-  // Fetch agents for assignment - uses profiles.id (ProfileId) for foreign key references
-  const { data: agentsData = [] } = useQuery({
-    queryKey: ['agents', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, user_id, full_name')
-        .eq('is_active', true)
-        .order('full_name');
-      
-      if (error) throw error;
-      
-      // IMPORTANT: Use profiles.id (not user_id) for assignment foreign keys
-      return (data || []).map((profile: any) => ({
-        id: profile.id,  // ProfileId - correct for assigned_to_id FK
-        name: profile.full_name,
-      }));
-    },
-  });
+  // Fetch agents for assignment - uses shared hook for consistent caching
+  const { data: agentsRaw = [] } = useAgents({ enabled: !!user });
+  const agentsData = toAgentSimple(agentsRaw);
 
   // Fetch conversations with infinite query for pagination
   const { 
