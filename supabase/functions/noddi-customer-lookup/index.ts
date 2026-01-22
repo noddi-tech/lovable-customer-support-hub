@@ -5,10 +5,10 @@ const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").repl
 const CACHE_TTL_SECONDS = Number(Deno.env.get("NODDI_CACHE_TTL_SECONDS") || 900);
 const DEBUG = (Deno.env.get("LOG_NODDI_DEBUG") || "false").toLowerCase() === "true";
 
-const noddiApiKey = Deno.env.get("NODDI_API_KEY") || "";
+const noddiToken = Deno.env.get("NODDI_API_TOKEN") || "";
 function noddiAuthHeaders(): HeadersInit {
   return {
-    "Authorization": `Api-Key ${noddiApiKey}`,
+    "Authorization": `Token ${noddiToken}`,
     "Accept": "application/json",
     "Content-Type": "application/json",
   };
