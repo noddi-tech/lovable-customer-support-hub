@@ -31,5 +31,9 @@
   "startConversation": "Start the conversation by sending a message below.",
   "typeMessage": "Type a message...",
   "thankYou": "This chat has ended. Thank you for contacting us!",
-  "startNewConversation": "Start new conversation"
+  "startNewConversation": "Start new conversation",
+  "talkToUsRealtime": "Talk to us in real-time",
+  "wellReplyViaEmail": "We'll reply via email",
+  "findAnswersInstantly": "Find answers instantly",
+  "changeLanguage": "Change language"
 }

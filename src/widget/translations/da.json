@@ -31,5 +31,9 @@
   "startConversation": "Start samtalen ved at sende en besked nedenfor.",
   "typeMessage": "Skriv en besked...",
   "thankYou": "Denne chat er afsluttet. Tak fordi du kontaktede os!",
-  "startNewConversation": "Start ny samtale"
+  "startNewConversation": "Start ny samtale",
+  "talkToUsRealtime": "Tal med os i realtid",
+  "wellReplyViaEmail": "Vi svarer via e-mail",
+  "findAnswersInstantly": "Find svar med det samme",
+  "changeLanguage": "Skift sprog"
 }
