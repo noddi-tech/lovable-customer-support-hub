@@ -35,5 +35,7 @@
   "talkToUsRealtime": "Talk to us in real-time",
   "wellReplyViaEmail": "We'll reply via email",
   "findAnswersInstantly": "Find answers instantly",
-  "changeLanguage": "Change language"
+  "changeLanguage": "Change language",
+  "defaultGreeting": "Hi there! 👋 How can we help you today?",
+  "defaultResponseTime": "We usually respond within a few hours"
 }

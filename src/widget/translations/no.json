@@ -35,5 +35,7 @@
   "talkToUsRealtime": "Snakk med oss i sanntid",
   "wellReplyViaEmail": "Vi svarer via e-post",
   "findAnswersInstantly": "Finn svar umiddelbart",
-  "changeLanguage": "Bytt språk"
+  "changeLanguage": "Bytt språk",
+  "defaultGreeting": "Hei! 👋 Hvordan kan vi hjelpe deg i dag?",
+  "defaultResponseTime": "Vi svarer vanligvis innen noen timer"
 }
