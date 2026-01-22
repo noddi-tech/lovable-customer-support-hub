@@ -25,11 +25,12 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-unused-vars": "off",
       // Warn when user_id is used as SelectItem value - should use profiles.id (ProfileId) instead
+      // Note: user_id IS correct for auth-related tables (user_roles, organization_memberships)
       "no-restricted-syntax": [
         "warn",
         {
           selector: "JSXAttribute[name.name='value'][value.expression.property.name='user_id']",
-          message: "Avoid using user_id for assignment values. Use profiles.id (ProfileId) instead for foreign key references like assigned_to_id."
+          message: "For assignment FKs (assigned_to_id), use profiles.id (ProfileId). For auth tables (user_roles, memberships), user_id is correct."
         }
       ],
     },

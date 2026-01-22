@@ -44,6 +44,12 @@ Deno.serve(async (req) => {
       return json({ error: 'Unauthorized' }, 401);
     }
 
+    // Validate Noddi API token is configured
+    if (!noddiToken) {
+      console.error('[noddi-search-by-name] NODDI_API_TOKEN not found in environment');
+      return json({ error: 'Noddi API token not configured' }, 500);
+    }
+
     const { firstName, lastName, organizationId } = await req.json();
 
     if (!firstName && !lastName) {
