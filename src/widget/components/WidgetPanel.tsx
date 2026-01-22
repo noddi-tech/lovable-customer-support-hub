@@ -4,6 +4,7 @@ import { ContactForm } from './ContactForm';
 import { KnowledgeSearch } from './KnowledgeSearch';
 import { LiveChat } from './LiveChat';
 import { startChat } from '../api';
+import { getWidgetTranslations } from '../translations';
 
 interface WidgetPanelProps {
   config: WidgetConfig;
@@ -26,6 +27,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+
+  const t = getWidgetTranslations(config.language);
 
   const handleContactSuccess = () => {
     setShowSuccess(true);
@@ -106,8 +109,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
-            <h4>Message sent!</h4>
-            <p>We'll get back to you as soon as possible.</p>
+            <h4>{t.messageSent}</h4>
+            <p>{t.wellGetBack}</p>
           </div>
         ) : view === 'home' ? (
           <div className="noddi-widget-home">
@@ -131,8 +134,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                   </svg>
-                  <span>{isStartingChat ? 'Starting chat...' : 'Start live chat'}</span>
-                  <span className="noddi-widget-online-badge">● Online</span>
+                  <span>{isStartingChat ? t.startingChat : t.startLiveChat}</span>
+                  <span className="noddi-widget-online-badge">● {t.online}</span>
                 </button>
               )}
 
@@ -144,8 +147,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
                     <path d="M12 6v6l4 2"></path>
                   </svg>
                   <div className="noddi-widget-offline-text">
-                    <span className="noddi-widget-offline-title">We're currently offline</span>
-                    <span className="noddi-widget-offline-subtitle">Leave a message and we'll respond soon</span>
+                    <span className="noddi-widget-offline-title">{t.offline}</span>
+                    <span className="noddi-widget-offline-subtitle">{t.leaveMessage}</span>
                   </div>
                 </div>
               )}
@@ -159,7 +162,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                     <polyline points="22,6 12,13 2,6"></polyline>
                   </svg>
-                  <span>{config.enableChat && !config.agentsOnline ? 'Leave a message' : 'Send us a message'}</span>
+                  <span>{config.enableChat && !config.agentsOnline ? t.leaveMessage : t.sendMessage}</span>
                 </button>
               )}
               
@@ -172,7 +175,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <span>Search answers</span>
+                  <span>{t.searchAnswers}</span>
                 </button>
               )}
             </div>
@@ -186,12 +189,13 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
-              Back
+              {t.back}
             </button>
             <ContactForm
               widgetKey={config.widgetKey}
               primaryColor={config.primaryColor}
               onSuccess={handleContactSuccess}
+              language={config.language}
             />
           </div>
         ) : view === 'search' ? (
@@ -203,11 +207,12 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
-              Back
+              {t.back}
             </button>
             <KnowledgeSearch
               widgetKey={config.widgetKey}
               primaryColor={config.primaryColor}
+              language={config.language}
             />
           </div>
         ) : view === 'chat' && chatSession ? (
@@ -216,13 +221,14 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
             primaryColor={config.primaryColor}
             onEnd={handleEndChat}
             onBack={handleBackFromChat}
+            language={config.language}
           />
         ) : null}
       </div>
 
       {/* Footer */}
       <div className="noddi-widget-footer">
-        <span>Powered by Noddi</span>
+        <span>{t.poweredBy}</span>
       </div>
     </div>
   );

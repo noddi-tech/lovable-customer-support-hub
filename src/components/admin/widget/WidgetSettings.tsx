@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, TestTube2 } from 'lucide-react';
+import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, TestTube2, Globe } from 'lucide-react';
 import { WidgetPreview } from './WidgetPreview';
 import { WidgetEmbedCode } from './WidgetEmbedCode';
 import { WidgetAnalytics } from './WidgetAnalytics';
 import { WidgetTestMode } from './WidgetTestMode';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
+import { SUPPORTED_WIDGET_LANGUAGES } from '@/widget/translations';
 
 interface WidgetConfig {
   id: string;
@@ -34,6 +35,7 @@ interface WidgetConfig {
   company_name: string | null;
   is_active: boolean;
   created_at: string;
+  language: string;
   inboxes?: { name: string } | null;
 }
 
@@ -312,6 +314,28 @@ export const WidgetSettings: React.FC = () => {
                           <SelectContent>
                             <SelectItem value="bottom-right">Bottom Right</SelectItem>
                             <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          Language
+                        </Label>
+                        <Select
+                          value={selectedWidget.language || 'no'}
+                          onValueChange={(value) => handleUpdateWidget({ language: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SUPPORTED_WIDGET_LANGUAGES.map((lang) => (
+                              <SelectItem key={lang.code} value={lang.code}>
+                                {lang.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

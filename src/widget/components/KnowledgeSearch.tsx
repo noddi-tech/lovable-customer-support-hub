@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { searchFaq, SearchResult } from '../api';
+import { getWidgetTranslations } from '../translations';
 
 interface KnowledgeSearchProps {
   widgetKey: string;
   primaryColor: string;
+  language: string;
 }
 
 export const KnowledgeSearch: React.FC<KnowledgeSearchProps> = ({
   widgetKey,
   primaryColor,
+  language,
 }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const t = getWidgetTranslations(language);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +41,7 @@ export const KnowledgeSearch: React.FC<KnowledgeSearchProps> = ({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for answers..."
+          placeholder={t.searchPlaceholder}
           className="noddi-widget-search-input"
           disabled={isSearching}
         />
@@ -67,14 +72,14 @@ export const KnowledgeSearch: React.FC<KnowledgeSearchProps> = ({
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <p>Search our knowledge base for quick answers</p>
+            <p>{t.searchKnowledgeBase}</p>
           </div>
         )}
 
         {hasSearched && results.length === 0 && !isSearching && (
           <div className="noddi-widget-results-empty">
-            <p>No results found for "{query}"</p>
-            <span>Try different keywords or ask us directly</span>
+            <p>{t.noResults} "{query}"</p>
+            <span>{t.tryDifferentKeywords}</span>
           </div>
         )}
 

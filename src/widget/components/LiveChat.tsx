@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useWidgetPolling } from '../hooks/useWidgetPolling';
 import { sendChatMessage, updateTypingStatus, endChat } from '../api';
+import { getWidgetTranslations } from '../translations';
 import type { ChatSession } from '../types';
 
 interface LiveChatProps {
@@ -9,6 +10,7 @@ interface LiveChatProps {
   visitorName?: string;
   onEnd: () => void;
   onBack: () => void;
+  language: string;
 }
 
 export const LiveChat: React.FC<LiveChatProps> = ({
@@ -17,12 +19,15 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   visitorName,
   onEnd,
   onBack,
+  language,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const lastTypingRef = useRef(false);
+
+  const t = getWidgetTranslations(language);
 
   const {
     messages,
@@ -105,7 +110,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
-        Back
+        {t.back}
       </button>
 
       {/* Status bar */}
@@ -121,12 +126,12 @@ export const LiveChat: React.FC<LiveChatProps> = ({
           />
           <span className="noddi-chat-status-text">
             {isEnded 
-              ? 'Chat ended'
+              ? t.chatEnded
               : sessionStatus === 'waiting' 
-                ? 'Waiting for agent...'
+                ? t.waitingForAgent
                 : assignedAgentName 
-                  ? `Chatting with ${assignedAgentName}`
-                  : 'Connected'}
+                  ? `${t.chattingWith} ${assignedAgentName}`
+                  : t.connected}
           </span>
         </div>
         {!isEnded && (
@@ -134,7 +139,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             className="noddi-chat-end-button"
             onClick={handleEndChat}
           >
-            End chat
+            {t.endChat}
           </button>
         )}
       </div>
@@ -143,7 +148,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       <div className="noddi-chat-messages">
         {messages.length === 0 && !isEnded && (
           <div className="noddi-chat-empty">
-            <p>Start the conversation by sending a message below.</p>
+            <p>{t.startConversation}</p>
           </div>
         )}
         
@@ -186,7 +191,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
           <input
             type="text"
             className="noddi-chat-input"
-            placeholder="Type a message..."
+            placeholder={t.typeMessage}
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
@@ -208,13 +213,13 @@ export const LiveChat: React.FC<LiveChatProps> = ({
 
       {isEnded && (
         <div className="noddi-chat-ended">
-          <p>This chat has ended. Thank you for contacting us!</p>
+          <p>{t.thankYou}</p>
           <button
             className="noddi-chat-new-button"
             onClick={onBack}
             style={{ backgroundColor: primaryColor }}
           >
-            Start new conversation
+            {t.startNewConversation}
           </button>
         </div>
       )}

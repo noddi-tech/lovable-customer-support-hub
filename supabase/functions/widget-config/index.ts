@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
         company_name,
         inbox_id,
         organization_id,
+        language,
         inboxes!inner (
           name,
           sender_display_name
@@ -90,6 +91,7 @@ Deno.serve(async (req) => {
       companyName: config.company_name || config.organizations?.name,
       inboxName: config.inboxes?.name,
       agentsOnline,
+      language: config.language || 'no',
     };
 
     return new Response(

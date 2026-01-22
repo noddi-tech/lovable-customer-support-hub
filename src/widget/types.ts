@@ -11,6 +11,7 @@ export interface WidgetConfig {
   logoUrl: string | null;
   inboxName: string | null;
   agentsOnline: boolean; // True if at least one agent is available for chat
+  language: string; // Language code (en, no, es, fr, de, it, pt, nl, sv, da)
 }
 
 export interface WidgetInitOptions {

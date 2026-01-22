@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { submitContactForm } from '../api';
+import { getWidgetTranslations } from '../translations';
 
 interface ContactFormProps {
   widgetKey: string;
   primaryColor: string;
   onSuccess: () => void;
+  language: string;
 }
 
 export const ContactForm: React.FC<ContactFormProps> = ({
   widgetKey,
   primaryColor,
   onSuccess,
+  language,
 }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,18 +21,20 @@ export const ContactForm: React.FC<ContactFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const t = getWidgetTranslations(language);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
     // Basic validation
     if (!name.trim() || !email.trim() || !message.trim()) {
-      setError('Please fill in all fields');
+      setError(t.fillAllFields);
       return;
     }
     
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+      setError(t.invalidEmail);
       return;
     }
     
@@ -58,20 +63,20 @@ export const ContactForm: React.FC<ContactFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="noddi-widget-form">
       <div className="noddi-widget-field">
-        <label htmlFor="noddi-name">Name</label>
+        <label htmlFor="noddi-name">{t.name}</label>
         <input
           id="noddi-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
+          placeholder={t.yourName}
           maxLength={100}
           disabled={isSubmitting}
         />
       </div>
       
       <div className="noddi-widget-field">
-        <label htmlFor="noddi-email">Email</label>
+        <label htmlFor="noddi-email">{t.email}</label>
         <input
           id="noddi-email"
           type="email"
@@ -84,12 +89,12 @@ export const ContactForm: React.FC<ContactFormProps> = ({
       </div>
       
       <div className="noddi-widget-field">
-        <label htmlFor="noddi-message">Message</label>
+        <label htmlFor="noddi-message">{t.message}</label>
         <textarea
           id="noddi-message"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="How can we help?"
+          placeholder={t.howCanWeHelp}
           rows={4}
           maxLength={2000}
           disabled={isSubmitting}
@@ -106,7 +111,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
         style={{ backgroundColor: primaryColor }}
         disabled={isSubmitting}
       >
-        {isSubmitting ? 'Sending...' : 'Send Message'}
+        {isSubmitting ? t.sending : t.sendMessageBtn}
       </button>
     </form>
   );
