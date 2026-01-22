@@ -41,4 +41,22 @@ export function getWidgetTranslations(language: string): WidgetTranslations {
   return translations[language] || translations.en;
 }
 
+// Default English values (matches database defaults)
+const DEFAULT_GREETING_EN = "Hi there! 👋 How can we help you today?";
+const DEFAULT_RESPONSE_TIME_EN = "We usually respond within a few hours";
+
+export function getLocalizedGreeting(customText: string, language: string): string {
+  if (customText === DEFAULT_GREETING_EN) {
+    return getWidgetTranslations(language).defaultGreeting;
+  }
+  return customText;
+}
+
+export function getLocalizedResponseTime(customText: string, language: string): string {
+  if (customText === DEFAULT_RESPONSE_TIME_EN) {
+    return getWidgetTranslations(language).defaultResponseTime;
+  }
+  return customText;
+}
+
 export default translations;

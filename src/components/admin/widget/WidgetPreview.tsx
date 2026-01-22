@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Search, ArrowLeft, Mail, Sparkles } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { getWidgetTranslations } from '@/widget/translations';
+import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime } from '@/widget/translations';
 
 interface WidgetPreviewProps {
   config: {
@@ -107,9 +107,9 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
               {activeView === 'home' && (
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-semibold">{config.greeting_text}</h3>
+                    <h3 className="text-lg font-semibold">{getLocalizedGreeting(config.greeting_text, config.language || 'no')}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {config.response_time_text}
+                      {getLocalizedResponseTime(config.response_time_text, config.language || 'no')}
                     </p>
                   </div>
 

@@ -35,5 +35,7 @@
   "talkToUsRealtime": "Praat in real-time met ons",
   "wellReplyViaEmail": "We antwoorden via e-mail",
   "findAnswersInstantly": "Vind direct antwoorden",
-  "changeLanguage": "Taal wijzigen"
+  "changeLanguage": "Taal wijzigen",
+  "defaultGreeting": "Hallo! 👋 Hoe kunnen we je vandaag helpen?",
+  "defaultResponseTime": "We reageren meestal binnen enkele uren"
 }

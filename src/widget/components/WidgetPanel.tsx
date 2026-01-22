@@ -4,7 +4,7 @@ import { ContactForm } from './ContactForm';
 import { KnowledgeSearch } from './KnowledgeSearch';
 import { LiveChat } from './LiveChat';
 import { startChat } from '../api';
-import { getWidgetTranslations, SUPPORTED_WIDGET_LANGUAGES } from '../translations';
+import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime, SUPPORTED_WIDGET_LANGUAGES } from '../translations';
 
 interface WidgetPanelProps {
   config: WidgetConfig;
@@ -133,7 +133,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
           </div>
         ) : view === 'home' ? (
           <div className="noddi-widget-home">
-            <p className="noddi-widget-greeting">{config.greetingText}</p>
+            <p className="noddi-widget-greeting">{getLocalizedGreeting(config.greetingText, currentLanguage)}</p>
             
             {chatError && (
               <div className="noddi-widget-error">
