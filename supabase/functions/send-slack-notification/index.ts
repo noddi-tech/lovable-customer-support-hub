@@ -41,7 +41,7 @@ const EVENT_COLORS: Record<string, string> = {
 const EVENT_TITLES: Record<string, string> = {
   new_conversation: 'New Conversation',
   customer_reply: 'Customer Reply',
-  assignment: 'Assigned to You',
+  assignment: 'Assignment Changed',
   mention: 'You Were Mentioned',
   sla_warning: 'SLA Warning',
   conversation_closed: 'Conversation Closed',
@@ -206,7 +206,12 @@ Deno.serve(async (req) => {
     // Build the Slack message using Block Kit
     const emoji = EVENT_EMOJIS[event_type] || '📨';
     const color = EVENT_COLORS[event_type] || '#3b82f6';
-    const title = EVENT_TITLES[event_type] || 'Notification';
+    
+    // Make title dynamic for assignment events
+    let title = EVENT_TITLES[event_type] || 'Notification';
+    if (event_type === 'assignment' && assigned_to_name) {
+      title = `Assigned to ${assigned_to_name}`;
+    }
 
     const blocks: any[] = [];
     const attachmentBlocks: any[] = [];
@@ -258,19 +263,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Assignment or mention info
-    if (event_type === 'assignment' && assigned_to_name) {
-      attachmentBlocks.push({
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: `👤 Assigned to *${assigned_to_name}*`,
-          },
-        ],
-      });
-    }
-
+    // Mention info (assignment info now shown in title)
     if (event_type === 'mention' && mentioned_user_name) {
       attachmentBlocks.push({
         type: 'context',
