@@ -4,6 +4,8 @@ export interface WidgetConfig {
   position: 'bottom-right' | 'bottom-left';
   greetingText: string;
   responseTimeText: string;
+  greetingTranslations: Record<string, string>;
+  responseTimeTranslations: Record<string, string>;
   enableChat: boolean;
   enableContactForm: boolean;
   enableKnowledgeSearch: boolean;

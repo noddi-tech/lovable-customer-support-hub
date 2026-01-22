@@ -2884,6 +2884,7 @@ export type Database = {
           enable_contact_form: boolean | null
           enable_knowledge_search: boolean | null
           greeting_text: string | null
+          greeting_translations: Json | null
           id: string
           inbox_id: string | null
           is_active: boolean | null
@@ -2893,6 +2894,7 @@ export type Database = {
           position: string | null
           primary_color: string | null
           response_time_text: string | null
+          response_time_translations: Json | null
           updated_at: string | null
           widget_key: string
         }
@@ -2903,6 +2905,7 @@ export type Database = {
           enable_contact_form?: boolean | null
           enable_knowledge_search?: boolean | null
           greeting_text?: string | null
+          greeting_translations?: Json | null
           id?: string
           inbox_id?: string | null
           is_active?: boolean | null
@@ -2912,6 +2915,7 @@ export type Database = {
           position?: string | null
           primary_color?: string | null
           response_time_text?: string | null
+          response_time_translations?: Json | null
           updated_at?: string | null
           widget_key?: string
         }
@@ -2922,6 +2926,7 @@ export type Database = {
           enable_contact_form?: boolean | null
           enable_knowledge_search?: boolean | null
           greeting_text?: string | null
+          greeting_translations?: Json | null
           id?: string
           inbox_id?: string | null
           is_active?: boolean | null
@@ -2931,6 +2936,7 @@ export type Database = {
           position?: string | null
           primary_color?: string | null
           response_time_text?: string | null
+          response_time_translations?: Json | null
           updated_at?: string | null
           widget_key?: string
         }
