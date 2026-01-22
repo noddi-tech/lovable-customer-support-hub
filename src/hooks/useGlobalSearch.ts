@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeForPostgrest } from '@/utils/queryUtils';
 
 export interface SearchFilters {
   status?: string;
@@ -56,6 +57,8 @@ export const useGlobalSearch = ({
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }): Promise<SearchResponse> => {
       const pageSize = 25;
+      // Sanitize query to prevent PostgREST filter injection
+      const safeQuery = sanitizeForPostgrest(query);
       
       // Build the search query based on type
       if (type === 'conversations') {
@@ -63,7 +66,7 @@ export const useGlobalSearch = ({
         const { data: matchingCustomers } = await supabase
           .from('customers')
           .select('id')
-          .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`);
+          .or(`full_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`);
         
         const customerIds = matchingCustomers?.map(c => c.id) || [];
         
@@ -83,9 +86,9 @@ export const useGlobalSearch = ({
         
         // Search in subject, preview_text, OR if customer matches
         if (customerIds.length > 0) {
-          queryBuilder = queryBuilder.or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%,customer_id.in.(${customerIds.join(',')})`);
+          queryBuilder = queryBuilder.or(`subject.ilike.%${safeQuery}%,preview_text.ilike.%${safeQuery}%,customer_id.in.(${customerIds.join(',')})`);
         } else {
-          queryBuilder = queryBuilder.or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%`);
+          queryBuilder = queryBuilder.or(`subject.ilike.%${safeQuery}%,preview_text.ilike.%${safeQuery}%`);
         }
         
         queryBuilder = queryBuilder
@@ -145,7 +148,7 @@ export const useGlobalSearch = ({
         const { data, error, count } = await supabase
           .from('customers')
           .select('id, full_name, email, created_at', { count: 'exact' })
-          .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+          .or(`full_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
           .order('full_name')
           .range(pageParam, pageParam + pageSize - 1);
         
@@ -195,7 +198,7 @@ export const useGlobalSearch = ({
               customer:customers(id, full_name, email)
             )
           `, { count: 'exact' })
-          .ilike('content', `%${query}%`)
+          .ilike('content', `%${safeQuery}%`)
           .order('created_at', { ascending: false })
           .range(pageParam, pageParam + pageSize - 1);
         
@@ -236,6 +239,9 @@ export const useGlobalSearchCounts = ({ query, filters = {} }: { query: string; 
     queryKey: ['global-search-counts', query, filters],
     enabled: query.length >= 2,
     queryFn: async () => {
+      // Sanitize query to prevent PostgREST filter injection
+      const safeQuery = sanitizeForPostgrest(query);
+      
       // Run all 3 count queries in parallel
       const [conversationsResult, customersResult, messagesResult] = await Promise.all([
         // Conversations count - include customer name search
@@ -243,7 +249,7 @@ export const useGlobalSearchCounts = ({ query, filters = {} }: { query: string; 
           const { data: matchingCustomers } = await supabase
             .from('customers')
             .select('id')
-            .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`);
+            .or(`full_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`);
           
           const customerIds = matchingCustomers?.map(c => c.id) || [];
           
@@ -252,9 +258,9 @@ export const useGlobalSearchCounts = ({ query, filters = {} }: { query: string; 
             .select('id', { count: 'exact', head: true });
           
           if (customerIds.length > 0) {
-            qb = qb.or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%,customer_id.in.(${customerIds.join(',')})`);
+            qb = qb.or(`subject.ilike.%${safeQuery}%,preview_text.ilike.%${safeQuery}%,customer_id.in.(${customerIds.join(',')})`);
           } else {
-            qb = qb.or(`subject.ilike.%${query}%,preview_text.ilike.%${query}%`);
+            qb = qb.or(`subject.ilike.%${safeQuery}%,preview_text.ilike.%${safeQuery}%`);
           }
           
           // Apply filters
@@ -272,13 +278,13 @@ export const useGlobalSearchCounts = ({ query, filters = {} }: { query: string; 
         supabase
           .from('customers')
           .select('id', { count: 'exact', head: true })
-          .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`),
+          .or(`full_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`),
         
         // Messages count
         supabase
           .from('messages')
           .select('id', { count: 'exact', head: true })
-          .ilike('content', `%${query}%`)
+          .ilike('content', `%${safeQuery}%`)
       ]);
       
       return {
