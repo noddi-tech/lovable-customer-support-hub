@@ -741,9 +741,9 @@ Deno.serve(async (req) => {
       return json({ error: 'Organization ID is required' }, 400);
     }
 
-    if (!noddiApiKey) {
-      console.error('NODDI_API_KEY not found in environment');
-      return json({ error: 'Noddi API key not configured' }, 500);
+    if (!noddiToken) {
+      console.error('NODDI_API_TOKEN not found in environment');
+      return json({ error: 'Noddi API token not configured' }, 500);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
