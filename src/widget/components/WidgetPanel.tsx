@@ -4,7 +4,7 @@ import { ContactForm } from './ContactForm';
 import { KnowledgeSearch } from './KnowledgeSearch';
 import { LiveChat } from './LiveChat';
 import { startChat } from '../api';
-import { getWidgetTranslations } from '../translations';
+import { getWidgetTranslations, SUPPORTED_WIDGET_LANGUAGES } from '../translations';
 
 interface WidgetPanelProps {
   config: WidgetConfig;
@@ -21,14 +21,31 @@ function getVisitorId(): string {
   return visitorId;
 }
 
+// Get customer's preferred language from localStorage, or fallback to config
+function getCustomerLanguage(configLanguage: string): string {
+  const savedLanguage = localStorage.getItem('noddi_widget_language');
+  if (savedLanguage && SUPPORTED_WIDGET_LANGUAGES.some(l => l.code === savedLanguage)) {
+    return savedLanguage;
+  }
+  return configLanguage || 'no';
+}
+
 export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => {
   const [view, setView] = useState<WidgetView>('home');
   const [showSuccess, setShowSuccess] = useState(false);
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState(() => getCustomerLanguage(config.language));
 
-  const t = getWidgetTranslations(config.language);
+  const t = getWidgetTranslations(currentLanguage);
+
+  const handleLanguageChange = (langCode: string) => {
+    setCurrentLanguage(langCode);
+    localStorage.setItem('noddi_widget_language', langCode);
+    setShowLanguageMenu(false);
+  };
 
   const handleContactSuccess = () => {
     setShowSuccess(true);
@@ -74,6 +91,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
   const positionStyles = config.position === 'bottom-right' 
     ? { right: '20px' } 
     : { left: '20px' };
+
+  const currentLangName = SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === currentLanguage)?.name || 'English';
 
   return (
     <div className="noddi-widget-panel" style={positionStyles}>
@@ -195,7 +214,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
               widgetKey={config.widgetKey}
               primaryColor={config.primaryColor}
               onSuccess={handleContactSuccess}
-              language={config.language}
+              language={currentLanguage}
             />
           </div>
         ) : view === 'search' ? (
@@ -212,7 +231,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
             <KnowledgeSearch
               widgetKey={config.widgetKey}
               primaryColor={config.primaryColor}
-              language={config.language}
+              language={currentLanguage}
             />
           </div>
         ) : view === 'chat' && chatSession ? (
@@ -221,14 +240,44 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
             primaryColor={config.primaryColor}
             onEnd={handleEndChat}
             onBack={handleBackFromChat}
-            language={config.language}
+            language={currentLanguage}
           />
         ) : null}
       </div>
 
-      {/* Footer */}
+      {/* Footer with language selector */}
       <div className="noddi-widget-footer">
-        <span>{t.poweredBy}</span>
+        <div className="noddi-widget-footer-content">
+          <span>{t.poweredBy}</span>
+          <div className="noddi-widget-language-selector">
+            <button 
+              className="noddi-widget-language-btn"
+              onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+              aria-label={t.changeLanguage}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              <span>{currentLangName}</span>
+            </button>
+            
+            {showLanguageMenu && (
+              <div className="noddi-widget-language-menu">
+                {SUPPORTED_WIDGET_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    className={`noddi-widget-language-option ${currentLanguage === lang.code ? 'active' : ''}`}
+                    onClick={() => handleLanguageChange(lang.code)}
+                  >
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

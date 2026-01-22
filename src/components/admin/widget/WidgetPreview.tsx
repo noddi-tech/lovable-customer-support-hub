@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Search, ArrowLeft, Mail, Sparkles } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { getWidgetTranslations } from '@/widget/translations';
 
 interface WidgetPreviewProps {
   config: {
@@ -15,6 +16,7 @@ interface WidgetPreviewProps {
     enable_knowledge_search: boolean;
     logo_url: string | null;
     company_name: string | null;
+    language?: string;
   };
 }
 
@@ -23,6 +25,8 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
   const [activeView, setActiveView] = useState<'home' | 'chat' | 'ask' | 'search'>('home');
   const [showTypingDemo, setShowTypingDemo] = useState(false);
   const [showAgentResponse, setShowAgentResponse] = useState(false);
+
+  const t = getWidgetTranslations(config.language || 'no');
 
   // Reset typing demo when switching views
   useEffect(() => {
@@ -122,8 +126,8 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
                           <Sparkles className="h-5 w-5" style={{ color: config.primary_color }} />
                         </div>
                         <div>
-                          <div className="font-medium text-sm">Start live chat</div>
-                          <div className="text-xs text-muted-foreground">Talk to us in real-time</div>
+                          <div className="font-medium text-sm">{t.startLiveChat}</div>
+                          <div className="text-xs text-muted-foreground">{t.talkToUsRealtime}</div>
                         </div>
                       </button>
                     )}
@@ -140,8 +144,8 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
                           <Mail className="h-5 w-5" style={{ color: config.primary_color }} />
                         </div>
                         <div>
-                          <div className="font-medium text-sm">Send us a message</div>
-                          <div className="text-xs text-muted-foreground">We'll reply via email</div>
+                          <div className="font-medium text-sm">{t.sendMessage}</div>
+                          <div className="text-xs text-muted-foreground">{t.wellReplyViaEmail}</div>
                         </div>
                       </button>
                     )}
@@ -158,8 +162,8 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
                           <Search className="h-5 w-5" style={{ color: config.primary_color }} />
                         </div>
                         <div>
-                          <div className="font-medium text-sm">Search our help center</div>
-                          <div className="text-xs text-muted-foreground">Find answers instantly</div>
+                          <div className="font-medium text-sm">{t.searchAnswers}</div>
+                          <div className="text-xs text-muted-foreground">{t.findAnswersInstantly}</div>
                         </div>
                       </button>
                     )}
@@ -212,7 +216,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
                   </div>
 
                   <div className="flex gap-2">
-                    <Input placeholder="Type a message..." className="flex-1" />
+                    <Input placeholder={t.typeMessage} className="flex-1" />
                     <Button size="icon" style={{ backgroundColor: config.primary_color }}>
                       <Send className="h-4 w-4" />
                     </Button>
@@ -228,16 +232,16 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
               {activeView === 'ask' && (
                 <div className="space-y-4">
                   <div className="space-y-3">
-                    <Input placeholder="Your name" />
-                    <Input placeholder="Your email" type="email" />
-                    <Textarea placeholder="How can we help?" rows={4} />
+                    <Input placeholder={t.yourName} />
+                    <Input placeholder={t.email} type="email" />
+                    <Textarea placeholder={t.howCanWeHelp} rows={4} />
                   </div>
                   <Button 
                     className="w-full gap-2"
                     style={{ backgroundColor: config.primary_color }}
                   >
                     <Send className="h-4 w-4" />
-                    Send Message
+                    {t.sendMessageBtn}
                   </Button>
                 </div>
               )}
@@ -247,12 +251,12 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                      placeholder="Search for answers..." 
+                      placeholder={t.searchPlaceholder} 
                       className="pl-10"
                     />
                   </div>
                   <div className="text-sm text-muted-foreground text-center py-6">
-                    Type to search our knowledge base
+                    {t.searchKnowledgeBase}
                   </div>
                 </div>
               )}
@@ -261,7 +265,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
             {/* Footer */}
             <div className="px-4 py-2 border-t text-center">
               <span className="text-xs text-muted-foreground">
-                Powered by Noddi
+                {t.poweredBy}
               </span>
             </div>
           </div>

@@ -31,5 +31,9 @@
   "startConversation": "Begin het gesprek door hieronder een bericht te sturen.",
   "typeMessage": "Typ een bericht...",
   "thankYou": "Deze chat is beëindigd. Bedankt voor je contact!",
-  "startNewConversation": "Nieuw gesprek starten"
+  "startNewConversation": "Nieuw gesprek starten",
+  "talkToUsRealtime": "Praat in real-time met ons",
+  "wellReplyViaEmail": "We antwoorden via e-mail",
+  "findAnswersInstantly": "Vind direct antwoorden",
+  "changeLanguage": "Taal wijzigen"
 }

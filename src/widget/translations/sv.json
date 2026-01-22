@@ -31,5 +31,9 @@
   "startConversation": "Starta konversationen genom att skicka ett meddelande nedan.",
   "typeMessage": "Skriv ett meddelande...",
   "thankYou": "Denna chatt har avslutats. Tack för att du kontaktade oss!",
-  "startNewConversation": "Starta ny konversation"
+  "startNewConversation": "Starta ny konversation",
+  "talkToUsRealtime": "Prata med oss i realtid",
+  "wellReplyViaEmail": "Vi svarar via e-post",
+  "findAnswersInstantly": "Hitta svar direkt",
+  "changeLanguage": "Byt språk"
 }
