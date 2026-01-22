@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Database, Search, Trash2, Edit, Save, X, Star } from "lucide-react";
 import { useState } from "react";
+import { sanitizeForPostgrest } from "@/utils/queryUtils";
 import {
   Dialog,
   DialogContent,
@@ -56,7 +57,8 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
         .order('quality_score', { ascending: false });
 
       if (searchQuery) {
-        query = query.or(`customer_context.ilike.%${searchQuery}%,agent_response.ilike.%${searchQuery}%`);
+        const safeSearch = sanitizeForPostgrest(searchQuery);
+        query = query.or(`customer_context.ilike.%${safeSearch}%,agent_response.ilike.%${safeSearch}%`);
       }
 
       if (filterSource !== 'all') {

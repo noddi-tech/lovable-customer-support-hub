@@ -12,6 +12,15 @@ interface SearchRequest {
   limit?: number;
 }
 
+/**
+ * Sanitizes user input for safe use in PostgREST .or() filter strings.
+ * Prevents filter injection attacks via special characters.
+ */
+function sanitizeForPostgrest(input: string): string {
+  if (!input) return '';
+  return input.replace(/[,;()\\]/g, '').trim();
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -116,12 +125,15 @@ Deno.serve(async (req) => {
     }
 
     // Fallback to basic text search
+    // Sanitize query to prevent PostgREST filter injection
+    const safeQuery = sanitizeForPostgrest(query);
+    
     const { data: textResults, error: textError } = await supabase
       .from('knowledge_entries')
       .select('customer_context, agent_response, category')
       .eq('organization_id', organization_id)
       .eq('is_active', true)
-      .or(`customer_context.ilike.%${query}%,agent_response.ilike.%${query}%`)
+      .or(`customer_context.ilike.%${safeQuery}%,agent_response.ilike.%${safeQuery}%`)
       .limit(limit);
 
     if (textError) {

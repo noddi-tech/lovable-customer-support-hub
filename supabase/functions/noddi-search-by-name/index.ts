@@ -104,16 +104,30 @@ Deno.serve(async (req) => {
     // For each user, check if they exist in our local customers table
     const enriched = await Promise.all(
       (users || []).map(async (user: any) => {
-        const userEmail = user.email?.toLowerCase();
-        const userPhone = user.phone;
+        // Sanitize external data to prevent PostgREST filter injection
+        const userEmail = (user.email || '').toLowerCase().replace(/[,;()\\]/g, '').trim();
+        const userPhone = (user.phone || '').replace(/[,;()\\]/g, '').trim();
 
-        // Check if customer exists locally
-        const { data: localCustomer } = await supabaseClient
-          .from('customers')
-          .select('id')
-          .eq('organization_id', organizationId)
-          .or(`email.ilike.${userEmail},phone.eq.${userPhone}`)
-          .maybeSingle();
+        // Check if customer exists locally - use separate conditions for safety
+        let localCustomer = null;
+        if (userEmail || userPhone) {
+          let query = supabaseClient
+            .from('customers')
+            .select('id')
+            .eq('organization_id', organizationId);
+          
+          // Build safe filter - avoid .or() with external data when possible
+          if (userEmail && userPhone) {
+            query = query.or(`email.ilike.${userEmail},phone.eq.${userPhone}`);
+          } else if (userEmail) {
+            query = query.ilike('email', userEmail);
+          } else if (userPhone) {
+            query = query.eq('phone', userPhone);
+          }
+          
+          const { data } = await query.maybeSingle();
+          localCustomer = data;
+        }
 
         return {
           noddi_user_id: user.id,

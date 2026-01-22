@@ -11,6 +11,26 @@ interface InviteRequest {
   role: 'super_admin' | 'admin' | 'agent' | 'user';
 }
 
+/**
+ * Validates and sanitizes email for use in PostgREST queries.
+ * Returns null if the email format is invalid.
+ */
+function sanitizeEmailForQuery(email: string): string | null {
+  if (!email) return null;
+  
+  const sanitized = email
+    .replace(/[,;()\\]/g, '')
+    .trim()
+    .toLowerCase();
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(sanitized)) {
+    return null;
+  }
+  
+  return sanitized;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -98,12 +118,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     const organizationName = membership.organizations?.name || "the organization";
 
+    // Sanitize email for safe query use
+    const safeEmail = sanitizeEmailForQuery(email);
+    if (!safeEmail) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     // Check if user already exists or has pending invite
     const { data: existingMembership, error: checkError } = await supabaseClient
       .from("organization_memberships")
       .select("id, status, user_id, profiles(email)")
       .eq("organization_id", organizationId)
-      .or(`email.eq.${email},profiles.email.eq.${email}`)
+      .or(`email.eq.${safeEmail},profiles.email.eq.${safeEmail}`)
       .maybeSingle();
 
     if (checkError) {
