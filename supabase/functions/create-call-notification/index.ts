@@ -1,3 +1,4 @@
+// Call notification edge function - handles call event notifications
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
 
 const corsHeaders = {
