@@ -54,6 +54,7 @@ export interface ConversationRow {
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   status: 'open' | 'pending' | 'closed' | 'archived' | 'resolved';
   assignee?: string;
+  assigneeId?: string;
   customerId?: string;
   inboxId?: string;
   isArchived?: boolean;
