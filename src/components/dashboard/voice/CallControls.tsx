@@ -46,13 +46,14 @@ export const CallControls: React.FC<CallControlsProps> = ({
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const isCompact = variant === 'compact';
 
-  // Fetch available agents for transfer
+  // Fetch available agents for transfer - use 'id' (ProfileId) for assignments
   const { data: agents, isLoading: loadingAgents } = useQuery({
     queryKey: ['available-agents'],
     queryFn: async () => {
+      // IMPORTANT: Fetch 'id' (ProfileId) for transfers, not just user_id
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, full_name, email, role')
+        .select('id, user_id, full_name, email, role')
         .eq('is_active', true)
         .in('role', ['agent', 'admin'])
         .order('full_name');
@@ -146,8 +147,9 @@ export const CallControls: React.FC<CallControlsProps> = ({
             ) : agents && agents.length > 0 ? (
               agents.map((agent) => (
                 <DropdownMenuItem
-                  key={agent.user_id}
-                  onClick={() => handleTransfer(agent.user_id, agent.full_name)}
+                  key={agent.id}
+                  // Use agent.id (ProfileId) NOT agent.user_id for transfers
+                  onClick={() => handleTransfer(agent.id, agent.full_name)}
                   className="cursor-pointer"
                 >
                   <User className="h-4 w-4 mr-2" />

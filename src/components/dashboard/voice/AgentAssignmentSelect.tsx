@@ -5,16 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { ProfileId } from '@/types/ids';
 
+/**
+ * Agent interface - uses ProfileId (profiles.id) for assignments
+ * NOT user_id which is the Auth service ID
+ */
 interface Agent {
-  user_id: string;
+  id: string; // ProfileId - the primary key, used for foreign key references
+  user_id: string; // AuthUserId - kept for reference but NOT used for assignments
   full_name: string;
   avatar_url?: string;
 }
 
 interface AgentAssignmentSelectProps {
-  currentAssigneeId?: string;
-  onAssign: (agentId: string) => void;
+  currentAssigneeId?: string; // This should be a ProfileId
+  onAssign: (agentId: string) => void; // Passes ProfileId
   isAssigning?: boolean;
   placeholder?: string;
 }
@@ -28,9 +34,10 @@ export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
   const { data: agents = [], isLoading: loadingAgents } = useQuery({
     queryKey: ['agents'],
     queryFn: async () => {
+      // IMPORTANT: Fetch 'id' (ProfileId) for assignments, not just user_id
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, full_name, avatar_url')
+        .select('id, user_id, full_name, avatar_url')
         .eq('is_active', true)
         .order('full_name');
 
@@ -39,7 +46,8 @@ export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
     },
   });
 
-  const currentAssignee = agents.find(agent => agent.user_id === currentAssigneeId);
+  // Match by ProfileId (profiles.id), not user_id
+  const currentAssignee = agents.find(agent => agent.id === currentAssigneeId);
 
   return (
     <div className="flex items-center gap-2">
@@ -77,7 +85,8 @@ export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
           </SelectTrigger>
           <SelectContent>
             {agents.map((agent) => (
-              <SelectItem key={agent.user_id} value={agent.user_id}>
+              // Use agent.id (ProfileId) NOT agent.user_id for assignments
+              <SelectItem key={agent.id} value={agent.id}>
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={agent.avatar_url} />
