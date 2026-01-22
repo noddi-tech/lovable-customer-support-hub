@@ -2887,6 +2887,7 @@ export type Database = {
           id: string
           inbox_id: string | null
           is_active: boolean | null
+          language: string | null
           logo_url: string | null
           organization_id: string
           position: string | null
@@ -2905,6 +2906,7 @@ export type Database = {
           id?: string
           inbox_id?: string | null
           is_active?: boolean | null
+          language?: string | null
           logo_url?: string | null
           organization_id: string
           position?: string | null
@@ -2923,6 +2925,7 @@ export type Database = {
           id?: string
           inbox_id?: string | null
           is_active?: boolean | null
+          language?: string | null
           logo_url?: string | null
           organization_id?: string
           position?: string | null
