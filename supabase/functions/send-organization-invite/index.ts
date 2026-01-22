@@ -128,19 +128,45 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Check if user already exists or has pending invite
-    const { data: existingMembership, error: checkError } = await supabaseClient
+    // Use separate parameterized queries instead of .or() with string interpolation
+    let existingMembership = null;
+    
+    // First check by direct email on membership
+    const { data: byDirectEmail, error: directError } = await supabaseClient
       .from("organization_memberships")
       .select("id, status, user_id, profiles(email)")
       .eq("organization_id", organizationId)
-      .or(`email.eq.${safeEmail},profiles.email.eq.${safeEmail}`)
+      .eq("email", safeEmail)
       .maybeSingle();
 
-    if (checkError) {
-      console.error("Error checking existing membership:", checkError);
+    if (directError) {
+      console.error("Error checking existing membership by email:", directError);
       return new Response(
         JSON.stringify({ error: "Failed to check existing membership" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
+    }
+
+    existingMembership = byDirectEmail;
+
+    // If not found by direct email, check by profile email
+    if (!existingMembership) {
+      const { data: byProfileEmail, error: profileError } = await supabaseClient
+        .from("organization_memberships")
+        .select("id, status, user_id, profiles!inner(email)")
+        .eq("organization_id", organizationId)
+        .eq("profiles.email", safeEmail)
+        .maybeSingle();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error("Error checking existing membership by profile:", profileError);
+        return new Response(
+          JSON.stringify({ error: "Failed to check existing membership" }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      existingMembership = byProfileEmail;
     }
 
     if (existingMembership) {

@@ -104,29 +104,35 @@ Deno.serve(async (req) => {
     // For each user, check if they exist in our local customers table
     const enriched = await Promise.all(
       (users || []).map(async (user: any) => {
-        // Sanitize external data to prevent PostgREST filter injection
-        const userEmail = (user.email || '').toLowerCase().replace(/[,;()\\]/g, '').trim();
-        const userPhone = (user.phone || '').replace(/[,;()\\]/g, '').trim();
+        // Sanitize external data
+        const userEmail = (user.email || '').toLowerCase().trim();
+        const userPhone = (user.phone || '').trim();
 
-        // Check if customer exists locally - use separate conditions for safety
+        // Check if customer exists locally using parameterized queries (no string interpolation)
         let localCustomer = null;
-        if (userEmail || userPhone) {
-          let query = supabaseClient
+        
+        if (userEmail) {
+          // Try to find by email first using parameterized .ilike()
+          const { data: byEmail } = await supabaseClient
             .from('customers')
             .select('id')
-            .eq('organization_id', organizationId);
+            .eq('organization_id', organizationId)
+            .ilike('email', userEmail)
+            .maybeSingle();
           
-          // Build safe filter - avoid .or() with external data when possible
-          if (userEmail && userPhone) {
-            query = query.or(`email.ilike.${userEmail},phone.eq.${userPhone}`);
-          } else if (userEmail) {
-            query = query.ilike('email', userEmail);
-          } else if (userPhone) {
-            query = query.eq('phone', userPhone);
-          }
+          localCustomer = byEmail;
+        }
+        
+        // If not found by email and we have a phone, try phone
+        if (!localCustomer && userPhone) {
+          const { data: byPhone } = await supabaseClient
+            .from('customers')
+            .select('id')
+            .eq('organization_id', organizationId)
+            .eq('phone', userPhone)
+            .maybeSingle();
           
-          const { data } = await query.maybeSingle();
-          localCustomer = data;
+          localCustomer = byPhone;
         }
 
         return {

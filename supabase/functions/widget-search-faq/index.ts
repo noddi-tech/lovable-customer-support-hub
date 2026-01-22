@@ -12,15 +12,6 @@ interface SearchRequest {
   limit?: number;
 }
 
-/**
- * Sanitizes user input for safe use in PostgREST .or() filter strings.
- * Prevents filter injection attacks via special characters.
- */
-function sanitizeForPostgrest(input: string): string {
-  if (!input) return '';
-  return input.replace(/[,;()\\]/g, '').trim();
-}
-
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -124,27 +115,48 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback to basic text search
-    // Sanitize query to prevent PostgREST filter injection
-    const safeQuery = sanitizeForPostgrest(query);
+    // Fallback to basic text search using parameterized queries
+    // Run two separate queries instead of .or() with string interpolation
+    const searchPattern = `%${query}%`;
     
-    const { data: textResults, error: textError } = await supabase
+    // Search in customer_context
+    const { data: contextResults, error: contextError } = await supabase
       .from('knowledge_entries')
-      .select('customer_context, agent_response, category')
+      .select('id, customer_context, agent_response, category')
       .eq('organization_id', organization_id)
       .eq('is_active', true)
-      .or(`customer_context.ilike.%${safeQuery}%,agent_response.ilike.%${safeQuery}%`)
+      .ilike('customer_context', searchPattern)
       .limit(limit);
 
-    if (textError) {
-      console.error('Text search error:', textError);
+    // Search in agent_response
+    const { data: responseResults, error: responseError } = await supabase
+      .from('knowledge_entries')
+      .select('id, customer_context, agent_response, category')
+      .eq('organization_id', organization_id)
+      .eq('is_active', true)
+      .ilike('agent_response', searchPattern)
+      .limit(limit);
+
+    if (contextError || responseError) {
+      console.error('Text search error:', contextError || responseError);
       return new Response(
         JSON.stringify({ results: [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const formattedResults = (textResults || []).map((r) => ({
+    // Merge and deduplicate results by id
+    const seenIds = new Set<string>();
+    const textResults: typeof contextResults = [];
+    
+    for (const r of [...(contextResults || []), ...(responseResults || [])]) {
+      if (!seenIds.has(r.id)) {
+        seenIds.add(r.id);
+        textResults.push(r);
+      }
+    }
+
+    const formattedResults = textResults.slice(0, limit).map((r) => ({
       question: r.customer_context,
       answer: r.agent_response,
       category: r.category,
