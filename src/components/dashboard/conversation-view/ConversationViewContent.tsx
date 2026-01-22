@@ -302,7 +302,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               </SelectTrigger>
               <SelectContent>
                 {assignUsers.map((user: any) => (
-                  <SelectItem key={user.id} value={user.user_id}>
+                  <SelectItem key={user.id} value={user.id}>
                     {user.full_name}
                   </SelectItem>
                 ))}

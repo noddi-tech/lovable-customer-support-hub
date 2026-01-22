@@ -92,7 +92,7 @@ export const TicketAssignment = ({
             </div>
           </SelectItem>
           {teamMembers.map((member) => (
-            <SelectItem key={member.user_id} value={member.user_id}>
+            <SelectItem key={member.id} value={member.id}>
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
                   <AvatarImage src={member.avatar_url} />
