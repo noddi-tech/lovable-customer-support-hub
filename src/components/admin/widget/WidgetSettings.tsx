@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -121,7 +121,7 @@ export const WidgetSettings: React.FC = () => {
     },
   });
 
-  // Update widget config mutation
+  // Update widget config mutation with optimistic updates
   const updateWidgetMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<WidgetConfig> }) => {
       const { data, error } = await supabase
@@ -134,16 +134,52 @@ export const WidgetSettings: React.FC = () => {
       if (error) throw error;
       return data;
     },
+    onMutate: async ({ id, updates }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['widget-configs', organizationId] });
+      
+      // Snapshot previous value
+      const previousConfigs = queryClient.getQueryData<WidgetConfig[]>(['widget-configs', organizationId]);
+      
+      // Optimistically update the cache
+      queryClient.setQueryData<WidgetConfig[]>(['widget-configs', organizationId], (old) =>
+        old?.map(widget => widget.id === id ? { ...widget, ...updates } : widget)
+      );
+      
+      return { previousConfigs };
+    },
+    onError: (error: any, _variables, context) => {
+      // Rollback on error
+      if (context?.previousConfigs) {
+        queryClient.setQueryData(['widget-configs', organizationId], context.previousConfigs);
+      }
+      toast.error(`Failed to update widget: ${error.message}`);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['widget-configs'] });
       toast.success('Widget updated');
     },
-    onError: (error: any) => {
-      toast.error(`Failed to update widget: ${error.message}`);
+    onSettled: () => {
+      // Refetch to ensure we have the latest data
+      queryClient.invalidateQueries({ queryKey: ['widget-configs', organizationId] });
     },
   });
 
   const selectedWidget = widgetConfigs.find(w => w.id === selectedWidgetId);
+  
+  // Local state for language to prevent race conditions
+  const [selectedLanguage, setSelectedLanguage] = useState(selectedWidget?.language || 'no');
+  
+  // Sync local language state when selected widget changes
+  useEffect(() => {
+    if (selectedWidget?.language) {
+      setSelectedLanguage(selectedWidget.language);
+    }
+  }, [selectedWidget?.id, selectedWidget?.language]);
+  
+  const handleLanguageChange = (value: string) => {
+    setSelectedLanguage(value); // Update local state immediately
+    handleUpdateWidget({ language: value }); // Send to server
+  };
 
   const handleUpdateWidget = (updates: Partial<WidgetConfig>) => {
     if (!selectedWidgetId) return;
@@ -324,8 +360,8 @@ export const WidgetSettings: React.FC = () => {
                           Language
                         </Label>
                         <Select
-                          value={selectedWidget.language || 'no'}
-                          onValueChange={(value) => handleUpdateWidget({ language: value })}
+                          value={selectedLanguage}
+                          onValueChange={handleLanguageChange}
                         >
                           <SelectTrigger>
                             <SelectValue />
