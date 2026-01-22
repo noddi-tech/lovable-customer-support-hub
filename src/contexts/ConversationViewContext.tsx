@@ -446,14 +446,16 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         .eq('id', conversationId);
       if (error) throw error;
     },
-    onSuccess: (assignedUserId) => {
+    onSuccess: (_, assignedUserId) => {
       // Optimistically update conversation cache
       queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
         if (old) return { ...old, assigned_to_id: assignedUserId };
         return old;
       });
       
-      // Only invalidate counts
+      // Invalidate conversations list to refresh the inbox view
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: false, userId: '', loading: false } });
       toast.success('Conversation assigned successfully');
@@ -505,19 +507,25 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         .update(updates)
         .eq('id', conversationId);
       if (error) throw error;
+      
+      // Return the updates so we can use them in onSuccess
+      return { status, isArchived };
     },
-    onSuccess: () => {
-      // Optimistically update conversation cache using status and archived updates
+    onSuccess: (result) => {
+      // Optimistically update conversation cache with actual status change
       queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
         if (old) {
           const updates: any = {};
-          if (state.snoozeDate) updates.status = 'snoozed';
+          if (result?.status !== undefined) updates.status = result.status;
+          if (result?.isArchived !== undefined) updates.is_archived = result.isArchived;
           return { ...old, ...updates };
         }
         return old;
       });
       
-      // Only invalidate counts
+      // Invalidate conversations list to move conversation between status filters
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
       queryClient.invalidateQueries({ queryKey: ['all-counts'] });
       toast.success('Status updated successfully');
     },

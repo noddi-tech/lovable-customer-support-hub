@@ -190,6 +190,7 @@ export async function listConversations(params: {
   assigneeId?: string;
   dateFrom?: string;
   dateTo?: string;
+  currentUserProfileId?: string;
 }): Promise<ConversationRow[]> {
   try {
     const { inboxId, status, q, page = 1 } = params;
@@ -232,6 +233,7 @@ export async function listConversations(params: {
         priority: conv.priority,
         status: conv.status,
         assignee: conv.assigned_to?.full_name,
+        assigneeId: conv.assigned_to?.id,
         customerId: conv.customer?.id,
         inboxId: conv.inbox_id,
         isArchived: conv.is_archived,
@@ -261,6 +263,7 @@ export async function listConversations(params: {
       priority: conv.priority,
       status: conv.status,
       assignee: conv.assigned_to?.full_name,
+      assigneeId: conv.assigned_to?.id,
       customerId: conv.customer?.id,
       inboxId: conv.inbox_id,
       isArchived: conv.is_archived,
@@ -308,6 +311,7 @@ function applyFilters(conversations: ConversationRow[], params: {
   assigneeId?: string;
   dateFrom?: string;
   dateTo?: string;
+  currentUserProfileId?: string;
 }): ConversationRow[] {
   let filtered = conversations;
   
@@ -323,7 +327,12 @@ function applyFilters(conversations: ConversationRow[], params: {
         filtered = filtered.filter(c => c.unread);
         break;
       case 'assigned':
-        filtered = filtered.filter(c => !!c.assignee);
+        // Filter by current user's profile ID for "Assigned to Me"
+        if (params.currentUserProfileId) {
+          filtered = filtered.filter(c => c.assigneeId === params.currentUserProfileId);
+        } else {
+          filtered = filtered.filter(c => !!c.assignee);
+        }
         break;
       case 'pending':
         filtered = filtered.filter(c => c.status === 'pending');

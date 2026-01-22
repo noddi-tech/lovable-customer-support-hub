@@ -12,6 +12,7 @@ import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
+import { useAuth } from '@/hooks/useAuth';
 import type { ConversationRow } from '@/types/interactions';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,6 +68,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const { t } = useTranslation();
   const navigation = useInteractionsNavigation();
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   
   // Dev-only performance monitoring
@@ -124,7 +126,8 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   const { data: conversations = [], isLoading: conversationsLoading } = useConversations({
     inboxId: effectiveInboxId,
     status: effectiveStatus,
-    q: effectiveSearch
+    q: effectiveSearch,
+    currentUserProfileId: profile?.id
   });
   
   const { data: thread, isLoading: threadLoading } = useThread(conversationId);

@@ -506,7 +506,143 @@ export const CustomerSidePanel = ({
         </div>
       </div>
 
-      {/* Customer Info Section */}
+      {/* Status Management - Fixed at top, always visible */}
+      <div className="p-4 border-b border-border space-y-3 flex-shrink-0">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
+          Status & Actions
+        </h4>
+        
+        {/* Current Status Display */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Current Status:</span>
+          <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'}>
+            {conversation.status}
+          </Badge>
+        </div>
+        
+        {/* Status Change Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          {conversation.status !== 'open' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={async () => {
+                setStatusLoading(true);
+                await updateStatus({ status: 'open' });
+                setStatusLoading(false);
+              }}
+              disabled={statusLoading}
+              className="text-xs"
+            >
+              <CircleDot className="h-3 w-3 mr-1" />
+              Reopen
+            </Button>
+          )}
+          
+          {conversation.status !== 'pending' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={async () => {
+                setStatusLoading(true);
+                await updateStatus({ status: 'pending' });
+                setStatusLoading(false);
+              }}
+              disabled={statusLoading}
+              className="text-xs"
+            >
+              <Clock className="h-3 w-3 mr-1" />
+              Pending
+            </Button>
+          )}
+          
+          {conversation.status !== 'closed' && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={async () => {
+                setStatusLoading(true);
+                await updateStatus({ status: 'closed' });
+                setStatusLoading(false);
+              }}
+              disabled={statusLoading}
+              className="col-span-2 text-xs"
+            >
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Close Conversation
+            </Button>
+          )}
+        </div>
+        
+        <Separator className="my-3" />
+        
+        {/* Quick Actions */}
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h4>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="justify-start gap-2"
+            onClick={() => {
+              dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: true, userId: '', loading: false } });
+            }}
+          >
+            <UserPlus className="h-4 w-4" />
+            <span className="text-xs">Assign</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="justify-start gap-2"
+            onClick={() => {
+              dispatch({ type: 'SET_TAG_DIALOG', payload: true });
+            }}
+          >
+            <Tag className="h-4 w-4" />
+            <span className="text-xs">Add Tag</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="justify-start gap-2"
+            onClick={() => {
+              dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: true, date: new Date(), time: '09:00' } });
+            }}
+          >
+            <Clock className="h-4 w-4" />
+            <span className="text-xs">Snooze</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="justify-start gap-2"
+            onClick={async () => {
+              await updateStatus({ isArchived: true });
+            }}
+          >
+            <Archive className="h-4 w-4" />
+            <span className="text-xs">Archive</span>
+          </Button>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-start gap-2 text-destructive hover:text-destructive mt-2"
+          onClick={() => {
+            dispatch({ type: 'SET_DELETE_DIALOG', payload: { open: true, messageId: null } });
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+          <span className="text-xs">Delete</span>
+        </Button>
+      </div>
+
+      {/* Customer Info Section - Scrollable */}
       <div className="flex-1 overflow-y-auto relative" style={{ isolation: 'isolate' }}>
         <div className="p-4 space-y-4">
           
@@ -819,140 +955,6 @@ export const CustomerSidePanel = ({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Status Management */}
-      <div className="p-4 border-t border-border space-y-3">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
-          Status & Actions
-        </h4>
-        
-        {/* Current Status Display */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground">Current Status:</span>
-          <Badge variant={conversation.status === 'open' ? 'default' : 'secondary'}>
-            {conversation.status}
-          </Badge>
-        </div>
-        
-        {/* Status Change Buttons */}
-        <div className="grid grid-cols-2 gap-2">
-          {conversation.status !== 'open' && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={async () => {
-                setStatusLoading(true);
-                await updateStatus({ status: 'open' });
-                setStatusLoading(false);
-              }}
-              disabled={statusLoading}
-              className="text-xs"
-            >
-              <CircleDot className="h-3 w-3 mr-1" />
-              Reopen
-            </Button>
-          )}
-          
-          {conversation.status !== 'pending' && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={async () => {
-                setStatusLoading(true);
-                await updateStatus({ status: 'pending' });
-                setStatusLoading(false);
-              }}
-              disabled={statusLoading}
-              className="text-xs"
-            >
-              <Clock className="h-3 w-3 mr-1" />
-              Pending
-            </Button>
-          )}
-          
-          {conversation.status !== 'closed' && (
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={async () => {
-                setStatusLoading(true);
-                await updateStatus({ status: 'closed' });
-                setStatusLoading(false);
-              }}
-              disabled={statusLoading}
-              className="col-span-2 text-xs"
-            >
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-              Close Conversation
-            </Button>
-          )}
-        </div>
-        
-        <Separator className="my-3" />
-        
-        {/* Quick Actions */}
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h4>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full justify-start gap-2"
-          onClick={() => {
-            dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: true, userId: '', loading: false } });
-          }}
-        >
-          <UserPlus className="h-4 w-4" />
-          <span className="text-xs">Assign</span>
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full justify-start gap-2"
-          onClick={() => {
-            dispatch({ type: 'SET_TAG_DIALOG', payload: true });
-          }}
-        >
-          <Tag className="h-4 w-4" />
-          <span className="text-xs">Add Tag</span>
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full justify-start gap-2"
-          onClick={() => {
-            dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: true, date: new Date(), time: '09:00' } });
-          }}
-        >
-          <Clock className="h-4 w-4" />
-          <span className="text-xs">Snooze</span>
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full justify-start gap-2"
-          onClick={async () => {
-            await updateStatus({ isArchived: true });
-          }}
-        >
-          <Archive className="h-4 w-4" />
-          <span className="text-xs">Archive</span>
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full justify-start gap-2 text-destructive hover:text-destructive"
-          onClick={() => {
-            dispatch({ type: 'SET_DELETE_DIALOG', payload: { open: true, messageId: null } });
-          }}
-        >
-          <Trash2 className="h-4 w-4" />
-          <span className="text-xs">Delete</span>
-        </Button>
       </div>
     </div>
   );
