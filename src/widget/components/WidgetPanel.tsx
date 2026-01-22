@@ -92,7 +92,21 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
     ? { right: '20px' } 
     : { left: '20px' };
 
-  const currentLangName = SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === currentLanguage)?.name || 'English';
+  const currentLang = SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === currentLanguage);
+  const currentLangName = currentLang?.name || 'English';
+  const currentLangFlag = currentLang?.flag || '🌐';
+
+  // Get localized greeting and response time with per-language overrides
+  const localizedGreeting = getLocalizedGreeting(
+    config.greetingText,
+    currentLanguage,
+    config.greetingTranslations
+  );
+  const localizedResponseTime = getLocalizedResponseTime(
+    config.responseTimeText,
+    currentLanguage,
+    config.responseTimeTranslations
+  );
 
   return (
     <div className="noddi-widget-panel" style={positionStyles}>
@@ -109,7 +123,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
             <h3 className="noddi-widget-title">
               {config.companyName || 'Chat with us'}
             </h3>
-            <p className="noddi-widget-subtitle">{config.responseTimeText}</p>
+            <p className="noddi-widget-subtitle">{localizedResponseTime}</p>
           </div>
         </div>
         <button onClick={onClose} className="noddi-widget-close" aria-label="Close">
@@ -133,7 +147,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
           </div>
         ) : view === 'home' ? (
           <div className="noddi-widget-home">
-            <p className="noddi-widget-greeting">{getLocalizedGreeting(config.greetingText, currentLanguage)}</p>
+            <p className="noddi-widget-greeting">{localizedGreeting}</p>
             
             {chatError && (
               <div className="noddi-widget-error">
@@ -255,11 +269,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
               onClick={() => setShowLanguageMenu(!showLanguageMenu)}
               aria-label={t.changeLanguage}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-              </svg>
+              <span className="noddi-widget-flag">{currentLangFlag}</span>
               <span>{currentLangName}</span>
             </button>
             
@@ -271,6 +281,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
                     className={`noddi-widget-language-option ${currentLanguage === lang.code ? 'active' : ''}`}
                     onClick={() => handleLanguageChange(lang.code)}
                   >
+                    <span className="noddi-widget-flag">{lang.flag}</span>
                     {lang.name}
                   </button>
                 ))}

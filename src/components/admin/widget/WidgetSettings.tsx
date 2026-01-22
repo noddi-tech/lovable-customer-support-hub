@@ -15,6 +15,7 @@ import { WidgetPreview } from './WidgetPreview';
 import { WidgetEmbedCode } from './WidgetEmbedCode';
 import { WidgetAnalytics } from './WidgetAnalytics';
 import { WidgetTestMode } from './WidgetTestMode';
+import { WidgetTranslationEditor } from './WidgetTranslationEditor';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { SUPPORTED_WIDGET_LANGUAGES } from '@/widget/translations';
@@ -28,6 +29,8 @@ interface WidgetConfig {
   position: string;
   greeting_text: string;
   response_time_text: string;
+  greeting_translations: Record<string, string>;
+  response_time_translations: Record<string, string>;
   enable_chat: boolean;
   enable_contact_form: boolean;
   enable_knowledge_search: boolean;
@@ -400,10 +403,13 @@ export const WidgetSettings: React.FC = () => {
 
                   {/* Messages */}
                   <div className="space-y-4">
-                    <h4 className="font-medium text-sm">Messages</h4>
+                    <h4 className="font-medium text-sm">Default Messages</h4>
+                    <p className="text-xs text-muted-foreground">
+                      These are used as fallback when no per-language customization exists.
+                    </p>
                     
                     <div className="space-y-2">
-                      <Label>Greeting Text</Label>
+                      <Label>Default Greeting Text</Label>
                       <Textarea
                         value={selectedWidget.greeting_text}
                         onChange={(e) => handleUpdateWidget({ greeting_text: e.target.value })}
@@ -413,7 +419,7 @@ export const WidgetSettings: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Response Time Text</Label>
+                      <Label>Default Response Time Text</Label>
                       <Input
                         value={selectedWidget.response_time_text}
                         onChange={(e) => handleUpdateWidget({ response_time_text: e.target.value })}
@@ -421,6 +427,15 @@ export const WidgetSettings: React.FC = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Per-Language Translations */}
+                  <WidgetTranslationEditor
+                    greetingText={selectedWidget.greeting_text}
+                    responseTimeText={selectedWidget.response_time_text}
+                    greetingTranslations={selectedWidget.greeting_translations || {}}
+                    responseTimeTranslations={selectedWidget.response_time_translations || {}}
+                    onUpdate={handleUpdateWidget}
+                  />
 
                   {/* Features */}
                   <div className="space-y-4">

@@ -11,6 +11,8 @@ interface WidgetPreviewProps {
     position: string;
     greeting_text: string;
     response_time_text: string;
+    greeting_translations?: Record<string, string>;
+    response_time_translations?: Record<string, string>;
     enable_chat: boolean;
     enable_contact_form: boolean;
     enable_knowledge_search: boolean;
@@ -107,9 +109,9 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
               {activeView === 'home' && (
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-semibold">{getLocalizedGreeting(config.greeting_text, config.language || 'no')}</h3>
+                    <h3 className="text-lg font-semibold">{getLocalizedGreeting(config.greeting_text, config.language || 'no', config.greeting_translations)}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {getLocalizedResponseTime(config.response_time_text, config.language || 'no')}
+                      {getLocalizedResponseTime(config.response_time_text, config.language || 'no', config.response_time_translations)}
                     </p>
                   </div>
 
