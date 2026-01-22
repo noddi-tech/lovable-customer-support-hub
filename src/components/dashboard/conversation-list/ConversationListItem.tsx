@@ -1,7 +1,8 @@
 import React, { memo, useMemo, useCallback } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Archive, Trash2, Clock, MessageCircle, User, Mail, MailOpen, Globe } from "lucide-react";
@@ -83,6 +84,10 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
       // Strip HTML from preview text as a safety measure (database should already handle this)
       previewText: stripHtml(conversation.preview_text) || 'No preview available',
       isLiveChat,
+      // Assignee info
+      assigneeName: conversation.assigned_to?.full_name,
+      assigneeInitial: conversation.assigned_to?.full_name?.[0]?.toUpperCase(),
+      assigneeAvatarUrl: conversation.assigned_to?.avatar_url,
     };
   }, [
     conversation.channel,
@@ -191,6 +196,22 @@ export const ConversationListItem = memo<ConversationListItemProps>(({
         </div>
         
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Assignee indicator */}
+          {computedValues.assigneeName && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Avatar className="h-5 w-5 ring-1 ring-border shrink-0">
+                  {computedValues.assigneeAvatarUrl ? (
+                    <AvatarImage src={computedValues.assigneeAvatarUrl} alt={computedValues.assigneeName} />
+                  ) : null}
+                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-medium">
+                    {computedValues.assigneeInitial}
+                  </AvatarFallback>
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent>Assigned to {computedValues.assigneeName}</TooltipContent>
+            </Tooltip>
+          )}
           {/* Presence Avatars - show who's viewing this conversation */}
           <PresenceAvatarStack 
             conversationId={conversation.id} 

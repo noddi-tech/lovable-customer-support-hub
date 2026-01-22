@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Database, Search, Trash2, Edit, Save, X, Star } from "lucide-react";
+import { Database, Search, Trash2, Edit, Save, X, Star, Plus } from "lucide-react";
 import { useState } from "react";
 import { sanitizeForPostgrest } from "@/utils/queryUtils";
 import {
@@ -46,6 +46,13 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
   const [filterSource, setFilterSource] = useState<string>("all");
   const [editingEntry, setEditingEntry] = useState<KnowledgeEntry | null>(null);
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<KnowledgeEntry | null>(null);
+  const [creatingEntry, setCreatingEntry] = useState(false);
+  const [newEntry, setNewEntry] = useState({
+    customer_context: '',
+    agent_response: '',
+    category: 'general_inquiry',
+    tags: [] as string[],
+  });
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ['knowledge-entries', organizationId, searchQuery, filterSource],
@@ -122,6 +129,39 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
     },
   });
 
+  const createMutation = useMutation({
+    mutationFn: async (entry: typeof newEntry) => {
+      const { error } = await supabase
+        .from('knowledge_entries')
+        .insert({
+          organization_id: organizationId,
+          customer_context: entry.customer_context,
+          agent_response: entry.agent_response,
+          category: entry.category,
+          tags: entry.tags.length > 0 ? entry.tags : null,
+          quality_score: 3.0,
+          usage_count: 0,
+          acceptance_count: 0,
+          is_active: true,
+          is_manually_curated: true,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Entry created successfully" });
+      queryClient.invalidateQueries({ queryKey: ['knowledge-entries'] });
+      setCreatingEntry(false);
+      setNewEntry({ customer_context: '', agent_response: '', category: 'general_inquiry', tags: [] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Create failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getCategoryColor = (category: string | null) => {
     if (!category) return 'bg-gray-500';
     switch (category) {
@@ -148,9 +188,15 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
           </h2>
           <p className="text-muted-foreground">View and manage your knowledge base entries</p>
         </div>
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          {entries?.length || 0} Entries
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="text-lg px-4 py-2">
+            {entries?.length || 0} Entries
+          </Badge>
+          <Button onClick={() => setCreatingEntry(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Entry
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -345,6 +391,70 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Create Entry Dialog */}
+      <Dialog open={creatingEntry} onOpenChange={setCreatingEntry}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Knowledge Entry</DialogTitle>
+            <DialogDescription>
+              Add a new entry to your knowledge base. This will be available for AI suggestions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Customer Question/Context *</label>
+              <Textarea
+                placeholder="What is the typical customer question or situation?"
+                value={newEntry.customer_context}
+                onChange={(e) => setNewEntry({ ...newEntry, customer_context: e.target.value })}
+                rows={4}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Ideal Agent Response *</label>
+              <Textarea
+                placeholder="What is the best response to this question?"
+                value={newEntry.agent_response}
+                onChange={(e) => setNewEntry({ ...newEntry, agent_response: e.target.value })}
+                rows={6}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Category</label>
+              <Select value={newEntry.category} onValueChange={(v) => setNewEntry({ ...newEntry, category: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="technical_support">Technical Support</SelectItem>
+                  <SelectItem value="billing">Billing</SelectItem>
+                  <SelectItem value="general_inquiry">General Inquiry</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Tags (comma-separated)</label>
+              <Input
+                placeholder="e.g., refund, shipping, account"
+                value={newEntry.tags.join(', ')}
+                onChange={(e) => setNewEntry({
+                  ...newEntry,
+                  tags: e.target.value.split(',').map(t => t.trim()).filter(t => t),
+                })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreatingEntry(false)}>Cancel</Button>
+            <Button 
+              onClick={() => createMutation.mutate(newEntry)}
+              disabled={!newEntry.customer_context.trim() || !newEntry.agent_response.trim() || createMutation.isPending}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Entry
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
