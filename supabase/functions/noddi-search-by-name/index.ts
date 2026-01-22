@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
-const noddiApiKey = Deno.env.get("NODDI_API_KEY") || "";
+const noddiToken = Deno.env.get("NODDI_API_TOKEN") || "";
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +10,7 @@ const cors = {
 
 function noddiAuthHeaders(): HeadersInit {
   return {
-    "Authorization": `Api-Key ${noddiApiKey}`,
+    "Authorization": `Token ${noddiToken}`,
     "Accept": "application/json",
     "Content-Type": "application/json",
   };
