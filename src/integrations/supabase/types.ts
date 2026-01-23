@@ -3287,6 +3287,13 @@ export type Database = {
         }[]
       }
       get_user_profile_id: { Args: never; Returns: string }
+      get_user_profile_roles: {
+        Args: { _user_id: string }
+        Returns: {
+          primary_role: Database["public"]["Enums"]["app_role"]
+          role: string
+        }[]
+      }
       has_permission: {
         Args: {
           _permission: Database["public"]["Enums"]["app_permission"]
