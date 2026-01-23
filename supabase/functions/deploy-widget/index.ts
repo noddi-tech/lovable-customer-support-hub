@@ -52,26 +52,31 @@ const WIDGET_JS = `
 .noddi-widget-button:active{transform:scale(.95)}
 .noddi-widget-panel{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 40px);max-height:calc(100vh - 120px);background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden;z-index:999999;animation:noddi-slide-up .3s ease}
 @keyframes noddi-slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.noddi-widget-header{padding:16px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.noddi-widget-header{padding:20px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .noddi-widget-header-content{display:flex;align-items:center;gap:12px}
-.noddi-widget-logo{width:40px;height:40px;border-radius:8px;object-fit:cover}
-.noddi-widget-title{font-size:16px;font-weight:600;margin:0}
-.noddi-widget-subtitle{font-size:12px;opacity:.9;margin:2px 0 0}
-.noddi-widget-close{background:rgba(255,255,255,.2);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:background .2s}
-.noddi-widget-close:hover{background:rgba(255,255,255,.3)}
-.noddi-widget-content{flex:1;overflow-y:auto;padding:16px;min-height:200px}
-.noddi-widget-home{display:flex;flex-direction:column;gap:16px}
+.noddi-widget-logo{width:44px;height:44px;border-radius:10px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.noddi-widget-title{font-size:17px;font-weight:600;margin:0}
+.noddi-widget-subtitle{font-size:12px;opacity:.85;margin:3px 0 0}
+.noddi-widget-close{background:rgba(255,255,255,.15);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:background .2s}
+.noddi-widget-close:hover{background:rgba(255,255,255,.25)}
+.noddi-widget-content{flex:1;overflow-y:auto;padding:20px;min-height:200px}
+.noddi-widget-home{display:flex;flex-direction:column;gap:20px}
 .noddi-widget-greeting{font-size:15px;color:#374151;line-height:1.6}
-.noddi-widget-actions{display:flex;flex-direction:column;gap:8px}
-.noddi-widget-action{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;cursor:pointer;transition:all .2s;text-align:left;font-size:14px;color:#374151}
-.noddi-widget-action:hover{background:#f3f4f6;border-color:#d1d5db}
-.noddi-widget-action svg{color:#6b7280;flex-shrink:0}
-.noddi-widget-action-primary{background:#fff;border-width:2px;font-weight:500}
+.noddi-widget-actions{display:flex;flex-direction:column;gap:10px}
+.noddi-widget-action{display:flex;align-items:center;gap:14px;padding:14px 16px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;cursor:pointer;transition:all .2s;text-align:left}
+.noddi-widget-action:hover{background:#f9fafb;border-color:#d1d5db;transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.noddi-widget-action-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.noddi-widget-action-icon svg{width:20px;height:20px}
+.noddi-widget-action-text{display:flex;flex-direction:column;gap:2px;flex:1}
+.noddi-widget-action-title{font-size:14px;font-weight:500;color:#1f2937}
+.noddi-widget-action-subtitle{font-size:12px;color:#6b7280}
+.noddi-widget-action-primary{border-width:2px}
 .noddi-widget-action-primary:hover{background:#f9fafb}
 .noddi-widget-action:disabled{opacity:.6;cursor:not-allowed}
-.noddi-widget-online-badge{margin-left:auto;font-size:11px;color:#22c55e;font-weight:600}
-.noddi-widget-offline-notice{display:flex;align-items:center;gap:12px;padding:14px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fbbf24;border-radius:12px;margin-bottom:8px}
-.noddi-widget-offline-notice svg{color:#d97706;flex-shrink:0}
+.noddi-widget-online-badge{font-size:11px;color:#22c55e;font-weight:600;display:flex;align-items:center;gap:4px}
+.noddi-widget-offline-notice{display:flex;align-items:center;gap:14px;padding:16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fbbf24;border-radius:12px;margin-bottom:10px}
+.noddi-widget-offline-icon{width:42px;height:42px;border-radius:50%;background:rgba(217,119,6,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.noddi-widget-offline-icon svg{color:#d97706}
 .noddi-widget-offline-text{display:flex;flex-direction:column;gap:2px}
 .noddi-widget-offline-title{font-size:14px;font-weight:600;color:#92400e}
 .noddi-widget-offline-subtitle{font-size:12px;color:#a16207}
@@ -112,7 +117,7 @@ const WIDGET_JS = `
 .noddi-widget-success{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;text-align:center}
 .noddi-widget-success h4{font-size:16px;font-weight:600;color:#1f2937;margin:16px 0 8px}
 .noddi-widget-success p{font-size:13px;color:#6b7280}
-.noddi-widget-footer{padding:10px 16px;border-top:1px solid #e5e7eb;flex-shrink:0}
+.noddi-widget-footer{padding:12px 16px;border-top:1px solid #e5e7eb;flex-shrink:0}
 .noddi-widget-footer-content{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .noddi-widget-footer-content>span{font-size:11px;color:#9ca3af}
 .noddi-widget-language-selector{position:relative}
@@ -346,25 +351,45 @@ const WIDGET_JS = `
         html += '<p class="noddi-widget-greeting">' + greeting + '</p>';
         html += '<div class="noddi-widget-actions">';
 
+        // Helper to create hex color with alpha for icon backgrounds
+        function hexToRgba(hex, alpha) {
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+        }
+
         if (config.enableChat && config.agentsOnline) {
           html += '<button class="noddi-widget-action noddi-widget-action-primary" data-action="start-chat" style="border-color:' + config.primaryColor + '">';
-          html += icons.chat.replace('24', '20') + '<span>' + t.startLiveChat + '</span>';
-          html += '<span class="noddi-widget-online-badge">● ' + t.online + '</span></button>';
+          html += '<div class="noddi-widget-action-icon" style="background-color:' + hexToRgba(config.primaryColor, 0.1) + '">';
+          html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + config.primaryColor + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
+          html += '</div>';
+          html += '<div class="noddi-widget-action-text"><span class="noddi-widget-action-title">' + t.startLiveChat + '</span><span class="noddi-widget-action-subtitle">' + t.online + '</span></div>';
+          html += '<span class="noddi-widget-online-badge">●</span></button>';
         }
 
         if (config.enableChat && !config.agentsOnline) {
-          html += '<div class="noddi-widget-offline-notice">' + icons.clock;
+          html += '<div class="noddi-widget-offline-notice">';
+          html += '<div class="noddi-widget-offline-icon">' + icons.clock + '</div>';
           html += '<div class="noddi-widget-offline-text">';
           html += '<span class="noddi-widget-offline-title">' + t.offline + '</span>';
           html += '<span class="noddi-widget-offline-subtitle">' + t.leaveMessage + '</span></div></div>';
         }
 
         if (config.enableContactForm) {
-          html += '<button class="noddi-widget-action" data-action="contact">' + icons.mail + '<span>' + t.sendMessage + '</span></button>';
+          html += '<button class="noddi-widget-action" data-action="contact">';
+          html += '<div class="noddi-widget-action-icon" style="background-color:' + hexToRgba(config.primaryColor, 0.1) + '">';
+          html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + config.primaryColor + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>';
+          html += '</div>';
+          html += '<div class="noddi-widget-action-text"><span class="noddi-widget-action-title">' + t.sendMessage + '</span><span class="noddi-widget-action-subtitle">' + t.leaveMessage + '</span></div></button>';
         }
 
         if (config.enableKnowledgeSearch) {
-          html += '<button class="noddi-widget-action" data-action="search">' + icons.search + '<span>' + t.searchAnswers + '</span></button>';
+          html += '<button class="noddi-widget-action" data-action="search">';
+          html += '<div class="noddi-widget-action-icon" style="background-color:' + hexToRgba(config.primaryColor, 0.1) + '">';
+          html += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + config.primaryColor + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+          html += '</div>';
+          html += '<div class="noddi-widget-action-text"><span class="noddi-widget-action-title">' + t.searchAnswers + '</span><span class="noddi-widget-action-subtitle">' + t.searchKnowledgeBase + '</span></div></button>';
         }
 
         html += '</div></div>';
