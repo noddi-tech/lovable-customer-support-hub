@@ -1,8 +1,11 @@
 import { useRef, useEffect, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, MessageSquare, ChevronUp, ChevronDown, ChevronsDown, ChevronsUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, MessageSquare, ChevronUp, ChevronDown, ChevronsDown, ChevronsUp, Globe } from "lucide-react";
 import { MessageCard } from "./MessageCard";
+import { ChatMessagesList } from "./ChatMessagesList";
+import { ChatReplyInput } from "./ChatReplyInput";
 import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList";
 import { createNormalizationContext } from "@/lib/normalizeMessage";
 import { useAuth } from "@/hooks/useAuth";
@@ -255,6 +258,9 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
     ? messages[messages.length - 1].createdAt 
     : null;
 
+  // Check if this is a widget/live chat conversation
+  const isLiveChat = conversation?.channel === 'widget';
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -275,6 +281,34 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
     );
   }
 
+  // Render chat-style UI for widget/live chat conversations
+  if (isLiveChat) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col">
+        {/* Chat header */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/30">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Live Chat</span>
+          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200 text-xs">
+            Active
+          </Badge>
+        </div>
+        
+        {/* Chat messages */}
+        <ChatMessagesList 
+          messages={messages} 
+          customerName={conversation?.customer?.full_name}
+          customerEmail={conversation?.customer?.email}
+        />
+        
+        {/* Chat input */}
+        <ChatReplyInput conversationId={conversationId} />
+      </div>
+    );
+  }
+
+  // Default email-style UI
   return (
     <div className="flex-1 min-h-0 relative">
 

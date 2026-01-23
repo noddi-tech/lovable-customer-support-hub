@@ -143,7 +143,7 @@ const WIDGET_JS = `
 .noddi-chat-end-button{background:none;border:none;color:#ef4444;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:4px}
 .noddi-chat-end-button:hover{background:#fef2f2}
 .noddi-chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 0;min-height:200px}
-.noddi-chat-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:13px;text-align:center;padding:24px}
+.noddi-chat-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:13px;text-align:center;padding:24px;gap:8px}
 .noddi-chat-message{display:flex;flex-direction:column;max-width:85%}
 .noddi-chat-message-customer{align-self:flex-end;align-items:flex-end}
 .noddi-chat-message-agent{align-self:flex-start;align-items:flex-start}
@@ -164,10 +164,12 @@ const WIDGET_JS = `
 .noddi-chat-send{width:42px;height:42px;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:opacity .2s,transform .2s}
 .noddi-chat-send:hover:not(:disabled){opacity:.9;transform:scale(1.05)}
 .noddi-chat-send:disabled{opacity:.5;cursor:not-allowed}
-.noddi-chat-ended{text-align:center;padding:24px 16px;border-top:1px solid #e5e7eb;margin-top:auto}
-.noddi-chat-ended p{font-size:13px;color:#6b7280;margin-bottom:16px}
-.noddi-chat-new-button{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:500;color:#fff;cursor:pointer;transition:opacity .2s}
+.noddi-chat-ended{display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 16px;border-top:1px solid #e5e7eb;margin-top:auto;gap:12px}
+.noddi-chat-ended p{font-size:14px;color:#374151;margin:0}
+.noddi-chat-new-button{padding:12px 24px;border:none;border-radius:8px;font-size:14px;font-weight:500;color:#fff;cursor:pointer;transition:opacity .2s;width:100%;max-width:280px}
 .noddi-chat-new-button:hover{opacity:.9}
+.noddi-chat-skip-button{padding:10px 20px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;color:#6b7280;font-size:14px;cursor:pointer;transition:all .2s;width:100%;max-width:280px}
+.noddi-chat-skip-button:hover{background:#f3f4f6;border-color:#d1d5db;color:#374151}
 @media (max-width:420px){.noddi-widget-panel{width:calc(100vw - 20px);left:10px!important;right:10px!important;bottom:80px;max-height:calc(100vh - 100px)}.noddi-widget-button{width:50px;height:50px}}
 \`;
 
@@ -577,7 +579,10 @@ const WIDGET_JS = `
         if (state.chatMessages.length === 0 && !isEnded) {
           // Show queue status message when waiting
           if (session && session.status === 'waiting') {
-            html += '<div class="noddi-chat-empty"><p>' + (t.youAreInQueue || "You're in the queue") + '</p><p style="font-size:12px;color:#6b7280;margin-top:4px">' + (t.agentWillBeWithYou || "An agent will be with you shortly") + '</p></div>';
+            html += '<div class="noddi-chat-empty">';
+            html += '<p style="font-size:15px;font-weight:500;color:#374151;margin:0">' + (t.youAreInQueue || "You're in the queue") + '</p>';
+            html += '<p style="font-size:13px;color:#6b7280;margin:0">' + (t.agentWillBeWithYou || "An agent will be with you shortly") + '</p>';
+            html += '</div>';
           } else {
             html += '<div class="noddi-chat-empty"><p>' + t.startConversation + '</p></div>';
           }
@@ -603,15 +608,15 @@ const WIDGET_JS = `
         } else if (state.showTranscriptPrompt) {
           // Transcript prompt after chat ends
           html += '<div class="noddi-chat-ended">';
-          html += '<p style="margin-bottom:12px">' + (t.wouldYouLikeTranscript || 'Would you like a copy of this conversation?') + '</p>';
+          html += '<p>' + (t.wouldYouLikeTranscript || 'Would you like a copy of this conversation?') + '</p>';
           if (state.transcriptSending) {
-            html += '<p style="color:#6b7280">' + (t.sending || 'Sending...') + '</p>';
+            html += '<p style="color:#6b7280;font-size:13px">' + (t.sending || 'Sending...') + '</p>';
           } else if (state.transcriptSent) {
-            html += '<p style="color:#22c55e">' + (t.transcriptSent || 'Transcript sent!') + '</p>';
-            html += '<button class="noddi-chat-new-button" style="background-color:' + config.primaryColor + ';margin-top:12px" data-action="back">' + t.startNewConversation + '</button>';
+            html += '<p style="color:#22c55e;font-size:13px">' + (t.transcriptSent || 'Transcript sent!') + '</p>';
+            html += '<button class="noddi-chat-new-button" style="background-color:' + config.primaryColor + '" data-action="back">' + t.startNewConversation + '</button>';
           } else {
             html += '<button class="noddi-chat-new-button" style="background-color:' + config.primaryColor + '" data-action="send-transcript">' + (t.sendTranscript || 'Send transcript to my email') + '</button>';
-            html += '<button class="noddi-chat-skip-button" style="margin-top:8px;background:none;border:none;color:#6b7280;cursor:pointer;font-size:14px" data-action="skip-transcript">' + (t.noThanks || 'No thanks') + '</button>';
+            html += '<button class="noddi-chat-skip-button" data-action="skip-transcript">' + (t.noThanks || 'No thanks') + '</button>';
           }
           html += '</div>';
         } else {
