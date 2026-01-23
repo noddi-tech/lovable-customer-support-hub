@@ -37,5 +37,9 @@
   "findAnswersInstantly": "Find svar med det samme",
   "changeLanguage": "Skift sprog",
   "defaultGreeting": "Hej! 👋 Hvordan kan vi hjælpe dig i dag?",
-  "defaultResponseTime": "Vi svarer normalt inden for få timer"
+  "defaultResponseTime": "Vi svarer normalt inden for få timer",
+  "chatDismissed": "Vi oplever stor travlhed",
+  "chatDismissedMessage": "På grund af stor efterspørgsel kan vi ikke forbinde dig med en agent lige nu. Vi kontakter dig via e-mail hurtigst muligt.",
+  "emailRequired": "E-mail er påkrævet for at starte chat",
+  "enterEmailToContinue": "Indtast din e-mail for at fortsætte"
 }

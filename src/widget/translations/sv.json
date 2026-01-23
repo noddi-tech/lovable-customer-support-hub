@@ -37,5 +37,9 @@
   "findAnswersInstantly": "Hitta svar direkt",
   "changeLanguage": "Byt språk",
   "defaultGreeting": "Hej! 👋 Hur kan vi hjälpa dig idag?",
-  "defaultResponseTime": "Vi svarar vanligtvis inom några timmar"
+  "defaultResponseTime": "Vi svarar vanligtvis inom några timmar",
+  "chatDismissed": "Vi har hög belastning just nu",
+  "chatDismissedMessage": "På grund av hög efterfrågan kan vi inte koppla dig till en agent just nu. Vi kontaktar dig via e-post inom kort.",
+  "emailRequired": "E-post krävs för att starta chatt",
+  "enterEmailToContinue": "Ange din e-post för att fortsätta"
 }

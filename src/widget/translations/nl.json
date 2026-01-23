@@ -37,5 +37,9 @@
   "findAnswersInstantly": "Vind direct antwoorden",
   "changeLanguage": "Taal wijzigen",
   "defaultGreeting": "Hallo! 👋 Hoe kunnen we je vandaag helpen?",
-  "defaultResponseTime": "We reageren meestal binnen enkele uren"
+  "defaultResponseTime": "We reageren meestal binnen enkele uren",
+  "chatDismissed": "We zijn erg druk",
+  "chatDismissedMessage": "Door de grote drukte kunnen we je nu niet met een medewerker verbinden. We nemen zo snel mogelijk contact met je op via e-mail.",
+  "emailRequired": "E-mail is vereist om een chat te starten",
+  "enterEmailToContinue": "Voer je e-mail in om door te gaan"
 }

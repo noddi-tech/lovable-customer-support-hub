@@ -546,6 +546,7 @@ const WIDGET_JS = `
 
       } else if (state.view === 'chat') {
         const session = state.chatSession;
+        const isDismissed = session && session.status === 'abandoned';
         const isEnded = session && (session.status === 'ended' || session.status === 'abandoned');
 
         html += '<div class="noddi-widget-chat">';
@@ -555,7 +556,9 @@ const WIDGET_JS = `
         html += '<div class="noddi-chat-status-indicator">';
         const dotColor = isEnded ? '#ef4444' : (session && session.status === 'active' ? '#22c55e' : '#f59e0b');
         html += '<span class="noddi-chat-status-dot" style="background-color:' + dotColor + '"></span>';
-        html += '<span class="noddi-chat-status-text">' + (isEnded ? t.chatEnded : (session && session.status === 'waiting' ? t.waitingForAgent : t.connected)) + '</span>';
+        // Show a specific message for dismissed chats
+        const statusText = isDismissed ? t.chatDismissed : (isEnded ? t.chatEnded : (session && session.status === 'waiting' ? t.waitingForAgent : t.connected));
+        html += '<span class="noddi-chat-status-text">' + statusText + '</span>';
         html += '</div>';
         if (!isEnded) html += '<button class="noddi-chat-end-button" data-action="end-chat">' + t.endChat + '</button>';
         html += '</div>';

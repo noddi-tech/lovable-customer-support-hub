@@ -42,9 +42,13 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
 
   const handleDismissSession = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const success = await dismissSession(sessionId);
+    // Default dismissal message - this will be shown to the customer
+    const dismissalMessage = "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly.";
+    const success = await dismissSession(sessionId, dismissalMessage);
     if (success) {
-      toast.success('Chat dismissed');
+      toast.info('Chat dismissed', {
+        description: 'The visitor will see a message and the conversation will remain for email follow-up.',
+      });
     } else {
       toast.error('Failed to dismiss chat');
     }

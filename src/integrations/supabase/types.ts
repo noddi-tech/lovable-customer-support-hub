@@ -2880,6 +2880,8 @@ export type Database = {
         Row: {
           company_name: string | null
           created_at: string | null
+          dismissal_message_text: string | null
+          dismissal_message_translations: Json | null
           enable_chat: boolean | null
           enable_contact_form: boolean | null
           enable_knowledge_search: boolean | null
@@ -2901,6 +2903,8 @@ export type Database = {
         Insert: {
           company_name?: string | null
           created_at?: string | null
+          dismissal_message_text?: string | null
+          dismissal_message_translations?: Json | null
           enable_chat?: boolean | null
           enable_contact_form?: boolean | null
           enable_knowledge_search?: boolean | null
@@ -2922,6 +2926,8 @@ export type Database = {
         Update: {
           company_name?: string | null
           created_at?: string | null
+          dismissal_message_text?: string | null
+          dismissal_message_translations?: Json | null
           enable_chat?: boolean | null
           enable_contact_form?: boolean | null
           enable_knowledge_search?: boolean | null
