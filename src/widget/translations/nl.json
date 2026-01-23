@@ -28,6 +28,8 @@
   "chattingWith": "In gesprek met",
   "connected": "Verbonden",
   "endChat": "Chat beëindigen",
+  "cancelChat": "Annuleren",
+  "confirmCancel": "Weet je zeker dat je de wachtrij wilt verlaten?",
   "startConversation": "Begin het gesprek door hieronder een bericht te sturen.",
   "typeMessage": "Typ een bericht...",
   "thankYou": "Deze chat is beëindigd. Bedankt voor je contact!",
@@ -41,5 +43,11 @@
   "chatDismissed": "We zijn erg druk",
   "chatDismissedMessage": "Door de grote drukte kunnen we je nu niet met een medewerker verbinden. We nemen zo snel mogelijk contact met je op via e-mail.",
   "emailRequired": "E-mail is vereist om een chat te starten",
-  "enterEmailToContinue": "Voer je e-mail in om door te gaan"
+  "enterEmailToContinue": "Voer je e-mail in om door te gaan",
+  "wouldYouLikeTranscript": "Wil je een kopie van dit gesprek?",
+  "sendTranscript": "Stuur transcript naar mijn e-mail",
+  "transcriptSent": "Transcript verzonden!",
+  "noThanks": "Nee, bedankt",
+  "youAreInQueue": "Je staat in de wachtrij",
+  "agentWillBeWithYou": "Een medewerker helpt je zo"
 }

@@ -204,7 +204,10 @@ const WIDGET_JS = `
     isLoading: false,
     error: null,
     prechatEmail: '',
-    prechatName: ''
+    prechatName: '',
+    showTranscriptPrompt: false,
+    transcriptSending: false,
+    transcriptSent: false
   };
   let pollInterval = null;
   let heartbeatInterval = null;
@@ -557,15 +560,27 @@ const WIDGET_JS = `
         const dotColor = isEnded ? '#ef4444' : (session && session.status === 'active' ? '#22c55e' : '#f59e0b');
         html += '<span class="noddi-chat-status-dot" style="background-color:' + dotColor + '"></span>';
         // Show a specific message for dismissed chats
-        const statusText = isDismissed ? t.chatDismissed : (isEnded ? t.chatEnded : (session && session.status === 'waiting' ? t.waitingForAgent : t.connected));
+        const statusText = isDismissed ? t.chatDismissed : (isEnded ? t.chatEnded : (session && session.status === 'waiting' ? t.waitingForAgent : (t.chattingWith + ' ' + (session?.assignedAgentName || ''))));
         html += '<span class="noddi-chat-status-text">' + statusText + '</span>';
         html += '</div>';
-        if (!isEnded) html += '<button class="noddi-chat-end-button" data-action="end-chat">' + t.endChat + '</button>';
+        // Show "Cancel" button when waiting (leaves queue), "End Chat" only when active
+        if (!isEnded && session) {
+          if (session.status === 'waiting') {
+            html += '<button class="noddi-chat-cancel-button" data-action="cancel-chat">' + (t.cancelChat || 'Cancel') + '</button>';
+          } else if (session.status === 'active') {
+            html += '<button class="noddi-chat-end-button" data-action="end-chat">' + t.endChat + '</button>';
+          }
+        }
         html += '</div>';
 
         html += '<div class="noddi-chat-messages">';
         if (state.chatMessages.length === 0 && !isEnded) {
-          html += '<div class="noddi-chat-empty"><p>' + t.startConversation + '</p></div>';
+          // Show queue status message when waiting
+          if (session && session.status === 'waiting') {
+            html += '<div class="noddi-chat-empty"><p>' + (t.youAreInQueue || "You're in the queue") + '</p><p style="font-size:12px;color:#6b7280;margin-top:4px">' + (t.agentWillBeWithYou || "An agent will be with you shortly") + '</p></div>';
+          } else {
+            html += '<div class="noddi-chat-empty"><p>' + t.startConversation + '</p></div>';
+          }
         }
         state.chatMessages.forEach(m => {
           const isCustomer = m.senderType === 'customer';
@@ -584,6 +599,20 @@ const WIDGET_JS = `
           html += '<div class="noddi-chat-input-container">';
           html += '<input type="text" class="noddi-chat-input" placeholder="' + t.typeMessage + '" data-chat-input>';
           html += '<button class="noddi-chat-send" style="background-color:' + config.primaryColor + '" data-action="send-chat">' + icons.send + '</button>';
+          html += '</div>';
+        } else if (state.showTranscriptPrompt) {
+          // Transcript prompt after chat ends
+          html += '<div class="noddi-chat-ended">';
+          html += '<p style="margin-bottom:12px">' + (t.wouldYouLikeTranscript || 'Would you like a copy of this conversation?') + '</p>';
+          if (state.transcriptSending) {
+            html += '<p style="color:#6b7280">' + (t.sending || 'Sending...') + '</p>';
+          } else if (state.transcriptSent) {
+            html += '<p style="color:#22c55e">' + (t.transcriptSent || 'Transcript sent!') + '</p>';
+            html += '<button class="noddi-chat-new-button" style="background-color:' + config.primaryColor + ';margin-top:12px" data-action="back">' + t.startNewConversation + '</button>';
+          } else {
+            html += '<button class="noddi-chat-new-button" style="background-color:' + config.primaryColor + '" data-action="send-transcript">' + (t.sendTranscript || 'Send transcript to my email') + '</button>';
+            html += '<button class="noddi-chat-skip-button" style="margin-top:8px;background:none;border:none;color:#6b7280;cursor:pointer;font-size:14px" data-action="skip-transcript">' + (t.noThanks || 'No thanks') + '</button>';
+          }
           html += '</div>';
         } else {
           html += '<div class="noddi-chat-ended"><p>' + t.thankYou + '</p>';
@@ -815,9 +844,37 @@ const WIDGET_JS = `
       if (state.chatSession) {
         await endChatSession(state.chatSession.id);
         state.chatSession.status = 'ended';
-        clearSavedSession(); // Clear persisted session on end
+        state.showTranscriptPrompt = true;
+        clearSavedSession();
         stopPolling();
       }
+    } else if (action === 'cancel-chat') {
+      // User wants to leave the queue (waiting state)
+      if (state.chatSession) {
+        await endChatSession(state.chatSession.id);
+        state.chatSession = null;
+        state.chatMessages = [];
+        clearSavedSession();
+        stopPolling();
+        stopHeartbeat();
+        state.view = 'home';
+      }
+    } else if (action === 'send-transcript') {
+      if (state.chatSession && state.prechatEmail) {
+        state.transcriptSending = true;
+        render();
+        try {
+          await fetch(apiUrl + '/send-chat-transcript', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: state.chatSession.id, email: state.prechatEmail, language: state.lang })
+          });
+          state.transcriptSent = true;
+        } catch (e) {}
+        state.transcriptSending = false;
+      }
+    } else if (action === 'skip-transcript') {
+      state.showTranscriptPrompt = false;
     } else if (action === 'toggle-lang') {
       state.showLangMenu = !state.showLangMenu;
     }

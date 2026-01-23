@@ -28,6 +28,8 @@
   "chattingWith": "Chattar med",
   "connected": "Ansluten",
   "endChat": "Avsluta chatt",
+  "cancelChat": "Avbryt",
+  "confirmCancel": "Är du säker på att du vill lämna kön?",
   "startConversation": "Starta konversationen genom att skicka ett meddelande nedan.",
   "typeMessage": "Skriv ett meddelande...",
   "thankYou": "Denna chatt har avslutats. Tack för att du kontaktade oss!",
@@ -41,5 +43,11 @@
   "chatDismissed": "Vi har hög belastning just nu",
   "chatDismissedMessage": "På grund av hög efterfrågan kan vi inte koppla dig till en agent just nu. Vi kontaktar dig via e-post inom kort.",
   "emailRequired": "E-post krävs för att starta chatt",
-  "enterEmailToContinue": "Ange din e-post för att fortsätta"
+  "enterEmailToContinue": "Ange din e-post för att fortsätta",
+  "wouldYouLikeTranscript": "Vill du ha en kopia av denna konversation?",
+  "sendTranscript": "Skicka transkription till min e-post",
+  "transcriptSent": "Transkription skickad!",
+  "noThanks": "Nej tack",
+  "youAreInQueue": "Du är i kön",
+  "agentWillBeWithYou": "En agent kommer snart att hjälpa dig"
 }
