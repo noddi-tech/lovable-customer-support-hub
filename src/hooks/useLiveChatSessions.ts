@@ -106,19 +106,33 @@ export function useLiveChatSessions(organizationId: string | null) {
   }, [organizationId]);
 
   const claimSession = useCallback(async (sessionId: string, agentId: string) => {
-    const { error } = await supabase
+    // Use atomic claiming: only succeed if session is still 'waiting' and unassigned
+    // This prevents race conditions when multiple agents try to claim simultaneously
+    const { data, error } = await supabase
       .from('widget_chat_sessions')
       .update({ 
         assigned_agent_id: agentId, 
         status: 'active',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .eq('status', 'waiting')
+      .is('assigned_agent_id', null)
+      .select('id');
 
-    if (!error) {
-      fetchSessions();
+    if (error) {
+      console.error('[useLiveChatSessions] Error claiming session:', error);
+      return false;
     }
-    return !error;
+    
+    // If no rows updated, session was already claimed by another agent
+    if (!data || data.length === 0) {
+      console.log('[useLiveChatSessions] Session already claimed by another agent');
+      return false;
+    }
+
+    fetchSessions();
+    return true;
   }, [fetchSessions]);
 
   const endSession = useCallback(async (sessionId: string) => {
