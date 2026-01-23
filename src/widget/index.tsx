@@ -17,6 +17,8 @@ declare global {
   }
 }
 
+console.log('[Noddi] Widget script loaded at', new Date().toISOString());
+
 function injectStyles() {
   const styleId = 'noddi-widget-styles';
   if (!document.getElementById(styleId)) {
@@ -24,10 +26,13 @@ function injectStyles() {
     style.id = styleId;
     style.textContent = widgetStyles;
     document.head.appendChild(style);
+    console.log('[Noddi] Styles injected');
   }
 }
 
 function initializeWidget(options: WidgetInitOptions) {
+  console.log('[Noddi] initializeWidget called with options:', options);
+  
   // Inject CSS styles
   injectStyles();
   
@@ -38,26 +43,30 @@ function initializeWidget(options: WidgetInitOptions) {
   const existing = document.getElementById(containerId);
   if (existing) {
     existing.remove();
+    console.log('[Noddi] Removed existing container');
   }
   
   // Create new container
   const container = document.createElement('div');
   container.id = containerId;
   document.body.appendChild(container);
+  console.log('[Noddi] Created container:', container);
   
   // Render widget
   const root = createRoot(container);
   root.render(<Widget options={options} />);
   
-  console.log('[Noddi Widget] Initialized with key:', options.widgetKey);
+  console.log('[Noddi] Widget rendered with key:', options.widgetKey);
 }
 
 // Process queued commands
 function processQueue() {
   const queue = window.NoddiWidget?.q || [];
+  console.log('[Noddi] Processing queue:', queue.length, 'commands');
   
   queue.forEach((args: any[]) => {
     const [command, options] = args;
+    console.log('[Noddi] Processing command:', command, options);
     if (command === 'init' && options?.widgetKey) {
       initializeWidget(options);
     }
@@ -65,8 +74,10 @@ function processQueue() {
 }
 
 // Set up the global API
+console.log('[Noddi] Setting up global API');
 window.NoddiWidget = Object.assign(
   function(command: string, options?: any) {
+    console.log('[Noddi] NoddiWidget called:', command, options);
     if (command === 'init' && options?.widgetKey) {
       initializeWidget(options);
     }
@@ -79,8 +90,11 @@ window.NoddiWidget = Object.assign(
 
 // Also support the noddi() shorthand from embed code
 window.noddi = function(command: string, options?: any) {
+  console.log('[Noddi] noddi() called:', command, options);
   window.NoddiWidget(command, options);
 };
+
+console.log('[Noddi] Global API ready, queue length:', window.NoddiWidget.q?.length);
 
 // Process any queued commands
 processQueue();

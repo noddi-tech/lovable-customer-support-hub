@@ -10,7 +10,8 @@ const corsHeaders = {
 const WIDGET_JS = `
 (function() {
   'use strict';
-
+  
+  console.log('[Noddi] Widget script loaded at', new Date().toISOString());
   // ========== TRANSLATIONS ==========
   const translations = {
     en: {"messageSent":"Message sent!","wellGetBack":"We'll get back to you as soon as possible.","startingChat":"Starting chat...","startLiveChat":"Start live chat","online":"Online","offline":"We're currently offline","leaveMessage":"Leave a message and we'll get back to you","sendMessage":"Send us a message","searchAnswers":"Search our help center","back":"Back","poweredBy":"Powered by Noddi","name":"Name","yourName":"Your name","email":"Email","message":"Message","howCanWeHelp":"How can we help?","fillAllFields":"Please fill in all fields","invalidEmail":"Please enter a valid email address","sending":"Sending...","sendMessageBtn":"Send Message","searchPlaceholder":"Search for answers...","searchKnowledgeBase":"Search our knowledge base for quick answers","noResults":"No results found for","tryDifferentKeywords":"Try different keywords or ask us directly","chatEnded":"Chat ended","waitingForAgent":"Waiting for agent...","chattingWith":"Chatting with","connected":"Connected","endChat":"End chat","startConversation":"Start the conversation by sending a message below.","typeMessage":"Type a message...","thankYou":"This chat has ended. Thank you for contacting us!","startNewConversation":"Start new conversation","changeLanguage":"Change language","defaultGreeting":"Hi there! 👋 How can we help you today?","defaultResponseTime":"We usually respond within a few hours"},
@@ -672,51 +673,66 @@ const WIDGET_JS = `
   }
 
   async function init(options) {
+    console.log('[Noddi] init() called with:', options);
     if (!options || !options.widgetKey) {
       console.error('[Noddi] widgetKey is required');
       return;
     }
 
     apiUrl = options.apiUrl || 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1';
+    console.log('[Noddi] Using API URL:', apiUrl);
 
     injectStyles();
+    console.log('[Noddi] Styles injected');
 
     container = document.createElement('div');
     container.id = 'noddi-widget-root';
     document.body.appendChild(container);
+    console.log('[Noddi] Container created and appended to body');
 
+    console.log('[Noddi] Fetching config for key:', options.widgetKey);
     config = await fetchConfig(options.widgetKey);
     if (!config) {
       console.error('[Noddi] Failed to load widget config');
       return;
     }
+    console.log('[Noddi] Config loaded:', config);
 
     state.lang = getStoredLang() || config.language || 'no';
+    console.log('[Noddi] Language set to:', state.lang);
     render();
+    console.log('[Noddi] Widget rendered successfully!');
   }
 
   // ========== GLOBAL API ==========
   function processQueue() {
+    console.log('[Noddi] Processing queue...');
     const q = window.NoddiWidget && window.NoddiWidget.q;
+    console.log('[Noddi] Queue contents:', q);
     if (q && Array.isArray(q)) {
       q.forEach(args => {
+        console.log('[Noddi] Processing command:', args[0], args[1]);
         if (args[0] === 'init') init(args[1]);
       });
     }
   }
 
   const api = function(cmd, opts) {
+    console.log('[Noddi] API called:', cmd, opts);
     if (cmd === 'init') init(opts);
   };
   api.init = init;
   api.q = (window.NoddiWidget && window.NoddiWidget.q) || [];
 
+  console.log('[Noddi] Setting up global API, existing queue:', api.q);
   window.NoddiWidget = api;
   window.noddi = api;
 
   if (document.readyState === 'loading') {
+    console.log('[Noddi] Document still loading, waiting for DOMContentLoaded');
     document.addEventListener('DOMContentLoaded', processQueue);
   } else {
+    console.log('[Noddi] Document ready, processing queue immediately');
     processQueue();
   }
 })();
