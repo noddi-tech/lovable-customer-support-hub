@@ -58,6 +58,7 @@ export interface ConversationRow {
   customerId?: string;
   inboxId?: string;
   isArchived?: boolean;
+  isDeleted?: boolean;
   firstResponseAt?: string;
   slaBreachAt?: string;
   slaStatus?: 'on_track' | 'at_risk' | 'breached' | 'met';
