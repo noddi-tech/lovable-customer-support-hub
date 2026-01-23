@@ -166,6 +166,45 @@ async function handleStartChat(supabase: any, data: StartChatRequest) {
     );
   }
 
+  // Check for existing active/waiting session for this visitor
+  // This prevents duplicate sessions when visitor refreshes or re-enters chat
+  const { data: existingSession, error: existingError } = await supabase
+    .from('widget_chat_sessions')
+    .select('id, conversation_id, status, started_at, assigned_agent_id')
+    .eq('visitor_id', visitorId)
+    .eq('widget_config_id', widgetConfig.id)
+    .in('status', ['waiting', 'active'])
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!existingError && existingSession) {
+    // Get agent name if assigned
+    let agentName: string | null = null;
+    if (existingSession.assigned_agent_id) {
+      const { data: agent } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', existingSession.assigned_agent_id)
+        .single();
+      if (agent) {
+        agentName = agent.full_name;
+      }
+    }
+
+    console.log('Returning existing session for visitor:', visitorId);
+    return new Response(
+      JSON.stringify({
+        id: existingSession.id,
+        conversationId: existingSession.conversation_id,
+        status: existingSession.status,
+        startedAt: existingSession.started_at,
+        assignedAgentName: agentName,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   const { inbox_id, organization_id } = widgetConfig;
 
   // Find or create customer

@@ -304,6 +304,72 @@ const WIDGET_JS = `
     return id;
   }
 
+  // Session persistence helpers
+  function saveSession(session) {
+    if (session) {
+      localStorage.setItem('noddi_chat_session', JSON.stringify(session));
+    }
+  }
+
+  function getSavedSession() {
+    try {
+      const saved = localStorage.getItem('noddi_chat_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearSavedSession() {
+    localStorage.removeItem('noddi_chat_session');
+  }
+
+  // Incremental DOM update for chat messages only (avoids full re-render flickering)
+  function renderChatMessages() {
+    const messagesContainer = container?.querySelector('.noddi-chat-messages');
+    const statusText = container?.querySelector('.noddi-chat-status-text');
+    const statusDot = container?.querySelector('.noddi-chat-status-dot');
+    const t = getT(state.lang);
+    
+    if (!messagesContainer) return;
+    
+    const session = state.chatSession;
+    const isEnded = session && (session.status === 'ended' || session.status === 'abandoned');
+    
+    // Update status indicators
+    if (statusText) {
+      statusText.textContent = isEnded ? t.chatEnded : (session && session.status === 'waiting' ? t.waitingForAgent : t.connected);
+    }
+    if (statusDot) {
+      statusDot.style.backgroundColor = isEnded ? '#ef4444' : (session && session.status === 'active' ? '#22c55e' : '#f59e0b');
+    }
+    
+    // Build messages HTML
+    let html = '';
+    if (state.chatMessages.length === 0 && !isEnded) {
+      html += '<div class="noddi-chat-empty"><p>' + t.startConversation + '</p></div>';
+    }
+    state.chatMessages.forEach(m => {
+      const isCustomer = m.senderType === 'customer';
+      html += '<div class="noddi-chat-message noddi-chat-message-' + (isCustomer ? 'customer' : 'agent') + '">';
+      if (!isCustomer && m.senderName) html += '<span class="noddi-chat-message-sender">' + m.senderName + '</span>';
+      html += '<div class="noddi-chat-message-bubble"' + (isCustomer ? ' style="background-color:' + config.primaryColor + '"' : '') + '>' + m.content + '</div>';
+      html += '<span class="noddi-chat-message-time">' + new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '</span>';
+      html += '</div>';
+    });
+    if (state.agentTyping) {
+      html += '<div class="noddi-chat-message noddi-chat-message-agent"><div class="noddi-chat-typing"><span></span><span></span><span></span></div></div>';
+    }
+    
+    messagesContainer.innerHTML = html;
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // If chat ended, do a full re-render to show end state
+    if (isEnded) {
+      render();
+    }
+  }
+
   function getStoredLang() {
     return localStorage.getItem('noddi_widget_language');
   }
@@ -658,11 +724,17 @@ const WIDGET_JS = `
     } else if (action === 'start-chat') {
       state.isLoading = true;
       render();
+      // startChat API now returns existing session if one exists
       const session = await startChat(config.widgetKey, getVisitorId());
       state.isLoading = false;
       if (session) {
         state.chatSession = session;
-        state.chatMessages = [];
+        saveSession(session); // Persist session
+        // Fetch existing messages for resumed sessions
+        const data = await getMessages(session.id);
+        state.chatMessages = data.messages || [];
+        state.agentTyping = data.agentTyping || false;
+        if (data.assignedAgentName) state.chatSession.assignedAgentName = data.assignedAgentName;
         state.view = 'chat';
         startPolling();
       } else {
@@ -681,6 +753,7 @@ const WIDGET_JS = `
       if (state.chatSession) {
         await endChatSession(state.chatSession.id);
         state.chatSession.status = 'ended';
+        clearSavedSession(); // Clear persisted session on end
         stopPolling();
       }
     } else if (action === 'toggle-lang') {
@@ -744,7 +817,8 @@ const WIDGET_JS = `
       // Check for new agent messages and notify
       if (state.chatMessages.length > prevMsgCount) {
         const newMessages = state.chatMessages.slice(prevMsgCount);
-        const agentMessages = newMessages.filter(m => m.sender_type === 'agent');
+        // Fix: API returns senderType (camelCase), not sender_type
+        const agentMessages = newMessages.filter(m => m.senderType === 'agent');
         if (agentMessages.length > 0) {
           playNotificationSound();
           const lastAgentMsg = agentMessages[agentMessages.length - 1];
@@ -752,9 +826,18 @@ const WIDGET_JS = `
           showBrowserNotification(agentName, lastAgentMsg.content);
         }
       }
+      const prevTyping = state.agentTyping;
+      const prevStatus = state.chatSession?.status;
       state.agentTyping = data.agentTyping || false;
       if (data.status) state.chatSession.status = data.status;
-      render();
+      if (data.assignedAgentName) state.chatSession.assignedAgentName = data.assignedAgentName;
+      // Only re-render if something changed to avoid flickering
+      const messagesChanged = state.chatMessages.length !== prevMsgCount;
+      const typingChanged = prevTyping !== state.agentTyping;
+      const statusChanged = prevStatus !== state.chatSession?.status;
+      if (messagesChanged || typingChanged || statusChanged) {
+        renderChatMessages();
+      }
     }, 3000);
   }
 
@@ -773,6 +856,8 @@ const WIDGET_JS = `
     style.textContent = CSS;
     document.head.appendChild(style);
   }
+
+  let availabilityInterval = null;
 
   async function init(options) {
     console.log('[Noddi] init() called with:', options);
@@ -810,6 +895,20 @@ const WIDGET_JS = `
     console.log('[Noddi] Language set to:', state.lang);
     render();
     console.log('[Noddi] Widget rendered successfully!');
+
+    // Start availability polling (every 30 seconds)
+    // This ensures widget reflects agent online/offline status changes
+    availabilityInterval = setInterval(async () => {
+      const freshConfig = await fetchConfig(options.widgetKey);
+      if (freshConfig && freshConfig.agentsOnline !== config.agentsOnline) {
+        console.log('[Noddi] Availability changed:', config.agentsOnline, '->', freshConfig.agentsOnline);
+        config.agentsOnline = freshConfig.agentsOnline;
+        // Only re-render if panel is open on home view (where availability affects UI)
+        if (state.isOpen && state.view === 'home') {
+          render();
+        }
+      }
+    }, 30000);
   }
 
   // ========== GLOBAL API ==========

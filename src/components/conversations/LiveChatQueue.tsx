@@ -25,9 +25,10 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
   const [searchParams] = useSearchParams();
 
   const handleClaimSession = async (sessionId: string, conversationId: string) => {
-    if (!profile?.user_id) return;
+    if (!profile?.id) return;
     
-    const success = await claimSession(sessionId, profile.user_id);
+    // Use profile.id (not user_id) as it matches the FK on widget_chat_sessions.assigned_agent_id
+    const success = await claimSession(sessionId, profile.id);
     if (success) {
       // Navigate to the conversation
       navigate(`/interactions/text/open?c=${conversationId}`);
