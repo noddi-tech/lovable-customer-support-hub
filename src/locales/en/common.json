@@ -322,6 +322,7 @@
     "autoDetect": "Auto-detect",
     "ctrlEnterToSend": "Ctrl+Enter to send",
     "reply": "Reply",
+    "note": "Note",
     "internalNote": "Internal Note",
     "sending": "Sending...",
     "sendReply": "Send Reply",

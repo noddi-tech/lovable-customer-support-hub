@@ -13,9 +13,11 @@ import {
   ChevronUp,
   Copy,
   Check,
-  StickyNote
+  StickyNote,
+  Pin,
+  PinOff
 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
 import { useDateFormatting } from "@/hooks/useDateFormatting";
 import { useTranslation } from "react-i18next";
@@ -27,6 +29,7 @@ import { EmailDebugOverlay } from "./EmailDebugOverlay";
 import { stripHtml } from "@/utils/stripHtml";
 import { getSmartPreview } from "@/utils/messagePreview";
 import { logger } from "@/utils/logger";
+import { supabase } from "@/integrations/supabase/client";
 
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
@@ -103,8 +106,10 @@ interface MessageCardProps {
   disableAnimation?: boolean;
   isFirstInThread?: boolean;
   isNewestMessage?: boolean;
+  isPinned?: boolean;
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
+  onPin?: (messageId: string, pinned: boolean) => void;
 }
 
 const MessageCardComponent = ({ 
@@ -114,8 +119,10 @@ const MessageCardComponent = ({
   disableAnimation = false,
   isFirstInThread = false,
   isNewestMessage = false,
+  isPinned: propIsPinned,
   onEdit, 
-  onDelete 
+  onDelete,
+  onPin
 }: MessageCardProps) => {
   const { dateTime } = useDateFormatting();
   const { t } = useTranslation();
@@ -124,6 +131,7 @@ const MessageCardComponent = ({
   const [showAllRecipients, setShowAllRecipients] = useState(false);
   const [showQuoted, setShowQuoted] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [isPinned, setIsPinned] = useState(propIsPinned ?? message.originalMessage?.is_pinned ?? false);
   
   // Track renders
   const renderCount = useRef(0);
@@ -226,6 +234,26 @@ const MessageCardComponent = ({
     }
   };
 
+  const handleTogglePin = async () => {
+    const newPinned = !isPinned;
+    setIsPinned(newPinned);
+    
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_pinned: newPinned })
+        .eq('id', message.id);
+      
+      if (error) throw error;
+      
+      toast({ title: newPinned ? "Note pinned" : "Note unpinned" });
+      onPin?.(message.id, newPinned);
+    } catch (error) {
+      setIsPinned(!newPinned); // Revert on error
+      toast({ title: "Failed to update pin", variant: "destructive" });
+    }
+  };
+
   // Use defaultCollapsed during bulk operations to prevent double-render
   const effectiveCollapsed = disableAnimation ? defaultCollapsed : isCollapsed;
   
@@ -251,7 +279,8 @@ const MessageCardComponent = ({
         !isInternalNote && "hover:border-gray-300 dark:hover:border-gray-700",
         disableAnimation && "disable-animation",
         effectiveCollapsed ? "py-0 min-h-[36px]" : "py-2",
-        isNewestMessage && "ring-2 ring-primary/30 ring-offset-1"
+        isNewestMessage && "ring-2 ring-primary/30 ring-offset-1",
+        isPinned && isInternalNote && "ring-2 ring-yellow-400/50 ring-offset-1"
       )}
       aria-label={isInternalNote ? `Internal note from ${display}` : `${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
@@ -291,6 +320,7 @@ const MessageCardComponent = ({
                 {/* Note icon and badge FIRST for internal notes */}
                 {isInternalNote && (
                   <Badge className={cn("text-xs shrink-0 gap-1", noteStyle?.labelBadge)}>
+                    {isPinned && <Pin className="w-3 h-3" />}
                     <StickyNote className="w-3 h-3" />
                     {noteStyle?.label}
                   </Badge>
@@ -459,6 +489,23 @@ const MessageCardComponent = ({
                       <Edit3 className="w-4 h-4 mr-2" />
                       {t('conversation.editMessage')}
                     </DropdownMenuItem>
+                    {/* Pin option - only for internal notes */}
+                    {isInternalNote && (
+                      <DropdownMenuItem onClick={handleTogglePin}>
+                        {isPinned ? (
+                          <>
+                            <PinOff className="w-4 h-4 mr-2" />
+                            Unpin note
+                          </>
+                        ) : (
+                          <>
+                            <Pin className="w-4 h-4 mr-2" />
+                            Pin note
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={handleDelete}
                       className="text-destructive"

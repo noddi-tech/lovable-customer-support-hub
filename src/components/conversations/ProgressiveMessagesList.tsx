@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback, useMemo, forwardRef, useImper
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MessageSquare, ChevronUp, ChevronDown, ChevronsDown, ChevronsUp, Globe } from "lucide-react";
+import { Loader2, MessageSquare, ChevronUp, ChevronDown, ChevronsDown, ChevronsUp, Globe, Pin } from "lucide-react";
 import { MessageCard } from "./MessageCard";
 import { ChatMessagesList } from "./ChatMessagesList";
 import { ChatReplyInput } from "./ChatReplyInput";
@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { LazyReplyArea } from "./LazyReplyArea";
 import { logger } from "@/utils/logger";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProgressiveMessagesListProps {
   conversationId: string;
@@ -36,6 +37,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
 }, ref) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isNearTop, setIsNearTop] = useState(false);
@@ -360,6 +362,36 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
             />
             
             <div className="space-y-2">
+              {/* Pinned Notes Section */}
+              {(() => {
+                const pinnedNotes = messages.filter(m => m.isInternalNote && m.originalMessage?.is_pinned);
+                if (pinnedNotes.length === 0) return null;
+                
+                return (
+                  <div className="mb-4 pb-4 border-b border-yellow-200 dark:border-yellow-800">
+                    <div className="flex items-center gap-2 mb-3 px-2">
+                      <Pin className="h-4 w-4 text-yellow-600" />
+                      <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
+                        Pinned Notes ({pinnedNotes.length})
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {pinnedNotes.map((message) => (
+                        <MessageCard
+                          key={`pinned-${message.dedupKey || message.id}`}
+                          message={message}
+                          conversation={conversation}
+                          isPinned={true}
+                          defaultCollapsed={false}
+                          disableAnimation={isBulkToggling}
+                          onEdit={onEditMessage}
+                          onDelete={onDeleteMessage}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
           {/* Messages list - Cards in ASC order (oldest first, natural email reading) */}
           {messages.length === 0 ? (
@@ -370,7 +402,8 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
           ) : (
               // Reverse to show oldest first (ASC)
               [...messages].reverse().map((message, index) => {
-                const isNewest = index === messages.length - 1; // Last in reversed array = newest
+                const isNewest = index === messages.length - 1;
+                const isPinned = message.isInternalNote && message.originalMessage?.is_pinned;
                 return (
                   <MessageCard
                     key={message.dedupKey || message.id}
@@ -378,6 +411,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
                     conversation={conversation}
                     isFirstInThread={index === 0}
                     isNewestMessage={isNewest}
+                    isPinned={isPinned}
                     defaultCollapsed={!expandedMessageIds.has(message.dedupKey || message.id)}
                     disableAnimation={isBulkToggling}
                     onEdit={onEditMessage}

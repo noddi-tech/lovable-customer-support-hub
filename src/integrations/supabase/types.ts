@@ -1208,6 +1208,7 @@ export type Database = {
           external_id: string | null
           id: string
           is_internal: boolean | null
+          is_pinned: boolean | null
           sender_id: string | null
           sender_type: string
         }
@@ -1226,6 +1227,7 @@ export type Database = {
           external_id?: string | null
           id?: string
           is_internal?: boolean | null
+          is_pinned?: boolean | null
           sender_id?: string | null
           sender_type: string
         }
@@ -1244,6 +1246,7 @@ export type Database = {
           external_id?: string | null
           id?: string
           is_internal?: boolean | null
+          is_pinned?: boolean | null
           sender_id?: string | null
           sender_type?: string
         }
@@ -1466,6 +1469,56 @@ export type Database = {
           user_group_id?: number | null
         }
         Relationships: []
+      }
+      note_templates: {
+        Row: {
+          color: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          icon: string | null
+          id: string
+          is_global: boolean | null
+          name: string
+          organization_id: string
+          shortcut: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          is_global?: boolean | null
+          name: string
+          organization_id: string
+          shortcut?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          is_global?: boolean | null
+          name?: string
+          organization_id?: string
+          shortcut?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
