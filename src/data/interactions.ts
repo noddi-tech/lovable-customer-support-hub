@@ -198,8 +198,12 @@ export async function listConversations(params: {
     // Try emergency recovery function first with inbox filter
     const inboxUuid = (inboxId && inboxId !== 'all') ? inboxId : null;
     
+    // Determine if we should fetch deleted conversations
+    const includeDeleted = status === 'deleted';
+    
     let query = supabase.rpc('get_conversations_with_session_recovery', { 
-      inbox_uuid: inboxUuid 
+      inbox_uuid: inboxUuid,
+      include_deleted: includeDeleted
     });
     
     const { data: recoveryData, error: recoveryError } = await query;
@@ -267,6 +271,7 @@ export async function listConversations(params: {
       customerId: conv.customer?.id,
       inboxId: conv.inbox_id,
       isArchived: conv.is_archived,
+      isDeleted: conv.is_deleted || false,
       firstResponseAt: conv.first_response_at,
       slaBreachAt: conv.sla_breach_at,
       slaStatus: conv.first_response_at 
@@ -323,25 +328,33 @@ function applyFilters(conversations: ConversationRow[], params: {
   // Apply status filter
   if (params.status !== 'all') {
     switch (params.status) {
+      case 'open':
+        // Filter for open, non-archived, non-deleted conversations
+        filtered = filtered.filter(c => c.status === 'open' && !c.isArchived && !c.isDeleted);
+        break;
       case 'unread':
-        filtered = filtered.filter(c => c.unread);
+        filtered = filtered.filter(c => c.unread && !c.isDeleted);
         break;
       case 'assigned':
         // Filter by current user's profile ID for "Assigned to Me"
         if (params.currentUserProfileId) {
-          filtered = filtered.filter(c => c.assigneeId === params.currentUserProfileId);
+          filtered = filtered.filter(c => c.assigneeId === params.currentUserProfileId && !c.isDeleted);
         } else {
-          filtered = filtered.filter(c => !!c.assignee);
+          filtered = filtered.filter(c => !!c.assignee && !c.isDeleted);
         }
         break;
       case 'pending':
-        filtered = filtered.filter(c => c.status === 'pending');
+        filtered = filtered.filter(c => c.status === 'pending' && !c.isDeleted);
         break;
       case 'closed':
-        filtered = filtered.filter(c => c.status === 'closed');
+        filtered = filtered.filter(c => c.status === 'closed' && !c.isDeleted);
         break;
       case 'archived':
-        filtered = filtered.filter(c => c.isArchived);
+        filtered = filtered.filter(c => c.isArchived && !c.isDeleted);
+        break;
+      case 'deleted':
+        // Already fetched deleted conversations via include_deleted=true
+        filtered = filtered.filter(c => c.isDeleted);
         break;
     }
   }

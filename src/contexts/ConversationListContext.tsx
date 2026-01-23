@@ -314,29 +314,20 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     }
   });
 
-  // Delete conversation mutation
+  // Delete conversation mutation (soft delete - sets deleted_at timestamp)
   const deleteConversationMutation = useMutation({
     mutationFn: async (conversationId: string) => {
-      // First delete all messages in the conversation
-      const { error: messagesError } = await supabase
-        .from('messages')
-        .delete()
-        .eq('conversation_id', conversationId);
-      
-      if (messagesError) throw messagesError;
-
-      // Then delete the conversation
-      const { error: conversationError } = await supabase
+      const { error } = await supabase
         .from('conversations')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', conversationId);
       
-      if (conversationError) throw conversationError;
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success('Conversation deleted successfully');
+      toast.success('Conversation moved to trash');
       dispatch({ type: 'CLOSE_DELETE_DIALOG' });
     },
     onError: (error) => {

@@ -3190,26 +3190,51 @@ export type Database = {
           updated_at: string
         }[]
       }
-      get_conversations_with_session_recovery: {
-        Args: { inbox_uuid?: string }
-        Returns: {
-          assigned_to: Json
-          channel: string
-          customer: Json
-          id: string
-          inbox_id: string
-          is_archived: boolean
-          is_read: boolean
-          organization_id: string
-          priority: string
-          received_at: string
-          session_uid: string
-          snooze_until: string
-          status: string
-          subject: string
-          updated_at: string
-        }[]
-      }
+      get_conversations_with_session_recovery:
+        | {
+            Args: { inbox_uuid?: string }
+            Returns: {
+              assigned_to: Json
+              channel: string
+              customer: Json
+              id: string
+              inbox_id: string
+              is_archived: boolean
+              is_read: boolean
+              organization_id: string
+              priority: string
+              received_at: string
+              session_uid: string
+              snooze_until: string
+              status: string
+              subject: string
+              updated_at: string
+            }[]
+          }
+        | {
+            Args: { inbox_uuid?: string; include_deleted?: boolean }
+            Returns: {
+              assigned_to: Json
+              channel: string
+              customer: Json
+              first_response_at: string
+              id: string
+              inbox_id: string
+              is_archived: boolean
+              is_deleted: boolean
+              is_read: boolean
+              organization_id: string
+              preview_text: string
+              priority: string
+              received_at: string
+              session_uid: string
+              sla_breach_at: string
+              snooze_until: string
+              status: string
+              subject: string
+              updated_at: string
+            }[]
+          }
       get_email_accounts: {
         Args: never
         Returns: {
