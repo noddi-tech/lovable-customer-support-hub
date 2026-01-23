@@ -231,8 +231,8 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       return data || [];
     },
     enabled: !!conversationId && !!user,
-    staleTime: 10 * 60 * 1000, // 10 minutes - longer cache
-    gcTime: 15 * 60 * 1000, // 15 minutes - keep in memory longer
+    staleTime: 1 * 60 * 1000, // 1 minute - shorter for faster note updates
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Real-time subscription for messages
@@ -248,8 +248,12 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
         console.log('Real-time message update:', payload);
+        // Invalidate both query keys for immediate update
         queryClient.invalidateQueries({ 
-          queryKey: ['thread-messages', conversationId, user.id] 
+          queryKey: ['thread-messages'] 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['messages', conversationId] 
         });
       })
       .subscribe();

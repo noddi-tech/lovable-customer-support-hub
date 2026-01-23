@@ -294,6 +294,9 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   let channel: string = rawMessage.channel || 'email';
   
   const headers = safeParseHeaders(rawMessage.email_headers ?? rawMessage.headers ?? rawMessage.emailHeaders);
+  
+  // Check for profile data (joined from sender_profile)
+  const senderProfile = rawMessage.sender_profile || rawMessage.profiles;
 
   // Try multiple header keys (case-insensitive)
   const fromLine =
@@ -305,6 +308,12 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
 
   // Parse name/email
   let { name: fromName, email: fromEmail } = extractNameEmail(fromLine);
+
+  // For internal notes, prefer profile data for accurate author attribution
+  if (rawMessage.is_internal === true && senderProfile) {
+    fromName = senderProfile.full_name || fromName;
+    fromEmail = senderProfile.email || fromEmail;
+  }
 
   // Fallbacks if header missing
   if (!fromEmail && typeof rawMessage.sender_id === 'string' && rawMessage.sender_id.includes('@')) {

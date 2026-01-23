@@ -39,6 +39,7 @@ import {
 import { TemplateSelector } from "./TemplateSelector";
 import { FeedbackPrompt } from "./FeedbackPrompt";
 import { AiSuggestionDialog } from "./AiSuggestionDialog";
+import { NoteTemplateSelector } from "@/components/conversations/NoteTemplateSelector";
 import { toast } from 'sonner';
 
 export const ReplyArea = () => {
@@ -160,6 +161,11 @@ export const ReplyArea = () => {
   const handleTemplateSelect = (content: string, templateId: string) => {
     dispatch({ type: 'SET_REPLY_TEXT', payload: content });
     dispatch({ type: 'SET_SELECTED_TEMPLATE', payload: templateId });
+  };
+
+  const handleNoteTemplateSelect = (content: string, templateId: string) => {
+    dispatch({ type: 'SET_REPLY_TEXT', payload: content });
+    // Note templates don't track for knowledge base
   };
 
   const handleGetAiSuggestions = async () => {
@@ -301,11 +307,21 @@ export const ReplyArea = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Template Selector */}
-            <TemplateSelector 
-              onSelectTemplate={handleTemplateSelect}
-              isMobile={isMobile}
-            />
+            {/* Note Template Selector - show in note mode */}
+            {state.isInternalNote && (
+              <NoteTemplateSelector 
+                onSelectTemplate={handleNoteTemplateSelect}
+                disabled={state.sendLoading}
+              />
+            )}
+            
+            {/* Template Selector - only for replies */}
+            {!state.isInternalNote && (
+              <TemplateSelector 
+                onSelectTemplate={handleTemplateSelect}
+                isMobile={isMobile}
+              />
+            )}
 
             {/* AI Suggestions Button */}
             <Button

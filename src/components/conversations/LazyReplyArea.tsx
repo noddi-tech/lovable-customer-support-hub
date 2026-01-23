@@ -103,7 +103,7 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
             variant="default"
           >
             <StickyNote className="w-4 h-4 mr-2" />
-            {t('conversation.note') || 'Note'}
+            {t('conversation.internalNote')}
             <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-yellow-600/30 rounded hidden sm:inline">N</kbd>
           </Button>
         </div>
