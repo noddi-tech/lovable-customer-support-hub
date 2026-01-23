@@ -1,0 +1,99 @@
+import { useState, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Send, Loader2 } from 'lucide-react';
+import { useConversationView } from '@/contexts/ConversationViewContext';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+
+interface ChatReplyInputProps {
+  conversationId: string;
+  onSent?: () => void;
+}
+
+export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
+  const [message, setMessage] = useState('');
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { state } = useConversationView();
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Get user's profile to get their ID
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('user_id', user.id)
+        .single();
+
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          content: content,
+          sender_type: 'agent',
+          sender_id: user.id,
+          is_internal: false,
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setMessage('');
+      // Invalidate messages to trigger refetch
+      queryClient.invalidateQueries({ 
+        queryKey: ['conversation-messages', conversationId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['thread-messages'] 
+      });
+      onSent?.();
+    },
+    onError: (error) => {
+      console.error('Failed to send message:', error);
+      toast.error('Failed to send message');
+    },
+  });
+
+  const handleSend = useCallback(() => {
+    const trimmedMessage = message.trim();
+    if (!trimmedMessage || sendMessageMutation.isPending) return;
+    sendMessageMutation.mutate(trimmedMessage);
+  }, [message, sendMessageMutation]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 p-4 border-t border-border bg-background">
+      <Input 
+        placeholder="Type a message..." 
+        className="flex-1 rounded-full bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={handleKeyDown}
+        disabled={sendMessageMutation.isPending}
+      />
+      <Button 
+        size="icon" 
+        className="rounded-full shrink-0 h-10 w-10"
+        onClick={handleSend}
+        disabled={!message.trim() || sendMessageMutation.isPending}
+      >
+        {sendMessageMutation.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Send className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
+  );
+};
