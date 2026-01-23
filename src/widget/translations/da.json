@@ -28,6 +28,8 @@
   "chattingWith": "Chatter med",
   "connected": "Forbundet",
   "endChat": "Afslut chat",
+  "cancelChat": "Annuller",
+  "confirmCancel": "Er du sikker på, at du vil forlade køen?",
   "startConversation": "Start samtalen ved at sende en besked nedenfor.",
   "typeMessage": "Skriv en besked...",
   "thankYou": "Denne chat er afsluttet. Tak fordi du kontaktede os!",
@@ -41,5 +43,11 @@
   "chatDismissed": "Vi oplever stor travlhed",
   "chatDismissedMessage": "På grund af stor efterspørgsel kan vi ikke forbinde dig med en agent lige nu. Vi kontakter dig via e-mail hurtigst muligt.",
   "emailRequired": "E-mail er påkrævet for at starte chat",
-  "enterEmailToContinue": "Indtast din e-mail for at fortsætte"
+  "enterEmailToContinue": "Indtast din e-mail for at fortsætte",
+  "wouldYouLikeTranscript": "Vil du have en kopi af denne samtale?",
+  "sendTranscript": "Send udskrift til min e-mail",
+  "transcriptSent": "Udskrift sendt!",
+  "noThanks": "Nej tak",
+  "youAreInQueue": "Du er i køen",
+  "agentWillBeWithYou": "En agent vil snart være hos dig"
 }

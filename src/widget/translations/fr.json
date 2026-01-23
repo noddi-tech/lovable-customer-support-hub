@@ -28,6 +28,8 @@
   "chattingWith": "Discussion avec",
   "connected": "Connecté",
   "endChat": "Terminer le chat",
+  "cancelChat": "Annuler",
+  "confirmCancel": "Êtes-vous sûr de vouloir quitter la file d'attente ?",
   "startConversation": "Commencez la conversation en envoyant un message ci-dessous.",
   "typeMessage": "Tapez un message...",
   "thankYou": "Ce chat est terminé. Merci de nous avoir contactés !",
@@ -41,5 +43,11 @@
   "chatDismissed": "Nous sommes très sollicités",
   "chatDismissedMessage": "En raison d'une forte demande, nous ne pouvons pas vous mettre en contact avec un agent pour le moment. Nous vous contacterons par e-mail dès que possible.",
   "emailRequired": "L'e-mail est requis pour démarrer le chat",
-  "enterEmailToContinue": "Entrez votre e-mail pour continuer"
+  "enterEmailToContinue": "Entrez votre e-mail pour continuer",
+  "wouldYouLikeTranscript": "Souhaitez-vous une copie de cette conversation ?",
+  "sendTranscript": "Envoyer la transcription à mon e-mail",
+  "transcriptSent": "Transcription envoyée !",
+  "noThanks": "Non merci",
+  "youAreInQueue": "Vous êtes dans la file d'attente",
+  "agentWillBeWithYou": "Un agent sera bientôt avec vous"
 }

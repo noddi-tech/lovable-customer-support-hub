@@ -2878,6 +2878,7 @@ export type Database = {
       }
       widget_configs: {
         Row: {
+          auto_send_transcript: boolean | null
           company_name: string | null
           created_at: string | null
           dismissal_message_text: string | null
@@ -2901,6 +2902,7 @@ export type Database = {
           widget_key: string
         }
         Insert: {
+          auto_send_transcript?: boolean | null
           company_name?: string | null
           created_at?: string | null
           dismissal_message_text?: string | null
@@ -2924,6 +2926,7 @@ export type Database = {
           widget_key?: string
         }
         Update: {
+          auto_send_transcript?: boolean | null
           company_name?: string | null
           created_at?: string | null
           dismissal_message_text?: string | null

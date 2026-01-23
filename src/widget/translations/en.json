@@ -28,6 +28,8 @@
   "chattingWith": "Chatting with",
   "connected": "Connected",
   "endChat": "End chat",
+  "cancelChat": "Cancel",
+  "confirmCancel": "Are you sure you want to leave the queue?",
   "startConversation": "Start the conversation by sending a message below.",
   "typeMessage": "Type a message...",
   "thankYou": "This chat has ended. Thank you for contacting us!",
@@ -41,5 +43,11 @@
   "chatDismissed": "We're experiencing high volume",
   "chatDismissedMessage": "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly.",
   "emailRequired": "Email is required to start a chat",
-  "enterEmailToContinue": "Enter your email to continue"
+  "enterEmailToContinue": "Enter your email to continue",
+  "wouldYouLikeTranscript": "Would you like a copy of this conversation?",
+  "sendTranscript": "Send transcript to my email",
+  "transcriptSent": "Transcript sent!",
+  "noThanks": "No thanks",
+  "youAreInQueue": "You're in the queue",
+  "agentWillBeWithYou": "An agent will be with you shortly"
 }
