@@ -689,16 +689,68 @@ const WIDGET_JS = `
     render();
   }
 
+  // ========== NOTIFICATIONS ==========
+  function playNotificationSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 800;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {}
+  }
+
+  function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
+
+  function showBrowserNotification(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+      try {
+        const notification = new Notification(title, {
+          body: body.substring(0, 100),
+          icon: config && config.logoUrl ? config.logoUrl : undefined
+        });
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+        setTimeout(() => notification.close(), 5000);
+      } catch (e) {}
+    }
+  }
+
   function startPolling() {
     if (pollInterval) return;
+    requestNotificationPermission();
     pollInterval = setInterval(async () => {
       if (!state.chatSession) return;
+      const prevMsgCount = state.chatMessages.length;
       const data = await getMessages(state.chatSession.id);
       if (data.messages) {
         const existingIds = new Set(state.chatMessages.map(m => m.id));
         data.messages.forEach(m => {
           if (!existingIds.has(m.id)) state.chatMessages.push(m);
         });
+      }
+      // Check for new agent messages and notify
+      if (state.chatMessages.length > prevMsgCount) {
+        const newMessages = state.chatMessages.slice(prevMsgCount);
+        const agentMessages = newMessages.filter(m => m.sender_type === 'agent');
+        if (agentMessages.length > 0) {
+          playNotificationSound();
+          const lastAgentMsg = agentMessages[agentMessages.length - 1];
+          const agentName = state.chatSession.assignedAgentName || 'Support';
+          showBrowserNotification(agentName, lastAgentMsg.content);
+        }
       }
       state.agentTyping = data.agentTyping || false;
       if (data.status) state.chatSession.status = data.status;
