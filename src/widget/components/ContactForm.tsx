@@ -51,10 +51,10 @@ export const ContactForm: React.FC<ContactFormProps> = ({
     setIsSubmitting(false);
     
     if (result.success) {
+      onSuccess(); // Show success view immediately
       setName('');
       setEmail('');
       setMessage('');
-      onSuccess();
     } else {
       setError(result.error || 'Failed to send message');
     }
