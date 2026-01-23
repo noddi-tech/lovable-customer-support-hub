@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, ExternalLink } from 'lucide-react';
+import { Copy, Check, ExternalLink, Rocket, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ interface WidgetEmbedCodeProps {
 
 export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) => {
   const [copied, setCopied] = useState(false);
+  const [deploying, setDeploying] = useState(false);
 
   // Use the production Supabase URL
   const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
@@ -17,29 +18,17 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
   // Widget hosted on Supabase Storage
   const widgetScriptUrl = `${supabaseUrl}/storage/v1/object/public/widget/widget.js`;
   
+  // Fixed embed code pattern that correctly queues to NoddiWidget.q
   const embedCode = `<!-- Noddi Contact Widget -->
 <script>
-  (function(w,d,s,o,f,js,fjs){
-    w['NoddiWidget']=o;
-    w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
-    js=d.createElement(s);fjs=d.getElementsByTagName(s)[0];
-    js.id=o;js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
-  }(window,document,'script','noddi','${widgetScriptUrl}'));
-  
+  window.NoddiWidget = window.NoddiWidget || { q: [] };
+  window.noddi = function() { window.NoddiWidget.q.push(arguments); };
   noddi('init', {
     widgetKey: '${widgetKey}',
     apiUrl: '${supabaseUrl}/functions/v1'
   });
-</script>`;
-
-  const simpleEmbedCode = `<!-- Noddi Contact Widget (Simple) -->
-<script src="${widgetScriptUrl}"></script>
-<script>
-  NoddiWidget.init({
-    widgetKey: '${widgetKey}',
-    apiUrl: '${supabaseUrl}/functions/v1'
-  });
-</script>`;
+</script>
+<script src="${widgetScriptUrl}" async></script>`;
 
   const handleCopy = async () => {
     try {
@@ -52,8 +41,63 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
     }
   };
 
+  const handleDeploy = async () => {
+    setDeploying(true);
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/deploy-widget?action=deploy`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Deploy failed');
+      }
+      
+      const result = await response.json();
+      toast.success('Widget deployed to production!', {
+        description: `Size: ${result.size || 'unknown'}`,
+      });
+    } catch (err) {
+      toast.error('Failed to deploy widget', {
+        description: 'Check edge function logs for details',
+      });
+    } finally {
+      setDeploying(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Rocket className="h-4 w-4" />
+            Deploy Widget
+          </CardTitle>
+          <CardDescription>
+            Push the latest widget bundle to production
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={handleDeploy}
+            disabled={deploying}
+            className="gap-2"
+          >
+            {deploying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Deploying...
+              </>
+            ) : (
+              <>
+                <Rocket className="h-4 w-4" />
+                Deploy to Production
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Installation</CardTitle>
@@ -143,10 +187,10 @@ export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) =
           <CardTitle className="text-base">📋 Next Steps</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>1. Copy the embed code above</p>
-          <p>2. Paste it into your website's HTML, just before &lt;/body&gt;</p>
-          <p>3. The widget will appear in the corner of your page</p>
-          <p>4. Messages will arrive in your inbox</p>
+          <p>1. Click "Deploy to Production" above to push the widget</p>
+          <p>2. Copy the embed code</p>
+          <p>3. Paste it into your website's HTML, just before &lt;/body&gt;</p>
+          <p>4. The widget will appear in the corner of your page</p>
         </CardContent>
       </Card>
     </div>
