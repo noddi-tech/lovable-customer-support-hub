@@ -32,7 +32,12 @@ interface TypingRequest {
   isTyping: boolean;
 }
 
-type ChatRequest = StartChatRequest | MessageRequest | EndChatRequest | TypingRequest;
+interface PingRequest {
+  action: 'ping';
+  sessionId: string;
+}
+
+type ChatRequest = StartChatRequest | MessageRequest | EndChatRequest | TypingRequest | PingRequest;
 
 // ========== Rate Limiting ==========
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -117,6 +122,8 @@ Deno.serve(async (req) => {
         return await handleEndChat(supabase, body);
       case 'typing':
         return await handleTyping(supabase, body);
+      case 'ping':
+        return await handlePing(supabase, body);
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -559,6 +566,33 @@ async function handleTyping(supabase: any, data: TypingRequest) {
     }, {
       onConflict: 'conversation_id,visitor_id',
     });
+
+  return new Response(
+    JSON.stringify({ success: true }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function handlePing(supabase: any, data: PingRequest) {
+  const { sessionId } = data;
+
+  if (!sessionId) {
+    return new Response(
+      JSON.stringify({ error: 'Session ID required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Update last_seen_at to indicate visitor is still active
+  const { error } = await supabase
+    .from('widget_chat_sessions')
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq('id', sessionId)
+    .in('status', ['waiting', 'active']);
+
+  if (error) {
+    console.error('Error updating ping:', error);
+  }
 
   return new Response(
     JSON.stringify({ success: true }),

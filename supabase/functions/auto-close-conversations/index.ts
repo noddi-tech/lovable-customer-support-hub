@@ -44,6 +44,16 @@ Deno.serve(async (req) => {
       console.log('[Auto-Close] SLA breach times updated');
     }
 
+    // Auto-abandon inactive chat sessions (no heartbeat for 2 minutes)
+    const { data: abandonData, error: abandonError } = await supabase.rpc('auto_abandon_inactive_chat_sessions');
+    
+    if (abandonError) {
+      console.error('[Auto-Close] Error abandoning chat sessions:', abandonError);
+    } else {
+      const abandonedCount = abandonData?.[0]?.abandoned_count || 0;
+      console.log(`[Auto-Close] Auto-abandoned ${abandonedCount} inactive chat sessions`);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 

@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageCircle, Clock, User } from 'lucide-react';
+import { MessageCircle, Clock, User, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -20,7 +21,7 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
 }) => {
   const { profile } = useAuth();
   const organizationId = profile?.organization_id || null;
-  const { waitingSessions, activeSessions, isLoading, claimSession } = useLiveChatSessions(organizationId);
+  const { waitingSessions, activeSessions, isLoading, claimSession, dismissSession } = useLiveChatSessions(organizationId);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -37,6 +38,16 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
 
   const handleOpenConversation = (conversationId: string) => {
     navigate(`/interactions/text/open?c=${conversationId}`);
+  };
+
+  const handleDismissSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const success = await dismissSession(sessionId);
+    if (success) {
+      toast.success('Chat dismissed');
+    } else {
+      toast.error('Failed to dismiss chat');
+    }
   };
 
   const totalCount = waitingSessions.length + activeSessions.length;
@@ -99,12 +110,23 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
                 </p>
               </div>
             </div>
-            <Button 
-              size="sm"
-              onClick={() => handleClaimSession(session.id, session.conversationId)}
-            >
-              Claim
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={(e) => handleDismissSession(session.id, e)}
+                className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
+                title="Dismiss chat"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => handleClaimSession(session.id, session.conversationId)}
+              >
+                Claim
+              </Button>
+            </div>
           </div>
         ))}
 

@@ -3016,6 +3016,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_abandon_inactive_chat_sessions: {
+        Args: never
+        Returns: {
+          abandoned_count: number
+        }[]
+      }
       auto_close_inactive_conversations: {
         Args: never
         Returns: {

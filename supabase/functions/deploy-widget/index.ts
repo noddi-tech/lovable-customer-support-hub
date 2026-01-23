@@ -14,16 +14,16 @@ const WIDGET_JS = `
   console.log('[Noddi] Widget script loaded at', new Date().toISOString());
   // ========== TRANSLATIONS ==========
   const translations = {
-    en: {"messageSent":"Message sent!","wellGetBack":"We'll get back to you as soon as possible.","startingChat":"Starting chat...","startLiveChat":"Start live chat","online":"Online","offline":"We're currently offline","leaveMessage":"Leave a message and we'll get back to you","sendMessage":"Send us a message","searchAnswers":"Search our help center","back":"Back","poweredBy":"Powered by Noddi","name":"Name","yourName":"Your name","email":"Email","message":"Message","howCanWeHelp":"How can we help?","fillAllFields":"Please fill in all fields","invalidEmail":"Please enter a valid email address","sending":"Sending...","sendMessageBtn":"Send Message","searchPlaceholder":"Search for answers...","searchKnowledgeBase":"Search our knowledge base for quick answers","noResults":"No results found for","tryDifferentKeywords":"Try different keywords or ask us directly","chatEnded":"Chat ended","waitingForAgent":"Waiting for agent...","chattingWith":"Chatting with","connected":"Connected","endChat":"End chat","startConversation":"Start the conversation by sending a message below.","typeMessage":"Type a message...","thankYou":"This chat has ended. Thank you for contacting us!","startNewConversation":"Start new conversation","changeLanguage":"Change language","defaultGreeting":"Hi there! 👋 How can we help you today?","defaultResponseTime":"We usually respond within a few hours"},
-    no: {"messageSent":"Melding sendt!","wellGetBack":"Vi svarer deg så snart som mulig.","startingChat":"Starter chat...","startLiveChat":"Start live chat","online":"Tilgjengelig","offline":"Vi er for øyeblikket offline","leaveMessage":"Legg igjen en melding, så svarer vi snart","sendMessage":"Send oss en melding","searchAnswers":"Søk i hjelpesenteret","back":"Tilbake","poweredBy":"Drevet av Noddi","name":"Navn","yourName":"Ditt navn","email":"E-post","message":"Melding","howCanWeHelp":"Hvordan kan vi hjelpe?","fillAllFields":"Vennligst fyll ut alle felt","invalidEmail":"Vennligst skriv inn en gyldig e-postadresse","sending":"Sender...","sendMessageBtn":"Send melding","searchPlaceholder":"Søk etter svar...","searchKnowledgeBase":"Søk i vår kunnskapsbase for raske svar","noResults":"Ingen resultater funnet for","tryDifferentKeywords":"Prøv andre søkeord eller kontakt oss direkte","chatEnded":"Chat avsluttet","waitingForAgent":"Venter på agent...","chattingWith":"Chatter med","connected":"Tilkoblet","endChat":"Avslutt chat","startConversation":"Start samtalen ved å sende en melding nedenfor.","typeMessage":"Skriv en melding...","thankYou":"Denne chatten er avsluttet. Takk for at du kontaktet oss!","startNewConversation":"Start ny samtale","changeLanguage":"Bytt språk","defaultGreeting":"Hei! 👋 Hvordan kan vi hjelpe deg i dag?","defaultResponseTime":"Vi svarer vanligvis innen noen timer"},
-    es: {"messageSent":"¡Mensaje enviado!","wellGetBack":"Te responderemos lo antes posible.","startingChat":"Iniciando chat...","startLiveChat":"Iniciar chat en vivo","online":"En línea","offline":"Actualmente no estamos disponibles","leaveMessage":"Deja un mensaje y te responderemos","sendMessage":"Envíanos un mensaje","searchAnswers":"Buscar en el centro de ayuda","back":"Atrás","poweredBy":"Impulsado por Noddi","name":"Nombre","yourName":"Tu nombre","email":"Correo electrónico","message":"Mensaje","howCanWeHelp":"¿Cómo podemos ayudarte?","fillAllFields":"Por favor completa todos los campos","invalidEmail":"Por favor ingresa un correo electrónico válido","sending":"Enviando...","sendMessageBtn":"Enviar mensaje","searchPlaceholder":"Buscar respuestas...","searchKnowledgeBase":"Busca en nuestra base de conocimientos para respuestas rápidas","noResults":"No se encontraron resultados para","tryDifferentKeywords":"Prueba con otras palabras clave o contáctanos directamente","chatEnded":"Chat terminado","waitingForAgent":"Esperando agente...","chattingWith":"Chateando con","connected":"Conectado","endChat":"Terminar chat","startConversation":"Inicia la conversación enviando un mensaje a continuación.","typeMessage":"Escribe un mensaje...","thankYou":"Este chat ha terminado. ¡Gracias por contactarnos!","startNewConversation":"Iniciar nueva conversación","changeLanguage":"Cambiar idioma","defaultGreeting":"¡Hola! 👋 ¿Cómo podemos ayudarte hoy?","defaultResponseTime":"Normalmente respondemos en pocas horas"},
-    fr: {"messageSent":"Message envoyé !","wellGetBack":"Nous vous répondrons dès que possible.","startingChat":"Démarrage du chat...","startLiveChat":"Démarrer le chat en direct","online":"En ligne","offline":"Nous sommes actuellement hors ligne","leaveMessage":"Laissez un message et nous vous répondrons","sendMessage":"Envoyez-nous un message","searchAnswers":"Rechercher dans le centre d'aide","back":"Retour","poweredBy":"Propulsé par Noddi","name":"Nom","yourName":"Votre nom","email":"E-mail","message":"Message","howCanWeHelp":"Comment pouvons-nous vous aider ?","fillAllFields":"Veuillez remplir tous les champs","invalidEmail":"Veuillez entrer une adresse e-mail valide","sending":"Envoi...","sendMessageBtn":"Envoyer le message","searchPlaceholder":"Rechercher des réponses...","searchKnowledgeBase":"Recherchez dans notre base de connaissances pour des réponses rapides","noResults":"Aucun résultat trouvé pour","tryDifferentKeywords":"Essayez d'autres mots-clés ou contactez-nous directement","chatEnded":"Chat terminé","waitingForAgent":"En attente d'un agent...","chattingWith":"Discussion avec","connected":"Connecté","endChat":"Terminer le chat","startConversation":"Commencez la conversation en envoyant un message ci-dessous.","typeMessage":"Tapez un message...","thankYou":"Ce chat est terminé. Merci de nous avoir contactés !","startNewConversation":"Démarrer une nouvelle conversation","changeLanguage":"Changer de langue","defaultGreeting":"Bonjour ! 👋 Comment pouvons-nous vous aider aujourd'hui ?","defaultResponseTime":"Nous répondons généralement en quelques heures"},
-    de: {"messageSent":"Nachricht gesendet!","wellGetBack":"Wir melden uns so schnell wie möglich bei Ihnen.","startingChat":"Chat wird gestartet...","startLiveChat":"Live-Chat starten","online":"Online","offline":"Wir sind derzeit offline","leaveMessage":"Hinterlassen Sie eine Nachricht und wir melden uns","sendMessage":"Senden Sie uns eine Nachricht","searchAnswers":"Im Hilfecenter suchen","back":"Zurück","poweredBy":"Bereitgestellt von Noddi","name":"Name","yourName":"Ihr Name","email":"E-Mail","message":"Nachricht","howCanWeHelp":"Wie können wir Ihnen helfen?","fillAllFields":"Bitte füllen Sie alle Felder aus","invalidEmail":"Bitte geben Sie eine gültige E-Mail-Adresse ein","sending":"Wird gesendet...","sendMessageBtn":"Nachricht senden","searchPlaceholder":"Nach Antworten suchen...","searchKnowledgeBase":"Durchsuchen Sie unsere Wissensdatenbank für schnelle Antworten","noResults":"Keine Ergebnisse gefunden für","tryDifferentKeywords":"Versuchen Sie andere Suchbegriffe oder kontaktieren Sie uns direkt","chatEnded":"Chat beendet","waitingForAgent":"Warten auf einen Mitarbeiter...","chattingWith":"Im Gespräch mit","connected":"Verbunden","endChat":"Chat beenden","startConversation":"Starten Sie das Gespräch, indem Sie unten eine Nachricht senden.","typeMessage":"Nachricht eingeben...","thankYou":"Dieser Chat wurde beendet. Vielen Dank für Ihre Kontaktaufnahme!","startNewConversation":"Neues Gespräch starten","changeLanguage":"Sprache ändern","defaultGreeting":"Hallo! 👋 Wie können wir Ihnen heute helfen?","defaultResponseTime":"Wir antworten normalerweise innerhalb weniger Stunden"},
-    it: {"messageSent":"Messaggio inviato!","wellGetBack":"Ti risponderemo il prima possibile.","startingChat":"Avvio chat...","startLiveChat":"Avvia chat dal vivo","online":"Online","offline":"Siamo attualmente offline","leaveMessage":"Lascia un messaggio e ti risponderemo","sendMessage":"Inviaci un messaggio","searchAnswers":"Cerca nel centro assistenza","back":"Indietro","poweredBy":"Powered by Noddi","name":"Nome","yourName":"Il tuo nome","email":"E-mail","message":"Messaggio","howCanWeHelp":"Come possiamo aiutarti?","fillAllFields":"Per favore compila tutti i campi","invalidEmail":"Per favore inserisci un indirizzo e-mail valido","sending":"Invio in corso...","sendMessageBtn":"Invia messaggio","searchPlaceholder":"Cerca risposte...","searchKnowledgeBase":"Cerca nella nostra knowledge base per risposte rapide","noResults":"Nessun risultato trovato per","tryDifferentKeywords":"Prova con parole chiave diverse o contattaci direttamente","chatEnded":"Chat terminata","waitingForAgent":"In attesa di un agente...","chattingWith":"In chat con","connected":"Connesso","endChat":"Termina chat","startConversation":"Inizia la conversazione inviando un messaggio qui sotto.","typeMessage":"Scrivi un messaggio...","thankYou":"Questa chat è terminata. Grazie per averci contattato!","startNewConversation":"Inizia nuova conversazione","changeLanguage":"Cambia lingua","defaultGreeting":"Ciao! 👋 Come possiamo aiutarti oggi?","defaultResponseTime":"Di solito rispondiamo entro poche ore"},
-    pt: {"messageSent":"Mensagem enviada!","wellGetBack":"Responderemos o mais breve possível.","startingChat":"Iniciando chat...","startLiveChat":"Iniciar chat ao vivo","online":"Online","offline":"Estamos atualmente offline","leaveMessage":"Deixe uma mensagem e responderemos","sendMessage":"Envie-nos uma mensagem","searchAnswers":"Pesquisar no centro de ajuda","back":"Voltar","poweredBy":"Desenvolvido por Noddi","name":"Nome","yourName":"Seu nome","email":"E-mail","message":"Mensagem","howCanWeHelp":"Como podemos ajudar?","fillAllFields":"Por favor, preencha todos os campos","invalidEmail":"Por favor, insira um endereço de e-mail válido","sending":"Enviando...","sendMessageBtn":"Enviar mensagem","searchPlaceholder":"Pesquisar respostas...","searchKnowledgeBase":"Pesquise em nossa base de conhecimento para respostas rápidas","noResults":"Nenhum resultado encontrado para","tryDifferentKeywords":"Tente palavras-chave diferentes ou entre em contato diretamente","chatEnded":"Chat encerrado","waitingForAgent":"Aguardando agente...","chattingWith":"Conversando com","connected":"Conectado","endChat":"Encerrar chat","startConversation":"Inicie a conversa enviando uma mensagem abaixo.","typeMessage":"Digite uma mensagem...","thankYou":"Este chat foi encerrado. Obrigado por entrar em contato!","startNewConversation":"Iniciar nova conversa","changeLanguage":"Mudar idioma","defaultGreeting":"Olá! 👋 Como podemos ajudá-lo hoje?","defaultResponseTime":"Normalmente respondemos em poucas horas"},
-    nl: {"messageSent":"Bericht verzonden!","wellGetBack":"We nemen zo snel mogelijk contact met je op.","startingChat":"Chat starten...","startLiveChat":"Start live chat","online":"Online","offline":"We zijn momenteel offline","leaveMessage":"Laat een bericht achter en we nemen contact op","sendMessage":"Stuur ons een bericht","searchAnswers":"Zoek in het helpcentrum","back":"Terug","poweredBy":"Mogelijk gemaakt door Noddi","name":"Naam","yourName":"Je naam","email":"E-mail","message":"Bericht","howCanWeHelp":"Hoe kunnen we je helpen?","fillAllFields":"Vul alsjeblieft alle velden in","invalidEmail":"Voer alsjeblieft een geldig e-mailadres in","sending":"Verzenden...","sendMessageBtn":"Bericht verzenden","searchPlaceholder":"Zoek naar antwoorden...","searchKnowledgeBase":"Doorzoek onze kennisbank voor snelle antwoorden","noResults":"Geen resultaten gevonden voor","tryDifferentKeywords":"Probeer andere zoekwoorden of neem direct contact op","chatEnded":"Chat beëindigd","waitingForAgent":"Wachten op medewerker...","chattingWith":"In gesprek met","connected":"Verbonden","endChat":"Chat beëindigen","startConversation":"Begin het gesprek door hieronder een bericht te sturen.","typeMessage":"Typ een bericht...","thankYou":"Deze chat is beëindigd. Bedankt voor je contact!","startNewConversation":"Nieuw gesprek starten","changeLanguage":"Taal wijzigen","defaultGreeting":"Hallo! 👋 Hoe kunnen we je vandaag helpen?","defaultResponseTime":"We reageren meestal binnen enkele uren"},
-    sv: {"messageSent":"Meddelande skickat!","wellGetBack":"Vi återkommer så snart som möjligt.","startingChat":"Startar chatt...","startLiveChat":"Starta livechatt","online":"Online","offline":"Vi är för närvarande offline","leaveMessage":"Lämna ett meddelande så återkommer vi","sendMessage":"Skicka ett meddelande","searchAnswers":"Sök i hjälpcentret","back":"Tillbaka","poweredBy":"Drivs av Noddi","name":"Namn","yourName":"Ditt namn","email":"E-post","message":"Meddelande","howCanWeHelp":"Hur kan vi hjälpa dig?","fillAllFields":"Vänligen fyll i alla fält","invalidEmail":"Vänligen ange en giltig e-postadress","sending":"Skickar...","sendMessageBtn":"Skicka meddelande","searchPlaceholder":"Sök efter svar...","searchKnowledgeBase":"Sök i vår kunskapsbas för snabba svar","noResults":"Inga resultat hittades för","tryDifferentKeywords":"Prova andra sökord eller kontakta oss direkt","chatEnded":"Chatt avslutad","waitingForAgent":"Väntar på agent...","chattingWith":"Chattar med","connected":"Ansluten","endChat":"Avsluta chatt","startConversation":"Starta konversationen genom att skicka ett meddelande nedan.","typeMessage":"Skriv ett meddelande...","thankYou":"Denna chatt har avslutats. Tack för att du kontaktade oss!","startNewConversation":"Starta ny konversation","changeLanguage":"Byt språk","defaultGreeting":"Hej! 👋 Hur kan vi hjälpa dig idag?","defaultResponseTime":"Vi svarar vanligtvis inom några timmar"},
-    da: {"messageSent":"Besked sendt!","wellGetBack":"Vi vender tilbage hurtigst muligt.","startingChat":"Starter chat...","startLiveChat":"Start live chat","online":"Online","offline":"Vi er i øjeblikket offline","leaveMessage":"Efterlad en besked, så vender vi tilbage","sendMessage":"Send os en besked","searchAnswers":"Søg i hjælpecenteret","back":"Tilbage","poweredBy":"Drevet af Noddi","name":"Navn","yourName":"Dit navn","email":"E-mail","message":"Besked","howCanWeHelp":"Hvordan kan vi hjælpe?","fillAllFields":"Udfyld venligst alle felter","invalidEmail":"Indtast venligst en gyldig e-mailadresse","sending":"Sender...","sendMessageBtn":"Send besked","searchPlaceholder":"Søg efter svar...","searchKnowledgeBase":"Søg i vores vidensbase for hurtige svar","noResults":"Ingen resultater fundet for","tryDifferentKeywords":"Prøv andre søgeord eller kontakt os direkte","chatEnded":"Chat afsluttet","waitingForAgent":"Venter på agent...","chattingWith":"Chatter med","connected":"Forbundet","endChat":"Afslut chat","startConversation":"Start samtalen ved at sende en besked nedenfor.","typeMessage":"Skriv en besked...","thankYou":"Denne chat er afsluttet. Tak fordi du kontaktede os!","startNewConversation":"Start ny samtale","changeLanguage":"Skift sprog","defaultGreeting":"Hej! 👋 Hvordan kan vi hjælpe dig i dag?","defaultResponseTime":"Vi svarer normalt inden for få timer"}
+    en: {"messageSent":"Message sent!","wellGetBack":"We'll get back to you as soon as possible.","startingChat":"Starting chat...","startLiveChat":"Start live chat","online":"Online","offline":"We're currently offline","leaveMessage":"Leave a message and we'll get back to you","sendMessage":"Send us a message","searchAnswers":"Search our help center","back":"Back","poweredBy":"Powered by Noddi","name":"Name","yourName":"Your name","email":"Email","message":"Message","howCanWeHelp":"How can we help?","fillAllFields":"Please fill in all fields","invalidEmail":"Please enter a valid email address","sending":"Sending...","sendMessageBtn":"Send Message","searchPlaceholder":"Search for answers...","searchKnowledgeBase":"Search our knowledge base for quick answers","noResults":"No results found for","tryDifferentKeywords":"Try different keywords or ask us directly","chatEnded":"Chat ended","waitingForAgent":"Waiting for agent...","chattingWith":"Chatting with","connected":"Connected","endChat":"End chat","startConversation":"Start the conversation by sending a message below.","typeMessage":"Type a message...","thankYou":"This chat has ended. Thank you for contacting us!","startNewConversation":"Start new conversation","changeLanguage":"Change language","defaultGreeting":"Hi there! 👋 How can we help you today?","defaultResponseTime":"We usually respond within a few hours","enterEmailToContinue":"Enter your email to start chatting","emailRequired":"Email is required to start a chat","optional":"Optional","startChat":"Start Chat"},
+    no: {"messageSent":"Melding sendt!","wellGetBack":"Vi svarer deg så snart som mulig.","startingChat":"Starter chat...","startLiveChat":"Start live chat","online":"Tilgjengelig","offline":"Vi er for øyeblikket offline","leaveMessage":"Legg igjen en melding, så svarer vi snart","sendMessage":"Send oss en melding","searchAnswers":"Søk i hjelpesenteret","back":"Tilbake","poweredBy":"Drevet av Noddi","name":"Navn","yourName":"Ditt navn","email":"E-post","message":"Melding","howCanWeHelp":"Hvordan kan vi hjelpe?","fillAllFields":"Vennligst fyll ut alle felt","invalidEmail":"Vennligst skriv inn en gyldig e-postadresse","sending":"Sender...","sendMessageBtn":"Send melding","searchPlaceholder":"Søk etter svar...","searchKnowledgeBase":"Søk i vår kunnskapsbase for raske svar","noResults":"Ingen resultater funnet for","tryDifferentKeywords":"Prøv andre søkeord eller kontakt oss direkte","chatEnded":"Chat avsluttet","waitingForAgent":"Venter på agent...","chattingWith":"Chatter med","connected":"Tilkoblet","endChat":"Avslutt chat","startConversation":"Start samtalen ved å sende en melding nedenfor.","typeMessage":"Skriv en melding...","thankYou":"Denne chatten er avsluttet. Takk for at du kontaktet oss!","startNewConversation":"Start ny samtale","changeLanguage":"Bytt språk","defaultGreeting":"Hei! 👋 Hvordan kan vi hjelpe deg i dag?","defaultResponseTime":"Vi svarer vanligvis innen noen timer","enterEmailToContinue":"Skriv inn e-posten din for å starte chat","emailRequired":"E-post er påkrevd for å starte en chat","optional":"Valgfritt","startChat":"Start chat"},
+    es: {"messageSent":"¡Mensaje enviado!","wellGetBack":"Te responderemos lo antes posible.","startingChat":"Iniciando chat...","startLiveChat":"Iniciar chat en vivo","online":"En línea","offline":"Actualmente no estamos disponibles","leaveMessage":"Deja un mensaje y te responderemos","sendMessage":"Envíanos un mensaje","searchAnswers":"Buscar en el centro de ayuda","back":"Atrás","poweredBy":"Impulsado por Noddi","name":"Nombre","yourName":"Tu nombre","email":"Correo electrónico","message":"Mensaje","howCanWeHelp":"¿Cómo podemos ayudarte?","fillAllFields":"Por favor completa todos los campos","invalidEmail":"Por favor ingresa un correo electrónico válido","sending":"Enviando...","sendMessageBtn":"Enviar mensaje","searchPlaceholder":"Buscar respuestas...","searchKnowledgeBase":"Busca en nuestra base de conocimientos para respuestas rápidas","noResults":"No se encontraron resultados para","tryDifferentKeywords":"Prueba con otras palabras clave o contáctanos directamente","chatEnded":"Chat terminado","waitingForAgent":"Esperando agente...","chattingWith":"Chateando con","connected":"Conectado","endChat":"Terminar chat","startConversation":"Inicia la conversación enviando un mensaje a continuación.","typeMessage":"Escribe un mensaje...","thankYou":"Este chat ha terminado. ¡Gracias por contactarnos!","startNewConversation":"Iniciar nueva conversación","changeLanguage":"Cambiar idioma","defaultGreeting":"¡Hola! 👋 ¿Cómo podemos ayudarte hoy?","defaultResponseTime":"Normalmente respondemos en pocas horas","enterEmailToContinue":"Ingresa tu correo para iniciar el chat","emailRequired":"Se requiere correo electrónico para iniciar el chat","optional":"Opcional","startChat":"Iniciar chat"},
+    fr: {"messageSent":"Message envoyé !","wellGetBack":"Nous vous répondrons dès que possible.","startingChat":"Démarrage du chat...","startLiveChat":"Démarrer le chat en direct","online":"En ligne","offline":"Nous sommes actuellement hors ligne","leaveMessage":"Laissez un message et nous vous répondrons","sendMessage":"Envoyez-nous un message","searchAnswers":"Rechercher dans le centre d'aide","back":"Retour","poweredBy":"Propulsé par Noddi","name":"Nom","yourName":"Votre nom","email":"E-mail","message":"Message","howCanWeHelp":"Comment pouvons-nous vous aider ?","fillAllFields":"Veuillez remplir tous les champs","invalidEmail":"Veuillez entrer une adresse e-mail valide","sending":"Envoi...","sendMessageBtn":"Envoyer le message","searchPlaceholder":"Rechercher des réponses...","searchKnowledgeBase":"Recherchez dans notre base de connaissances pour des réponses rapides","noResults":"Aucun résultat trouvé pour","tryDifferentKeywords":"Essayez d'autres mots-clés ou contactez-nous directement","chatEnded":"Chat terminé","waitingForAgent":"En attente d'un agent...","chattingWith":"Discussion avec","connected":"Connecté","endChat":"Terminer le chat","startConversation":"Commencez la conversation en envoyant un message ci-dessous.","typeMessage":"Tapez un message...","thankYou":"Ce chat est terminé. Merci de nous avoir contactés !","startNewConversation":"Démarrer une nouvelle conversation","changeLanguage":"Changer de langue","defaultGreeting":"Bonjour ! 👋 Comment pouvons-nous vous aider aujourd'hui ?","defaultResponseTime":"Nous répondons généralement en quelques heures","enterEmailToContinue":"Entrez votre e-mail pour commencer le chat","emailRequired":"L'e-mail est requis pour démarrer le chat","optional":"Facultatif","startChat":"Démarrer le chat"},
+    de: {"messageSent":"Nachricht gesendet!","wellGetBack":"Wir melden uns so schnell wie möglich bei Ihnen.","startingChat":"Chat wird gestartet...","startLiveChat":"Live-Chat starten","online":"Online","offline":"Wir sind derzeit offline","leaveMessage":"Hinterlassen Sie eine Nachricht und wir melden uns","sendMessage":"Senden Sie uns eine Nachricht","searchAnswers":"Im Hilfecenter suchen","back":"Zurück","poweredBy":"Bereitgestellt von Noddi","name":"Name","yourName":"Ihr Name","email":"E-Mail","message":"Nachricht","howCanWeHelp":"Wie können wir Ihnen helfen?","fillAllFields":"Bitte füllen Sie alle Felder aus","invalidEmail":"Bitte geben Sie eine gültige E-Mail-Adresse ein","sending":"Wird gesendet...","sendMessageBtn":"Nachricht senden","searchPlaceholder":"Nach Antworten suchen...","searchKnowledgeBase":"Durchsuchen Sie unsere Wissensdatenbank für schnelle Antworten","noResults":"Keine Ergebnisse gefunden für","tryDifferentKeywords":"Versuchen Sie andere Suchbegriffe oder kontaktieren Sie uns direkt","chatEnded":"Chat beendet","waitingForAgent":"Warten auf einen Mitarbeiter...","chattingWith":"Im Gespräch mit","connected":"Verbunden","endChat":"Chat beenden","startConversation":"Starten Sie das Gespräch, indem Sie unten eine Nachricht senden.","typeMessage":"Nachricht eingeben...","thankYou":"Dieser Chat wurde beendet. Vielen Dank für Ihre Kontaktaufnahme!","startNewConversation":"Neues Gespräch starten","changeLanguage":"Sprache ändern","defaultGreeting":"Hallo! 👋 Wie können wir Ihnen heute helfen?","defaultResponseTime":"Wir antworten normalerweise innerhalb weniger Stunden","enterEmailToContinue":"E-Mail eingeben um den Chat zu starten","emailRequired":"E-Mail ist erforderlich um den Chat zu starten","optional":"Optional","startChat":"Chat starten"},
+    it: {"messageSent":"Messaggio inviato!","wellGetBack":"Ti risponderemo il prima possibile.","startingChat":"Avvio chat...","startLiveChat":"Avvia chat dal vivo","online":"Online","offline":"Siamo attualmente offline","leaveMessage":"Lascia un messaggio e ti risponderemo","sendMessage":"Inviaci un messaggio","searchAnswers":"Cerca nel centro assistenza","back":"Indietro","poweredBy":"Powered by Noddi","name":"Nome","yourName":"Il tuo nome","email":"E-mail","message":"Messaggio","howCanWeHelp":"Come possiamo aiutarti?","fillAllFields":"Per favore compila tutti i campi","invalidEmail":"Per favore inserisci un indirizzo e-mail valido","sending":"Invio in corso...","sendMessageBtn":"Invia messaggio","searchPlaceholder":"Cerca risposte...","searchKnowledgeBase":"Cerca nella nostra knowledge base per risposte rapide","noResults":"Nessun risultato trovato per","tryDifferentKeywords":"Prova con parole chiave diverse o contattaci direttamente","chatEnded":"Chat terminata","waitingForAgent":"In attesa di un agente...","chattingWith":"In chat con","connected":"Connesso","endChat":"Termina chat","startConversation":"Inizia la conversazione inviando un messaggio qui sotto.","typeMessage":"Scrivi un messaggio...","thankYou":"Questa chat è terminata. Grazie per averci contattato!","startNewConversation":"Inizia nuova conversazione","changeLanguage":"Cambia lingua","defaultGreeting":"Ciao! 👋 Come possiamo aiutarti oggi?","defaultResponseTime":"Di solito rispondiamo entro poche ore","enterEmailToContinue":"Inserisci la tua email per iniziare la chat","emailRequired":"L'email è richiesta per iniziare la chat","optional":"Opzionale","startChat":"Inizia chat"},
+    pt: {"messageSent":"Mensagem enviada!","wellGetBack":"Responderemos o mais breve possível.","startingChat":"Iniciando chat...","startLiveChat":"Iniciar chat ao vivo","online":"Online","offline":"Estamos atualmente offline","leaveMessage":"Deixe uma mensagem e responderemos","sendMessage":"Envie-nos uma mensagem","searchAnswers":"Pesquisar no centro de ajuda","back":"Voltar","poweredBy":"Desenvolvido por Noddi","name":"Nome","yourName":"Seu nome","email":"E-mail","message":"Mensagem","howCanWeHelp":"Como podemos ajudar?","fillAllFields":"Por favor, preencha todos os campos","invalidEmail":"Por favor, insira um endereço de e-mail válido","sending":"Enviando...","sendMessageBtn":"Enviar mensagem","searchPlaceholder":"Pesquisar respostas...","searchKnowledgeBase":"Pesquise em nossa base de conhecimento para respostas rápidas","noResults":"Nenhum resultado encontrado para","tryDifferentKeywords":"Tente palavras-chave diferentes ou entre em contato diretamente","chatEnded":"Chat encerrado","waitingForAgent":"Aguardando agente...","chattingWith":"Conversando com","connected":"Conectado","endChat":"Encerrar chat","startConversation":"Inicie a conversa enviando uma mensagem abaixo.","typeMessage":"Digite uma mensagem...","thankYou":"Este chat foi encerrado. Obrigado por entrar em contato!","startNewConversation":"Iniciar nova conversa","changeLanguage":"Mudar idioma","defaultGreeting":"Olá! 👋 Como podemos ajudá-lo hoje?","defaultResponseTime":"Normalmente respondemos em poucas horas","enterEmailToContinue":"Digite seu e-mail para iniciar o chat","emailRequired":"E-mail é obrigatório para iniciar o chat","optional":"Opcional","startChat":"Iniciar chat"},
+    nl: {"messageSent":"Bericht verzonden!","wellGetBack":"We nemen zo snel mogelijk contact met je op.","startingChat":"Chat starten...","startLiveChat":"Start live chat","online":"Online","offline":"We zijn momenteel offline","leaveMessage":"Laat een bericht achter en we nemen contact op","sendMessage":"Stuur ons een bericht","searchAnswers":"Zoek in het helpcentrum","back":"Terug","poweredBy":"Mogelijk gemaakt door Noddi","name":"Naam","yourName":"Je naam","email":"E-mail","message":"Bericht","howCanWeHelp":"Hoe kunnen we je helpen?","fillAllFields":"Vul alsjeblieft alle velden in","invalidEmail":"Voer alsjeblieft een geldig e-mailadres in","sending":"Verzenden...","sendMessageBtn":"Bericht verzenden","searchPlaceholder":"Zoek naar antwoorden...","searchKnowledgeBase":"Doorzoek onze kennisbank voor snelle antwoorden","noResults":"Geen resultaten gevonden voor","tryDifferentKeywords":"Probeer andere zoekwoorden of neem direct contact op","chatEnded":"Chat beëindigd","waitingForAgent":"Wachten op medewerker...","chattingWith":"In gesprek met","connected":"Verbonden","endChat":"Chat beëindigen","startConversation":"Begin het gesprek door hieronder een bericht te sturen.","typeMessage":"Typ een bericht...","thankYou":"Deze chat is beëindigd. Bedankt voor je contact!","startNewConversation":"Nieuw gesprek starten","changeLanguage":"Taal wijzigen","defaultGreeting":"Hallo! 👋 Hoe kunnen we je vandaag helpen?","defaultResponseTime":"We reageren meestal binnen enkele uren","enterEmailToContinue":"Voer je e-mail in om de chat te starten","emailRequired":"E-mail is vereist om de chat te starten","optional":"Optioneel","startChat":"Start chat"},
+    sv: {"messageSent":"Meddelande skickat!","wellGetBack":"Vi återkommer så snart som möjligt.","startingChat":"Startar chatt...","startLiveChat":"Starta livechatt","online":"Online","offline":"Vi är för närvarande offline","leaveMessage":"Lämna ett meddelande så återkommer vi","sendMessage":"Skicka ett meddelande","searchAnswers":"Sök i hjälpcentret","back":"Tillbaka","poweredBy":"Drivs av Noddi","name":"Namn","yourName":"Ditt namn","email":"E-post","message":"Meddelande","howCanWeHelp":"Hur kan vi hjälpa dig?","fillAllFields":"Vänligen fyll i alla fält","invalidEmail":"Vänligen ange en giltig e-postadress","sending":"Skickar...","sendMessageBtn":"Skicka meddelande","searchPlaceholder":"Sök efter svar...","searchKnowledgeBase":"Sök i vår kunskapsbas för snabba svar","noResults":"Inga resultat hittades för","tryDifferentKeywords":"Prova andra sökord eller kontakta oss direkt","chatEnded":"Chatt avslutad","waitingForAgent":"Väntar på agent...","chattingWith":"Chattar med","connected":"Ansluten","endChat":"Avsluta chatt","startConversation":"Starta konversationen genom att skicka ett meddelande nedan.","typeMessage":"Skriv ett meddelande...","thankYou":"Denna chatt har avslutats. Tack för att du kontaktade oss!","startNewConversation":"Starta ny konversation","changeLanguage":"Byt språk","defaultGreeting":"Hej! 👋 Hur kan vi hjälpa dig idag?","defaultResponseTime":"Vi svarar vanligtvis inom några timmar","enterEmailToContinue":"Ange din e-post för att starta chatten","emailRequired":"E-post krävs för att starta chatten","optional":"Valfritt","startChat":"Starta chatt"},
+    da: {"messageSent":"Besked sendt!","wellGetBack":"Vi vender tilbage hurtigst muligt.","startingChat":"Starter chat...","startLiveChat":"Start live chat","online":"Online","offline":"Vi er i øjeblikket offline","leaveMessage":"Efterlad en besked, så vender vi tilbage","sendMessage":"Send os en besked","searchAnswers":"Søg i hjælpecenteret","back":"Tilbage","poweredBy":"Drevet af Noddi","name":"Navn","yourName":"Dit navn","email":"E-mail","message":"Besked","howCanWeHelp":"Hvordan kan vi hjælpe?","fillAllFields":"Udfyld venligst alle felter","invalidEmail":"Indtast venligst en gyldig e-mailadresse","sending":"Sender...","sendMessageBtn":"Send besked","searchPlaceholder":"Søg efter svar...","searchKnowledgeBase":"Søg i vores vidensbase for hurtige svar","noResults":"Ingen resultater fundet for","tryDifferentKeywords":"Prøv andre søgeord eller kontakt os direkte","chatEnded":"Chat afsluttet","waitingForAgent":"Venter på agent...","chattingWith":"Chatter med","connected":"Forbundet","endChat":"Afslut chat","startConversation":"Start samtalen ved at sende en besked nedenfor.","typeMessage":"Skriv en besked...","thankYou":"Denne chat er afsluttet. Tak fordi du kontaktede os!","startNewConversation":"Start ny samtale","changeLanguage":"Skift sprog","defaultGreeting":"Hej! 👋 Hvordan kan vi hjælpe dig i dag?","defaultResponseTime":"Vi svarer normalt inden for få timer","enterEmailToContinue":"Indtast din e-mail for at starte chatten","emailRequired":"E-mail er påkrævet for at starte chatten","optional":"Valgfrit","startChat":"Start chat"}
   };
 
   const SUPPORTED_LANGUAGES = [
@@ -202,9 +202,12 @@ const WIDGET_JS = `
     hasSearched: false,
     expandedResult: null,
     isLoading: false,
-    error: null
+    error: null,
+    prechatEmail: '',
+    prechatName: ''
   };
   let pollInterval = null;
+  let heartbeatInterval = null;
   let container = null;
 
   // ========== API ==========
@@ -247,18 +250,28 @@ const WIDGET_JS = `
     }
   }
 
-  async function startChat(widgetKey, visitorId) {
+  async function startChat(widgetKey, visitorId, visitorEmail, visitorName) {
     try {
       const res = await fetch(apiUrl + '/widget-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', widgetKey, visitorId, pageUrl: window.location.href })
+        body: JSON.stringify({ action: 'start', widgetKey, visitorId, visitorEmail, visitorName, pageUrl: window.location.href })
       });
       if (!res.ok) return null;
       return await res.json();
     } catch (e) {
       return null;
     }
+  }
+
+  async function sendPing(sessionId) {
+    try {
+      await fetch(apiUrl + '/widget-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ping', sessionId })
+      });
+    } catch (e) {}
   }
 
   async function sendMessage(sessionId, content) {
@@ -482,6 +495,18 @@ const WIDGET_JS = `
 
         html += '</div></div>';
 
+      } else if (state.view === 'prechat') {
+        // Pre-chat form to collect email before starting chat
+        html += '<div class="noddi-widget-view">';
+        html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
+        html += '<h4 style="font-size:16px;font-weight:600;color:#1f2937;margin-bottom:16px">' + t.enterEmailToContinue + '</h4>';
+        html += '<form class="noddi-widget-form" data-form="prechat">';
+        html += '<div class="noddi-widget-field"><label>' + t.email + ' *</label><input type="email" name="email" placeholder="your@email.com" value="' + (state.prechatEmail || '') + '" maxlength="255" required></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.name + ' <span style="color:#9ca3af;font-weight:normal">(' + t.optional + ')</span></label><input type="text" name="name" placeholder="' + t.yourName + '" value="' + (state.prechatName || '') + '" maxlength="100"></div>';
+        if (state.error) html += '<div class="noddi-widget-error">' + state.error + '</div>';
+        html += '<button type="submit" class="noddi-widget-submit" style="background-color:' + config.primaryColor + '"' + (state.isLoading ? ' disabled' : '') + '>' + (state.isLoading ? t.startingChat : t.startChat) + '</button>';
+        html += '</form></div>';
+
       } else if (state.view === 'contact') {
         html += '<div class="noddi-widget-view">';
         html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
@@ -687,6 +712,51 @@ const WIDGET_JS = `
       };
     }
 
+    // Pre-chat form handler
+    const prechatForm = container.querySelector('[data-form="prechat"]');
+    if (prechatForm) {
+      prechatForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const t = getT(state.lang);
+        const fd = new FormData(prechatForm);
+        const email = (fd.get('email') || '').trim();
+        const name = (fd.get('name') || '').trim();
+
+        if (!email) {
+          state.error = t.emailRequired;
+          render();
+          return;
+        }
+        if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+          state.error = t.invalidEmail;
+          render();
+          return;
+        }
+
+        state.prechatEmail = email;
+        state.prechatName = name;
+        state.isLoading = true;
+        state.error = null;
+        render();
+
+        const session = await startChat(config.widgetKey, getVisitorId(), email, name);
+        state.isLoading = false;
+        if (session) {
+          state.chatSession = session;
+          saveSession(session);
+          const data = await getMessages(session.id);
+          state.chatMessages = data.messages || [];
+          state.agentTyping = data.agentTyping || false;
+          if (data.assignedAgentName) state.chatSession.assignedAgentName = data.assignedAgentName;
+          state.view = 'chat';
+          startPolling();
+        } else {
+          state.error = 'Unable to start chat';
+        }
+        render();
+      };
+    }
+
     const chatInput = container.querySelector('[data-chat-input]');
     if (chatInput) {
       chatInput.onkeydown = (e) => {
@@ -705,6 +775,7 @@ const WIDGET_JS = `
         state.view = 'home';
         state.showLangMenu = false;
         stopPolling();
+        stopHeartbeat();
       }
     } else if (action === 'back') {
       state.view = 'home';
@@ -712,7 +783,10 @@ const WIDGET_JS = `
       state.hasSearched = false;
       state.searchResults = [];
       state.expandedResult = null;
+      state.prechatEmail = '';
+      state.prechatName = '';
       stopPolling();
+      stopHeartbeat();
     } else if (action === 'contact') {
       state.view = 'contact';
       state.error = null;
@@ -722,24 +796,9 @@ const WIDGET_JS = `
       state.searchResults = [];
       state.expandedResult = null;
     } else if (action === 'start-chat') {
-      state.isLoading = true;
-      render();
-      // startChat API now returns existing session if one exists
-      const session = await startChat(config.widgetKey, getVisitorId());
-      state.isLoading = false;
-      if (session) {
-        state.chatSession = session;
-        saveSession(session); // Persist session
-        // Fetch existing messages for resumed sessions
-        const data = await getMessages(session.id);
-        state.chatMessages = data.messages || [];
-        state.agentTyping = data.agentTyping || false;
-        if (data.assignedAgentName) state.chatSession.assignedAgentName = data.assignedAgentName;
-        state.view = 'chat';
-        startPolling();
-      } else {
-        state.error = 'Unable to start chat';
-      }
+      // Redirect to prechat form to collect email first
+      state.view = 'prechat';
+      state.error = null;
     } else if (action === 'send-chat') {
       const input = container.querySelector('[data-chat-input]');
       const content = (input && input.value || '').trim();
@@ -804,6 +863,8 @@ const WIDGET_JS = `
   function startPolling() {
     if (pollInterval) return;
     requestNotificationPermission();
+    // Start heartbeat to keep session alive
+    startHeartbeat();
     pollInterval = setInterval(async () => {
       if (!state.chatSession) return;
       const prevMsgCount = state.chatMessages.length;
@@ -845,6 +906,28 @@ const WIDGET_JS = `
     if (pollInterval) {
       clearInterval(pollInterval);
       pollInterval = null;
+    }
+    stopHeartbeat();
+  }
+
+  function startHeartbeat() {
+    if (heartbeatInterval) return;
+    // Send ping every 30 seconds to keep session alive
+    heartbeatInterval = setInterval(() => {
+      if (state.chatSession && state.chatSession.status !== 'ended' && state.chatSession.status !== 'abandoned') {
+        sendPing(state.chatSession.id);
+      }
+    }, 30000);
+    // Send initial ping
+    if (state.chatSession) {
+      sendPing(state.chatSession.id);
+    }
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
     }
   }
 
