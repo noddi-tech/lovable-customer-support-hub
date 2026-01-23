@@ -63,6 +63,22 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // Skip widget/live chat conversations - they don't need email replies
+    // We need to fetch conversation channel separately
+    const { data: convData } = await supabaseClient
+      .from('conversations')
+      .select('channel')
+      .eq('id', message.conversation_id)
+      .single();
+    
+    if (convData?.channel === 'widget') {
+      console.log('Conversation is widget channel, skipping email send');
+      return new Response(JSON.stringify({ success: true, skipped: 'widget_channel' }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     // Get sender (agent) info
   let senderInfo: { full_name?: string; email?: string } | null = null;
   if (message.sender_id) {

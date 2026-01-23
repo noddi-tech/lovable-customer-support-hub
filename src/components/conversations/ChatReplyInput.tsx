@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, PhoneOff } from 'lucide-react';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,6 +59,39 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     },
   });
 
+  const endChatMutation = useMutation({
+    mutationFn: async () => {
+      // Find the chat session for this conversation
+      const { data: session } = await supabase
+        .from('widget_chat_sessions')
+        .select('id')
+        .eq('conversation_id', conversationId)
+        .eq('status', 'active')
+        .single();
+
+      if (session) {
+        // End the session
+        const { error } = await supabase
+          .from('widget_chat_sessions')
+          .update({ 
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+          })
+          .eq('id', session.id);
+
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success('Chat ended');
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+    },
+    onError: (error) => {
+      console.error('Failed to end chat:', error);
+      toast.error('Failed to end chat');
+    },
+  });
+
   const handleSend = useCallback(() => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage || sendMessageMutation.isPending) return;
@@ -71,6 +104,11 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       handleSend();
     }
   };
+
+  const handleEndChat = useCallback(() => {
+    if (endChatMutation.isPending) return;
+    endChatMutation.mutate();
+  }, [endChatMutation]);
 
   return (
     <div className="flex items-center gap-3 p-4 border-t border-border bg-background">
@@ -92,6 +130,20 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <Send className="h-4 w-4" />
+        )}
+      </Button>
+      <Button 
+        size="icon" 
+        variant="outline"
+        className="rounded-full shrink-0 h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+        onClick={handleEndChat}
+        disabled={endChatMutation.isPending}
+        title="End chat"
+      >
+        {endChatMutation.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <PhoneOff className="h-4 w-4" />
         )}
       </Button>
     </div>

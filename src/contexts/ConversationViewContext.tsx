@@ -403,7 +403,9 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         }
       }
 
-      if (!isInternal) {
+      // Only send email for email channel conversations (not widget/chat)
+      const conversationChannel = conversation?.channel;
+      if (!isInternal && conversationChannel !== 'widget') {
         const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
           body: { messageId: message.id }
         });

@@ -4,28 +4,49 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import type { NormalizedMessage } from '@/lib/normalizeMessage';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ChatMessagesListProps {
   messages: NormalizedMessage[];
   customerName?: string;
   customerEmail?: string;
   agentTyping?: boolean;
+  conversationId?: string; // Add conversationId for polling
 }
 
 export const ChatMessagesList = ({ 
   messages, 
   customerName, 
   customerEmail,
-  agentTyping = false
+  agentTyping = false,
+  conversationId
 }: ChatMessagesListProps) => {
   const { relative: formatRelative } = useDateFormatting();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, agentTyping]);
+
+  // Poll for new messages every 2 seconds during live chat
+  useEffect(() => {
+    if (!conversationId) return;
+    
+    const interval = setInterval(() => {
+      // Invalidate message queries to trigger refetch
+      queryClient.invalidateQueries({ 
+        queryKey: ['thread-messages', conversationId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['messages', conversationId] 
+      });
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [conversationId, queryClient]);
 
   // Sort messages by date (oldest first for chat view)
   const sortedMessages = [...messages].sort(

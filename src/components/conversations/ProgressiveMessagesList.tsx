@@ -300,6 +300,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
           messages={messages} 
           customerName={conversation?.customer?.full_name}
           customerEmail={conversation?.customer?.email}
+          conversationId={conversationId}
         />
         
         {/* Chat input */}

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface LiveChatQueueProps {
   className?: string;
@@ -25,12 +26,22 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const queryClient = useQueryClient();
+
   const handleClaimSession = async (sessionId: string, conversationId: string) => {
     if (!profile?.id) return;
     
     // Use profile.id (not user_id) as it matches the FK on widget_chat_sessions.assigned_agent_id
     const success = await claimSession(sessionId, profile.id);
     if (success) {
+      // Force invalidate conversation data before navigating to ensure fresh data loads
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      
+      toast.success('Chat claimed', { description: 'You are now chatting with the visitor' });
+      
       // Navigate to the conversation
       navigate(`/interactions/text/open?c=${conversationId}`);
     }
