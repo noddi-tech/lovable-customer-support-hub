@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, X, Send, Search, ArrowLeft, Mail, Sparkles } from 'lucide-react';
+import { MessageCircle, X, Send, Search, ArrowLeft, Mail, Sparkles, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime } from '@/widget/translations';
+import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime, SUPPORTED_WIDGET_LANGUAGES } from '@/widget/translations';
 
 interface WidgetPreviewProps {
   config: {
@@ -27,8 +27,10 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
   const [activeView, setActiveView] = useState<'home' | 'chat' | 'ask' | 'search'>('home');
   const [showTypingDemo, setShowTypingDemo] = useState(false);
   const [showAgentResponse, setShowAgentResponse] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   const t = getWidgetTranslations(config.language || 'no');
+  const currentLang = SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === (config.language || 'no'));
 
   // Reset typing demo when switching views
   useEffect(() => {
@@ -265,10 +267,37 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-2 border-t text-center">
+            <div className="px-4 py-2 border-t flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 {t.poweredBy}
               </span>
+              
+              <div className="relative">
+                <button 
+                  className="flex items-center gap-1.5 px-2 py-1 text-xs bg-muted rounded-md border hover:bg-muted/80 transition-colors"
+                  onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                >
+                  <span className="text-base leading-none">{currentLang?.flag}</span>
+                  <span className="text-muted-foreground">{currentLang?.name}</span>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                </button>
+                
+                {showLanguageMenu && (
+                  <div className="absolute bottom-full right-0 mb-1 bg-background border rounded-lg shadow-lg min-w-[140px] max-h-[200px] overflow-y-auto z-50">
+                    {SUPPORTED_WIDGET_LANGUAGES.map((lang) => (
+                      <div
+                        key={lang.code}
+                        className={`flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted cursor-default transition-colors ${
+                          config.language === lang.code ? 'bg-primary/10 text-primary font-medium' : ''
+                        }`}
+                      >
+                        <span className="text-base leading-none">{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ) : (
