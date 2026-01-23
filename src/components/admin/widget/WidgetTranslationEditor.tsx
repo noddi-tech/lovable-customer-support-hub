@@ -9,21 +9,27 @@ import { SUPPORTED_WIDGET_LANGUAGES, getWidgetTranslations } from '@/widget/tran
 interface WidgetTranslationEditorProps {
   greetingText: string;
   responseTimeText: string;
+  dismissalMessageText: string;
   greetingTranslations: Record<string, string>;
   responseTimeTranslations: Record<string, string>;
+  dismissalMessageTranslations: Record<string, string>;
   onUpdate: (updates: {
     greeting_text?: string;
     response_time_text?: string;
+    dismissal_message_text?: string;
     greeting_translations?: Record<string, string>;
     response_time_translations?: Record<string, string>;
+    dismissal_message_translations?: Record<string, string>;
   }) => void;
 }
 
 export const WidgetTranslationEditor: React.FC<WidgetTranslationEditorProps> = ({
   greetingText,
   responseTimeText,
+  dismissalMessageText,
   greetingTranslations,
   responseTimeTranslations,
+  dismissalMessageTranslations,
   onUpdate,
 }) => {
   const [selectedLang, setSelectedLang] = useState<string>('no');
@@ -33,6 +39,7 @@ export const WidgetTranslationEditor: React.FC<WidgetTranslationEditorProps> = (
   // Get the current value for the selected language
   const currentGreeting = greetingTranslations[selectedLang] || '';
   const currentResponseTime = responseTimeTranslations[selectedLang] || '';
+  const currentDismissalMessage = dismissalMessageTranslations[selectedLang] || '';
 
   const handleGreetingChange = (value: string) => {
     const newTranslations = { ...greetingTranslations };
@@ -54,6 +61,16 @@ export const WidgetTranslationEditor: React.FC<WidgetTranslationEditorProps> = (
     onUpdate({ response_time_translations: newTranslations });
   };
 
+  const handleDismissalMessageChange = (value: string) => {
+    const newTranslations = { ...dismissalMessageTranslations };
+    if (value.trim() === '') {
+      delete newTranslations[selectedLang];
+    } else {
+      newTranslations[selectedLang] = value;
+    }
+    onUpdate({ dismissal_message_translations: newTranslations });
+  };
+
   const clearGreeting = () => {
     const newTranslations = { ...greetingTranslations };
     delete newTranslations[selectedLang];
@@ -66,13 +83,19 @@ export const WidgetTranslationEditor: React.FC<WidgetTranslationEditorProps> = (
     onUpdate({ response_time_translations: newTranslations });
   };
 
+  const clearDismissalMessage = () => {
+    const newTranslations = { ...dismissalMessageTranslations };
+    delete newTranslations[selectedLang];
+    onUpdate({ dismissal_message_translations: newTranslations });
+  };
+
   const currentLang = SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === selectedLang);
 
   return (
     <div className="space-y-4">
       <h4 className="font-medium text-sm">Per-Language Messages</h4>
       <p className="text-xs text-muted-foreground">
-        Customize greeting and response time text for each language. Leave empty to use the default translation.
+        Customize greeting, response time, and dismissal message for each language. Leave empty to use the default translation.
       </p>
 
       {/* Language Tabs */}
@@ -80,7 +103,8 @@ export const WidgetTranslationEditor: React.FC<WidgetTranslationEditorProps> = (
         {SUPPORTED_WIDGET_LANGUAGES.map((lang) => {
           const hasCustomGreeting = !!greetingTranslations[lang.code];
           const hasCustomResponseTime = !!responseTimeTranslations[lang.code];
-          const hasCustomizations = hasCustomGreeting || hasCustomResponseTime;
+          const hasCustomDismissal = !!dismissalMessageTranslations[lang.code];
+          const hasCustomizations = hasCustomGreeting || hasCustomResponseTime || hasCustomDismissal;
           
           return (
             <button
@@ -162,15 +186,44 @@ export const WidgetTranslationEditor: React.FC<WidgetTranslationEditorProps> = (
             Default: {t.defaultResponseTime}
           </p>
         </div>
+
+        {/* Dismissal Message Text */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Chat Dismissal Message</Label>
+            {currentDismissalMessage && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearDismissalMessage}
+                className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+          <Textarea
+            value={currentDismissalMessage}
+            onChange={(e) => handleDismissalMessageChange(e.target.value)}
+            placeholder={t.chatDismissedMessage}
+            rows={2}
+            className="resize-none"
+          />
+          <p className="text-xs text-muted-foreground">
+            Shown when agent cannot answer immediately. Default: {t.chatDismissedMessage}
+          </p>
+        </div>
       </div>
 
       {/* Summary of customizations */}
-      {Object.keys(greetingTranslations).length > 0 || Object.keys(responseTimeTranslations).length > 0 ? (
+      {Object.keys(greetingTranslations).length > 0 || Object.keys(responseTimeTranslations).length > 0 || Object.keys(dismissalMessageTranslations).length > 0 ? (
         <div className="text-xs text-muted-foreground">
           <span className="font-medium">Customized languages: </span>
           {Array.from(new Set([
             ...Object.keys(greetingTranslations),
-            ...Object.keys(responseTimeTranslations)
+            ...Object.keys(responseTimeTranslations),
+            ...Object.keys(dismissalMessageTranslations)
           ])).map(code => {
             const lang = SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === code);
             return lang ? `${lang.flag} ${lang.name}` : code;

@@ -150,8 +150,32 @@ export function useLiveChatSessions(organizationId: string | null) {
     return !error;
   }, [fetchSessions]);
 
-  const dismissSession = useCallback(async (sessionId: string) => {
-    // Dismiss (abandon) a waiting session that won't be claimed
+  const dismissSession = useCallback(async (sessionId: string, dismissalMessage?: string) => {
+    // First, get the conversation_id for this session
+    const { data: session, error: fetchError } = await supabase
+      .from('widget_chat_sessions')
+      .select('conversation_id')
+      .eq('id', sessionId)
+      .single();
+
+    if (fetchError || !session) {
+      console.error('[useLiveChatSessions] Failed to fetch session:', fetchError);
+      return false;
+    }
+
+    // Insert dismissal message if provided
+    if (dismissalMessage && session.conversation_id) {
+      await supabase
+        .from('messages')
+        .insert({
+          conversation_id: session.conversation_id,
+          content: dismissalMessage,
+          sender_type: 'agent',
+          content_type: 'text',
+        });
+    }
+
+    // Update session status to abandoned
     const { error } = await supabase
       .from('widget_chat_sessions')
       .update({ 

@@ -37,5 +37,9 @@
   "findAnswersInstantly": "Finn svar umiddelbart",
   "changeLanguage": "Bytt språk",
   "defaultGreeting": "Hei! 👋 Hvordan kan vi hjelpe deg i dag?",
-  "defaultResponseTime": "Vi svarer vanligvis innen noen timer"
+  "defaultResponseTime": "Vi svarer vanligvis innen noen timer",
+  "chatDismissed": "Vi opplever stor pågang",
+  "chatDismissedMessage": "På grunn av stor pågang kan vi ikke koble deg til en agent akkurat nå. Vi kontakter deg via e-post så snart som mulig.",
+  "emailRequired": "E-post er påkrevd for å starte chat",
+  "enterEmailToContinue": "Skriv inn e-posten din for å fortsette"
 }

@@ -29,8 +29,10 @@ interface WidgetConfig {
   position: string;
   greeting_text: string;
   response_time_text: string;
+  dismissal_message_text: string;
   greeting_translations: Record<string, string>;
   response_time_translations: Record<string, string>;
+  dismissal_message_translations: Record<string, string>;
   enable_chat: boolean;
   enable_contact_form: boolean;
   enable_knowledge_search: boolean;
@@ -432,8 +434,10 @@ export const WidgetSettings: React.FC = () => {
                   <WidgetTranslationEditor
                     greetingText={selectedWidget.greeting_text}
                     responseTimeText={selectedWidget.response_time_text}
+                    dismissalMessageText={selectedWidget.dismissal_message_text || "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly."}
                     greetingTranslations={selectedWidget.greeting_translations || {}}
                     responseTimeTranslations={selectedWidget.response_time_translations || {}}
+                    dismissalMessageTranslations={selectedWidget.dismissal_message_translations || {}}
                     onUpdate={handleUpdateWidget}
                   />
 

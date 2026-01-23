@@ -37,5 +37,9 @@
   "findAnswersInstantly": "Encuentra respuestas al instante",
   "changeLanguage": "Cambiar idioma",
   "defaultGreeting": "¡Hola! 👋 ¿Cómo podemos ayudarte hoy?",
-  "defaultResponseTime": "Normalmente respondemos en pocas horas"
+  "defaultResponseTime": "Normalmente respondemos en pocas horas",
+  "chatDismissed": "Estamos experimentando alta demanda",
+  "chatDismissedMessage": "Debido a la alta demanda, no podemos conectarte con un agente ahora. Te contactaremos por correo electrónico pronto.",
+  "emailRequired": "El correo electrónico es requerido para iniciar el chat",
+  "enterEmailToContinue": "Ingresa tu correo para continuar"
 }
