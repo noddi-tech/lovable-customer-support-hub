@@ -150,6 +150,27 @@ export function useLiveChatSessions(organizationId: string | null) {
     return !error;
   }, [fetchSessions]);
 
+  const dismissSession = useCallback(async (sessionId: string) => {
+    // Dismiss (abandon) a waiting session that won't be claimed
+    const { error } = await supabase
+      .from('widget_chat_sessions')
+      .update({ 
+        status: 'abandoned',
+        ended_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId)
+      .eq('status', 'waiting'); // Only allow dismissing waiting sessions
+
+    if (!error) {
+      // Remove from notified set so it doesn't show again
+      notifiedSessions.delete(sessionId);
+      fetchSessions();
+      return true;
+    }
+    return false;
+  }, [fetchSessions]);
+
   // Fetch sessions and poll
   useEffect(() => {
     fetchSessions();
@@ -181,6 +202,7 @@ export function useLiveChatSessions(organizationId: string | null) {
     isLoading,
     claimSession,
     endSession,
+    dismissSession,
     refetch: fetchSessions,
   };
 }
