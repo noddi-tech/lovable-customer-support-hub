@@ -12,7 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  Check
+  Check,
+  StickyNote
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type EmailAttachment } from "@/utils/emailFormatting";
@@ -74,6 +75,19 @@ function getMessageStyle(authorType: 'agent' | 'customer' | 'system' = 'customer
     avatarRing: 'ring-2 ring-gray-200',
     label: 'System',
     labelBadge: 'bg-gray-100 text-gray-800',
+  };
+}
+
+// Internal note styling - distinct from messages
+function getNoteStyle() {
+  return {
+    border: 'border-l-4 border-yellow-500 dark:border-yellow-600',
+    bg: 'bg-yellow-50 dark:bg-yellow-950/50',
+    cardBorder: 'border-yellow-200 dark:border-yellow-800',
+    avatarRing: 'ring-2 ring-yellow-300 dark:ring-yellow-700',
+    avatarBg: 'bg-yellow-100 dark:bg-yellow-900',
+    label: 'Note',
+    labelBadge: 'bg-yellow-500 text-white',
   };
 }
 
@@ -181,8 +195,12 @@ const MessageCardComponent = ({
   const { shown: toShown, extra: toExtra } = formatList(message.to, 3);
   const { shown: ccShown, extra: ccExtra } = formatList(message.cc ?? [], 2);
 
-  // Get message styling based on author type
-  const messageStyle = getMessageStyle(message.authorType);
+  // Detect internal note and apply appropriate styling
+  const isInternalNote = message.isInternalNote || message.originalMessage?.is_internal === true;
+  const noteStyle = isInternalNote ? getNoteStyle() : null;
+  
+  // Get message styling based on author type (only used if not a note)
+  const messageStyle = noteStyle ? null : getMessageStyle(message.authorType);
   const isAgent = message.authorType === 'agent';
 
   const handleEdit = () => {
@@ -221,17 +239,21 @@ const MessageCardComponent = ({
     <div 
       data-message-id={message.id}
       data-author-type={message.authorType || 'unknown'}
+      data-is-note={isInternalNote ? 'true' : 'false'}
       className={cn(
         "group relative rounded-lg border",
-        messageStyle.bg,
-        messageStyle.border,
-        "border-y border-r border-gray-200 dark:border-gray-800",
-        "hover:border-gray-300 dark:hover:border-gray-700",
+        // Apply note or message styling
+        isInternalNote ? noteStyle?.bg : messageStyle?.bg,
+        isInternalNote ? noteStyle?.border : messageStyle?.border,
+        isInternalNote 
+          ? noteStyle?.cardBorder 
+          : "border-y border-r border-gray-200 dark:border-gray-800",
+        !isInternalNote && "hover:border-gray-300 dark:hover:border-gray-700",
         disableAnimation && "disable-animation",
         effectiveCollapsed ? "py-0 min-h-[36px]" : "py-2",
         isNewestMessage && "ring-2 ring-primary/30 ring-offset-1"
       )}
-      aria-label={`${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
+      aria-label={isInternalNote ? `Internal note from ${display}` : `${isAgent ? 'Agent' : 'Customer'} message from ${display}`}
     >
         {/* Card Header - improved spacing */}
         <div className={cn(
@@ -241,17 +263,18 @@ const MessageCardComponent = ({
           <div className={cn(
             "flex",
             effectiveCollapsed ? "items-center gap-1.5" : "items-start gap-5",
-            isAgent && "md:flex-row-reverse"
+            !isInternalNote && isAgent && "md:flex-row-reverse"
           )}>
             {/* Avatar */}
             <Avatar className={cn(
               "shrink-0",
               effectiveCollapsed ? "h-5 w-5" : "h-10 w-10",
-              messageStyle.avatarRing
+              isInternalNote ? noteStyle?.avatarRing : messageStyle?.avatarRing
             )}>
               <AvatarFallback className={cn(
                 "font-medium",
-                effectiveCollapsed ? "text-xs" : "text-sm"
+                effectiveCollapsed ? "text-xs" : "text-sm",
+                isInternalNote && noteStyle?.avatarBg
               )}>
                 {initial}
               </AvatarFallback>
@@ -263,9 +286,17 @@ const MessageCardComponent = ({
                 "flex items-center",
                 effectiveCollapsed ? "flex-nowrap gap-1.5" : "flex-wrap gap-3",
                 effectiveCollapsed ? "mb-0" : "mb-1.5",
-                isAgent && "md:justify-end"
+                !isInternalNote && isAgent && "md:justify-end"
               )}>
-                {/* Timestamp FIRST when collapsed */}
+                {/* Note icon and badge FIRST for internal notes */}
+                {isInternalNote && (
+                  <Badge className={cn("text-xs shrink-0 gap-1", noteStyle?.labelBadge)}>
+                    <StickyNote className="w-3 h-3" />
+                    {noteStyle?.label}
+                  </Badge>
+                )}
+                
+                {/* Timestamp */}
                 <span className={cn(
                   "text-muted-foreground shrink-0",
                   effectiveCollapsed ? "text-xs leading-none" : "text-sm"
@@ -281,10 +312,12 @@ const MessageCardComponent = ({
                   {display}
                 </span>
                 
-                {/* Author type badge */}
-                <Badge className={cn("text-xs shrink-0", messageStyle.labelBadge)}>
-                  {messageStyle.label}
-                </Badge>
+                {/* Author type badge - only show for messages, not notes */}
+                {!isInternalNote && messageStyle && (
+                  <Badge className={cn("text-xs shrink-0", messageStyle.labelBadge)}>
+                    {messageStyle.label}
+                  </Badge>
+                )}
                 
                 {/* New badge for newest message */}
                 {isNewestMessage && (
@@ -303,13 +336,6 @@ const MessageCardComponent = ({
                   </span>
                 )}
                 
-                {message.originalMessage?.is_internal && (
-                  <Badge variant="outline" className="text-xs shrink-0">
-                    <Lock className="w-3 h-3 mr-1" />
-                    Internal
-                  </Badge>
-                )}
-                
                  {attachments.length > 0 && (
                    <Badge variant="outline" className="text-xs shrink-0">
                      <Paperclip className="w-3 h-3 mr-1" />
@@ -318,8 +344,8 @@ const MessageCardComponent = ({
                  )}
               </div>
 
-              {/* Recipients chips - only show when expanded */}
-              {!effectiveCollapsed && (
+              {/* Recipients chips - only show when expanded AND not an internal note */}
+              {!effectiveCollapsed && !isInternalNote && (
                 <div className={cn(
                   "mt-3 flex flex-wrap items-center gap-2 text-xs",
                   isAgent && "md:justify-end"

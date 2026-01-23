@@ -160,6 +160,7 @@ export interface NormalizedMessage {
   authorType: 'agent' | 'customer' | 'system';
   authorLabel: string; // e.g., "Agent (tom@noddi.no)" or "torstein@hyre.no"
   avatarInitial: string; // Initial for avatar display
+  isInternalNote: boolean; // Whether this is an internal note (only visible to team)
 
   // Content rendering
   visibleBody: string;         // without quoted sections
@@ -389,6 +390,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     authorType,
     authorLabel: displayAuthorLabel,
     avatarInitial: initial,
+    isInternalNote: rawMessage.is_internal === true,
     visibleBody: parsedContent.visibleContent,
     quotedBlocks: quotedBlocks?.length > 0 ? quotedBlocks : undefined,
     originalMessage: {
@@ -535,6 +537,7 @@ export function expandQuotedMessagesToCards(
         authorType: isAgent ? 'agent' : 'customer',
         authorLabel: fromName && fromEmail ? `${fromName} <${fromEmail}>` : (fromEmail || fromName || 'Unknown'),
         avatarInitial: (fromName || fromEmail || 'U')[0].toUpperCase(),
+        isInternalNote: false, // Quoted messages are never internal notes
         visibleBody: parsed.visibleContent,  // Use ONLY visible content (nested quotes stripped)
         quotedBlocks: parsed.quotedBlocks,   // Store nested quotes for potential "Show history" feature
         originalMessage: {

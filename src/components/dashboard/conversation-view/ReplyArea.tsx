@@ -15,7 +15,8 @@ import {
   Lock,
   Database,
   Eye,
-  Star
+  Star,
+  StickyNote
 } from "lucide-react";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 import { useTranslation } from "react-i18next";
@@ -190,13 +191,31 @@ export const ReplyArea = () => {
 
   // Phase 3: Enhanced reply area with strong visual separation
   return (
-    <div className="border-t-2 border-border bg-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    <div className={cn(
+      "border-t-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]",
+      state.isInternalNote 
+        ? "border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30" 
+        : "border-border bg-gray-50"
+    )}>
+      {/* Note Mode Header - only shown when adding a note */}
+      {state.isInternalNote && (
+        <div className="flex items-center gap-2 px-6 py-3 bg-yellow-100 dark:bg-yellow-900/50 border-b border-yellow-200 dark:border-yellow-800">
+          <StickyNote className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+          <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            Adding internal note
+          </span>
+          <Badge className="ml-auto bg-yellow-500 text-white text-xs">
+            Only visible to team
+          </Badge>
+        </div>
+      )}
+      
       <div className="p-6 space-y-4">
         {/* Feedback Prompt */}
         <FeedbackPrompt />
 
-        {/* AI Suggestions Section with Preview Cards */}
-        {state.aiSuggestions.length > 0 && (
+        {/* AI Suggestions Section with Preview Cards - only for replies, not notes */}
+        {!state.isInternalNote && state.aiSuggestions.length > 0 && (
           <div className="space-y-2">
             <Label className="text-xs font-medium flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -246,28 +265,38 @@ export const ReplyArea = () => {
           isRefining={state.refiningSuggestion}
         />
 
-        {/* Controls Row: Internal Note + AI + Translate */}
+        {/* Controls Row: Internal Note toggle (only for replies) + AI + Translate */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Switch
-              id="internal-note"
-              checked={state.isInternalNote}
-              onCheckedChange={(checked) => 
-                dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: checked })
-              }
-              className="data-[state=checked]:bg-amber-500"
-            />
-            <Label 
-              htmlFor="internal-note" 
-              className="text-sm cursor-pointer font-semibold"
-            >
-              {t('conversation.internalNote')}
-            </Label>
+            {/* Only show toggle if NOT in note mode - allows switching back to reply */}
+            {!state.isInternalNote && (
+              <>
+                <Switch
+                  id="internal-note"
+                  checked={state.isInternalNote}
+                  onCheckedChange={(checked) => 
+                    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: checked })
+                  }
+                  className="data-[state=checked]:bg-yellow-500"
+                />
+                <Label 
+                  htmlFor="internal-note" 
+                  className="text-sm cursor-pointer font-semibold"
+                >
+                  {t('conversation.internalNote')}
+                </Label>
+              </>
+            )}
+            {/* Show switch back to reply option when in note mode */}
             {state.isInternalNote && (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                <Lock className="h-3 w-3 mr-1" />
-                Only visible to team
-              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false })}
+                className="text-yellow-700 hover:text-yellow-800 hover:bg-yellow-100 dark:text-yellow-300 dark:hover:bg-yellow-900"
+              >
+                Switch to Reply
+              </Button>
             )}
           </div>
 
@@ -428,6 +457,7 @@ export const ReplyArea = () => {
             onClick={() => {
               dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
               dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+              dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
             }}
             disabled={state.sendLoading}
           >
@@ -451,7 +481,10 @@ export const ReplyArea = () => {
               onClick={handleSendReply}
               disabled={!state.replyText.trim() || state.sendLoading}
               size="lg"
-              className="gap-2 px-6"
+              className={cn(
+                "gap-2 px-6",
+                state.isInternalNote && "bg-yellow-500 hover:bg-yellow-600 text-white"
+              )}
             >
               {state.sendLoading ? (
                 <>
@@ -460,8 +493,8 @@ export const ReplyArea = () => {
                 </>
               ) : (
                 <>
-                  <Send className="w-4 h-4" />
-                  {state.isInternalNote ? t('conversation.addNote') : t('conversation.send')}
+                  {state.isInternalNote ? <StickyNote className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                  {state.isInternalNote ? (t('conversation.addNote') || 'Add Note') : t('conversation.send')}
                 </>
               )}
             </Button>
