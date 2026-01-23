@@ -50,6 +50,7 @@ const mockMessages = [
     authorType: 'customer' as const,
     authorLabel: 'Customer',
     avatarInitial: 'C',
+    isInternalNote: false,
     visibleBody: 'This is the first message content',
     originalMessage: {
       id: 'msg-1',
@@ -71,6 +72,7 @@ const mockMessages = [
     authorType: 'agent' as const,
     authorLabel: 'Agent (agent@company.com)',
     avatarInitial: 'A',
+    isInternalNote: false,
     visibleBody: 'This is the agent reply',
     originalMessage: {
       id: 'msg-2',
@@ -92,6 +94,7 @@ const mockMessages = [
     authorType: 'customer' as const,
     authorLabel: 'Customer',
     avatarInitial: 'C',
+    isInternalNote: false,
     visibleBody: 'Follow-up from customer',
     originalMessage: {
       id: 'msg-3',
@@ -177,6 +180,7 @@ describe('ProgressiveMessagesList - Thread View', () => {
         {
           ...mockMessages[0],
           avatarInitial: 'C',
+          isInternalNote: false,
           quotedBlocks: [
             { kind: 'gmail' as const, raw: 'Some quoted content' },
           ],

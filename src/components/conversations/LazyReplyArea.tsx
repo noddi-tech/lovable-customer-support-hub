@@ -1,7 +1,7 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Reply } from "lucide-react";
+import { Reply, StickyNote } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useConversationView } from "@/contexts/ConversationViewContext";
 
@@ -47,24 +47,66 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
     }
   }, [state.showReplyArea, showReplyArea]);
 
-  const handleShowReply = () => {
+  // Keyboard shortcuts for Reply (R) and Note (N)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input or textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // Don't trigger if reply area is already open
+      if (showReplyArea) return;
+      
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        handleShowReply();
+      } else if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        handleShowNote();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showReplyArea]);
+
+  const handleShowReply = useCallback(() => {
     // Set both local state (for lazy loading) and context state (for reply functionality)
     setShowReplyArea(true);
     dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: true });
-  };
+    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
+  }, [dispatch]);
+
+  const handleShowNote = useCallback(() => {
+    // Set both local state (for lazy loading) and context state (for note functionality)
+    setShowReplyArea(true);
+    dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: true });
+    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: true });
+  }, [dispatch]);
 
   if (!showReplyArea) {
     return (
       <div className="p-4 border-t border-border">
-        <Button
-          onClick={handleShowReply}
-          onMouseEnter={preloadReplyArea}
-          className="w-full"
-          variant="default"
-        >
-          <Reply className="w-4 h-4 mr-2" />
-          {t('conversation.reply')}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleShowReply}
+            onMouseEnter={preloadReplyArea}
+            className="flex-1"
+            variant="default"
+          >
+            <Reply className="w-4 h-4 mr-2" />
+            {t('conversation.reply')}
+            <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-primary-foreground/20 rounded hidden sm:inline">R</kbd>
+          </Button>
+          <Button
+            onClick={handleShowNote}
+            onMouseEnter={preloadReplyArea}
+            className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
+            variant="default"
+          >
+            <StickyNote className="w-4 h-4 mr-2" />
+            {t('conversation.note') || 'Note'}
+            <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-yellow-600/30 rounded hidden sm:inline">N</kbd>
+          </Button>
+        </div>
       </div>
     );
   }
