@@ -1,0 +1,795 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
+// Pre-bundled widget JavaScript - this is the complete standalone widget
+const WIDGET_JS = `
+(function() {
+  'use strict';
+
+  // ========== TRANSLATIONS ==========
+  const translations = {
+    en: {"messageSent":"Message sent!","wellGetBack":"We'll get back to you as soon as possible.","startingChat":"Starting chat...","startLiveChat":"Start live chat","online":"Online","offline":"We're currently offline","leaveMessage":"Leave a message and we'll get back to you","sendMessage":"Send us a message","searchAnswers":"Search our help center","back":"Back","poweredBy":"Powered by Noddi","name":"Name","yourName":"Your name","email":"Email","message":"Message","howCanWeHelp":"How can we help?","fillAllFields":"Please fill in all fields","invalidEmail":"Please enter a valid email address","sending":"Sending...","sendMessageBtn":"Send Message","searchPlaceholder":"Search for answers...","searchKnowledgeBase":"Search our knowledge base for quick answers","noResults":"No results found for","tryDifferentKeywords":"Try different keywords or ask us directly","chatEnded":"Chat ended","waitingForAgent":"Waiting for agent...","chattingWith":"Chatting with","connected":"Connected","endChat":"End chat","startConversation":"Start the conversation by sending a message below.","typeMessage":"Type a message...","thankYou":"This chat has ended. Thank you for contacting us!","startNewConversation":"Start new conversation","changeLanguage":"Change language","defaultGreeting":"Hi there! 👋 How can we help you today?","defaultResponseTime":"We usually respond within a few hours"},
+    no: {"messageSent":"Melding sendt!","wellGetBack":"Vi svarer deg så snart som mulig.","startingChat":"Starter chat...","startLiveChat":"Start live chat","online":"Tilgjengelig","offline":"Vi er for øyeblikket offline","leaveMessage":"Legg igjen en melding, så svarer vi snart","sendMessage":"Send oss en melding","searchAnswers":"Søk i hjelpesenteret","back":"Tilbake","poweredBy":"Drevet av Noddi","name":"Navn","yourName":"Ditt navn","email":"E-post","message":"Melding","howCanWeHelp":"Hvordan kan vi hjelpe?","fillAllFields":"Vennligst fyll ut alle felt","invalidEmail":"Vennligst skriv inn en gyldig e-postadresse","sending":"Sender...","sendMessageBtn":"Send melding","searchPlaceholder":"Søk etter svar...","searchKnowledgeBase":"Søk i vår kunnskapsbase for raske svar","noResults":"Ingen resultater funnet for","tryDifferentKeywords":"Prøv andre søkeord eller kontakt oss direkte","chatEnded":"Chat avsluttet","waitingForAgent":"Venter på agent...","chattingWith":"Chatter med","connected":"Tilkoblet","endChat":"Avslutt chat","startConversation":"Start samtalen ved å sende en melding nedenfor.","typeMessage":"Skriv en melding...","thankYou":"Denne chatten er avsluttet. Takk for at du kontaktet oss!","startNewConversation":"Start ny samtale","changeLanguage":"Bytt språk","defaultGreeting":"Hei! 👋 Hvordan kan vi hjelpe deg i dag?","defaultResponseTime":"Vi svarer vanligvis innen noen timer"},
+    es: {"messageSent":"¡Mensaje enviado!","wellGetBack":"Te responderemos lo antes posible.","startingChat":"Iniciando chat...","startLiveChat":"Iniciar chat en vivo","online":"En línea","offline":"Actualmente no estamos disponibles","leaveMessage":"Deja un mensaje y te responderemos","sendMessage":"Envíanos un mensaje","searchAnswers":"Buscar en el centro de ayuda","back":"Atrás","poweredBy":"Impulsado por Noddi","name":"Nombre","yourName":"Tu nombre","email":"Correo electrónico","message":"Mensaje","howCanWeHelp":"¿Cómo podemos ayudarte?","fillAllFields":"Por favor completa todos los campos","invalidEmail":"Por favor ingresa un correo electrónico válido","sending":"Enviando...","sendMessageBtn":"Enviar mensaje","searchPlaceholder":"Buscar respuestas...","searchKnowledgeBase":"Busca en nuestra base de conocimientos para respuestas rápidas","noResults":"No se encontraron resultados para","tryDifferentKeywords":"Prueba con otras palabras clave o contáctanos directamente","chatEnded":"Chat terminado","waitingForAgent":"Esperando agente...","chattingWith":"Chateando con","connected":"Conectado","endChat":"Terminar chat","startConversation":"Inicia la conversación enviando un mensaje a continuación.","typeMessage":"Escribe un mensaje...","thankYou":"Este chat ha terminado. ¡Gracias por contactarnos!","startNewConversation":"Iniciar nueva conversación","changeLanguage":"Cambiar idioma","defaultGreeting":"¡Hola! 👋 ¿Cómo podemos ayudarte hoy?","defaultResponseTime":"Normalmente respondemos en pocas horas"},
+    fr: {"messageSent":"Message envoyé !","wellGetBack":"Nous vous répondrons dès que possible.","startingChat":"Démarrage du chat...","startLiveChat":"Démarrer le chat en direct","online":"En ligne","offline":"Nous sommes actuellement hors ligne","leaveMessage":"Laissez un message et nous vous répondrons","sendMessage":"Envoyez-nous un message","searchAnswers":"Rechercher dans le centre d'aide","back":"Retour","poweredBy":"Propulsé par Noddi","name":"Nom","yourName":"Votre nom","email":"E-mail","message":"Message","howCanWeHelp":"Comment pouvons-nous vous aider ?","fillAllFields":"Veuillez remplir tous les champs","invalidEmail":"Veuillez entrer une adresse e-mail valide","sending":"Envoi...","sendMessageBtn":"Envoyer le message","searchPlaceholder":"Rechercher des réponses...","searchKnowledgeBase":"Recherchez dans notre base de connaissances pour des réponses rapides","noResults":"Aucun résultat trouvé pour","tryDifferentKeywords":"Essayez d'autres mots-clés ou contactez-nous directement","chatEnded":"Chat terminé","waitingForAgent":"En attente d'un agent...","chattingWith":"Discussion avec","connected":"Connecté","endChat":"Terminer le chat","startConversation":"Commencez la conversation en envoyant un message ci-dessous.","typeMessage":"Tapez un message...","thankYou":"Ce chat est terminé. Merci de nous avoir contactés !","startNewConversation":"Démarrer une nouvelle conversation","changeLanguage":"Changer de langue","defaultGreeting":"Bonjour ! 👋 Comment pouvons-nous vous aider aujourd'hui ?","defaultResponseTime":"Nous répondons généralement en quelques heures"},
+    de: {"messageSent":"Nachricht gesendet!","wellGetBack":"Wir melden uns so schnell wie möglich bei Ihnen.","startingChat":"Chat wird gestartet...","startLiveChat":"Live-Chat starten","online":"Online","offline":"Wir sind derzeit offline","leaveMessage":"Hinterlassen Sie eine Nachricht und wir melden uns","sendMessage":"Senden Sie uns eine Nachricht","searchAnswers":"Im Hilfecenter suchen","back":"Zurück","poweredBy":"Bereitgestellt von Noddi","name":"Name","yourName":"Ihr Name","email":"E-Mail","message":"Nachricht","howCanWeHelp":"Wie können wir Ihnen helfen?","fillAllFields":"Bitte füllen Sie alle Felder aus","invalidEmail":"Bitte geben Sie eine gültige E-Mail-Adresse ein","sending":"Wird gesendet...","sendMessageBtn":"Nachricht senden","searchPlaceholder":"Nach Antworten suchen...","searchKnowledgeBase":"Durchsuchen Sie unsere Wissensdatenbank für schnelle Antworten","noResults":"Keine Ergebnisse gefunden für","tryDifferentKeywords":"Versuchen Sie andere Suchbegriffe oder kontaktieren Sie uns direkt","chatEnded":"Chat beendet","waitingForAgent":"Warten auf einen Mitarbeiter...","chattingWith":"Im Gespräch mit","connected":"Verbunden","endChat":"Chat beenden","startConversation":"Starten Sie das Gespräch, indem Sie unten eine Nachricht senden.","typeMessage":"Nachricht eingeben...","thankYou":"Dieser Chat wurde beendet. Vielen Dank für Ihre Kontaktaufnahme!","startNewConversation":"Neues Gespräch starten","changeLanguage":"Sprache ändern","defaultGreeting":"Hallo! 👋 Wie können wir Ihnen heute helfen?","defaultResponseTime":"Wir antworten normalerweise innerhalb weniger Stunden"},
+    it: {"messageSent":"Messaggio inviato!","wellGetBack":"Ti risponderemo il prima possibile.","startingChat":"Avvio chat...","startLiveChat":"Avvia chat dal vivo","online":"Online","offline":"Siamo attualmente offline","leaveMessage":"Lascia un messaggio e ti risponderemo","sendMessage":"Inviaci un messaggio","searchAnswers":"Cerca nel centro assistenza","back":"Indietro","poweredBy":"Powered by Noddi","name":"Nome","yourName":"Il tuo nome","email":"E-mail","message":"Messaggio","howCanWeHelp":"Come possiamo aiutarti?","fillAllFields":"Per favore compila tutti i campi","invalidEmail":"Per favore inserisci un indirizzo e-mail valido","sending":"Invio in corso...","sendMessageBtn":"Invia messaggio","searchPlaceholder":"Cerca risposte...","searchKnowledgeBase":"Cerca nella nostra knowledge base per risposte rapide","noResults":"Nessun risultato trovato per","tryDifferentKeywords":"Prova con parole chiave diverse o contattaci direttamente","chatEnded":"Chat terminata","waitingForAgent":"In attesa di un agente...","chattingWith":"In chat con","connected":"Connesso","endChat":"Termina chat","startConversation":"Inizia la conversazione inviando un messaggio qui sotto.","typeMessage":"Scrivi un messaggio...","thankYou":"Questa chat è terminata. Grazie per averci contattato!","startNewConversation":"Inizia nuova conversazione","changeLanguage":"Cambia lingua","defaultGreeting":"Ciao! 👋 Come possiamo aiutarti oggi?","defaultResponseTime":"Di solito rispondiamo entro poche ore"},
+    pt: {"messageSent":"Mensagem enviada!","wellGetBack":"Responderemos o mais breve possível.","startingChat":"Iniciando chat...","startLiveChat":"Iniciar chat ao vivo","online":"Online","offline":"Estamos atualmente offline","leaveMessage":"Deixe uma mensagem e responderemos","sendMessage":"Envie-nos uma mensagem","searchAnswers":"Pesquisar no centro de ajuda","back":"Voltar","poweredBy":"Desenvolvido por Noddi","name":"Nome","yourName":"Seu nome","email":"E-mail","message":"Mensagem","howCanWeHelp":"Como podemos ajudar?","fillAllFields":"Por favor, preencha todos os campos","invalidEmail":"Por favor, insira um endereço de e-mail válido","sending":"Enviando...","sendMessageBtn":"Enviar mensagem","searchPlaceholder":"Pesquisar respostas...","searchKnowledgeBase":"Pesquise em nossa base de conhecimento para respostas rápidas","noResults":"Nenhum resultado encontrado para","tryDifferentKeywords":"Tente palavras-chave diferentes ou entre em contato diretamente","chatEnded":"Chat encerrado","waitingForAgent":"Aguardando agente...","chattingWith":"Conversando com","connected":"Conectado","endChat":"Encerrar chat","startConversation":"Inicie a conversa enviando uma mensagem abaixo.","typeMessage":"Digite uma mensagem...","thankYou":"Este chat foi encerrado. Obrigado por entrar em contato!","startNewConversation":"Iniciar nova conversa","changeLanguage":"Mudar idioma","defaultGreeting":"Olá! 👋 Como podemos ajudá-lo hoje?","defaultResponseTime":"Normalmente respondemos em poucas horas"},
+    nl: {"messageSent":"Bericht verzonden!","wellGetBack":"We nemen zo snel mogelijk contact met je op.","startingChat":"Chat starten...","startLiveChat":"Start live chat","online":"Online","offline":"We zijn momenteel offline","leaveMessage":"Laat een bericht achter en we nemen contact op","sendMessage":"Stuur ons een bericht","searchAnswers":"Zoek in het helpcentrum","back":"Terug","poweredBy":"Mogelijk gemaakt door Noddi","name":"Naam","yourName":"Je naam","email":"E-mail","message":"Bericht","howCanWeHelp":"Hoe kunnen we je helpen?","fillAllFields":"Vul alsjeblieft alle velden in","invalidEmail":"Voer alsjeblieft een geldig e-mailadres in","sending":"Verzenden...","sendMessageBtn":"Bericht verzenden","searchPlaceholder":"Zoek naar antwoorden...","searchKnowledgeBase":"Doorzoek onze kennisbank voor snelle antwoorden","noResults":"Geen resultaten gevonden voor","tryDifferentKeywords":"Probeer andere zoekwoorden of neem direct contact op","chatEnded":"Chat beëindigd","waitingForAgent":"Wachten op medewerker...","chattingWith":"In gesprek met","connected":"Verbonden","endChat":"Chat beëindigen","startConversation":"Begin het gesprek door hieronder een bericht te sturen.","typeMessage":"Typ een bericht...","thankYou":"Deze chat is beëindigd. Bedankt voor je contact!","startNewConversation":"Nieuw gesprek starten","changeLanguage":"Taal wijzigen","defaultGreeting":"Hallo! 👋 Hoe kunnen we je vandaag helpen?","defaultResponseTime":"We reageren meestal binnen enkele uren"},
+    sv: {"messageSent":"Meddelande skickat!","wellGetBack":"Vi återkommer så snart som möjligt.","startingChat":"Startar chatt...","startLiveChat":"Starta livechatt","online":"Online","offline":"Vi är för närvarande offline","leaveMessage":"Lämna ett meddelande så återkommer vi","sendMessage":"Skicka ett meddelande","searchAnswers":"Sök i hjälpcentret","back":"Tillbaka","poweredBy":"Drivs av Noddi","name":"Namn","yourName":"Ditt namn","email":"E-post","message":"Meddelande","howCanWeHelp":"Hur kan vi hjälpa dig?","fillAllFields":"Vänligen fyll i alla fält","invalidEmail":"Vänligen ange en giltig e-postadress","sending":"Skickar...","sendMessageBtn":"Skicka meddelande","searchPlaceholder":"Sök efter svar...","searchKnowledgeBase":"Sök i vår kunskapsbas för snabba svar","noResults":"Inga resultat hittades för","tryDifferentKeywords":"Prova andra sökord eller kontakta oss direkt","chatEnded":"Chatt avslutad","waitingForAgent":"Väntar på agent...","chattingWith":"Chattar med","connected":"Ansluten","endChat":"Avsluta chatt","startConversation":"Starta konversationen genom att skicka ett meddelande nedan.","typeMessage":"Skriv ett meddelande...","thankYou":"Denna chatt har avslutats. Tack för att du kontaktade oss!","startNewConversation":"Starta ny konversation","changeLanguage":"Byt språk","defaultGreeting":"Hej! 👋 Hur kan vi hjälpa dig idag?","defaultResponseTime":"Vi svarar vanligtvis inom några timmar"},
+    da: {"messageSent":"Besked sendt!","wellGetBack":"Vi vender tilbage hurtigst muligt.","startingChat":"Starter chat...","startLiveChat":"Start live chat","online":"Online","offline":"Vi er i øjeblikket offline","leaveMessage":"Efterlad en besked, så vender vi tilbage","sendMessage":"Send os en besked","searchAnswers":"Søg i hjælpecenteret","back":"Tilbage","poweredBy":"Drevet af Noddi","name":"Navn","yourName":"Dit navn","email":"E-mail","message":"Besked","howCanWeHelp":"Hvordan kan vi hjælpe?","fillAllFields":"Udfyld venligst alle felter","invalidEmail":"Indtast venligst en gyldig e-mailadresse","sending":"Sender...","sendMessageBtn":"Send besked","searchPlaceholder":"Søg efter svar...","searchKnowledgeBase":"Søg i vores vidensbase for hurtige svar","noResults":"Ingen resultater fundet for","tryDifferentKeywords":"Prøv andre søgeord eller kontakt os direkte","chatEnded":"Chat afsluttet","waitingForAgent":"Venter på agent...","chattingWith":"Chatter med","connected":"Forbundet","endChat":"Afslut chat","startConversation":"Start samtalen ved at sende en besked nedenfor.","typeMessage":"Skriv en besked...","thankYou":"Denne chat er afsluttet. Tak fordi du kontaktede os!","startNewConversation":"Start ny samtale","changeLanguage":"Skift sprog","defaultGreeting":"Hej! 👋 Hvordan kan vi hjælpe dig i dag?","defaultResponseTime":"Vi svarer normalt inden for få timer"}
+  };
+
+  const SUPPORTED_LANGUAGES = [
+    { code: 'no', name: 'Norsk', flag: '🇳🇴' },
+    { code: 'en', name: 'English', flag: '🇬🇧' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+    { code: 'pt', name: 'Português', flag: '🇵🇹' },
+    { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
+    { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
+    { code: 'da', name: 'Dansk', flag: '🇩🇰' }
+  ];
+
+  function getT(lang) {
+    return translations[lang] || translations.en;
+  }
+
+  // ========== CSS ==========
+  const CSS = \`
+.noddi-widget-container{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;-webkit-font-smoothing:antialiased}
+.noddi-widget-container *{box-sizing:border-box;margin:0;padding:0}
+.noddi-widget-button{position:fixed;bottom:20px;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);transition:transform .2s,box-shadow .2s;z-index:999998}
+.noddi-widget-button:hover{transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.noddi-widget-button:active{transform:scale(.95)}
+.noddi-widget-panel{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 40px);max-height:calc(100vh - 120px);background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden;z-index:999999;animation:noddi-slide-up .3s ease}
+@keyframes noddi-slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.noddi-widget-header{padding:16px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.noddi-widget-header-content{display:flex;align-items:center;gap:12px}
+.noddi-widget-logo{width:40px;height:40px;border-radius:8px;object-fit:cover}
+.noddi-widget-title{font-size:16px;font-weight:600;margin:0}
+.noddi-widget-subtitle{font-size:12px;opacity:.9;margin:2px 0 0}
+.noddi-widget-close{background:rgba(255,255,255,.2);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:background .2s}
+.noddi-widget-close:hover{background:rgba(255,255,255,.3)}
+.noddi-widget-content{flex:1;overflow-y:auto;padding:16px;min-height:200px}
+.noddi-widget-home{display:flex;flex-direction:column;gap:16px}
+.noddi-widget-greeting{font-size:15px;color:#374151;line-height:1.6}
+.noddi-widget-actions{display:flex;flex-direction:column;gap:8px}
+.noddi-widget-action{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;cursor:pointer;transition:all .2s;text-align:left;font-size:14px;color:#374151}
+.noddi-widget-action:hover{background:#f3f4f6;border-color:#d1d5db}
+.noddi-widget-action svg{color:#6b7280;flex-shrink:0}
+.noddi-widget-action-primary{background:#fff;border-width:2px;font-weight:500}
+.noddi-widget-action-primary:hover{background:#f9fafb}
+.noddi-widget-action:disabled{opacity:.6;cursor:not-allowed}
+.noddi-widget-online-badge{margin-left:auto;font-size:11px;color:#22c55e;font-weight:600}
+.noddi-widget-offline-notice{display:flex;align-items:center;gap:12px;padding:14px 16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fbbf24;border-radius:12px;margin-bottom:8px}
+.noddi-widget-offline-notice svg{color:#d97706;flex-shrink:0}
+.noddi-widget-offline-text{display:flex;flex-direction:column;gap:2px}
+.noddi-widget-offline-title{font-size:14px;font-weight:600;color:#92400e}
+.noddi-widget-offline-subtitle{font-size:12px;color:#a16207}
+.noddi-widget-view{display:flex;flex-direction:column;gap:12px}
+.noddi-widget-back{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:#6b7280;cursor:pointer;font-size:13px;padding:4px 0;margin-bottom:4px}
+.noddi-widget-back:hover{color:#374151}
+.noddi-widget-form{display:flex;flex-direction:column;gap:12px}
+.noddi-widget-field{display:flex;flex-direction:column;gap:4px}
+.noddi-widget-field label{font-size:13px;font-weight:500;color:#374151}
+.noddi-widget-field input,.noddi-widget-field textarea{padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:inherit;transition:border-color .2s,box-shadow .2s;background:#fff;color:#1f2937}
+.noddi-widget-field input:focus,.noddi-widget-field textarea:focus{outline:none;border-color:#9ca3af;box-shadow:0 0 0 3px rgba(156,163,175,.1)}
+.noddi-widget-field input:disabled,.noddi-widget-field textarea:disabled{background:#f9fafb;cursor:not-allowed}
+.noddi-widget-field textarea{resize:vertical;min-height:80px}
+.noddi-widget-error{padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#dc2626;font-size:13px}
+.noddi-widget-submit{padding:12px 16px;border:none;border-radius:8px;font-size:14px;font-weight:500;color:#fff;cursor:pointer;transition:opacity .2s;margin-top:4px}
+.noddi-widget-submit:hover:not(:disabled){opacity:.9}
+.noddi-widget-submit:disabled{opacity:.6;cursor:not-allowed}
+.noddi-widget-search{display:flex;flex-direction:column;gap:12px}
+.noddi-widget-search-form{display:flex;gap:8px}
+.noddi-widget-search-input{flex:1;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:#1f2937}
+.noddi-widget-search-input:focus{outline:none;border-color:#9ca3af}
+.noddi-widget-search-btn{width:42px;height:42px;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:opacity .2s}
+.noddi-widget-search-btn:hover:not(:disabled){opacity:.9}
+.noddi-widget-search-btn:disabled{opacity:.6;cursor:not-allowed}
+.noddi-widget-spinner{animation:noddi-spin 1s linear infinite}
+@keyframes noddi-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.noddi-widget-results{display:flex;flex-direction:column;gap:8px;min-height:100px}
+.noddi-widget-results-placeholder,.noddi-widget-results-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#6b7280}
+.noddi-widget-results-placeholder p,.noddi-widget-results-empty p{margin-top:12px;font-size:13px}
+.noddi-widget-results-empty span{font-size:12px;color:#9ca3af;margin-top:4px}
+.noddi-widget-result{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:all .2s;overflow:hidden}
+.noddi-widget-result:hover{border-color:#d1d5db}
+.noddi-widget-result-header{display:flex;align-items:center;justify-content:space-between;padding:12px;gap:8px}
+.noddi-widget-result-question{font-size:13px;font-weight:500;color:#374151;flex:1}
+.noddi-widget-result-chevron{color:#9ca3af;transition:transform .2s;flex-shrink:0}
+.noddi-widget-result.expanded .noddi-widget-result-chevron{transform:rotate(180deg)}
+.noddi-widget-result-answer{padding:0 12px 12px;font-size:13px;color:#6b7280;line-height:1.6;border-top:1px solid #e5e7eb;padding-top:12px}
+.noddi-widget-success{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;text-align:center}
+.noddi-widget-success h4{font-size:16px;font-weight:600;color:#1f2937;margin:16px 0 8px}
+.noddi-widget-success p{font-size:13px;color:#6b7280}
+.noddi-widget-footer{padding:10px 16px;border-top:1px solid #e5e7eb;flex-shrink:0}
+.noddi-widget-footer-content{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.noddi-widget-footer-content>span{font-size:11px;color:#9ca3af}
+.noddi-widget-language-selector{position:relative}
+.noddi-widget-language-btn{display:flex;align-items:center;gap:4px;padding:4px 8px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:11px;color:#6b7280;transition:all .2s}
+.noddi-widget-language-btn:hover{background:#e5e7eb;color:#374151}
+.noddi-widget-language-menu{position:absolute;bottom:100%;right:0;margin-bottom:4px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);min-width:120px;max-height:200px;overflow-y:auto;z-index:10;animation:noddi-fade-in .15s ease}
+@keyframes noddi-fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.noddi-widget-flag{font-size:14px;line-height:1}
+.noddi-widget-language-option{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:none;border:none;text-align:left;font-size:12px;color:#374151;cursor:pointer;transition:background .15s}
+.noddi-widget-language-option:hover{background:#f3f4f6}
+.noddi-widget-language-option.active{background:#eff6ff;color:#2563eb;font-weight:500}
+.noddi-widget-chat{display:flex;flex-direction:column;height:100%;min-height:350px}
+.noddi-chat-status{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;margin-bottom:12px}
+.noddi-chat-status-indicator{display:flex;align-items:center;gap:8px}
+.noddi-chat-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.noddi-chat-status-text{font-size:13px;color:#6b7280}
+.noddi-chat-end-button{background:none;border:none;color:#ef4444;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:4px}
+.noddi-chat-end-button:hover{background:#fef2f2}
+.noddi-chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 0;min-height:200px}
+.noddi-chat-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:13px;text-align:center;padding:24px}
+.noddi-chat-message{display:flex;flex-direction:column;max-width:85%}
+.noddi-chat-message-customer{align-self:flex-end;align-items:flex-end}
+.noddi-chat-message-agent{align-self:flex-start;align-items:flex-start}
+.noddi-chat-message-sender{font-size:11px;color:#6b7280;margin-bottom:2px;padding-left:4px}
+.noddi-chat-message-bubble{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4;word-wrap:break-word}
+.noddi-chat-message-customer .noddi-chat-message-bubble{color:#fff;border-bottom-right-radius:4px}
+.noddi-chat-message-agent .noddi-chat-message-bubble{background:#f3f4f6;color:#1f2937;border-bottom-left-radius:4px}
+.noddi-chat-message-time{font-size:10px;color:#9ca3af;margin-top:4px;padding:0 4px}
+.noddi-chat-typing{display:flex;align-items:center;gap:4px;padding:12px 16px;background:#f3f4f6;border-radius:16px;border-bottom-left-radius:4px}
+.noddi-chat-typing span{width:6px;height:6px;background:#9ca3af;border-radius:50%;animation:noddi-typing-bounce 1.4s ease-in-out infinite}
+.noddi-chat-typing span:nth-child(2){animation-delay:.2s}
+.noddi-chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes noddi-typing-bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+.noddi-chat-input-container{display:flex;gap:8px;padding-top:12px;border-top:1px solid #e5e7eb;margin-top:12px}
+.noddi-chat-input{flex:1;padding:10px 14px;border:1px solid #e5e7eb;border-radius:24px;font-size:14px;font-family:inherit;background:#fff;color:#1f2937}
+.noddi-chat-input:focus{outline:none;border-color:#9ca3af}
+.noddi-chat-input:disabled{background:#f9fafb;cursor:not-allowed}
+.noddi-chat-send{width:42px;height:42px;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:opacity .2s,transform .2s}
+.noddi-chat-send:hover:not(:disabled){opacity:.9;transform:scale(1.05)}
+.noddi-chat-send:disabled{opacity:.5;cursor:not-allowed}
+.noddi-chat-ended{text-align:center;padding:24px 16px;border-top:1px solid #e5e7eb;margin-top:auto}
+.noddi-chat-ended p{font-size:13px;color:#6b7280;margin-bottom:16px}
+.noddi-chat-new-button{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:500;color:#fff;cursor:pointer;transition:opacity .2s}
+.noddi-chat-new-button:hover{opacity:.9}
+@media (max-width:420px){.noddi-widget-panel{width:calc(100vw - 20px);left:10px!important;right:10px!important;bottom:80px;max-height:calc(100vh - 100px)}.noddi-widget-button{width:50px;height:50px}}
+\`;
+
+  // ========== SVG ICONS ==========
+  const icons = {
+    chat: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+    close: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+    back: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
+    mail: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
+    search: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
+    clock: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>',
+    check: '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+    chevron: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>',
+    send: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
+    spinner: '<svg class="noddi-widget-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"></path></svg>'
+  };
+
+  // ========== STATE ==========
+  let apiUrl = '';
+  let config = null;
+  let state = {
+    isOpen: false,
+    view: 'home',
+    lang: 'no',
+    showSuccess: false,
+    showLangMenu: false,
+    chatSession: null,
+    chatMessages: [],
+    agentTyping: false,
+    searchResults: [],
+    hasSearched: false,
+    expandedResult: null,
+    isLoading: false,
+    error: null
+  };
+  let pollInterval = null;
+  let container = null;
+
+  // ========== API ==========
+  async function fetchConfig(widgetKey) {
+    try {
+      const res = await fetch(apiUrl + '/widget-config?key=' + encodeURIComponent(widgetKey));
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.error('[Noddi] Config error:', e);
+      return null;
+    }
+  }
+
+  async function submitForm(data) {
+    try {
+      const res = await fetch(apiUrl + '/widget-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      return res.ok ? { success: true } : { success: false, error: 'Failed to send' };
+    } catch (e) {
+      return { success: false, error: 'Network error' };
+    }
+  }
+
+  async function searchFaq(widgetKey, query) {
+    try {
+      const res = await fetch(apiUrl + '/widget-search-faq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ widgetKey, query })
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.results || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function startChat(widgetKey, visitorId) {
+    try {
+      const res = await fetch(apiUrl + '/widget-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', widgetKey, visitorId, pageUrl: window.location.href })
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function sendMessage(sessionId, content) {
+    try {
+      const res = await fetch(apiUrl + '/widget-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'message', sessionId, content })
+      });
+      return res.ok ? await res.json() : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function getMessages(sessionId) {
+    try {
+      const res = await fetch(apiUrl + '/widget-chat?sessionId=' + encodeURIComponent(sessionId));
+      if (!res.ok) return { messages: [] };
+      return await res.json();
+    } catch (e) {
+      return { messages: [] };
+    }
+  }
+
+  async function endChatSession(sessionId) {
+    try {
+      await fetch(apiUrl + '/widget-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'end', sessionId })
+      });
+    } catch (e) {}
+  }
+
+  // ========== HELPERS ==========
+  function getVisitorId() {
+    let id = localStorage.getItem('noddi_visitor_id');
+    if (!id) {
+      id = 'v_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      localStorage.setItem('noddi_visitor_id', id);
+    }
+    return id;
+  }
+
+  function getStoredLang() {
+    return localStorage.getItem('noddi_widget_language');
+  }
+
+  function setStoredLang(code) {
+    localStorage.setItem('noddi_widget_language', code);
+  }
+
+  function getLocalizedText(text, defaultText, lang, customTranslations) {
+    if (customTranslations && customTranslations[lang]) return customTranslations[lang];
+    const defaults = { en: defaultText };
+    if (text === defaults.en || text === getT('en').defaultGreeting || text === getT('en').defaultResponseTime) {
+      const t = getT(lang);
+      if (text.includes('👋')) return t.defaultGreeting;
+      if (text.includes('respond')) return t.defaultResponseTime;
+    }
+    return text;
+  }
+
+  // ========== RENDER ==========
+  function render() {
+    if (!container || !config) return;
+
+    const t = getT(state.lang);
+    const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === state.lang) || SUPPORTED_LANGUAGES[0];
+    const pos = config.position === 'bottom-right' ? 'right:20px' : 'left:20px';
+
+    let html = '<div class="noddi-widget-container">';
+
+    // Panel
+    if (state.isOpen) {
+      const greeting = getLocalizedText(config.greetingText, t.defaultGreeting, state.lang, config.greetingTranslations);
+      const responseTime = getLocalizedText(config.responseTimeText, t.defaultResponseTime, state.lang, config.responseTimeTranslations);
+
+      html += '<div class="noddi-widget-panel" style="' + pos + '">';
+      html += '<div class="noddi-widget-header" style="background-color:' + config.primaryColor + '">';
+      html += '<div class="noddi-widget-header-content">';
+      if (config.logoUrl) html += '<img src="' + config.logoUrl + '" alt="" class="noddi-widget-logo">';
+      html += '<div><h3 class="noddi-widget-title">' + (config.companyName || 'Chat with us') + '</h3>';
+      html += '<p class="noddi-widget-subtitle">' + responseTime + '</p></div></div>';
+      html += '<button class="noddi-widget-close" data-action="close">' + icons.close.replace('24', '20') + '</button>';
+      html += '</div>';
+
+      html += '<div class="noddi-widget-content">';
+
+      if (state.showSuccess) {
+        html += '<div class="noddi-widget-success">';
+        html += '<div style="color:' + config.primaryColor + '">' + icons.check + '</div>';
+        html += '<h4>' + t.messageSent + '</h4><p>' + t.wellGetBack + '</p></div>';
+      } else if (state.view === 'home') {
+        html += '<div class="noddi-widget-home">';
+        html += '<p class="noddi-widget-greeting">' + greeting + '</p>';
+        html += '<div class="noddi-widget-actions">';
+
+        if (config.enableChat && config.agentsOnline) {
+          html += '<button class="noddi-widget-action noddi-widget-action-primary" data-action="start-chat" style="border-color:' + config.primaryColor + '">';
+          html += icons.chat.replace('24', '20') + '<span>' + t.startLiveChat + '</span>';
+          html += '<span class="noddi-widget-online-badge">● ' + t.online + '</span></button>';
+        }
+
+        if (config.enableChat && !config.agentsOnline) {
+          html += '<div class="noddi-widget-offline-notice">' + icons.clock;
+          html += '<div class="noddi-widget-offline-text">';
+          html += '<span class="noddi-widget-offline-title">' + t.offline + '</span>';
+          html += '<span class="noddi-widget-offline-subtitle">' + t.leaveMessage + '</span></div></div>';
+        }
+
+        if (config.enableContactForm) {
+          html += '<button class="noddi-widget-action" data-action="contact">' + icons.mail + '<span>' + t.sendMessage + '</span></button>';
+        }
+
+        if (config.enableKnowledgeSearch) {
+          html += '<button class="noddi-widget-action" data-action="search">' + icons.search + '<span>' + t.searchAnswers + '</span></button>';
+        }
+
+        html += '</div></div>';
+
+      } else if (state.view === 'contact') {
+        html += '<div class="noddi-widget-view">';
+        html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
+        html += '<form class="noddi-widget-form" data-form="contact">';
+        html += '<div class="noddi-widget-field"><label>' + t.name + '</label><input type="text" name="name" placeholder="' + t.yourName + '" maxlength="100"></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.email + '</label><input type="email" name="email" placeholder="your@email.com" maxlength="255"></div>';
+        html += '<div class="noddi-widget-field"><label>' + t.message + '</label><textarea name="message" placeholder="' + t.howCanWeHelp + '" rows="4" maxlength="2000"></textarea></div>';
+        if (state.error) html += '<div class="noddi-widget-error">' + state.error + '</div>';
+        html += '<button type="submit" class="noddi-widget-submit" style="background-color:' + config.primaryColor + '"' + (state.isLoading ? ' disabled' : '') + '>' + (state.isLoading ? t.sending : t.sendMessageBtn) + '</button>';
+        html += '</form></div>';
+
+      } else if (state.view === 'search') {
+        html += '<div class="noddi-widget-view">';
+        html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
+        html += '<div class="noddi-widget-search">';
+        html += '<form class="noddi-widget-search-form" data-form="search">';
+        html += '<input type="text" class="noddi-widget-search-input" name="query" placeholder="' + t.searchPlaceholder + '"' + (state.isLoading ? ' disabled' : '') + '>';
+        html += '<button type="submit" class="noddi-widget-search-btn" style="background-color:' + config.primaryColor + '"' + (state.isLoading ? ' disabled' : '') + '>' + (state.isLoading ? icons.spinner : icons.search) + '</button>';
+        html += '</form>';
+        html += '<div class="noddi-widget-results">';
+
+        if (!state.hasSearched) {
+          html += '<div class="noddi-widget-results-placeholder">' + icons.search.replace('stroke="currentColor"', 'stroke="currentColor" opacity="0.3"').replace('20', '48') + '<p>' + t.searchKnowledgeBase + '</p></div>';
+        } else if (state.searchResults.length === 0) {
+          html += '<div class="noddi-widget-results-empty"><p>' + t.noResults + '</p><span>' + t.tryDifferentKeywords + '</span></div>';
+        } else {
+          state.searchResults.forEach((r, i) => {
+            const expanded = state.expandedResult === i;
+            html += '<div class="noddi-widget-result' + (expanded ? ' expanded' : '') + '" data-result="' + i + '">';
+            html += '<div class="noddi-widget-result-header"><span class="noddi-widget-result-question">' + r.question + '</span>' + icons.chevron.replace('noddi-widget-result-chevron', 'noddi-widget-result-chevron') + '</div>';
+            if (expanded) html += '<div class="noddi-widget-result-answer">' + r.answer + '</div>';
+            html += '</div>';
+          });
+        }
+
+        html += '</div></div></div>';
+
+      } else if (state.view === 'chat') {
+        const session = state.chatSession;
+        const isEnded = session && (session.status === 'ended' || session.status === 'abandoned');
+
+        html += '<div class="noddi-widget-chat">';
+        html += '<button class="noddi-widget-back" data-action="back">' + icons.back + t.back + '</button>';
+
+        html += '<div class="noddi-chat-status">';
+        html += '<div class="noddi-chat-status-indicator">';
+        const dotColor = isEnded ? '#ef4444' : (session && session.status === 'active' ? '#22c55e' : '#f59e0b');
+        html += '<span class="noddi-chat-status-dot" style="background-color:' + dotColor + '"></span>';
+        html += '<span class="noddi-chat-status-text">' + (isEnded ? t.chatEnded : (session && session.status === 'waiting' ? t.waitingForAgent : t.connected)) + '</span>';
+        html += '</div>';
+        if (!isEnded) html += '<button class="noddi-chat-end-button" data-action="end-chat">' + t.endChat + '</button>';
+        html += '</div>';
+
+        html += '<div class="noddi-chat-messages">';
+        if (state.chatMessages.length === 0 && !isEnded) {
+          html += '<div class="noddi-chat-empty"><p>' + t.startConversation + '</p></div>';
+        }
+        state.chatMessages.forEach(m => {
+          const isCustomer = m.senderType === 'customer';
+          html += '<div class="noddi-chat-message noddi-chat-message-' + (isCustomer ? 'customer' : 'agent') + '">';
+          if (!isCustomer && m.senderName) html += '<span class="noddi-chat-message-sender">' + m.senderName + '</span>';
+          html += '<div class="noddi-chat-message-bubble"' + (isCustomer ? ' style="background-color:' + config.primaryColor + '"' : '') + '>' + m.content + '</div>';
+          html += '<span class="noddi-chat-message-time">' + new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '</span>';
+          html += '</div>';
+        });
+        if (state.agentTyping) {
+          html += '<div class="noddi-chat-message noddi-chat-message-agent"><div class="noddi-chat-typing"><span></span><span></span><span></span></div></div>';
+        }
+        html += '</div>';
+
+        if (!isEnded) {
+          html += '<div class="noddi-chat-input-container">';
+          html += '<input type="text" class="noddi-chat-input" placeholder="' + t.typeMessage + '" data-chat-input>';
+          html += '<button class="noddi-chat-send" style="background-color:' + config.primaryColor + '" data-action="send-chat">' + icons.send + '</button>';
+          html += '</div>';
+        } else {
+          html += '<div class="noddi-chat-ended"><p>' + t.thankYou + '</p>';
+          html += '<button class="noddi-chat-new-button" style="background-color:' + config.primaryColor + '" data-action="back">' + t.startNewConversation + '</button></div>';
+        }
+
+        html += '</div>';
+      }
+
+      html += '</div>';
+
+      // Footer
+      html += '<div class="noddi-widget-footer"><div class="noddi-widget-footer-content">';
+      html += '<span>' + t.poweredBy + '</span>';
+      html += '<div class="noddi-widget-language-selector">';
+      html += '<button class="noddi-widget-language-btn" data-action="toggle-lang">';
+      html += '<span class="noddi-widget-flag">' + currentLang.flag + '</span><span>' + currentLang.name + '</span></button>';
+      if (state.showLangMenu) {
+        html += '<div class="noddi-widget-language-menu">';
+        SUPPORTED_LANGUAGES.forEach(l => {
+          html += '<button class="noddi-widget-language-option' + (l.code === state.lang ? ' active' : '') + '" data-lang="' + l.code + '">';
+          html += '<span class="noddi-widget-flag">' + l.flag + '</span>' + l.name + '</button>';
+        });
+        html += '</div>';
+      }
+      html += '</div></div></div>';
+      html += '</div>';
+    }
+
+    // Floating button
+    html += '<button class="noddi-widget-button" style="' + pos + ';background-color:' + config.primaryColor + '" data-action="toggle">';
+    html += state.isOpen ? icons.close : icons.chat;
+    html += '</button>';
+
+    html += '</div>';
+
+    container.innerHTML = html;
+    attachEvents();
+  }
+
+  function attachEvents() {
+    container.querySelectorAll('[data-action]').forEach(el => {
+      el.onclick = (e) => handleAction(el.dataset.action, e);
+    });
+
+    container.querySelectorAll('[data-result]').forEach(el => {
+      el.onclick = () => {
+        const idx = parseInt(el.dataset.result);
+        state.expandedResult = state.expandedResult === idx ? null : idx;
+        render();
+      };
+    });
+
+    container.querySelectorAll('[data-lang]').forEach(el => {
+      el.onclick = () => {
+        state.lang = el.dataset.lang;
+        state.showLangMenu = false;
+        setStoredLang(state.lang);
+        render();
+      };
+    });
+
+    const contactForm = container.querySelector('[data-form="contact"]');
+    if (contactForm) {
+      contactForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const t = getT(state.lang);
+        const fd = new FormData(contactForm);
+        const name = (fd.get('name') || '').trim();
+        const email = (fd.get('email') || '').trim();
+        const message = (fd.get('message') || '').trim();
+
+        if (!name || !email || !message) {
+          state.error = t.fillAllFields;
+          render();
+          return;
+        }
+        if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+          state.error = t.invalidEmail;
+          render();
+          return;
+        }
+
+        state.isLoading = true;
+        state.error = null;
+        render();
+
+        const result = await submitForm({
+          widgetKey: config.widgetKey,
+          name, email, message,
+          pageUrl: window.location.href
+        });
+
+        state.isLoading = false;
+        if (result.success) {
+          state.showSuccess = true;
+          render();
+          setTimeout(() => {
+            state.showSuccess = false;
+            state.view = 'home';
+            render();
+          }, 3000);
+        } else {
+          state.error = result.error;
+          render();
+        }
+      };
+    }
+
+    const searchForm = container.querySelector('[data-form="search"]');
+    if (searchForm) {
+      searchForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const fd = new FormData(searchForm);
+        const query = (fd.get('query') || '').trim();
+        if (!query) return;
+
+        state.isLoading = true;
+        state.hasSearched = true;
+        state.expandedResult = null;
+        render();
+
+        state.searchResults = await searchFaq(config.widgetKey, query);
+        state.isLoading = false;
+        render();
+      };
+    }
+
+    const chatInput = container.querySelector('[data-chat-input]');
+    if (chatInput) {
+      chatInput.onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleAction('send-chat');
+        }
+      };
+    }
+  }
+
+  async function handleAction(action) {
+    if (action === 'toggle' || action === 'close') {
+      state.isOpen = action === 'toggle' ? !state.isOpen : false;
+      if (!state.isOpen) {
+        state.view = 'home';
+        state.showLangMenu = false;
+        stopPolling();
+      }
+    } else if (action === 'back') {
+      state.view = 'home';
+      state.error = null;
+      state.hasSearched = false;
+      state.searchResults = [];
+      state.expandedResult = null;
+      stopPolling();
+    } else if (action === 'contact') {
+      state.view = 'contact';
+      state.error = null;
+    } else if (action === 'search') {
+      state.view = 'search';
+      state.hasSearched = false;
+      state.searchResults = [];
+      state.expandedResult = null;
+    } else if (action === 'start-chat') {
+      state.isLoading = true;
+      render();
+      const session = await startChat(config.widgetKey, getVisitorId());
+      state.isLoading = false;
+      if (session) {
+        state.chatSession = session;
+        state.chatMessages = [];
+        state.view = 'chat';
+        startPolling();
+      } else {
+        state.error = 'Unable to start chat';
+      }
+    } else if (action === 'send-chat') {
+      const input = container.querySelector('[data-chat-input]');
+      const content = (input && input.value || '').trim();
+      if (!content || !state.chatSession) return;
+      input.value = '';
+      const msg = await sendMessage(state.chatSession.id, content);
+      if (msg) {
+        state.chatMessages.push(msg);
+      }
+    } else if (action === 'end-chat') {
+      if (state.chatSession) {
+        await endChatSession(state.chatSession.id);
+        state.chatSession.status = 'ended';
+        stopPolling();
+      }
+    } else if (action === 'toggle-lang') {
+      state.showLangMenu = !state.showLangMenu;
+    }
+    render();
+  }
+
+  function startPolling() {
+    if (pollInterval) return;
+    pollInterval = setInterval(async () => {
+      if (!state.chatSession) return;
+      const data = await getMessages(state.chatSession.id);
+      if (data.messages) {
+        const existingIds = new Set(state.chatMessages.map(m => m.id));
+        data.messages.forEach(m => {
+          if (!existingIds.has(m.id)) state.chatMessages.push(m);
+        });
+      }
+      state.agentTyping = data.agentTyping || false;
+      if (data.status) state.chatSession.status = data.status;
+      render();
+    }, 3000);
+  }
+
+  function stopPolling() {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+  }
+
+  // ========== INIT ==========
+  function injectStyles() {
+    if (document.getElementById('noddi-widget-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'noddi-widget-styles';
+    style.textContent = CSS;
+    document.head.appendChild(style);
+  }
+
+  async function init(options) {
+    if (!options || !options.widgetKey) {
+      console.error('[Noddi] widgetKey is required');
+      return;
+    }
+
+    apiUrl = options.apiUrl || 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1';
+
+    injectStyles();
+
+    container = document.createElement('div');
+    container.id = 'noddi-widget-root';
+    document.body.appendChild(container);
+
+    config = await fetchConfig(options.widgetKey);
+    if (!config) {
+      console.error('[Noddi] Failed to load widget config');
+      return;
+    }
+
+    state.lang = getStoredLang() || config.language || 'no';
+    render();
+  }
+
+  // ========== GLOBAL API ==========
+  function processQueue() {
+    const q = window.NoddiWidget && window.NoddiWidget.q;
+    if (q && Array.isArray(q)) {
+      q.forEach(args => {
+        if (args[0] === 'init') init(args[1]);
+      });
+    }
+  }
+
+  const api = function(cmd, opts) {
+    if (cmd === 'init') init(opts);
+  };
+  api.init = init;
+  api.q = (window.NoddiWidget && window.NoddiWidget.q) || [];
+
+  window.NoddiWidget = api;
+  window.noddi = api;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', processQueue);
+  } else {
+    processQueue();
+  }
+})();
+`.trim();
+
+Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const url = new URL(req.url);
+  const action = url.searchParams.get('action');
+
+  // Serve the widget JS directly
+  if (req.method === 'GET' && !action) {
+    return new Response(WIDGET_JS, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/javascript',
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  }
+
+  // Deploy action - upload to storage
+  if (req.method === 'POST' && action === 'deploy') {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('widget')
+        .upload('widget.js', WIDGET_JS, {
+          contentType: 'application/javascript',
+          upsert: true,
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        return new Response(JSON.stringify({ error: 'Failed to upload widget' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get public URL
+      const { data: publicUrl } = supabase.storage
+        .from('widget')
+        .getPublicUrl('widget.js');
+
+      return new Response(JSON.stringify({
+        success: true,
+        url: publicUrl.publicUrl,
+        size: WIDGET_JS.length,
+        message: 'Widget deployed successfully!'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Deploy error:', error);
+      return new Response(JSON.stringify({ error: 'Deploy failed' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  return new Response(JSON.stringify({ error: 'Invalid request' }), {
+    status: 400,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+});
