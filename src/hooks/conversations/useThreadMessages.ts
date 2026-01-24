@@ -118,6 +118,34 @@ export function useThreadMessages(conversationIds?: string | string[]) {
         pageParam: pageParam || 'initial'
       }, 'useThreadMessages');
 
+      // Extract unique agent sender_ids to fetch their profiles
+      const agentSenderIds = [...new Set(
+        (rows ?? [])
+          .filter(r => r.sender_type === 'agent' && r.sender_id)
+          .map(r => r.sender_id as string)
+      )];
+
+      // Fetch agent profiles in a secondary query (sender_id is auth user_id, not profile.id)
+      let agentProfiles: Record<string, { full_name: string; email: string }> = {};
+      if (agentSenderIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email')
+          .in('user_id', agentSenderIds);
+        
+        agentProfiles = (profiles ?? []).reduce((acc, p) => {
+          if (p.user_id) {
+            acc[p.user_id] = { full_name: p.full_name, email: p.email };
+          }
+          return acc;
+        }, {} as Record<string, { full_name: string; email: string }>);
+        
+        logger.debug('Agent profiles fetched', {
+          agentCount: agentSenderIds.length,
+          profilesFound: Object.keys(agentProfiles).length
+        }, 'useThreadMessages');
+      }
+
       // 3) Count once (first page) using the EXACT same filter for thread-aware counting
       let totalCount = 0;
       if (!pageParam) {
@@ -143,11 +171,15 @@ export function useThreadMessages(conversationIds?: string | string[]) {
         }, 'useThreadMessages');
       }
 
-      // Type the conversation data properly
+      // Type the conversation data properly and inject agent profile data
       const typedRows = (rows ?? []).map(r => ({
         ...r,
         sender_type: r.sender_type as 'customer' | 'agent',
-        conversation: Array.isArray(r.conversation) ? r.conversation[0] : r.conversation
+        conversation: Array.isArray(r.conversation) ? r.conversation[0] : r.conversation,
+        // Inject agent profile for proper attribution in normalizeMessage
+        sender_profile: r.sender_type === 'agent' && r.sender_id 
+          ? agentProfiles[r.sender_id as string] 
+          : undefined
       }));
 
       // Extract conversation customer info for normalization context
