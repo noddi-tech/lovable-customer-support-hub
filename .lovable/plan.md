@@ -1,87 +1,167 @@
 
-## Fix Inconsistent Customer Name Formatting
+## Live Chat Enhancement Plan: Customer Typing Indicators for Agents
 
 ### Problem Summary
-Two messages from the same customer display differently because:
-1. One message has proper email headers with `From: "Ole Kr. Ranvik" <email>`
-2. The other message has no headers and falls back to customer record where `full_name` equals the email address
+The agent chat UI exists but is missing the customer typing indicator feature. While visitors can see when agents are typing (via the widget), agents cannot see when customers are typing.
 
-This creates ugly formatting like `ole.kr.ranvik@gmail.com <ole.kr.ranvik@gmail.com>`.
+### Solution Overview
+Create a hook to poll for visitor typing status and integrate it into the chat UI, while also wiring up agent typing to the input component.
 
-### Solution: Smart Label Formatting in normalizeMessage.ts
+---
 
-**File:** `src/lib/normalizeMessage.ts`
+### Part 1: Create `useVisitorTyping` Hook
 
-#### Change 1: Detect when name equals email and avoid duplication (lines 356-368)
+**New File:** `src/hooks/useVisitorTyping.ts`
 
 ```typescript
-// Before building authorLabel, check if name is just the email
-const isNameJustEmail = (name: string | undefined, email: string | undefined) => {
-  if (!name || !email) return false;
-  return name.toLowerCase().trim() === email.toLowerCase().trim() ||
-         name.toLowerCase().includes(email.toLowerCase());
-};
-
-// Use conversation fallbacks only if still missing
-if (!authorLabel) {
-  if (authorType === 'customer' && ctx.conversationCustomerEmail) {
-    const e = ctx.conversationCustomerEmail.toLowerCase();
-    const n = ctx.conversationCustomerName;
-    fromEmail = fromEmail ?? e;
-    fromName = fromName ?? n;
-    
-    // Don't show "email <email>" pattern - just show email once
-    if (isNameJustEmail(n, e)) {
-      authorLabel = e; // Just the email, no redundancy
-    } else {
-      authorLabel = (n && e) ? `${n} <${e}>` : (e || n);
-    }
-  } else if (authorType === 'agent') {
-    fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
-    authorLabel = fromEmail || 'Agent';
-  }
+export function useVisitorTyping(conversationId: string | null): { isTyping: boolean } {
+  // Query chat_typing_indicators table where:
+  // - conversation_id matches
+  // - visitor_id IS NOT NULL (not an agent)
+  // - is_typing = true
+  // - updated_at within last 5 seconds (stale indicator check)
+  
+  // Poll every 2 seconds (same as message polling)
+  // Return { isTyping: boolean }
 }
 ```
 
-#### Change 2: Also apply this logic when building authorLabel earlier (line 343-345)
+**Implementation details:**
+- Use `useQuery` with `refetchInterval: 2000`
+- Query: `SELECT is_typing, updated_at FROM chat_typing_indicators WHERE conversation_id = ? AND visitor_id IS NOT NULL`
+- Consider typing stale if `updated_at` > 5 seconds ago (prevents stuck indicators)
 
-```typescript
-// Build display label (public) - avoid email duplication
-if (isNameJustEmail(cleanFromName, cleanFromEmail)) {
-  authorLabel = cleanFromEmail || cleanFromName || undefined;
-} else {
-  authorLabel =
-    (cleanFromName && cleanFromEmail) ? `${cleanFromName} <${cleanFromEmail}>`
-    : (cleanFromEmail || cleanFromName || undefined);
+---
+
+### Part 2: Update ProgressiveMessagesList to Pass Typing State
+
+**File:** `src/components/conversations/ProgressiveMessagesList.tsx`
+
+**Changes (around line 300-310):**
+```tsx
+// Import the new hook
+import { useVisitorTyping } from '@/hooks/useVisitorTyping';
+
+// Inside the component, before the isLiveChat check:
+const { isTyping: customerTyping } = useVisitorTyping(isLiveChat ? conversationId : null);
+
+// Update ChatMessagesList rendering:
+<ChatMessagesList 
+  messages={messages} 
+  customerName={conversation?.customer?.full_name}
+  customerEmail={conversation?.customer?.email}
+  conversationId={conversationId}
+  agentTyping={customerTyping}  // <-- Add this (prop name is confusing but matches existing interface)
+/>
+```
+
+---
+
+### Part 3: Rename Prop for Clarity (Optional but Recommended)
+
+**File:** `src/components/conversations/ChatMessagesList.tsx`
+
+**Change prop name for clarity:**
+```tsx
+interface ChatMessagesListProps {
+  messages: NormalizedMessage[];
+  customerName?: string;
+  customerEmail?: string;
+  customerTyping?: boolean;  // Renamed from agentTyping for clarity
+  conversationId?: string;
 }
 ```
 
-### Bonus: Update Customer Record When Better Name Available
+This makes the code self-documenting - "customerTyping" clearly means "is the customer currently typing?"
 
-When a message arrives with a proper name in the `From:` header, we should update the customer record so future messages also benefit.
+---
 
-**This is already happening via Noddi sync** according to memory context, but we can ensure the fallback display is always clean.
+### Part 4: Integrate Agent Typing into ChatReplyInput
 
-### Expected Behavior After Fix
+**File:** `src/components/conversations/ChatReplyInput.tsx`
 
-| Scenario | Before | After |
-|----------|--------|-------|
-| Headers with proper name | `"Ole Kr. Ranvik"` | `"Ole Kr. Ranvik"` (unchanged) |
-| No headers, customer.full_name = email | `ole.kr.ranvik@gmail.com <ole.kr.ranvik@gmail.com>` | `ole.kr.ranvik@gmail.com` |
-| No headers, customer has real name | `Ole Ranvik <ole@email.com>` | `Ole Ranvik <ole@email.com>` (unchanged) |
+**Changes:**
+```tsx
+import { useAgentTyping } from '@/hooks/useAgentTyping';
+
+// Inside component:
+const { handleTyping, stopTyping } = useAgentTyping({ 
+  conversationId,
+  enabled: true 
+});
+
+// Update Input component:
+<Input 
+  placeholder="Type a message..." 
+  value={message}
+  onChange={(e) => {
+    setMessage(e.target.value);
+    handleTyping();  // <-- Trigger typing indicator
+  }}
+  onKeyDown={handleKeyDown}
+  onBlur={stopTyping}  // <-- Clear when focus leaves
+/>
+
+// Also call stopTyping() in handleSend after successful send
+```
+
+---
 
 ### Files to Modify
-1. **`src/lib/normalizeMessage.ts`** - Add deduplication logic for author labels
 
-### Optional: Backfill Customer Names
-Run a one-time data migration to update customers where `full_name = email`:
-```sql
--- Find customers with email as name
-SELECT id, full_name, email 
-FROM customers 
-WHERE lower(full_name) = lower(email);
+| File | Change |
+|------|--------|
+| `src/hooks/useVisitorTyping.ts` | **NEW** - Hook to poll visitor typing status |
+| `src/components/conversations/ProgressiveMessagesList.tsx` | Add hook call, pass prop to ChatMessagesList |
+| `src/components/conversations/ChatMessagesList.tsx` | Rename `agentTyping` to `customerTyping` for clarity |
+| `src/components/conversations/ChatReplyInput.tsx` | Integrate `useAgentTyping` hook |
 
--- Could extract names from message headers for these customers
+---
+
+### Data Flow After Implementation
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CUSTOMER TYPING FLOW                         │
+├─────────────────────────────────────────────────────────────────┤
+│  Widget Input → widget-chat API → chat_typing_indicators table  │
+│                                           ↓                     │
+│  useVisitorTyping (polls every 2s) ← chat_typing_indicators     │
+│                     ↓                                           │
+│  ProgressiveMessagesList → ChatMessagesList (shows indicator)   │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     AGENT TYPING FLOW                           │
+├─────────────────────────────────────────────────────────────────┤
+│  ChatReplyInput.onChange → useAgentTyping.handleTyping()        │
+│                     ↓                                           │
+│  chat_typing_indicators table (upsert with user_id)             │
+│                     ↓                                           │
+│  widget-chat API (polls) → Widget LiveChat (shows indicator)    │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-This is optional since the display fix will handle it gracefully.
+---
+
+### Expected Behavior
+
+1. **When customer types in widget:**
+   - Widget sends typing status via `widget-chat` API
+   - Agent UI polls `chat_typing_indicators` every 2s
+   - Bouncing dots appear under customer's avatar in agent chat view
+
+2. **When agent types in chat input:**
+   - `useAgentTyping` hook writes to `chat_typing_indicators`
+   - Widget polls for agent typing (already implemented)
+   - Customer sees bouncing dots indicator
+
+3. **Stale indicator prevention:**
+   - Indicators auto-clear after 3-5 seconds of no updates
+   - Prevents "stuck" typing indicators if connection drops
+
+---
+
+### No Database Changes Required
+
+The `chat_typing_indicators` table already supports both agent (`user_id`) and visitor (`visitor_id`) typing tracking with proper constraints.
