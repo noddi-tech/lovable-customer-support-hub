@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { 
   RefreshCw,
   ArrowLeft,
@@ -24,6 +25,8 @@ import { useConversationPresenceSafe } from '@/contexts/ConversationPresenceCont
 import { PresenceAvatarStack } from '@/components/conversations/PresenceAvatarStack';
 import { TagDialog } from './TagDialog';
 import { SnoozeDialog } from './SnoozeDialog';
+import { useVisitorOnlineStatus } from '@/hooks/useVisitorOnlineStatus';
+import { formatDistanceToNow } from 'date-fns';
 import { 
   Dialog,
   DialogContent, 
@@ -122,6 +125,114 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
     removeTag,
   } = useConversationView();
 
+  // Check if this is a live chat (widget channel)
+  const isLiveChat = conversation?.channel === 'widget';
+  
+  // Track visitor online status for live chat
+  const { data: onlineStatus } = useVisitorOnlineStatus(isLiveChat ? conversationId : null);
+
+  // Handle back navigation
+  const handleBack = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('c');
+    setSearchParams(newParams);
+  };
+
+  // ============ LIVE CHAT UI (WhatsApp-style) ============
+  if (isLiveChat) {
+    return (
+      <div className="flex h-full bg-background">
+        {/* Full-width chat container - no side panel */}
+        <div className="flex flex-col flex-1 min-h-0">
+          {/* Compact Chat Header */}
+          <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-background shadow-sm">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleBack}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Small avatar */}
+            <Avatar className="h-9 w-9 ring-1 ring-border shrink-0">
+              <AvatarFallback className="text-sm">
+                {getCustomerInitial(customerDisplay.displayName, customerDisplay.email)}
+              </AvatarFallback>
+            </Avatar>
+            
+            {/* Customer info + online status */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm truncate">
+                  {customerDisplay.displayName}
+                </span>
+                {/* Online status dot */}
+                <div className={cn(
+                  "w-2 h-2 rounded-full shrink-0",
+                  onlineStatus?.isOnline 
+                    ? "bg-green-500 animate-pulse" 
+                    : "bg-gray-400"
+                )} />
+                <Badge 
+                  variant="outline" 
+                  className={cn(
+                    "text-xs shrink-0",
+                    onlineStatus?.isOnline 
+                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                      : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
+                  )}
+                >
+                  {onlineStatus?.isOnline ? 'Online' : 'Offline'}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                {customerDisplay.showEmail && customerDisplay.email && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {customerDisplay.email}
+                  </span>
+                )}
+                {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
+                  <span className="text-xs text-muted-foreground">
+                    · Last seen {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Team presence */}
+            <PresenceAvatarStack 
+              conversationId={conversationId} 
+              size="sm" 
+              maxAvatars={2}
+              className="shrink-0"
+            />
+          </div>
+          
+          {/* Chat Messages Area - full height, compact mode skips duplicate header */}
+          <ProgressiveMessagesList 
+            ref={messagesListRef}
+            conversationId={conversationId}
+            conversationIds={conversationIds}
+            conversation={conversation}
+            compactChatMode={true}
+          />
+        </div>
+        
+        {/* Dialogs still needed for chat */}
+        <TagDialog
+          open={state.tagDialogOpen}
+          onOpenChange={(open) => dispatch({ type: 'SET_TAG_DIALOG', payload: open })}
+          currentTags={((conversation.metadata as Record<string, any> || {}).tags || []) as string[]}
+          onAddTag={addTag}
+          onRemoveTag={removeTag}
+        />
+      </div>
+    );
+  }
+
+  // ============ EMAIL UI (Original layout) ============
   return (
     <div className="flex h-full">
       {/* Main conversation area */}
@@ -134,11 +245,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => {
-                  const newParams = new URLSearchParams(searchParams);
-                  newParams.delete('c');
-                  setSearchParams(newParams);
-                }}
+                onClick={handleBack}
                 className="flex items-center gap-2 shrink-0"
               >
                 <ArrowLeft className="h-4 w-4" />

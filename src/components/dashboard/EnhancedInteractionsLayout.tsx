@@ -22,7 +22,7 @@ import { getCustomerDisplay } from '@/utils/customerDisplayName';
 // Define conversation types
 type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 type ConversationPriority = "low" | "normal" | "high" | "urgent";
-type ConversationChannel = "email" | "chat" | "social" | "facebook" | "instagram" | "whatsapp";
+type ConversationChannel = "email" | "chat" | "widget" | "social" | "facebook" | "instagram" | "whatsapp";
 
 interface Customer {
   id: string;

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Archive, Trash2, MessageCircle, Mail, MailOpen } from 'lucide-react';
+import { MoreVertical, Archive, Trash2, MessageCircle, Mail, MailOpen, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import { useConversationList, type Conversation } from '@/contexts/ConversationListContext';
@@ -29,9 +29,10 @@ const statusColors = {
   closed: "bg-muted text-muted-foreground",
 };
 
-const channelIcons = {
+const channelIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   email: MessageCircle,
   chat: MessageCircle,
+  widget: Globe,  // Widget/live chat gets Globe icon
   social: MessageCircle,
   facebook: MessageCircle,
   instagram: MessageCircle,
@@ -183,11 +184,22 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
           </div>
         </div>
 
-        {/* Channel */}
-        <div className="p-2 w-20 shrink-0">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <computedValues.ChannelIcon className="h-3 w-3" />
-            <span className="capitalize">{conversation.channel}</span>
+        {/* Channel - with special LIVE badge for widget/chat */}
+        <div className="p-2 w-28 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <computedValues.ChannelIcon className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground capitalize">
+              {conversation.channel === 'widget' ? 'Chat' : conversation.channel}
+            </span>
+            {/* Pulsing LIVE badge for active widget sessions */}
+            {conversation.channel === 'widget' && conversation.status === 'open' && (
+              <Badge 
+                variant="outline" 
+                className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-700 animate-pulse"
+              >
+                LIVE
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -312,11 +324,22 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(({
         </div>
       </TableCell>
 
-      {/* Channel */}
-      <TableCell className="p-2 w-20">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <computedValues.ChannelIcon className="h-3 w-3" />
-          <span className="capitalize">{conversation.channel}</span>
+      {/* Channel - with special LIVE badge for widget/chat */}
+      <TableCell className="p-2 w-28">
+        <div className="flex items-center gap-1.5">
+          <computedValues.ChannelIcon className="h-3 w-3 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground capitalize">
+            {conversation.channel === 'widget' ? 'Chat' : conversation.channel}
+          </span>
+          {/* Pulsing LIVE badge for active widget sessions */}
+          {conversation.channel === 'widget' && conversation.status === 'open' && (
+            <Badge 
+              variant="outline" 
+              className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-700 animate-pulse"
+            >
+              LIVE
+            </Badge>
+          )}
         </div>
       </TableCell>
 

@@ -9,7 +9,7 @@ import { useAgents, toAgentSimple } from '@/hooks/useAgents';
 
 export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
 export type ConversationPriority = "low" | "normal" | "high" | "urgent";
-export type ConversationChannel = "email" | "chat" | "social" | "facebook" | "instagram" | "whatsapp";
+export type ConversationChannel = "email" | "chat" | "widget" | "social" | "facebook" | "instagram" | "whatsapp";
 export type SortBy = "latest" | "oldest" | "priority" | "unread";
 
 export interface Customer {
