@@ -13,8 +13,11 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { LazyReplyArea } from "./LazyReplyArea";
 import { useVisitorTyping } from "@/hooks/useVisitorTyping";
+import { useVisitorOnlineStatus } from "@/hooks/useVisitorOnlineStatus";
+import { useChatMessageNotifications } from "@/hooks/useChatMessageNotifications";
 import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from 'date-fns';
 
 interface ProgressiveMessagesListProps {
   conversationId: string;
@@ -266,6 +269,38 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
 
   // Poll for visitor typing status (only for live chat)
   const { isTyping: customerTyping } = useVisitorTyping(isLiveChat ? conversationId : null);
+  
+  // Track visitor online status (only for live chat)
+  const { data: onlineStatus } = useVisitorOnlineStatus(isLiveChat ? conversationId : null);
+  
+  // Sound notifications for new customer messages
+  const { playMessageSound } = useChatMessageNotifications({ 
+    soundEnabled: true, 
+    soundVolume: 0.5 
+  });
+  const prevMessageCountRef = useRef(messages.length);
+  const prevMessagesRef = useRef<typeof messages>([]);
+  
+  // Play sound when new CUSTOMER message arrives in live chat
+  useEffect(() => {
+    if (!isLiveChat) return;
+    
+    // Only check if message count increased
+    if (messages.length > prevMessageCountRef.current) {
+      // Find the newest messages that weren't in the previous list
+      const prevIds = new Set(prevMessagesRef.current.map(m => m.id));
+      const newMessages = messages.filter(m => !prevIds.has(m.id));
+      
+      // Check if any new message is from customer
+      const hasNewCustomerMessage = newMessages.some(m => m.authorType === 'customer');
+      if (hasNewCustomerMessage) {
+        playMessageSound();
+      }
+    }
+    
+    prevMessageCountRef.current = messages.length;
+    prevMessagesRef.current = messages;
+  }, [messages, isLiveChat, playMessageSound]);
 
   if (isLoading) {
     return (
@@ -291,14 +326,37 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
   if (isLiveChat) {
     return (
       <div className="flex-1 min-h-0 flex flex-col">
-        {/* Chat header */}
+        {/* Chat header with dynamic online status */}
         <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/30">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          {/* Status indicator - dynamic based on visitor heartbeat */}
+          <div className={cn(
+            "w-2 h-2 rounded-full",
+            onlineStatus?.isOnline 
+              ? "bg-green-500 animate-pulse" 
+              : "bg-gray-400"
+          )} />
           <Globe className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Live Chat</span>
-          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200 text-xs">
-            Active
+          
+          {/* Dynamic status badge */}
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "ml-2 text-xs",
+              onlineStatus?.isOnline 
+                ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
+            )}
+          >
+            {onlineStatus?.isOnline ? 'Online' : 'Offline'}
           </Badge>
+          
+          {/* Show last seen if offline */}
+          {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
+            <span className="text-xs text-muted-foreground">
+              Last seen {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
+            </span>
+          )}
         </div>
         
         {/* Chat messages */}
