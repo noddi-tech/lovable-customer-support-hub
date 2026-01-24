@@ -381,9 +381,15 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
         authorLabel = (n && e) ? `${n} <${e}>` : (e || n);
       }
     } else if (authorType === 'agent') {
-      // Prefer inbox email over current user email for agent messages
-      fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
-      authorLabel = fromEmail || 'Agent';
+      // For agents: prefer profile data if available, then inbox email
+      if (senderProfile) {
+        fromName = fromName ?? senderProfile.full_name;
+        fromEmail = fromEmail ?? senderProfile.email;
+        authorLabel = senderProfile.full_name || senderProfile.email || 'Agent';
+      } else {
+        fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
+        authorLabel = fromName || fromEmail || 'Agent';
+      }
     }
   }
 
