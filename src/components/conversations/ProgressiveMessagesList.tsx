@@ -25,6 +25,8 @@ interface ProgressiveMessagesListProps {
   conversationIds?: string | string[];
   onEditMessage?: (messageId: string, content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  /** When true, skips the internal Live Chat header (used when parent renders its own header) */
+  compactChatMode?: boolean;
 }
 
 export interface ProgressiveMessagesListRef {
@@ -37,7 +39,8 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
   conversation,
   conversationIds,
   onEditMessage, 
-  onDeleteMessage 
+  onDeleteMessage,
+  compactChatMode = false
 }, ref) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -326,38 +329,40 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
   if (isLiveChat) {
     return (
       <div className="flex-1 min-h-0 flex flex-col">
-        {/* Chat header with dynamic online status */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/30">
-          {/* Status indicator - dynamic based on visitor heartbeat */}
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            onlineStatus?.isOnline 
-              ? "bg-green-500 animate-pulse" 
-              : "bg-gray-400"
-          )} />
-          <Globe className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Live Chat</span>
-          
-          {/* Dynamic status badge */}
-          <Badge 
-            variant="outline" 
-            className={cn(
-              "ml-2 text-xs",
+        {/* Chat header - only show if NOT in compact mode (parent renders its own header) */}
+        {!compactChatMode && (
+          <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/30">
+            {/* Status indicator - dynamic based on visitor heartbeat */}
+            <div className={cn(
+              "w-2 h-2 rounded-full",
               onlineStatus?.isOnline 
-                ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-                : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
+                ? "bg-green-500 animate-pulse" 
+                : "bg-gray-400"
+            )} />
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Live Chat</span>
+            
+            {/* Dynamic status badge */}
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "ml-2 text-xs",
+                onlineStatus?.isOnline 
+                  ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                  : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
+              )}
+            >
+              {onlineStatus?.isOnline ? 'Online' : 'Offline'}
+            </Badge>
+            
+            {/* Show last seen if offline */}
+            {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
+              <span className="text-xs text-muted-foreground">
+                Last seen {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
+              </span>
             )}
-          >
-            {onlineStatus?.isOnline ? 'Online' : 'Offline'}
-          </Badge>
-          
-          {/* Show last seen if offline */}
-          {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
-            <span className="text-xs text-muted-foreground">
-              Last seen {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
-            </span>
-          )}
-        </div>
+          </div>
+        )}
         
         {/* Chat messages */}
         <ChatMessagesList 
