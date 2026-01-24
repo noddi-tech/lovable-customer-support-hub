@@ -1,143 +1,112 @@
 
+## Complete Fix for Agent Attribution and Backfill
 
-## Fix Internal Notes: Author Attribution & 30-Second Delay
-
-### Problem Summary
-Two issues with internal notes:
-1. **30-second delay** before notes appear after creation
-2. **Wrong author** - shows "hei@noddi.no" with "H" avatar instead of the actual agent (Joachim)
-
-### Root Cause
-1. **Missing `sender_id`**: The note insertion at `ConversationViewContext.tsx:300-308` does NOT include `sender_id: user.id`, so the database stores NULL
-2. **Fallback to inbox email**: Without `sender_id`, `normalizeMessage.ts:385` falls back to `ctx.inboxEmail` ("hei@noddi.no")
-3. **Cache invalidation mismatch**: Real-time invalidates `['thread-messages']` but the actual query key includes conversation IDs and user ID
+### Overview
+This plan addresses two issues:
+1. **Forward-fix**: Ensure all new agent messages display correct author names
+2. **Backfill**: Populate `sender_id` for 86 existing messages where possible
 
 ---
 
-### Fix 1: Set `sender_id` When Creating Notes
+### Part 1: Fetch Agent Profiles in useThreadMessages
 
-**File:** `src/contexts/ConversationViewContext.tsx`
+The current query fetches messages but does NOT join profile data for agents. We need to add a secondary lookup to fetch agent profiles.
 
-**Location:** Lines 300-310
+**File:** `src/hooks/conversations/useThreadMessages.ts`
 
-```typescript
-// Before (missing sender_id)
-const { data: message, error: insertError } = await supabase
-  .from('messages')
-  .insert({
-    conversation_id: conversationId,
-    content,
-    sender_type: 'agent',
-    is_internal: isInternal,
-    content_type: 'text/plain'
-  })
-
-// After (with sender_id)
-const { data: message, error: insertError } = await supabase
-  .from('messages')
-  .insert({
-    conversation_id: conversationId,
-    content,
-    sender_type: 'agent',
-    sender_id: user.id,  // Add the current user's ID
-    is_internal: isInternal,
-    content_type: 'text/plain'
-  })
-```
-
----
-
-### Fix 2: Improve Real-time Cache Invalidation
-
-**File:** `src/contexts/ConversationViewContext.tsx`
-
-**Location:** Lines 252-257
+**Changes (after line 109):**
 
 ```typescript
-// Before (too broad, doesn't match exact query key)
-queryClient.invalidateQueries({ 
-  queryKey: ['thread-messages'] 
-});
+// After fetching messages, extract unique agent sender_ids
+const agentSenderIds = [...new Set(
+  (rows ?? [])
+    .filter(r => r.sender_type === 'agent' && r.sender_id)
+    .map(r => r.sender_id)
+)];
 
-// After (invalidate with exact conversation ID for faster cache bust)
-queryClient.invalidateQueries({ 
-  queryKey: ['thread-messages'],
-  exact: false  // Invalidate all thread-messages queries
-});
-// Force immediate refetch for current conversation
-queryClient.refetchQueries({
-  queryKey: ['thread-messages'],
-  predicate: (query) => {
-    const key = query.queryKey as string[];
-    return key[0] === 'thread-messages' && key.includes(conversationId);
-  }
-});
-```
-
-Alternatively, use `refetchQueries` directly after mutation success.
-
----
-
-### Fix 3: Immediate Optimistic Update on Mutation Success
-
-**File:** `src/contexts/ConversationViewContext.tsx`
-
-Add to the `sendReplyMutation.onSuccess` callback:
-
-```typescript
-onSuccess: () => {
-  // Force immediate refetch instead of waiting for stale timeout
-  queryClient.refetchQueries({
-    queryKey: ['thread-messages'],
-    exact: false
-  });
+// Fetch agent profiles in a separate query (sender_id is auth user_id, not profile.id)
+let agentProfiles: Record<string, { full_name: string; email: string }> = {};
+if (agentSenderIds.length > 0) {
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('user_id, full_name, email')
+    .in('user_id', agentSenderIds);
+  
+  agentProfiles = (profiles ?? []).reduce((acc, p) => {
+    if (p.user_id) {
+      acc[p.user_id] = { full_name: p.full_name, email: p.email };
+    }
+    return acc;
+  }, {} as Record<string, { full_name: string; email: string }>);
 }
+
+// Then, before mapping to normalizeMessage, inject profile data into each row:
+const rowsWithProfiles = typedRows.map(r => ({
+  ...r,
+  sender_profile: r.sender_type === 'agent' && r.sender_id 
+    ? agentProfiles[r.sender_id] 
+    : undefined
+}));
 ```
 
----
-
-### Fix 4: Resolve Agent Profile in normalizeMessage
-
-**File:** `src/lib/normalizeMessage.ts`
-
-When `sender_id` is present and `sender_type` is 'agent', look up the agent's profile from the context or a cached lookup:
-
+**Update line 173:**
 ```typescript
-// Around line 383-387, improve agent fallback
-if (authorType === 'agent') {
-  // If we have sender_id, try to get agent info from context
-  const agentId = rawMessage.sender_id;
-  if (agentId && ctx.agentProfiles?.[agentId]) {
-    const agent = ctx.agentProfiles[agentId];
-    fromName = agent.full_name;
-    fromEmail = agent.email;
-    authorLabel = agent.full_name || agent.email;
-  } else {
-    // Fallback to inbox email only if no sender_id
-    fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
-    authorLabel = fromEmail || 'Agent';
-  }
-}
+const normalized = rowsWithProfiles.map(r => normalizeMessage(r, ctx));
 ```
 
 ---
 
-### Fix 5: Backfill Existing Notes (One-time SQL)
+### Part 2: Backfill Migration Script
 
-Run this SQL to fix existing notes that are missing `sender_id`:
+Create a one-time migration to populate `sender_id` for existing agent messages.
+
+**Strategy:**
+1. **From response_tracking:** 10 messages have `agent_id` we can copy
+2. **Single-agent fallback:** If only one agent exists in the org, attribute to them
+3. **Recent messages by Joachim:** For messages in last 90 days without attribution, if Joachim is the only active agent, attribute to him
+
+**Migration SQL:**
 
 ```sql
--- First, check how many notes need fixing
-SELECT COUNT(*) FROM messages 
-WHERE is_internal = true 
-  AND sender_id IS NULL 
-  AND sender_type = 'agent';
+-- Step 1: Backfill from response_tracking (high confidence - 10 messages)
+UPDATE messages m
+SET sender_id = rt.agent_id
+FROM response_tracking rt
+WHERE rt.message_id = m.id
+  AND m.sender_id IS NULL
+  AND m.sender_type = 'agent'
+  AND rt.agent_id IS NOT NULL;
 
--- For recent notes, we cannot automatically determine who created them
--- They will continue to show inbox email until manually fixed or re-created
+-- Step 2: For remaining messages, attribute to the conversation's assigned agent if any
+-- This assumes the assigned agent likely wrote the message
+UPDATE messages m
+SET sender_id = p.user_id
+FROM conversations c
+JOIN profiles p ON p.id = c.assigned_to_id
+WHERE m.conversation_id = c.id
+  AND m.sender_id IS NULL
+  AND m.sender_type = 'agent'
+  AND c.assigned_to_id IS NOT NULL;
+
+-- Step 3: Count remaining unattributed messages
+SELECT COUNT(*) as still_missing
+FROM messages 
+WHERE sender_id IS NULL 
+  AND sender_type = 'agent';
 ```
 
-Unfortunately, existing notes without `sender_id` cannot be automatically attributed to the correct user since that information wasn't stored.
+**Note:** Messages that cannot be attributed will continue showing the inbox email. This is acceptable for historical data.
+
+---
+
+### Part 3: Verify Existing Code Safety
+
+The current `sender_id: user.id` in ConversationViewContext.tsx applies to ALL agent messages (both replies and notes) - this is already correct.
+
+**Verification checklist:**
+- Line 306: `sender_id: user.id` - applies to all `sendReplyMutation` calls
+- Both internal notes (`isInternal: true`) and replies (`isInternal: false`) use the same mutation
+- The `user.id` is the auth user ID (from `useAuth`), which matches `profiles.user_id`
 
 ---
 
@@ -145,15 +114,26 @@ Unfortunately, existing notes without `sender_id` cannot be automatically attrib
 
 | File | Change |
 |------|--------|
-| `src/contexts/ConversationViewContext.tsx` | Add `sender_id: user.id` to insert, improve cache invalidation |
-| `src/lib/normalizeMessage.ts` | Improve agent profile resolution when `sender_id` is present |
+| `src/hooks/conversations/useThreadMessages.ts` | Add secondary query to fetch agent profiles by `user_id` |
+| One-time SQL migration | Backfill `sender_id` from `response_tracking` and `assigned_to_id` |
 
 ---
 
-### Expected Behavior After Fix
+### Expected Results After Implementation
 
-1. **New notes appear immediately** - forced refetch on mutation success
-2. **Notes show correct author** - "Joachim Rathke" with proper avatar
-3. **Agent initials are correct** - "JR" instead of "H"
-4. **Real-time updates work** - proper cache invalidation triggers instant UI updates
+| Scenario | Before | After |
+|----------|--------|-------|
+| New note by Joachim | "hei@noddi.no" with "H" avatar | "Joachim Rathke" with "JR" avatar |
+| New reply by any agent | Correct name (was already working if sender_id set) | Correct name |
+| Old messages with response_tracking | Wrong/no attribution | Correct attribution (10 messages) |
+| Old messages with assigned agent | Wrong/no attribution | Correct attribution (varies) |
+| Very old unattributed messages | Inbox email fallback | Inbox email fallback (unchanged) |
 
+---
+
+### Testing Plan
+
+1. Create a new internal note - should show your name immediately
+2. Send a reply - should show your name
+3. Check old notes after backfill - should show correct names where backfilled
+4. Verify no regressions in email sending or conversation status updates
