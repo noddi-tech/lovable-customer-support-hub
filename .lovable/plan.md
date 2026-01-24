@@ -1,109 +1,143 @@
 
-## Live Chat Enhancement Plan: Customer Typing Indicators for Agents
+
+## Fix Internal Notes: Author Attribution & 30-Second Delay
 
 ### Problem Summary
-The agent chat UI exists but is missing the customer typing indicator feature. While visitors can see when agents are typing (via the widget), agents cannot see when customers are typing.
+Two issues with internal notes:
+1. **30-second delay** before notes appear after creation
+2. **Wrong author** - shows "hei@noddi.no" with "H" avatar instead of the actual agent (Joachim)
 
-### Solution Overview
-Create a hook to poll for visitor typing status and integrate it into the chat UI, while also wiring up agent typing to the input component.
+### Root Cause
+1. **Missing `sender_id`**: The note insertion at `ConversationViewContext.tsx:300-308` does NOT include `sender_id: user.id`, so the database stores NULL
+2. **Fallback to inbox email**: Without `sender_id`, `normalizeMessage.ts:385` falls back to `ctx.inboxEmail` ("hei@noddi.no")
+3. **Cache invalidation mismatch**: Real-time invalidates `['thread-messages']` but the actual query key includes conversation IDs and user ID
 
 ---
 
-### Part 1: Create `useVisitorTyping` Hook
+### Fix 1: Set `sender_id` When Creating Notes
 
-**New File:** `src/hooks/useVisitorTyping.ts`
+**File:** `src/contexts/ConversationViewContext.tsx`
+
+**Location:** Lines 300-310
 
 ```typescript
-export function useVisitorTyping(conversationId: string | null): { isTyping: boolean } {
-  // Query chat_typing_indicators table where:
-  // - conversation_id matches
-  // - visitor_id IS NOT NULL (not an agent)
-  // - is_typing = true
-  // - updated_at within last 5 seconds (stale indicator check)
-  
-  // Poll every 2 seconds (same as message polling)
-  // Return { isTyping: boolean }
-}
-```
+// Before (missing sender_id)
+const { data: message, error: insertError } = await supabase
+  .from('messages')
+  .insert({
+    conversation_id: conversationId,
+    content,
+    sender_type: 'agent',
+    is_internal: isInternal,
+    content_type: 'text/plain'
+  })
 
-**Implementation details:**
-- Use `useQuery` with `refetchInterval: 2000`
-- Query: `SELECT is_typing, updated_at FROM chat_typing_indicators WHERE conversation_id = ? AND visitor_id IS NOT NULL`
-- Consider typing stale if `updated_at` > 5 seconds ago (prevents stuck indicators)
-
----
-
-### Part 2: Update ProgressiveMessagesList to Pass Typing State
-
-**File:** `src/components/conversations/ProgressiveMessagesList.tsx`
-
-**Changes (around line 300-310):**
-```tsx
-// Import the new hook
-import { useVisitorTyping } from '@/hooks/useVisitorTyping';
-
-// Inside the component, before the isLiveChat check:
-const { isTyping: customerTyping } = useVisitorTyping(isLiveChat ? conversationId : null);
-
-// Update ChatMessagesList rendering:
-<ChatMessagesList 
-  messages={messages} 
-  customerName={conversation?.customer?.full_name}
-  customerEmail={conversation?.customer?.email}
-  conversationId={conversationId}
-  agentTyping={customerTyping}  // <-- Add this (prop name is confusing but matches existing interface)
-/>
+// After (with sender_id)
+const { data: message, error: insertError } = await supabase
+  .from('messages')
+  .insert({
+    conversation_id: conversationId,
+    content,
+    sender_type: 'agent',
+    sender_id: user.id,  // Add the current user's ID
+    is_internal: isInternal,
+    content_type: 'text/plain'
+  })
 ```
 
 ---
 
-### Part 3: Rename Prop for Clarity (Optional but Recommended)
+### Fix 2: Improve Real-time Cache Invalidation
 
-**File:** `src/components/conversations/ChatMessagesList.tsx`
+**File:** `src/contexts/ConversationViewContext.tsx`
 
-**Change prop name for clarity:**
-```tsx
-interface ChatMessagesListProps {
-  messages: NormalizedMessage[];
-  customerName?: string;
-  customerEmail?: string;
-  customerTyping?: boolean;  // Renamed from agentTyping for clarity
-  conversationId?: string;
-}
-```
+**Location:** Lines 252-257
 
-This makes the code self-documenting - "customerTyping" clearly means "is the customer currently typing?"
-
----
-
-### Part 4: Integrate Agent Typing into ChatReplyInput
-
-**File:** `src/components/conversations/ChatReplyInput.tsx`
-
-**Changes:**
-```tsx
-import { useAgentTyping } from '@/hooks/useAgentTyping';
-
-// Inside component:
-const { handleTyping, stopTyping } = useAgentTyping({ 
-  conversationId,
-  enabled: true 
+```typescript
+// Before (too broad, doesn't match exact query key)
+queryClient.invalidateQueries({ 
+  queryKey: ['thread-messages'] 
 });
 
-// Update Input component:
-<Input 
-  placeholder="Type a message..." 
-  value={message}
-  onChange={(e) => {
-    setMessage(e.target.value);
-    handleTyping();  // <-- Trigger typing indicator
-  }}
-  onKeyDown={handleKeyDown}
-  onBlur={stopTyping}  // <-- Clear when focus leaves
-/>
-
-// Also call stopTyping() in handleSend after successful send
+// After (invalidate with exact conversation ID for faster cache bust)
+queryClient.invalidateQueries({ 
+  queryKey: ['thread-messages'],
+  exact: false  // Invalidate all thread-messages queries
+});
+// Force immediate refetch for current conversation
+queryClient.refetchQueries({
+  queryKey: ['thread-messages'],
+  predicate: (query) => {
+    const key = query.queryKey as string[];
+    return key[0] === 'thread-messages' && key.includes(conversationId);
+  }
+});
 ```
+
+Alternatively, use `refetchQueries` directly after mutation success.
+
+---
+
+### Fix 3: Immediate Optimistic Update on Mutation Success
+
+**File:** `src/contexts/ConversationViewContext.tsx`
+
+Add to the `sendReplyMutation.onSuccess` callback:
+
+```typescript
+onSuccess: () => {
+  // Force immediate refetch instead of waiting for stale timeout
+  queryClient.refetchQueries({
+    queryKey: ['thread-messages'],
+    exact: false
+  });
+}
+```
+
+---
+
+### Fix 4: Resolve Agent Profile in normalizeMessage
+
+**File:** `src/lib/normalizeMessage.ts`
+
+When `sender_id` is present and `sender_type` is 'agent', look up the agent's profile from the context or a cached lookup:
+
+```typescript
+// Around line 383-387, improve agent fallback
+if (authorType === 'agent') {
+  // If we have sender_id, try to get agent info from context
+  const agentId = rawMessage.sender_id;
+  if (agentId && ctx.agentProfiles?.[agentId]) {
+    const agent = ctx.agentProfiles[agentId];
+    fromName = agent.full_name;
+    fromEmail = agent.email;
+    authorLabel = agent.full_name || agent.email;
+  } else {
+    // Fallback to inbox email only if no sender_id
+    fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
+    authorLabel = fromEmail || 'Agent';
+  }
+}
+```
+
+---
+
+### Fix 5: Backfill Existing Notes (One-time SQL)
+
+Run this SQL to fix existing notes that are missing `sender_id`:
+
+```sql
+-- First, check how many notes need fixing
+SELECT COUNT(*) FROM messages 
+WHERE is_internal = true 
+  AND sender_id IS NULL 
+  AND sender_type = 'agent';
+
+-- For recent notes, we cannot automatically determine who created them
+-- They will continue to show inbox email until manually fixed or re-created
+```
+
+Unfortunately, existing notes without `sender_id` cannot be automatically attributed to the correct user since that information wasn't stored.
 
 ---
 
@@ -111,57 +145,15 @@ const { handleTyping, stopTyping } = useAgentTyping({
 
 | File | Change |
 |------|--------|
-| `src/hooks/useVisitorTyping.ts` | **NEW** - Hook to poll visitor typing status |
-| `src/components/conversations/ProgressiveMessagesList.tsx` | Add hook call, pass prop to ChatMessagesList |
-| `src/components/conversations/ChatMessagesList.tsx` | Rename `agentTyping` to `customerTyping` for clarity |
-| `src/components/conversations/ChatReplyInput.tsx` | Integrate `useAgentTyping` hook |
+| `src/contexts/ConversationViewContext.tsx` | Add `sender_id: user.id` to insert, improve cache invalidation |
+| `src/lib/normalizeMessage.ts` | Improve agent profile resolution when `sender_id` is present |
 
 ---
 
-### Data Flow After Implementation
+### Expected Behavior After Fix
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CUSTOMER TYPING FLOW                         │
-├─────────────────────────────────────────────────────────────────┤
-│  Widget Input → widget-chat API → chat_typing_indicators table  │
-│                                           ↓                     │
-│  useVisitorTyping (polls every 2s) ← chat_typing_indicators     │
-│                     ↓                                           │
-│  ProgressiveMessagesList → ChatMessagesList (shows indicator)   │
-└─────────────────────────────────────────────────────────────────┘
+1. **New notes appear immediately** - forced refetch on mutation success
+2. **Notes show correct author** - "Joachim Rathke" with proper avatar
+3. **Agent initials are correct** - "JR" instead of "H"
+4. **Real-time updates work** - proper cache invalidation triggers instant UI updates
 
-┌─────────────────────────────────────────────────────────────────┐
-│                     AGENT TYPING FLOW                           │
-├─────────────────────────────────────────────────────────────────┤
-│  ChatReplyInput.onChange → useAgentTyping.handleTyping()        │
-│                     ↓                                           │
-│  chat_typing_indicators table (upsert with user_id)             │
-│                     ↓                                           │
-│  widget-chat API (polls) → Widget LiveChat (shows indicator)    │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Expected Behavior
-
-1. **When customer types in widget:**
-   - Widget sends typing status via `widget-chat` API
-   - Agent UI polls `chat_typing_indicators` every 2s
-   - Bouncing dots appear under customer's avatar in agent chat view
-
-2. **When agent types in chat input:**
-   - `useAgentTyping` hook writes to `chat_typing_indicators`
-   - Widget polls for agent typing (already implemented)
-   - Customer sees bouncing dots indicator
-
-3. **Stale indicator prevention:**
-   - Indicators auto-clear after 3-5 seconds of no updates
-   - Prevents "stuck" typing indicators if connection drops
-
----
-
-### No Database Changes Required
-
-The `chat_typing_indicators` table already supports both agent (`user_id`) and visitor (`visitor_id`) typing tracking with proper constraints.
