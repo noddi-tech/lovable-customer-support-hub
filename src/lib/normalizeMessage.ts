@@ -340,9 +340,23 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   const cleanFromName = sanitizeName(fromName);
   const cleanFromEmail = fromEmail?.toLowerCase();
   
-  let authorLabel =
-    (cleanFromName && cleanFromEmail) ? `${cleanFromName} <${cleanFromEmail}>`
-    : (cleanFromEmail || cleanFromName || undefined);
+  // Helper: Detect when name equals email to avoid duplication like "email@x <email@x>"
+  const isNameJustEmail = (name: string | undefined, email: string | undefined): boolean => {
+    if (!name || !email) return false;
+    const n = name.toLowerCase().trim();
+    const e = email.toLowerCase().trim();
+    return n === e || n.includes(e) || e.includes(n.split('@')[0]);
+  };
+  
+  // Build display label - avoid email duplication
+  let authorLabel: string | undefined;
+  if (isNameJustEmail(cleanFromName, cleanFromEmail)) {
+    authorLabel = cleanFromEmail || cleanFromName || undefined;
+  } else {
+    authorLabel =
+      (cleanFromName && cleanFromEmail) ? `${cleanFromName} <${cleanFromEmail}>`
+      : (cleanFromEmail || cleanFromName || undefined);
+  }
 
   // Detect agent/customer using context
   const isAgent =
@@ -359,7 +373,13 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
       const n = ctx.conversationCustomerName;
       fromEmail = fromEmail ?? e;
       fromName  = fromName  ?? n;
-      authorLabel = (n && e) ? `${n} <${e}>` : (e || n);
+      
+      // Don't show "email <email>" pattern - just show email once
+      if (isNameJustEmail(n, e)) {
+        authorLabel = e;
+      } else {
+        authorLabel = (n && e) ? `${n} <${e}>` : (e || n);
+      }
     } else if (authorType === 'agent') {
       // Prefer inbox email over current user email for agent messages
       fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
