@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useAgentTyping } from '@/hooks/useAgentTyping';
 
 interface ChatReplyInputProps {
   conversationId: string;
@@ -18,6 +19,12 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { state } = useConversationView();
+  
+  // Agent typing indicator
+  const { handleTyping, stopTyping } = useAgentTyping({ 
+    conversationId,
+    enabled: true 
+  });
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -95,8 +102,14 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const handleSend = useCallback(() => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage || sendMessageMutation.isPending) return;
+    stopTyping(); // Clear typing indicator before sending
     sendMessageMutation.mutate(trimmedMessage);
-  }, [message, sendMessageMutation]);
+  }, [message, sendMessageMutation, stopTyping]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessage(e.target.value);
+    handleTyping(); // Trigger typing indicator
+  }, [handleTyping]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -116,8 +129,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         placeholder="Type a message..." 
         className="flex-1 rounded-full bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleInputChange}
         onKeyDown={handleKeyDown}
+        onBlur={stopTyping}
         disabled={sendMessageMutation.isPending}
       />
       <Button 
