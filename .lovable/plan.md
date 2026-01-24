@@ -1,139 +1,361 @@
 
-## Complete Fix for Agent Attribution and Backfill
+
+## Live Chat Enhancement Plan: Transfer, Customer Status, and Sound Notifications
 
 ### Overview
-This plan addresses two issues:
-1. **Forward-fix**: Ensure all new agent messages display correct author names
-2. **Backfill**: Populate `sender_id` for 86 existing messages where possible
+This plan implements three complementary features to enhance the agent live chat experience:
+1. **Transfer Chat** - Allow agents to hand off active sessions to other team members
+2. **Customer Online/Offline Status** - Show visitor connectivity status in the chat header
+3. **Sound Notifications** - Alert agents when new customer messages arrive
 
 ---
 
-### Part 1: Fetch Agent Profiles in useThreadMessages
+## Feature 1: Transfer Chat
 
-The current query fetches messages but does NOT join profile data for agents. We need to add a secondary lookup to fetch agent profiles.
+### Database Changes
+None required - the `widget_chat_sessions.assigned_agent_id` field already supports reassignment.
 
-**File:** `src/hooks/conversations/useThreadMessages.ts`
+### New Hook: `useChatSessionTransfer`
 
-**Changes (after line 109):**
+**File:** `src/hooks/useChatSessionTransfer.ts`
 
 ```typescript
-// After fetching messages, extract unique agent sender_ids
-const agentSenderIds = [...new Set(
-  (rows ?? [])
-    .filter(r => r.sender_type === 'agent' && r.sender_id)
-    .map(r => r.sender_id)
-)];
+export function useChatSessionTransfer(conversationId: string) {
+  // 1. Fetch current session by conversation_id where status = 'active'
+  // 2. Provide transferSession(newAgentId) function:
+  //    - Update widget_chat_sessions.assigned_agent_id
+  //    - Insert a system message: "Chat transferred from [Agent A] to [Agent B]"
+  //    - Invalidate queries to refresh both agents' views
+  // 3. Return { currentAssigneeId, transferSession, isTransferring }
+}
+```
 
-// Fetch agent profiles in a separate query (sender_id is auth user_id, not profile.id)
-let agentProfiles: Record<string, { full_name: string; email: string }> = {};
-if (agentSenderIds.length > 0) {
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('user_id, full_name, email')
-    .in('user_id', agentSenderIds);
+### UI Changes
+
+**File:** `src/components/conversations/ChatReplyInput.tsx`
+
+Add a "Transfer Chat" button next to the "End Chat" button:
+
+```tsx
+// Add UserRoundPlus icon
+import { UserRoundPlus } from 'lucide-react';
+
+// Add transfer dialog state
+const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+const { data: agents } = useAgents();
+const { transferSession, isTransferring } = useChatSessionTransfer(conversationId);
+
+// New Transfer button (between Send and End Chat):
+<Button 
+  size="icon" 
+  variant="outline"
+  className="rounded-full"
+  onClick={() => setTransferDialogOpen(true)}
+  title="Transfer chat"
+>
+  <UserRoundPlus className="h-4 w-4" />
+</Button>
+
+// Add Dialog for agent selection
+<Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Transfer Chat</DialogTitle>
+      <DialogDescription>
+        Hand off this conversation to another team member.
+      </DialogDescription>
+    </DialogHeader>
+    <Select onValueChange={(agentId) => transferSession(agentId)}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select agent" />
+      </SelectTrigger>
+      <SelectContent>
+        {agents?.filter(a => a.id !== currentAgentId).map(agent => (
+          <SelectItem key={agent.id} value={agent.id}>
+            {agent.full_name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </DialogContent>
+</Dialog>
+```
+
+### System Message on Transfer
+When a transfer occurs, insert a special message:
+
+```typescript
+// In transferSession function
+await supabase.from('messages').insert({
+  conversation_id: conversationId,
+  content: `Chat transferred from ${fromAgentName} to ${toAgentName}`,
+  sender_type: 'agent',
+  is_internal: false,
+  content_type: 'text/plain',
+  metadata: { type: 'system', subtype: 'transfer' }
+});
+```
+
+---
+
+## Feature 2: Customer Online/Offline Status
+
+### New Hook: `useVisitorOnlineStatus`
+
+**File:** `src/hooks/useVisitorOnlineStatus.ts`
+
+```typescript
+export function useVisitorOnlineStatus(conversationId: string | null) {
+  // Query widget_chat_sessions for this conversation
+  // Return { isOnline, lastSeenAt } based on last_seen_at timestamp
+  // Consider "online" if last_seen_at < 30 seconds ago
+  // Poll every 5 seconds to keep status current
   
-  agentProfiles = (profiles ?? []).reduce((acc, p) => {
-    if (p.user_id) {
-      acc[p.user_id] = { full_name: p.full_name, email: p.email };
-    }
-    return acc;
-  }, {} as Record<string, { full_name: string; email: string }>);
+  return useQuery({
+    queryKey: ['visitor-online-status', conversationId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('widget_chat_sessions')
+        .select('last_seen_at, status')
+        .eq('conversation_id', conversationId)
+        .in('status', ['waiting', 'active'])
+        .single();
+      
+      if (!data) return { isOnline: false, lastSeenAt: null };
+      
+      const lastSeen = new Date(data.last_seen_at);
+      const thirtySecondsAgo = new Date(Date.now() - 30000);
+      const isOnline = lastSeen > thirtySecondsAgo && data.status === 'active';
+      
+      return { isOnline, lastSeenAt: data.last_seen_at };
+    },
+    refetchInterval: 5000, // Poll every 5s
+    enabled: !!conversationId,
+  });
+}
+```
+
+### UI Changes
+
+**File:** `src/components/conversations/ProgressiveMessagesList.tsx` (lines 294-302)
+
+Update the chat header to show online/offline status:
+
+```tsx
+// Import the hook
+import { useVisitorOnlineStatus } from '@/hooks/useVisitorOnlineStatus';
+
+// In the component
+const { data: onlineStatus } = useVisitorOnlineStatus(isLiveChat ? conversationId : null);
+
+// Update the header (around line 295-301)
+<div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/30">
+  {/* Status indicator - now dynamic */}
+  <div className={cn(
+    "w-2 h-2 rounded-full",
+    onlineStatus?.isOnline 
+      ? "bg-green-500 animate-pulse" 
+      : "bg-gray-400"
+  )} />
+  <Globe className="h-4 w-4 text-muted-foreground" />
+  <span className="text-sm font-medium">Live Chat</span>
+  
+  {/* Dynamic status badge */}
+  <Badge 
+    variant="outline" 
+    className={cn(
+      "ml-2 text-xs",
+      onlineStatus?.isOnline 
+        ? "bg-green-50 text-green-700 border-green-200"
+        : "bg-gray-50 text-gray-600 border-gray-200"
+    )}
+  >
+    {onlineStatus?.isOnline ? 'Online' : 'Offline'}
+  </Badge>
+  
+  {/* Show last seen if offline */}
+  {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
+    <span className="text-xs text-muted-foreground">
+      Last seen {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
+    </span>
+  )}
+</div>
+```
+
+---
+
+## Feature 3: Sound Notifications for New Customer Messages
+
+### New Hook: `useChatMessageNotifications`
+
+**File:** `src/hooks/useChatMessageNotifications.ts`
+
+This hook adapts the existing `useCallNotifications` pattern for chat:
+
+```typescript
+interface ChatNotificationConfig {
+  soundEnabled?: boolean;
+  soundVolume?: number;
+  enabled?: boolean;
 }
 
-// Then, before mapping to normalizeMessage, inject profile data into each row:
-const rowsWithProfiles = typedRows.map(r => ({
-  ...r,
-  sender_profile: r.sender_type === 'agent' && r.sender_id 
-    ? agentProfiles[r.sender_id] 
-    : undefined
-}));
+export function useChatMessageNotifications(
+  conversationId: string | null,
+  config: ChatNotificationConfig = {}
+) {
+  const { soundEnabled = true, soundVolume = 0.5, enabled = true } = config;
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
+  
+  // Initialize AudioContext on first interaction
+  useEffect(() => {
+    if (soundEnabled && !audioContext) {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      setAudioContext(ctx);
+    }
+  }, [soundEnabled]);
+  
+  // Play a friendly "ding" sound
+  const playMessageSound = useCallback(() => {
+    if (!soundEnabled || !audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 880; // Higher pitch than calls
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(soundVolume, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.15);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.15);
+  }, [soundEnabled, soundVolume, audioContext]);
+  
+  return { playMessageSound };
+}
 ```
 
-**Update line 173:**
-```typescript
-const normalized = rowsWithProfiles.map(r => normalizeMessage(r, ctx));
+### Integration into ProgressiveMessagesList
+
+**File:** `src/components/conversations/ProgressiveMessagesList.tsx`
+
+```tsx
+// Import the hook
+import { useChatMessageNotifications } from '@/hooks/useChatMessageNotifications';
+
+// In the component, add:
+const { playMessageSound } = useChatMessageNotifications(
+  isLiveChat ? conversationId : null,
+  { soundEnabled: true, soundVolume: 0.5 }
+);
+const prevMessageCountRef = useRef(messages.length);
+
+// Play sound when new CUSTOMER message arrives
+useEffect(() => {
+  if (!isLiveChat) return;
+  
+  // Only check if message count increased
+  if (messages.length > prevMessageCountRef.current) {
+    // Check if the newest message is from customer
+    const newestMessage = messages[messages.length - 1];
+    if (newestMessage?.authorType === 'customer') {
+      playMessageSound();
+    }
+  }
+  prevMessageCountRef.current = messages.length;
+}, [messages.length, isLiveChat, playMessageSound]);
+```
+
+### Settings Integration (Optional Enhancement)
+
+The existing `NotificationSettings` component could be extended to include chat-specific settings, but for initial implementation, we'll use sensible defaults that match the widget experience.
+
+---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useChatSessionTransfer.ts` | Transfer chat session between agents |
+| `src/hooks/useVisitorOnlineStatus.ts` | Track visitor heartbeat/online status |
+| `src/hooks/useChatMessageNotifications.ts` | Play sounds for new customer messages |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/conversations/ChatReplyInput.tsx` | Add Transfer button + dialog |
+| `src/components/conversations/ProgressiveMessagesList.tsx` | Add online status indicator + sound notifications |
+
+---
+
+## Data Flow Diagrams
+
+### Transfer Chat Flow
+
+```
+Agent A clicks "Transfer" → Dialog opens → Selects Agent B
+           ↓
+useChatSessionTransfer.transferSession(agentBId)
+           ↓
+UPDATE widget_chat_sessions SET assigned_agent_id = [Agent B]
+           ↓
+INSERT system message "Chat transferred..."
+           ↓
+Invalidate queries → Agent B sees chat in their queue
+```
+
+### Customer Online Status Flow
+
+```
+Widget sends ping every 30s → widget-chat API
+           ↓
+UPDATE widget_chat_sessions SET last_seen_at = NOW()
+           ↓
+useVisitorOnlineStatus polls every 5s
+           ↓
+Compare last_seen_at to current time
+           ↓
+If < 30s ago → "Online" (green dot)
+If >= 30s ago → "Offline" (gray dot + last seen)
+```
+
+### Sound Notification Flow
+
+```
+Customer sends message → Widget → widget-chat API
+           ↓
+INSERT into messages table
+           ↓
+Agent's polling picks up new message
+           ↓
+useEffect detects new customer message
+           ↓
+playMessageSound() → Web Audio API beep
 ```
 
 ---
 
-### Part 2: Backfill Migration Script
+## Testing Plan
 
-Create a one-time migration to populate `sender_id` for existing agent messages.
+1. **Transfer Chat:**
+   - Start a chat session, claim it, then transfer to another agent
+   - Verify system message appears in conversation
+   - Verify new agent can see and respond to chat
+   - Verify original agent no longer sees active session
 
-**Strategy:**
-1. **From response_tracking:** 10 messages have `agent_id` we can copy
-2. **Single-agent fallback:** If only one agent exists in the org, attribute to them
-3. **Recent messages by Joachim:** For messages in last 90 days without attribution, if Joachim is the only active agent, attribute to him
+2. **Customer Online Status:**
+   - Open chat with active visitor → should show green "Online"
+   - Have visitor close tab → after 30s should show gray "Offline"
+   - Check last seen timestamp appears correctly
 
-**Migration SQL:**
+3. **Sound Notifications:**
+   - Have active chat open
+   - Send message from widget
+   - Verify sound plays in agent's browser
+   - Verify no sound plays for agent's own messages
 
-```sql
--- Step 1: Backfill from response_tracking (high confidence - 10 messages)
-UPDATE messages m
-SET sender_id = rt.agent_id
-FROM response_tracking rt
-WHERE rt.message_id = m.id
-  AND m.sender_id IS NULL
-  AND m.sender_type = 'agent'
-  AND rt.agent_id IS NOT NULL;
-
--- Step 2: For remaining messages, attribute to the conversation's assigned agent if any
--- This assumes the assigned agent likely wrote the message
-UPDATE messages m
-SET sender_id = p.user_id
-FROM conversations c
-JOIN profiles p ON p.id = c.assigned_to_id
-WHERE m.conversation_id = c.id
-  AND m.sender_id IS NULL
-  AND m.sender_type = 'agent'
-  AND c.assigned_to_id IS NOT NULL;
-
--- Step 3: Count remaining unattributed messages
-SELECT COUNT(*) as still_missing
-FROM messages 
-WHERE sender_id IS NULL 
-  AND sender_type = 'agent';
-```
-
-**Note:** Messages that cannot be attributed will continue showing the inbox email. This is acceptable for historical data.
-
----
-
-### Part 3: Verify Existing Code Safety
-
-The current `sender_id: user.id` in ConversationViewContext.tsx applies to ALL agent messages (both replies and notes) - this is already correct.
-
-**Verification checklist:**
-- Line 306: `sender_id: user.id` - applies to all `sendReplyMutation` calls
-- Both internal notes (`isInternal: true`) and replies (`isInternal: false`) use the same mutation
-- The `user.id` is the auth user ID (from `useAuth`), which matches `profiles.user_id`
-
----
-
-### Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/hooks/conversations/useThreadMessages.ts` | Add secondary query to fetch agent profiles by `user_id` |
-| One-time SQL migration | Backfill `sender_id` from `response_tracking` and `assigned_to_id` |
-
----
-
-### Expected Results After Implementation
-
-| Scenario | Before | After |
-|----------|--------|-------|
-| New note by Joachim | "hei@noddi.no" with "H" avatar | "Joachim Rathke" with "JR" avatar |
-| New reply by any agent | Correct name (was already working if sender_id set) | Correct name |
-| Old messages with response_tracking | Wrong/no attribution | Correct attribution (10 messages) |
-| Old messages with assigned agent | Wrong/no attribution | Correct attribution (varies) |
-| Very old unattributed messages | Inbox email fallback | Inbox email fallback (unchanged) |
-
----
-
-### Testing Plan
-
-1. Create a new internal note - should show your name immediately
-2. Send a reply - should show your name
-3. Check old notes after backfill - should show correct names where backfilled
-4. Verify no regressions in email sending or conversation status updates
