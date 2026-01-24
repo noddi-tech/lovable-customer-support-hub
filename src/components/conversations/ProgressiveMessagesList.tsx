@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { LazyReplyArea } from "./LazyReplyArea";
+import { useVisitorTyping } from "@/hooks/useVisitorTyping";
 import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -263,6 +264,9 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
   // Check if this is a widget/live chat conversation
   const isLiveChat = conversation?.channel === 'widget';
 
+  // Poll for visitor typing status (only for live chat)
+  const { isTyping: customerTyping } = useVisitorTyping(isLiveChat ? conversationId : null);
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -303,6 +307,7 @@ export const ProgressiveMessagesList = forwardRef<ProgressiveMessagesListRef, Pr
           customerName={conversation?.customer?.full_name}
           customerEmail={conversation?.customer?.email}
           conversationId={conversationId}
+          customerTyping={customerTyping}
         />
         
         {/* Chat input */}

@@ -10,15 +10,15 @@ interface ChatMessagesListProps {
   messages: NormalizedMessage[];
   customerName?: string;
   customerEmail?: string;
-  agentTyping?: boolean;
-  conversationId?: string; // Add conversationId for polling
+  customerTyping?: boolean; // Renamed from agentTyping for clarity
+  conversationId?: string;
 }
 
 export const ChatMessagesList = ({ 
   messages, 
   customerName, 
   customerEmail,
-  agentTyping = false,
+  customerTyping = false,
   conversationId
 }: ChatMessagesListProps) => {
   const { relative: formatRelative } = useDateFormatting();
@@ -29,7 +29,7 @@ export const ChatMessagesList = ({
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, agentTyping]);
+  }, [messages.length, customerTyping]);
 
   // Poll for new messages every 2 seconds during live chat
   useEffect(() => {
@@ -140,8 +140,8 @@ export const ChatMessagesList = ({
           );
         })}
         
-        {/* Typing indicator */}
-        {agentTyping && (
+        {/* Typing indicator - shows when customer is typing */}
+        {customerTyping && (
           <div className="flex gap-3 max-w-[85%] self-start">
             <Avatar className="h-8 w-8 shrink-0 ring-2 ring-muted">
               <AvatarFallback className="bg-muted text-muted-foreground text-xs">
