@@ -303,6 +303,7 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           conversation_id: conversationId,
           content,
           sender_type: 'agent',
+          sender_id: user.id,  // Critical: Set sender_id for proper author attribution
           is_internal: isInternal,
           content_type: 'text/plain'
         })
@@ -430,6 +431,12 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
       // Optimistically update messages cache instead of invalidating
       queryClient.setQueryData(['messages', conversationId, user?.id], (old: any[]) => {
         return old ? [...old, newMessage] : [newMessage];
+      });
+      
+      // Force immediate refetch of thread-messages for notes to appear instantly
+      queryClient.refetchQueries({ 
+        queryKey: ['thread-messages'],
+        exact: false
       });
       
       // Only invalidate essential queries
