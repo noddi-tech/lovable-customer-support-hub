@@ -63,6 +63,8 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       }
 
       // 1) Seed from newest few rows of these conversation(s)
+      // Note: We intentionally do NOT join profiles here - sender_id is not a proper FK to profiles.id
+      // Agent names are resolved via normalizeMessage using email headers or stored sender info
       const seedSel = supabase
         .from("messages")
         .select("id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
@@ -89,10 +91,11 @@ export function useThreadMessages(conversationIds?: string | string[]) {
       const participants: string[] = [];
 
       // 2) Build base query (DESC newest first); add cursor for older pages
-      // Include sender profile data for proper author attribution on internal notes
+      // Note: We do NOT join profiles via FK - sender_id may be auth user_id, not profiles.id
+      // Agent display names are resolved in normalizeMessage from email headers or agent lookup
       let base = supabase
         .from("messages")
-        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, is_pinned, attachments, external_id, sender_profile:profiles!messages_sender_id_fkey(full_name, email, avatar_url), conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
+        .select("id, email_message_id, email_thread_id, email_headers, email_subject, created_at, sender_type, sender_id, content, content_type, is_internal, is_pinned, attachments, external_id, conversation:conversations(customer:customers(email, full_name), email_account:email_accounts(email_address), inbox:inboxes(sender_display_name, inbound_routes(group_email)))")
         .in("conversation_id", ids) // Filter by conversation(s)
         .order("created_at", { ascending: false })
         .limit(pageParam ? PAGE : INITIAL);
