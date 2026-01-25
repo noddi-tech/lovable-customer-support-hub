@@ -1,183 +1,184 @@
 
 
-## Fix: Use Same Noddi Lookup Component in Chat as Email View
+## Fix: End Chat Should Move Chat to "Ended" Tab
 
-### Problem Identified
+### Problem Summary
 
-The Chat sidebar uses `NoddihKundeData` (simple component), while the Email view uses `NoddiCustomerDetails` + `CustomerSidePanel` with the full "Search by Email / Search by Name" alternative lookup.
+When clicking "End Chat":
+1. The `widget_chat_sessions.status` is updated to `'ended'` (working)
+2. But the `conversations.status` remains as `'pending'` (not updated!)
+3. The "Active" tab filters by `conversations.status IN ('open', 'pending')`
+4. Result: Chat stays in Active tab despite showing "Chat ended" toast
 
-| Feature | Email View | Chat View (Current) |
-|---------|-----------|---------------------|
-| Component | `NoddiCustomerDetails` | `NoddihKundeData` |
-| Customer Info | Full (email, source badge) | Basic |
-| Alternative Search | ✅ Email + Name tabs | ❌ None |
-| User Group selector | ✅ Yes | ❌ No |
-
-### Solution: Replace the Chat Panel Content
-
-Instead of `NoddihKundeData`, the chat sidebar should use the same pattern as the email view:
-
-1. **Use `NoddiCustomerDetails`** for the main customer info card
-2. **Add the alternative lookup section** (Search by Email / Search by Name tabs) from `CustomerSidePanel`
+Additionally, the icon is a phone (wrong context) instead of a chat bubble.
 
 ---
 
-## Implementation Plan
+## Part 1: Update Both Session AND Conversation Status
 
-### File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
+**File:** `src/components/conversations/ChatReplyInput.tsx`
 
-**Replace the chat panel content (lines 243-257):**
+In the `endChatMutation`, after updating the session, also update the conversation status:
 
 ```typescript
-// Before
-{showNoddiPanel && (
-  <div className="w-80 border-l flex-shrink-0 overflow-auto bg-background">
-    <div className="flex items-center justify-between p-3 border-b">
-      <span className="font-medium text-sm">Customer Details</span>
-      <Button ...onClick={() => setShowNoddiPanel(false)}>
-        <X className="h-4 w-4" />
-      </Button>
-    </div>
-    <NoddihKundeData customer={conversation.customer} />
-  </div>
-)}
+const endChatMutation = useMutation({
+  mutationFn: async () => {
+    // Find the chat session for this conversation
+    const { data: session } = await supabase
+      .from('widget_chat_sessions')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .eq('status', 'active')
+      .maybeSingle();
 
-// After
-{showNoddiPanel && (
-  <ChatCustomerPanel
-    customer={conversation.customer}
-    onClose={() => setShowNoddiPanel(false)}
-  />
-)}
+    // Update session status
+    if (session) {
+      const { error } = await supabase
+        .from('widget_chat_sessions')
+        .update({ 
+          status: 'ended',
+          ended_at: new Date().toISOString(),
+        })
+        .eq('id', session.id);
+
+      if (error) throw error;
+    }
+
+    // ALSO update the conversation status to 'closed'
+    const { error: convError } = await supabase
+      .from('conversations')
+      .update({ 
+        status: 'closed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId);
+
+    if (convError) throw convError;
+  },
+  onSuccess: () => {
+    toast.success('Chat ended');
+    // Invalidate both conversation and chat list queries
+    queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+    queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+    queryClient.invalidateQueries({ queryKey: ['chat-counts'] });
+  },
+  // ...
+});
 ```
 
 ---
 
-### Create New Component: `src/components/dashboard/chat/ChatCustomerPanel.tsx`
+## Part 2: Change Icon to Chat Bubble
 
-This component will extract and reuse the same logic from `CustomerSidePanel.tsx`:
+**File:** `src/components/conversations/ChatReplyInput.tsx`
+
+Replace `PhoneOff` with a chat-appropriate icon:
 
 ```typescript
-import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
-// ... other imports
+// At imports
+import { MessageSquareX } from 'lucide-react';
+// Or use: MessageCircleOff
 
-interface ChatCustomerPanelProps {
-  customer: Customer | null;
-  onClose: () => void;
-}
+// At line 377
+<MessageSquareX className="h-4 w-4" />
+```
 
-export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
-  customer,
-  onClose
-}) => {
-  const [noddiData, setNoddiData] = useState<any>(null);
-  const [searchMode, setSearchMode] = useState<'email' | 'name'>('email');
-  const [alternativeEmail, setAlternativeEmail] = useState('');
-  const [searchFirstName, setSearchFirstName] = useState('');
-  const [searchLastName, setSearchLastName] = useState('');
-  const [searchLoading, setSearchLoading] = useState(false);
+---
+
+## Part 3: Navigate Back to List After Ending
+
+After ending a chat, the agent should be navigated back to the chat list since the conversation is now closed:
+
+```typescript
+import { useNavigate } from 'react-router-dom';
+
+// Inside component
+const navigate = useNavigate();
+
+// In onSuccess callback
+onSuccess: () => {
+  toast.success('Chat ended');
+  queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+  queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+  queryClient.invalidateQueries({ queryKey: ['chat-counts'] });
   
-  // Copy alternative search handlers from CustomerSidePanel
-  const handleAlternativeEmailSearch = async () => { ... };
-  const handleNameSearch = async () => { ... };
+  // Navigate back to chat list (ended filter)
+  navigate('/interactions/chat/ended');
+},
+```
 
-  return (
-    <div className="w-80 border-l flex-shrink-0 overflow-auto bg-background">
-      {/* Header with close button */}
-      <div className="flex items-center justify-between p-3 border-b">
-        <span className="font-medium text-sm">Customer Details</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <div className="p-3 space-y-4">
-        {/* Same component as email view */}
-        <NoddiCustomerDetails
-          customerId={customer?.id}
-          customerEmail={customer?.email}
-          customerPhone={customer?.phone}
-          customerName={customer?.full_name}
-          noddiEmail={(customer?.metadata as any)?.primary_noddi_email}
-          onDataLoaded={setNoddiData}
-          noddiData={noddiData}
-        />
+---
 
-        {/* Alternative Lookup - same as CustomerSidePanel */}
-        {customer?.id && noddiData && !noddiData?.data?.found && (
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardContent className="pt-4">
-              <div className="flex items-start gap-2 mb-3">
-                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-amber-900 mb-1">
-                    No booking data found
-                  </p>
-                  <p className="text-xs text-amber-700">
-                    Search by alternative email or customer name
-                  </p>
-                </div>
-              </div>
+## Part 4: Optional - Also Handle Session Not Found
 
-              {/* Tab Navigation */}
-              <div className="flex gap-2 mb-3 border-b border-amber-200">
-                <button onClick={() => setSearchMode('email')} className={...}>
-                  Search by Email
-                </button>
-                <button onClick={() => setSearchMode('name')} className={...}>
-                  Search by Name
-                </button>
-              </div>
+If the session was already ended (e.g., visitor left), the mutation should still close the conversation:
 
-              {/* Email/Name Search Forms */}
-              {searchMode === 'email' && (
-                <div className="space-y-2">
-                  <Input placeholder="alternative@email.com" ... />
-                  <Button onClick={handleAlternativeEmailSearch}>Search</Button>
-                </div>
-              )}
-              
-              {searchMode === 'name' && (
-                <div className="space-y-3">
-                  <Input placeholder="First name" ... />
-                  <Input placeholder="Last name" ... />
-                  <Button onClick={handleNameSearch}>Search</Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </div>
-  );
-};
+```typescript
+const endChatMutation = useMutation({
+  mutationFn: async () => {
+    // Try to find active session (may not exist if visitor already left)
+    const { data: session } = await supabase
+      .from('widget_chat_sessions')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .in('status', ['active', 'waiting'])  // Also allow ending waiting chats
+      .maybeSingle();
+
+    // Update session if it exists
+    if (session) {
+      await supabase
+        .from('widget_chat_sessions')
+        .update({ 
+          status: 'ended',
+          ended_at: new Date().toISOString(),
+        })
+        .eq('id', session.id);
+    }
+
+    // Always close the conversation
+    const { error: convError } = await supabase
+      .from('conversations')
+      .update({ 
+        status: 'closed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId);
+
+    if (convError) throw convError;
+  },
+  // ...
+});
 ```
 
 ---
 
 ## Files Summary
 
-| File | Action |
-|------|--------|
-| `src/components/dashboard/chat/ChatCustomerPanel.tsx` | **Create** - New component with `NoddiCustomerDetails` + alternative search |
-| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | **Update** - Replace `NoddihKundeData` with `ChatCustomerPanel` |
-| `src/components/dashboard/chat/index.ts` | **Update** - Export new component |
+| File | Changes |
+|------|---------|
+| `src/components/conversations/ChatReplyInput.tsx` | Update both session AND conversation status, change icon, navigate after ending |
 
 ---
 
-## Expected Result
+## Expected Behavior After Fix
 
-The Chat sidebar will now show the **exact same** Noddi customer information as the email view:
+1. Agent clicks "End Chat" button (now with chat bubble icon)
+2. Both `widget_chat_sessions.status` AND `conversations.status` are updated
+3. Toast shows "Chat ended"
+4. Query caches are invalidated
+5. Agent is navigated to `/interactions/chat/ended`
+6. The chat appears in "Ended" tab (with count updated)
+7. The chat is removed from "Active" tab
 
-1. **"Customer Information"** card with:
-   - Customer name/email
-   - Source badge (if applicable)
-   - "No Noddi customer data found" alert when not registered
+---
 
-2. **"No booking data found"** card with:
-   - **Search by Email** tab - alternative email input
-   - **Search by Name** tab - first name + last name inputs
-   - Search button with loading state
+## Testing Steps
 
-3. **When customer IS found** - Full booking/order details, same as email view
+1. Open an active chat conversation
+2. Click the "End Chat" button
+3. Verify toast "Chat ended" appears
+4. Verify navigation to Ended tab
+5. Verify the chat now appears in "Ended" tab
+6. Verify the chat is NOT in "Active" tab anymore
+7. Verify the count badges update correctly
 
