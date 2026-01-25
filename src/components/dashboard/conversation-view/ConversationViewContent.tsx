@@ -205,18 +205,20 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               </div>
             </div>
             
-            {/* Noddi info button */}
-            {noddiData?.data?.found && (
-              <Button 
-                variant={showNoddiPanel ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setShowNoddiPanel(!showNoddiPanel)}
-                title="View Noddi customer info"
-                className="shrink-0"
-              >
-                <Info className="h-4 w-4" />
-              </Button>
-            )}
+            {/* Noddi info button - always show, component handles not-found state */}
+            <Button 
+              variant={showNoddiPanel ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setShowNoddiPanel(!showNoddiPanel)}
+              title="View Noddi customer info"
+              className="shrink-0 relative"
+            >
+              <Info className="h-4 w-4" />
+              {/* Show indicator dot if customer found in Noddi */}
+              {noddiData?.data?.found && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />
+              )}
+            </Button>
             
             {/* Team presence */}
             <PresenceAvatarStack 
@@ -237,8 +239,8 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           />
         </div>
         
-        {/* Collapsible Noddi Details Panel */}
-        {showNoddiPanel && noddiData?.data?.found && (
+        {/* Collapsible Noddi Details Panel - always show when toggled, component handles not-found state */}
+        {showNoddiPanel && (
           <div className="w-80 border-l flex-shrink-0 overflow-auto bg-background">
             <div className="flex items-center justify-between p-3 border-b">
               <span className="font-medium text-sm">Customer Details</span>
