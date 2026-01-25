@@ -1,367 +1,177 @@
 
-## Comprehensive Plan: Dedicated Chat Menu Under Interactions
+
+## Comprehensive Chat Section Fixes
 
 ### Overview
-This plan separates Chat functionality from Text Messages (Email) into its own dedicated menu item under Interactions. The Chat section will have a purpose-built UI for real-time messaging, while Text Messages remains optimized for email workflows. Key enhancements include showing specific online agent names and integrating Noddi API for customer lookup in chat.
+This plan addresses four issues: count discrepancy in filters, the email UI showing instead of chat UI, missing Noddi customer lookup, and implementing a cleaner chat UI similar to the ShadcnUI Kit reference.
 
 ---
 
-## Part 1: Navigation and Routing Changes
+## Part 1: Fix Count Discrepancy in Chat Filters
 
-### 1.1 Add Chat Route in App.tsx
-**File:** `src/App.tsx`
+**Problem:** Active shows 2, Ended shows 4, All shows 7. But 2+4=6, not 7. The missing 1 is a conversation with `status='pending'` which isn't counted in either Active or Ended.
 
-Add new route for `/interactions/chat`:
+**File:** `src/components/dashboard/chat/ChatLayout.tsx`
+
+**Fix:** Include `pending` status in the Active count since pending chats are effectively "in progress":
+
 ```typescript
-// Around line 122-126, add:
-<Route path="/interactions/chat" element={<Navigate to="/interactions/chat/active" replace />} />
-<Route path="/interactions/chat/:filter" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+// Line 43-47: Change from
+.eq('status', 'open')
+
+// To include pending as "active" chats
+.in('status', ['open', 'pending'])
 ```
 
-### 1.2 Update InteractionsSidebar
-**File:** `src/components/layout/InteractionsSidebar.tsx`
-
-Add "Chat" item to `interactionItems` array between Text Messages and Voice Calls:
+Also update `ChatConversationList.tsx` line 72-74 to match:
 ```typescript
-const interactionItems = [
-  {
-    title: 'Text Messages',
-    icon: MessageSquare,
-    path: '/interactions/text',
-    badge: emailCount  // Will need to add dynamic count
-  },
-  {
-    title: 'Chat',          // NEW
-    icon: MessageCircle,    // Different icon for chat
-    path: '/interactions/chat',
-    badge: activeChatCount  // Live chat count
-  },
-  {
-    title: 'Voice Calls',
-    icon: Phone,
-    path: '/interactions/voice',
-    badge: '5'
-  }
-];
-```
-
-### 1.3 Update Index.tsx Route Handling
-**File:** `src/pages/Index.tsx`
-
-Add detection for chat sub-section:
-```typescript
-// In getCurrentSubSection():
-if (path.includes('/interactions/chat')) return 'chat';
-
-// In renderContent():
-if (subSection === 'chat') {
-  return <ChatLayout />;  // New dedicated chat layout
+if (filter === 'active') {
+  query = query.in('status', ['open', 'pending']);
 }
 ```
 
-### 1.4 Update nav-config.ts
-**File:** `src/navigation/nav-config.ts`
+---
 
-Add chat navigation item:
+## Part 2: Fix the ConversationView Provider Error
+
+**Problem:** The chat view throws "useConversationView must be used within a ConversationViewProvider" because the lazy-loaded component bypasses the provider wrapping, or there's a context issue.
+
+**Files to Modify:**
+1. `src/components/dashboard/chat/ChatLayout.tsx`
+2. `src/components/error/AppErrorFallback.tsx` (create)
+3. `src/App.tsx`
+
+**Fix Strategy:**
+1. Replace lazy import with direct import for `ConversationView`
+2. Create a generic app error fallback to prevent misleading "Phone System Error"
+
 ```typescript
-{ 
-  id: "chat", 
-  label: "Chat", 
-  to: "/interactions/chat", 
-  icon: MessageCircle, 
-  group: "interactions" 
-},
+// ChatLayout.tsx - Replace:
+const ConversationView = React.lazy(() => 
+  import('@/components/dashboard/ConversationView').then(m => ({ default: m.ConversationView }))
+);
+
+// With direct import:
+import { ConversationView } from '@/components/dashboard/ConversationView';
 ```
 
 ---
 
-## Part 2: Dedicated Chat Layout Component
+## Part 3: Add Noddi Customer Recognition to Chat
 
-### 2.1 Create ChatLayout.tsx
-**File:** `src/components/dashboard/ChatLayout.tsx` (NEW)
+**Problem:** Chat list doesn't show if a customer is recognized in Noddi system.
 
-A dedicated layout for chat that includes:
-1. **Sidebar with chat-specific filters** (Active, Waiting, Ended, All)
-2. **LiveChatQueue integration** - moved from email view
-3. **Chat-only conversation list** - filtered to `channel='widget'`
-4. **WhatsApp-style conversation view** - reuses existing streamlined UI
+**File:** `src/components/dashboard/chat/ChatConversationList.tsx`
+
+**Solution:** Create a sub-component for each chat item that uses `useNoddihKundeData`:
 
 ```typescript
-// Structure:
-<MasterDetailShell>
-  {/* Left: Chat sidebar + list */}
-  <div className="flex flex-col h-full">
-    {/* Chat filters: Active | Waiting | Ended | All */}
-    <ChatFilters />
-    
-    {/* Live Chat Queue - prominent position */}
-    <LiveChatQueue className="mb-4" />
-    
-    {/* Chat list - only widget channel conversations */}
-    <ChatConversationList 
-      filter={currentFilter} 
-      onSelectChat={handleSelectChat}
-    />
-  </div>
+// New component: ChatListItem
+const ChatListItem: React.FC<{
+  conv: ChatConversation;
+  isSelected: boolean;
+  onSelect: () => void;
+}> = ({ conv, isSelected, onSelect }) => {
+  // Create customer object for Noddi lookup
+  const customer = useMemo(() => ({
+    id: conv.customer?.id || conv.id,
+    email: conv.session?.visitor_email || conv.customer?.email,
+    phone: null,
+    full_name: conv.session?.visitor_name || conv.customer?.full_name,
+  }), [conv]);
   
-  {/* Right: Selected chat view */}
-  {selectedChatId ? (
-    <ChatConversationView conversationId={selectedChatId} />
-  ) : (
-    <EmptyChatState />
+  const { data: noddiData } = useNoddihKundeData(customer);
+  const isNoddiCustomer = noddiData?.data?.found;
+  
+  // ... render with Noddi badge
+  {isNoddiCustomer && (
+    <Badge variant="secondary" className="text-[10px]">
+      Noddi
+    </Badge>
   )}
-</MasterDetailShell>
-```
-
-### 2.2 Create ChatConversationList.tsx
-**File:** `src/components/dashboard/ChatConversationList.tsx` (NEW)
-
-A list component that:
-1. Fetches only `channel='widget'` conversations
-2. Shows visitor name, email, online status
-3. Displays time waiting/last message
-4. Highlights active sessions with green indicator
-5. Shows Noddi customer badge if recognized
-
-### 2.3 Modify Conversation Filtering
-**File:** `src/data/interactions.ts`
-
-Update `applyFilters` to accept `channel` parameter:
-```typescript
-function applyFilters(conversations: ConversationRow[], params: {
-  // ... existing params
-  channel?: 'widget' | 'email' | 'all';  // NEW
-}): ConversationRow[] {
-  let filtered = conversations;
-  
-  // Apply channel filter
-  if (params.channel && params.channel !== 'all') {
-    if (params.channel === 'widget') {
-      filtered = filtered.filter(c => c.channel === 'widget');
-    } else if (params.channel === 'email') {
-      // Filter OUT widget conversations for email view
-      filtered = filtered.filter(c => c.channel !== 'widget');
-    }
-  }
-  // ... rest of existing filters
-}
-```
-
-### 2.4 Update Text Messages View
-**File:** `src/components/dashboard/EnhancedInteractionsLayout.tsx`
-
-Modify to exclude widget/chat conversations:
-```typescript
-// When fetching conversations for Text Messages:
-// Add channel: 'email' filter to exclude widget conversations
-```
-
-This ensures Text Messages shows only email conversations.
-
----
-
-## Part 3: Show Specific Online Agents
-
-### 3.1 Create useOnlineAgents Hook
-**File:** `src/hooks/useOnlineAgents.ts` (NEW)
-
-Replace count-only approach with full agent list:
-```typescript
-interface OnlineAgent {
-  id: string;
-  user_id: string;
-  full_name: string;
-  avatar_url?: string;
-  chat_availability: 'online' | 'away' | 'offline';
-}
-
-export function useOnlineAgents(organizationId: string | null) {
-  return useQuery({
-    queryKey: ['online-agents', organizationId],
-    queryFn: async (): Promise<OnlineAgent[]> => {
-      if (!organizationId) return [];
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          user_id,
-          full_name,
-          avatar_url,
-          chat_availability
-        `)
-        .in('chat_availability', ['online', 'away'])
-        .eq('organization_id', organizationId)
-        .order('full_name');
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!organizationId,
-    refetchInterval: 15000, // Poll every 15 seconds
-  });
-}
-```
-
-### 3.2 Update AgentStatusToggle Display
-**File:** `src/components/layout/AgentStatusToggle.tsx`
-
-Replace "1 other agent online" with actual names:
-```typescript
-// Instead of:
-// "{otherOnlineAgents} other agent{s} online"
-
-// Show:
-{onlineAgents.length > 0 && (
-  <div className="mt-1 px-2">
-    <p className="text-xs text-muted-foreground mb-1">Online now:</p>
-    <div className="flex flex-wrap gap-1">
-      {onlineAgents.slice(0, 3).map(agent => (
-        <div key={agent.id} className="flex items-center gap-1">
-          <Avatar className="h-5 w-5">
-            <AvatarFallback className="text-[10px]">
-              {getInitials(agent.full_name)}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-xs">{agent.full_name.split(' ')[0]}</span>
-        </div>
-      ))}
-      {onlineAgents.length > 3 && (
-        <span className="text-xs text-muted-foreground">
-          +{onlineAgents.length - 3} more
-        </span>
-      )}
-    </div>
-  </div>
-)}
+};
 ```
 
 ---
 
-## Part 4: Noddi API Integration for Chat
+## Part 4: Enhance Chat UI (ShadcnUI Kit Style)
 
-### 4.1 Enhance Chat View with Noddi Lookup
-The existing `ConversationViewContent.tsx` already uses `useNoddihKundeData` for widget conversations (line 102). The customer display with Noddi already works.
+**Reference:** https://shadcnuikit.com/dashboard/apps/chat
 
-**Enhancement for ChatConversationList:**
-When rendering each chat session, pass the visitor email to create a customer object for Noddi lookup:
-```typescript
-// In ChatConversationList.tsx
-const customerForNoddi = useMemo(() => ({
-  id: session.conversationId,
-  email: session.visitorEmail,
-  phone: null,  // Widget typically has email, not phone
-  full_name: session.visitorName,
-}), [session]);
+**Key Enhancements:**
 
-const { data: noddiData } = useNoddihKundeData(customerForNoddi);
+### 4.1 Chat List Improvements (`ChatConversationList.tsx`)
+- Add search input at top for filtering chats
+- Show unread message count badges (green circles)
+- Add message status checkmarks
+- Cleaner hover/selected states
 
-// Display Noddi badge if customer found
-{noddiData?.data?.found && (
-  <Badge variant="secondary" className="text-xs">
-    Noddi Customer
-  </Badge>
-)}
-```
+### 4.2 Chat Message Bubbles (`ChatMessagesList.tsx`)
+- Keep existing bubble layout (it's already correct)
+- Add timestamps to each message
+- Add message status indicators (sent/delivered/read)
+- Smoother animations on new messages
 
-### 4.2 Add Noddi Side Panel for Chat (Optional Enhancement)
-For the streamlined chat view, add a collapsible right panel that shows Noddi customer data when available:
-```typescript
-// In ChatConversationView, add optional side panel toggle
-{noddiData?.data?.found && (
-  <Button 
-    variant="ghost" 
-    size="sm"
-    onClick={() => setShowNoddiPanel(!showNoddiPanel)}
-  >
-    <Info className="h-4 w-4" />
-  </Button>
-)}
+### 4.3 Chat Input Area (`ChatReplyInput.tsx`)
+- Emoji picker button
+- Attachment button  
+- Cleaner input styling
+- Send button with arrow icon
 
-// Collapsible Noddi panel
-{showNoddiPanel && (
-  <div className="w-80 border-l p-4">
-    <NoddihKundeData customer={customer} />
-  </div>
-)}
-```
+### 4.4 Chat Header Refinement (`ConversationViewContent.tsx`)
+- Remove back button text (keep icon only)
+- Add call/video icons (can be disabled/placeholder for now)
+- More prominent online status indicator
 
 ---
 
-## Part 5: File Summary
+## Files Summary
 
-### Files to Create
-| File | Purpose |
+| File | Changes |
 |------|---------|
-| `src/components/dashboard/ChatLayout.tsx` | Main chat layout with sidebar and content |
-| `src/components/dashboard/ChatConversationList.tsx` | List of chat-only conversations |
-| `src/components/dashboard/ChatFilters.tsx` | Chat-specific filter tabs (Active, Waiting, Ended) |
-| `src/hooks/useOnlineAgents.ts` | Fetch list of online agents with names |
-
-### Files to Modify
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Add `/interactions/chat` routes |
-| `src/pages/Index.tsx` | Add 'chat' sub-section detection and render ChatLayout |
-| `src/components/layout/InteractionsSidebar.tsx` | Add Chat menu item with MessageCircle icon |
-| `src/navigation/nav-config.ts` | Add chat navigation config |
-| `src/data/interactions.ts` | Add `channel` filter to `applyFilters` |
-| `src/components/dashboard/EnhancedInteractionsLayout.tsx` | Filter to exclude widget conversations |
-| `src/components/layout/AgentStatusToggle.tsx` | Show individual online agent names |
+| `src/components/dashboard/chat/ChatLayout.tsx` | Fix lazy import, include `pending` in active count |
+| `src/components/dashboard/chat/ChatConversationList.tsx` | Add Noddi lookup per item, search input, unread badges, fix filter |
+| `src/components/conversations/ChatMessagesList.tsx` | Add timestamps, delivery status, refine bubble styles |
+| `src/components/conversations/ChatReplyInput.tsx` | Add emoji/attachment buttons, cleaner styling |
+| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | Refine compact chat header |
+| `src/components/error/AppErrorFallback.tsx` | Create generic error fallback |
+| `src/App.tsx` | Use generic error fallback instead of AircallErrorFallback |
 
 ---
 
-## Visual Architecture
+## Visual Changes Preview
 
-```
-Interactions (Sidebar)
-├── Text Messages     → /interactions/text     → EnhancedInteractionsLayout (emails only)
-├── Chat             → /interactions/chat     → ChatLayout (widget only)  ← NEW
-└── Voice Calls      → /interactions/voice    → VoiceDashboard
-```
+### Before (Current)
+- Email-style header with Subject, Reply, Internal Note
+- Card-based messages
+- No Noddi recognition in list
+- Missing pending conversations in counts
 
-### Chat Layout Structure
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Chat Filters: [Active] [Waiting] [Ended] [All]                   │
-├───────────────────────┬─────────────────────────────────────────┤
-│ Live Chat Queue       │                                         │
-│ ┌───────────────────┐ │  Compact Chat Header                    │
-│ │ 2 waiting         │ │  ┌─────────────────────────────────────┐│
-│ └───────────────────┘ │  │ ← [Avatar] John Doe ● Online       ││
-│                       │  │   john@email.com                    ││
-│ Chat List             │  └─────────────────────────────────────┘│
-│ ┌───────────────────┐ │                                         │
-│ │ Jane - Active     │ │  Chat Bubbles (WhatsApp style)          │
-│ │ · Last msg...     │ │  ┌─────────────────────────────────────┐│
-│ ├───────────────────┤ │  │                    [Customer bubble]││
-│ │ Bob - Waiting 2m  │ │  │ [Agent bubble]                      ││
-│ │ Claim             │ │  │                    [Customer bubble]││
-│ └───────────────────┘ │  └─────────────────────────────────────┘│
-│                       │                                         │
-│                       │  [Message input] [Send] [Transfer] [End]│
-└───────────────────────┴─────────────────────────────────────────┘
-```
+### After
+- Compact WhatsApp-style header (avatar + name + online status)
+- Chat bubbles with timestamps
+- Noddi badge next to recognized customers
+- Accurate counts including pending
+- Search filter in chat list
+- Unread count badges
 
 ---
 
-## Testing Plan
+## Implementation Order
 
-1. **Navigation**: Click "Chat" in sidebar → should navigate to `/interactions/chat/active`
-2. **Separation**: Text Messages should NOT show widget conversations
-3. **Chat List**: Should only show `channel='widget'` conversations
-4. **Online Agents**: AgentStatusToggle should show "Sarah, Mike, +1 more" instead of "3 agents online"
-5. **Noddi Integration**: Chat sessions with recognized emails should show Noddi badge
-6. **Live Queue**: LiveChatQueue should appear in Chat section (removed from Text Messages)
-7. **Claim Flow**: Claiming a chat should navigate to `/interactions/chat/active?c={id}`
-8. **Chat UI**: Opening a chat should show WhatsApp-style UI (no email components)
+1. **Fix Provider Error First** - Replace lazy import, create error fallback
+2. **Fix Counts** - Include `pending` status in Active filter
+3. **Add Noddi Integration** - Extract list item component, add hook
+4. **Enhance Chat UI** - Search, badges, timestamps, refined styles
 
 ---
 
-## Benefits
+## Testing Checklist
 
-1. **Clear Separation**: Email and Chat have distinct homes with purpose-built UIs
-2. **Faster Context Switching**: Agents can focus on real-time chat without email clutter
-3. **Better Agent Visibility**: See exactly who is online, not just a count
-4. **Customer Recognition**: Noddi lookup works in chat for instant customer identification
-5. **Preserved Email UX**: Text Messages continues working exactly as before
+1. Navigate to `/interactions/chat/active` - counts should be accurate (2+1 pending = 3 active if pending added)
+2. Click on a chat - should show WhatsApp-style UI, not email UI
+3. Verify Noddi badge appears for recognized customers
+4. Search in chat list - should filter by name/email
+5. Check unread badges appear for new messages
+6. Verify timestamps show on each message
+
