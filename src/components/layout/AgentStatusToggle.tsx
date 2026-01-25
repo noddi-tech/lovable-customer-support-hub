@@ -1,7 +1,9 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useAgentAvailability, type AvailabilityStatus } from '@/hooks/useAgentAvailability';
+import { useOnlineAgents } from '@/hooks/useOnlineAgents';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -34,14 +36,25 @@ const statusConfig: Record<AvailabilityStatus, { label: string; color: string; b
   },
 };
 
+// Get initials from a name
+const getInitials = (name: string): string => {
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
 export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({ 
   collapsed = false,
   className 
 }) => {
-  const { status, setStatus, isLoading, onlineAgentCount, isUpdating } = useAgentAvailability();
+  const { status, setStatus, isLoading, isUpdating } = useAgentAvailability();
+  const { data: onlineAgents = [], isLoading: agentsLoading } = useOnlineAgents();
   
   const currentConfig = statusConfig[status];
-  const otherOnlineAgents = Math.max(0, onlineAgentCount - (status === 'online' ? 1 : 0));
+  
+  // Filter out current user and show only other online agents
+  const otherAgents = onlineAgents.filter(a => a.chat_availability === 'online' || a.chat_availability === 'away');
 
   if (isLoading) {
     return (
@@ -138,9 +151,49 @@ export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({
         </DropdownMenuContent>
       </DropdownMenu>
       
-      {!collapsed && otherOnlineAgents > 0 && (
+      {/* Show specific online agents instead of just count */}
+      {!collapsed && otherAgents.length > 0 && (
+        <div className="mt-2 px-2">
+          <p className="text-xs text-muted-foreground mb-1.5">Online now:</p>
+          <div className="flex flex-wrap gap-1.5">
+            {otherAgents.slice(0, 3).map(agent => (
+              <div 
+                key={agent.id} 
+                className="flex items-center gap-1.5 px-1.5 py-0.5 bg-muted/50 rounded-md"
+                title={agent.full_name}
+              >
+                <Avatar className="h-5 w-5">
+                  {agent.avatar_url && (
+                    <AvatarImage src={agent.avatar_url} alt={agent.full_name} />
+                  )}
+                  <AvatarFallback className="text-[9px] bg-primary/10">
+                    {getInitials(agent.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-foreground truncate max-w-[60px]">
+                  {agent.full_name.split(' ')[0]}
+                </span>
+                <Circle className={cn(
+                  "h-1.5 w-1.5 fill-current shrink-0",
+                  agent.chat_availability === 'online' ? 'text-green-500' : 'text-yellow-500'
+                )} />
+              </div>
+            ))}
+            {otherAgents.length > 3 && (
+              <div className="flex items-center px-1.5 py-0.5 bg-muted/50 rounded-md">
+                <span className="text-xs text-muted-foreground">
+                  +{otherAgents.length - 3} more
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Empty state when no other agents online */}
+      {!collapsed && otherAgents.length === 0 && !agentsLoading && (
         <p className="text-xs text-muted-foreground mt-1 px-2">
-          {otherOnlineAgents} other agent{otherOnlineAgents !== 1 ? 's' : ''} online
+          No other agents online
         </p>
       )}
     </div>

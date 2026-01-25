@@ -8,7 +8,6 @@ import { MasterDetailShell } from '@/components/admin/design/components/layouts/
 import { InboxList } from '@/components/layout/InboxList';
 import { ConversationView } from './ConversationView';
 import { ConversationList } from './ConversationList';
-import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
 import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
 import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
 import { useAccessibleInboxes, useConversations, useThread, useReply } from '@/hooks/useInteractionsData';
@@ -123,11 +122,13 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
   }, [inbox, selectedInboxId, inboxes, navigationSetInbox]);
 
   // Get conversations and thread data
+  // Exclude 'widget' channel since those are now in the dedicated Chat section
   const { data: conversations = [], isLoading: conversationsLoading } = useConversations({
     inboxId: effectiveInboxId,
     status: effectiveStatus,
     q: effectiveSearch,
-    currentUserProfileId: profile?.id
+    currentUserProfileId: profile?.id,
+    excludeChannel: 'widget' // Filter out chat/widget conversations - they belong in Chat section
   });
   
   const { data: thread, isLoading: threadLoading } = useThread(conversationId);
@@ -291,13 +292,10 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     </div>
   );
 
-  // Render conversation list with full functionality
+  // Render conversation list (without LiveChatQueue - now in Chat section)
   const renderConversationList = () => {
     return (
       <div className="flex flex-col h-full">
-        {/* Live Chat Queue - prominent display for waiting/active chats */}
-        <LiveChatQueue className="mx-4 mt-4 mb-2" />
-        
         <ConversationList
           selectedTab={effectiveStatus}
           onSelectConversation={(conversation) => handleConversationSelect(conversation as any)}

@@ -12,6 +12,7 @@ import DoormanInterface from '@/components/dashboard/DoormanInterface';
 import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
 import VoiceAnalyticsPage from '@/pages/VoiceAnalyticsPage';
 import VoiceSettingsPage from '@/pages/VoiceSettingsPage';
+import { ChatLayout } from '@/components/dashboard/chat';
 
 
 const Index = () => {
@@ -36,6 +37,7 @@ const Index = () => {
     if (path.includes('/interactions/voice/analytics')) return 'voice-analytics';
     if (path.includes('/interactions/voice/settings')) return 'voice-settings';
     if (path.includes('/interactions/voice')) return 'voice';
+    if (path.includes('/interactions/chat')) return 'chat';
     if (path.includes('/interactions/text')) return 'text';
     
     // Marketing sub-sections
@@ -65,7 +67,11 @@ const Index = () => {
         if (subSection === 'voice-settings') {
           return <VoiceSettingsPage />;
         }
-        // Always use EnhancedInteractionsLayout for interactions to preserve sidebar
+        // Handle Chat - dedicated layout
+        if (subSection === 'chat') {
+          return <ChatLayout />;
+        }
+        // Text Messages and Voice use EnhancedInteractionsLayout
         return (
           <EnhancedInteractionsLayout
             activeSubTab={subSection}

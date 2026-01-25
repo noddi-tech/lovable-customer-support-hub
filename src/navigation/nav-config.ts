@@ -1,5 +1,6 @@
 import {
   MessageSquare, 
+  MessageCircle,
   Phone, 
   Megaphone, 
   Mail, 
@@ -51,6 +52,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Text Messages", 
     to: "/interactions/text", 
     icon: MessageSquare, 
+    group: "interactions" 
+  },
+  { 
+    id: "chat", 
+    label: "Chat", 
+    to: "/interactions/chat", 
+    icon: MessageCircle, 
     group: "interactions" 
   },
   { 
