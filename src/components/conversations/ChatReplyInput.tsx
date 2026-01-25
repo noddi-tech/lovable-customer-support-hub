@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Loader2, PhoneOff, UserRoundPlus } from 'lucide-react';
+import { Send, Loader2, PhoneOff, UserRoundPlus, Smile, Paperclip, Mic, Image, X } from 'lucide-react';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAgentTyping } from '@/hooks/useAgentTyping';
 import { useAgents } from '@/hooks/useAgents';
 import { useChatSessionTransfer } from '@/hooks/useChatSessionTransfer';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { EmojiPicker } from '@/components/ui/emoji-picker';
 import {
   Dialog,
   DialogContent,
@@ -30,10 +32,19 @@ interface ChatReplyInputProps {
   onSent?: () => void;
 }
 
+interface AttachmentPreview {
+  file: File;
+  url: string;
+  type: 'image' | 'file';
+}
+
 export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
   const [message, setMessage] = useState('');
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
+  const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { state } = useConversationView();
@@ -53,9 +64,47 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     enabled: true 
   });
 
+  const uploadAttachment = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${conversationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('chat-attachments')
+      .upload(fileName, file);
+    
+    if (error) {
+      console.error('Upload error:', error);
+      return null;
+    }
+    
+    const { data: urlData } = supabase.storage
+      .from('chat-attachments')
+      .getPublicUrl(fileName);
+    
+    return urlData.publicUrl;
+  };
+
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
       if (!user) throw new Error('Not authenticated');
+
+      // Upload attachments first
+      const uploadedUrls: { url: string; name: string; type: string }[] = [];
+      
+      if (attachments.length > 0) {
+        setIsUploading(true);
+        for (const attachment of attachments) {
+          const url = await uploadAttachment(attachment.file);
+          if (url) {
+            uploadedUrls.push({
+              url,
+              name: attachment.file.name,
+              type: attachment.file.type,
+            });
+          }
+        }
+        setIsUploading(false);
+      }
 
       // Get user's profile to get their ID
       const { data: profile } = await supabase
@@ -64,20 +113,24 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         .eq('user_id', user.id)
         .single();
 
+      const messageContent = content || (uploadedUrls.length > 0 ? '[Attachment]' : '');
+      
       const { error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          content: content,
+          content: messageContent,
           sender_type: 'agent',
           sender_id: user.id,
           is_internal: false,
+          attachments: uploadedUrls.length > 0 ? uploadedUrls : null,
         });
 
       if (error) throw error;
     },
     onSuccess: () => {
       setMessage('');
+      setAttachments([]);
       // Invalidate messages to trigger refetch
       queryClient.invalidateQueries({ 
         queryKey: ['conversation-messages', conversationId] 
@@ -128,10 +181,10 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
   const handleSend = useCallback(() => {
     const trimmedMessage = message.trim();
-    if (!trimmedMessage || sendMessageMutation.isPending) return;
+    if ((!trimmedMessage && attachments.length === 0) || sendMessageMutation.isPending) return;
     stopTyping(); // Clear typing indicator before sending
     sendMessageMutation.mutate(trimmedMessage);
-  }, [message, sendMessageMutation, stopTyping]);
+  }, [message, attachments, sendMessageMutation, stopTyping]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setMessage(e.target.value);
@@ -161,12 +214,102 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     setSelectedAgentId('');
   }, [selectedAgentId, isTransferring, agents, transferSession, currentAgentName]);
 
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    const newAttachments: AttachmentPreview[] = files.map(file => ({
+      file,
+      url: URL.createObjectURL(file),
+      type: file.type.startsWith('image/') ? 'image' : 'file',
+    }));
+    
+    setAttachments(prev => [...prev, ...newAttachments]);
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  const removeAttachment = useCallback((index: number) => {
+    setAttachments(prev => {
+      const newAttachments = [...prev];
+      URL.revokeObjectURL(newAttachments[index].url);
+      newAttachments.splice(index, 1);
+      return newAttachments;
+    });
+  }, []);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    setMessage(prev => prev + emoji);
+  }, []);
+
   // Filter out current user from transfer targets
   const transferableAgents = agents?.filter(a => a.user_id !== user?.id) || [];
 
+  const isPending = sendMessageMutation.isPending || isUploading;
+
   return (
     <>
-      <div className="flex items-center gap-3 p-4 border-t border-border bg-background">
+      {/* Attachment previews */}
+      {attachments.length > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2 border-t border-border bg-muted/30 overflow-x-auto">
+          {attachments.map((attachment, index) => (
+            <div key={index} className="relative shrink-0">
+              {attachment.type === 'image' ? (
+                <img 
+                  src={attachment.url} 
+                  alt={attachment.file.name}
+                  className="h-16 w-16 object-cover rounded-lg border"
+                />
+              ) : (
+                <div className="h-16 w-16 flex items-center justify-center bg-muted rounded-lg border">
+                  <Paperclip className="h-6 w-6 text-muted-foreground" />
+                </div>
+              )}
+              <button
+                onClick={() => removeAttachment(index)}
+                className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <div className="flex items-center gap-2 p-4 border-t border-border bg-background">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,.doc,.docx,.txt"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        
+        {/* Emoji picker */}
+        <EmojiPicker 
+          onEmojiSelect={handleEmojiSelect}
+          trigger={
+            <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground">
+              <Smile className="h-5 w-5" />
+            </Button>
+          }
+        />
+        
+        {/* Attachment button */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Paperclip className="h-5 w-5" />
+        </Button>
+
+        {/* Message input */}
         <Input 
           placeholder="Type a message..." 
           className="flex-1 rounded-full bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
@@ -174,15 +317,28 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={stopTyping}
-          disabled={sendMessageMutation.isPending}
+          disabled={isPending}
         />
+        
+        {/* Mic button (placeholder) */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="shrink-0 h-9 w-9 text-muted-foreground"
+          disabled
+          title="Voice messages coming soon"
+        >
+          <Mic className="h-5 w-5" />
+        </Button>
+
+        {/* Send button */}
         <Button 
           size="icon" 
           className="rounded-full shrink-0 h-10 w-10"
           onClick={handleSend}
-          disabled={!message.trim() || sendMessageMutation.isPending}
+          disabled={(!message.trim() && attachments.length === 0) || isPending}
         >
-          {sendMessageMutation.isPending ? (
+          {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Send className="h-4 w-4" />

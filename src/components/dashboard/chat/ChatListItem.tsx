@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
+import { Check, CheckCheck } from 'lucide-react';
 
 interface ChatConversation {
   id: string;
@@ -58,9 +59,9 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
     <button
       onClick={onSelect}
       className={cn(
-        "w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-colors",
+        "w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-all duration-200",
         isSelected
-          ? "bg-accent border-accent-foreground/20"
+          ? "bg-accent border-accent-foreground/20 shadow-sm"
           : "hover:bg-muted/50 border-transparent",
         !conv.is_read && "bg-primary/5"
       )}
@@ -69,8 +70,8 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
       <div className="relative shrink-0">
         <Avatar className="h-10 w-10">
           <AvatarFallback className={cn(
-            "text-sm",
-            isNoddiCustomer ? "bg-green-100 text-green-700" : "bg-primary/10"
+            "text-sm font-medium",
+            isNoddiCustomer ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-primary/10"
           )}>
             {initial}
           </AvatarFallback>
@@ -88,23 +89,23 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className={cn(
-            "text-sm font-medium truncate",
-            !conv.is_read && "font-semibold"
+            "text-sm truncate",
+            !conv.is_read ? "font-semibold" : "font-medium"
           )}>
             {customerName}
           </span>
           {isNoddiCustomer && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200">
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
               Noddi
             </Badge>
           )}
           {isWaiting && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-yellow-50 text-yellow-700 border-yellow-300">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
               WAITING
             </Badge>
           )}
           {isActive && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-300 animate-pulse">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-300 animate-pulse dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
               LIVE
             </Badge>
           )}
@@ -114,15 +115,31 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
             {customerEmail}
           </span>
         )}
-        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-          {conv.preview_text || 'No messages yet'}
-        </p>
+        <div className="flex items-center gap-1 mt-1">
+          {/* Delivery status indicator */}
+          {conv.is_read ? (
+            <CheckCheck className="h-3 w-3 text-primary shrink-0" />
+          ) : (
+            <Check className="h-3 w-3 text-muted-foreground shrink-0" />
+          )}
+          <p className="text-xs text-muted-foreground line-clamp-1">
+            {conv.preview_text || 'No messages yet'}
+          </p>
+        </div>
       </div>
 
-      {/* Time */}
-      <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
-        {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: false })}
-      </span>
+      {/* Time + unread indicator */}
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <span className={cn(
+          "text-[10px]",
+          !conv.is_read ? "text-primary font-medium" : "text-muted-foreground"
+        )}>
+          {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: false })}
+        </span>
+        {!conv.is_read && (
+          <span className="h-2 w-2 rounded-full bg-primary" />
+        )}
+      </div>
     </button>
   );
 };

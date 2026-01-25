@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 interface ConversationMeta {
   id: string;
   subject: string;
+  channel: string;
   customer: {
     id: string;
     full_name: string;
@@ -42,6 +43,7 @@ export function useConversationMeta(conversationId?: string) {
           priority,
           is_read,
           updated_at,
+          channel,
           customer:customers(id, full_name, email, phone, metadata)
         `)
         .eq('id', conversationId)
@@ -69,6 +71,7 @@ export function useConversationMeta(conversationId?: string) {
       return {
         id: conversation.id,
         subject: conversation.subject || 'No Subject',
+        channel: conversation.channel,
         customer: conversation.customer,
         messageCount: count || 0,
         newestMessageId: newestMessage?.id || null,
