@@ -1,173 +1,183 @@
 
 
-## Fix Plan: Widget Agent Attribution + Always-Visible Noddi Panel
+## Fix: Use Same Noddi Lookup Component in Chat as Email View
 
-### Overview
-Two issues to fix:
-1. Agent messages in chat show "Noddi Support" instead of the actual agent's name (e.g., "JR")
-2. The Noddi customer details panel is hidden when no customer is found in Noddi
+### Problem Identified
 
----
+The Chat sidebar uses `NoddihKundeData` (simple component), while the Email view uses `NoddiCustomerDetails` + `CustomerSidePanel` with the full "Search by Email / Search by Name" alternative lookup.
 
-## Issue 1: Show Actual Agent Name in Widget Messages
+| Feature | Email View | Chat View (Current) |
+|---------|-----------|---------------------|
+| Component | `NoddiCustomerDetails` | `NoddihKundeData` |
+| Customer Info | Full (email, source badge) | Basic |
+| Alternative Search | ✅ Email + Name tabs | ❌ None |
+| User Group selector | ✅ Yes | ❌ No |
 
-### Root Cause
-When agents send messages through the chat interface, the `sender_id` should be set to the agent's auth user ID. However, the normalization logic falls back to "Noddi Support" (the inbox display name) when:
-1. `sender_id` is missing, OR
-2. `sender_profile` lookup returns no results
+### Solution: Replace the Chat Panel Content
 
-### Solution
-Update `ChatReplyInput.tsx` to ensure the `sender_id` is correctly set when inserting agent messages. The chat reply already uses `auth.uid()` for message insertion, but we need to verify the message query correctly joins the profile.
+Instead of `NoddihKundeData`, the chat sidebar should use the same pattern as the email view:
 
-### Files to Modify
-
-**1. `src/components/conversations/ChatReplyInput.tsx`**
-- Verify the message insert includes `sender_id: user.id` 
-- Ensure `sender_type: 'agent'` is set
-
-**2. `src/lib/normalizeMessage.ts`**
-- Improve agent fallback: If `sender_profile` exists, ALWAYS use its `full_name` even if `authorLabel` was set from headers
-- Current issue: The fallback logic on lines 383-392 only runs when `authorLabel` is empty
-
-### Code Change (normalizeMessage.ts lines 383-392)
-
-```typescript
-} else if (authorType === 'agent') {
-  // For agents: ALWAYS prefer profile data if available
-  if (senderProfile) {
-    // Override any header-derived name with the actual profile name
-    fromName = senderProfile.full_name || fromName;
-    fromEmail = senderProfile.email || fromEmail;
-    authorLabel = senderProfile.full_name || senderProfile.email || authorLabel || 'Agent';
-  } else {
-    // Only fall back to inbox email if no profile exists
-    fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
-    authorLabel = authorLabel || fromName || fromEmail || 'Agent';
-  }
-}
-```
-
-**Also check**: The `ChatReplyInput` message insertion to confirm `sender_id` is included:
-```typescript
-const { error: insertError } = await supabase
-  .from('messages')
-  .insert({
-    conversation_id: conversationId,
-    content: messageContent,
-    sender_type: 'agent',
-    sender_id: user.id,  // <-- Critical: must be present
-    content_type: 'text/plain',
-    // ...
-  });
-```
+1. **Use `NoddiCustomerDetails`** for the main customer info card
+2. **Add the alternative lookup section** (Search by Email / Search by Name tabs) from `CustomerSidePanel`
 
 ---
 
-## Issue 2: Always Show Noddi Panel (Even When Customer Not Found)
+## Implementation Plan
 
-### Root Cause
-The Info button is conditionally rendered only when `noddiData?.data?.found` is true:
+### File: `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
+
+**Replace the chat panel content (lines 243-257):**
+
 ```typescript
-{noddiData?.data?.found && (
-  <Button onClick={() => setShowNoddiPanel(!showNoddiPanel)}>
-    <Info className="h-4 w-4" />
-  </Button>
-)}
-```
-
-### Solution
-Always show the Noddi panel access button. The `NoddihKundeData` component already handles "not found" states gracefully with appropriate UI.
-
-### Files to Modify
-
-**1. `src/components/dashboard/conversation-view/ConversationViewContent.tsx`**
-
-Change the conditional rendering of the Info button (around line 208-219):
-
-**Before:**
-```typescript
-{noddiData?.data?.found && (
-  <Button 
-    variant={showNoddiPanel ? "secondary" : "ghost"}
-    size="icon"
-    onClick={() => setShowNoddiPanel(!showNoddiPanel)}
-    title="View Noddi customer info"
-  >
-    <Info className="h-4 w-4" />
-  </Button>
-)}
-```
-
-**After:**
-```typescript
-{/* Always show Noddi info button - component handles not-found state */}
-<Button 
-  variant={showNoddiPanel ? "secondary" : "ghost"}
-  size="icon"
-  onClick={() => setShowNoddiPanel(!showNoddiPanel)}
-  title="View Noddi customer info"
-  className="shrink-0"
->
-  <Info className="h-4 w-4" />
-  {/* Show indicator dot if customer found in Noddi */}
-  {noddiData?.data?.found && (
-    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />
-  )}
-</Button>
-```
-
-**Also update the panel rendering (around line 241):**
-
-**Before:**
-```typescript
-{showNoddiPanel && noddiData?.data?.found && (
-  <div className="w-80 border-l ...">
-    <NoddihKundeData customer={conversation.customer} />
-  </div>
-)}
-```
-
-**After:**
-```typescript
+// Before
 {showNoddiPanel && (
   <div className="w-80 border-l flex-shrink-0 overflow-auto bg-background">
     <div className="flex items-center justify-between p-3 border-b">
       <span className="font-medium text-sm">Customer Details</span>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowNoddiPanel(false)}>
+      <Button ...onClick={() => setShowNoddiPanel(false)}>
         <X className="h-4 w-4" />
       </Button>
     </div>
     <NoddihKundeData customer={conversation.customer} />
   </div>
 )}
+
+// After
+{showNoddiPanel && (
+  <ChatCustomerPanel
+    customer={conversation.customer}
+    onClose={() => setShowNoddiPanel(false)}
+  />
+)}
+```
+
+---
+
+### Create New Component: `src/components/dashboard/chat/ChatCustomerPanel.tsx`
+
+This component will extract and reuse the same logic from `CustomerSidePanel.tsx`:
+
+```typescript
+import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
+// ... other imports
+
+interface ChatCustomerPanelProps {
+  customer: Customer | null;
+  onClose: () => void;
+}
+
+export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
+  customer,
+  onClose
+}) => {
+  const [noddiData, setNoddiData] = useState<any>(null);
+  const [searchMode, setSearchMode] = useState<'email' | 'name'>('email');
+  const [alternativeEmail, setAlternativeEmail] = useState('');
+  const [searchFirstName, setSearchFirstName] = useState('');
+  const [searchLastName, setSearchLastName] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  
+  // Copy alternative search handlers from CustomerSidePanel
+  const handleAlternativeEmailSearch = async () => { ... };
+  const handleNameSearch = async () => { ... };
+
+  return (
+    <div className="w-80 border-l flex-shrink-0 overflow-auto bg-background">
+      {/* Header with close button */}
+      <div className="flex items-center justify-between p-3 border-b">
+        <span className="font-medium text-sm">Customer Details</span>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      <div className="p-3 space-y-4">
+        {/* Same component as email view */}
+        <NoddiCustomerDetails
+          customerId={customer?.id}
+          customerEmail={customer?.email}
+          customerPhone={customer?.phone}
+          customerName={customer?.full_name}
+          noddiEmail={(customer?.metadata as any)?.primary_noddi_email}
+          onDataLoaded={setNoddiData}
+          noddiData={noddiData}
+        />
+
+        {/* Alternative Lookup - same as CustomerSidePanel */}
+        {customer?.id && noddiData && !noddiData?.data?.found && (
+          <Card className="border-amber-200 bg-amber-50/50">
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-2 mb-3">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-900 mb-1">
+                    No booking data found
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    Search by alternative email or customer name
+                  </p>
+                </div>
+              </div>
+
+              {/* Tab Navigation */}
+              <div className="flex gap-2 mb-3 border-b border-amber-200">
+                <button onClick={() => setSearchMode('email')} className={...}>
+                  Search by Email
+                </button>
+                <button onClick={() => setSearchMode('name')} className={...}>
+                  Search by Name
+                </button>
+              </div>
+
+              {/* Email/Name Search Forms */}
+              {searchMode === 'email' && (
+                <div className="space-y-2">
+                  <Input placeholder="alternative@email.com" ... />
+                  <Button onClick={handleAlternativeEmailSearch}>Search</Button>
+                </div>
+              )}
+              
+              {searchMode === 'name' && (
+                <div className="space-y-3">
+                  <Input placeholder="First name" ... />
+                  <Input placeholder="Last name" ... />
+                  <Button onClick={handleNameSearch}>Search</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+};
 ```
 
 ---
 
 ## Files Summary
 
-| File | Changes |
-|------|---------|
-| `src/lib/normalizeMessage.ts` | Always prefer `sender_profile.full_name` for agent attribution |
-| `src/components/conversations/ChatReplyInput.tsx` | Verify `sender_id` is set on message insert |
-| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | Always show Noddi panel button, add green dot indicator when found |
+| File | Action |
+|------|--------|
+| `src/components/dashboard/chat/ChatCustomerPanel.tsx` | **Create** - New component with `NoddiCustomerDetails` + alternative search |
+| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | **Update** - Replace `NoddihKundeData` with `ChatCustomerPanel` |
+| `src/components/dashboard/chat/index.ts` | **Update** - Export new component |
 
 ---
 
-## Expected Results
+## Expected Result
 
-1. **Agent messages** - Will show actual agent name (e.g., "John Doe" or "JR" initials) instead of "Noddi Support"
-2. **Noddi panel** - Always accessible via Info button in chat header; green dot indicates if customer is recognized
-3. **Not-found state** - When customer isn't in Noddi, the panel still shows but with "Customer not found in Noddi" message (already handled by `NoddihKundeData` component)
+The Chat sidebar will now show the **exact same** Noddi customer information as the email view:
 
----
+1. **"Customer Information"** card with:
+   - Customer name/email
+   - Source badge (if applicable)
+   - "No Noddi customer data found" alert when not registered
 
-## Testing Plan
+2. **"No booking data found"** card with:
+   - **Search by Email** tab - alternative email input
+   - **Search by Name** tab - first name + last name inputs
+   - Search button with loading state
 
-1. Open a chat conversation
-2. Click the Info button - Noddi panel should slide open
-3. If customer not in Noddi, should show "not found" state
-4. If customer in Noddi, should show booking/order details
-5. Send a message as agent - should show YOUR name, not "Noddi Support"
-6. Check initials match agent's actual name
+3. **When customer IS found** - Full booking/order details, same as email view
 
