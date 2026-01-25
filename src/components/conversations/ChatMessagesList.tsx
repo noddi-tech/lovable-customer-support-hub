@@ -1,10 +1,19 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useDateFormatting } from '@/hooks/useDateFormatting';
 import type { NormalizedMessage } from '@/lib/normalizeMessage';
 import { useQueryClient } from '@tanstack/react-query';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ChatMessagesListProps {
   messages: NormalizedMessage[];
@@ -63,6 +72,62 @@ export const ChatMessagesList = ({
     return '?';
   };
 
+  const handleCopyMessage = useCallback((content: string) => {
+    navigator.clipboard.writeText(content);
+    toast.success('Message copied');
+  }, []);
+
+  const handleDeleteMessage = useCallback((messageId: string) => {
+    // TODO: Implement delete functionality
+    toast.info('Delete functionality coming soon');
+  }, []);
+
+  // Render attachments
+  const renderAttachments = (attachments: any[] | null | undefined) => {
+    if (!attachments || attachments.length === 0) return null;
+    
+    return (
+      <div className="flex flex-wrap gap-2 mt-2">
+        {attachments.map((attachment, index) => {
+          const isImage = attachment.type?.startsWith('image/');
+          
+          if (isImage) {
+            return (
+              <a 
+                key={index}
+                href={attachment.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <img 
+                  src={attachment.url} 
+                  alt={attachment.name || 'Attachment'}
+                  className="max-w-[200px] max-h-[150px] rounded-lg object-cover border"
+                />
+              </a>
+            );
+          }
+          
+          return (
+            <a
+              key={index}
+              href={attachment.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+            >
+              <Paperclip className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm truncate max-w-[150px]">
+                {attachment.name || 'Download file'}
+              </span>
+            </a>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <ScrollArea className="flex-1" ref={scrollAreaRef}>
       <div className="flex flex-col gap-4 p-4">
@@ -76,6 +141,7 @@ export const ChatMessagesList = ({
           const isAgent = message.authorType === 'agent';
           const isSystem = message.authorType === 'system';
           const senderName = message.from?.name || message.from?.email;
+          const attachments = (message as any).attachments;
           
           if (isSystem) {
             return (
@@ -91,7 +157,7 @@ export const ChatMessagesList = ({
             <div 
               key={message.id}
               className={cn(
-                "flex gap-3 max-w-[85%]",
+                "flex gap-3 max-w-[85%] group",
                 isAgent ? "self-end flex-row-reverse" : "self-start"
               )}
             >
@@ -113,7 +179,7 @@ export const ChatMessagesList = ({
               
               {/* Message content */}
               <div className={cn(
-                "flex flex-col",
+                "flex flex-col relative",
                 isAgent ? "items-end" : "items-start"
               )}>
                 {/* Sender name */}
@@ -121,20 +187,56 @@ export const ChatMessagesList = ({
                   {isAgent ? senderName || 'Agent' : customerName || customerEmail || 'Customer'}
                 </span>
                 
-                {/* Message bubble */}
-                <div className={cn(
-                  "px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words",
-                  isAgent 
-                    ? "bg-primary text-primary-foreground rounded-br-md" 
-                    : "bg-muted text-foreground rounded-bl-md"
-                )}>
-                  {message.visibleBody}
+                {/* Message bubble with action menu */}
+                <div className="relative">
+                  {/* Action menu - visible on hover */}
+                  <div className={cn(
+                    "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity z-10",
+                    isAgent ? "-left-8" : "-right-8"
+                  )}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 bg-background shadow-sm border">
+                          <MoreHorizontal className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align={isAgent ? "end" : "start"}>
+                        <DropdownMenuItem onClick={() => handleCopyMessage(message.visibleBody)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteMessage(message.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  
+                  {/* Message bubble */}
+                  <div className={cn(
+                    "px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words",
+                    isAgent 
+                      ? "bg-primary text-primary-foreground rounded-br-md" 
+                      : "bg-muted text-foreground rounded-bl-md"
+                  )}>
+                    {message.visibleBody}
+                    {renderAttachments(attachments)}
+                  </div>
                 </div>
                 
-                {/* Timestamp */}
-                <span className="text-xs text-muted-foreground mt-1 px-1">
-                  {formatRelative(new Date(message.createdAt))}
-                </span>
+                {/* Timestamp + delivery status */}
+                <div className="flex items-center gap-1 mt-1 px-1">
+                  <span className="text-xs text-muted-foreground">
+                    {formatRelative(new Date(message.createdAt))}
+                  </span>
+                  {isAgent && (
+                    <CheckCheck className="h-3 w-3 text-primary" />
+                  )}
+                </div>
               </div>
             </div>
           );

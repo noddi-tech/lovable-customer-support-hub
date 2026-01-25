@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -10,9 +10,12 @@ import {
   ArrowLeft,
   ChevronsDown,
   ChevronsUp,
+  Info,
+  X,
 } from 'lucide-react';
 import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
+import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { ProgressiveMessagesList, ProgressiveMessagesListRef } from '@/components/conversations/ProgressiveMessagesList';
@@ -97,6 +100,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   useConversationShortcuts();
 
   const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
+  const [showNoddiPanel, setShowNoddiPanel] = useState(false);
 
   // Fetch Noddi data for customer display
   const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
@@ -142,7 +146,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   if (isLiveChat) {
     return (
       <div className="flex h-full bg-background">
-        {/* Full-width chat container - no side panel */}
+        {/* Chat container */}
         <div className="flex flex-col flex-1 min-h-0">
           {/* Compact Chat Header */}
           <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-background shadow-sm">
@@ -201,6 +205,19 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
               </div>
             </div>
             
+            {/* Noddi info button */}
+            {noddiData?.data?.found && (
+              <Button 
+                variant={showNoddiPanel ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setShowNoddiPanel(!showNoddiPanel)}
+                title="View Noddi customer info"
+                className="shrink-0"
+              >
+                <Info className="h-4 w-4" />
+              </Button>
+            )}
+            
             {/* Team presence */}
             <PresenceAvatarStack 
               conversationId={conversationId} 
@@ -219,6 +236,24 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
             compactChatMode={true}
           />
         </div>
+        
+        {/* Collapsible Noddi Details Panel */}
+        {showNoddiPanel && noddiData?.data?.found && (
+          <div className="w-80 border-l flex-shrink-0 overflow-auto bg-background">
+            <div className="flex items-center justify-between p-3 border-b">
+              <span className="font-medium text-sm">Customer Details</span>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7"
+                onClick={() => setShowNoddiPanel(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <NoddihKundeData customer={conversation.customer} />
+          </div>
+        )}
         
         {/* Dialogs still needed for chat */}
         <TagDialog
