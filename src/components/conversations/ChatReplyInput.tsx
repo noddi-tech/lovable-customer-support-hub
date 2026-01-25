@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Loader2, PhoneOff, UserRoundPlus, Smile, Paperclip, Mic, Image, X } from 'lucide-react';
+import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X } from 'lucide-react';
 import { useConversationView } from '@/contexts/ConversationViewContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,6 +48,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { state } = useConversationView();
   
   // Fetch agents for transfer
@@ -148,30 +150,43 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
   const endChatMutation = useMutation({
     mutationFn: async () => {
-      // Find the chat session for this conversation
+      // Try to find active/waiting session (may not exist if visitor already left)
       const { data: session } = await supabase
         .from('widget_chat_sessions')
         .select('id')
         .eq('conversation_id', conversationId)
-        .eq('status', 'active')
-        .single();
+        .in('status', ['active', 'waiting'])
+        .maybeSingle();
 
+      // Update session if it exists
       if (session) {
-        // End the session
-        const { error } = await supabase
+        await supabase
           .from('widget_chat_sessions')
           .update({ 
             status: 'ended',
             ended_at: new Date().toISOString(),
           })
           .eq('id', session.id);
-
-        if (error) throw error;
       }
+
+      // Always close the conversation
+      const { error: convError } = await supabase
+        .from('conversations')
+        .update({ 
+          status: 'closed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', conversationId);
+
+      if (convError) throw convError;
     },
     onSuccess: () => {
       toast.success('Chat ended');
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-counts'] });
+      // Navigate to ended tab
+      navigate('/interactions/chat/ended');
     },
     onError: (error) => {
       console.error('Failed to end chat:', error);
@@ -374,7 +389,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           {endChatMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <PhoneOff className="h-4 w-4" />
+            <MessageSquareX className="h-4 w-4" />
           )}
         </Button>
       </div>
