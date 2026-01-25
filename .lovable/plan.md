@@ -1,153 +1,142 @@
 
 
-## Fix: End Chat Should Move Chat to "Ended" Tab
+## Fix Plan: Customer Left Notification + Chat Navigation
 
-### Problem Summary
-
-When clicking "End Chat":
-1. The `widget_chat_sessions.status` is updated to `'ended'` (working)
-2. But the `conversations.status` remains as `'pending'` (not updated!)
-3. The "Active" tab filters by `conversations.status IN ('open', 'pending')`
-4. Result: Chat stays in Active tab despite showing "Chat ended" toast
-
-Additionally, the icon is a phone (wrong context) instead of a chat bubble.
+### Overview
+Two fixes needed:
+1. **Customer left detection**: Alert the agent when the visitor ends/leaves the chat
+2. **Chat navigation**: Fix claiming to stay in chat section, not navigate to text inbox
 
 ---
 
-## Part 1: Update Both Session AND Conversation Status
+## Part 1: Detect and Display "Visitor Left" State
 
-**File:** `src/components/conversations/ChatReplyInput.tsx`
+### 1.1 Update `useVisitorOnlineStatus` Hook
 
-In the `endChatMutation`, after updating the session, also update the conversation status:
+**File:** `src/hooks/useVisitorOnlineStatus.ts`
+
+Expand the query to also check for `'ended'` and `'abandoned'` sessions:
 
 ```typescript
-const endChatMutation = useMutation({
-  mutationFn: async () => {
-    // Find the chat session for this conversation
-    const { data: session } = await supabase
-      .from('widget_chat_sessions')
-      .select('id')
-      .eq('conversation_id', conversationId)
-      .eq('status', 'active')
-      .maybeSingle();
+const { data, error } = await supabase
+  .from('widget_chat_sessions')
+  .select('last_seen_at, status')
+  .eq('conversation_id', conversationId)
+  .in('status', ['waiting', 'active', 'ended', 'abandoned'])  // Added ended/abandoned
+  .maybeSingle();
+```
 
-    // Update session status
-    if (session) {
-      const { error } = await supabase
-        .from('widget_chat_sessions')
-        .update({ 
-          status: 'ended',
-          ended_at: new Date().toISOString(),
-        })
-        .eq('id', session.id);
+Update the return type and logic:
 
-      if (error) throw error;
-    }
+```typescript
+interface VisitorOnlineStatus {
+  isOnline: boolean;
+  lastSeenAt: string | null;
+  status: 'waiting' | 'active' | 'ended' | 'abandoned' | null;
+  hasLeft: boolean;  // NEW: true if visitor ended or abandoned
+}
 
-    // ALSO update the conversation status to 'closed'
-    const { error: convError } = await supabase
-      .from('conversations')
-      .update({ 
-        status: 'closed',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', conversationId);
+// In the query function:
+const hasLeft = data.status === 'ended' || data.status === 'abandoned';
 
-    if (convError) throw convError;
-  },
-  onSuccess: () => {
-    toast.success('Chat ended');
-    // Invalidate both conversation and chat list queries
-    queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-    queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
-    queryClient.invalidateQueries({ queryKey: ['chat-counts'] });
-  },
-  // ...
-});
+return { 
+  isOnline: isOnline && !hasLeft,  // Can't be online if they left
+  lastSeenAt: data.last_seen_at,
+  status: data.status,
+  hasLeft,  // NEW
+};
 ```
 
 ---
 
-## Part 2: Change Icon to Chat Bubble
+### 1.2 Update Chat Header to Show "Visitor Left" Banner
 
-**File:** `src/components/conversations/ChatReplyInput.tsx`
+**File:** `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
 
-Replace `PhoneOff` with a chat-appropriate icon:
+Add a banner/alert when `onlineStatus?.hasLeft` is true:
 
 ```typescript
-// At imports
-import { MessageSquareX } from 'lucide-react';
-// Or use: MessageCircleOff
+{/* Visitor left banner */}
+{onlineStatus?.hasLeft && (
+  <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+    <AlertCircle className="h-4 w-4 text-amber-600" />
+    <span className="text-sm text-amber-700 dark:text-amber-400">
+      Visitor has left the chat
+    </span>
+    <span className="text-xs text-amber-600 dark:text-amber-500 ml-auto">
+      {onlineStatus.status === 'abandoned' ? 'Timed out' : 'Ended by visitor'}
+    </span>
+  </div>
+)}
+```
 
-// At line 377
-<MessageSquareX className="h-4 w-4" />
+Update the status badge to show "Left" instead of "Offline":
+
+```typescript
+<Badge variant="outline" className={cn(
+  "text-xs shrink-0",
+  onlineStatus?.hasLeft
+    ? "bg-amber-50 text-amber-700 border-amber-200"
+    : onlineStatus?.isOnline 
+      ? "bg-green-50 text-green-700 border-green-200"
+      : "bg-gray-50 text-gray-600 border-gray-200"
+)}>
+  {onlineStatus?.hasLeft ? 'Left' : onlineStatus?.isOnline ? 'Online' : 'Offline'}
+</Badge>
 ```
 
 ---
 
-## Part 3: Navigate Back to List After Ending
+### 1.3 Optional: Toast Notification When Visitor Leaves
 
-After ending a chat, the agent should be navigated back to the chat list since the conversation is now closed:
+In `ConversationViewContent.tsx`, add a `useEffect` to detect status change:
 
 ```typescript
-import { useNavigate } from 'react-router-dom';
+const previousStatusRef = useRef(onlineStatus?.status);
 
-// Inside component
-const navigate = useNavigate();
-
-// In onSuccess callback
-onSuccess: () => {
-  toast.success('Chat ended');
-  queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-  queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
-  queryClient.invalidateQueries({ queryKey: ['chat-counts'] });
+useEffect(() => {
+  const prevStatus = previousStatusRef.current;
+  const currentStatus = onlineStatus?.status;
   
-  // Navigate back to chat list (ended filter)
-  navigate('/interactions/chat/ended');
-},
+  // Notify when status changes from active to ended/abandoned
+  if (prevStatus === 'active' && (currentStatus === 'ended' || currentStatus === 'abandoned')) {
+    toast.info('Visitor has left the chat', {
+      description: currentStatus === 'abandoned' 
+        ? 'Connection timed out' 
+        : 'Visitor closed the chat',
+    });
+  }
+  
+  previousStatusRef.current = currentStatus;
+}, [onlineStatus?.status]);
 ```
 
 ---
 
-## Part 4: Optional - Also Handle Session Not Found
+## Part 2: Fix Chat Claiming Navigation
 
-If the session was already ended (e.g., visitor left), the mutation should still close the conversation:
+### 2.1 Update Navigation Routes
 
+**File:** `src/components/conversations/LiveChatQueue.tsx`
+
+Change both navigation calls to use the chat route:
+
+**Line 46 - After claiming:**
 ```typescript
-const endChatMutation = useMutation({
-  mutationFn: async () => {
-    // Try to find active session (may not exist if visitor already left)
-    const { data: session } = await supabase
-      .from('widget_chat_sessions')
-      .select('id')
-      .eq('conversation_id', conversationId)
-      .in('status', ['active', 'waiting'])  // Also allow ending waiting chats
-      .maybeSingle();
+// Before
+navigate(`/interactions/text/open?c=${conversationId}`);
 
-    // Update session if it exists
-    if (session) {
-      await supabase
-        .from('widget_chat_sessions')
-        .update({ 
-          status: 'ended',
-          ended_at: new Date().toISOString(),
-        })
-        .eq('id', session.id);
-    }
+// After
+navigate(`/interactions/chat/active?c=${conversationId}`);
+```
 
-    // Always close the conversation
-    const { error: convError } = await supabase
-      .from('conversations')
-      .update({ 
-        status: 'closed',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', conversationId);
+**Line 51 - handleOpenConversation:**
+```typescript
+// Before
+navigate(`/interactions/text/open?c=${conversationId}`);
 
-    if (convError) throw convError;
-  },
-  // ...
-});
+// After
+navigate(`/interactions/chat/active?c=${conversationId}`);
 ```
 
 ---
@@ -156,29 +145,27 @@ const endChatMutation = useMutation({
 
 | File | Changes |
 |------|---------|
-| `src/components/conversations/ChatReplyInput.tsx` | Update both session AND conversation status, change icon, navigate after ending |
+| `src/hooks/useVisitorOnlineStatus.ts` | Query ended/abandoned sessions, add `hasLeft` property |
+| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | Add "Visitor left" banner, update status badge, optional toast |
+| `src/components/conversations/LiveChatQueue.tsx` | Change navigation from `/interactions/text/` to `/interactions/chat/` |
 
 ---
 
 ## Expected Behavior After Fix
 
-1. Agent clicks "End Chat" button (now with chat bubble icon)
-2. Both `widget_chat_sessions.status` AND `conversations.status` are updated
-3. Toast shows "Chat ended"
-4. Query caches are invalidated
-5. Agent is navigated to `/interactions/chat/ended`
-6. The chat appears in "Ended" tab (with count updated)
-7. The chat is removed from "Active" tab
+### Customer Leaves:
+1. Visitor closes widget or times out
+2. Session status changes to `'ended'` or `'abandoned'`
+3. Agent sees:
+   - Amber banner: "Visitor has left the chat"
+   - Status badge changes to "Left" (amber color)
+   - Toast notification appears (optional)
+4. Chat remains in Active tab until agent clicks "End Chat"
+5. Agent can still review the conversation and add notes
 
----
-
-## Testing Steps
-
-1. Open an active chat conversation
-2. Click the "End Chat" button
-3. Verify toast "Chat ended" appears
-4. Verify navigation to Ended tab
-5. Verify the chat now appears in "Ended" tab
-6. Verify the chat is NOT in "Active" tab anymore
-7. Verify the count badges update correctly
+### Claiming a Chat:
+1. Agent clicks "Claim" on waiting session
+2. Toast: "Chat claimed"
+3. Navigates to `/interactions/chat/active?c={id}` (stays in chat section)
+4. Agent sees the chat UI immediately
 
