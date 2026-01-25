@@ -19,7 +19,7 @@ import { ControlDoctor } from "@/dev/ControlDoctor";
 import { useAircallPhone } from "@/hooks/useAircallPhone";
 import { AircallLoginModal } from "@/components/dashboard/voice/AircallLoginModal";
 import { AircallFloatingButton } from "@/components/dashboard/voice/AircallFloatingButton";
-import { AircallErrorFallback } from "@/components/dashboard/voice/AircallErrorFallback";
+import { AppErrorFallback } from "@/components/error/AppErrorFallback";
 import { PerformanceDebugPanel } from "@/components/debug/PerformanceDebugPanel";
 import { URLSanitizer } from "@/components/routing/URLSanitizer";
 import { ConversationRedirect } from "@/components/routing/ConversationRedirect";
@@ -281,7 +281,7 @@ const App = () => (
           <AuthProvider>
             <RealtimeProvider>
               <ConversationPresenceProvider>
-                <ErrorBoundary fallback={<AircallErrorFallback />}>
+                <ErrorBoundary fallback={<AppErrorFallback />}>
                   <AircallProvider>
                     <DesignSystemProvider>
                       <TooltipProvider>
