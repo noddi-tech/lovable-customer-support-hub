@@ -10,10 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { MessageCircle } from 'lucide-react';
 
-// Use ConversationView which handles fetching internally
-const ConversationView = React.lazy(() => 
-  import('@/components/dashboard/ConversationView').then(m => ({ default: m.ConversationView }))
-);
+// Direct import - lazy loading was causing context provider issues
+import { ConversationView } from '@/components/dashboard/ConversationView';
 
 export const ChatLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -43,7 +41,7 @@ export const ChatLayout: React.FC = () => {
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', organizationId)
           .eq('channel', 'widget')
-          .eq('status', 'open')
+          .in('status', ['open', 'pending']) // Include pending in active count
           .is('deleted_at', null),
         supabase
           .from('conversations')
@@ -131,16 +129,10 @@ export const ChatLayout: React.FC = () => {
         {/* Right panel: Selected Chat View */}
         <ResizablePanel defaultSize={65}>
           {selectedConversationId ? (
-            <React.Suspense fallback={
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            }>
-              <ConversationView
-                conversationId={selectedConversationId}
-                showSidePanel={false}
-              />
-            </React.Suspense>
+            <ConversationView
+              conversationId={selectedConversationId}
+              showSidePanel={false}
+            />
           ) : (
             <ChatEmptyState />
           )}
