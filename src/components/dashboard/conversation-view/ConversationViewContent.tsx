@@ -16,6 +16,7 @@ import {
 import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
 import { NoddihKundeData } from '@/components/dashboard/NoddihKundeData';
+import { ChatCustomerPanel } from '@/components/dashboard/chat/ChatCustomerPanel';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/use-responsive';
 import { ProgressiveMessagesList, ProgressiveMessagesListRef } from '@/components/conversations/ProgressiveMessagesList';
@@ -239,22 +240,13 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           />
         </div>
         
-        {/* Collapsible Noddi Details Panel - always show when toggled, component handles not-found state */}
+        {/* Collapsible Customer Details Panel - same as email view */}
         {showNoddiPanel && (
-          <div className="w-80 border-l flex-shrink-0 overflow-auto bg-background">
-            <div className="flex items-center justify-between p-3 border-b">
-              <span className="font-medium text-sm">Customer Details</span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7"
-                onClick={() => setShowNoddiPanel(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <NoddihKundeData customer={conversation.customer} />
-          </div>
+          <ChatCustomerPanel
+            customer={conversation.customer}
+            conversationId={conversationId}
+            onClose={() => setShowNoddiPanel(false)}
+          />
         )}
         
         {/* Dialogs still needed for chat */}
