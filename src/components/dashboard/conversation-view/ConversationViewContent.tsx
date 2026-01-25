@@ -12,6 +12,7 @@ import {
   ChevronsUp,
   Info,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';
 import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
@@ -135,6 +136,25 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   
   // Track visitor online status for live chat
   const { data: onlineStatus } = useVisitorOnlineStatus(isLiveChat ? conversationId : null);
+  
+  // Track previous status for toast notification
+  const previousStatusRef = useRef(onlineStatus?.status);
+  
+  useEffect(() => {
+    const prevStatus = previousStatusRef.current;
+    const currentStatus = onlineStatus?.status;
+    
+    // Notify when status changes from active to ended/abandoned
+    if (prevStatus === 'active' && (currentStatus === 'ended' || currentStatus === 'abandoned')) {
+      toast.info('Visitor has left the chat', {
+        description: currentStatus === 'abandoned' 
+          ? 'Connection timed out' 
+          : 'Visitor closed the chat',
+      });
+    }
+    
+    previousStatusRef.current = currentStatus;
+  }, [onlineStatus?.status]);
 
   // Handle back navigation
   const handleBack = () => {
@@ -149,6 +169,19 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
       <div className="flex h-full bg-background">
         {/* Chat container */}
         <div className="flex flex-col flex-1 min-h-0">
+          {/* Visitor left banner */}
+          {onlineStatus?.hasLeft && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-sm text-amber-700 dark:text-amber-400">
+                Visitor has left the chat
+              </span>
+              <span className="text-xs text-amber-600 dark:text-amber-500 ml-auto">
+                {onlineStatus.status === 'abandoned' ? 'Timed out' : 'Ended by visitor'}
+              </span>
+            </div>
+          )}
+          
           {/* Compact Chat Header */}
           <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-background shadow-sm">
             <Button 
@@ -176,20 +209,24 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                 {/* Online status dot */}
                 <div className={cn(
                   "w-2 h-2 rounded-full shrink-0",
-                  onlineStatus?.isOnline 
-                    ? "bg-green-500 animate-pulse" 
-                    : "bg-gray-400"
+                  onlineStatus?.hasLeft
+                    ? "bg-amber-500"
+                    : onlineStatus?.isOnline 
+                      ? "bg-green-500 animate-pulse" 
+                      : "bg-gray-400"
                 )} />
                 <Badge 
                   variant="outline" 
                   className={cn(
                     "text-xs shrink-0",
-                    onlineStatus?.isOnline 
-                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-                      : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
+                    onlineStatus?.hasLeft
+                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                      : onlineStatus?.isOnline 
+                        ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                        : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
                   )}
                 >
-                  {onlineStatus?.isOnline ? 'Online' : 'Offline'}
+                  {onlineStatus?.hasLeft ? 'Left' : onlineStatus?.isOnline ? 'Online' : 'Offline'}
                 </Badge>
               </div>
               <div className="flex items-center gap-2">
