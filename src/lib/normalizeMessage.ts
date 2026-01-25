@@ -367,7 +367,12 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     isAgent ? 'agent' : ((rawMessage.sender_type as any) ?? 'customer');
 
   // Use conversation fallbacks only if still missing
-  if (!authorLabel) {
+  // For agents: ALWAYS prefer profile data regardless of any header-derived values
+  if (authorType === 'agent' && senderProfile) {
+    fromName = senderProfile.full_name || fromName;
+    fromEmail = senderProfile.email || fromEmail;
+    authorLabel = senderProfile.full_name || senderProfile.email || authorLabel || 'Agent';
+  } else if (!authorLabel) {
     if (authorType === 'customer' && ctx.conversationCustomerEmail) {
       const e = ctx.conversationCustomerEmail.toLowerCase();
       const n = ctx.conversationCustomerName;
@@ -381,15 +386,9 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
         authorLabel = (n && e) ? `${n} <${e}>` : (e || n);
       }
     } else if (authorType === 'agent') {
-      // For agents: prefer profile data if available, then inbox email
-      if (senderProfile) {
-        fromName = fromName ?? senderProfile.full_name;
-        fromEmail = fromEmail ?? senderProfile.email;
-        authorLabel = senderProfile.full_name || senderProfile.email || 'Agent';
-      } else {
-        fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
-        authorLabel = fromName || fromEmail || 'Agent';
-      }
+      // Fallback for agents without profile data
+      fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
+      authorLabel = fromName || fromEmail || 'Agent';
     }
   }
 
