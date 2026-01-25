@@ -1,127 +1,225 @@
 
 
-## Comprehensive Chat Section Fixes
+## Comprehensive Fix Plan: Chat UI + Noddi Integration
 
-### Overview
-This plan addresses four issues: count discrepancy in filters, the email UI showing instead of chat UI, missing Noddi customer lookup, and implementing a cleaner chat UI similar to the ShadcnUI Kit reference.
+### Root Cause Identified
 
----
+The chat UI is showing email style because **`useConversationMeta.ts` doesn't fetch the `channel` field** from the `conversations` table. This causes `conversation.channel` to always be `undefined`, making `isLiveChat = false` for all conversations.
 
-## Part 1: Fix Count Discrepancy in Chat Filters
-
-**Problem:** Active shows 2, Ended shows 4, All shows 7. But 2+4=6, not 7. The missing 1 is a conversation with `status='pending'` which isn't counted in either Active or Ended.
-
-**File:** `src/components/dashboard/chat/ChatLayout.tsx`
-
-**Fix:** Include `pending` status in the Active count since pending chats are effectively "in progress":
-
-```typescript
-// Line 43-47: Change from
-.eq('status', 'open')
-
-// To include pending as "active" chats
-.in('status', ['open', 'pending'])
-```
-
-Also update `ChatConversationList.tsx` line 72-74 to match:
-```typescript
-if (filter === 'active') {
-  query = query.in('status', ['open', 'pending']);
-}
-```
+**Database confirmation**: The conversation `bbc1f6ed-...` does have `channel: 'widget'` in the database, so the data is correct - it's just not being fetched.
 
 ---
 
-## Part 2: Fix the ConversationView Provider Error
+## Part 1: Fix the Channel Detection (Critical Bug Fix)
 
-**Problem:** The chat view throws "useConversationView must be used within a ConversationViewProvider" because the lazy-loaded component bypasses the provider wrapping, or there's a context issue.
+**File:** `src/hooks/conversations/useConversationMeta.ts`
 
-**Files to Modify:**
-1. `src/components/dashboard/chat/ChatLayout.tsx`
-2. `src/components/error/AppErrorFallback.tsx` (create)
-3. `src/App.tsx`
-
-**Fix Strategy:**
-1. Replace lazy import with direct import for `ConversationView`
-2. Create a generic app error fallback to prevent misleading "Phone System Error"
+Add `channel` to the select query:
 
 ```typescript
-// ChatLayout.tsx - Replace:
-const ConversationView = React.lazy(() => 
-  import('@/components/dashboard/ConversationView').then(m => ({ default: m.ConversationView }))
-);
+// Line 36-48: Add 'channel' to the select
+const { data: conversation, error: convError } = await supabase
+  .from('conversations')
+  .select(`
+    id,
+    subject,
+    status,
+    priority,
+    is_read,
+    updated_at,
+    channel,  // ADD THIS LINE
+    customer:customers(id, full_name, email, phone, metadata)
+  `)
+  .eq('id', conversationId)
+  .single();
+```
 
-// With direct import:
-import { ConversationView } from '@/components/dashboard/ConversationView';
+Also add `channel` to the `ConversationMeta` interface and return object.
+
+---
+
+## Part 2: Add Noddi Details Panel to Chat View
+
+Based on your selection, implement a **collapsible right-side panel** showing full Noddi customer data.
+
+**File:** `src/components/dashboard/conversation-view/ConversationViewContent.tsx`
+
+Add collapsible Noddi panel to the live chat UI (lines 142-232):
+
+```typescript
+// State for panel visibility
+const [showNoddiPanel, setShowNoddiPanel] = useState(false);
+
+// In the compact chat header, add info button
+{noddiData?.data?.found && (
+  <Button 
+    variant="ghost" 
+    size="icon"
+    onClick={() => setShowNoddiPanel(!showNoddiPanel)}
+    title="View Noddi customer info"
+  >
+    <Info className="h-4 w-4" />
+  </Button>
+)}
+
+// Collapsible right panel
+{showNoddiPanel && noddiData?.data?.found && (
+  <div className="w-80 border-l flex-shrink-0 overflow-auto">
+    <NoddihKundeData customer={conversation.customer} />
+  </div>
+)}
 ```
 
 ---
 
-## Part 3: Add Noddi Customer Recognition to Chat
+## Part 3: Enhanced Chat UI (ShadcnUI Kit Style)
 
-**Problem:** Chat list doesn't show if a customer is recognized in Noddi system.
+### 3.1 Update Chat List Item Styling
 
-**File:** `src/components/dashboard/chat/ChatConversationList.tsx`
+**File:** `src/components/dashboard/chat/ChatListItem.tsx`
 
-**Solution:** Create a sub-component for each chat item that uses `useNoddihKundeData`:
+Add delivery status checkmarks and unread count badges:
 
 ```typescript
-// New component: ChatListItem
-const ChatListItem: React.FC<{
-  conv: ChatConversation;
-  isSelected: boolean;
-  onSelect: () => void;
-}> = ({ conv, isSelected, onSelect }) => {
-  // Create customer object for Noddi lookup
-  const customer = useMemo(() => ({
-    id: conv.customer?.id || conv.id,
-    email: conv.session?.visitor_email || conv.customer?.email,
-    phone: null,
-    full_name: conv.session?.visitor_name || conv.customer?.full_name,
-  }), [conv]);
+// Add message status indicator (single check for sent, double for delivered)
+{conv.is_read && (
+  <span className="text-green-500">
+    <CheckCheck className="h-3 w-3" />
+  </span>
+)}
+{!conv.is_read && (
+  <span className="text-muted-foreground">
+    <Check className="h-3 w-3" />
+  </span>
+)}
+
+// Add unread count badge (green circle with number)
+{unreadCount > 0 && (
+  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+    {unreadCount}
+  </span>
+)}
+```
+
+### 3.2 Add Message Actions Menu
+
+**File:** `src/components/conversations/ChatMessagesList.tsx`
+
+Add hover action menu (•••) to each message bubble:
+
+```typescript
+// Around the message bubble, add hover-visible action menu
+<div className="group relative">
+  {/* Action menu - visible on hover */}
+  <div className="absolute -top-2 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-6 w-6">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem>Copy</DropdownMenuItem>
+        <DropdownMenuItem>Delete</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
   
-  const { data: noddiData } = useNoddihKundeData(customer);
-  const isNoddiCustomer = noddiData?.data?.found;
-  
-  // ... render with Noddi badge
-  {isNoddiCustomer && (
-    <Badge variant="secondary" className="text-[10px]">
-      Noddi
-    </Badge>
-  )}
-};
+  {/* Message bubble */}
+  <div className="px-4 py-3 rounded-2xl...">
+    {message.visibleBody}
+  </div>
+</div>
+```
+
+### 3.3 Enhanced Chat Input with Icons
+
+**File:** `src/components/conversations/ChatReplyInput.tsx`
+
+Add emoji picker, attachment button, and mic icon (placeholder):
+
+```typescript
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
+
+// State for emoji picker
+const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+// Updated input layout
+<div className="flex items-center gap-2 p-4 border-t border-border bg-background">
+  {/* Emoji picker button + popover */}
+  <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+    <PopoverTrigger asChild>
+      <Button variant="ghost" size="icon" className="shrink-0">
+        <Smile className="h-5 w-5 text-muted-foreground" />
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent side="top" className="w-auto p-0">
+      <Picker 
+        data={data} 
+        onEmojiSelect={(emoji) => {
+          setMessage(prev => prev + emoji.native);
+          setShowEmojiPicker(false);
+        }}
+      />
+    </PopoverContent>
+  </Popover>
+
+  {/* Attachment button (functional) */}
+  <Button variant="ghost" size="icon" className="shrink-0">
+    <Paperclip className="h-5 w-5 text-muted-foreground" />
+  </Button>
+
+  {/* Message input */}
+  <Input 
+    placeholder="Enter message..." 
+    className="flex-1 rounded-full"
+    value={message}
+    onChange={handleInputChange}
+    onKeyDown={handleKeyDown}
+  />
+
+  {/* Mic button (placeholder) */}
+  <Button variant="ghost" size="icon" className="shrink-0" disabled>
+    <Mic className="h-5 w-5 text-muted-foreground" />
+  </Button>
+
+  {/* Send button */}
+  <Button size="icon" className="rounded-full" onClick={handleSend}>
+    <Send className="h-4 w-4" />
+  </Button>
+</div>
+```
+
+### 3.4 File Attachments Implementation
+
+Since you want attachments to work:
+
+1. **Create storage bucket** for chat attachments (SQL migration)
+2. **Add upload handler** in ChatReplyInput
+3. **Display attachments** in ChatMessagesList (images inline, files as download links)
+
+```sql
+-- Create chat attachments bucket
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('chat-attachments', 'chat-attachments', false);
+
+-- RLS policy for authenticated uploads
+CREATE POLICY "Authenticated users can upload chat attachments"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'chat-attachments');
+
+-- RLS policy for reading attachments
+CREATE POLICY "Users can view chat attachments"
+ON storage.objects FOR SELECT TO authenticated
+USING (bucket_id = 'chat-attachments');
 ```
 
 ---
 
-## Part 4: Enhance Chat UI (ShadcnUI Kit Style)
+## Part 4: Header Keeps Back Button
 
-**Reference:** https://shadcnuikit.com/dashboard/apps/chat
-
-**Key Enhancements:**
-
-### 4.1 Chat List Improvements (`ChatConversationList.tsx`)
-- Add search input at top for filtering chats
-- Show unread message count badges (green circles)
-- Add message status checkmarks
-- Cleaner hover/selected states
-
-### 4.2 Chat Message Bubbles (`ChatMessagesList.tsx`)
-- Keep existing bubble layout (it's already correct)
-- Add timestamps to each message
-- Add message status indicators (sent/delivered/read)
-- Smoother animations on new messages
-
-### 4.3 Chat Input Area (`ChatReplyInput.tsx`)
-- Emoji picker button
-- Attachment button  
-- Cleaner input styling
-- Send button with arrow icon
-
-### 4.4 Chat Header Refinement (`ConversationViewContent.tsx`)
-- Remove back button text (keep icon only)
-- Add call/video icons (can be disabled/placeholder for now)
-- More prominent online status indicator
+Per your preference, the Back button will remain visible on all screen sizes (including desktop).
 
 ---
 
@@ -129,49 +227,32 @@ const ChatListItem: React.FC<{
 
 | File | Changes |
 |------|---------|
-| `src/components/dashboard/chat/ChatLayout.tsx` | Fix lazy import, include `pending` in active count |
-| `src/components/dashboard/chat/ChatConversationList.tsx` | Add Noddi lookup per item, search input, unread badges, fix filter |
-| `src/components/conversations/ChatMessagesList.tsx` | Add timestamps, delivery status, refine bubble styles |
-| `src/components/conversations/ChatReplyInput.tsx` | Add emoji/attachment buttons, cleaner styling |
-| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | Refine compact chat header |
-| `src/components/error/AppErrorFallback.tsx` | Create generic error fallback |
-| `src/App.tsx` | Use generic error fallback instead of AircallErrorFallback |
+| `src/hooks/conversations/useConversationMeta.ts` | **Add `channel` to select query** (critical fix) |
+| `src/components/dashboard/conversation-view/ConversationViewContent.tsx` | Add collapsible Noddi panel to chat UI |
+| `src/components/dashboard/chat/ChatListItem.tsx` | Add checkmarks, unread badges |
+| `src/components/conversations/ChatMessagesList.tsx` | Add message action menus, delivery status |
+| `src/components/conversations/ChatReplyInput.tsx` | Add emoji picker, attachment/mic icons |
+| Database migration | Create `chat-attachments` storage bucket |
 
 ---
 
-## Visual Changes Preview
+## Testing Plan
 
-### Before (Current)
-- Email-style header with Subject, Reply, Internal Note
-- Card-based messages
-- No Noddi recognition in list
-- Missing pending conversations in counts
-
-### After
-- Compact WhatsApp-style header (avatar + name + online status)
-- Chat bubbles with timestamps
-- Noddi badge next to recognized customers
-- Accurate counts including pending
-- Search filter in chat list
-- Unread count badges
+1. Navigate to `/interactions/chat/active` and click a chat
+2. **Verify chat UI** - Should show bubbles, not email cards
+3. **Verify Noddi panel** - Click info icon in header, panel should slide out with full customer data
+4. **Test emoji picker** - Click smile icon, select emoji, verify it inserts
+5. **Test attachment** - Click paperclip, upload file, verify it sends and displays
+6. **Verify Back button** - Should be visible on both mobile and desktop
 
 ---
 
 ## Implementation Order
 
-1. **Fix Provider Error First** - Replace lazy import, create error fallback
-2. **Fix Counts** - Include `pending` status in Active filter
-3. **Add Noddi Integration** - Extract list item component, add hook
-4. **Enhance Chat UI** - Search, badges, timestamps, refined styles
-
----
-
-## Testing Checklist
-
-1. Navigate to `/interactions/chat/active` - counts should be accurate (2+1 pending = 3 active if pending added)
-2. Click on a chat - should show WhatsApp-style UI, not email UI
-3. Verify Noddi badge appears for recognized customers
-4. Search in chat list - should filter by name/email
-5. Check unread badges appear for new messages
-6. Verify timestamps show on each message
+1. Fix `useConversationMeta.ts` first (this unblocks the chat UI)
+2. Add Noddi details panel
+3. Enhance input with emoji picker + icons
+4. Add message action menus
+5. Implement attachment upload/display
+6. Add checkmarks and unread badges
 
