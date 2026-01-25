@@ -93,17 +93,19 @@ export function useConversations({
   inboxId, 
   status, 
   q,
-  currentUserProfileId
+  currentUserProfileId,
+  excludeChannel
 }: { 
   inboxId: InboxId; 
   status: StatusFilter; 
   q?: string; 
   currentUserProfileId?: string;
+  excludeChannel?: string; // Exclude specific channel (e.g., 'widget')
 }) {
   const { user, refreshSession, validateSession } = useAuth();
   
   return useQuery({
-    queryKey: ['conversations', inboxId, status, q, currentUserProfileId],
+    queryKey: ['conversations', inboxId, status, q, currentUserProfileId, excludeChannel],
     queryFn: async () => {
       // Step 1: Validate database session context first
       try {
@@ -154,7 +156,7 @@ export function useConversations({
 
       // Step 2: Now fetch conversations with validated session
       try {
-        const conversations = await listConversations({ inboxId, status, q, currentUserProfileId });
+        const conversations = await listConversations({ inboxId, status, q, currentUserProfileId, excludeChannel });
         logger.debug('Conversations loaded', { count: conversations.length, inboxId }, 'Interactions');
         return conversations;
       } catch (error: any) {
@@ -174,7 +176,7 @@ export function useConversations({
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             try {
-              const retryConversations = await listConversations({ inboxId, status, q, currentUserProfileId });
+              const retryConversations = await listConversations({ inboxId, status, q, currentUserProfileId, excludeChannel });
               logger.info('Retry successful', { count: retryConversations.length }, 'Interactions');
               return retryConversations;
             } catch (retryError) {

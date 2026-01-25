@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { 
   MessageSquare,
+  MessageCircle,
   Phone,
   Plus,
   Inbox,
@@ -37,13 +38,19 @@ export const InteractionsSidebar: React.FC = () => {
       title: 'Text Messages',
       icon: MessageSquare,
       path: '/interactions/text',
-      badge: '24'
+      badge: undefined // Will be dynamic later
+    },
+    {
+      title: 'Chat',
+      icon: MessageCircle,
+      path: '/interactions/chat',
+      badge: undefined // Will show live count
     },
     {
       title: 'Voice Calls',
       icon: Phone,
       path: '/interactions/voice',
-      badge: '5'
+      badge: undefined
     }
   ];
 

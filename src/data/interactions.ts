@@ -191,6 +191,7 @@ export async function listConversations(params: {
   dateFrom?: string;
   dateTo?: string;
   currentUserProfileId?: string;
+  excludeChannel?: string; // NEW: Exclude specific channel (e.g., 'widget' for Text Messages)
 }): Promise<ConversationRow[]> {
   try {
     const { inboxId, status, q, page = 1 } = params;
@@ -317,8 +318,14 @@ function applyFilters(conversations: ConversationRow[], params: {
   dateFrom?: string;
   dateTo?: string;
   currentUserProfileId?: string;
+  excludeChannel?: string; // NEW: Filter out specific channels
 }): ConversationRow[] {
   let filtered = conversations;
+  
+  // Apply channel exclusion filter (e.g., exclude 'widget' for Text Messages)
+  if (params.excludeChannel) {
+    filtered = filtered.filter(c => c.channel !== params.excludeChannel);
+  }
   
   // Apply inbox filter
   if (params.inboxId && params.inboxId !== 'all') {
