@@ -2,39 +2,45 @@
 
 ## Plan: Add Widget API Documentation to Embed Tab
 
-### Goal
-Add a comprehensive API reference section to the Embed tab so developers like Mattis can easily discover and use the widget's configuration options and programmatic commands.
-
----
+### Current State
+The Embed tab only shows: Deploy Widget, Installation, Widget Key, Testing, and Next Steps. The API documentation for the new widget features (`showButton`, `position`, programmatic commands) is missing.
 
 ### Changes to `src/components/admin/widget/WidgetEmbedCode.tsx`
 
-Add two new documentation cards after the existing content:
+#### 1. Add New Imports
+```typescript
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, Code, BookOpen } from 'lucide-react';
+```
 
-#### 1. Configuration Options Card
+#### 2. Add New State
+```typescript
+const [apiRefOpen, setApiRefOpen] = useState(false);
+const [examplesOpen, setExamplesOpen] = useState(false);
+```
 
-Shows all available `init` options with descriptions:
+#### 3. Add API Reference Card (after Widget Key card)
 
+A collapsible card showing:
+
+**Configuration Options Table:**
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `widgetKey` | string | required | Your unique widget identifier |
 | `apiUrl` | string | auto | API endpoint (auto-configured) |
 | `showButton` | boolean | `true` | Set to `false` to hide the floating button |
-| `position` | string | `'bottom-right'` | Override position: `'bottom-right'` or `'bottom-left'` |
+| `position` | string | `'bottom-right'` | Position: `'bottom-right'` or `'bottom-left'` |
 
-#### 2. Programmatic API Card
-
-Documents the command methods:
-
+**Programmatic Commands:**
 | Command | Description |
 |---------|-------------|
 | `noddi('open')` | Open the widget panel |
 | `noddi('close')` | Close the widget panel |
 | `noddi('toggle')` | Toggle the widget open/closed |
 
-#### 3. Code Examples Card
+#### 4. Add Code Examples Card
 
-Provide copy-paste examples for common use cases:
+A collapsible card with copy-paste examples:
 
 **Custom Button Integration:**
 ```javascript
@@ -56,111 +62,67 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
 noddi('init', {
   widgetKey: 'YOUR_KEY',
   apiUrl: '...',
-  position: 'bottom-left'  // Show on left side
+  position: 'bottom-left'
 });
 ```
 
----
+### UI Structure After Changes
 
-### UI Design
+```text
++---------------------------------------+
+| Deploy Widget                         |
+| [Deploy to Production]                |
++---------------------------------------+
 
-Use collapsible `Accordion` or `Collapsible` components to keep the page clean while making all documentation accessible:
++---------------------------------------+
+| Installation                          |
+| <embed code snippet>            [Copy]|
++---------------------------------------+
 
++---------------------------------------+
+| Widget Key                            |
+| abc-123-xyz                     [Copy]|
++---------------------------------------+
+
++---------------------------------------+
+| API Reference                     [v] |  <-- NEW (collapsible)
+| Configuration Options                 |
+| - showButton: boolean (default: true) |
+| - position: 'bottom-right'/'left'     |
+|                                       |
+| Programmatic Commands                 |
+| - noddi('open')                       |
+| - noddi('close')                      |
+| - noddi('toggle')                     |
++---------------------------------------+
+
++---------------------------------------+
+| Code Examples                     [v] |  <-- NEW (collapsible)
+| Custom Button Integration       [Copy]|
+| Position Override               [Copy]|
++---------------------------------------+
+
++---------------------------------------+
+| Testing                               |
+| [Test Widget Config API]              |
++---------------------------------------+
+
++---------------------------------------+
+| Next Steps                            |
++---------------------------------------+
 ```
-┌─────────────────────────────────────────┐
-│ 🚀 Deploy Widget                        │
-│ [Deploy to Production]                  │
-└─────────────────────────────────────────┘
-
-┌─────────────────────────────────────────┐
-│ Installation                            │
-│ <embed code snippet>              [Copy]│
-└─────────────────────────────────────────┘
-
-┌─────────────────────────────────────────┐
-│ Widget Key                              │
-│ abc-123-xyz                       [Copy]│
-└─────────────────────────────────────────┘
-
-┌─────────────────────────────────────────┐
-│ 📖 API Reference                    [▼] │  ← NEW (collapsible)
-├─────────────────────────────────────────┤
-│ Configuration Options                   │
-│ ┌─────────────────────────────────────┐ │
-│ │ showButton  boolean  default: true  │ │
-│ │ Set to false to hide floating btn   │ │
-│ ├─────────────────────────────────────┤ │
-│ │ position    string   default: right │ │
-│ │ 'bottom-right' or 'bottom-left'     │ │
-│ └─────────────────────────────────────┘ │
-│                                         │
-│ Programmatic Commands                   │
-│ ┌─────────────────────────────────────┐ │
-│ │ noddi('open')   - Open the panel    │ │
-│ │ noddi('close')  - Close the panel   │ │
-│ │ noddi('toggle') - Toggle open/close │ │
-│ └─────────────────────────────────────┘ │
-└─────────────────────────────────────────┘
-
-┌─────────────────────────────────────────┐
-│ 💡 Code Examples                    [▼] │  ← NEW (collapsible)
-├─────────────────────────────────────────┤
-│ Custom Button Integration         [Copy]│
-│ ```javascript                           │
-│ noddi('init', { showButton: false });   │
-│ noddi('open');                          │
-│ ```                                     │
-│                                         │
-│ Left Position                     [Copy]│
-│ ```javascript                           │
-│ noddi('init', { position: 'bottom-left' });│
-│ ```                                     │
-└─────────────────────────────────────────┘
-
-┌─────────────────────────────────────────┐
-│ Testing                                 │
-│ [Test Widget Config API]                │
-└─────────────────────────────────────────┘
-
-┌─────────────────────────────────────────┐
-│ 📋 Next Steps                           │
-└─────────────────────────────────────────┘
-```
-
----
-
-### Implementation Details
-
-**Imports to add:**
-```typescript
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, Code, BookOpen } from 'lucide-react';
-```
-
-**New state:**
-```typescript
-const [apiRefOpen, setApiRefOpen] = useState(false);
-const [examplesOpen, setExamplesOpen] = useState(false);
-```
-
-**Code example snippets with copy buttons:**
-Each example will have its own copy button that copies the full code snippet to clipboard.
-
----
 
 ### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/admin/widget/WidgetEmbedCode.tsx` | Add API Reference section, Configuration Options, Programmatic Commands, and Code Examples with collapsible sections |
-
----
+| `src/components/admin/widget/WidgetEmbedCode.tsx` | Add imports, state, API Reference section, Code Examples section with collapsible UI |
 
 ### Result
 
-After implementation, Mattis and other developers will see:
+After implementation, developers like Mattis will see:
 - Clear documentation of `showButton` and `position` options
 - List of `noddi('open')`, `noddi('close')`, `noddi('toggle')` commands
-- Ready-to-copy code examples for common integrations
-- All accessible directly in the Embed tab without needing external docs
+- Ready-to-copy code examples for custom button integration
+- All accessible directly in the Embed tab
 
