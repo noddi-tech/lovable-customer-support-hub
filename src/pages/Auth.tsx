@@ -88,6 +88,12 @@ export const Auth: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // If there's a hash with tokens, wait for processing before checking
+    if (window.location.hash.includes('access_token')) {
+      // OAuth callback - don't redirect yet, let AuthContext process
+      return;
+    }
+    
     // Redirect if already logged in (but not in recovery mode)
     if (user && !isRecoveryMode) {
       navigate('/', { replace: true });
