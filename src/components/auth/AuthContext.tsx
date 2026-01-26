@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isProcessingOAuth: boolean;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<Session | null>;
   validateSession: () => Promise<boolean>;
@@ -27,6 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
   const queryClient = useQueryClient();
 
   const refreshSession = async () => {
@@ -106,11 +108,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleOAuthCallback = async () => {
       const hash = window.location.hash;
       if (hash && hash.includes('access_token')) {
+        setIsProcessingOAuth(true);
         logger.info('OAuth callback detected, processing tokens', undefined, 'Auth');
         
         // Supabase client automatically handles the hash
-        // Wait for it to process
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait for it to process - increased to 1s for reliability
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Refresh session to ensure we have the latest
         const { data: { session } } = await supabase.auth.getSession();
@@ -120,8 +123,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Clean up hash from URL
           window.history.replaceState(null, '', window.location.pathname);
+          logger.info('OAuth processing complete', { userId: session.user?.id }, 'Auth');
         }
         setLoading(false);
+        setIsProcessingOAuth(false);
         return true;
       }
       return false;
@@ -235,6 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    isProcessingOAuth,
     signOut,
     refreshSession,
     validateSession,
