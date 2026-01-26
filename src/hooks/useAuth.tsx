@@ -20,7 +20,7 @@ export interface UserProfile {
 }
 
 export const useAuth = () => {
-  const { user, session, loading, signOut } = useSupabaseAuth();
+  const { user, session, loading, signOut, isProcessingOAuth } = useSupabaseAuth();
   const { setMemberships, currentOrganizationId, clearOrganizationContext } = useOrganizationStore();
 
   // Fetch user profile data
@@ -122,6 +122,8 @@ export const useAuth = () => {
     profile,
     // CRITICAL: Only auth loading blocks route rendering
     loading: loading,
+    // OAuth processing state - prevents premature redirects
+    isProcessingOAuth,
     // Separate flag for when additional data is still loading
     isDataLoading: profileLoading || membershipsLoading,
     signOut: handleSignOut,

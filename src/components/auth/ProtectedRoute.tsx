@@ -1,51 +1,49 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { logger } from '@/utils/logger';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isProcessingOAuth } = useAuth();
   const navigate = useNavigate();
-  const [isReady, setIsReady] = useState(false);
-  const hasAttemptedAuth = useRef(false);
 
   useEffect(() => {
-    // Once loading is complete, we know the auth state
-    if (!loading) {
-      hasAttemptedAuth.current = true;
-      
+    logger.debug('ProtectedRoute state', { 
+      loading, 
+      isProcessingOAuth, 
+      hasUser: !!user,
+      pathname: window.location.pathname 
+    }, 'ProtectedRoute');
+
+    // Only proceed when BOTH loading and OAuth processing are complete
+    if (!loading && !isProcessingOAuth) {
       if (!user) {
-        // Small delay to handle OAuth callback timing
+        // Give one final moment for state propagation
         const timer = setTimeout(() => {
+          // Re-check user in case it was set during the timeout
           if (!user) {
+            logger.warn('No user after auth complete, redirecting to login', undefined, 'ProtectedRoute');
             navigate('/auth', { replace: true });
           }
-        }, 500);
+        }, 300);
         return () => clearTimeout(timer);
-      } else {
-        setIsReady(true);
       }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, isProcessingOAuth, navigate]);
 
-  // Also check: if user arrives with a hash fragment (OAuth callback), wait longer
-  useEffect(() => {
-    if (window.location.hash.includes('access_token')) {
-      // OAuth callback detected - give extra time for token exchange
-      const timer = setTimeout(() => setIsReady(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  if (loading || (!isReady && !hasAttemptedAuth.current)) {
+  // Show loading while authenticating OR processing OAuth
+  if (loading || isProcessingOAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">
+            {isProcessingOAuth ? 'Completing sign in...' : 'Loading...'}
+          </p>
         </div>
       </div>
     );
