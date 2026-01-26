@@ -1,166 +1,152 @@
 
-## Plan: Fix All Filter Logic in Text Messages
+## Plan: Support Google Authentication for Password-Based Accounts
 
-### Root Cause Analysis
+### Problem Summary
+Users like Anders who initially signed up with email/password want to use Google OAuth to log in. Currently, there's no explicit way for logged-in users to link their Google account to their existing password-based account.
 
-The filter logic is broken because the **"open" case is missing** from the switch statement in `ConversationListContext.tsx`. This causes the Open filter to fall through to the `default` case, which shows ALL non-deleted, non-snoozed conversations regardless of their status.
+### Solution Overview
+Implement two complementary features:
+1. **Verify Supabase Configuration** - Ensure "One email per user" is enabled for automatic identity linking
+2. **Add Explicit Linking UI** - Add a "Link Google Account" button in User Profile Settings using Supabase's `linkIdentity` method
 
-Additionally, the "archived" filter has issues - it only checks `is_archived === true` but doesn't exclude conversations that might also be "closed" or "open" status, and the "all" filter has special inbox logic that overrides the expected behavior.
+### Technical Implementation
 
-### Current vs Expected Behavior
+#### File: `src/components/settings/UserProfileSettings.tsx`
 
-| Filter | Current Behavior | Expected Behavior |
-|--------|------------------|-------------------|
-| **Open** | Shows ALL statuses (falls to default) | Only `status === 'open'`, not archived, not deleted |
-| **Pending** | Correct | `status === 'pending'`, not deleted |
-| **Assigned to Me** | Shows any assigned regardless of status | Assigned to current user, not archived, not deleted |
-| **Closed** | Correct | `status === 'closed'`, not archived, not deleted |
-| **Archived** | Shows all archived regardless of status | `is_archived === true`, not deleted |
-| **Deleted** | Empty (RPC works but data issue) | `deleted_at IS NOT NULL` |
-| **All Messages** | Excludes closed unless specific inbox | All non-archived, non-deleted conversations |
+**Changes:**
 
-### Fixes Required
-
-#### File: `src/contexts/ConversationListContext.tsx`
-
-**Fix 1: Add missing `case "open":` in both switch statements**
-
-Add the Open filter logic that matches:
-- `status === 'open'`
-- `!is_archived` (not archived)
-- `!is_deleted` (not deleted)
-- `!isSnoozedActive` (not snoozed)
-
-**Fix 2: Update "archived" filter to be clearer**
-
-The archived filter should:
-- Show conversations where `is_archived === true`
-- Not show deleted items
-
-**Fix 3: Update "all" (All Messages) filter**
-
-All Messages should show:
-- All conversations that are not archived and not deleted
-- Regardless of status (open, pending, closed)
-
-**Fix 4: Ensure "closed" excludes archived items**
-
-Closed should only show:
-- `status === 'closed'`
-- `!is_archived` (if it's closed AND archived, it should only show in Archived)
-- `!is_deleted`
-
-### Complete Filter Logic (Both Switch Statements)
-
+1. **Add new state and imports:**
 ```typescript
-switch (selectedTab) {
-  case "open":
-    // Open: status is 'open', not archived, not snoozed, not deleted
-    return conversation.status === 'open' 
-      && !conversation.is_archived 
-      && !isSnoozedActive 
-      && !conversation.is_deleted;
-      
-  case "pending":
-    // Pending: status is 'pending', not archived, not snoozed, not deleted
-    return conversation.status === 'pending' 
-      && !conversation.is_archived 
-      && !isSnoozedActive 
-      && !conversation.is_deleted;
-      
-  case "assigned":
-    // Assigned to Me: has assignment, not archived, not snoozed, not deleted
-    return !!conversation.assigned_to 
-      && !conversation.is_archived 
-      && !isSnoozedActive 
-      && !conversation.is_deleted;
-      
-  case "closed":
-    // Closed: status is 'closed', not archived, not snoozed, not deleted
-    return conversation.status === 'closed' 
-      && !conversation.is_archived 
-      && !isSnoozedActive 
-      && !conversation.is_deleted;
-      
-  case "archived":
-    // Archived: is_archived flag is true, not deleted
-    return conversation.is_archived === true 
-      && !conversation.is_deleted;
-      
-  case "deleted":
-    // Deleted: deleted_at is set (is_deleted flag)
-    return conversation.is_deleted === true;
-    
-  case "snoozed":
-    // Snoozed: has active snooze, not deleted
-    return isSnoozedActive 
-      && !conversation.is_deleted;
-      
-  case "all":
-    // All Messages: everything that's not archived and not deleted
-    return !conversation.is_archived 
-      && !isSnoozedActive 
-      && !conversation.is_deleted;
-      
-  // Channel filters
-  case "email":
-  case "facebook":
-  case "instagram":
-  case "whatsapp":
-    return conversation.channel === selectedTab 
-      && !conversation.is_archived 
-      && !isSnoozedActive 
-      && !conversation.is_deleted;
-      
-  default:
-    // Inbox-specific filter
-    if (selectedTab.startsWith('inbox-')) {
-      const inboxId = selectedTab.replace('inbox-', '');
-      return conversation.inbox_id === inboxId 
-        && !conversation.is_archived 
-        && !isSnoozedActive 
-        && !conversation.is_deleted;
-    }
-    // Fallback: show non-archived, non-snoozed, non-deleted
-    return !conversation.is_archived 
-      && !isSnoozedActive 
-      && !conversation.is_deleted;
-}
+import { Chrome } from 'lucide-react'; // Add Google icon
+const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
 ```
 
-### Technical Details
+2. **Add function to check linked identities:**
+```typescript
+// Check if Google is already linked
+const googleIdentity = user?.identities?.find(
+  (identity) => identity.provider === 'google'
+);
+const hasGoogleLinked = !!googleIdentity;
+```
 
-This logic must be updated in **two locations** within `ConversationListContext.tsx`:
+3. **Add `handleLinkGoogle` function:**
+```typescript
+const handleLinkGoogle = async () => {
+  setIsLinkingGoogle(true);
+  try {
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/settings`,
+      }
+    });
 
-1. **Lines 360-391**: Inside `markAllAsReadMutation` filter
-2. **Lines 495-531**: Inside `filteredAndSortedConversations` useMemo
+    if (error) {
+      // Handle specific errors
+      if (error.message.includes('already linked')) {
+        toast.error('This Google account is already linked to another user');
+      } else {
+        toast.error(error.message || 'Failed to link Google account');
+      }
+      return;
+    }
 
-Both switches must have identical logic to ensure consistent behavior.
+    // User will be redirected to Google for OAuth
+    // On return, the identity will be linked
+  } catch (error) {
+    console.error('Link Google error:', error);
+    toast.error('Failed to link Google account');
+  } finally {
+    setIsLinkingGoogle(false);
+  }
+};
+```
 
-### Filter Definitions Summary
+4. **Add Google linking UI in Security card (after password section):**
+```tsx
+{/* Google Account Linking */}
+<div className="flex items-center justify-between p-4 rounded-lg border">
+  <div className="flex items-center gap-3">
+    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+      <svg className="h-5 w-5" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+    </div>
+    <div>
+      <p className="font-medium">
+        {t('settings.profile.googleAccount', 'Google Account')}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {hasGoogleLinked 
+          ? t('settings.profile.googleLinked', 'Connected - you can sign in with Google')
+          : t('settings.profile.googleNotLinked', 'Link your Google account for faster sign-in')}
+      </p>
+    </div>
+  </div>
+  {hasGoogleLinked ? (
+    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+      <Check className="h-3 w-3 mr-1" />
+      {t('settings.profile.connected', 'Connected')}
+    </Badge>
+  ) : (
+    <Button 
+      variant="outline" 
+      onClick={handleLinkGoogle}
+      disabled={isLinkingGoogle}
+    >
+      {isLinkingGoogle ? (
+        <>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          Linking...
+        </>
+      ) : (
+        t('settings.profile.linkGoogle', 'Link Google')
+      )}
+    </Button>
+  )}
+</div>
+```
 
-| Filter | Database Fields | Logic |
-|--------|-----------------|-------|
-| **Open** | `status='open'`, `is_archived=false`, `deleted_at=NULL` | Active work items requiring attention |
-| **Pending** | `status='pending'`, `is_archived=false`, `deleted_at=NULL` | Awaiting customer response |
-| **Assigned** | `assigned_to_id IS NOT NULL`, `is_archived=false`, `deleted_at=NULL` | Assigned to current user |
-| **Closed** | `status='closed'`, `is_archived=false`, `deleted_at=NULL` | Resolved but not archived |
-| **Archived** | `is_archived=true`, `deleted_at=NULL` | Stored for reference |
-| **Deleted** | `deleted_at IS NOT NULL` | Soft-deleted, recoverable |
-| **All Messages** | `is_archived=false`, `deleted_at=NULL` | All active conversations (any status) |
+5. **Add Check icon to imports:**
+```typescript
+import { Loader2, Upload, Trash2, Lock, Building2, Users, Calendar, Shield, Check } from 'lucide-react';
+```
+
+### Supabase Dashboard Configuration Required
+
+Before this works, verify these settings in Supabase Dashboard:
+
+1. **Authentication → Providers → Google**: Must be enabled with valid OAuth credentials
+2. **Authentication → Settings → "One email per user"**: Should be enabled to allow automatic identity linking when emails match
+
+### User Experience Flow
+
+**For users already logged in (Anders's case):**
+1. Go to Settings → Profile
+2. Scroll to Security section
+3. Click "Link Google" button
+4. Authorize with Google
+5. Redirected back to Settings with Google now linked
+6. Can now log in with either password or Google
+
+**For users at login page:**
+1. Click "Continue with Google"
+2. If email matches existing account, identities are automatically linked
+3. Logged in with same profile, roles, and organization
 
 ### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/contexts/ConversationListContext.tsx` | Add `case "open":` and fix all filter cases in both switch statements (lines 360-391 and 495-531) |
+| `src/components/settings/UserProfileSettings.tsx` | Add Google linking UI in Security section, add state and handler function |
 
-### Expected Results After Fix
+### Result After Implementation
 
-- **Open (12)**: Only shows conversations with `status='open'`
-- **Pending (4)**: Only shows conversations with `status='pending'`
-- **Assigned (1)**: Only shows conversations assigned to current user
-- **Closed (6178)**: Only shows conversations with `status='closed'`
-- **Archived (8)**: Only shows archived conversations (any status)
-- **Deleted (0)**: Shows soft-deleted conversations
-- **All Messages (6194)**: Shows all non-archived, non-deleted conversations
+- Users can link Google to existing password accounts from Settings
+- Badge shows "Connected" status when Google is already linked
+- Works alongside the existing login-page Google button
+- Same user ID, profile, roles, and organization preserved
