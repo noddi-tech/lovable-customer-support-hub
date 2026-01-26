@@ -9,6 +9,7 @@ import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime, 
 interface WidgetPanelProps {
   config: WidgetConfig;
   onClose: () => void;
+  positionOverride?: 'bottom-right' | 'bottom-left';
 }
 
 // Generate a unique visitor ID
@@ -30,7 +31,7 @@ function getCustomerLanguage(configLanguage: string): string {
   return configLanguage || 'no';
 }
 
-export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => {
+export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, positionOverride }) => {
   const [view, setView] = useState<WidgetView>('home');
   const [showSuccess, setShowSuccess] = useState(false);
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
@@ -88,7 +89,9 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose }) => 
     setView('home');
   };
 
-  const positionStyles = config.position === 'bottom-right' 
+  // Use position override if provided, otherwise fall back to config
+  const effectivePosition = positionOverride ?? config.position;
+  const positionStyles = effectivePosition === 'bottom-right' 
     ? { right: '20px' } 
     : { left: '20px' };
 

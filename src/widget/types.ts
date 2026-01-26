@@ -19,6 +19,9 @@ export interface WidgetConfig {
 export interface WidgetInitOptions {
   widgetKey: string;
   apiUrl?: string;
+  // Client-side overrides
+  showButton?: boolean;      // Default: true - set to false to hide the floating button
+  position?: 'bottom-right' | 'bottom-left';  // Override admin config position
 }
 
 export type WidgetView = 'home' | 'contact' | 'search' | 'chat';
