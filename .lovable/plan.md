@@ -1,351 +1,217 @@
 
 
-## Plan: Add Enhanced Debug Logging for Authentication Flow
+## Plan: Add Widget API for Programmatic Control and Position Override
 
-### Goal
-Add comprehensive debug logging throughout the authentication flow so that when issues occur, the console logs will clearly show exactly where the process failed and why.
+### What Mattis Needs
 
----
+Based on the conversation with Mattis, the Noddi widget needs to support:
 
-## Part 1: Enhanced Logging in `AuthContext.tsx`
+1. **Hide the floating button** (`showButton: false`) - Render widget without the default button, allowing the customer app to use its own custom button
+2. **Position override** (`position: "left"`) - Override the default position from admin config
+3. **Programmatic open/close** - Expose API methods like `noddi('open')` and `noddi('close')` to control the widget
 
-### 1.1 Add timing markers for OAuth processing
-
-```typescript
-// At the start of handleOAuthCallback
-const handleOAuthCallback = async () => {
-  const hash = window.location.hash;
-  if (hash && hash.includes('access_token')) {
-    const startTime = Date.now();
-    setIsProcessingOAuth(true);
-    logger.info('OAuth callback detected', { 
-      hashLength: hash.length,
-      hasAccessToken: hash.includes('access_token'),
-      hasRefreshToken: hash.includes('refresh_token'),
-      pathname: window.location.pathname
-    }, 'Auth');
-    
-    // Wait for Supabase to process
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    logger.debug('OAuth wait completed', { elapsedMs: Date.now() - startTime }, 'Auth');
-    
-    // Get session
-    const { data: { session }, error } = await supabase.auth.getSession();
-    logger.info('OAuth getSession result', { 
-      hasSession: !!session,
-      userId: session?.user?.id,
-      error: error?.message,
-      elapsedMs: Date.now() - startTime
-    }, 'Auth');
-    
-    // ... rest of logic
-    logger.info('OAuth processing complete', { 
-      success: !!session,
-      userId: session?.user?.id,
-      totalTimeMs: Date.now() - startTime
-    }, 'Auth');
-  }
-  return false;
-};
-```
-
-### 1.2 Add logging for initial session check
-
-```typescript
-// After OAuth callback check
-handleOAuthCallback().then(async (wasCallback) => {
-  logger.debug('Initial auth check', { wasCallback, mounted }, 'Auth');
-  
-  if (!wasCallback && mounted) {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    logger.info('Initial session state', { 
-      hasSession: !!session,
-      userId: session?.user?.id,
-      error: error?.message 
-    }, 'Auth');
-    
-    if (mounted) {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      logger.debug('Auth state initialized', { 
-        hasUser: !!session?.user,
-        loading: false 
-      }, 'Auth');
-    }
-  }
+This mirrors the Help Scout Beacon API pattern Mattis shared:
+```javascript
+window.Beacon('config', {
+  showBeacon: false, // Hide the launcher button
+  enableChat: true,
+  display: { position: "left" }
 });
 ```
 
-### 1.3 Enhanced onAuthStateChange logging
+---
+
+### Implementation Changes
+
+#### 1. Update `WidgetInitOptions` (src/widget/types.ts)
+
+Add new optional config parameters:
 
 ```typescript
-const { data: { subscription } } = supabase.auth.onAuthStateChange(
-  async (event, session) => {
-    if (!mounted) {
-      logger.debug('Auth state change ignored - unmounted', { event }, 'Auth');
-      return;
+export interface WidgetInitOptions {
+  widgetKey: string;
+  apiUrl?: string;
+  // NEW: Client-side overrides
+  showButton?: boolean;      // Default: true - set to false to hide the floating button
+  position?: 'bottom-right' | 'bottom-left';  // Override admin config position
+}
+```
+
+---
+
+#### 2. Update Widget Component (src/widget/Widget.tsx)
+
+Accept and apply the new options:
+
+```typescript
+export const Widget: React.FC<WidgetProps> = ({ options }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  // ... existing state
+
+  // Apply position override from init options, or fall back to config
+  const effectivePosition = options.position ?? config?.position ?? 'bottom-right';
+  
+  // Determine if button should be shown (default: true)
+  const showButton = options.showButton !== false;
+
+  return (
+    <div className="noddi-widget-container">
+      {isOpen && (
+        <WidgetPanel 
+          config={config} 
+          onClose={() => setIsOpen(false)}
+          positionOverride={effectivePosition}  // Pass override to panel
+        />
+      )}
+      {showButton && (
+        <FloatingButton
+          isOpen={isOpen}
+          onClick={() => setIsOpen(!isOpen)}
+          primaryColor={config.primaryColor}
+          position={effectivePosition}
+        />
+      )}
+    </div>
+  );
+};
+```
+
+---
+
+#### 3. Expose Global API Methods (src/widget/index.tsx)
+
+Add `open`, `close`, and `toggle` commands for programmatic control:
+
+```typescript
+let widgetRef: { setIsOpen: (open: boolean) => void } | null = null;
+
+function initializeWidget(options: WidgetInitOptions) {
+  // ... existing init code
+  
+  // Store ref for programmatic control
+  root.render(
+    <Widget 
+      options={options} 
+      onMount={(api) => { widgetRef = api; }} 
+    />
+  );
+}
+
+// Extended global API
+window.NoddiWidget = Object.assign(
+  function(command: string, options?: any) {
+    switch (command) {
+      case 'init':
+        if (options?.widgetKey) initializeWidget(options);
+        break;
+      case 'open':
+        widgetRef?.setIsOpen(true);
+        break;
+      case 'close':
+        widgetRef?.setIsOpen(false);
+        break;
+      case 'toggle':
+        // Toggle current state
+        break;
     }
-    
-    const previousUserId = user?.id;
-    const newUserId = session?.user?.id;
-    
-    logger.info('Auth state changed', { 
-      event,
-      previousUserId,
-      newUserId,
-      hasSession: !!session,
-      sessionExpiry: session?.expires_at 
-        ? new Date(session.expires_at * 1000).toISOString() 
-        : null,
-      isProcessingOAuth  // Include this to see coordination
-    }, 'Auth');
-    
-    setSession(session);
-    setUser(session?.user ?? null);
-    setLoading(false);
-    
-    logger.debug('Auth state updated', { 
-      loading: false,
-      hasUser: !!session?.user 
-    }, 'Auth');
+  },
+  {
+    init: initializeWidget,
+    open: () => widgetRef?.setIsOpen(true),
+    close: () => widgetRef?.setIsOpen(false),
+    q: window.NoddiWidget?.q || [],
   }
 );
 ```
 
 ---
 
-## Part 2: Enhanced Logging in `ProtectedRoute.tsx`
+#### 4. Update WidgetPanel Position Handling (src/widget/components/WidgetPanel.tsx)
 
-### 2.1 Add comprehensive state logging
+Accept position override prop:
 
 ```typescript
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading, isProcessingOAuth } = useAuth();
-  const navigate = useNavigate();
+interface WidgetPanelProps {
+  config: WidgetConfig;
+  onClose: () => void;
+  positionOverride?: 'bottom-right' | 'bottom-left';
+}
 
-  // Log every render with full state
-  useEffect(() => {
-    logger.debug('ProtectedRoute render', { 
-      loading, 
-      isProcessingOAuth, 
-      hasUser: !!user,
-      userId: user?.id,
-      pathname: window.location.pathname,
-      hash: window.location.hash ? 'present' : 'none'
-    }, 'ProtectedRoute');
-  });
-
-  useEffect(() => {
-    logger.debug('ProtectedRoute effect triggered', { 
-      loading, 
-      isProcessingOAuth, 
-      hasUser: !!user,
-      willCheck: !loading && !isProcessingOAuth
-    }, 'ProtectedRoute');
-
-    if (!loading && !isProcessingOAuth) {
-      if (!user) {
-        logger.warn('No user after auth complete - starting redirect timer', {
-          timerMs: 300
-        }, 'ProtectedRoute');
-        
-        const timer = setTimeout(() => {
-          // Re-check and log final state
-          logger.info('Redirect timer fired', { 
-            hasUser: !!user,
-            willRedirect: !user
-          }, 'ProtectedRoute');
-          
-          if (!user) {
-            logger.warn('Redirecting to /auth', { 
-              reason: 'No user after all loading complete',
-              pathname: window.location.pathname
-            }, 'ProtectedRoute');
-            navigate('/auth', { replace: true });
-          }
-        }, 300);
-        return () => {
-          logger.debug('Redirect timer cancelled', undefined, 'ProtectedRoute');
-          clearTimeout(timer);
-        };
-      } else {
-        logger.debug('User authenticated - rendering children', { 
-          userId: user.id 
-        }, 'ProtectedRoute');
-      }
-    }
-  }, [user, loading, isProcessingOAuth, navigate]);
-
-  // Log what we're rendering
-  if (loading || isProcessingOAuth) {
-    logger.debug('Rendering loading state', { 
-      loading, 
-      isProcessingOAuth 
-    }, 'ProtectedRoute');
-    return (/* loading spinner */);
-  }
-
-  if (!user) {
-    logger.debug('Rendering null - waiting for redirect', undefined, 'ProtectedRoute');
-    return null;
-  }
-
-  return <>{children}</>;
+export const WidgetPanel: React.FC<WidgetPanelProps> = ({ 
+  config, 
+  onClose,
+  positionOverride 
+}) => {
+  // Use override if provided, otherwise fall back to config
+  const position = positionOverride ?? config.position;
+  
+  const positionStyles = position === 'bottom-right' 
+    ? { right: '20px' } 
+    : { left: '20px' };
+  
+  // ... rest of component
 };
 ```
 
 ---
 
-## Part 3: Enhanced Logging in `useAuth.tsx`
+### Usage Examples for Mattis
 
-### 3.1 Log data fetching states
+**1. Hide button, use custom trigger:**
+```javascript
+noddi('init', {
+  widgetKey: 'abc123',
+  apiUrl: '...',
+  showButton: false  // Hide the floating button
+});
 
-```typescript
-export const useAuth = () => {
-  const { user, session, loading, signOut, isProcessingOAuth } = useSupabaseAuth();
-  
-  // Log when user changes
-  useEffect(() => {
-    logger.debug('useAuth user state', { 
-      hasUser: !!user,
-      userId: user?.id,
-      loading,
-      isProcessingOAuth
-    }, 'useAuth');
-  }, [user, loading, isProcessingOAuth]);
+// Their custom button
+document.querySelector('#my-chat-btn').addEventListener('click', () => {
+  noddi('open');
+});
+```
 
-  // In profile query
-  const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      logger.debug('Fetching profile', { userId: user?.id }, 'useAuth');
-      if (!user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+**2. Override position to left:**
+```javascript
+noddi('init', {
+  widgetKey: 'abc123',
+  apiUrl: '...',
+  position: 'bottom-left'  // Override admin config
+});
+```
 
-      if (error) {
-        logger.error('Profile fetch failed', { error: error.message }, 'useAuth');
-        return null;
-      }
+**3. Full control (hide button + custom position):**
+```javascript
+noddi('init', {
+  widgetKey: 'abc123',
+  apiUrl: '...',
+  showButton: false,
+  position: 'bottom-left'
+});
 
-      logger.debug('Profile fetched', { 
-        hasProfile: !!data,
-        profileId: data?.id 
-      }, 'useAuth');
-      return data as UserProfile | null;
-    },
-    enabled: !!user?.id,
-  });
-
-  // Similar logging for memberships query...
-};
+// Programmatic control
+noddi('open');   // Open the chat panel
+noddi('close');  // Close the panel
+noddi('toggle'); // Toggle open/closed
 ```
 
 ---
 
-## Part 4: Add Logging in `Auth.tsx`
-
-### 4.1 Log OAuth/Magic Link initiation
-
-```typescript
-const handleGoogleSignIn = async () => {
-  setLoading(true);
-  setError('');
-  
-  logger.info('Initiating Google OAuth', undefined, 'Auth');
-  
-  try {
-    cleanupAuthState();
-    
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      }
-    });
-    
-    logger.info('Google OAuth response', { 
-      hasData: !!data,
-      url: data?.url ? 'present' : 'none',
-      error: error?.message 
-    }, 'Auth');
-    
-    if (error) throw error;
-  } catch (error: any) {
-    logger.error('Google OAuth failed', { error: error.message }, 'Auth');
-    setError(error.message);
-  }
-};
-
-const handleMagicLink = async (e: React.FormEvent) => {
-  logger.info('Sending magic link', { email }, 'Auth');
-  
-  // ... existing logic
-  
-  if (error) {
-    logger.error('Magic link failed', { error: error.message }, 'Auth');
-  } else {
-    logger.info('Magic link sent successfully', { email }, 'Auth');
-  }
-};
-```
-
----
-
-## Files Summary
+### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/auth/AuthContext.tsx` | Add timing logs, OAuth processing details, session state |
-| `src/components/auth/ProtectedRoute.tsx` | Log every state change, timer events, redirect decisions |
-| `src/hooks/useAuth.tsx` | Log data fetching, user state changes |
-| `src/pages/Auth.tsx` | Log OAuth/magic link initiation and responses |
+| `src/widget/types.ts` | Add `showButton` and `position` to `WidgetInitOptions` |
+| `src/widget/Widget.tsx` | Handle new options, conditionally render button, expose API ref |
+| `src/widget/index.tsx` | Add `open`, `close`, `toggle` commands to global API |
+| `src/widget/components/WidgetPanel.tsx` | Accept position override prop |
+| `src/widget/components/FloatingButton.tsx` | No changes needed (already accepts position prop) |
 
 ---
 
-## Expected Console Output (Success Case)
+### After Implementation
 
-```
-[INFO] [Auth] Initiating Google OAuth
-[INFO] [Auth] Google OAuth response { hasData: true, url: 'present' }
--- User redirected to Google --
--- User returns to app --
-[INFO] [Auth] OAuth callback detected { hasAccessToken: true, hasRefreshToken: true }
-[DEBUG] [Auth] OAuth wait completed { elapsedMs: 1000 }
-[INFO] [Auth] OAuth getSession result { hasSession: true, userId: '...' }
-[INFO] [Auth] Auth state changed { event: 'SIGNED_IN', hasSession: true }
-[DEBUG] [ProtectedRoute] render { loading: false, isProcessingOAuth: false, hasUser: true }
-[DEBUG] [ProtectedRoute] User authenticated - rendering children
-```
-
-## Expected Console Output (Failure Case - Easy to Diagnose)
-
-```
-[INFO] [Auth] OAuth callback detected { hasAccessToken: true }
-[DEBUG] [Auth] OAuth wait completed { elapsedMs: 1000 }
-[INFO] [Auth] OAuth getSession result { hasSession: false, error: 'JWT expired' }
-[DEBUG] [ProtectedRoute] render { loading: false, isProcessingOAuth: false, hasUser: false }
-[WARN] [ProtectedRoute] No user after auth complete - starting redirect timer
-[INFO] [ProtectedRoute] Redirect timer fired { hasUser: false, willRedirect: true }
-[WARN] [ProtectedRoute] Redirecting to /auth { reason: 'No user after all loading complete' }
-```
-
----
-
-## Testing
-
-After implementing these logs:
-1. Open browser DevTools > Console
-2. Attempt magic link or Google OAuth login
-3. Watch the console for the complete authentication flow
-4. If redirect loop occurs, logs will show exactly which step failed
+1. **Deploy widget** using the "Deploy to Production" button
+2. **Share new API docs** with Mattis showing the new options
+3. **Test in BF app** by hiding button and using custom trigger
 
