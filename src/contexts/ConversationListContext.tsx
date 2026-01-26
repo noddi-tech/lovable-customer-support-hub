@@ -36,6 +36,7 @@ export interface Conversation {
   priority: ConversationPriority;
   is_read: boolean;
   is_archived?: boolean;
+  is_deleted?: boolean;
   channel: ConversationChannel;
   updated_at: string;
   received_at?: string;
@@ -208,13 +209,12 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         status: selectedTab 
       }, 'ConversationListProvider');
       
-      const statusFilter = selectedTab === 'all' ? null : selectedTab;
+      // Determine if we should fetch deleted conversations
+      const includeDeleted = selectedTab === 'deleted';
       
-      const { data, error } = await supabase.rpc('get_conversations', {
-        p_inbox_id: (selectedInboxId && selectedInboxId !== 'all') ? selectedInboxId : null,
-        p_status_filter: statusFilter || 'all',
-        p_page: Math.floor(pageParam / 50) + 1,
-        p_page_size: 50
+      const { data, error } = await supabase.rpc('get_conversations_with_session_recovery', {
+        inbox_uuid: (selectedInboxId && selectedInboxId !== 'all') ? selectedInboxId : null,
+        include_deleted: includeDeleted
       });
 
       if (error) {
@@ -230,16 +230,17 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
       
       const conversations = (data || []).map((conv: any) => ({
         ...conv,
+        is_deleted: conv.is_deleted || false,
         // Transform flat RPC fields to nested objects
         customer: conv.customer_id ? {
           id: conv.customer_id,
           full_name: conv.customer_name || conv.customer_email || 'Unknown',
           email: conv.customer_email || ''
-        } : undefined,
+        } : conv.customer,
         assigned_to: conv.assigned_to_id ? {
           id: conv.assigned_to_id,
           full_name: conv.assigned_to_name || 'Unassigned'
-        } : undefined,
+        } : conv.assigned_to,
       })) as Conversation[];
       
       const totalCount = (data as any)?.[0]?.total_count || 0;
@@ -358,33 +359,35 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
             const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
             switch (selectedTab) {
               case "snoozed":
-                return isSnoozedActive;
+                return isSnoozedActive && !conversation.is_deleted;
               case "all":
-                return conversation.status !== 'closed' && !isSnoozedActive;
+                return conversation.status !== 'closed' && !isSnoozedActive && !conversation.is_deleted;
               case "unread":
-                return !conversation.is_read && !isSnoozedActive;
+                return !conversation.is_read && !isSnoozedActive && !conversation.is_deleted;
               case "assigned":
-                return !!conversation.assigned_to && !isSnoozedActive;
+                return !!conversation.assigned_to && !isSnoozedActive && !conversation.is_deleted;
               case "pending":
-                return conversation.status === 'pending' && !isSnoozedActive;
+                return conversation.status === 'pending' && !isSnoozedActive && !conversation.is_deleted;
               case "closed":
-                return conversation.status === 'closed' && !isSnoozedActive;
+                return conversation.status === 'closed' && !isSnoozedActive && !conversation.is_deleted;
               case "archived":
-                return conversation.is_archived === true;
+                return conversation.is_archived === true && !conversation.is_deleted;
+              case "deleted":
+                return conversation.is_deleted === true;
               case "email":
-                return conversation.channel === "email" && !isSnoozedActive;
+                return conversation.channel === "email" && !isSnoozedActive && !conversation.is_deleted;
               case "facebook":
-                return conversation.channel === "facebook" && !isSnoozedActive;
+                return conversation.channel === "facebook" && !isSnoozedActive && !conversation.is_deleted;
               case "instagram":
-                return conversation.channel === "instagram" && !isSnoozedActive;
+                return conversation.channel === "instagram" && !isSnoozedActive && !conversation.is_deleted;
               case "whatsapp":
-                return conversation.channel === "whatsapp" && !isSnoozedActive;
+                return conversation.channel === "whatsapp" && !isSnoozedActive && !conversation.is_deleted;
               default:
                 if (selectedTab.startsWith('inbox-')) {
                   const inboxId = selectedTab.replace('inbox-', '');
-                  return conversation.inbox_id === inboxId && !isSnoozedActive;
+                  return conversation.inbox_id === inboxId && !isSnoozedActive && !conversation.is_deleted;
                 }
-                return !isSnoozedActive;
+                return !isSnoozedActive && !conversation.is_deleted;
             }
           })();
 
@@ -491,38 +494,40 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         
         switch (selectedTab) {
           case "snoozed":
-            return isSnoozedActive;
+            return isSnoozedActive && !conversation.is_deleted;
           case "all":
             // If viewing a specific inbox, show ALL conversations (including closed)
             // Otherwise, filter out closed conversations from the "All Messages" view
             if (isViewingSpecificInbox) {
-              return !isSnoozedActive;
+              return !isSnoozedActive && !conversation.is_deleted;
             }
-            return conversation.status !== 'closed' && !isSnoozedActive;
+            return conversation.status !== 'closed' && !isSnoozedActive && !conversation.is_deleted;
           case "unread":
-            return !conversation.is_read && !isSnoozedActive;
+            return !conversation.is_read && !isSnoozedActive && !conversation.is_deleted;
           case "assigned":
-            return !!conversation.assigned_to && !isSnoozedActive;
+            return !!conversation.assigned_to && !isSnoozedActive && !conversation.is_deleted;
           case "pending":
-            return conversation.status === 'pending' && !isSnoozedActive;
+            return conversation.status === 'pending' && !isSnoozedActive && !conversation.is_deleted;
           case "closed":
-            return conversation.status === 'closed' && !isSnoozedActive;
+            return conversation.status === 'closed' && !isSnoozedActive && !conversation.is_deleted;
           case "archived":
-            return conversation.is_archived === true;
+            return conversation.is_archived === true && !conversation.is_deleted;
+          case "deleted":
+            return conversation.is_deleted === true;
           case "email":
-            return conversation.channel === "email" && !isSnoozedActive;
+            return conversation.channel === "email" && !isSnoozedActive && !conversation.is_deleted;
           case "facebook":
-            return conversation.channel === "facebook" && !isSnoozedActive;
+            return conversation.channel === "facebook" && !isSnoozedActive && !conversation.is_deleted;
           case "instagram":
-            return conversation.channel === "instagram" && !isSnoozedActive;
+            return conversation.channel === "instagram" && !isSnoozedActive && !conversation.is_deleted;
           case "whatsapp":
-            return conversation.channel === "whatsapp" && !isSnoozedActive;
+            return conversation.channel === "whatsapp" && !isSnoozedActive && !conversation.is_deleted;
           default:
             if (selectedTab.startsWith('inbox-')) {
               const inboxId = selectedTab.replace('inbox-', '');
-              return conversation.inbox_id === inboxId && !isSnoozedActive;
+              return conversation.inbox_id === inboxId && !isSnoozedActive && !conversation.is_deleted;
             }
-            return !isSnoozedActive;
+            return !isSnoozedActive && !conversation.is_deleted;
         }
       })();
 
