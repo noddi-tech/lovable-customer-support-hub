@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, AlertCircle, UserPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
+import { logger } from '@/utils/logger';
 
 // Validation schemas for authentication inputs
 const emailSchema = z.string()
@@ -186,6 +187,10 @@ export const Auth: React.FC = () => {
     setLoading(true);
     setError('');
     
+    logger.info('Initiating Google OAuth', { 
+      redirectTo: `${window.location.origin}/`
+    }, 'Auth');
+    
     try {
       cleanupAuthState();
       
@@ -200,18 +205,18 @@ export const Auth: React.FC = () => {
         }
       });
       
+      logger.info('Google OAuth response', { 
+        hasData: !!data,
+        url: data?.url ? 'present' : 'none',
+        error: error?.message 
+      }, 'Auth');
+      
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('Google OAuth error:', error);
-        }
+        logger.error('Google OAuth error', { error: error.message }, 'Auth');
         throw error;
       }
-      
-      if (import.meta.env.DEV) {
-        console.log('Google OAuth initiated:', data);
-      }
     } catch (error: any) {
-      console.error('Google sign in error:', error);
+      logger.error('Google sign in failed', { error: error.message }, 'Auth');
       setError(error.message || 'An error occurred during Google sign in. Please ensure Google OAuth is configured in Supabase.');
     } finally {
       setLoading(false);
@@ -291,6 +296,8 @@ export const Auth: React.FC = () => {
     setError('');
     setSuccessMessage('');
     
+    logger.info('Sending magic link', { email }, 'Auth');
+    
     try {
       if (!email) {
         setError('Please enter your email address.');
@@ -305,8 +312,12 @@ export const Auth: React.FC = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        logger.error('Magic link failed', { error: error.message, email }, 'Auth');
+        throw error;
+      }
       
+      logger.info('Magic link sent successfully', { email }, 'Auth');
       setSuccessMessage('Magic link sent! Check your email to sign in.');
     } catch (error: any) {
       setError(error.message || 'Failed to send magic link');

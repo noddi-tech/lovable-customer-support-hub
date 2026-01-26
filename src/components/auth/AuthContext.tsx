@@ -108,22 +108,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleOAuthCallback = async () => {
       const hash = window.location.hash;
       if (hash && hash.includes('access_token')) {
+        const startTime = Date.now();
         setIsProcessingOAuth(true);
-        logger.info('OAuth callback detected, processing tokens', undefined, 'Auth');
+        logger.info('OAuth callback detected', { 
+          hashLength: hash.length,
+          hasAccessToken: hash.includes('access_token'),
+          hasRefreshToken: hash.includes('refresh_token'),
+          pathname: window.location.pathname
+        }, 'Auth');
         
         // Supabase client automatically handles the hash
         // Wait for it to process - increased to 1s for reliability
         await new Promise(resolve => setTimeout(resolve, 1000));
+        logger.debug('OAuth wait completed', { elapsedMs: Date.now() - startTime }, 'Auth');
         
         // Refresh session to ensure we have the latest
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        logger.info('OAuth getSession result', { 
+          hasSession: !!session,
+          userId: session?.user?.id,
+          error: error?.message,
+          elapsedMs: Date.now() - startTime
+        }, 'Auth');
+        
         if (mounted && session) {
           setSession(session);
           setUser(session.user);
           
           // Clean up hash from URL
           window.history.replaceState(null, '', window.location.pathname);
-          logger.info('OAuth processing complete', { userId: session.user?.id }, 'Auth');
+          logger.info('OAuth processing complete', { 
+            success: true,
+            userId: session.user?.id,
+            totalTimeMs: Date.now() - startTime
+          }, 'Auth');
+        } else if (mounted) {
+          logger.warn('OAuth processing failed - no session', { 
+            error: error?.message,
+            totalTimeMs: Date.now() - startTime
+          }, 'Auth');
         }
         setLoading(false);
         setIsProcessingOAuth(false);
@@ -135,21 +158,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
+        if (!mounted) {
+          logger.debug('Auth state change ignored - unmounted', { event }, 'Auth');
+          return;
+        }
         
         const previousUser = user;
         const newUser = session?.user ?? null;
         
         logger.info('Auth state changed', { 
           event,
+          previousUserId: previousUser?.id,
+          newUserId: newUser?.id,
           hasSession: !!session, 
-          userId: newUser?.id,
-          sessionExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : null
+          sessionExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : null,
+          isProcessingOAuth
         }, 'Auth');
         
         setSession(session);
         setUser(newUser);
         setLoading(false);
+        
+        logger.debug('Auth state updated', { 
+          loading: false,
+          hasUser: !!newUser,
+          userId: newUser?.id
+        }, 'Auth');
         
         // Clear user-specific cached data when authentication state changes
         if (event === 'SIGNED_OUT' || (!previousUser && !newUser) || (previousUser?.id !== newUser?.id)) {
@@ -177,12 +211,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check for OAuth callback FIRST, then get session
     handleOAuthCallback().then(async (wasCallback) => {
+      logger.debug('Initial auth check', { wasCallback, mounted }, 'Auth');
+      
       if (!wasCallback && mounted) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        logger.info('Initial session state', { 
+          hasSession: !!session,
+          userId: session?.user?.id,
+          error: error?.message 
+        }, 'Auth');
+        
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+          
+          logger.debug('Auth state initialized', { 
+            hasUser: !!session?.user,
+            loading: false 
+          }, 'Auth');
           
           // Validate existing session without redirect
           if (session) {
