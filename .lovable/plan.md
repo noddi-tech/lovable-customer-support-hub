@@ -1,192 +1,193 @@
 
 
-# Deep Analysis: Authentication Redirect Loop Root Cause
+## Plan: Add Enhanced Debug Logging for Authentication Flow
 
-## Problem Identification
+### Goal
+Add comprehensive debug logging throughout the authentication flow so that when issues occur, the console logs will clearly show exactly where the process failed and why.
 
-The user (anders@noddi.no) successfully authenticates in Supabase (confirmed by auth logs showing successful Google OAuth login), but gets redirected back to `/auth` in an infinite loop.
+---
 
-### Database State ✅
-- User has valid profile in database
-- Has active organization membership  
-- All required data exists
+## Part 1: Enhanced Logging in `AuthContext.tsx`
 
-### Supabase Auth ✅
-- Auth logs confirm successful login
-- JWT token is valid
-- Session is established server-side
+### 1.1 Add timing markers for OAuth processing
 
-### Client-Side Race Condition ❌
-The problem is in the **timing coordination** between multiple async processes:
-
-## The Race Condition Flow
-
-```
-Timeline of Events (when user clicks OAuth redirect):
-
-T+0ms:    User lands on app with #access_token in URL
-          ↓
-          AuthContext.handleOAuthCallback() detects hash
-          ProtectedRoute mounts, detects hash
-          
-T+0ms:    AuthContext starts:
-          - Wait 500ms for Supabase to process hash
-          
-T+0ms:    ProtectedRoute starts TWO useEffects:
-          - Effect 1: Watching loading & user
-          - Effect 2: Detects access_token, will setIsReady(true) at 1500ms
-          
-T+100ms:  onAuthStateChange fires (SIGNED_IN event)
-          - Sets loading = false
-          - Sets user = session.user
-          - But mounted flag might not allow state update yet
-          
-T+100ms:  ProtectedRoute Effect 1 sees:
-          - loading = false ✓
-          - user = null ✗ (state update hasn't propagated)
-          - Starts 500ms redirect timer ⚠️
-          
-T+500ms:  AuthContext.handleOAuthCallback completes:
-          - Calls getSession()
-          - Sets user & session
-          - Cleans URL hash
-          - Sets loading = false (again)
-          
-T+600ms:  ⚠️ REDIRECT TIMER FIRES ⚠️
-          - ProtectedRoute's setTimeout(500) completes
-          - Checks user (from closure, still null)
-          - navigate('/auth') → LOOP!
-          
-T+1500ms: ProtectedRoute Effect 2 fires:
-          - setIsReady(true) 
-          - But user was already redirected
-```
-
-## Root Causes
-
-### 1. **Loading State Set by Multiple Sources**
-Both `onAuthStateChange` AND `handleOAuthCallback` set `loading = false`, causing non-deterministic timing.
-
-**Code:** `AuthContext.tsx` lines 124, 147
-
-### 2. **Redirect Timer Captures Stale User**
-The `setTimeout` in ProtectedRoute captures `user` from the closure, not the latest value.
-
-**Code:** `ProtectedRoute.tsx` lines 22-26
 ```typescript
-setTimeout(() => {
-  if (!user) {  // ← Checks OLD user value from closure
-    navigate('/auth');
-  }
-}, 500);
-```
-
-### 3. **Competing Timers Don't Coordinate**
-- AuthContext: 500ms to process OAuth
-- ProtectedRoute Effect 1: 500ms before redirect
-- ProtectedRoute Effect 2: 1500ms to set ready
-- These timers race against each other
-
-### 4. **No Unified OAuth Processing State**
-Neither component knows when the OTHER is done processing OAuth.
-
-## Solution Strategy
-
-We need to **centralize OAuth state management** and **eliminate competing timers**.
-
-### Approach A: Single Source of Truth in AuthContext ⭐ RECOMMENDED
-
-**Changes:**
-1. Add `isProcessingOAuth` state to `AuthContext`
-2. Expose this to consumers via context
-3. `ProtectedRoute` waits for BOTH `!loading` AND `!isProcessingOAuth`
-4. Remove all timers from `ProtectedRoute`
-5. Make `handleOAuthCallback` the ONLY place that manages OAuth timing
-
-**Files to modify:**
-- `src/components/auth/AuthContext.tsx`
-- `src/components/auth/ProtectedRoute.tsx`
-- `src/hooks/useAuth.tsx` (add isProcessingOAuth to return)
-
-**Implementation:**
-
-#### AuthContext.tsx
-```typescript
-const [loading, setLoading] = useState(true);
-const [isProcessingOAuth, setIsProcessingOAuth] = useState(false); // NEW
-
+// At the start of handleOAuthCallback
 const handleOAuthCallback = async () => {
   const hash = window.location.hash;
   if (hash && hash.includes('access_token')) {
-    setIsProcessingOAuth(true); // Signal start
-    logger.info('OAuth callback detected, processing tokens', undefined, 'Auth');
+    const startTime = Date.now();
+    setIsProcessingOAuth(true);
+    logger.info('OAuth callback detected', { 
+      hashLength: hash.length,
+      hasAccessToken: hash.includes('access_token'),
+      hasRefreshToken: hash.includes('refresh_token'),
+      pathname: window.location.pathname
+    }, 'Auth');
     
     // Wait for Supabase to process
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Increase to 1s
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    logger.debug('OAuth wait completed', { elapsedMs: Date.now() - startTime }, 'Auth');
     
     // Get session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (mounted && session) {
-      setSession(session);
-      setUser(session.user);
-      window.history.replaceState(null, '', window.location.pathname);
-    }
+    const { data: { session }, error } = await supabase.auth.getSession();
+    logger.info('OAuth getSession result', { 
+      hasSession: !!session,
+      userId: session?.user?.id,
+      error: error?.message,
+      elapsedMs: Date.now() - startTime
+    }, 'Auth');
     
-    setLoading(false);
-    setIsProcessingOAuth(false); // Signal complete
-    return true;
+    // ... rest of logic
+    logger.info('OAuth processing complete', { 
+      success: !!session,
+      userId: session?.user?.id,
+      totalTimeMs: Date.now() - startTime
+    }, 'Auth');
   }
   return false;
 };
-
-// In context value:
-return (
-  <AuthContext.Provider value={{
-    user,
-    session,
-    loading,
-    isProcessingOAuth, // NEW
-    // ...
-  }}>
 ```
 
-#### ProtectedRoute.tsx
+### 1.2 Add logging for initial session check
+
+```typescript
+// After OAuth callback check
+handleOAuthCallback().then(async (wasCallback) => {
+  logger.debug('Initial auth check', { wasCallback, mounted }, 'Auth');
+  
+  if (!wasCallback && mounted) {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    logger.info('Initial session state', { 
+      hasSession: !!session,
+      userId: session?.user?.id,
+      error: error?.message 
+    }, 'Auth');
+    
+    if (mounted) {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      logger.debug('Auth state initialized', { 
+        hasUser: !!session?.user,
+        loading: false 
+      }, 'Auth');
+    }
+  }
+});
+```
+
+### 1.3 Enhanced onAuthStateChange logging
+
+```typescript
+const { data: { subscription } } = supabase.auth.onAuthStateChange(
+  async (event, session) => {
+    if (!mounted) {
+      logger.debug('Auth state change ignored - unmounted', { event }, 'Auth');
+      return;
+    }
+    
+    const previousUserId = user?.id;
+    const newUserId = session?.user?.id;
+    
+    logger.info('Auth state changed', { 
+      event,
+      previousUserId,
+      newUserId,
+      hasSession: !!session,
+      sessionExpiry: session?.expires_at 
+        ? new Date(session.expires_at * 1000).toISOString() 
+        : null,
+      isProcessingOAuth  // Include this to see coordination
+    }, 'Auth');
+    
+    setSession(session);
+    setUser(session?.user ?? null);
+    setLoading(false);
+    
+    logger.debug('Auth state updated', { 
+      loading: false,
+      hasUser: !!session?.user 
+    }, 'Auth');
+  }
+);
+```
+
+---
+
+## Part 2: Enhanced Logging in `ProtectedRoute.tsx`
+
+### 2.1 Add comprehensive state logging
+
 ```typescript
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading, isProcessingOAuth } = useAuth(); // Add isProcessingOAuth
+  const { user, loading, isProcessingOAuth } = useAuth();
   const navigate = useNavigate();
 
+  // Log every render with full state
   useEffect(() => {
-    // Only proceed when BOTH loading and OAuth processing are complete
+    logger.debug('ProtectedRoute render', { 
+      loading, 
+      isProcessingOAuth, 
+      hasUser: !!user,
+      userId: user?.id,
+      pathname: window.location.pathname,
+      hash: window.location.hash ? 'present' : 'none'
+    }, 'ProtectedRoute');
+  });
+
+  useEffect(() => {
+    logger.debug('ProtectedRoute effect triggered', { 
+      loading, 
+      isProcessingOAuth, 
+      hasUser: !!user,
+      willCheck: !loading && !isProcessingOAuth
+    }, 'ProtectedRoute');
+
     if (!loading && !isProcessingOAuth) {
       if (!user) {
-        // Give one final moment for state propagation
+        logger.warn('No user after auth complete - starting redirect timer', {
+          timerMs: 300
+        }, 'ProtectedRoute');
+        
         const timer = setTimeout(() => {
+          // Re-check and log final state
+          logger.info('Redirect timer fired', { 
+            hasUser: !!user,
+            willRedirect: !user
+          }, 'ProtectedRoute');
+          
           if (!user) {
-            logger.warn('No user after auth complete, redirecting to login', undefined, 'Auth');
+            logger.warn('Redirecting to /auth', { 
+              reason: 'No user after all loading complete',
+              pathname: window.location.pathname
+            }, 'ProtectedRoute');
             navigate('/auth', { replace: true });
           }
         }, 300);
-        return () => clearTimeout(timer);
+        return () => {
+          logger.debug('Redirect timer cancelled', undefined, 'ProtectedRoute');
+          clearTimeout(timer);
+        };
+      } else {
+        logger.debug('User authenticated - rendering children', { 
+          userId: user.id 
+        }, 'ProtectedRoute');
       }
     }
   }, [user, loading, isProcessingOAuth, navigate]);
 
-  // Show loading while authenticating OR processing OAuth
+  // Log what we're rendering
   if (loading || isProcessingOAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            {isProcessingOAuth ? 'Completing sign in...' : 'Loading...'}
-          </p>
-        </div>
-      </div>
-    );
+    logger.debug('Rendering loading state', { 
+      loading, 
+      isProcessingOAuth 
+    }, 'ProtectedRoute');
+    return (/* loading spinner */);
   }
 
   if (!user) {
+    logger.debug('Rendering null - waiting for redirect', undefined, 'ProtectedRoute');
     return null;
   }
 
@@ -194,96 +195,157 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 };
 ```
 
-#### hooks/useAuth.tsx
+---
+
+## Part 3: Enhanced Logging in `useAuth.tsx`
+
+### 3.1 Log data fetching states
+
 ```typescript
 export const useAuth = () => {
-  const { user, session, loading, signOut, refreshSession, validateSession } = useSupabaseAuth();
-  const { isProcessingOAuth } = useSupabaseAuth(); // NEW
+  const { user, session, loading, signOut, isProcessingOAuth } = useSupabaseAuth();
   
-  // ... rest of code
-  
-  return {
-    user,
-    session,
-    profile,
-    loading: loading,
-    isProcessingOAuth, // NEW
-    isDataLoading: profileLoading || membershipsLoading,
-    // ...
-  };
+  // Log when user changes
+  useEffect(() => {
+    logger.debug('useAuth user state', { 
+      hasUser: !!user,
+      userId: user?.id,
+      loading,
+      isProcessingOAuth
+    }, 'useAuth');
+  }, [user, loading, isProcessingOAuth]);
+
+  // In profile query
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      logger.debug('Fetching profile', { userId: user?.id }, 'useAuth');
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        logger.error('Profile fetch failed', { error: error.message }, 'useAuth');
+        return null;
+      }
+
+      logger.debug('Profile fetched', { 
+        hasProfile: !!data,
+        profileId: data?.id 
+      }, 'useAuth');
+      return data as UserProfile | null;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Similar logging for memberships query...
 };
 ```
 
-### Approach B: Increase All Timers (Quick Fix, Not Recommended)
+---
 
-Simply increase all delays to 2-3 seconds. This is a band-aid and doesn't fix the race condition.
+## Part 4: Add Logging in `Auth.tsx`
 
-### Approach C: Remove ProtectedRoute Timers Entirely
+### 4.1 Log OAuth/Magic Link initiation
 
-Trust only `AuthContext`'s loading state and remove all setTimeout logic from `ProtectedRoute`. Risk: might redirect too quickly on slow networks.
+```typescript
+const handleGoogleSignIn = async () => {
+  setLoading(true);
+  setError('');
+  
+  logger.info('Initiating Google OAuth', undefined, 'Auth');
+  
+  try {
+    cleanupAuthState();
+    
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      }
+    });
+    
+    logger.info('Google OAuth response', { 
+      hasData: !!data,
+      url: data?.url ? 'present' : 'none',
+      error: error?.message 
+    }, 'Auth');
+    
+    if (error) throw error;
+  } catch (error: any) {
+    logger.error('Google OAuth failed', { error: error.message }, 'Auth');
+    setError(error.message);
+  }
+};
 
-## Recommended Implementation: Approach A
+const handleMagicLink = async (e: React.FormEvent) => {
+  logger.info('Sending magic link', { email }, 'Auth');
+  
+  // ... existing logic
+  
+  if (error) {
+    logger.error('Magic link failed', { error: error.message }, 'Auth');
+  } else {
+    logger.info('Magic link sent successfully', { email }, 'Auth');
+  }
+};
+```
 
-This provides:
-- ✅ Single source of truth for OAuth processing
-- ✅ Clear coordination between components  
-- ✅ No race conditions between timers
-- ✅ Better user feedback ("Completing sign in...")
-- ✅ Deterministic behavior
-
-## Testing Plan
-
-1. **Magic Link Test:**
-   - Sign out completely
-   - Request magic link for anders@noddi.no
-   - Click link in email
-   - Should land on dashboard without redirect loop
-   - Check console: should see "OAuth callback detected" → "Auth state changed" → no redirects
-
-2. **Google OAuth Test:**
-   - Sign out completely
-   - Click "Sign in with Google"
-   - Complete OAuth flow
-   - Should land on dashboard without redirect loop
-
-3. **Edge Cases:**
-   - Test with slow network (throttle to 3G)
-   - Test with multiple rapid login attempts
-   - Test refresh token flow (wait for token expiry)
+---
 
 ## Files Summary
 
 | File | Changes |
 |------|---------|
-| `src/components/auth/AuthContext.tsx` | Add `isProcessingOAuth` state, update `handleOAuthCallback`, expose via context |
-| `src/components/auth/ProtectedRoute.tsx` | Simplify logic, wait for `!isProcessingOAuth`, remove competing timers |
-| `src/hooks/useAuth.tsx` | Add `isProcessingOAuth` to return value |
-| `src/pages/Auth.tsx` | Already correct, no changes needed |
+| `src/components/auth/AuthContext.tsx` | Add timing logs, OAuth processing details, session state |
+| `src/components/auth/ProtectedRoute.tsx` | Log every state change, timer events, redirect decisions |
+| `src/hooks/useAuth.tsx` | Log data fetching, user state changes |
+| `src/pages/Auth.tsx` | Log OAuth/magic link initiation and responses |
 
-## Debug Logging to Add
+---
 
-For troubleshooting, add these logs:
+## Expected Console Output (Success Case)
 
-```typescript
-// In ProtectedRoute
-logger.debug('ProtectedRoute state', { 
-  loading, 
-  isProcessingOAuth, 
-  hasUser: !!user,
-  pathname: window.location.pathname 
-}, 'ProtectedRoute');
-
-// In AuthContext handleOAuthCallback
-logger.info('OAuth processing complete', { userId: session?.user?.id }, 'Auth');
+```
+[INFO] [Auth] Initiating Google OAuth
+[INFO] [Auth] Google OAuth response { hasData: true, url: 'present' }
+-- User redirected to Google --
+-- User returns to app --
+[INFO] [Auth] OAuth callback detected { hasAccessToken: true, hasRefreshToken: true }
+[DEBUG] [Auth] OAuth wait completed { elapsedMs: 1000 }
+[INFO] [Auth] OAuth getSession result { hasSession: true, userId: '...' }
+[INFO] [Auth] Auth state changed { event: 'SIGNED_IN', hasSession: true }
+[DEBUG] [ProtectedRoute] render { loading: false, isProcessingOAuth: false, hasUser: true }
+[DEBUG] [ProtectedRoute] User authenticated - rendering children
 ```
 
-## Alternative: If This Still Fails
+## Expected Console Output (Failure Case - Easy to Diagnose)
 
-If the above doesn't work, the issue might be:
-1. **Supabase redirect URL misconfiguration** - Check dashboard settings
-2. **Session storage issue** - localStorage might be blocked/cleared
-3. **Browser extension interference** - Test in incognito
-4. **RLS policy blocking profile query** - Check if profile fetch fails
+```
+[INFO] [Auth] OAuth callback detected { hasAccessToken: true }
+[DEBUG] [Auth] OAuth wait completed { elapsedMs: 1000 }
+[INFO] [Auth] OAuth getSession result { hasSession: false, error: 'JWT expired' }
+[DEBUG] [ProtectedRoute] render { loading: false, isProcessingOAuth: false, hasUser: false }
+[WARN] [ProtectedRoute] No user after auth complete - starting redirect timer
+[INFO] [ProtectedRoute] Redirect timer fired { hasUser: false, willRedirect: true }
+[WARN] [ProtectedRoute] Redirecting to /auth { reason: 'No user after all loading complete' }
+```
 
-Would need to see browser console logs during actual login attempt to diagnose further.
+---
+
+## Testing
+
+After implementing these logs:
+1. Open browser DevTools > Console
+2. Attempt magic link or Google OAuth login
+3. Watch the console for the complete authentication flow
+4. If redirect loop occurs, logs will show exactly which step failed
 
