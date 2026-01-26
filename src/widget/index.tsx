@@ -1,9 +1,12 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { Widget } from './Widget';
+import { Widget, WidgetAPI } from './Widget';
 import type { WidgetInitOptions } from './types';
 // @ts-ignore - Vite handles this import
 import widgetStyles from './styles/widget.css?inline';
+
+// Store widget API reference for programmatic control
+let widgetAPI: WidgetAPI | null = null;
 
 // Queue for commands before initialization
 declare global {
@@ -11,6 +14,9 @@ declare global {
     NoddiWidget: {
       q?: any[];
       init?: (options: WidgetInitOptions) => void;
+      open?: () => void;
+      close?: () => void;
+      toggle?: () => void;
       (command: string, options?: any): void;
     };
     noddi: (command: string, options?: any) => void;
@@ -32,6 +38,7 @@ function injectStyles() {
 
 function initializeWidget(options: WidgetInitOptions) {
   console.log('[Noddi] initializeWidget called with options:', options);
+  console.log('[Noddi] showButton:', options.showButton, 'position:', options.position);
   
   // Inject CSS styles
   injectStyles();
@@ -52,11 +59,47 @@ function initializeWidget(options: WidgetInitOptions) {
   document.body.appendChild(container);
   console.log('[Noddi] Created container:', container);
   
-  // Render widget
+  // Render widget with onMount callback to get API reference
   const root = createRoot(container);
-  root.render(<Widget options={options} />);
+  root.render(
+    <Widget 
+      options={options} 
+      onMount={(api) => {
+        widgetAPI = api;
+        console.log('[Noddi] Widget API mounted, programmatic control available');
+      }}
+    />
+  );
   
   console.log('[Noddi] Widget rendered with key:', options.widgetKey);
+}
+
+// Programmatic control functions
+function openWidget() {
+  if (widgetAPI) {
+    console.log('[Noddi] Opening widget programmatically');
+    widgetAPI.setIsOpen(true);
+  } else {
+    console.warn('[Noddi] Cannot open widget - not initialized yet');
+  }
+}
+
+function closeWidget() {
+  if (widgetAPI) {
+    console.log('[Noddi] Closing widget programmatically');
+    widgetAPI.setIsOpen(false);
+  } else {
+    console.warn('[Noddi] Cannot close widget - not initialized yet');
+  }
+}
+
+function toggleWidget() {
+  if (widgetAPI) {
+    console.log('[Noddi] Toggling widget programmatically');
+    widgetAPI.toggle();
+  } else {
+    console.warn('[Noddi] Cannot toggle widget - not initialized yet');
+  }
 }
 
 // Process queued commands
@@ -67,10 +110,30 @@ function processQueue() {
   queue.forEach((args: any[]) => {
     const [command, options] = args;
     console.log('[Noddi] Processing command:', command, options);
-    if (command === 'init' && options?.widgetKey) {
-      initializeWidget(options);
-    }
+    handleCommand(command, options);
   });
+}
+
+// Centralized command handler
+function handleCommand(command: string, options?: any) {
+  switch (command) {
+    case 'init':
+      if (options?.widgetKey) {
+        initializeWidget(options);
+      }
+      break;
+    case 'open':
+      openWidget();
+      break;
+    case 'close':
+      closeWidget();
+      break;
+    case 'toggle':
+      toggleWidget();
+      break;
+    default:
+      console.warn('[Noddi] Unknown command:', command);
+  }
 }
 
 // Set up the global API
@@ -78,12 +141,13 @@ console.log('[Noddi] Setting up global API');
 window.NoddiWidget = Object.assign(
   function(command: string, options?: any) {
     console.log('[Noddi] NoddiWidget called:', command, options);
-    if (command === 'init' && options?.widgetKey) {
-      initializeWidget(options);
-    }
+    handleCommand(command, options);
   },
   {
     init: initializeWidget,
+    open: openWidget,
+    close: closeWidget,
+    toggle: toggleWidget,
     q: window.NoddiWidget?.q || [],
   }
 );
@@ -91,7 +155,7 @@ window.NoddiWidget = Object.assign(
 // Also support the noddi() shorthand from embed code
 window.noddi = function(command: string, options?: any) {
   console.log('[Noddi] noddi() called:', command, options);
-  window.NoddiWidget(command, options);
+  handleCommand(command, options);
 };
 
 console.log('[Noddi] Global API ready, queue length:', window.NoddiWidget.q?.length);
