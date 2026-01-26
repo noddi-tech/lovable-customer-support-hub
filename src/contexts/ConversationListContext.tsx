@@ -358,36 +358,72 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
           const matchesTab = (() => {
             const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
             switch (selectedTab) {
-              case "snoozed":
-                return isSnoozedActive && !conversation.is_deleted;
-              case "all":
-                return conversation.status !== 'closed' && !isSnoozedActive && !conversation.is_deleted;
-              case "unread":
-                return !conversation.is_read && !isSnoozedActive && !conversation.is_deleted;
-              case "assigned":
-                return !!conversation.assigned_to && !isSnoozedActive && !conversation.is_deleted;
+              case "open":
+                // Open: status is 'open', not archived, not snoozed, not deleted
+                return conversation.status === 'open' 
+                  && !conversation.is_archived 
+                  && !isSnoozedActive 
+                  && !conversation.is_deleted;
               case "pending":
-                return conversation.status === 'pending' && !isSnoozedActive && !conversation.is_deleted;
+                // Pending: status is 'pending', not archived, not snoozed, not deleted
+                return conversation.status === 'pending' 
+                  && !conversation.is_archived 
+                  && !isSnoozedActive 
+                  && !conversation.is_deleted;
+              case "assigned":
+                // Assigned to Me: has assignment, not archived, not snoozed, not deleted
+                return !!conversation.assigned_to 
+                  && !conversation.is_archived 
+                  && !isSnoozedActive 
+                  && !conversation.is_deleted;
               case "closed":
-                return conversation.status === 'closed' && !isSnoozedActive && !conversation.is_deleted;
+                // Closed: status is 'closed', not archived, not snoozed, not deleted
+                return conversation.status === 'closed' 
+                  && !conversation.is_archived 
+                  && !isSnoozedActive 
+                  && !conversation.is_deleted;
               case "archived":
-                return conversation.is_archived === true && !conversation.is_deleted;
+                // Archived: is_archived flag is true, not deleted
+                return conversation.is_archived === true 
+                  && !conversation.is_deleted;
               case "deleted":
+                // Deleted: is_deleted flag is true
                 return conversation.is_deleted === true;
+              case "snoozed":
+                // Snoozed: has active snooze, not deleted
+                return isSnoozedActive 
+                  && !conversation.is_deleted;
+              case "all":
+                // All Messages: everything that's not archived and not deleted
+                return !conversation.is_archived 
+                  && !isSnoozedActive 
+                  && !conversation.is_deleted;
+              case "unread":
+                return !conversation.is_read 
+                  && !conversation.is_archived 
+                  && !isSnoozedActive 
+                  && !conversation.is_deleted;
               case "email":
-                return conversation.channel === "email" && !isSnoozedActive && !conversation.is_deleted;
               case "facebook":
-                return conversation.channel === "facebook" && !isSnoozedActive && !conversation.is_deleted;
               case "instagram":
-                return conversation.channel === "instagram" && !isSnoozedActive && !conversation.is_deleted;
               case "whatsapp":
-                return conversation.channel === "whatsapp" && !isSnoozedActive && !conversation.is_deleted;
+                return conversation.channel === selectedTab 
+                  && !conversation.is_archived 
+                  && !isSnoozedActive 
+                  && !conversation.is_deleted;
               default:
+                // Inbox-specific filter
                 if (selectedTab.startsWith('inbox-')) {
                   const inboxId = selectedTab.replace('inbox-', '');
-                  return conversation.inbox_id === inboxId && !isSnoozedActive && !conversation.is_deleted;
+                  return conversation.inbox_id === inboxId 
+                    && !conversation.is_archived 
+                    && !isSnoozedActive 
+                    && !conversation.is_deleted;
                 }
-                return !isSnoozedActive && !conversation.is_deleted;
+                // Fallback: show non-archived, non-snoozed, non-deleted
+                return !conversation.is_archived 
+                  && !isSnoozedActive 
+                  && !conversation.is_deleted;
             }
           })();
 
@@ -493,41 +529,78 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
         const isViewingSpecificInbox = selectedInboxId && selectedInboxId !== 'all';
         
         switch (selectedTab) {
-          case "snoozed":
-            return isSnoozedActive && !conversation.is_deleted;
-          case "all":
-            // If viewing a specific inbox, show ALL conversations (including closed)
-            // Otherwise, filter out closed conversations from the "All Messages" view
-            if (isViewingSpecificInbox) {
-              return !isSnoozedActive && !conversation.is_deleted;
-            }
-            return conversation.status !== 'closed' && !isSnoozedActive && !conversation.is_deleted;
-          case "unread":
-            return !conversation.is_read && !isSnoozedActive && !conversation.is_deleted;
-          case "assigned":
-            return !!conversation.assigned_to && !isSnoozedActive && !conversation.is_deleted;
+          case "open":
+            // Open: status is 'open', not archived, not snoozed, not deleted
+            return conversation.status === 'open' 
+              && !conversation.is_archived 
+              && !isSnoozedActive 
+              && !conversation.is_deleted;
           case "pending":
-            return conversation.status === 'pending' && !isSnoozedActive && !conversation.is_deleted;
+            // Pending: status is 'pending', not archived, not snoozed, not deleted
+            return conversation.status === 'pending' 
+              && !conversation.is_archived 
+              && !isSnoozedActive 
+              && !conversation.is_deleted;
+          case "assigned":
+            // Assigned to Me: has assignment, not archived, not snoozed, not deleted
+            return !!conversation.assigned_to 
+              && !conversation.is_archived 
+              && !isSnoozedActive 
+              && !conversation.is_deleted;
           case "closed":
-            return conversation.status === 'closed' && !isSnoozedActive && !conversation.is_deleted;
+            // Closed: status is 'closed', not archived, not snoozed, not deleted
+            return conversation.status === 'closed' 
+              && !conversation.is_archived 
+              && !isSnoozedActive 
+              && !conversation.is_deleted;
           case "archived":
-            return conversation.is_archived === true && !conversation.is_deleted;
+            // Archived: is_archived flag is true, not deleted
+            return conversation.is_archived === true 
+              && !conversation.is_deleted;
           case "deleted":
+            // Deleted: is_deleted flag is true
             return conversation.is_deleted === true;
+          case "snoozed":
+            // Snoozed: has active snooze, not deleted
+            return isSnoozedActive 
+              && !conversation.is_deleted;
+          case "all":
+            // All Messages: everything that's not archived and not deleted
+            // If viewing a specific inbox, show ALL conversations in that inbox
+            if (isViewingSpecificInbox) {
+              return !conversation.is_archived 
+                && !isSnoozedActive 
+                && !conversation.is_deleted;
+            }
+            return !conversation.is_archived 
+              && !isSnoozedActive 
+              && !conversation.is_deleted;
+          case "unread":
+            return !conversation.is_read 
+              && !conversation.is_archived 
+              && !isSnoozedActive 
+              && !conversation.is_deleted;
           case "email":
-            return conversation.channel === "email" && !isSnoozedActive && !conversation.is_deleted;
           case "facebook":
-            return conversation.channel === "facebook" && !isSnoozedActive && !conversation.is_deleted;
           case "instagram":
-            return conversation.channel === "instagram" && !isSnoozedActive && !conversation.is_deleted;
           case "whatsapp":
-            return conversation.channel === "whatsapp" && !isSnoozedActive && !conversation.is_deleted;
+            return conversation.channel === selectedTab 
+              && !conversation.is_archived 
+              && !isSnoozedActive 
+              && !conversation.is_deleted;
           default:
+            // Inbox-specific filter
             if (selectedTab.startsWith('inbox-')) {
               const inboxId = selectedTab.replace('inbox-', '');
-              return conversation.inbox_id === inboxId && !isSnoozedActive && !conversation.is_deleted;
+              return conversation.inbox_id === inboxId 
+                && !conversation.is_archived 
+                && !isSnoozedActive 
+                && !conversation.is_deleted;
             }
-            return !isSnoozedActive && !conversation.is_deleted;
+            // Fallback: show non-archived, non-snoozed, non-deleted
+            return !conversation.is_archived 
+              && !isSnoozedActive 
+              && !conversation.is_deleted;
         }
       })();
 
