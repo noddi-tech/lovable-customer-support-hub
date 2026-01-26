@@ -1,199 +1,150 @@
 
 
-## Plan: Add Widget API for Programmatic Control and Position Override
+## Plan: Add Widget API Documentation to Embed Tab
 
-### What Mattis Needs
+### Goal
+Add a comprehensive API reference section to the Embed tab so developers like Mattis can easily discover and use the widget's configuration options and programmatic commands.
 
-Based on the conversation with Mattis, the Noddi widget needs to support:
+---
 
-1. **Hide the floating button** (`showButton: false`) - Render widget without the default button, allowing the customer app to use its own custom button
-2. **Position override** (`position: "left"`) - Override the default position from admin config
-3. **Programmatic open/close** - Expose API methods like `noddi('open')` and `noddi('close')` to control the widget
+### Changes to `src/components/admin/widget/WidgetEmbedCode.tsx`
 
-This mirrors the Help Scout Beacon API pattern Mattis shared:
+Add two new documentation cards after the existing content:
+
+#### 1. Configuration Options Card
+
+Shows all available `init` options with descriptions:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `widgetKey` | string | required | Your unique widget identifier |
+| `apiUrl` | string | auto | API endpoint (auto-configured) |
+| `showButton` | boolean | `true` | Set to `false` to hide the floating button |
+| `position` | string | `'bottom-right'` | Override position: `'bottom-right'` or `'bottom-left'` |
+
+#### 2. Programmatic API Card
+
+Documents the command methods:
+
+| Command | Description |
+|---------|-------------|
+| `noddi('open')` | Open the widget panel |
+| `noddi('close')` | Close the widget panel |
+| `noddi('toggle')` | Toggle the widget open/closed |
+
+#### 3. Code Examples Card
+
+Provide copy-paste examples for common use cases:
+
+**Custom Button Integration:**
 ```javascript
-window.Beacon('config', {
-  showBeacon: false, // Hide the launcher button
-  enableChat: true,
-  display: { position: "left" }
-});
-```
-
----
-
-### Implementation Changes
-
-#### 1. Update `WidgetInitOptions` (src/widget/types.ts)
-
-Add new optional config parameters:
-
-```typescript
-export interface WidgetInitOptions {
-  widgetKey: string;
-  apiUrl?: string;
-  // NEW: Client-side overrides
-  showButton?: boolean;      // Default: true - set to false to hide the floating button
-  position?: 'bottom-right' | 'bottom-left';  // Override admin config position
-}
-```
-
----
-
-#### 2. Update Widget Component (src/widget/Widget.tsx)
-
-Accept and apply the new options:
-
-```typescript
-export const Widget: React.FC<WidgetProps> = ({ options }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  // ... existing state
-
-  // Apply position override from init options, or fall back to config
-  const effectivePosition = options.position ?? config?.position ?? 'bottom-right';
-  
-  // Determine if button should be shown (default: true)
-  const showButton = options.showButton !== false;
-
-  return (
-    <div className="noddi-widget-container">
-      {isOpen && (
-        <WidgetPanel 
-          config={config} 
-          onClose={() => setIsOpen(false)}
-          positionOverride={effectivePosition}  // Pass override to panel
-        />
-      )}
-      {showButton && (
-        <FloatingButton
-          isOpen={isOpen}
-          onClick={() => setIsOpen(!isOpen)}
-          primaryColor={config.primaryColor}
-          position={effectivePosition}
-        />
-      )}
-    </div>
-  );
-};
-```
-
----
-
-#### 3. Expose Global API Methods (src/widget/index.tsx)
-
-Add `open`, `close`, and `toggle` commands for programmatic control:
-
-```typescript
-let widgetRef: { setIsOpen: (open: boolean) => void } | null = null;
-
-function initializeWidget(options: WidgetInitOptions) {
-  // ... existing init code
-  
-  // Store ref for programmatic control
-  root.render(
-    <Widget 
-      options={options} 
-      onMount={(api) => { widgetRef = api; }} 
-    />
-  );
-}
-
-// Extended global API
-window.NoddiWidget = Object.assign(
-  function(command: string, options?: any) {
-    switch (command) {
-      case 'init':
-        if (options?.widgetKey) initializeWidget(options);
-        break;
-      case 'open':
-        widgetRef?.setIsOpen(true);
-        break;
-      case 'close':
-        widgetRef?.setIsOpen(false);
-        break;
-      case 'toggle':
-        // Toggle current state
-        break;
-    }
-  },
-  {
-    init: initializeWidget,
-    open: () => widgetRef?.setIsOpen(true),
-    close: () => widgetRef?.setIsOpen(false),
-    q: window.NoddiWidget?.q || [],
-  }
-);
-```
-
----
-
-#### 4. Update WidgetPanel Position Handling (src/widget/components/WidgetPanel.tsx)
-
-Accept position override prop:
-
-```typescript
-interface WidgetPanelProps {
-  config: WidgetConfig;
-  onClose: () => void;
-  positionOverride?: 'bottom-right' | 'bottom-left';
-}
-
-export const WidgetPanel: React.FC<WidgetPanelProps> = ({ 
-  config, 
-  onClose,
-  positionOverride 
-}) => {
-  // Use override if provided, otherwise fall back to config
-  const position = positionOverride ?? config.position;
-  
-  const positionStyles = position === 'bottom-right' 
-    ? { right: '20px' } 
-    : { left: '20px' };
-  
-  // ... rest of component
-};
-```
-
----
-
-### Usage Examples for Mattis
-
-**1. Hide button, use custom trigger:**
-```javascript
+// Hide default button, use your own trigger
 noddi('init', {
-  widgetKey: 'abc123',
+  widgetKey: 'YOUR_KEY',
   apiUrl: '...',
-  showButton: false  // Hide the floating button
+  showButton: false
 });
 
-// Their custom button
-document.querySelector('#my-chat-btn').addEventListener('click', () => {
+// Open widget from your custom button
+document.querySelector('#my-help-btn').addEventListener('click', () => {
   noddi('open');
 });
 ```
 
-**2. Override position to left:**
+**Position Override:**
 ```javascript
 noddi('init', {
-  widgetKey: 'abc123',
+  widgetKey: 'YOUR_KEY',
   apiUrl: '...',
-  position: 'bottom-left'  // Override admin config
+  position: 'bottom-left'  // Show on left side
 });
 ```
 
-**3. Full control (hide button + custom position):**
-```javascript
-noddi('init', {
-  widgetKey: 'abc123',
-  apiUrl: '...',
-  showButton: false,
-  position: 'bottom-left'
-});
+---
 
-// Programmatic control
-noddi('open');   // Open the chat panel
-noddi('close');  // Close the panel
-noddi('toggle'); // Toggle open/closed
+### UI Design
+
+Use collapsible `Accordion` or `Collapsible` components to keep the page clean while making all documentation accessible:
+
 ```
+┌─────────────────────────────────────────┐
+│ 🚀 Deploy Widget                        │
+│ [Deploy to Production]                  │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ Installation                            │
+│ <embed code snippet>              [Copy]│
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ Widget Key                              │
+│ abc-123-xyz                       [Copy]│
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ 📖 API Reference                    [▼] │  ← NEW (collapsible)
+├─────────────────────────────────────────┤
+│ Configuration Options                   │
+│ ┌─────────────────────────────────────┐ │
+│ │ showButton  boolean  default: true  │ │
+│ │ Set to false to hide floating btn   │ │
+│ ├─────────────────────────────────────┤ │
+│ │ position    string   default: right │ │
+│ │ 'bottom-right' or 'bottom-left'     │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ Programmatic Commands                   │
+│ ┌─────────────────────────────────────┐ │
+│ │ noddi('open')   - Open the panel    │ │
+│ │ noddi('close')  - Close the panel   │ │
+│ │ noddi('toggle') - Toggle open/close │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ 💡 Code Examples                    [▼] │  ← NEW (collapsible)
+├─────────────────────────────────────────┤
+│ Custom Button Integration         [Copy]│
+│ ```javascript                           │
+│ noddi('init', { showButton: false });   │
+│ noddi('open');                          │
+│ ```                                     │
+│                                         │
+│ Left Position                     [Copy]│
+│ ```javascript                           │
+│ noddi('init', { position: 'bottom-left' });│
+│ ```                                     │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ Testing                                 │
+│ [Test Widget Config API]                │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ 📋 Next Steps                           │
+└─────────────────────────────────────────┘
+```
+
+---
+
+### Implementation Details
+
+**Imports to add:**
+```typescript
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, Code, BookOpen } from 'lucide-react';
+```
+
+**New state:**
+```typescript
+const [apiRefOpen, setApiRefOpen] = useState(false);
+const [examplesOpen, setExamplesOpen] = useState(false);
+```
+
+**Code example snippets with copy buttons:**
+Each example will have its own copy button that copies the full code snippet to clipboard.
 
 ---
 
@@ -201,17 +152,15 @@ noddi('toggle'); // Toggle open/closed
 
 | File | Changes |
 |------|---------|
-| `src/widget/types.ts` | Add `showButton` and `position` to `WidgetInitOptions` |
-| `src/widget/Widget.tsx` | Handle new options, conditionally render button, expose API ref |
-| `src/widget/index.tsx` | Add `open`, `close`, `toggle` commands to global API |
-| `src/widget/components/WidgetPanel.tsx` | Accept position override prop |
-| `src/widget/components/FloatingButton.tsx` | No changes needed (already accepts position prop) |
+| `src/components/admin/widget/WidgetEmbedCode.tsx` | Add API Reference section, Configuration Options, Programmatic Commands, and Code Examples with collapsible sections |
 
 ---
 
-### After Implementation
+### Result
 
-1. **Deploy widget** using the "Deploy to Production" button
-2. **Share new API docs** with Mattis showing the new options
-3. **Test in BF app** by hiding button and using custom trigger
+After implementation, Mattis and other developers will see:
+- Clear documentation of `showButton` and `position` options
+- List of `noddi('open')`, `noddi('close')`, `noddi('toggle')` commands
+- Ready-to-copy code examples for common integrations
+- All accessible directly in the Embed tab without needing external docs
 
