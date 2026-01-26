@@ -120,7 +120,10 @@ export const useAuth = () => {
     user,
     session,
     profile,
-    loading: loading || profileLoading || membershipsLoading,
+    // CRITICAL: Only auth loading blocks route rendering
+    loading: loading,
+    // Separate flag for when additional data is still loading
+    isDataLoading: profileLoading || membershipsLoading,
     signOut: handleSignOut,
     role: userRole,
     isAdmin,

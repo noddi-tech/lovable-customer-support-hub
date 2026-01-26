@@ -102,7 +102,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener
+    // Handle OAuth callback with hash fragments
+    const handleOAuthCallback = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        logger.info('OAuth callback detected, processing tokens', undefined, 'Auth');
+        
+        // Supabase client automatically handles the hash
+        // Wait for it to process
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh session to ensure we have the latest
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted && session) {
+          setSession(session);
+          setUser(session.user);
+          
+          // Clean up hash from URL
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        setLoading(false);
+        return true;
+      }
+      return false;
+    };
+
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
@@ -145,17 +170,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      // Validate existing session without redirect
-      if (session) {
-        await validateSession();
+    // Check for OAuth callback FIRST, then get session
+    handleOAuthCallback().then(async (wasCallback) => {
+      if (!wasCallback && mounted) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+          
+          // Validate existing session without redirect
+          if (session) {
+            await validateSession();
+          }
+        }
       }
     });
 
