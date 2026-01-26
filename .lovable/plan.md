@@ -1,122 +1,166 @@
 
+## Plan: Fix All Filter Logic in Text Messages
 
-## Plan: Fix Deleted Filter in Text Messages
+### Root Cause Analysis
 
-### Problem Summary
-When you delete a conversation in the text messages inbox, it correctly performs a soft-delete (sets `deleted_at` timestamp), but the conversation does not appear in the "Deleted" filter view. The issue is in the `ConversationListContext.tsx` which:
+The filter logic is broken because the **"open" case is missing** from the switch statement in `ConversationListContext.tsx`. This causes the Open filter to fall through to the `default` case, which shows ALL non-deleted, non-snoozed conversations regardless of their status.
 
-1. Uses the wrong RPC function (`get_conversations` instead of `get_conversations_with_session_recovery`)
-2. Missing `is_deleted` field in the `Conversation` interface
-3. Missing `case "deleted"` in the filter logic (appears in 2 places)
-4. All other filters don't explicitly exclude deleted items
+Additionally, the "archived" filter has issues - it only checks `is_archived === true` but doesn't exclude conversations that might also be "closed" or "open" status, and the "all" filter has special inbox logic that overrides the expected behavior.
 
-### Changes Required
+### Current vs Expected Behavior
+
+| Filter | Current Behavior | Expected Behavior |
+|--------|------------------|-------------------|
+| **Open** | Shows ALL statuses (falls to default) | Only `status === 'open'`, not archived, not deleted |
+| **Pending** | Correct | `status === 'pending'`, not deleted |
+| **Assigned to Me** | Shows any assigned regardless of status | Assigned to current user, not archived, not deleted |
+| **Closed** | Correct | `status === 'closed'`, not archived, not deleted |
+| **Archived** | Shows all archived regardless of status | `is_archived === true`, not deleted |
+| **Deleted** | Empty (RPC works but data issue) | `deleted_at IS NOT NULL` |
+| **All Messages** | Excludes closed unless specific inbox | All non-archived, non-deleted conversations |
+
+### Fixes Required
 
 #### File: `src/contexts/ConversationListContext.tsx`
 
-**Change 1: Update Conversation Interface (lines 32-54)**
-Add the missing field:
+**Fix 1: Add missing `case "open":` in both switch statements**
+
+Add the Open filter logic that matches:
+- `status === 'open'`
+- `!is_archived` (not archived)
+- `!is_deleted` (not deleted)
+- `!isSnoozedActive` (not snoozed)
+
+**Fix 2: Update "archived" filter to be clearer**
+
+The archived filter should:
+- Show conversations where `is_archived === true`
+- Not show deleted items
+
+**Fix 3: Update "all" (All Messages) filter**
+
+All Messages should show:
+- All conversations that are not archived and not deleted
+- Regardless of status (open, pending, closed)
+
+**Fix 4: Ensure "closed" excludes archived items**
+
+Closed should only show:
+- `status === 'closed'`
+- `!is_archived` (if it's closed AND archived, it should only show in Archived)
+- `!is_deleted`
+
+### Complete Filter Logic (Both Switch Statements)
+
 ```typescript
-export interface Conversation {
-  // ... existing fields
-  is_archived?: boolean;
-  is_deleted?: boolean;  // ADD THIS
-  channel: ConversationChannel;
-  // ... rest of fields
+switch (selectedTab) {
+  case "open":
+    // Open: status is 'open', not archived, not snoozed, not deleted
+    return conversation.status === 'open' 
+      && !conversation.is_archived 
+      && !isSnoozedActive 
+      && !conversation.is_deleted;
+      
+  case "pending":
+    // Pending: status is 'pending', not archived, not snoozed, not deleted
+    return conversation.status === 'pending' 
+      && !conversation.is_archived 
+      && !isSnoozedActive 
+      && !conversation.is_deleted;
+      
+  case "assigned":
+    // Assigned to Me: has assignment, not archived, not snoozed, not deleted
+    return !!conversation.assigned_to 
+      && !conversation.is_archived 
+      && !isSnoozedActive 
+      && !conversation.is_deleted;
+      
+  case "closed":
+    // Closed: status is 'closed', not archived, not snoozed, not deleted
+    return conversation.status === 'closed' 
+      && !conversation.is_archived 
+      && !isSnoozedActive 
+      && !conversation.is_deleted;
+      
+  case "archived":
+    // Archived: is_archived flag is true, not deleted
+    return conversation.is_archived === true 
+      && !conversation.is_deleted;
+      
+  case "deleted":
+    // Deleted: deleted_at is set (is_deleted flag)
+    return conversation.is_deleted === true;
+    
+  case "snoozed":
+    // Snoozed: has active snooze, not deleted
+    return isSnoozedActive 
+      && !conversation.is_deleted;
+      
+  case "all":
+    // All Messages: everything that's not archived and not deleted
+    return !conversation.is_archived 
+      && !isSnoozedActive 
+      && !conversation.is_deleted;
+      
+  // Channel filters
+  case "email":
+  case "facebook":
+  case "instagram":
+  case "whatsapp":
+    return conversation.channel === selectedTab 
+      && !conversation.is_archived 
+      && !isSnoozedActive 
+      && !conversation.is_deleted;
+      
+  default:
+    // Inbox-specific filter
+    if (selectedTab.startsWith('inbox-')) {
+      const inboxId = selectedTab.replace('inbox-', '');
+      return conversation.inbox_id === inboxId 
+        && !conversation.is_archived 
+        && !isSnoozedActive 
+        && !conversation.is_deleted;
+    }
+    // Fallback: show non-archived, non-snoozed, non-deleted
+    return !conversation.is_archived 
+      && !isSnoozedActive 
+      && !conversation.is_deleted;
 }
 ```
 
-**Change 2: Switch to Correct RPC (lines 203-218)**
-Replace `get_conversations` with `get_conversations_with_session_recovery`:
-```typescript
-queryFn: async ({ pageParam = 0 }) => {
-  logger.info('Fetching conversations page', { 
-    userId: user?.id, 
-    offset: pageParam,
-    inbox: selectedInboxId,
-    status: selectedTab 
-  }, 'ConversationListProvider');
-  
-  // Determine if we should fetch deleted conversations
-  const includeDeleted = selectedTab === 'deleted';
-  
-  const { data, error } = await supabase.rpc('get_conversations_with_session_recovery', {
-    inbox_uuid: (selectedInboxId && selectedInboxId !== 'all') ? selectedInboxId : null,
-    include_deleted: includeDeleted
-  });
-  
-  // ... rest of logic
-  
-  const conversations = (data || []).map((conv: any) => ({
-    ...conv,
-    is_deleted: conv.is_deleted || false,  // Map the field
-    customer: conv.customer_id ? {
-      id: conv.customer_id,
-      full_name: conv.customer_name || conv.customer_email || 'Unknown',
-      email: conv.customer_email || ''
-    } : conv.customer,  // Use jsonb object from RPC if available
-    assigned_to: conv.assigned_to_id ? {
-      id: conv.assigned_to_id,
-      full_name: conv.assigned_to_name || 'Unassigned'
-    } : conv.assigned_to,  // Use jsonb object from RPC if available
-  })) as Conversation[];
-```
+### Technical Details
 
-**Change 3: Add Deleted Case in markAllAsRead Filter (lines 357-389)**
-```typescript
-const matchesTab = (() => {
-  const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
-  switch (selectedTab) {
-    case "snoozed":
-      return isSnoozedActive;
-    case "all":
-      return conversation.status !== 'closed' && !isSnoozedActive && !conversation.is_deleted;
-    case "unread":
-      return !conversation.is_read && !isSnoozedActive && !conversation.is_deleted;
-    case "assigned":
-      return !!conversation.assigned_to && !isSnoozedActive && !conversation.is_deleted;
-    case "pending":
-      return conversation.status === 'pending' && !isSnoozedActive && !conversation.is_deleted;
-    case "closed":
-      return conversation.status === 'closed' && !isSnoozedActive && !conversation.is_deleted;
-    case "archived":
-      return conversation.is_archived === true && !conversation.is_deleted;
-    case "deleted":  // ADD THIS CASE
-      return conversation.is_deleted === true;
-    case "email":
-      return conversation.channel === "email" && !isSnoozedActive && !conversation.is_deleted;
-    case "facebook":
-      return conversation.channel === "facebook" && !isSnoozedActive && !conversation.is_deleted;
-    case "instagram":
-      return conversation.channel === "instagram" && !isSnoozedActive && !conversation.is_deleted;
-    case "whatsapp":
-      return conversation.channel === "whatsapp" && !isSnoozedActive && !conversation.is_deleted;
-    default:
-      if (selectedTab.startsWith('inbox-')) {
-        const inboxId = selectedTab.replace('inbox-', '');
-        return conversation.inbox_id === inboxId && !isSnoozedActive && !conversation.is_deleted;
-      }
-      return !isSnoozedActive && !conversation.is_deleted;
-  }
-})();
-```
+This logic must be updated in **two locations** within `ConversationListContext.tsx`:
 
-**Change 4: Add Deleted Case in Main Filter (lines 492-527)**
-Apply the exact same changes to the `matchesTab` switch statement in the `filteredAndSortedConversations` useMemo block.
+1. **Lines 360-391**: Inside `markAllAsReadMutation` filter
+2. **Lines 495-531**: Inside `filteredAndSortedConversations` useMemo
 
-### Why This Works
+Both switches must have identical logic to ensure consistent behavior.
 
-1. **Correct RPC**: `get_conversations_with_session_recovery` supports the `include_deleted` parameter and returns the `is_deleted` field
-2. **Explicit Deleted Case**: When `selectedTab === 'deleted'`, only show conversations where `is_deleted === true`
-3. **Exclude from Other Views**: All other filters now check `!conversation.is_deleted` to prevent deleted items from appearing in active views
+### Filter Definitions Summary
 
-### Testing Steps
+| Filter | Database Fields | Logic |
+|--------|-----------------|-------|
+| **Open** | `status='open'`, `is_archived=false`, `deleted_at=NULL` | Active work items requiring attention |
+| **Pending** | `status='pending'`, `is_archived=false`, `deleted_at=NULL` | Awaiting customer response |
+| **Assigned** | `assigned_to_id IS NOT NULL`, `is_archived=false`, `deleted_at=NULL` | Assigned to current user |
+| **Closed** | `status='closed'`, `is_archived=false`, `deleted_at=NULL` | Resolved but not archived |
+| **Archived** | `is_archived=true`, `deleted_at=NULL` | Stored for reference |
+| **Deleted** | `deleted_at IS NOT NULL` | Soft-deleted, recoverable |
+| **All Messages** | `is_archived=false`, `deleted_at=NULL` | All active conversations (any status) |
 
-1. Navigate to `/interactions/text/open`
-2. Select a conversation and click Delete
-3. Navigate to `/interactions/text/deleted`
-4. Verify the deleted conversation appears in the Deleted view
-5. Navigate back to `/interactions/text/open`
-6. Verify the deleted conversation does NOT appear in Open view
-7. Test other filters (Pending, Assigned, Closed) to ensure deleted items don't appear
+### Files to Modify
 
+| File | Changes |
+|------|---------|
+| `src/contexts/ConversationListContext.tsx` | Add `case "open":` and fix all filter cases in both switch statements (lines 360-391 and 495-531) |
+
+### Expected Results After Fix
+
+- **Open (12)**: Only shows conversations with `status='open'`
+- **Pending (4)**: Only shows conversations with `status='pending'`
+- **Assigned (1)**: Only shows conversations assigned to current user
+- **Closed (6178)**: Only shows conversations with `status='closed'`
+- **Archived (8)**: Only shows archived conversations (any status)
+- **Deleted (0)**: Shows soft-deleted conversations
+- **All Messages (6194)**: Shows all non-archived, non-deleted conversations
