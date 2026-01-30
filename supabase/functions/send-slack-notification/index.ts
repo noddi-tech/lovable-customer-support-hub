@@ -18,40 +18,43 @@ interface SlackNotificationRequest {
   assigned_to_email?: string;
   mentioned_user_name?: string;
   inbox_name?: string;
+  channel?: 'email' | 'widget' | 'chat' | 'facebook' | 'instagram' | 'whatsapp';
 }
 
+// Unified notification color (brand blue)
+const NOTIFICATION_COLOR = '#3b82f6';
+
+// Emojis by channel type
+const CHANNEL_EMOJIS: Record<string, string> = {
+  email: '📧',
+  widget: '💬',
+  chat: '💬',
+  facebook: '📘',
+  instagram: '📸',
+  whatsapp: '📱',
+};
+
+// Channel labels for display
+const CHANNEL_LABELS: Record<string, string> = {
+  email: 'Email',
+  widget: 'Widget',
+  chat: 'Chat',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  whatsapp: 'WhatsApp',
+};
+
+// Fallback emojis for non-channel events
 const EVENT_EMOJIS: Record<string, string> = {
-  new_conversation: '🆕',
-  customer_reply: '💬',
-  assignment: '👤',
   mention: '📣',
   sla_warning: '⚠️',
-  conversation_closed: '✅',
-};
-
-const EVENT_COLORS: Record<string, string> = {
-  new_conversation: '#22c55e', // green
-  customer_reply: '#3b82f6', // blue
-  assignment: '#8b5cf6', // purple
-  mention: '#f59e0b', // amber
-  sla_warning: '#ef4444', // red
-  conversation_closed: '#6b7280', // gray
-};
-
-const EVENT_TITLES: Record<string, string> = {
-  new_conversation: 'New Conversation',
-  customer_reply: 'Customer Reply',
-  assignment: 'Assignment Changed',
-  mention: 'You Were Mentioned',
-  sla_warning: 'SLA Warning',
-  conversation_closed: 'Conversation Closed',
 };
 
 /**
  * Clean and extract readable preview text from email content
  * Aggressively strips ALL HTML including namespaced tags, footers, and whitespace
  */
-function cleanPreviewText(text: string | undefined, maxLength: number = 200): string {
+function cleanPreviewText(text: string | undefined, maxLength: number = 180): string {
   if (!text) return '';
   
   let result = text;
@@ -152,6 +155,7 @@ Deno.serve(async (req) => {
       assigned_to_name,
       mentioned_user_name,
       inbox_name,
+      channel,
     } = body;
 
     if (!organization_id || !event_type) {
@@ -204,19 +208,39 @@ Deno.serve(async (req) => {
     }
 
     // Build the Slack message using Block Kit
-    const emoji = EVENT_EMOJIS[event_type] || '📨';
-    const color = EVENT_COLORS[event_type] || '#3b82f6';
+    // Determine emoji based on channel or event type
+    const channelLabel = CHANNEL_LABELS[channel || 'email'] || 'Email';
+    const emoji = CHANNEL_EMOJIS[channel || 'email'] || EVENT_EMOJIS[event_type] || '📨';
     
-    // Make title dynamic for assignment events
-    let title = EVENT_TITLES[event_type] || 'Notification';
-    if (event_type === 'assignment' && assigned_to_name) {
-      title = `Assigned to ${assigned_to_name}`;
+    // Build dynamic title based on event type and channel
+    let title: string;
+    switch (event_type) {
+      case 'new_conversation':
+        title = `New ${channelLabel} Conversation`;
+        break;
+      case 'customer_reply':
+        title = `${channelLabel} Reply`;
+        break;
+      case 'assignment':
+        title = assigned_to_name ? `Assigned to ${assigned_to_name}` : 'Assignment Changed';
+        break;
+      case 'conversation_closed':
+        title = 'Conversation Closed';
+        break;
+      case 'mention':
+        title = 'You Were Mentioned';
+        break;
+      case 'sla_warning':
+        title = 'SLA Warning';
+        break;
+      default:
+        title = 'Notification';
     }
 
     const blocks: any[] = [];
     const attachmentBlocks: any[] = [];
 
-    // Header section
+    // Header section with source indicator
     attachmentBlocks.push({
       type: 'section',
       text: {
@@ -225,26 +249,24 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Customer info - make values bold for emphasis
-    if (customer_name || customer_email) {
-      attachmentBlocks.push({
-        type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `From:\n*${customer_name || 'Unknown'}*${customer_email ? ` (${customer_email})` : ''}`,
-          },
-          ...(subject ? [{
-            type: 'mrkdwn',
-            text: `Subject:\n*${subject}*`,
-          }] : []),
-        ],
-      });
-    }
+    // Customer info with subject - always show both
+    attachmentBlocks.push({
+      type: 'section',
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*From:*\n${customer_name || 'Unknown'}${customer_email ? ` (${customer_email})` : ''}`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Subject:*\n${subject || 'No subject'}`,
+        },
+      ],
+    });
 
-    // Message preview - clean HTML and strip footers
+    // Message preview - always show if available, use 180 chars
     if (preview_text && config.include_message_preview !== false) {
-      const cleanedPreview = cleanPreviewText(preview_text, 200);
+      const cleanedPreview = cleanPreviewText(preview_text, 180);
       
       if (cleanedPreview) {
         // Escape Slack markdown special characters in preview
@@ -329,7 +351,7 @@ Deno.serve(async (req) => {
         blocks: blocks,
         attachments: [
           {
-            color: color,
+            color: NOTIFICATION_COLOR,
             blocks: attachmentBlocks,
           },
         ],
