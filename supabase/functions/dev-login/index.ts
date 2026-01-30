@@ -11,6 +11,18 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // SECURITY FIX: Block in production environment
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const isProduction = supabaseUrl.includes('qgfaycwsangsqzpveoup'); // Production project ID
+  
+  if (isProduction) {
+    console.log('❌ Dev-login blocked in production');
+    return new Response(
+      JSON.stringify({ error: 'Endpoint not available in production' }), 
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const { email, redirectTo } = await req.json();
     

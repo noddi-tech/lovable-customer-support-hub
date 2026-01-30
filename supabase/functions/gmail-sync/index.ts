@@ -97,15 +97,17 @@ Deno.serve(async (req: Request) => {
       }
     );
 
-    // Check if this is a service role call (from cron job) by checking the request source
+    // SECURITY FIX: Only verify service role key - removed User-Agent spoofing vulnerability
     const authHeader = req.headers.get('Authorization') || '';
-    const userAgent = req.headers.get('User-Agent') || '';
-    const isServiceRoleCall = userAgent.includes('pg_net') || authHeader.includes('Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    // Strict service role key check - no User-Agent bypass
+    const isServiceRoleCall = serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`;
     
     console.log('🔐 Authentication check:', {
       isServiceRoleCall,
-      userAgent,
-      hasAuthHeader: !!authHeader
+      hasAuthHeader: !!authHeader,
+      authType: isServiceRoleCall ? 'service_role' : 'user_token'
     });
     
     let user = null;
