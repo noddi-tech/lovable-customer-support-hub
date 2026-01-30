@@ -1,152 +1,298 @@
 
-## Plan: Support Google Authentication for Password-Based Accounts
+# Bulletproof Plan: Fix All 4 Security Errors
 
-### Problem Summary
-Users like Anders who initially signed up with email/password want to use Google OAuth to log in. Currently, there's no explicit way for logged-in users to link their Google account to their existing password-based account.
+## Summary of the 4 Security Errors
 
-### Solution Overview
-Implement two complementary features:
-1. **Verify Supabase Configuration** - Ensure "One email per user" is enabled for automatic identity linking
-2. **Add Explicit Linking UI** - Add a "Link Google Account" button in User Profile Settings using Supabase's `linkIdentity` method
+| # | Finding | Severity | Risk |
+|---|---------|----------|------|
+| 1 | **Dev-login endpoint accessible in production** | ERROR | Anyone can request magic links for hardcoded emails |
+| 2 | **Gmail sync User-Agent spoofing** | ERROR | Any request with `User-Agent: pg_net` bypasses auth |
+| 3 | **Profiles table public exposure** | ERROR | Employee data (emails, names) visible across orgs |
+| 4 | **Calls table public exposure** | ERROR | Customer phone numbers visible across orgs |
 
-### Technical Implementation
+---
 
-#### File: `src/components/settings/UserProfileSettings.tsx`
+## Fix 1: Dev-Login Endpoint (SAFE - No Functionality Impact)
+
+### Current Issue
+The `dev-login` function is accessible in production and allows generating magic links without authentication.
+
+### Solution
+Add environment check to block production calls. This only affects manual developer testing workflows.
+
+### File: `supabase/functions/dev-login/index.ts`
 
 **Changes:**
 
-1. **Add new state and imports:**
 ```typescript
-import { Chrome } from 'lucide-react'; // Add Google icon
-const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
-```
-
-2. **Add function to check linked identities:**
-```typescript
-// Check if Google is already linked
-const googleIdentity = user?.identities?.find(
-  (identity) => identity.provider === 'google'
-);
-const hasGoogleLinked = !!googleIdentity;
-```
-
-3. **Add `handleLinkGoogle` function:**
-```typescript
-const handleLinkGoogle = async () => {
-  setIsLinkingGoogle(true);
-  try {
-    const { data, error } = await supabase.auth.linkIdentity({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/settings`,
-      }
-    });
-
-    if (error) {
-      // Handle specific errors
-      if (error.message.includes('already linked')) {
-        toast.error('This Google account is already linked to another user');
-      } else {
-        toast.error(error.message || 'Failed to link Google account');
-      }
-      return;
-    }
-
-    // User will be redirected to Google for OAuth
-    // On return, the identity will be linked
-  } catch (error) {
-    console.error('Link Google error:', error);
-    toast.error('Failed to link Google account');
-  } finally {
-    setIsLinkingGoogle(false);
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
-};
+
+  // SECURITY FIX: Block in production environment
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const isProduction = supabaseUrl.includes('qgfaycwsangsqzpveoup'); // Production project ID
+  
+  if (isProduction) {
+    console.log('❌ Dev-login blocked in production');
+    return new Response(
+      JSON.stringify({ error: 'Endpoint not available in production' }), 
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // ... rest of existing code
 ```
 
-4. **Add Google linking UI in Security card (after password section):**
-```tsx
-{/* Google Account Linking */}
-<div className="flex items-center justify-between p-4 rounded-lg border">
-  <div className="flex items-center gap-3">
-    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-      <svg className="h-5 w-5" viewBox="0 0 24 24">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-      </svg>
-    </div>
-    <div>
-      <p className="font-medium">
-        {t('settings.profile.googleAccount', 'Google Account')}
-      </p>
-      <p className="text-sm text-muted-foreground">
-        {hasGoogleLinked 
-          ? t('settings.profile.googleLinked', 'Connected - you can sign in with Google')
-          : t('settings.profile.googleNotLinked', 'Link your Google account for faster sign-in')}
-      </p>
-    </div>
-  </div>
-  {hasGoogleLinked ? (
-    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-      <Check className="h-3 w-3 mr-1" />
-      {t('settings.profile.connected', 'Connected')}
-    </Badge>
-  ) : (
-    <Button 
-      variant="outline" 
-      onClick={handleLinkGoogle}
-      disabled={isLinkingGoogle}
-    >
-      {isLinkingGoogle ? (
-        <>
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Linking...
-        </>
-      ) : (
-        t('settings.profile.linkGoogle', 'Link Google')
-      )}
-    </Button>
-  )}
-</div>
-```
+### Testing Steps
+1. Deploy edge function
+2. Attempt to call `/functions/v1/dev-login` in production
+3. Verify 404 response is returned
+4. Confirm development environment still works (if applicable)
 
-5. **Add Check icon to imports:**
+**Impact on existing functionality:** ✅ NONE - This is a dev-only endpoint not used in production
+
+---
+
+## Fix 2: Gmail Sync User-Agent Bypass (SAFE - Minimal Impact)
+
+### Current Issue
+The function checks `User-Agent: pg_net` to detect cron jobs, but this is easily spoofed.
+
 ```typescript
-import { Loader2, Upload, Trash2, Lock, Building2, Users, Calendar, Shield, Check } from 'lucide-react';
+// VULNERABLE CODE
+const isServiceRoleCall = userAgent.includes('pg_net') || 
+                          authHeader.includes('Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 ```
 
-### Supabase Dashboard Configuration Required
+### Solution
+Remove User-Agent check entirely. Only verify actual service role key in Authorization header.
 
-Before this works, verify these settings in Supabase Dashboard:
+### File: `supabase/functions/gmail-sync/index.ts`
 
-1. **Authentication → Providers → Google**: Must be enabled with valid OAuth credentials
-2. **Authentication → Settings → "One email per user"**: Should be enabled to allow automatic identity linking when emails match
+**Changes at lines 100-125:**
 
-### User Experience Flow
+```typescript
+// BEFORE (vulnerable):
+const authHeader = req.headers.get('Authorization') || '';
+const userAgent = req.headers.get('User-Agent') || '';
+const isServiceRoleCall = userAgent.includes('pg_net') || authHeader.includes('Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 
-**For users already logged in (Anders's case):**
-1. Go to Settings → Profile
-2. Scroll to Security section
-3. Click "Link Google" button
-4. Authorize with Google
-5. Redirected back to Settings with Google now linked
-6. Can now log in with either password or Google
+// AFTER (secure):
+const authHeader = req.headers.get('Authorization') || '';
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-**For users at login page:**
-1. Click "Continue with Google"
-2. If email matches existing account, identities are automatically linked
-3. Logged in with same profile, roles, and organization
+// Only verify actual service role key - remove User-Agent spoofing vulnerability
+const isServiceRoleCall = serviceRoleKey && 
+                          authHeader === `Bearer ${serviceRoleKey}`;
 
-### Files to Modify
+console.log('🔐 Authentication check:', {
+  isServiceRoleCall,
+  hasAuthHeader: !!authHeader,
+  authType: isServiceRoleCall ? 'service_role' : 'user_token'
+});
+```
 
-| File | Changes |
-|------|---------|
-| `src/components/settings/UserProfileSettings.tsx` | Add Google linking UI in Security section, add state and handler function |
+### Testing Steps
+1. Deploy updated edge function
+2. Test with User-Agent spoofing attempt:
+   ```bash
+   curl -X POST https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/gmail-sync \
+     -H "User-Agent: pg_net" \
+     -H "Content-Type: application/json" \
+     -d '{}'
+   ```
+3. Verify 401 Unauthorized response (previously this would bypass auth)
+4. Test legitimate user call with valid JWT → should work
+5. Verify `trigger-gmail-sync` still works (it uses service role key properly)
 
-### Result After Implementation
+**Impact on existing functionality:** ✅ NONE
+- `trigger-gmail-sync` already passes the proper `Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}` header
+- User-initiated syncs still work via JWT auth
 
-- Users can link Google to existing password accounts from Settings
-- Badge shows "Connected" status when Google is already linked
-- Works alongside the existing login-page Google button
-- Same user ID, profile, roles, and organization preserved
+---
+
+## Fix 3: Profiles Table Exposure (REQUIRES CAREFUL AUDIT)
+
+### Current Issue
+The profiles table has multiple SELECT policies that allow viewing profiles across organizations:
+
+```sql
+-- PROBLEMATIC: Allows viewing any profile in accessible orgs (could be multiple)
+CREATE POLICY "Users can view profiles in accessible organizations"
+ON public.profiles FOR SELECT
+USING (
+  is_super_admin() OR 
+  (organization_id IN (
+    SELECT organization_memberships.organization_id
+    FROM organization_memberships
+    WHERE organization_memberships.user_id = auth.uid() 
+      AND organization_memberships.status = 'active'
+  ))
+);
+```
+
+### Analysis of Current Usage
+I analyzed 50 files using the profiles table. Key patterns:
+
+1. **User's own profile** - Always uses `.eq('user_id', user.id)` 
+2. **Users in same organization** - For assignment dropdowns, team lists
+3. **Super admin access** - For user management across orgs
+
+### Solution
+The policies are actually **correct for multi-org support**. Users can belong to multiple organizations and need to see teammates in each.
+
+**However**, we should:
+1. Verify the scanner's concern is about unauthenticated access (it's not - requires auth.uid())
+2. Mark this finding as appropriately secured given the business requirements
+
+### Recommended Action
+Mark this finding as "not applicable" since:
+- RLS requires authentication (`auth.uid() IS NOT NULL` via organization_memberships join)
+- Users can only see profiles within organizations they belong to
+- This is correct behavior for multi-org/multi-tenant apps
+
+**Impact on existing functionality:** ✅ NONE - No changes needed
+
+### Alternative: If Stricter Isolation Required
+If you want users to ONLY see profiles in their current/primary organization:
+
+```sql
+-- More restrictive: Only current organization
+DROP POLICY "Users can view profiles in accessible organizations" ON public.profiles;
+
+CREATE POLICY "Users can view profiles in current organization"
+ON public.profiles FOR SELECT
+USING (
+  is_super_admin() OR 
+  organization_id = get_user_organization_id()
+);
+```
+
+**Impact:** Could break team/assignment features if users switch between organizations.
+
+---
+
+## Fix 4: Calls Table Exposure (REQUIRES CAREFUL AUDIT)
+
+### Current Issue
+Similar to profiles - the calls table allows viewing calls across accessible organizations.
+
+### Current Policy:
+```sql
+CREATE POLICY "Users can view calls in accessible organizations"
+ON public.calls FOR SELECT
+USING (
+  is_super_admin() OR 
+  (organization_id IN (
+    SELECT organization_memberships.organization_id
+    FROM organization_memberships
+    WHERE organization_memberships.user_id = auth.uid() 
+      AND organization_memberships.status = 'active'
+  ))
+);
+```
+
+### Analysis
+This policy:
+- ✅ Requires authentication
+- ✅ Scopes to organizations user belongs to
+- ✅ Is consistent with multi-org support
+
+### Solution
+Same as profiles - this is correctly scoped for multi-org. Mark finding as addressed.
+
+**Impact on existing functionality:** ✅ NONE - No changes needed
+
+### Alternative: If Stricter Isolation Required
+```sql
+DROP POLICY "Users can view calls in accessible organizations" ON public.calls;
+
+CREATE POLICY "Users can view calls in current organization"
+ON public.calls FOR SELECT
+USING (
+  is_super_admin() OR 
+  organization_id = get_user_organization_id()
+);
+```
+
+**Impact:** Users would only see calls from their current organization context.
+
+---
+
+## Implementation Order
+
+| Step | Fix | Files | Risk | Testing |
+|------|-----|-------|------|---------|
+| 1 | Dev-login production block | `supabase/functions/dev-login/index.ts` | Zero | Call endpoint, expect 404 |
+| 2 | Gmail sync auth fix | `supabase/functions/gmail-sync/index.ts` | Zero | Spoofing test, cron test |
+| 3 | Review profiles RLS | Database policies (optional) | Medium | Full app test if changed |
+| 4 | Review calls RLS | Database policies (optional) | Medium | Full app test if changed |
+
+---
+
+## Post-Fix Testing Checklist
+
+### After Fix 1 (Dev-Login)
+- [ ] Production call returns 404
+- [ ] No impact on regular login flows
+
+### After Fix 2 (Gmail Sync)
+- [ ] User-Agent spoofing returns 401
+- [ ] Authenticated user can trigger manual sync
+- [ ] Cron job via `trigger-gmail-sync` still works
+
+### After Fixes 3 & 4 (If RLS Changed)
+- [ ] User can see own profile in settings
+- [ ] User can see teammates in assignment dropdown
+- [ ] User can view call history
+- [ ] Analytics dashboards work
+- [ ] Admin can manage users
+- [ ] Super admin can view all data
+
+---
+
+## Security Finding Cleanup
+
+After implementing fixes 1 and 2, we should update the security findings:
+
+```typescript
+// Delete fixed findings
+{ operation: "delete", internal_id: "dev_login_production", scanner_name: "agent_security" }
+{ operation: "delete", internal_id: "gmail_sync_user_agent_bypass", scanner_name: "agent_security" }
+
+// Mark RLS findings as acceptable for multi-org design
+{ 
+  operation: "update", 
+  internal_id: "profiles_table_public_exposure",
+  scanner_name: "supabase_lov",
+  finding: {
+    ignore: true,
+    ignore_reason: "RLS requires authentication and scopes to user's organization memberships. This is correct for multi-org support."
+  }
+}
+{ 
+  operation: "update", 
+  internal_id: "calls_table_public_exposure",
+  scanner_name: "supabase_lov",
+  finding: {
+    ignore: true,
+    ignore_reason: "RLS requires authentication and scopes to user's organization memberships. This is correct for multi-org support."
+  }
+}
+```
+
+---
+
+## Summary
+
+| Finding | Action | Impact | Effort |
+|---------|--------|--------|--------|
+| Dev-login in production | Add env check | None | 5 min |
+| Gmail sync spoofing | Remove User-Agent check | None | 10 min |
+| Profiles RLS | Mark as acceptable (or tighten if needed) | None/Medium | 0-30 min |
+| Calls RLS | Mark as acceptable (or tighten if needed) | None/Medium | 0-30 min |
+
+**Recommendation:** Implement fixes 1 and 2 immediately (zero risk). For fixes 3 and 4, the current RLS is correct for multi-org - mark findings as acceptable unless you want stricter single-org isolation.
