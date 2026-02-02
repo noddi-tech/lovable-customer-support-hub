@@ -38,6 +38,7 @@ export interface AircallContextValue {
   isWorkspaceReady: boolean; // True when workspace exists and is ready
   checkLoginStatus: () => Promise<boolean>; // Check if user is logged into Aircall
   initializePhone: () => Promise<void>; // Manual initialization
+  logout: () => void; // Manual logout from Aircall
   // PHASE 4: Debug info for recursion guards
   _debugRecursionGuards?: {
     isShowing: boolean;
@@ -1503,6 +1504,26 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, []);
 
   // ============================================================================
+  // Manual Logout Function
+  // ============================================================================
+  const logout = useCallback(() => {
+    console.log('[AircallProvider] 🚪 Manual logout requested');
+    
+    // Clear the SDK login status
+    aircallPhone.clearLoginStatus();
+    
+    // Update state
+    setIsConnected(false);
+    setInitializationPhase('needs-login');
+    setIsWorkspaceReady(false);
+    
+    // Hide the workspace
+    hideAircallWorkspace();
+    
+    console.log('[AircallProvider] ✅ Logged out successfully');
+  }, [hideAircallWorkspace]);
+
+  // ============================================================================
   // PHASE 0: Memoize Context Value for Performance
   // ============================================================================
   const value: AircallContextValue = useMemo(() => ({
@@ -1534,6 +1555,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     isWorkspaceReady, // PHASE 2: Expose workspace readiness from state
     checkLoginStatus,
     initializePhone,
+    logout,
     // PHASE 4: Expose recursion guard states for debug panel
     _debugRecursionGuards: {
       isShowing: isShowingWorkspaceRef.current,
@@ -1566,6 +1588,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       isWorkspaceReady,
       checkLoginStatus,
       initializePhone,
+      logout,
     ]);
 
   return (

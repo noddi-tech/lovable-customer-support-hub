@@ -22,7 +22,7 @@ import { getGroupedNavItems, logNavMatch } from '@/navigation/nav-config';
 import { cn } from '@/lib/utils';
 import { Crown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AgentStatusToggle } from './AgentStatusToggle';
+import { AgentAvailabilityPanel } from './AgentAvailabilityPanel';
 
 export const AppMainNav = () => {
   const location = useLocation();
@@ -88,7 +88,7 @@ export const AppMainNav = () => {
         </h2>
         
         {/* Agent Availability Toggle - at the top for prominence */}
-        <AgentStatusToggle collapsed={isCollapsed} />
+        <AgentAvailabilityPanel collapsed={isCollapsed} />
       </SidebarHeader>
 
       <SidebarContent>
