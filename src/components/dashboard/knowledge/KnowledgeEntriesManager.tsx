@@ -73,6 +73,8 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
       if (error) throw error;
       return data as KnowledgeCategory[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Fetch dynamic tags for color lookup
@@ -87,6 +89,8 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
       if (error) throw error;
       return data as KnowledgeTag[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: entries, isLoading } = useQuery({

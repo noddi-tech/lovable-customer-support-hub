@@ -72,6 +72,8 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
       if (error) throw error;
       return data as KnowledgeCategory[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: usageCounts } = useQuery({
