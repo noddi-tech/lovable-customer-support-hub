@@ -9,6 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Database, Search, Trash2, Edit, Save, X, Star, Plus } from "lucide-react";
 import { useState } from "react";
 import { sanitizeForPostgrest } from "@/utils/queryUtils";
+import { SimpleRichEditor } from "@/components/ui/simple-rich-editor";
+import { StarRatingInput } from "@/components/ui/star-rating-input";
+import { sanitizeEmailHTML } from "@/utils/htmlSanitizer";
 import {
   Dialog,
   DialogContent,
@@ -117,7 +120,9 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
         .update({
           customer_context: entry.customer_context,
           agent_response: entry.agent_response,
+          category: entry.category,
           tags: entry.tags,
+          quality_score: entry.quality_score,
           updated_at: new Date().toISOString(),
         })
         .eq('id', entry.id);
@@ -308,10 +313,16 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium mb-2">Agent Response</p>
-                  <p className="text-sm text-muted-foreground">
-                    {entry.agent_response.substring(0, 200)}
-                    {entry.agent_response.length > 200 && '...'}
-                  </p>
+                  <div 
+                    className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ 
+                      __html: sanitizeEmailHTML(
+                        entry.agent_response.length > 200 
+                          ? entry.agent_response.substring(0, 200) + '...' 
+                          : entry.agent_response
+                      ) 
+                    }}
+                  />
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
                   {entry.category && (
@@ -388,13 +399,25 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Agent Response</label>
-                <Textarea
+                <SimpleRichEditor
                   value={editingEntry.agent_response}
-                  onChange={(e) =>
-                    setEditingEntry({ ...editingEntry, agent_response: e.target.value })
+                  onChange={(value) =>
+                    setEditingEntry({ ...editingEntry, agent_response: value })
                   }
-                  rows={6}
+                  minHeight="150px"
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Quality Score</label>
+                <StarRatingInput
+                  value={editingEntry.quality_score ?? 3}
+                  onChange={(value) =>
+                    setEditingEntry({ ...editingEntry, quality_score: value })
+                  }
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Higher scores prioritize this entry in AI suggestions
+                </p>
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Category</label>
@@ -491,11 +514,11 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">Ideal Agent Response *</label>
-              <Textarea
+              <SimpleRichEditor
                 placeholder="What is the best response to this question?"
                 value={newEntry.agent_response}
-                onChange={(e) => setNewEntry({ ...newEntry, agent_response: e.target.value })}
-                rows={6}
+                onChange={(value) => setNewEntry({ ...newEntry, agent_response: value })}
+                minHeight="150px"
               />
             </div>
             <div>
