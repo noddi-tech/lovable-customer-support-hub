@@ -36,6 +36,8 @@ export function TagMultiSelect({
       if (error) throw error;
       return data as KnowledgeTag[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   useEffect(() => {

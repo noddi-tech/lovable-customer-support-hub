@@ -72,6 +72,8 @@ export function TagManager({ organizationId }: TagManagerProps) {
       if (error) throw error;
       return data as KnowledgeCategory[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: tags, isLoading } = useQuery({
@@ -85,6 +87,8 @@ export function TagManager({ organizationId }: TagManagerProps) {
       if (error) throw error;
       return data as KnowledgeTag[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: tagUsageCounts } = useQuery({
