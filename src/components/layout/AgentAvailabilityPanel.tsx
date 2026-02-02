@@ -144,21 +144,21 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                   <MessageSquare className="h-3 w-3" />
                   <span>Chat</span>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex flex-col gap-1.5">
                   {(Object.entries(chatStatusConfig) as [AvailabilityStatus, typeof currentChatConfig][]).map(
                     ([statusKey, config]) => (
                       <Button
                         key={statusKey}
                         variant={chatStatus === statusKey ? "default" : "outline"}
                         size="sm"
-                        className="flex-1 h-7 text-xs"
+                        className="w-full justify-start h-7 text-xs"
                         disabled={chatUpdating}
                         onClick={() => {
                           setChatStatus(statusKey);
                           toast.success(`Chat status: ${config.label}`);
                         }}
                       >
-                        <Circle className={cn("h-2 w-2 fill-current mr-1", config.color)} />
+                        <Circle className={cn("h-2 w-2 fill-current mr-1.5", config.color)} />
                         {config.label}
                       </Button>
                     )
@@ -210,15 +210,15 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   }
 
   return (
-    <div className={cn("px-2 space-y-3", className)}>
+    <div className={cn("px-3 space-y-4", className)}>
       {/* Section header */}
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-2">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
         Availability
       </p>
       
       {/* Chat Availability Section */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground">
+      <div className="space-y-2 p-2 rounded-lg bg-muted/30">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <MessageSquare className="h-3 w-3" />
           <span>Chat</span>
         </div>
@@ -294,15 +294,15 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
       
       {/* Phone Availability Section - only show if Aircall is configured */}
       {showPhoneSection && (
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground">
+        <div className="space-y-2 p-2 rounded-lg bg-muted/30">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Phone className="h-3 w-3" />
             <span>Phone</span>
           </div>
           
           {phoneConnected ? (
             // Logged in state
-            <div className="flex items-center gap-2 px-2">
+            <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="relative flex-shrink-0">
                   <Circle className="h-3 w-3 fill-current text-green-500" />
@@ -328,7 +328,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               variant="outline"
               size="sm"
               onClick={handlePhoneLogin}
-              className="w-full h-8 text-sm justify-start gap-2"
+              className="w-full h-8 text-sm justify-center gap-2"
               disabled={initializationPhase === 'failed'}
             >
               <LogIn className="h-3.5 w-3.5" />
@@ -338,7 +338,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
           
           {/* Phone error state */}
           {phoneError && (
-            <p className="text-xs text-destructive px-2 truncate" title={phoneError}>
+            <p className="text-xs text-destructive truncate" title={phoneError}>
               {phoneError}
             </p>
           )}
@@ -347,9 +347,9 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
       
       {/* Online agents list */}
       {otherAgents.length > 0 && (
-        <div className="pt-1">
-          <p className="text-xs text-muted-foreground mb-1.5 px-2">Online now:</p>
-          <div className="flex flex-wrap gap-1.5 px-2">
+        <div className="pt-3 mt-1 border-t border-border/50">
+          <p className="text-xs text-muted-foreground mb-2">Online now:</p>
+          <div className="flex flex-wrap gap-1.5">
             {otherAgents.slice(0, 3).map(agent => (
               <div 
                 key={agent.id} 
@@ -386,7 +386,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
       
       {/* Empty state when no other agents online */}
       {otherAgents.length === 0 && !agentsLoading && (
-        <p className="text-xs text-muted-foreground px-2">
+        <p className="text-xs text-muted-foreground">
           No other agents online
         </p>
       )}
