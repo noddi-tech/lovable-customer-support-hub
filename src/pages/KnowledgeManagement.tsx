@@ -7,7 +7,8 @@ import { SystemHealthMonitor } from "@/components/dashboard/SystemHealthMonitor"
 import { SuggestionPerformance } from "@/components/dashboard/SuggestionPerformance";
 import { KnowledgeEntriesManager } from "@/components/dashboard/knowledge/KnowledgeEntriesManager";
 import { KnowledgeSettings } from "@/components/dashboard/knowledge/KnowledgeSettings";
-import { Brain, Activity, TrendingUp, Database, Settings } from "lucide-react";
+import { KnowledgeImportFromHistory } from "@/components/dashboard/knowledge/KnowledgeImportFromHistory";
+import { Brain, Activity, TrendingUp, Database, Settings, Upload } from "lucide-react";
 
 export default function KnowledgeManagement() {
   const { data: profile } = useQuery({
@@ -49,7 +50,7 @@ export default function KnowledgeManagement() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Brain className="w-4 h-4" />
               Overview
@@ -57,6 +58,10 @@ export default function KnowledgeManagement() {
             <TabsTrigger value="entries" className="flex items-center gap-2">
               <Database className="w-4 h-4" />
               Entries
+            </TabsTrigger>
+            <TabsTrigger value="import" className="flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              Import
             </TabsTrigger>
             <TabsTrigger value="performance" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
@@ -81,6 +86,10 @@ export default function KnowledgeManagement() {
 
           <TabsContent value="entries">
             <KnowledgeEntriesManager organizationId={profile.organization_id} />
+          </TabsContent>
+
+          <TabsContent value="import">
+            <KnowledgeImportFromHistory organizationId={profile.organization_id} />
           </TabsContent>
 
           <TabsContent value="performance">

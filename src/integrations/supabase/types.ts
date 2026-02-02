@@ -1183,6 +1183,59 @@ export type Database = {
           },
         ]
       }
+      knowledge_extraction_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          entries_created: number | null
+          entries_skipped: number | null
+          error_message: string | null
+          id: string
+          organization_id: string
+          started_at: string | null
+          status: string
+          total_conversations: number | null
+          total_processed: number | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          entries_created?: number | null
+          entries_skipped?: number | null
+          error_message?: string | null
+          id?: string
+          organization_id: string
+          started_at?: string | null
+          status?: string
+          total_conversations?: number | null
+          total_processed?: number | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          entries_created?: number | null
+          entries_skipped?: number | null
+          error_message?: string | null
+          id?: string
+          organization_id?: string
+          started_at?: string | null
+          status?: string
+          total_conversations?: number | null
+          total_processed?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_extraction_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_patterns: {
         Row: {
           created_at: string | null
@@ -1229,6 +1282,96 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_pending_entries: {
+        Row: {
+          agent_response: string
+          ai_quality_score: number | null
+          created_at: string
+          customer_context: string
+          extraction_job_id: string | null
+          id: string
+          organization_id: string
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by_id: string | null
+          source_conversation_id: string | null
+          source_message_id: string | null
+          suggested_category_id: string | null
+          suggested_tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          agent_response: string
+          ai_quality_score?: number | null
+          created_at?: string
+          customer_context: string
+          extraction_job_id?: string | null
+          id?: string
+          organization_id: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by_id?: string | null
+          source_conversation_id?: string | null
+          source_message_id?: string | null
+          suggested_category_id?: string | null
+          suggested_tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          agent_response?: string
+          ai_quality_score?: number | null
+          created_at?: string
+          customer_context?: string
+          extraction_job_id?: string | null
+          id?: string
+          organization_id?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by_id?: string | null
+          source_conversation_id?: string | null
+          source_message_id?: string | null
+          suggested_category_id?: string | null
+          suggested_tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_pending_entries_extraction_job_id_fkey"
+            columns: ["extraction_job_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_extraction_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_pending_entries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_pending_entries_source_conversation_id_fkey"
+            columns: ["source_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_pending_entries_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_pending_entries_suggested_category_id_fkey"
+            columns: ["suggested_category_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_categories"
             referencedColumns: ["id"]
           },
         ]
