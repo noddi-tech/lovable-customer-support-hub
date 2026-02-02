@@ -13,6 +13,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Circle, ChevronDown, Loader2, Phone, MessageSquare, LogIn, LogOut }  from 'lucide-react';
 
 interface AgentAvailabilityPanelProps {
@@ -59,7 +64,8 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
     isConnected: phoneConnected, 
     isInitialized: phoneInitialized,
     initializationPhase,
-    showAircallWorkspace,
+    openLoginModal,
+    initializePhone,
     logout: phoneLogout,
     error: phoneError,
   } = useAircallPhone();
@@ -77,7 +83,14 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
 
   const handlePhoneLogin = () => {
     console.log('[AgentAvailabilityPanel] Phone login requested');
-    showAircallWorkspace(true);
+    
+    if (!phoneInitialized) {
+      console.log('[AgentAvailabilityPanel] SDK not initialized, initializing first');
+      initializePhone();
+      return;
+    }
+    
+    openLoginModal();
   };
 
   const handlePhoneLogout = () => {
@@ -100,25 +113,98 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
     );
   }
 
-  // Collapsed view - combined status indicator
+  // Collapsed view - interactive popover with status controls
   if (collapsed) {
-    const chatOnline = chatStatus === 'online';
-    const phoneOnline = phoneConnected;
-    
     return (
       <div className={cn("flex flex-col items-center gap-2", className)}>
-        {/* Combined status dot */}
-        <div className="relative p-1" title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneConnected ? 'logged in' : 'logged out'}` : ''}`}>
-          {/* Chat status (primary) */}
-          <Circle className={cn("h-4 w-4 fill-current", currentChatConfig.color)} />
-          {/* Phone status indicator (small overlay) */}
-          {showPhoneSection && (
-            <div className={cn(
-              "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background",
-              phoneConnected ? "bg-green-500" : "bg-muted-foreground"
-            )} />
-          )}
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 relative hover:bg-muted"
+              title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneConnected ? 'logged in' : 'logged out'}` : ''}`}
+            >
+              {/* Chat status (primary) */}
+              <Circle className={cn("h-4 w-4 fill-current", currentChatConfig.color)} />
+              {/* Phone status indicator (small overlay) */}
+              {showPhoneSection && (
+                <div className={cn(
+                  "absolute bottom-1 right-1 h-2 w-2 rounded-full border border-background",
+                  phoneConnected ? "bg-green-500" : "bg-muted-foreground"
+                )} />
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="start" className="w-56 p-3">
+            <div className="space-y-3">
+              {/* Chat Section */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MessageSquare className="h-3 w-3" />
+                  <span>Chat</span>
+                </div>
+                <div className="flex gap-1">
+                  {(Object.entries(chatStatusConfig) as [AvailabilityStatus, typeof currentChatConfig][]).map(
+                    ([statusKey, config]) => (
+                      <Button
+                        key={statusKey}
+                        variant={chatStatus === statusKey ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1 h-7 text-xs"
+                        disabled={chatUpdating}
+                        onClick={() => {
+                          setChatStatus(statusKey);
+                          toast.success(`Chat status: ${config.label}`);
+                        }}
+                      >
+                        <Circle className={cn("h-2 w-2 fill-current mr-1", config.color)} />
+                        {config.label}
+                      </Button>
+                    )
+                  )}
+                </div>
+              </div>
+              
+              {/* Phone Section - only if Aircall configured */}
+              {showPhoneSection && (
+                <div className="space-y-1.5 pt-2 border-t">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Phone className="h-3 w-3" />
+                    <span>Phone</span>
+                  </div>
+                  {phoneConnected ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-7 text-xs"
+                      onClick={handlePhoneLogout}
+                    >
+                      <LogOut className="h-3 w-3 mr-1" />
+                      Logout from Aircall
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-7 text-xs"
+                      onClick={handlePhoneLogin}
+                      disabled={initializationPhase === 'failed'}
+                    >
+                      <LogIn className="h-3 w-3 mr-1" />
+                      Login to Aircall
+                    </Button>
+                  )}
+                  {phoneError && (
+                    <p className="text-xs text-destructive truncate" title={phoneError}>
+                      {phoneError}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     );
   }
