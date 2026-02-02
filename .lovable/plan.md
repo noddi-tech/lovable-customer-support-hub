@@ -1,92 +1,179 @@
 
-# Fix: Remove Line Breaks from Slack Notification Previews
+# Fix: Sidebar Phone Login Button and Collapsed View Not Working
 
-## Problem
+## Problem Summary
 
-Looking at your screenshot, the Slack notification shows only "Hei," as the preview, which is just the first line of a multi-line message. The rest of the message content after the line break is being cut off.
+The user reported two issues with the Agent Availability Panel:
 
-The issue is in the PostgreSQL `strip_html_tags` function. The current regex for normalizing line breaks uses incorrect escape syntax:
+1. **Collapsed sidebar icon is not clickable** - The grey status indicator icon in the collapsed sidebar cannot be clicked to open a login modal or change availability status
+2. **"Login to Aircall" button doesn't work** - Clicking the button in the expanded sidebar has no effect
 
-```sql
-result := regexp_replace(result, E'[\\r\\n\\t]+', ' ', 'g');
+## Root Cause Analysis
+
+### Issue 1: Collapsed View is Static (Non-Interactive)
+In `AgentAvailabilityPanel.tsx`, when `collapsed` is true (lines 104-124), the component returns a static `div` with status indicators but **no click handlers** or interactive elements:
+
+```typescript
+// Current code - static, no interaction
+if (collapsed) {
+  return (
+    <div className={cn("flex flex-col items-center gap-2", className)}>
+      <div className="relative p-1" title="...">
+        <Circle className={cn("h-4 w-4 fill-current", currentChatConfig.color)} />
+        {showPhoneSection && (
+          <div className={cn("absolute ...")} />
+        )}
+      </div>
+    </div>
+  );
+}
 ```
 
-In PostgreSQL escape string syntax (`E'...'`), `\\r` becomes a literal backslash followed by 'r', not a carriage return character. The correct syntax should use single backslashes.
+### Issue 2: Wrong Function Called for Phone Login
+The `handlePhoneLogin` function (lines 78-81) calls `showAircallWorkspace(true)` instead of using the proper `openLoginModal` function from the context:
+
+```typescript
+// Current code - incorrect
+const handlePhoneLogin = () => {
+  console.log('[AgentAvailabilityPanel] Phone login requested');
+  showAircallWorkspace(true);  // Only shows workspace, doesn't trigger full login flow
+};
+```
+
+The `openLoginModal` function in `AircallContext.tsx` (lines 1333-1343) is the correct function because it:
+1. Sets `initializationPhase` to `'needs-login'`
+2. Calls `showAircallWorkspace(true)`
+3. Shows a helpful toast notification
+
+Additionally, `openLoginModal` is **not imported** in the destructuring from `useAircallPhone()` (lines 58-65).
 
 ## Solution
 
-Fix the regex patterns in `strip_html_tags` to properly match and replace line break characters:
+### 1. Fix Phone Login Handler
+Update `handlePhoneLogin` to use the correct `openLoginModal` function from the context:
 
-**Current (broken):**
-```sql
-result := regexp_replace(result, E'[\\r\\n\\t]+', ' ', 'g');
-result := regexp_replace(result, '\\s+', ' ', 'g');
+```typescript
+// Import openLoginModal from context
+const { 
+  isConnected: phoneConnected, 
+  isInitialized: phoneInitialized,
+  initializationPhase,
+  showAircallWorkspace,
+  openLoginModal,        // ADD THIS
+  initializePhone,       // ADD THIS - for first-time init
+  logout: phoneLogout,
+  error: phoneError,
+} = useAircallPhone();
+
+// Updated handler
+const handlePhoneLogin = () => {
+  console.log('[AgentAvailabilityPanel] Phone login requested');
+  
+  // If SDK not initialized yet, initialize first
+  if (!phoneInitialized) {
+    initializePhone();
+    return;
+  }
+  
+  // Otherwise open the login modal
+  openLoginModal();
+};
 ```
 
-**Fixed:**
-```sql
--- Replace newlines, carriage returns, and tabs with space
-result := regexp_replace(result, E'[\r\n\t]+', ' ', 'g');
--- Then collapse multiple spaces
-result := regexp_replace(result, ' +', ' ', 'g');
-```
+### 2. Make Collapsed View Interactive
+Wrap the collapsed status indicator in a `Popover` that shows quick actions for both chat and phone:
 
-## Implementation
-
-### Database Migration
-
-**File: `supabase/migrations/[new]_fix_strip_html_linebreaks.sql`**
-
-Update the `strip_html_tags` function with corrected regex patterns for line break handling.
-
-```sql
-CREATE OR REPLACE FUNCTION public.strip_html_tags(input_text text)
-RETURNS text
-LANGUAGE plpgsql
-IMMUTABLE
-SET search_path = public
-AS $$
-DECLARE
-  result text;
-BEGIN
-  IF input_text IS NULL THEN
-    RETURN NULL;
-  END IF;
-  
-  result := input_text;
-  
-  -- [existing HTML stripping logic - unchanged]
-  
-  -- FIX: Clean up excessive whitespace with correct escaping
-  result := regexp_replace(result, E'[\r\n\t]+', ' ', 'g');  -- Single backslash in E'' string
-  result := regexp_replace(result, ' +', ' ', 'g');          -- Collapse multiple spaces
-  result := trim(result);
-  
-  RETURN result;
-END;
-$$;
+```typescript
+if (collapsed) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-9 w-9 relative hover:bg-muted"
+          title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneConnected ? 'logged in' : 'logged out'}` : ''}`}
+        >
+          {/* Status indicators */}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent side="right" align="start" className="w-56 p-3">
+        {/* Chat status dropdown */}
+        {/* Phone login/logout controls */}
+      </PopoverContent>
+    </Popover>
+  );
+}
 ```
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/migrations/[new]_fix_strip_html_linebreaks.sql` | Fix regex escaping for line break normalization |
+| `src/components/layout/AgentAvailabilityPanel.tsx` | 1. Add `openLoginModal` and `initializePhone` to destructuring<br>2. Fix `handlePhoneLogin` to use correct function<br>3. Wrap collapsed view in `Popover` with interactive controls |
 
-## Expected Result
+## Implementation Details
 
-**Before (broken):**
+### Updated Imports
+```typescript
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 ```
-> Hei,
+
+### Updated Context Destructuring
+```typescript
+const { 
+  isConnected: phoneConnected, 
+  isInitialized: phoneInitialized,
+  initializationPhase,
+  openLoginModal,      // NEW
+  initializePhone,     // NEW
+  logout: phoneLogout,
+  error: phoneError,
+} = useAircallPhone();
 ```
 
-**After (fixed):**
+### Updated Phone Login Handler
+```typescript
+const handlePhoneLogin = () => {
+  console.log('[AgentAvailabilityPanel] Phone login requested');
+  
+  if (!phoneInitialized) {
+    console.log('[AgentAvailabilityPanel] SDK not initialized, initializing first');
+    initializePhone();
+    return;
+  }
+  
+  openLoginModal();
+};
 ```
-> Hei, Takk for rask respons! Jeg lurer på om dere har mulighet til å...
-```
 
-The preview will now show the full message content (up to 180 characters) as a single line, regardless of how many line breaks were in the original email.
+### Updated Collapsed View (Popover)
+The collapsed view will show a popover with:
+- **Chat section**: Quick status buttons (Online/Away/Offline)
+- **Phone section**: Login button or Logout button depending on connection state
 
-## Technical Note
+## Expected Behavior After Fix
 
-The edge function's `cleanPreviewText` (line 127-128) already correctly handles line breaks. The fix only needs to be applied to the PostgreSQL function since it runs first and the preview_text is already broken by the time it reaches the edge function.
+### Collapsed Sidebar
+- Clicking the grey/colored status indicator opens a popover
+- Popover shows chat availability options (Online/Away/Offline)
+- Popover shows phone login button or logout button (if Aircall is configured)
+
+### Expanded Sidebar
+- "Login to Aircall" button properly triggers the Aircall login flow
+- Shows the Aircall workspace widget for authentication
+- Toast notification guides user to complete login
+
+## Testing Checklist
+
+After implementation:
+- [ ] Click collapsed sidebar icon → popover opens
+- [ ] Change chat status via popover → status updates
+- [ ] Click phone login via popover → Aircall workspace appears
+- [ ] "Login to Aircall" button in expanded view → triggers login flow
+- [ ] Phone logout button works correctly
+- [ ] Status indicators update correctly in both collapsed and expanded views
