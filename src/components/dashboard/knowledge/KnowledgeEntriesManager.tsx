@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TagMultiSelect } from "./TagMultiSelect";
+import type { KnowledgeCategory } from "./CategoryManager";
+import type { KnowledgeTag } from "./TagManager";
 
 interface KnowledgeEntry {
   id: string;
@@ -50,8 +53,37 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
   const [newEntry, setNewEntry] = useState({
     customer_context: '',
     agent_response: '',
-    category: 'general_inquiry',
+    category: '',
     tags: [] as string[],
+  });
+
+  // Fetch dynamic categories
+  const { data: categories } = useQuery({
+    queryKey: ['knowledge-categories', organizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('knowledge_categories')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as KnowledgeCategory[];
+    },
+  });
+
+  // Fetch dynamic tags for color lookup
+  const { data: tagsData } = useQuery({
+    queryKey: ['knowledge-tags', organizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('knowledge_tags')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .order('name');
+      if (error) throw error;
+      return data as KnowledgeTag[];
+    },
   });
 
   const { data: entries, isLoading } = useQuery({
@@ -151,7 +183,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
       toast({ title: "Entry created successfully" });
       queryClient.invalidateQueries({ queryKey: ['knowledge-entries'] });
       setCreatingEntry(false);
-      setNewEntry({ customer_context: '', agent_response: '', category: 'general_inquiry', tags: [] });
+      setNewEntry({ customer_context: '', agent_response: '', category: '', tags: [] });
     },
     onError: (error) => {
       toast({
@@ -162,14 +194,15 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
     },
   });
 
-  const getCategoryColor = (category: string | null) => {
-    if (!category) return 'bg-gray-500';
-    switch (category) {
-      case 'technical_support': return 'bg-blue-500';
-      case 'billing': return 'bg-green-500';
-      case 'general_inquiry': return 'bg-purple-500';
-      default: return 'bg-gray-500';
-    }
+  const getCategoryColor = (categoryName: string | null) => {
+    if (!categoryName) return '#6B7280';
+    const category = categories?.find(c => c.name === categoryName);
+    return category?.color || '#6B7280';
+  };
+
+  const getTagColor = (tagName: string) => {
+    const tag = tagsData?.find(t => t.name === tagName);
+    return tag?.color || '#6B7280';
   };
 
   const getQualityColor = (score: number) => {
@@ -220,9 +253,17 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="technical_support">Technical Support</SelectItem>
-                <SelectItem value="billing">Billing</SelectItem>
-                <SelectItem value="general_inquiry">General Inquiry</SelectItem>
+                {categories?.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.name}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      {cat.name}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -274,8 +315,15 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
                   {entry.category && (
-                    <Badge className={getCategoryColor(entry.category)}>
-                      {entry.category.replace('_', ' ')}
+                    <Badge 
+                      variant="outline"
+                      style={{ 
+                        backgroundColor: `${getCategoryColor(entry.category)}20`,
+                        borderColor: getCategoryColor(entry.category),
+                        color: getCategoryColor(entry.category),
+                      }}
+                    >
+                      {entry.category}
                     </Badge>
                   )}
                   {entry.quality_score !== null && (
@@ -293,9 +341,18 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                     Accepted: {entry.acceptance_count || 0} times
                   </span>
                   {entry.tags && entry.tags.length > 0 && (
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-wrap">
                       {entry.tags.map((tag, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
+                        <Badge 
+                          key={idx} 
+                          variant="outline" 
+                          className="text-xs"
+                          style={{
+                            backgroundColor: `${getTagColor(tag)}20`,
+                            borderColor: getTagColor(tag),
+                            color: getTagColor(tag),
+                          }}
+                        >
                           {tag}
                         </Badge>
                       ))}
@@ -340,15 +397,35 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Tags (comma-separated)</label>
-                <Input
-                  value={editingEntry.tags?.join(', ') || ''}
-                  onChange={(e) =>
-                    setEditingEntry({
-                      ...editingEntry,
-                      tags: e.target.value.split(',').map(t => t.trim()).filter(t => t),
-                    })
-                  }
+                <label className="text-sm font-medium mb-2 block">Category</label>
+                <Select 
+                  value={editingEntry.category || ''} 
+                  onValueChange={(v) => setEditingEntry({ ...editingEntry, category: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          {cat.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Tags</label>
+                <TagMultiSelect
+                  organizationId={organizationId}
+                  selectedTags={editingEntry.tags || []}
+                  onChange={(tags) => setEditingEntry({ ...editingEntry, tags })}
                 />
               </div>
             </div>
@@ -423,23 +500,30 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
             <div>
               <label className="text-sm font-medium mb-2 block">Category</label>
               <Select value={newEntry.category} onValueChange={(v) => setNewEntry({ ...newEntry, category: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="technical_support">Technical Support</SelectItem>
-                  <SelectItem value="billing">Billing</SelectItem>
-                  <SelectItem value="general_inquiry">General Inquiry</SelectItem>
+                  {categories?.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.name}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        {cat.name}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Tags (comma-separated)</label>
-              <Input
-                placeholder="e.g., refund, shipping, account"
-                value={newEntry.tags.join(', ')}
-                onChange={(e) => setNewEntry({
-                  ...newEntry,
-                  tags: e.target.value.split(',').map(t => t.trim()).filter(t => t),
-                })}
+              <label className="text-sm font-medium mb-2 block">Tags</label>
+              <TagMultiSelect
+                organizationId={organizationId}
+                selectedTags={newEntry.tags}
+                onChange={(tags) => setNewEntry({ ...newEntry, tags })}
               />
             </div>
           </div>
