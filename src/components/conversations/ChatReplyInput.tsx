@@ -66,7 +66,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     enabled: true 
   });
 
-  const uploadAttachment = async (file: File): Promise<string | null> => {
+  const uploadAttachment = async (file: File): Promise<{ url: string; storagePath: string } | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${conversationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     
@@ -79,11 +79,18 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       return null;
     }
     
-    const { data: urlData } = supabase.storage
+    // Create a signed URL that expires in 1 hour (for immediate display)
+    // The storagePath is stored in the message for later access via get-attachment
+    const { data: signedUrlData, error: signedError } = await supabase.storage
       .from('chat-attachments')
-      .getPublicUrl(fileName);
+      .createSignedUrl(fileName, 3600); // 1 hour expiry
     
-    return urlData.publicUrl;
+    if (signedError || !signedUrlData) {
+      console.error('Signed URL error:', signedError);
+      return null;
+    }
+    
+    return { url: signedUrlData.signedUrl, storagePath: fileName };
   };
 
   const sendMessageMutation = useMutation({
@@ -91,17 +98,18 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       if (!user) throw new Error('Not authenticated');
 
       // Upload attachments first
-      const uploadedUrls: { url: string; name: string; type: string }[] = [];
+      const uploadedAttachments: { url: string; name: string; type: string; storagePath: string }[] = [];
       
       if (attachments.length > 0) {
         setIsUploading(true);
         for (const attachment of attachments) {
-          const url = await uploadAttachment(attachment.file);
-          if (url) {
-            uploadedUrls.push({
-              url,
+          const result = await uploadAttachment(attachment.file);
+          if (result) {
+            uploadedAttachments.push({
+              url: result.url,
               name: attachment.file.name,
               type: attachment.file.type,
+              storagePath: result.storagePath,
             });
           }
         }
@@ -115,7 +123,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         .eq('user_id', user.id)
         .single();
 
-      const messageContent = content || (uploadedUrls.length > 0 ? '[Attachment]' : '');
+      const messageContent = content || (uploadedAttachments.length > 0 ? '[Attachment]' : '');
       
       const { error } = await supabase
         .from('messages')
@@ -125,7 +133,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           sender_type: 'agent',
           sender_id: user.id,
           is_internal: false,
-          attachments: uploadedUrls.length > 0 ? uploadedUrls : null,
+          attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
         });
 
       if (error) throw error;
