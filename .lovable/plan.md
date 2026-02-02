@@ -1,137 +1,180 @@
 
 
-# Fix Categories Display + Category-Linked Tags
+# Rich Text Editor + Quality Score Management for Knowledge Base
 
-## Issue: Categories Not Showing
+## Overview
 
-**Root Cause**: The 7 default categories were inserted successfully via migration (I verified 8 categories exist in the database). The issue is that React Query is caching the old data from before the migration ran.
+You've raised two important questions:
 
-**Solution**: A simple page refresh should show all categories. Alternatively, the query cache needs to be invalidated. The data exists:
+1. **Rich Text Formatting** - The HelpScout screenshots show a formatting toolbar (Bold, Italic, Underline, Links, Lists, etc.) for knowledge articles. Currently, knowledge entries use plain text only.
 
-| Category | Color |
-|----------|-------|
-| Service Delivery | Blue |
-| Booking & Scheduling | Green |
-| Pricing & Payments | Purple |
-| Service Locations | Orange |
-| Technical Issues | Teal |
-| Account Management | Pink |
-| Service Providers | Gray |
-| Booking (manually created) | Green |
-
-**Quick Fix**: Refresh the page or add a manual refresh button.
+2. **Quality Score** - Entries start at 3.0 by default. The score is meant to improve automatically based on usage, but you can also manually curate entries.
 
 ---
 
-## UX Enhancement: Category-Linked Tags
+## Part 1: Rich Text Editor for Agent Responses
 
-You raise an excellent point about linking tags to categories. Here are the UX options:
+### Current State
 
-### Option A: Category-Specific Tags (Recommended)
+- `agent_response` is stored as plain text in the `knowledge_entries` table
+- When displayed in the entry list and in AI suggestions, it renders as-is
+- No formatting toolbar exists
 
-Add a `category_id` foreign key to the `knowledge_tags` table. When creating an entry:
-1. User selects a category first
-2. Tag dropdown filters to show only tags belonging to that category
-3. Tags without a category appear in all categories (global tags)
+### Solution
 
-**Pros:**
-- Reduces cognitive load - fewer irrelevant options
-- Forces consistent taxonomy
-- Natural mental model: "Booking" category has booking-specific tags
+Add a lightweight rich text editor for the **Agent Response** field, similar to HelpScout's editor. This allows agents to create formatted responses with:
 
-**Cons:**
-- Requires more upfront setup by admins
-- May need some global tags that apply everywhere
+- **Bold**, *Italic*, Underline
+- Hyperlinks (clickable URLs like "Go to Noddi.no")
+- Bullet lists and numbered lists
+- Headings (optional)
 
-### Option B: Suggested Tags (Middle Ground)
+### Recommended Library: `react-simple-wysiwyg`
 
-Tags remain independent but:
-1. When selecting a category, show "Suggested tags" based on historical usage patterns
-2. All other tags still available in an "Other tags" section
-3. AI could learn which tags are commonly used with each category
-
-**Pros:**
-- More flexible
-- Self-learning over time
-- Less admin setup required
-
-**Cons:**
-- Not as strict - still allows inconsistent tagging
-
-### Option C: Tag Groups (Alternative)
-
-Create separate "Tag Groups" that aren't tied to categories. Admins create groups like "Service Type", "Issue Type", "Customer Type". Each group appears as a separate dropdown.
-
-**Pros:**
-- Maximum flexibility
-- Entries can have structured multi-dimensional tagging
-
-**Cons:**
-- More complex UI
-- Potentially overwhelming
-
----
-
-## Recommended Implementation: Option A
-
-Link tags to categories with a fallback for global tags.
-
-### Database Changes
-
-Add `category_id` column to `knowledge_tags`:
+This is a minimal, dependency-free WYSIWYG editor perfect for this use case:
 
 ```text
-knowledge_tags
-+-----------------+
-| id              |
-| organization_id |
-| name            |
-| color           |
-| category_id     | <-- NEW: nullable FK to knowledge_categories
-| created_at      |
-| updated_at      |
-+-----------------+
+Package: react-simple-wysiwyg
+Size: ~8KB minified
+Features: Bold, Italic, Underline, Link, Lists, Headings
 ```
 
-When `category_id` is NULL, the tag is "global" and appears for all categories.
+No configuration needed - it just works and outputs clean HTML.
 
-### UI Changes
+### Implementation
 
-**1. Tag Manager (Settings)**
-- Add category dropdown when creating/editing tags
-- Show "Global" option for tags that apply to all categories
-- Group tags by category in the list view
+| Component | Changes |
+|-----------|---------|
+| **Create Entry Dialog** | Replace `Textarea` with rich text editor for agent response |
+| **Edit Entry Dialog** | Replace `Textarea` with rich text editor for agent response |
+| **Entry Card Display** | Render HTML safely using DOMPurify (already installed) |
+| **AI Suggestions** | Include HTML in prompts; render formatted in UI |
 
-**2. Entry Creation Form**
-- Category selection becomes required/first step
-- Tag multi-select filters based on selected category + global tags
-- If no category selected yet, show message: "Select a category first to see available tags"
+### Storage Format
 
-**3. Default Tags**
+The `agent_response` column will store HTML instead of plain text:
 
-Insert starter tags for each category:
+```text
+Before: "Go to Noddi.no and click on Log in..."
+After:  "Go to <a href="https://noddi.no">Noddi.no</a> and click on <strong>Log in</strong>..."
+```
 
-| Category | Example Tags |
-|----------|--------------|
-| Booking & Scheduling | reschedule, cancellation, availability, time-slot |
-| Pricing & Payments | refund, invoice, discount, payment-failed |
-| Service Delivery | delayed, completed, quality-issue, no-show |
-| Service Locations | coverage, travel-fee, new-area |
-| Technical Issues | app-crash, login-problem, notification |
-| Account Management | password-reset, profile-update, subscription |
-| Service Providers | rating, certification, response-time |
-| Global (no category) | urgent, follow-up, escalation, how-to |
+### UI Component
+
+```text
++----------------------------------------------------------+
+| Agent Response                                            |
++----------------------------------------------------------+
+| B  I  U  🔗  ≡  1.  ...                                   |
++----------------------------------------------------------+
+|                                                           |
+| Go to Noddi.no and click on Log in. From there...         |
+|                                                           |
++----------------------------------------------------------+
+```
+
+---
+
+## Part 2: Quality Score System
+
+### How Quality Score Works
+
+The quality score (0-5 scale) is calculated automatically based on:
+
+| Factor | Weight | Description |
+|--------|--------|-------------|
+| Customer Satisfaction | 40% | Feedback ratings from customers |
+| Resolution Rate | 40% | % of conversations resolved using this response |
+| Reply Speed | 20% | Bonus for quick responses |
+| Agent Refinement | +0.5 | Bonus when agent manually improves the response |
+
+**Default of 3.0**: Manually created entries start at 3.0 (neutral). Auto-promoted entries get calculated scores.
+
+### How to Improve Quality Scores
+
+There are two approaches:
+
+#### Option A: Automatic Improvement (Current System)
+
+1. **Use the response** - Every time an AI suggestion based on this entry is used, `usage_count` increases
+2. **Track outcomes** - When conversations are resolved successfully, `acceptance_count` increases
+3. **Run auto-promote job** - The `auto-promote-responses` edge function recalculates scores based on outcomes
+
+The score improves naturally as successful responses are reused.
+
+#### Option B: Manual Quality Control (New Feature)
+
+Add ability to manually set/adjust quality scores for curated entries:
+
+```text
++---------------------------+
+| Quality Score             |
++---------------------------+
+| ⭐ ⭐ ⭐ ⭐ ⭐              |
+| Click to rate 1-5         |
++---------------------------+
+```
+
+This allows admins to:
+- Boost high-quality curated responses (set to 4.5-5.0)
+- Mark mediocre entries for improvement (set to 2.0-3.0)
+- Prioritize which entries get suggested first (sorted by score)
 
 ---
 
 ## Implementation Summary
 
-| Step | Description |
-|------|-------------|
-| 1 | Add refresh mechanism or force React Query cache invalidation to show existing categories |
-| 2 | Add `category_id` column to `knowledge_tags` table |
-| 3 | Update `TagManager` to show category dropdown when creating tags |
-| 4 | Update `TagMultiSelect` to filter tags by selected category |
-| 5 | Update entry creation form to require category before showing tags |
-| 6 | Insert default tags for each category |
+### Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/ui/simple-rich-editor.tsx` | Wrapper component for react-simple-wysiwyg |
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/dashboard/knowledge/KnowledgeEntriesManager.tsx` | Replace Textarea with rich editor, add quality score control, render HTML in display |
+| `package.json` | Add `react-simple-wysiwyg` dependency |
+
+### Database Changes
+
+None required - the `agent_response` column is already `text` type which handles HTML.
+
+### Security
+
+Use DOMPurify (already installed) to sanitize HTML before rendering to prevent XSS attacks.
+
+---
+
+## User Experience Flow
+
+### Creating/Editing an Entry
+
+1. Admin fills in "Customer Context" (plain text)
+2. Admin uses rich text editor for "Agent Response" with formatting toolbar
+3. Admin can optionally set a quality score (1-5 stars) for manually curated entries
+4. Entry is saved with HTML formatting
+
+### Viewing Entries
+
+1. Entry cards show formatted HTML preview (links are clickable, bold is visible)
+2. Quality score displays as stars with color coding
+3. Manual quality score control available in edit dialog
+
+### AI Suggestions
+
+1. When similar customer question comes in, formatted responses are suggested
+2. Agent sees the nice formatting in suggestion panel
+3. When used, the HTML is inserted into reply composer
+
+---
+
+## Quality Score Color Guide
+
+| Score | Color | Meaning |
+|-------|-------|---------|
+| 4.5+ | Green | Excellent - prioritized in suggestions |
+| 3.5-4.4 | Yellow | Good - used regularly |
+| Below 3.5 | Red | Needs improvement or review |
 
