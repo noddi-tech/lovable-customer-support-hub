@@ -1,162 +1,193 @@
 
+# Plan: Add Phone Availability Toggle
 
-# Fix: Slack Notifications Missing Preview Text
+## Overview
 
-## Problem Identified
+Add a phone login/logout toggle in the sidebar alongside the existing chat availability toggle. This will allow agents to manage both chat and phone availability from a single location in the sidebar.
 
-The database triggers are calling `strip_html_tags(LEFT(content, 200))` which truncates the HTML **before** stripping tags. For emails with complex HTML (Microsoft Outlook, Gmail), the first 200 characters are often pure HTML markup with no actual text content.
+## Current State Analysis
 
-**Example of truncated input:**
-```html
-<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns:m="http://schemas.microsoft.com/office/2004/12/omm
-```
+### Chat Availability Toggle (Existing)
+- Located in `AgentStatusToggle.tsx` component
+- Uses `useAgentAvailability` hook which stores status in `profiles.chat_availability` 
+- Shows Online/Away/Offline status with colored indicators
+- Displays other online agents
 
-After attempting to strip HTML, the result is still HTML fragments because the actual message body was truncated away.
+### Phone/Aircall Integration (Existing)
+- Uses `AircallContext` for SDK management
+- Login state tracked via `isConnected` boolean
+- Login flow triggered via floating button or modal
+- No database field for phone availability status
+- Phone availability is tied to Aircall SDK connection state
 
-## Solution
+## Design Approach
 
-### 1. Fix the Order of Operations in Database Triggers
+### Option A: Unified Availability Component (Recommended)
+Create a single `AgentAvailabilityPanel` component that shows both:
+1. **Chat availability** - dropdown (Online/Away/Offline)
+2. **Phone availability** - toggle switch (Logged In/Logged Out)
 
-Change from:
-```sql
-strip_html_tags(LEFT(content, 200))  -- WRONG: truncates before stripping
-```
+This keeps everything in one place and matches the user's mental model of "going online" for work.
 
-To:
-```sql
-LEFT(strip_html_tags(content), 200)  -- CORRECT: strips first, then truncates
-```
-
-### 2. Improve the strip_html_tags() Function
-
-The current function is too simple. It needs to:
-- Remove `<head>` section entirely (contains CSS, no text)
-- Handle namespaced tags like `<o:p>`, `<v:shape>`
-- Use multi-line regex mode for style/script removal
-- Decode more HTML entities
-
-## Implementation
-
-### Migration: Update Triggers and strip_html_tags Function
-
-**File: `supabase/migrations/[new]_fix_slack_preview_text.sql`**
-
-```sql
--- Improve strip_html_tags to handle complex HTML
-CREATE OR REPLACE FUNCTION public.strip_html_tags(input_text text)
-RETURNS text
-LANGUAGE plpgsql
-IMMUTABLE
-SET search_path = public
-AS $$
-DECLARE
-  result text;
-BEGIN
-  IF input_text IS NULL THEN
-    RETURN NULL;
-  END IF;
-  
-  result := input_text;
-  
-  -- Remove DOCTYPE, XML declarations
-  result := regexp_replace(result, '<!DOCTYPE[^>]*>', '', 'gi');
-  result := regexp_replace(result, '<\?xml[^>]*\?>', '', 'gi');
-  
-  -- Remove entire HEAD section (contains CSS/fonts, no readable text)
-  result := regexp_replace(result, '<head[^>]*>.*?</head>', '', 'gis');
-  
-  -- Remove style, script, title sections
-  result := regexp_replace(result, '<style[^>]*>.*?</style>', '', 'gis');
-  result := regexp_replace(result, '<script[^>]*>.*?</script>', '', 'gis');
-  result := regexp_replace(result, '<title[^>]*>.*?</title>', '', 'gis');
-  
-  -- Remove HTML comments and conditional comments
-  result := regexp_replace(result, '<!--.*?-->', '', 'gs');
-  result := regexp_replace(result, '<!\[if[^>]*\]>.*?<!\[endif\]>', '', 'gis');
-  
-  -- Remove namespaced tags (o:p, v:shape, w:*, m:*)
-  result := regexp_replace(result, '<[a-z]+:[^>]*>.*?</[a-z]+:[^>]*>', '', 'gis');
-  result := regexp_replace(result, '<[a-z]+:[^>]*/>', '', 'gi');
-  result := regexp_replace(result, '</?[a-z]+:[^>]*>', '', 'gi');
-  
-  -- Strip all remaining HTML tags
-  result := regexp_replace(result, '<[^>]*>', '', 'g');
-  
-  -- Remove leftover angle brackets
-  result := regexp_replace(result, '[<>]', ' ', 'g');
-  
-  -- Decode common HTML entities
-  result := replace(result, '&nbsp;', ' ');
-  result := replace(result, '&amp;', '&');
-  result := replace(result, '&lt;', '<');
-  result := replace(result, '&gt;', '>');
-  result := replace(result, '&quot;', '"');
-  result := replace(result, '&#39;', '''');
-  result := replace(result, '&apos;', '''');
-  
-  -- Clean up excessive whitespace
-  result := regexp_replace(result, E'[\\r\\n\\t]+', ' ', 'g');
-  result := regexp_replace(result, '\\s+', ' ', 'g');
-  result := trim(result);
-  
-  RETURN result;
-END;
-$$;
-```
-
-### Update Triggers: Fix Order of Operations
-
-```sql
--- Update notify_slack_on_new_message trigger
-CREATE OR REPLACE FUNCTION public.notify_slack_on_new_message()
--- ... (existing declaration section) ...
-  body := jsonb_build_object(
-    -- ... other fields ...
-    'preview_text', LEFT(strip_html_tags(NEW.content), 200),  -- FIXED: strip first, then truncate
-    -- ... other fields ...
-  )
--- ... rest of function ...
-
--- Update notify_slack_on_conversation_update trigger  
-CREATE OR REPLACE FUNCTION public.notify_slack_on_conversation_update()
--- ... (existing declaration section) ...
-  body := jsonb_build_object(
-    -- ... other fields ...
-    'preview_text', COALESCE(LEFT(strip_html_tags(v_latest_message.content), 200), ''),  -- FIXED
-    -- ... other fields ...
-  )
--- ... rest of function ...
-```
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `supabase/migrations/[new]_fix_slack_preview_text.sql` | Improved strip_html_tags + fixed trigger order |
-
-## Testing
-
-After migration:
-1. Send a test email with complex HTML (Outlook/Gmail) → Should show preview text
-2. Send a simple text email → Should continue to work
-3. Verify existing Slack integration settings still work
-
-## Expected Result
-
-Before (broken):
+### Component Layout (Expanded Sidebar)
 ```text
-📧 New Email Conversation in Noddi
-From: tomas@balproma.com
-Subject: Professional Tire Packaging...
-[View Conversation]
+┌──────────────────────────────┐
+│ AVAILABILITY                 │
+├──────────────────────────────┤
+│ 💬 Chat                      │
+│ [●] Online for chat       ▼  │  ← Dropdown
+├──────────────────────────────┤
+│ 📞 Phone                     │
+│ [ Login to Aircall ]         │  ← Button when not connected
+│ [●] Logged in    [Logout]    │  ← When connected
+├──────────────────────────────┤
+│ Online now: Ana, Marcus      │  ← Team status
+└──────────────────────────────┘
 ```
 
-After (fixed):
-```text
-📧 New Email Conversation in Noddi
-From: tomas@balproma.com
-Subject: Professional Tire Packaging...
-> Hei, vi er en leverandør av profesjonelle dekkemballasjeløsninger...
-[View Conversation]
+### Component Layout (Collapsed Sidebar)
+Show combined status indicator with the most important status visible.
+
+## Implementation Details
+
+### 1. Create New Component: `AgentAvailabilityPanel.tsx`
+
+**Location:** `src/components/layout/AgentAvailabilityPanel.tsx`
+
+This component will:
+- Import and use `useAgentAvailability` for chat status
+- Import and use `useAircallPhone` for phone connection status
+- Render two sections: Chat and Phone availability
+- Handle phone login/logout via Aircall context methods
+- Show team availability summary
+
+**Key functionality:**
+```typescript
+// Phone login button - triggers Aircall workspace modal
+const handlePhoneLogin = () => {
+  openLoginModal(); // From useAircallPhone context
+};
+
+// Phone logout - disconnects from Aircall
+const handlePhoneLogout = () => {
+  // Will need to add a logout function to AircallContext
+};
 ```
 
+### 2. Update `AircallContext.tsx` - Add Logout Function
+
+Add a `logout` function to the context that:
+1. Clears the SDK login status
+2. Updates local state to disconnected
+3. Optionally hides the workspace
+
+```typescript
+const logout = useCallback(() => {
+  console.log('[AircallProvider] 🚪 Manual logout requested');
+  aircallPhone.clearLoginStatus();
+  setIsConnected(false);
+  setInitializationPhase('needs-login');
+  hideAircallWorkspace();
+  
+  toast({
+    title: 'Logged out of Aircall',
+    description: 'You will not receive phone calls until you log in again',
+  });
+}, [hideAircallWorkspace, toast]);
+```
+
+### 3. Update `AppMainNav.tsx`
+
+Replace `AgentStatusToggle` with the new `AgentAvailabilityPanel`:
+
+```typescript
+// Before:
+<AgentStatusToggle collapsed={isCollapsed} />
+
+// After:
+<AgentAvailabilityPanel collapsed={isCollapsed} />
+```
+
+### 4. Conditional Phone Section
+
+Only show phone availability section if:
+1. Aircall integration is configured and active for the organization
+2. The current user has permission to use voice features
+
+```typescript
+const { getIntegrationByProvider } = useVoiceIntegrations();
+const aircallConfig = getIntegrationByProvider('aircall');
+const hasActiveVoiceIntegration = aircallConfig?.is_active && 
+  aircallConfig?.configuration?.aircallEverywhere?.enabled;
+```
+
+## Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/layout/AgentAvailabilityPanel.tsx` | Create | New unified availability component |
+| `src/components/layout/AppMainNav.tsx` | Modify | Use new panel instead of AgentStatusToggle |
+| `src/contexts/AircallContext.tsx` | Modify | Add `logout` function to context |
+| `src/hooks/useAircallPhone.tsx` | None | Already exports context (no changes needed) |
+
+## Component Structure
+
+```typescript
+// AgentAvailabilityPanel.tsx structure
+
+interface AgentAvailabilityPanelProps {
+  collapsed?: boolean;
+  className?: string;
+}
+
+export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
+  collapsed = false,
+  className
+}) => {
+  // Chat availability (existing hook)
+  const { status: chatStatus, setStatus: setChatStatus, isUpdating: chatUpdating } = useAgentAvailability();
+  
+  // Phone availability (from Aircall context)
+  const { 
+    isConnected: phoneConnected, 
+    isInitialized: phoneInitialized,
+    openLoginModal,
+    logout,
+    initializationPhase
+  } = useAircallPhone();
+  
+  // Check if Aircall is configured
+  const { getIntegrationByProvider } = useVoiceIntegrations();
+  const aircallConfig = getIntegrationByProvider('aircall');
+  const showPhoneSection = aircallConfig?.is_active && 
+    aircallConfig?.configuration?.aircallEverywhere?.enabled;
+
+  // Render unified panel...
+};
+```
+
+## UI/UX Considerations
+
+1. **Visual Hierarchy**: Chat is primary (most common), phone secondary
+2. **Collapsed State**: Show combined indicator (e.g., green dot if both online, split indicator if mixed)
+3. **Loading States**: Show spinners during login/status changes
+4. **Error States**: Handle Aircall initialization failures gracefully
+5. **Tooltips**: Explain what each toggle does on hover
+
+## Edge Cases
+
+1. **Aircall not configured**: Hide phone section entirely
+2. **Aircall initialization failed**: Show "Phone Unavailable" with retry option
+3. **Network issues**: Handle offline scenarios gracefully
+4. **Multiple browser tabs**: State should sync across tabs
+
+## Testing Checklist
+
+After implementation:
+- [ ] Chat toggle works as before (Online/Away/Offline)
+- [ ] Phone login button triggers Aircall workspace/modal
+- [ ] Phone logout button disconnects from Aircall
+- [ ] Status persists after page refresh
+- [ ] Collapsed sidebar shows appropriate indicators
+- [ ] Phone section hidden when Aircall not configured
+- [ ] Online agents list still works
