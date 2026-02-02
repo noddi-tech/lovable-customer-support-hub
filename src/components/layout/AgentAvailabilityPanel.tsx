@@ -136,7 +136,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent side="right" align="start" alignOffset={12} sideOffset={8} className="w-56 p-3">
+          <PopoverContent side="right" align="start" alignOffset={24} sideOffset={8} className="w-56 p-3">
             <div className="space-y-3">
               {/* Chat Section */}
               <div className="space-y-1.5">
