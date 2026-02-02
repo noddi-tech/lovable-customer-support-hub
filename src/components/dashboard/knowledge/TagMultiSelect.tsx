@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Globe } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { KnowledgeTag } from "./TagManager";
@@ -12,6 +12,7 @@ interface TagMultiSelectProps {
   selectedTags: string[];
   onChange: (tags: string[]) => void;
   placeholder?: string;
+  selectedCategoryId?: string | null;
 }
 
 export function TagMultiSelect({
@@ -19,6 +20,7 @@ export function TagMultiSelect({
   selectedTags,
   onChange,
   placeholder = "Select tags...",
+  selectedCategoryId,
 }: TagMultiSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,7 +67,24 @@ export function TagMultiSelect({
     return tag?.color || '#6B7280';
   };
 
-  const availableTags = tags?.filter(tag => !selectedTags.includes(tag.name)) || [];
+  // Filter tags based on selected category
+  // Show: global tags (category_id is null) + tags matching the selected category
+  const filteredTags = tags?.filter(tag => {
+    // Always show global tags
+    if (!tag.category_id) return true;
+    // If a category is selected, also show tags for that category
+    if (selectedCategoryId && tag.category_id === selectedCategoryId) return true;
+    // If no category is selected, only show global tags
+    return false;
+  }) || [];
+
+  const availableTags = filteredTags.filter(tag => !selectedTags.includes(tag.name));
+
+  // Separate global tags from category tags in the dropdown
+  const globalTags = availableTags.filter(t => !t.category_id);
+  const categoryTags = availableTags.filter(t => t.category_id);
+
+  const hasNoCategory = !selectedCategoryId;
 
   return (
     <div ref={containerRef} className="relative">
@@ -114,25 +133,62 @@ export function TagMultiSelect({
             <div className="p-3 text-sm text-muted-foreground text-center">
               No tags available. Create tags in Settings first.
             </div>
+          ) : hasNoCategory && globalTags.length === 0 ? (
+            <div className="p-3 text-sm text-muted-foreground text-center">
+              Select a category first to see category-specific tags.
+              {globalTags.length === 0 && " No global tags available."}
+            </div>
           ) : availableTags.length === 0 ? (
             <div className="p-3 text-sm text-muted-foreground text-center">
-              All tags selected.
+              All available tags selected.
             </div>
           ) : (
             <div className="p-1">
-              {availableTags.map((tag) => (
-                <div
-                  key={tag.id}
-                  className="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded hover:bg-accent"
-                  onClick={() => toggleTag(tag.name)}
-                >
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: tag.color || '#6B7280' }}
-                  />
-                  <span className="text-sm">{tag.name}</span>
-                </div>
-              ))}
+              {/* Global Tags Section */}
+              {globalTags.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Globe className="w-3 h-3" />
+                    Global
+                  </div>
+                  {globalTags.map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded hover:bg-accent"
+                      onClick={() => toggleTag(tag.name)}
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: tag.color || '#6B7280' }}
+                      />
+                      <span className="text-sm">{tag.name}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+              
+              {/* Category-specific Tags Section */}
+              {categoryTags.length > 0 && (
+                <>
+                  {globalTags.length > 0 && <div className="border-t my-1" />}
+                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                    Category Tags
+                  </div>
+                  {categoryTags.map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded hover:bg-accent"
+                      onClick={() => toggleTag(tag.name)}
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: tag.color || '#6B7280' }}
+                      />
+                      <span className="text-sm">{tag.name}</span>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
