@@ -1,179 +1,137 @@
 
-# Fix: Sidebar Phone Login Button and Collapsed View Not Working
+# Fix: Agent Availability Panel UI Spacing and Layout Issues
 
-## Problem Summary
+## Problem
 
-The user reported two issues with the Agent Availability Panel:
+The Agent Availability Panel has several UI issues visible in the screenshot:
 
-1. **Collapsed sidebar icon is not clickable** - The grey status indicator icon in the collapsed sidebar cannot be clicked to open a login modal or change availability status
-2. **"Login to Aircall" button doesn't work** - Clicking the button in the expanded sidebar has no effect
+1. **Chat status buttons overlap** - "Online", "Away", "Offline" are crowded without proper spacing
+2. **Phone section has poor visual separation** - The "Phone" label and "Login to Aircall" button lack clear margins
+3. **Online agents list (Noddi) looks disconnected** - The bullet indicator styling doesn't match the rest of the panel
 
 ## Root Cause Analysis
 
-### Issue 1: Collapsed View is Static (Non-Interactive)
-In `AgentAvailabilityPanel.tsx`, when `collapsed` is true (lines 104-124), the component returns a static `div` with status indicators but **no click handlers** or interactive elements:
+Looking at the code in `AgentAvailabilityPanel.tsx`:
 
-```typescript
-// Current code - static, no interaction
-if (collapsed) {
-  return (
-    <div className={cn("flex flex-col items-center gap-2", className)}>
-      <div className="relative p-1" title="...">
-        <Circle className={cn("h-4 w-4 fill-current", currentChatConfig.color)} />
-        {showPhoneSection && (
-          <div className={cn("absolute ...")} />
-        )}
-      </div>
-    </div>
-  );
-}
+### Issue 1: PopoverContent Chat Buttons (lines 147-166)
+The chat status buttons in the popover use `flex gap-1` which creates only 4px gaps. Combined with `flex-1` on each button, they expand to fill width but leave minimal visual separation:
+
+```tsx
+<div className="flex gap-1">  // Only 4px gap!
+  {(Object.entries(chatStatusConfig)...).map(
+    <Button className="flex-1 h-7 text-xs">  // Fighting for space
 ```
 
-### Issue 2: Wrong Function Called for Phone Login
-The `handlePhoneLogin` function (lines 78-81) calls `showAircallWorkspace(true)` instead of using the proper `openLoginModal` function from the context:
+### Issue 2: Phone Section Layout (lines 296-346)
+The expanded view's phone section uses inconsistent padding:
+- Label container: `px-2` (8px padding)
+- Login button: `w-full` (stretches full width)
+- The section wrapper uses `space-y-1` creating only 4px vertical gaps
 
-```typescript
-// Current code - incorrect
-const handlePhoneLogin = () => {
-  console.log('[AgentAvailabilityPanel] Phone login requested');
-  showAircallWorkspace(true);  // Only shows workspace, doesn't trigger full login flow
-};
-```
-
-The `openLoginModal` function in `AircallContext.tsx` (lines 1333-1343) is the correct function because it:
-1. Sets `initializationPhase` to `'needs-login'`
-2. Calls `showAircallWorkspace(true)`
-3. Shows a helpful toast notification
-
-Additionally, `openLoginModal` is **not imported** in the destructuring from `useAircallPhone()` (lines 58-65).
+### Issue 3: Online Agents Visual Hierarchy
+The online agents section (lines 348-393) uses raw bullet-style indicators that don't match the panel's card-based design.
 
 ## Solution
 
-### 1. Fix Phone Login Handler
-Update `handlePhoneLogin` to use the correct `openLoginModal` function from the context:
+### 1. Improve PopoverContent Button Spacing
+- Increase gap from `gap-1` (4px) to `gap-2` (8px)
+- Reduce button padding to prevent overflow
+- Consider stacking vertically if horizontal is too cramped
 
-```typescript
-// Import openLoginModal from context
-const { 
-  isConnected: phoneConnected, 
-  isInitialized: phoneInitialized,
-  initializationPhase,
-  showAircallWorkspace,
-  openLoginModal,        // ADD THIS
-  initializePhone,       // ADD THIS - for first-time init
-  logout: phoneLogout,
-  error: phoneError,
-} = useAircallPhone();
+### 2. Enhance Expanded View Layout
+- Add consistent section containers with proper borders/backgrounds
+- Use `space-y-2` (8px) for better vertical rhythm
+- Add visual dividers between Chat and Phone sections
+- Improve the "Login to Aircall" button styling
 
-// Updated handler
-const handlePhoneLogin = () => {
-  console.log('[AgentAvailabilityPanel] Phone login requested');
+### 3. Polish Online Agents Display
+- Add proper padding and background to match the panel aesthetic
+- Ensure consistent spacing from other sections
+
+## Implementation Changes
+
+### File: `src/components/layout/AgentAvailabilityPanel.tsx`
+
+#### Change 1: PopoverContent Button Layout (Collapsed View)
+Change button layout to be more compact or stack vertically:
+
+```tsx
+// Before (line 147)
+<div className="flex gap-1">
+
+// After - Stack vertically for cleaner layout
+<div className="flex flex-col gap-1.5">
+```
+
+And update each button to be full width:
+```tsx
+<Button
+  key={statusKey}
+  variant={chatStatus === statusKey ? "default" : "outline"}
+  size="sm"
+  className="w-full justify-start h-7 text-xs"  // Changed from flex-1
+  ...
+```
+
+#### Change 2: Better Section Styling (Expanded View)
+Update the main container for cleaner visual hierarchy:
+
+```tsx
+// Line 213 - Add better container styles
+<div className={cn("px-3 space-y-4", className)}>  // Increased padding and spacing
   
-  // If SDK not initialized yet, initialize first
-  if (!phoneInitialized) {
-    initializePhone();
-    return;
-  }
-  
-  // Otherwise open the login modal
-  openLoginModal();
-};
+// Line 215 - Remove section header (redundant)
+// The Chat/Phone labels already indicate the section
+
+// Line 220 - Chat section with card-like styling
+<div className="space-y-2 p-2 rounded-lg bg-muted/30">
 ```
 
-### 2. Make Collapsed View Interactive
-Wrap the collapsed status indicator in a `Popover` that shows quick actions for both chat and phone:
-
-```typescript
-if (collapsed) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-9 w-9 relative hover:bg-muted"
-          title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneConnected ? 'logged in' : 'logged out'}` : ''}`}
-        >
-          {/* Status indicators */}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent side="right" align="start" className="w-56 p-3">
-        {/* Chat status dropdown */}
-        {/* Phone login/logout controls */}
-      </PopoverContent>
-    </Popover>
-  );
-}
+#### Change 3: Consistent Phone Section Styling
+```tsx
+// Line 297 - Add matching card styling
+<div className="space-y-2 p-2 rounded-lg bg-muted/30 mt-2">
 ```
 
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/layout/AgentAvailabilityPanel.tsx` | 1. Add `openLoginModal` and `initializePhone` to destructuring<br>2. Fix `handlePhoneLogin` to use correct function<br>3. Wrap collapsed view in `Popover` with interactive controls |
-
-## Implementation Details
-
-### Updated Imports
-```typescript
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+#### Change 4: Fix Button Margin in Phone Login
+```tsx
+// Line 327-336 - Remove left padding for consistency
+<Button
+  variant="outline"
+  size="sm"
+  onClick={handlePhoneLogin}
+  className="w-full h-8 text-sm justify-center gap-2"  // Center aligned
+  disabled={initializationPhase === 'failed'}
+>
 ```
 
-### Updated Context Destructuring
-```typescript
-const { 
-  isConnected: phoneConnected, 
-  isInitialized: phoneInitialized,
-  initializationPhase,
-  openLoginModal,      // NEW
-  initializePhone,     // NEW
-  logout: phoneLogout,
-  error: phoneError,
-} = useAircallPhone();
+#### Change 5: Online Agents Section
+```tsx
+// Line 349-384 - Cleaner styling
+<div className="pt-3 mt-3 border-t">  // Add top border as divider
+  <p className="text-xs text-muted-foreground mb-2 px-1">Online now:</p>
 ```
 
-### Updated Phone Login Handler
-```typescript
-const handlePhoneLogin = () => {
-  console.log('[AgentAvailabilityPanel] Phone login requested');
-  
-  if (!phoneInitialized) {
-    console.log('[AgentAvailabilityPanel] SDK not initialized, initializing first');
-    initializePhone();
-    return;
-  }
-  
-  openLoginModal();
-};
-```
+## Summary of Changes
 
-### Updated Collapsed View (Popover)
-The collapsed view will show a popover with:
-- **Chat section**: Quick status buttons (Online/Away/Offline)
-- **Phone section**: Login button or Logout button depending on connection state
+| Location | Current | Fixed |
+|----------|---------|-------|
+| Popover buttons | `flex gap-1` horizontal | `flex flex-col gap-1.5` stacked |
+| Main container | `px-2 space-y-3` | `px-3 space-y-4` |
+| Section wrapper | No visual container | `p-2 rounded-lg bg-muted/30` |
+| Phone login btn | `justify-start` | `justify-center` |
+| Button size | Cramped `flex-1` | Full width or proper sizing |
+| Online agents | No divider | `border-t` separator |
 
-## Expected Behavior After Fix
+## Visual Result
 
-### Collapsed Sidebar
-- Clicking the grey/colored status indicator opens a popover
-- Popover shows chat availability options (Online/Away/Offline)
-- Popover shows phone login button or logout button (if Aircall is configured)
+**Before:**
+- Cramped overlapping buttons
+- No visual separation between sections
+- Inconsistent padding
 
-### Expanded Sidebar
-- "Login to Aircall" button properly triggers the Aircall login flow
-- Shows the Aircall workspace widget for authentication
-- Toast notification guides user to complete login
-
-## Testing Checklist
-
-After implementation:
-- [ ] Click collapsed sidebar icon → popover opens
-- [ ] Change chat status via popover → status updates
-- [ ] Click phone login via popover → Aircall workspace appears
-- [ ] "Login to Aircall" button in expanded view → triggers login flow
-- [ ] Phone logout button works correctly
-- [ ] Status indicators update correctly in both collapsed and expanded views
+**After:**
+- Clean stacked or spaced buttons
+- Subtle card backgrounds for sections
+- Consistent 12-16px padding throughout
+- Clear visual hierarchy with dividers
