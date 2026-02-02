@@ -6,7 +6,8 @@ import { KnowledgeAnalytics } from "@/components/dashboard/KnowledgeAnalytics";
 import { SystemHealthMonitor } from "@/components/dashboard/SystemHealthMonitor";
 import { SuggestionPerformance } from "@/components/dashboard/SuggestionPerformance";
 import { KnowledgeEntriesManager } from "@/components/dashboard/knowledge/KnowledgeEntriesManager";
-import { Brain, Activity, TrendingUp, Database } from "lucide-react";
+import { KnowledgeSettings } from "@/components/dashboard/knowledge/KnowledgeSettings";
+import { Brain, Activity, TrendingUp, Database, Settings } from "lucide-react";
 
 export default function KnowledgeManagement() {
   const { data: profile } = useQuery({
@@ -48,7 +49,7 @@ export default function KnowledgeManagement() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Brain className="w-4 h-4" />
               Overview
@@ -64,6 +65,10 @@ export default function KnowledgeManagement() {
             <TabsTrigger value="health" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
               System Health
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -84,6 +89,10 @@ export default function KnowledgeManagement() {
 
           <TabsContent value="health">
             <SystemHealthMonitor organizationId={profile.organization_id} />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <KnowledgeSettings organizationId={profile.organization_id} />
           </TabsContent>
         </Tabs>
       </div>
