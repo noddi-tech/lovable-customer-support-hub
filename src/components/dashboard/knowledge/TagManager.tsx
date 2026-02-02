@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Save, X, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Tag, Globe } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -22,12 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { KnowledgeCategory } from "./CategoryManager";
 
 export interface KnowledgeTag {
   id: string;
   organization_id: string;
   name: string;
   color: string | null;
+  category_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +58,20 @@ export function TagManager({ organizationId }: TagManagerProps) {
   const [newTag, setNewTag] = useState({
     name: '',
     color: '#6B7280',
+    category_id: null as string | null,
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ['knowledge-categories', organizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('knowledge_categories')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .order('name');
+      if (error) throw error;
+      return data as KnowledgeCategory[];
+    },
   });
 
   const { data: tags, isLoading } = useQuery({
@@ -100,6 +116,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
           organization_id: organizationId,
           name: tag.name.toLowerCase().trim(),
           color: tag.color,
+          category_id: tag.category_id,
         });
       if (error) throw error;
     },
@@ -107,7 +124,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
       toast({ title: "Tag created successfully" });
       queryClient.invalidateQueries({ queryKey: ['knowledge-tags'] });
       setCreatingTag(false);
-      setNewTag({ name: '', color: '#6B7280' });
+      setNewTag({ name: '', color: '#6B7280', category_id: null });
     },
     onError: (error) => {
       toast({
@@ -125,6 +142,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
         .update({
           name: tag.name.toLowerCase().trim(),
           color: tag.color,
+          category_id: tag.category_id,
         })
         .eq('id', tag.id);
       if (error) throw error;
@@ -169,6 +187,23 @@ export function TagManager({ organizationId }: TagManagerProps) {
     return tagUsageCounts?.[tagName] || 0;
   };
 
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return null;
+    return categories?.find(c => c.id === categoryId)?.name || null;
+  };
+
+  const getCategoryColor = (categoryId: string | null) => {
+    if (!categoryId) return null;
+    return categories?.find(c => c.id === categoryId)?.color || null;
+  };
+
+  // Group tags by category
+  const globalTags = tags?.filter(t => !t.category_id) || [];
+  const tagsByCategory = categories?.map(category => ({
+    category,
+    tags: tags?.filter(t => t.category_id === category.id) || [],
+  })).filter(group => group.tags.length > 0) || [];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -187,41 +222,103 @@ export function TagManager({ organizationId }: TagManagerProps) {
         ) : tags?.length === 0 ? (
           <p className="text-muted-foreground">No tags yet. Create your first tag to get started.</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {tags?.map((tag) => (
-              <div
-                key={tag.id}
-                className="flex items-center gap-1 border rounded-lg px-2 py-1 bg-muted/50"
-              >
-                <Badge
-                  variant="outline"
-                  style={{ 
-                    backgroundColor: `${tag.color}20`,
-                    borderColor: tag.color || undefined,
-                    color: tag.color || undefined,
-                  }}
-                >
-                  {tag.name}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  ({getTagUsageCount(tag.name)})
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setEditingTag(tag)}
-                >
-                  <Edit className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setDeleteConfirm(tag)}
-                >
-                  <Trash2 className="w-3 h-3 text-destructive" />
-                </Button>
+          <div className="space-y-4">
+            {/* Global Tags */}
+            {globalTags.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Global (all categories)</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {globalTags.map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="flex items-center gap-1 border rounded-lg px-2 py-1 bg-muted/50"
+                    >
+                      <Badge
+                        variant="outline"
+                        style={{ 
+                          backgroundColor: `${tag.color}20`,
+                          borderColor: tag.color || undefined,
+                          color: tag.color || undefined,
+                        }}
+                      >
+                        {tag.name}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        ({getTagUsageCount(tag.name)})
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setEditingTag(tag)}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setDeleteConfirm(tag)}
+                      >
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Category-specific Tags */}
+            {tagsByCategory.map(({ category, tags: categoryTags }) => (
+              <div key={category.id}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: category.color }}
+                  />
+                  <span className="text-sm font-medium">{category.name}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {categoryTags.map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="flex items-center gap-1 border rounded-lg px-2 py-1 bg-muted/50"
+                    >
+                      <Badge
+                        variant="outline"
+                        style={{ 
+                          backgroundColor: `${tag.color}20`,
+                          borderColor: tag.color || undefined,
+                          color: tag.color || undefined,
+                        }}
+                      >
+                        {tag.name}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        ({getTagUsageCount(tag.name)})
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setEditingTag(tag)}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setDeleteConfirm(tag)}
+                      >
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -245,6 +342,39 @@ export function TagManager({ organizationId }: TagManagerProps) {
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Tags will be automatically converted to lowercase.
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Category</label>
+              <Select
+                value={newTag.category_id || 'global'}
+                onValueChange={(value) => setNewTag({ ...newTag, category_id: value === 'global' ? null : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-muted-foreground" />
+                      Global (all categories)
+                    </div>
+                  </SelectItem>
+                  {categories?.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Global tags appear for all categories.
               </p>
             </div>
             <div>
@@ -308,6 +438,36 @@ export function TagManager({ organizationId }: TagManagerProps) {
                   value={editingTag.name}
                   onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })}
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Category</label>
+                <Select
+                  value={editingTag.category_id || 'global'}
+                  onValueChange={(value) => setEditingTag({ ...editingTag, category_id: value === 'global' ? null : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                        Global (all categories)
+                      </div>
+                    </SelectItem>
+                    {categories?.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Color</label>

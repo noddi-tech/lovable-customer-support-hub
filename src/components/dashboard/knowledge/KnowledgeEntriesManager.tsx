@@ -426,6 +426,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                   organizationId={organizationId}
                   selectedTags={editingEntry.tags || []}
                   onChange={(tags) => setEditingEntry({ ...editingEntry, tags })}
+                  selectedCategoryId={categories?.find(c => c.name === editingEntry.category)?.id}
                 />
               </div>
             </div>
@@ -524,6 +525,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 organizationId={organizationId}
                 selectedTags={newEntry.tags}
                 onChange={(tags) => setNewEntry({ ...newEntry, tags })}
+                selectedCategoryId={categories?.find(c => c.name === newEntry.category)?.id}
               />
             </div>
           </div>

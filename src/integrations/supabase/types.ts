@@ -1235,6 +1235,7 @@ export type Database = {
       }
       knowledge_tags: {
         Row: {
+          category_id: string | null
           color: string | null
           created_at: string
           id: string
@@ -1243,6 +1244,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category_id?: string | null
           color?: string | null
           created_at?: string
           id?: string
@@ -1251,6 +1253,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category_id?: string | null
           color?: string | null
           created_at?: string
           id?: string
@@ -1259,6 +1262,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "knowledge_tags_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "knowledge_tags_organization_id_fkey"
             columns: ["organization_id"]
