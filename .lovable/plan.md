@@ -1,89 +1,85 @@
 
-# Fix Slack Native Push Notifications Preview
 
-## Problem
+# Fix: Extraction Job Stuck in "Running" Status
 
-Native Slack notifications on Mac and iPhone show "[no preview available]" instead of showing the sender name and message preview:
+## Problem Analysis
 
-```
-Dekkfix
-#customer-support-messages
-Support App notifications: [no preview available]
-```
+The extraction processed **all 6,742 conversations** (created 3,448 entries, skipped 3,294), but the job status in the database is still `"running"` with `completed_at: null`. This causes the UI to show a spinning loader indefinitely.
 
 ## Root Cause
 
-The `send-slack-notification` edge function sends Slack messages using only Block Kit `blocks` and `attachments`, but **omits the `text` field**. 
+The edge function has a logic bug:
 
-According to Slack's API:
-> "The `text` argument is used in places where content cannot be rendered such as: **system push notifications**, assistive technology such as screen readers, etc."
+| Scenario | What Happens | Database Updated? |
+|----------|--------------|-------------------|
+| `conversations.length === 0` | Returns 'completed', updates DB | Yes |
+| `conversations.length < batchSize` (final batch) | Returns 'completed', **skips DB update** | No |
+| `conversations.length === batchSize` | Returns 'in_progress' | No (correctly) |
 
-When `text` is missing, native device notifications cannot display the message content.
+The final batch had 42 conversations (6742 - 6700 = 42). Since 42 < 50, the function returned `'completed'` but never updated the database status.
 
 ## Solution
 
-Add a `text` field to the `chat.postMessage` call containing a plain-text fallback. This text appears in push notifications but NOT in the Slack channel (where Block Kit is displayed).
+### 1. Fix Edge Function Logic
 
-### Desired Notification Preview
-
-```
-Dekkfix
-#customer-support-messages
-New Email from John Smith: Hvordan kan jeg endre bestillingen min?
-```
-
-### Code Change
-
-Add a fallback text builder in `send-slack-notification/index.ts`:
+Update `extract-knowledge-from-history/index.ts` to mark the job as completed when `hasMore === false`:
 
 ```typescript
-// Build fallback text for native push notifications
-let fallbackText = title;
-if (customer_name) {
-  fallbackText += ` from ${customer_name}`;
-}
-if (preview_text) {
-  const cleanedPreview = cleanPreviewText(preview_text, 100);
-  if (cleanedPreview) {
-    fallbackText += `: ${cleanedPreview}`;
-  }
+// After processing entries and updating progress...
+
+const hasMore = conversations.length === batchSize;
+
+// Mark job as completed if this is the last batch
+if (!hasMore) {
+  await supabase
+    .from('knowledge_extraction_jobs')
+    .update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', currentJobId);
 }
 
-// Send to Slack with text field
-await fetch('https://slack.com/api/chat.postMessage', {
+return new Response(JSON.stringify({
+  status: hasMore ? 'in_progress' : 'completed',
   // ...
-  body: JSON.stringify({
-    channel: channelId,
-    text: fallbackText,  // <-- ADD THIS
-    blocks: blocks,
-    attachments: [...],
-  }),
-});
+}));
 ```
 
-### Example Output
+### 2. Immediate Fix for Current Job
 
-| Event Type | Fallback Text |
-|------------|---------------|
-| New conversation | "New Email Conversation from John Smith: Hvordan kan jeg..." |
-| Customer reply | "Email Reply from Maria K: Takk for hjelpen, men jeg..." |
-| Assignment | "Assigned to Ole Nordmann" |
-| SLA Warning | "SLA Warning: Response time exceeded for John Smith" |
+Run a database update to fix the stuck job:
 
-## File to Modify
+```sql
+UPDATE knowledge_extraction_jobs 
+SET status = 'completed', completed_at = NOW() 
+WHERE id = '25bceb08-9996-41ed-9562-aaa52e70c405';
+```
+
+### 3. Add Frontend Recovery Button (Optional)
+
+Add a "Mark Complete" button that appears when job is stuck (running for >1 hour with 100% progress):
+
+```typescript
+const isStuckJob = latestJob?.status === 'running' && 
+  latestJob.total_processed >= latestJob.total_conversations &&
+  latestJob.total_conversations > 0;
+```
+
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| `supabase/functions/send-slack-notification/index.ts` | Add `text` field to chat.postMessage call with plain-text fallback |
+| `supabase/functions/extract-knowledge-from-history/index.ts` | Add DB update when `hasMore === false` |
+| Database | Fix current stuck job via migration |
 
-## Result
+## Summary
 
-After this change, native notifications on Mac/iPhone will show:
+| Step | Action |
+|------|--------|
+| 1 | Fix edge function to update DB status on final batch |
+| 2 | Run migration to complete the current stuck job |
+| 3 | Redeploy edge function |
 
-```
-Dekkfix
-#customer-support-messages
-New Email from John Smith: Hvordan kan jeg endre bestillingen...
-```
+After this fix, the UI will show "completed" status and stop spinning.
 
-Instead of "[no preview available]".
