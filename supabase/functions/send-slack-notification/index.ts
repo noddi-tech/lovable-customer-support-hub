@@ -237,6 +237,19 @@ Deno.serve(async (req) => {
         title = 'Notification';
     }
 
+    // Build fallback text for native push notifications (Mac/iPhone)
+    // This appears in system notifications but NOT in the Slack channel
+    let fallbackText = title;
+    if (customer_name) {
+      fallbackText += ` from ${customer_name}`;
+    }
+    if (preview_text) {
+      const cleanedPreview = cleanPreviewText(preview_text, 100);
+      if (cleanedPreview) {
+        fallbackText += `: ${cleanedPreview}`;
+      }
+    }
+
     const blocks: any[] = [];
     const attachmentBlocks: any[] = [];
 
@@ -348,6 +361,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         channel: channelId,
+        text: fallbackText, // Required for native push notifications on Mac/iPhone
         blocks: blocks,
         attachments: [
           {
