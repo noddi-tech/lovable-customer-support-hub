@@ -282,6 +282,17 @@ Deno.serve(async (req) => {
     // Return progress info
     const hasMore = conversations.length === batchSize;
 
+    // Mark job as completed if this is the last batch
+    if (!hasMore) {
+      await supabase
+        .from('knowledge_extraction_jobs')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', currentJobId);
+    }
+
     return new Response(JSON.stringify({
       status: hasMore ? 'in_progress' : 'completed',
       jobId: currentJobId,
