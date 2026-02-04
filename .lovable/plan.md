@@ -1,85 +1,89 @@
 
 
-# Fix: Extraction Job Stuck in "Running" Status
+# Fix Category Selection in Pending Review Queue
 
-## Problem Analysis
+## Problem
 
-The extraction processed **all 6,742 conversations** (created 3,448 entries, skipped 3,294), but the job status in the database is still `"running"` with `completed_at: null`. This causes the UI to show a spinning loader indefinitely.
+When selecting a category from the dropdown in the Pending Review section, nothing happens. The dropdown closes and reverts to "No category" because:
+
+1. The `onValueChange` handler is empty (just a comment)
+2. There is no state to track selected categories per entry
+3. The selected category is never passed to the approve mutation
 
 ## Root Cause
 
-The edge function has a logic bug:
+The current code at line 457-461:
 
-| Scenario | What Happens | Database Updated? |
-|----------|--------------|-------------------|
-| `conversations.length === 0` | Returns 'completed', updates DB | Yes |
-| `conversations.length < batchSize` (final batch) | Returns 'completed', **skips DB update** | No |
-| `conversations.length === batchSize` | Returns 'in_progress' | No (correctly) |
+```typescript
+<Select
+  value={entry.suggested_category_id || 'none'}
+  onValueChange={(value) => {
+    // Update category in state or directly on approve
+  }}
+>
+```
 
-The final batch had 42 conversations (6742 - 6700 = 42). Since 42 < 50, the function returned `'completed'` but never updated the database status.
+The `value` is always bound to `entry.suggested_category_id` from the database (which is null), and the `onValueChange` does nothing.
 
 ## Solution
 
-### 1. Fix Edge Function Logic
+Add state to track category selections per entry, update the UI when a category is selected, and pass the selected category when approving.
 
-Update `extract-knowledge-from-history/index.ts` to mark the job as completed when `hasMore === false`:
+### Changes Required
 
-```typescript
-// After processing entries and updating progress...
+| Change | Description |
+|--------|-------------|
+| Add state | Create `selectedCategories` state object mapping entry ID to category ID |
+| Update handler | Implement `onValueChange` to update the state |
+| Fix value binding | Use state value if available, fallback to database value |
+| Pass to mutation | Include selected category when calling approve mutation |
+| Handle "none" value | Convert "none" back to null/undefined for the mutation |
 
-const hasMore = conversations.length === batchSize;
+### Implementation Details
 
-// Mark job as completed if this is the last batch
-if (!hasMore) {
-  await supabase
-    .from('knowledge_extraction_jobs')
-    .update({
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-    })
-    .eq('id', currentJobId);
-}
-
-return new Response(JSON.stringify({
-  status: hasMore ? 'in_progress' : 'completed',
-  // ...
-}));
-```
-
-### 2. Immediate Fix for Current Job
-
-Run a database update to fix the stuck job:
-
-```sql
-UPDATE knowledge_extraction_jobs 
-SET status = 'completed', completed_at = NOW() 
-WHERE id = '25bceb08-9996-41ed-9562-aaa52e70c405';
-```
-
-### 3. Add Frontend Recovery Button (Optional)
-
-Add a "Mark Complete" button that appears when job is stuck (running for >1 hour with 100% progress):
+#### 1. Add State for Selected Categories
 
 ```typescript
-const isStuckJob = latestJob?.status === 'running' && 
-  latestJob.total_processed >= latestJob.total_conversations &&
-  latestJob.total_conversations > 0;
+const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({});
+```
+
+#### 2. Update the Select Component
+
+```typescript
+<Select
+  value={selectedCategories[entry.id] ?? entry.suggested_category_id ?? 'none'}
+  onValueChange={(value) => {
+    setSelectedCategories(prev => ({
+      ...prev,
+      [entry.id]: value
+    }));
+  }}
+>
+```
+
+#### 3. Update Approve Button Handler
+
+When approving, pass the selected category:
+
+```typescript
+onClick={() => approveEntryMutation.mutate({
+  entryId: entry.id,
+  categoryId: selectedCategories[entry.id] !== 'none' 
+    ? selectedCategories[entry.id] 
+    : undefined,
+})}
 ```
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `supabase/functions/extract-knowledge-from-history/index.ts` | Add DB update when `hasMore === false` |
-| Database | Fix current stuck job via migration |
+| File | Changes |
+|------|---------|
+| `src/components/dashboard/knowledge/KnowledgeImportFromHistory.tsx` | Add state, fix Select handler, update approve calls |
 
-## Summary
+## Expected Result
 
-| Step | Action |
-|------|--------|
-| 1 | Fix edge function to update DB status on final batch |
-| 2 | Run migration to complete the current stuck job |
-| 3 | Redeploy edge function |
-
-After this fix, the UI will show "completed" status and stop spinning.
+After this fix:
+1. Selecting a category will visually update the dropdown to show the selected category
+2. The selection persists while reviewing
+3. When approving, the selected category is saved to the knowledge entry
 
