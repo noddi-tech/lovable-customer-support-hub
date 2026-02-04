@@ -1,110 +1,44 @@
 
 
-# Add Tag Selection to Pending Review Queue
+# Add New Service Tags to Knowledge Base
 
-## Overview
+## Summary
 
-Add multi-select tag functionality to the Knowledge Import pending review screen, allowing reviewers to tag entries with service-related tags (e.g., tire-sales, wheel-change, wheel-storage, tire-repair, rim-repair, car-wash, inside-wash, outside-wash, etc.) before approving them.
+Add missing service vertical tags and a new service-related tag for post-service quality checks.
 
-## Current State
+## New Tags to Create
 
-- The `knowledge_pending_entries` table already has a `suggested_tags` column (ARRAY)
-- The `knowledge_entries` table has a `tags` column (ARRAY) for storing tag names
-- The `TagMultiSelect` component already exists and supports category-based tag filtering
-- The approve mutation does NOT currently save tags to `knowledge_entries`
-- No tag UI exists in the pending review queue
+| Tag Name | Color | Category | Purpose |
+|----------|-------|----------|---------|
+| `rim-repair` | Red (#EF4444) | Global | Service vertical for rim/wheel repairs |
+| `inside-wash` | Red (#EF4444) | Global | Service vertical for interior car wash |
+| `outside-wash` | Red (#EF4444) | Global | Service vertical for exterior car wash |
+| `torque-check` | Blue (#3B82F6) | Service Delivery | Bolt tightening / torque verification follow-ups |
 
-## Changes Required
+## Rationale
 
-### 1. Add State for Selected Tags
+- **Service vertical tags** (rim-repair, inside-wash, outside-wash): Kept as **global** with **red color** to match existing service tags (tire-sale, wheel-change, car-wash, etc.)
+- **torque-check**: Linked to **Service Delivery** category since it relates to post-service quality, similar to `quality-issue`, `delayed`, and `completed` tags
 
-Similar to how we track selected categories per entry, add state to track selected tags:
+## Existing Tags You Can Use
 
-```typescript
-const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
+For the screenshot you shared (customer asking about bolt tightening after wheel change):
+- **Category**: Service Delivery
+- **Tags**: `quality-issue` + `wheel-change` (existing) + `torque-check` (new)
+
+## Technical Implementation
+
+Run a single SQL insert to add all new tags to the `knowledge_tags` table:
+
+```sql
+INSERT INTO knowledge_tags (organization_id, name, color, category_id)
+VALUES 
+  ('b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'rim-repair', '#EF4444', NULL),
+  ('b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'inside-wash', '#EF4444', NULL),
+  ('b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'outside-wash', '#EF4444', NULL),
+  ('b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'torque-check', '#3B82F6', 
+    '6fde31b3-5c29-4471-b590-78b0a3115b4d');
 ```
 
-### 2. Update the PendingEntry Interface
-
-Add `suggested_tags` to the interface:
-
-```typescript
-interface PendingEntry {
-  // ... existing fields
-  suggested_tags: string[] | null;
-}
-```
-
-### 3. Add TagMultiSelect Component to Review Card
-
-Below the category select, add the tag multi-select:
-
-```
-[Quality Stars] [Category Select] [Tags Multi-Select]
-```
-
-The TagMultiSelect will:
-- Show global tags + tags for the selected category
-- Pre-populate with any `suggested_tags` from AI extraction
-- Update local state when tags are added/removed
-
-### 4. Update Approve Mutation
-
-Add `tags` parameter to the mutation and include it when inserting:
-
-```typescript
-mutationFn: async ({ entryId, categoryId, tags, ... }: { 
-  entryId: string; 
-  categoryId?: string;
-  tags?: string[];
-  // ...
-}) => {
-  // ...
-  await supabase.from('knowledge_entries').insert({
-    // ... existing fields
-    tags: tags && tags.length > 0 ? tags : null,
-  });
-}
-```
-
-### 5. Pass Selected Tags to Mutation
-
-Both the "Approve" and "Save & Approve" buttons need to pass the selected tags.
-
-## UI Layout Change
-
-Current:
-```
-[Quality Stars] [Category Select ▼]                    [Approve] [Edit] [Skip]
-```
-
-Proposed:
-```
-[Quality Stars] [Category Select ▼] [Tags Multi-Select ▼]     [Approve] [Edit] [Skip]
-```
-
-## File Changes
-
-| File | Changes |
-|------|---------|
-| `src/components/dashboard/knowledge/KnowledgeImportFromHistory.tsx` | Add tag state, update interface, add TagMultiSelect, update mutation |
-
-## Technical Details
-
-### State Management
-
-```typescript
-// Initialize with suggested tags from entry
-const getInitialTags = (entryId: string, suggestedTags: string[] | null) => {
-  return selectedTags[entryId] ?? suggestedTags ?? [];
-};
-```
-
-### Category-Tag Linking
-
-The TagMultiSelect already supports filtering tags based on selected category via the `selectedCategoryId` prop. When a category is selected, only global tags and tags linked to that category appear.
-
-### Tag Resolution
-
-Categories use IDs but tags in `knowledge_entries` store tag names (not IDs). The TagMultiSelect already works with tag names, so no conversion is needed.
+No code changes needed - just a database insert. The TagMultiSelect component will automatically show the new tags.
 
