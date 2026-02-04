@@ -1,89 +1,110 @@
 
 
-# Fix Category Selection in Pending Review Queue
+# Add Tag Selection to Pending Review Queue
 
-## Problem
+## Overview
 
-When selecting a category from the dropdown in the Pending Review section, nothing happens. The dropdown closes and reverts to "No category" because:
+Add multi-select tag functionality to the Knowledge Import pending review screen, allowing reviewers to tag entries with service-related tags (e.g., tire-sales, wheel-change, wheel-storage, tire-repair, rim-repair, car-wash, inside-wash, outside-wash, etc.) before approving them.
 
-1. The `onValueChange` handler is empty (just a comment)
-2. There is no state to track selected categories per entry
-3. The selected category is never passed to the approve mutation
+## Current State
 
-## Root Cause
+- The `knowledge_pending_entries` table already has a `suggested_tags` column (ARRAY)
+- The `knowledge_entries` table has a `tags` column (ARRAY) for storing tag names
+- The `TagMultiSelect` component already exists and supports category-based tag filtering
+- The approve mutation does NOT currently save tags to `knowledge_entries`
+- No tag UI exists in the pending review queue
 
-The current code at line 457-461:
+## Changes Required
 
-```typescript
-<Select
-  value={entry.suggested_category_id || 'none'}
-  onValueChange={(value) => {
-    // Update category in state or directly on approve
-  }}
->
-```
+### 1. Add State for Selected Tags
 
-The `value` is always bound to `entry.suggested_category_id` from the database (which is null), and the `onValueChange` does nothing.
-
-## Solution
-
-Add state to track category selections per entry, update the UI when a category is selected, and pass the selected category when approving.
-
-### Changes Required
-
-| Change | Description |
-|--------|-------------|
-| Add state | Create `selectedCategories` state object mapping entry ID to category ID |
-| Update handler | Implement `onValueChange` to update the state |
-| Fix value binding | Use state value if available, fallback to database value |
-| Pass to mutation | Include selected category when calling approve mutation |
-| Handle "none" value | Convert "none" back to null/undefined for the mutation |
-
-### Implementation Details
-
-#### 1. Add State for Selected Categories
+Similar to how we track selected categories per entry, add state to track selected tags:
 
 ```typescript
-const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({});
+const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
 ```
 
-#### 2. Update the Select Component
+### 2. Update the PendingEntry Interface
+
+Add `suggested_tags` to the interface:
 
 ```typescript
-<Select
-  value={selectedCategories[entry.id] ?? entry.suggested_category_id ?? 'none'}
-  onValueChange={(value) => {
-    setSelectedCategories(prev => ({
-      ...prev,
-      [entry.id]: value
-    }));
-  }}
->
+interface PendingEntry {
+  // ... existing fields
+  suggested_tags: string[] | null;
+}
 ```
 
-#### 3. Update Approve Button Handler
+### 3. Add TagMultiSelect Component to Review Card
 
-When approving, pass the selected category:
+Below the category select, add the tag multi-select:
+
+```
+[Quality Stars] [Category Select] [Tags Multi-Select]
+```
+
+The TagMultiSelect will:
+- Show global tags + tags for the selected category
+- Pre-populate with any `suggested_tags` from AI extraction
+- Update local state when tags are added/removed
+
+### 4. Update Approve Mutation
+
+Add `tags` parameter to the mutation and include it when inserting:
 
 ```typescript
-onClick={() => approveEntryMutation.mutate({
-  entryId: entry.id,
-  categoryId: selectedCategories[entry.id] !== 'none' 
-    ? selectedCategories[entry.id] 
-    : undefined,
-})}
+mutationFn: async ({ entryId, categoryId, tags, ... }: { 
+  entryId: string; 
+  categoryId?: string;
+  tags?: string[];
+  // ...
+}) => {
+  // ...
+  await supabase.from('knowledge_entries').insert({
+    // ... existing fields
+    tags: tags && tags.length > 0 ? tags : null,
+  });
+}
 ```
 
-## Files to Modify
+### 5. Pass Selected Tags to Mutation
+
+Both the "Approve" and "Save & Approve" buttons need to pass the selected tags.
+
+## UI Layout Change
+
+Current:
+```
+[Quality Stars] [Category Select ▼]                    [Approve] [Edit] [Skip]
+```
+
+Proposed:
+```
+[Quality Stars] [Category Select ▼] [Tags Multi-Select ▼]     [Approve] [Edit] [Skip]
+```
+
+## File Changes
 
 | File | Changes |
 |------|---------|
-| `src/components/dashboard/knowledge/KnowledgeImportFromHistory.tsx` | Add state, fix Select handler, update approve calls |
+| `src/components/dashboard/knowledge/KnowledgeImportFromHistory.tsx` | Add tag state, update interface, add TagMultiSelect, update mutation |
 
-## Expected Result
+## Technical Details
 
-After this fix:
-1. Selecting a category will visually update the dropdown to show the selected category
-2. The selection persists while reviewing
-3. When approving, the selected category is saved to the knowledge entry
+### State Management
+
+```typescript
+// Initialize with suggested tags from entry
+const getInitialTags = (entryId: string, suggestedTags: string[] | null) => {
+  return selectedTags[entryId] ?? suggestedTags ?? [];
+};
+```
+
+### Category-Tag Linking
+
+The TagMultiSelect already supports filtering tags based on selected category via the `selectedCategoryId` prop. When a category is selected, only global tags and tags linked to that category appear.
+
+### Tag Resolution
+
+Categories use IDs but tags in `knowledge_entries` store tag names (not IDs). The TagMultiSelect already works with tag names, so no conversion is needed.
 
