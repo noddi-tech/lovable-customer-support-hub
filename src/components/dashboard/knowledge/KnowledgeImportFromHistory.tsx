@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { TagMultiSelect } from "./TagMultiSelect";
 import { 
   Play, 
   Loader2, 
@@ -31,6 +32,7 @@ interface PendingEntry {
   customer_context: string;
   agent_response: string;
   suggested_category_id: string | null;
+  suggested_tags: string[] | null;
   ai_quality_score: number | null;
   review_status: string;
   source_conversation_id: string | null;
@@ -56,6 +58,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<{ customer: string; agent: string }>({ customer: '', agent: '' });
   const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({});
+  const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
 
   // Fetch latest extraction job
   const { data: latestJob, isLoading: jobLoading } = useQuery({
@@ -167,9 +170,10 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
 
   // Approve entry mutation
   const approveEntryMutation = useMutation({
-    mutationFn: async ({ entryId, categoryId, customerContext, agentResponse }: { 
+    mutationFn: async ({ entryId, categoryId, tags, customerContext, agentResponse }: { 
       entryId: string; 
       categoryId?: string;
+      tags?: string[];
       customerContext?: string;
       agentResponse?: string;
     }) => {
@@ -196,6 +200,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
           customer_context: finalCustomerContext,
           agent_response: finalAgentResponse,
           category: categoryId || null,
+          tags: tags && tags.length > 0 ? tags : null,
           embedding: embeddingData?.embedding ? JSON.stringify(embeddingData.embedding) : null,
           quality_score: entry.ai_quality_score || 3.0,
           is_manually_curated: true,
@@ -450,9 +455,9 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                         )}
                       </div>
 
-                      {/* Quality Score & Category */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                      {/* Quality Score, Category & Tags */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center flex-wrap gap-4">
                           {renderQualityStars(entry.ai_quality_score)}
                           
                           <Select
@@ -476,6 +481,25 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                               ))}
                             </SelectContent>
                           </Select>
+                          
+                          <div className="w-[280px]">
+                            <TagMultiSelect
+                              organizationId={organizationId}
+                              selectedTags={selectedTags[entry.id] ?? entry.suggested_tags ?? []}
+                              onChange={(tags) => {
+                                setSelectedTags(prev => ({
+                                  ...prev,
+                                  [entry.id]: tags
+                                }));
+                              }}
+                              placeholder="Select tags..."
+                              selectedCategoryId={
+                                selectedCategories[entry.id] !== 'none' 
+                                  ? selectedCategories[entry.id] 
+                                  : entry.suggested_category_id
+                              }
+                            />
+                          </div>
                         </div>
 
                         {/* Actions */}
@@ -486,6 +510,8 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                                 size="sm"
                                 onClick={() => approveEntryMutation.mutate({
                                   entryId: entry.id,
+                                  categoryId: selectedCategories[entry.id] !== 'none' ? selectedCategories[entry.id] : undefined,
+                                  tags: selectedTags[entry.id] ?? entry.suggested_tags ?? [],
                                   customerContext: editedContent.customer,
                                   agentResponse: editedContent.agent,
                                 })}
@@ -509,6 +535,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                                 onClick={() => approveEntryMutation.mutate({ 
                                   entryId: entry.id,
                                   categoryId: selectedCategories[entry.id] !== 'none' ? selectedCategories[entry.id] : undefined,
+                                  tags: selectedTags[entry.id] ?? entry.suggested_tags ?? [],
                                 })}
                                 disabled={approveEntryMutation.isPending}
                               >
