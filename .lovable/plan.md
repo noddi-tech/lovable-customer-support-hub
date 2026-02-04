@@ -1,44 +1,59 @@
 
+# Fix Tags Not Appearing in Pending Review Dropdown
 
-# Add New Service Tags to Knowledge Base
+## Problem Identified
 
-## Summary
+The Refresh button in the Import section only invalidates the extraction job and pending entries queries, but **does NOT invalidate the tags query**. When new tags are added to the database, the TagMultiSelect component may still have stale cached data.
 
-Add missing service vertical tags and a new service-related tag for post-service quality checks.
+## Root Cause
 
-## New Tags to Create
+Looking at the code:
 
-| Tag Name | Color | Category | Purpose |
-|----------|-------|----------|---------|
-| `rim-repair` | Red (#EF4444) | Global | Service vertical for rim/wheel repairs |
-| `inside-wash` | Red (#EF4444) | Global | Service vertical for interior car wash |
-| `outside-wash` | Red (#EF4444) | Global | Service vertical for exterior car wash |
-| `torque-check` | Blue (#3B82F6) | Service Delivery | Bolt tightening / torque verification follow-ups |
+```typescript
+// Current Refresh button only invalidates these:
+queryClient.invalidateQueries({ queryKey: ['knowledge-extraction-job', organizationId] });
+queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
 
-## Rationale
-
-- **Service vertical tags** (rim-repair, inside-wash, outside-wash): Kept as **global** with **red color** to match existing service tags (tire-sale, wheel-change, car-wash, etc.)
-- **torque-check**: Linked to **Service Delivery** category since it relates to post-service quality, similar to `quality-issue`, `delayed`, and `completed` tags
-
-## Existing Tags You Can Use
-
-For the screenshot you shared (customer asking about bolt tightening after wheel change):
-- **Category**: Service Delivery
-- **Tags**: `quality-issue` + `wheel-change` (existing) + `torque-check` (new)
-
-## Technical Implementation
-
-Run a single SQL insert to add all new tags to the `knowledge_tags` table:
-
-```sql
-INSERT INTO knowledge_tags (organization_id, name, color, category_id)
-VALUES 
-  ('b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'rim-repair', '#EF4444', NULL),
-  ('b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'inside-wash', '#EF4444', NULL),
-  ('b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'outside-wash', '#EF4444', NULL),
-  ('b9b4df82-2b89-4a64-b2a3-5e19c0e8d43b', 'torque-check', '#3B82F6', 
-    '6fde31b3-5c29-4471-b590-78b0a3115b4d');
+// But NOT the tags query:
+// queryKey: ['knowledge-tags', organizationId]
 ```
 
-No code changes needed - just a database insert. The TagMultiSelect component will automatically show the new tags.
+Even though `TagMultiSelect` has `staleTime: 0` and `refetchOnMount: 'always'`, if the component is already mounted and the data was fetched earlier, it won't automatically refetch until the next mount or an explicit invalidation.
 
+## Solution
+
+Add the tags query to the Refresh button's invalidation list so that clicking Refresh also fetches the latest tags.
+
+## Changes Required
+
+| File | Change |
+|------|--------|
+| `KnowledgeImportFromHistory.tsx` | Add `knowledge-tags` to the Refresh button's query invalidation |
+
+## Implementation
+
+Update the Refresh button onClick handler (around line 351-354):
+
+```typescript
+onClick={() => {
+  queryClient.invalidateQueries({ queryKey: ['knowledge-extraction-job', organizationId] });
+  queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
+  queryClient.invalidateQueries({ queryKey: ['knowledge-tags', organizationId] });
+  queryClient.invalidateQueries({ queryKey: ['knowledge-categories', organizationId] });
+}}
+```
+
+## Additional Benefit
+
+This also ensures that:
+1. Newly created categories appear in the category dropdown
+2. Newly created tags appear in the tag multi-select
+3. Any taxonomy changes made in Settings are immediately reflected in the Import review queue
+
+## Testing
+
+After this fix:
+1. Navigate to Settings and create a new tag
+2. Navigate to Import section
+3. Click Refresh
+4. The new tag should appear in the TagMultiSelect dropdown
