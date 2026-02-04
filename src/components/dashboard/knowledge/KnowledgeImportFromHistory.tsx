@@ -55,6 +55,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
   const [isExtracting, setIsExtracting] = useState(false);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<{ customer: string; agent: string }>({ customer: '', agent: '' });
+  const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({});
 
   // Fetch latest extraction job
   const { data: latestJob, isLoading: jobLoading } = useQuery({
@@ -455,9 +456,12 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                           {renderQualityStars(entry.ai_quality_score)}
                           
                           <Select
-                            value={entry.suggested_category_id || 'none'}
+                            value={selectedCategories[entry.id] ?? entry.suggested_category_id ?? 'none'}
                             onValueChange={(value) => {
-                              // Update category in state or directly on approve
+                              setSelectedCategories(prev => ({
+                                ...prev,
+                                [entry.id]: value
+                              }));
                             }}
                           >
                             <SelectTrigger className="w-[200px]">
@@ -502,7 +506,10 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                             <>
                               <Button
                                 size="sm"
-                                onClick={() => approveEntryMutation.mutate({ entryId: entry.id })}
+                                onClick={() => approveEntryMutation.mutate({ 
+                                  entryId: entry.id,
+                                  categoryId: selectedCategories[entry.id] !== 'none' ? selectedCategories[entry.id] : undefined,
+                                })}
                                 disabled={approveEntryMutation.isPending}
                               >
                                 <Check className="w-4 h-4" />
