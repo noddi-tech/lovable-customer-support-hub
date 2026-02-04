@@ -351,6 +351,8 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
               onClick={() => {
                 queryClient.invalidateQueries({ queryKey: ['knowledge-extraction-job', organizationId] });
                 queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
+                queryClient.invalidateQueries({ queryKey: ['knowledge-tags', organizationId] });
+                queryClient.invalidateQueries({ queryKey: ['knowledge-categories', organizationId] });
               }}
             >
               <RefreshCw className="w-4 h-4" />
