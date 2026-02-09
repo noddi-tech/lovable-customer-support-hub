@@ -49,5 +49,14 @@
   "transcriptSent": "Transkription skickad!",
   "noThanks": "Nej tack",
   "youAreInQueue": "Du är i kön",
-  "agentWillBeWithYou": "En agent kommer snart att hjälpa dig"
+  "agentWillBeWithYou": "En agent kommer snart att hjälpa dig",
+  "aiAssistant": "AI-assistent",
+  "aiGreeting": "Hej! 👋 Jag är Noddis AI-assistent. Jag kan hjälpa dig med frågor om våra tjänster, leta upp dina bokningar och mer. Hur kan jag hjälpa dig?",
+  "aiError": "Förlåt, något gick fel. Försök igen eller kontakta oss direkt.",
+  "askAnything": "Fråga mig vad som helst...",
+  "talkToHuman": "Prata med en människa",
+  "emailConversation": "Skicka konversation via e-post",
+  "enterPhone": "Ange ditt telefonnummer för att söka bokningar",
+  "skipPhone": "Hoppa över",
+  "thinking": "Tänker..."
 }

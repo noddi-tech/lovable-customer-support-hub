@@ -49,5 +49,14 @@
   "transcriptSent": "Transcript verzonden!",
   "noThanks": "Nee, bedankt",
   "youAreInQueue": "Je staat in de wachtrij",
-  "agentWillBeWithYou": "Een medewerker helpt je zo"
+  "agentWillBeWithYou": "Een medewerker helpt je zo",
+  "aiAssistant": "AI-assistent",
+  "aiGreeting": "Hallo! 👋 Ik ben Noddi's AI-assistent. Ik kan je helpen met vragen over onze diensten, je boekingen opzoeken en meer. Hoe kan ik je helpen?",
+  "aiError": "Sorry, er ging iets mis. Probeer het opnieuw of neem direct contact met ons op.",
+  "askAnything": "Vraag me alles...",
+  "talkToHuman": "Praat met een persoon",
+  "emailConversation": "Gesprek per e-mail verzenden",
+  "enterPhone": "Voer je telefoonnummer in om boekingen op te zoeken",
+  "skipPhone": "Overslaan",
+  "thinking": "Aan het denken..."
 }

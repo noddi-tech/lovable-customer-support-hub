@@ -49,5 +49,14 @@
   "transcriptSent": "Transcript sent!",
   "noThanks": "No thanks",
   "youAreInQueue": "You're in the queue",
-  "agentWillBeWithYou": "An agent will be with you shortly"
+  "agentWillBeWithYou": "An agent will be with you shortly",
+  "aiAssistant": "AI Assistant",
+  "aiGreeting": "Hi! 👋 I'm Noddi's AI assistant. I can help you with questions about our services, look up your bookings, and more. How can I help you?",
+  "aiError": "I'm sorry, something went wrong. Please try again or contact us directly.",
+  "askAnything": "Ask me anything...",
+  "talkToHuman": "Talk to a human",
+  "emailConversation": "Email this conversation",
+  "enterPhone": "Enter your phone number to look up bookings",
+  "skipPhone": "Skip",
+  "thinking": "Thinking..."
 }

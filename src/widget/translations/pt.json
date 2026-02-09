@@ -49,5 +49,14 @@
   "transcriptSent": "Transcrição enviada!",
   "noThanks": "Não, obrigado",
   "youAreInQueue": "Você está na fila",
-  "agentWillBeWithYou": "Um agente estará com você em breve"
+  "agentWillBeWithYou": "Um agente estará com você em breve",
+  "aiAssistant": "Assistente IA",
+  "aiGreeting": "Olá! 👋 Sou o assistente IA da Noddi. Posso ajudá-lo com perguntas sobre nossos serviços, consultar suas reservas e mais. Como posso ajudá-lo?",
+  "aiError": "Desculpe, algo deu errado. Por favor, tente novamente ou entre em contato diretamente.",
+  "askAnything": "Pergunte-me qualquer coisa...",
+  "talkToHuman": "Falar com uma pessoa",
+  "emailConversation": "Enviar conversa por e-mail",
+  "enterPhone": "Digite seu número de telefone para consultar reservas",
+  "skipPhone": "Pular",
+  "thinking": "Pensando..."
 }
