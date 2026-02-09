@@ -10,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, TestTube2, Globe } from 'lucide-react';
+import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, TestTube2, Globe, Bot } from 'lucide-react';
 import { WidgetPreview } from './WidgetPreview';
 import { WidgetEmbedCode } from './WidgetEmbedCode';
 import { WidgetAnalytics } from './WidgetAnalytics';
 import { WidgetTestMode } from './WidgetTestMode';
 import { WidgetTranslationEditor } from './WidgetTranslationEditor';
+import { AiAnalyticsDashboard } from './AiAnalyticsDashboard';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { SUPPORTED_WIDGET_LANGUAGES } from '@/widget/translations';
@@ -308,6 +309,10 @@ export const WidgetSettings: React.FC = () => {
                     <BarChart3 className="h-4 w-4" />
                     <span className="hidden sm:inline">Analytics</span>
                   </TabsTrigger>
+                  <TabsTrigger value="ai-analytics" className="gap-2">
+                    <Bot className="h-4 w-4" />
+                    <span className="hidden sm:inline">AI Analytics</span>
+                  </TabsTrigger>
                   <TabsTrigger value="embed" className="gap-2">
                     <Code className="h-4 w-4" />
                     <span className="hidden sm:inline">Embed</span>
@@ -524,6 +529,11 @@ export const WidgetSettings: React.FC = () => {
                 {/* Analytics Tab */}
                 <TabsContent value="analytics" className="mt-0">
                   <WidgetAnalytics widgetId={selectedWidget.id} />
+                </TabsContent>
+
+                {/* AI Analytics Tab */}
+                <TabsContent value="ai-analytics" className="mt-0">
+                  <AiAnalyticsDashboard organizationId={selectedWidget.organization_id} />
                 </TabsContent>
 
                 {/* Embed Code Tab */}

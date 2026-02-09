@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DOMPurify from 'dompurify';
 import { sendAiMessage, streamAiMessage } from '../api';
 import { getWidgetTranslations } from '../translations';
+import { AiFeedback } from './AiFeedback';
 
 interface AiChatMessage {
   id: string;
+  serverId?: string; // Server-side message ID for feedback
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
@@ -121,6 +123,7 @@ export const AiChat: React.FC<AiChatProps> = ({
       // Try streaming first
       let fullReply = '';
       let gotStream = false;
+      let serverMessageId: string | undefined;
 
       try {
         await streamAiMessage(
@@ -137,6 +140,7 @@ export const AiChat: React.FC<AiChatProps> = ({
           },
           (meta) => {
             if (meta.conversationId) setConversationId(meta.conversationId);
+            if (meta.messageId) serverMessageId = meta.messageId;
           },
         );
       } catch {
@@ -145,12 +149,14 @@ export const AiChat: React.FC<AiChatProps> = ({
           const result = await sendAiMessage(widgetKey, history, visitorPhone || undefined, undefined, language);
           fullReply = typeof result === 'string' ? result : result.reply;
           if (result.conversationId) setConversationId(result.conversationId);
+          if (result.messageId) serverMessageId = result.messageId;
         }
       }
 
       if (fullReply) {
         setMessages((prev) => [...prev, {
           id: `ai_${Date.now()}`,
+          serverId: serverMessageId,
           role: 'assistant',
           content: fullReply,
           timestamp: new Date(),
@@ -256,6 +262,14 @@ export const AiChat: React.FC<AiChatProps> = ({
                 __html: DOMPurify.sanitize(formatAiResponse(message.content)),
               }}
             />
+            {message.role === 'assistant' && message.id !== 'greeting' && conversationId && message.serverId && (
+              <AiFeedback
+                messageId={message.serverId}
+                conversationId={conversationId}
+                widgetKey={widgetKey}
+                primaryColor={primaryColor}
+              />
+            )}
             <span className="noddi-chat-message-time">
               {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
