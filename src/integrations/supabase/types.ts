@@ -1236,6 +1236,67 @@ export type Database = {
           },
         ]
       }
+      knowledge_gaps: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          frequency: number
+          id: string
+          last_seen_at: string
+          organization_id: string
+          question: string
+          resolved_by_entry_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          frequency?: number
+          id?: string
+          last_seen_at?: string
+          organization_id: string
+          question: string
+          resolved_by_entry_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          frequency?: number
+          id?: string
+          last_seen_at?: string
+          organization_id?: string
+          question?: string
+          resolved_by_entry_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_gaps_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "widget_ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_gaps_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_gaps_resolved_by_entry_id_fkey"
+            columns: ["resolved_by_entry_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_patterns: {
         Row: {
           created_at: string | null
@@ -3094,6 +3155,7 @@ export type Database = {
           resolved_by: string | null
           resolved_by_ai: boolean | null
           status: string
+          summary: string | null
           tools_used: string[] | null
           updated_at: string
           visitor_email: string | null
@@ -3112,6 +3174,7 @@ export type Database = {
           resolved_by?: string | null
           resolved_by_ai?: boolean | null
           status?: string
+          summary?: string | null
           tools_used?: string[] | null
           updated_at?: string
           visitor_email?: string | null
@@ -3130,6 +3193,7 @@ export type Database = {
           resolved_by?: string | null
           resolved_by_ai?: boolean | null
           status?: string
+          summary?: string | null
           tools_used?: string[] | null
           updated_at?: string
           visitor_email?: string | null
