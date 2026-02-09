@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
   ThumbsUp, ThumbsDown, Phone, Mail, Clock,
   CheckCircle, ArrowRightLeft, XCircle,
 } from 'lucide-react';
+import { StarRatingInput } from '@/components/ui/star-rating-input';
 
 interface AiConversationHistoryProps {
   organizationId: string | null;
@@ -50,9 +52,35 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secon
 };
 
 export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ organizationId }) => {
+  const queryClient = useQueryClient();
   const [selectedConvoId, setSelectedConvoId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const rateMessageMutation = useMutation({
+    mutationFn: async ({ messageId, rating }: { messageId: string; rating: 'positive' | 'negative' }) => {
+      const { error } = await supabase
+        .from('widget_ai_messages')
+        .update({ feedback_rating: rating })
+        .eq('id', messageId);
+      if (error) throw error;
+
+      // Also insert into widget_ai_feedback with admin source
+      if (selectedConvoId && organizationId) {
+        await supabase.from('widget_ai_feedback').insert({
+          message_id: messageId,
+          conversation_id: selectedConvoId,
+          organization_id: organizationId,
+          rating,
+          source: 'admin',
+        });
+      }
+    },
+    onSuccess: (_, { rating }) => {
+      toast.success(`Message rated ${rating}`);
+      queryClient.invalidateQueries({ queryKey: ['ai-conversation-messages', selectedConvoId] });
+    },
+  });
 
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['ai-conversations', organizationId, statusFilter],
@@ -223,8 +251,22 @@ export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ or
                         {msg.tools_used && msg.tools_used.length > 0 && (
                           <span className="text-xs text-muted-foreground">🔧 {msg.tools_used.join(', ')}</span>
                         )}
-                        {msg.feedback_rating === 'positive' && <ThumbsUp className="h-3 w-3 text-green-600" />}
-                        {msg.feedback_rating === 'negative' && <ThumbsDown className="h-3 w-3 text-red-600" />}
+                        {msg.role === 'assistant' && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => rateMessageMutation.mutate({ messageId: msg.id, rating: 'positive' })}
+                              className={`p-0.5 rounded hover:bg-muted transition-colors ${msg.feedback_rating === 'positive' ? 'text-green-600' : 'text-muted-foreground/50 hover:text-green-600'}`}
+                            >
+                              <ThumbsUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => rateMessageMutation.mutate({ messageId: msg.id, rating: 'negative' })}
+                              className={`p-0.5 rounded hover:bg-muted transition-colors ${msg.feedback_rating === 'negative' ? 'text-red-600' : 'text-muted-foreground/50 hover:text-red-600'}`}
+                            >
+                              <ThumbsDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

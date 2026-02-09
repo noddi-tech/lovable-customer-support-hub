@@ -341,14 +341,13 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                       {entry.category}
                     </Badge>
                   )}
-                  {entry.quality_score !== null && (
-                    <div className="flex items-center gap-1">
-                      <Star className={`w-4 h-4 ${getQualityColor(entry.quality_score)}`} />
-                      <span className={`text-sm font-bold ${getQualityColor(entry.quality_score)}`}>
-                        {entry.quality_score.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
+                  <StarRatingInput
+                    value={entry.quality_score ?? 3}
+                    onChange={(value) => {
+                      updateMutation.mutate({ ...entry, quality_score: value });
+                    }}
+                    size="sm"
+                  />
                   <span className="text-sm text-muted-foreground">
                     Used: {entry.usage_count || 0} times
                   </span>

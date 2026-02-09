@@ -1244,6 +1244,7 @@ export type Database = {
           id: string
           last_seen_at: string
           organization_id: string
+          priority: number | null
           question: string
           resolved_by_entry_id: string | null
           status: string
@@ -1256,6 +1257,7 @@ export type Database = {
           id?: string
           last_seen_at?: string
           organization_id: string
+          priority?: number | null
           question: string
           resolved_by_entry_id?: string | null
           status?: string
@@ -1268,6 +1270,7 @@ export type Database = {
           id?: string
           last_seen_at?: string
           organization_id?: string
+          priority?: number | null
           question?: string
           resolved_by_entry_id?: string | null
           status?: string
@@ -1349,6 +1352,7 @@ export type Database = {
       }
       knowledge_pending_entries: {
         Row: {
+          admin_quality_score: number | null
           agent_response: string
           ai_quality_score: number | null
           created_at: string
@@ -1366,6 +1370,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_quality_score?: number | null
           agent_response: string
           ai_quality_score?: number | null
           created_at?: string
@@ -1383,6 +1388,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_quality_score?: number | null
           agent_response?: string
           ai_quality_score?: number | null
           created_at?: string
@@ -3227,6 +3233,7 @@ export type Database = {
           message_id: string
           organization_id: string
           rating: string
+          source: string | null
         }
         Insert: {
           conversation_id: string
@@ -3236,6 +3243,7 @@ export type Database = {
           message_id: string
           organization_id: string
           rating: string
+          source?: string | null
         }
         Update: {
           conversation_id?: string
@@ -3245,6 +3253,7 @@ export type Database = {
           message_id?: string
           organization_id?: string
           rating?: string
+          source?: string | null
         }
         Relationships: [
           {

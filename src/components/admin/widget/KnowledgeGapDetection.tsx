@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Lightbulb, CheckCircle, Eye, AlertTriangle, TrendingUp } from 'lucide-react';
+import { StarRatingInput } from '@/components/ui/star-rating-input';
 
 interface KnowledgeGapDetectionProps {
   organizationId: string | null;
@@ -19,6 +20,7 @@ interface KnowledgeGap {
   question: string;
   frequency: number;
   status: string;
+  priority: number | null;
   created_at: string;
   last_seen_at: string;
 }
@@ -35,6 +37,7 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
         .select('*')
         .eq('organization_id', organizationId)
         .eq('status', 'open')
+        .order('priority', { ascending: false, nullsFirst: false })
         .order('frequency', { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -54,6 +57,19 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge-gaps'] });
       toast.success('Gap dismissed');
+    },
+  });
+
+  const priorityMutation = useMutation({
+    mutationFn: async ({ gapId, priority }: { gapId: string; priority: number }) => {
+      const { error } = await supabase
+        .from('knowledge_gaps')
+        .update({ priority, updated_at: new Date().toISOString() })
+        .eq('id', gapId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-gaps'] });
     },
   });
 
@@ -106,6 +122,13 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
                         Asked {gap.frequency}x
                       </span>
                       <span>Last: {format(new Date(gap.last_seen_at), 'MMM d')}</span>
+                    </div>
+                    <div className="mt-1.5">
+                      <StarRatingInput
+                        value={gap.priority ?? 0}
+                        onChange={(value) => priorityMutation.mutate({ gapId: gap.id, priority: value })}
+                        size="sm"
+                      />
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
