@@ -1,143 +1,137 @@
 
 
-# Phase 1: Read-Only AI Chatbot for the Widget
+# Phase Review and Quality Rating Enhancement
 
-## Summary
+## Phase Status Review
 
-Replace the current "Search Answers" (FAQ accordion) view with an AI-powered conversational assistant that uses your knowledge base to answer questions and can look up customer bookings via the Noddi API. Read-only for now -- no booking modifications.
+### Phase 1: Core AI Chatbot -- COMPLETE
+- Edge function `widget-ai-chat` with OpenAI tool-calling (knowledge search, customer lookup, booking details)
+- Widget `AiChat.tsx` component with chat UI, phone prompt, escalation buttons
+- Translations added, localStorage session persistence
 
-When the AI can't answer, the customer can either **talk to a human** (if agents are online) or **email the conversation transcript** (if offline).
+### Phase 2: Streaming, Persistence, Booking Mods, Admin Test -- COMPLETE
+- SSE streaming via `streamAiMessage` with word-by-word delivery
+- Server-side persistence in `widget_ai_conversations` and `widget_ai_messages` tables
+- Booking modification tools: `reschedule_booking`, `cancel_booking`
+- Admin `WidgetTestMode` for live AI testing with session log
 
-## What Changes
+### Phase 3: Feedback, Auto-learning, Analytics -- COMPLETE
+- Thumbs up/down feedback via `widget-ai-feedback` edge function and `AiFeedback` widget component
+- Auto-learning: positive feedback creates `knowledge_pending_entries` for human review
+- AI Analytics dashboard with resolution rates, satisfaction metrics, tool usage charts
 
-### 1. New Edge Function: `widget-ai-chat`
+### Phase 4: Knowledge Gaps, Conversation History, Advanced AI -- COMPLETE
+- Knowledge gap detection: unanswered questions tracked in `knowledge_gaps` table
+- AI conversation history browser with search, filtering, and full transcript view
+- Enhanced system prompt with multi-turn context, proactive suggestions, smart escalation
 
-A single new edge function that:
-- Receives customer messages + conversation history
-- Uses OpenAI tool-calling with these read-only tools:
+All originally planned phases are complete. No remaining phases from the original plan.
 
-| Tool | What it does |
-|------|-------------|
-| `search_knowledge_base` | Embeds the query, calls `find_similar_responses` RPC, returns top matches |
-| `lookup_customer` | Calls `noddi-customer-lookup` internally -- phone first, email fallback |
-| `get_booking_details` | Calls Noddi API `GET /v1/bookings/{id}/` for a specific booking |
+---
 
-- System prompt enforces Noddi tone of voice, Norwegian/English language matching, and never inventing data
-- Customer identification: asks for phone number first (primary identifier), falls back to email
-- Returns structured responses: `{ reply: string, sources?: [...], bookingCard?: {...} }`
-- Handles streaming via SSE for real-time token delivery
+## New Feature: Quality Rating Across All Review Surfaces
 
-### 2. Widget UI Changes
+Currently, the `StarRatingInput` component and quality scoring exist only in the Knowledge Entries Manager (when editing an entry). The user wants to be able to rate entries **everywhere they review content** to improve AI response quality.
 
-**WidgetView type**: Add `'ai'` to the union: `'home' | 'contact' | 'search' | 'chat' | 'ai'`
+### Surfaces That Need Rating
 
-**WidgetPanel.tsx**: 
-- Replace the "Search our help center" button with "AI Assistant" as the primary action
-- When clicked, opens the new `AiChat` component instead of `KnowledgeSearch`
+1. **AI Conversation History** (admin widget tab) -- When reviewing AI conversation transcripts, admins should be able to rate individual AI messages. This feedback directly updates `widget_ai_messages.feedback_rating` and can adjust linked knowledge entry scores.
 
-**New component: `AiChat.tsx`**:
-- Chat bubble interface (reuses existing LiveChat styling patterns)
-- Streaming response display with typing indicator
-- Phone number input prompt when AI needs to look up bookings
-- Booking detail cards rendered inline (date, service, vehicle, status)
-- Footer buttons:
-  - "Talk to a human" (visible when `config.agentsOnline && config.enableChat`) -- starts a live chat session with conversation context transferred
-  - "Email this conversation" (visible when agents offline or chat disabled) -- calls existing `widget-submit` with the transcript
-- Conversation stored in localStorage for session persistence
+2. **Knowledge Import / Pending Review Queue** -- Currently shows read-only AI quality stars. Admins should be able to override the AI quality score with their own star rating before approving, so entries enter the knowledge base with a human-validated score.
 
-**New API functions in `api.ts`**:
-- `sendAiMessage(widgetKey, messages, visitorPhone?, visitorEmail?)` -- calls the edge function
-- `streamAiChat(...)` -- SSE streaming variant
+3. **Knowledge Gaps** -- When reviewing a gap, admins should be able to rate how important/urgent it is (priority rating) so the most critical gaps surface first.
 
-### 3. Widget Admin: Test Mode
+4. **Knowledge Entries List** -- Already has star rating in the edit dialog, but should also allow inline quick-rating without opening the full edit dialog.
 
-**Enable testing in the admin preview panel** (`/admin/widget`):
-- Add a toggle: "Test AI Bot" that switches the preview widget into AI mode
-- Uses the same edge function but with a `test: true` flag so responses are not persisted
-- Allows you to test knowledge base answers and booking lookups from the admin panel
+### Implementation Plan
 
-### 4. Translation Updates
+#### 1. AI Conversation History: Admin Rating on Messages
 
-Add new keys to all 10 language JSON files:
+**File: `src/components/admin/widget/AiConversationHistory.tsx`**
 
-| Key | English | Norwegian |
-|-----|---------|-----------|
-| `aiAssistant` | "AI Assistant" | "AI-assistent" |
-| `askAnything` | "Ask me anything" | "Spor meg om hva som helst" |
-| `talkToHuman` | "Talk to a human" | "Snakk med et menneske" |
-| `emailConversation` | "Email this conversation" | "Send samtalen pa e-post" |
-| `enterPhone` | "Enter your phone number to look up bookings" | "Skriv inn telefonnummeret ditt for a se bestillinger" |
-| `thinking` | "Thinking..." | "Tenker..." |
-| `aiGreeting` | "Hi! I'm Noddi's AI assistant..." | "Hei! Jeg er Noddis AI-assistent..." |
+- Add a thumbs up/down + star rating control next to each AI assistant message in the transcript view
+- When an admin rates a message:
+  - Update `widget_ai_messages.feedback_rating` in the database
+  - Insert/update `widget_ai_feedback` with `source: 'admin'` to distinguish from widget user feedback
+  - If rated positively and no knowledge entry exists, create a `knowledge_pending_entries` record (same auto-learning flow)
+  - If rated negatively, flag any linked knowledge entry for review (decrease quality score)
 
-### 5. Escalation Flow
+#### 2. Knowledge Import Pending Review: Editable Quality Score
 
-```text
-Customer chatting with AI
-         |
-         v
-   Can AI answer?
-    /          \
-  Yes           No
-   |             |
-   v             v
- Show answer   Show escalation options
-               /                    \
-     Agents online?            Agents offline?
-         |                          |
-         v                          v
-   "Talk to human"          "Email conversation"
-         |                          |
-         v                          v
-   Start live chat            Submit contact form
-   (transfer context)        (with transcript)
+**File: `src/components/dashboard/knowledge/KnowledgeImportFromHistory.tsx`**
+
+- Replace the read-only `renderQualityStars` with the interactive `StarRatingInput` component
+- Store the admin's chosen score in local state per entry
+- When approving, use the admin's score instead of the `ai_quality_score` as the entry's `quality_score`
+
+#### 3. Knowledge Gaps: Priority Rating
+
+**File: `src/components/admin/widget/KnowledgeGapDetection.tsx`**
+
+- Add a small priority selector (1-5 stars or Low/Medium/High/Critical) to each gap
+- Persist to a new `priority` column on `knowledge_gaps` table (integer 1-5)
+- Sort gaps by priority first, then frequency
+
+**Database migration:**
+- Add `priority` column (integer, default null) to `knowledge_gaps`
+- Add `admin_quality_score` column (numeric, default null) to `knowledge_pending_entries` to track admin overrides
+
+#### 4. Knowledge Entries: Inline Quick Rating
+
+**File: `src/components/dashboard/knowledge/KnowledgeEntriesManager.tsx`**
+
+- Make the existing quality score display clickable/interactive using `StarRatingInput`
+- On click, allow inline rating change that saves directly to the database
+- No need to open the full edit dialog just to adjust quality
+
+### Technical Details
+
+#### Database Migration
+
+```sql
+-- Add priority to knowledge_gaps for admin triage
+ALTER TABLE knowledge_gaps ADD COLUMN IF NOT EXISTS priority integer DEFAULT NULL;
+
+-- Add admin_quality_score to pending entries for human override
+ALTER TABLE knowledge_pending_entries 
+  ADD COLUMN IF NOT EXISTS admin_quality_score numeric DEFAULT NULL;
+
+-- Add source field to widget_ai_feedback to distinguish admin vs widget feedback
+ALTER TABLE widget_ai_feedback 
+  ADD COLUMN IF NOT EXISTS source text DEFAULT 'widget';
 ```
 
-## Technical Details
-
-### Edge Function: `supabase/functions/widget-ai-chat/index.ts`
-
-- Uses `OPENAI_API_KEY` (already configured as a Supabase secret)
-- Uses `NODDI_API_TOKEN` for booking lookups
-- Tool-calling flow:
-  1. Customer sends message
-  2. OpenAI decides if it needs tools (knowledge search, booking lookup)
-  3. If tool needed: execute it, feed result back to OpenAI
-  4. OpenAI generates final natural language response
-  5. Stream response back to widget
-
-### Config.toml Addition
-
-```toml
-[functions.widget-ai-chat]
-verify_jwt = false
-```
-
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/widget-ai-chat/index.ts` | AI chat edge function with tool-calling |
-| `src/widget/components/AiChat.tsx` | Chat UI component for the widget |
-
-### Files to Modify
+#### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/widget/types.ts` | Add `'ai'` to WidgetView, add AI message types |
-| `src/widget/api.ts` | Add `sendAiMessage()` and streaming functions |
-| `src/widget/components/WidgetPanel.tsx` | Add AI view, modify home screen actions |
-| `src/widget/translations/*.json` (10 files) | Add new translation keys |
-| `supabase/config.toml` | Add widget-ai-chat function config |
+| `src/components/admin/widget/AiConversationHistory.tsx` | Add admin rating controls to message transcript |
+| `src/components/dashboard/knowledge/KnowledgeImportFromHistory.tsx` | Replace read-only stars with interactive `StarRatingInput` |
+| `src/components/admin/widget/KnowledgeGapDetection.tsx` | Add priority rating per gap |
+| `src/components/dashboard/knowledge/KnowledgeEntriesManager.tsx` | Add inline quick-rating without edit dialog |
+| `supabase/migrations/` | New migration for schema changes |
+| `src/integrations/supabase/types.ts` | Update generated types |
 
-### No Database Changes Required
+#### Quality Score Impact on AI Responses
 
-Conversation history is maintained client-side in the widget (localStorage + in-memory). No new tables needed for Phase 1.
+The `find_similar_responses` RPC already factors `quality_score` into its ranking. By allowing admins to rate entries across all surfaces, higher-quality entries naturally surface more often in AI responses, creating a continuous improvement loop:
 
-## What This Does NOT Include (Future Phases)
-
-- Booking modifications (reschedule, cancel) -- requires confirming Noddi API write endpoints
-- Server-side conversation persistence / analytics tables
-- Auto-learning from AI interactions
-- Thumbs up/down feedback on AI answers
+```text
+Admin rates content
+       |
+       v
+quality_score updated
+       |
+       v
+find_similar_responses ranks higher
+       |
+       v
+AI serves better answers
+       |
+       v
+Widget users give thumbs up
+       |
+       v
+Score reinforced further
+```
 
