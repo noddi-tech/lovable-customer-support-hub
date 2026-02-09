@@ -2,9 +2,25 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Simple in-memory rate limiter (per widget key, resets on cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 20; // 20 requests per widget per minute
+
+function isRateLimited(widgetKey: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(widgetKey);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(widgetKey, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
 
@@ -104,8 +120,9 @@ async function executeSearchKnowledge(
 
     const { data: results, error } = await supabase.rpc('find_similar_responses', {
       query_embedding: embedding,
-      target_organization_id: organizationId,
-      match_limit: 5,
+      org_id: organizationId,
+      match_threshold: 0.75,
+      match_count: 5,
     });
 
     if (error) {
@@ -325,6 +342,14 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'widgetKey and messages are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Rate limit check
+    if (isRateLimited(widgetKey)) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please wait a moment.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 

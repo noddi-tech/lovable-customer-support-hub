@@ -3358,40 +3358,22 @@ export type Database = {
           subject: string
         }[]
       }
-      find_similar_responses:
-        | {
-            Args: {
-              match_count?: number
-              match_threshold?: number
-              org_id?: string
-              query_embedding: string
-            }
-            Returns: {
-              agent_response: string
-              category: string
-              customer_context: string
-              id: string
-              quality_score: number
-              similarity: number
-              tags: string[]
-            }[]
-          }
-        | {
-            Args: {
-              match_count?: number
-              match_threshold?: number
-              org_id: string
-              query_embedding: string
-            }
-            Returns: {
-              agent_response: string
-              customer_context: string
-              id: string
-              quality_score: number
-              usage_count: number
-              was_refined: boolean
-            }[]
-          }
+      find_similar_responses: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          org_id: string
+          query_embedding: string
+        }
+        Returns: {
+          agent_response: string
+          customer_context: string
+          id: string
+          quality_score: number
+          usage_count: number
+          was_refined: boolean
+        }[]
+      }
       generate_ticket_number: { Args: { org_id: string }; Returns: string }
       get_all_counts: {
         Args: never

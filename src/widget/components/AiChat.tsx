@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { sendAiMessage } from '../api';
 import { getWidgetTranslations } from '../translations';
 
@@ -59,6 +60,8 @@ export const AiChat: React.FC<AiChatProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [visitorPhone, setVisitorPhone] = useState(() => localStorage.getItem('noddi_ai_phone') || '');
+  const [phoneSkipped, setPhoneSkipped] = useState(() => localStorage.getItem('noddi_ai_phone_skipped') === 'true');
+  const [phoneInput, setPhoneInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const t = getWidgetTranslations(language);
@@ -145,9 +148,16 @@ export const AiChat: React.FC<AiChatProps> = ({
   };
 
   const handlePhoneSubmit = () => {
-    if (visitorPhone.trim()) {
-      localStorage.setItem('noddi_ai_phone', visitorPhone.trim());
+    const phone = phoneInput.trim();
+    if (phone) {
+      setVisitorPhone(phone);
+      localStorage.setItem('noddi_ai_phone', phone);
     }
+  };
+
+  const handlePhoneSkip = () => {
+    setPhoneSkipped(true);
+    localStorage.setItem('noddi_ai_phone_skipped', 'true');
   };
 
   const buildTranscript = (): string => {
@@ -181,7 +191,7 @@ export const AiChat: React.FC<AiChatProps> = ({
       </button>
 
       {/* Phone prompt */}
-      {!visitorPhone && (
+      {!visitorPhone && !phoneSkipped && (
         <div className="noddi-ai-phone-prompt">
           <p className="noddi-ai-phone-label">{t.enterPhone}</p>
           <div className="noddi-ai-phone-input-row">
@@ -189,20 +199,20 @@ export const AiChat: React.FC<AiChatProps> = ({
               type="tel"
               className="noddi-chat-input"
               placeholder="+47..."
-              value={visitorPhone}
-              onChange={(e) => setVisitorPhone(e.target.value)}
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handlePhoneSubmit(); }}
             />
             <button
               className="noddi-ai-phone-submit"
               onClick={handlePhoneSubmit}
               style={{ backgroundColor: primaryColor }}
-              disabled={!visitorPhone.trim()}
+              disabled={!phoneInput.trim()}
             >
               ✓
             </button>
           </div>
-          <button className="noddi-ai-skip-phone" onClick={() => setVisitorPhone('skip')}>
+          <button className="noddi-ai-skip-phone" onClick={handlePhoneSkip}>
             {t.skipPhone}
           </button>
         </div>
@@ -224,7 +234,7 @@ export const AiChat: React.FC<AiChatProps> = ({
               className="noddi-chat-message-bubble"
               style={message.role === 'user' ? { backgroundColor: primaryColor } : {}}
               dangerouslySetInnerHTML={{
-                __html: formatAiResponse(message.content),
+                __html: DOMPurify.sanitize(formatAiResponse(message.content)),
               }}
             />
             <span className="noddi-chat-message-time">

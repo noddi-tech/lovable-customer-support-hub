@@ -7,6 +7,7 @@ interface ContactFormProps {
   primaryColor: string;
   onSuccess: () => void;
   language: string;
+  initialMessage?: string;
 }
 
 export const ContactForm: React.FC<ContactFormProps> = ({
@@ -14,10 +15,11 @@ export const ContactForm: React.FC<ContactFormProps> = ({
   primaryColor,
   onSuccess,
   language,
+  initialMessage,
 }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(initialMessage || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
