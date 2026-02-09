@@ -163,7 +163,7 @@ export async function sendAiMessage(
   visitorPhone?: string,
   visitorEmail?: string,
   language?: string,
-): Promise<{ reply: string; conversationId?: string }> {
+): Promise<{ reply: string; conversationId?: string; messageId?: string }> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
       method: 'POST',
@@ -180,6 +180,7 @@ export async function sendAiMessage(
     return {
       reply: data.reply || 'Sorry, I could not generate a response.',
       conversationId: data.conversationId,
+      messageId: data.messageId,
     };
   } catch (error) {
     console.error('[Noddi Widget] Error in AI chat:', error);
@@ -195,7 +196,7 @@ export async function streamAiMessage(
   language?: string,
   conversationId?: string,
   onToken?: (token: string) => void,
-  onMeta?: (meta: { conversationId?: string }) => void,
+  onMeta?: (meta: { conversationId?: string; messageId?: string }) => void,
 ): Promise<void> {
   const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
     method: 'POST',
@@ -244,7 +245,7 @@ export async function streamAiMessage(
         if (data.type === 'token' && onToken) {
           onToken(data.content);
         } else if (data.type === 'meta' && onMeta) {
-          onMeta({ conversationId: data.conversationId });
+          onMeta({ conversationId: data.conversationId, messageId: data.messageId });
         } else if (data.type === 'done') {
           return;
         }

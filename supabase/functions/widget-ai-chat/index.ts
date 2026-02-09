@@ -435,22 +435,24 @@ async function saveMessage(
   role: string,
   content: string,
   toolsUsed?: string[],
-) {
-  if (!conversationId) return;
+): Promise<string | null> {
+  if (!conversationId) return null;
   try {
-    await supabase.from('widget_ai_messages').insert({
+    const { data } = await supabase.from('widget_ai_messages').insert({
       conversation_id: conversationId,
       role,
       content,
       tools_used: toolsUsed || [],
-    });
-    // Update message count
-    await supabase.rpc('', {}).catch(() => {}); // no-op, we'll use a simpler approach
+    }).select('id').single();
+    
+    // Update conversation message count and timestamp
     await supabase
       .from('widget_ai_conversations')
-      .update({ message_count: undefined, updated_at: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString() })
       .eq('id', conversationId);
-  } catch { /* best effort */ }
+    
+    return data?.id || null;
+  } catch { return null; }
 }
 
 async function updateConversationMeta(
@@ -616,16 +618,16 @@ Deno.serve(async (req) => {
         const reply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
 
         // Save assistant reply & update conversation meta
-        await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
+        const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
         await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
 
         // If streaming requested and we have the final text, stream it via SSE
         if (stream) {
-          return streamTextResponse(reply, dbConversationId);
+          return streamTextResponse(reply, dbConversationId, savedMessageId);
         }
 
         return new Response(
-          JSON.stringify({ reply, conversationId: dbConversationId }),
+          JSON.stringify({ reply, conversationId: dbConversationId, messageId: savedMessageId }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
@@ -668,13 +670,13 @@ Deno.serve(async (req) => {
 });
 
 // Stream the final reply text as SSE events
-function streamTextResponse(text: string, conversationId: string | null): Response {
+function streamTextResponse(text: string, conversationId: string | null, messageId: string | null): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
-      // Send conversationId first
-      if (conversationId) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'meta', conversationId })}\n\n`));
+      // Send conversationId and messageId first
+      if (conversationId || messageId) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'meta', conversationId, messageId })}\n\n`));
       }
 
       // Stream text in small chunks for a natural typing effect

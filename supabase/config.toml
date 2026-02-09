@@ -201,3 +201,6 @@ verify_jwt = true
 
 [functions.widget-ai-chat]
 verify_jwt = false
+
+[functions.widget-ai-feedback]
+verify_jwt = false

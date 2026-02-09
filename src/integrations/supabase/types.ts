@@ -3090,7 +3090,9 @@ export type Database = {
           id: string
           message_count: number
           organization_id: string
+          primary_intent: string | null
           resolved_by: string | null
+          resolved_by_ai: boolean | null
           status: string
           tools_used: string[] | null
           updated_at: string
@@ -3106,7 +3108,9 @@ export type Database = {
           id?: string
           message_count?: number
           organization_id: string
+          primary_intent?: string | null
           resolved_by?: string | null
+          resolved_by_ai?: boolean | null
           status?: string
           tools_used?: string[] | null
           updated_at?: string
@@ -3122,7 +3126,9 @@ export type Database = {
           id?: string
           message_count?: number
           organization_id?: string
+          primary_intent?: string | null
           resolved_by?: string | null
+          resolved_by_ai?: boolean | null
           status?: string
           tools_used?: string[] | null
           updated_at?: string
@@ -3148,11 +3154,64 @@ export type Database = {
           },
         ]
       }
+      widget_ai_feedback: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          feedback_text: string | null
+          id: string
+          message_id: string
+          organization_id: string
+          rating: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          message_id: string
+          organization_id: string
+          rating: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          message_id?: string
+          organization_id?: string
+          rating?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_ai_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "widget_ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_ai_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "widget_ai_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_ai_feedback_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_ai_messages: {
         Row: {
           content: string
           conversation_id: string
           created_at: string
+          feedback_rating: string | null
           id: string
           intent_detected: string | null
           role: string
@@ -3162,6 +3221,7 @@ export type Database = {
           content: string
           conversation_id: string
           created_at?: string
+          feedback_rating?: string | null
           id?: string
           intent_detected?: string | null
           role: string
@@ -3171,6 +3231,7 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          feedback_rating?: string | null
           id?: string
           intent_detected?: string | null
           role?: string
