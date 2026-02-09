@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { TagMultiSelect } from "./TagMultiSelect";
+import { StarRatingInput } from "@/components/ui/star-rating-input";
 import { 
   Play, 
   Loader2, 
@@ -59,6 +60,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
   const [editedContent, setEditedContent] = useState<{ customer: string; agent: string }>({ customer: '', agent: '' });
   const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({});
   const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
+  const [adminScores, setAdminScores] = useState<Record<string, number>>({});
 
   // Fetch latest extraction job
   const { data: latestJob, isLoading: jobLoading } = useQuery({
@@ -202,7 +204,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
           category: categoryId || null,
           tags: tags && tags.length > 0 ? tags : null,
           embedding: embeddingData?.embedding ? JSON.stringify(embeddingData.embedding) : null,
-          quality_score: entry.ai_quality_score || 3.0,
+          quality_score: adminScores[entry.id] ?? entry.ai_quality_score ?? 3.0,
           is_manually_curated: true,
           created_from_message_id: entry.source_message_id,
         });
@@ -298,19 +300,14 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
     });
   };
 
-  const renderQualityStars = (score: number | null) => {
-    if (score === null) return <span className="text-muted-foreground text-sm">No score</span>;
-    const stars = Math.round(score);
+  const renderQualityStars = (entryId: string, score: number | null) => {
+    const currentScore = adminScores[entryId] ?? (score ? Math.round(score) : 3);
     return (
-      <div className="flex items-center gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-4 h-4 ${star <= stars ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
-          />
-        ))}
-        <span className="ml-1 text-sm text-muted-foreground">({score.toFixed(1)})</span>
-      </div>
+      <StarRatingInput
+        value={currentScore}
+        onChange={(value) => setAdminScores(prev => ({ ...prev, [entryId]: value }))}
+        size="sm"
+      />
     );
   };
 
@@ -460,7 +457,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                       {/* Quality Score, Category & Tags */}
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center flex-wrap gap-4">
-                          {renderQualityStars(entry.ai_quality_score)}
+                          {renderQualityStars(entry.id, entry.ai_quality_score)}
                           
                           <Select
                             value={selectedCategories[entry.id] ?? entry.suggested_category_id ?? 'none'}
