@@ -8,8 +8,8 @@ const corsHeaders = {
 
 // Simple in-memory rate limiter (per widget key, resets on cold start)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 20; // 20 requests per widget per minute
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 20;
 
 function isRateLimited(widgetKey: string): boolean {
   const now = Date.now();
@@ -36,6 +36,8 @@ interface RequestBody {
   visitorEmail?: string;
   language?: string;
   test?: boolean;
+  stream?: boolean;
+  conversationId?: string;
 }
 
 // ========== Tool definitions for OpenAI ==========
@@ -83,6 +85,36 @@ const tools = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'reschedule_booking',
+      description: 'Reschedule a booking to a new date/time. Requires the booking ID and the new desired date/time. Always confirm with the customer before calling this.',
+      parameters: {
+        type: 'object',
+        properties: {
+          booking_id: { type: 'number', description: 'The Noddi booking ID to reschedule' },
+          new_date: { type: 'string', description: 'The new desired date/time in ISO 8601 format' },
+        },
+        required: ['booking_id', 'new_date'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'cancel_booking',
+      description: 'Cancel a booking. Requires the booking ID. Always ask the customer to confirm before calling this - cancellations may not be reversible.',
+      parameters: {
+        type: 'object',
+        properties: {
+          booking_id: { type: 'number', description: 'The Noddi booking ID to cancel' },
+          reason: { type: 'string', description: 'Optional cancellation reason from the customer' },
+        },
+        required: ['booking_id'],
+      },
+    },
+  },
 ];
 
 // ========== Tool execution functions ==========
@@ -94,7 +126,6 @@ async function executeSearchKnowledge(
   openaiApiKey: string,
 ): Promise<string> {
   try {
-    // Generate embedding
     const embeddingResp = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
@@ -134,28 +165,23 @@ async function executeSearchKnowledge(
       return JSON.stringify({ results: [], message: 'No relevant knowledge base entries found.' });
     }
 
-    const formatted = results.map((r: any) => ({
-      question: r.customer_context,
-      answer: r.agent_response,
-      category: r.category,
-      similarity: r.similarity,
-    }));
-
-    return JSON.stringify({ results: formatted });
+    return JSON.stringify({
+      results: results.map((r: any) => ({
+        question: r.customer_context,
+        answer: r.agent_response,
+        category: r.category,
+        similarity: r.similarity,
+      })),
+    });
   } catch (err) {
     console.error('[widget-ai-chat] Knowledge search error:', err);
     return JSON.stringify({ error: 'Search failed' });
   }
 }
 
-async function executeLookupCustomer(
-  phone?: string,
-  email?: string,
-): Promise<string> {
+async function executeLookupCustomer(phone?: string, email?: string): Promise<string> {
   const noddiToken = Deno.env.get('NODDI_API_TOKEN');
-  if (!noddiToken) {
-    return JSON.stringify({ error: 'Customer lookup not configured' });
-  }
+  if (!noddiToken) return JSON.stringify({ error: 'Customer lookup not configured' });
 
   const headers: HeadersInit = {
     'Authorization': `Token ${noddiToken}`,
@@ -166,47 +192,27 @@ async function executeLookupCustomer(
   try {
     let userData: any = null;
 
-    // Try phone first (primary identifier)
     if (phone) {
       const cleanPhone = phone.replace(/\s+/g, '').replace(/^(\+?47)?/, '+47');
-      const phoneResp = await fetch(`${API_BASE}/v1/users/get-by-phone-number/?phone_number=${encodeURIComponent(cleanPhone)}`, {
-        headers,
-      });
-      if (phoneResp.ok) {
-        userData = await phoneResp.json();
-      } else {
-        console.log('[widget-ai-chat] Phone lookup returned:', phoneResp.status);
-      }
+      const resp = await fetch(`${API_BASE}/v1/users/get-by-phone-number/?phone_number=${encodeURIComponent(cleanPhone)}`, { headers });
+      if (resp.ok) userData = await resp.json();
     }
 
-    // Fallback to email
     if (!userData && email) {
-      const emailResp = await fetch(`${API_BASE}/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, {
-        headers,
-      });
-      if (emailResp.ok) {
-        userData = await emailResp.json();
-      } else {
-        console.log('[widget-ai-chat] Email lookup returned:', emailResp.status);
-      }
+      const resp = await fetch(`${API_BASE}/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, { headers });
+      if (resp.ok) userData = await resp.json();
     }
 
-    if (!userData) {
-      return JSON.stringify({ found: false, message: 'No customer found with the provided information.' });
-    }
+    if (!userData) return JSON.stringify({ found: false, message: 'No customer found with the provided information.' });
 
-    // Get user group id for booking lookup
     const userGroupId = userData.user_groups?.[0]?.id;
     let bookings: any[] = [];
 
     if (userGroupId) {
-      const bookingsResp = await fetch(
-        `${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/`,
-        { headers },
-      );
-      if (bookingsResp.ok) {
-        const bookingsData = await bookingsResp.json();
-        bookings = Array.isArray(bookingsData) ? bookingsData : (bookingsData.results || []);
+      const resp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/`, { headers });
+      if (resp.ok) {
+        const data = await resp.json();
+        bookings = Array.isArray(data) ? data : (data.results || []);
       }
     }
 
@@ -236,49 +242,92 @@ async function executeLookupCustomer(
 
 async function executeGetBookingDetails(bookingId: number): Promise<string> {
   const noddiToken = Deno.env.get('NODDI_API_TOKEN');
-  if (!noddiToken) {
-    return JSON.stringify({ error: 'Booking lookup not configured' });
-  }
+  if (!noddiToken) return JSON.stringify({ error: 'Booking lookup not configured' });
 
   try {
     const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/`, {
-      headers: {
-        'Authorization': `Token ${noddiToken}`,
-        'Accept': 'application/json',
-      },
+      headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json' },
     });
 
     if (!resp.ok) {
-      if (resp.status === 404) {
-        return JSON.stringify({ error: 'Booking not found' });
-      }
-      return JSON.stringify({ error: `Booking lookup failed (${resp.status})` });
+      return JSON.stringify({ error: resp.status === 404 ? 'Booking not found' : `Booking lookup failed (${resp.status})` });
     }
 
     const booking = await resp.json();
-
     return JSON.stringify({
       id: booking.id,
       status: booking.status,
       scheduledAt: booking.start_time || booking.scheduled_at,
       endTime: booking.end_time,
-      services: booking.order_lines?.map((ol: any) => ({
-        name: ol.service_name || ol.name,
-        price: ol.price,
-      })) || [],
+      services: booking.order_lines?.map((ol: any) => ({ name: ol.service_name || ol.name, price: ol.price })) || [],
       address: booking.address?.full_address || booking.address || null,
-      vehicle: booking.car ? {
-        make: booking.car.make,
-        model: booking.car.model,
-        licensePlate: booking.car.license_plate,
-        year: booking.car.year,
-      } : null,
+      vehicle: booking.car ? { make: booking.car.make, model: booking.car.model, licensePlate: booking.car.license_plate, year: booking.car.year } : null,
       totalPrice: booking.total_price,
       notes: booking.customer_notes || null,
     });
   } catch (err) {
     console.error('[widget-ai-chat] Booking details error:', err);
     return JSON.stringify({ error: 'Failed to fetch booking details' });
+  }
+}
+
+async function executeRescheduleBooking(bookingId: number, newDate: string): Promise<string> {
+  const noddiToken = Deno.env.get('NODDI_API_TOKEN');
+  if (!noddiToken) return JSON.stringify({ error: 'Booking modification not configured' });
+
+  try {
+    const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/reschedule/`, {
+      method: 'POST',
+      headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_start_time: newDate }),
+    });
+
+    if (!resp.ok) {
+      const errorBody = await resp.text();
+      console.error('[widget-ai-chat] Reschedule failed:', resp.status, errorBody);
+      if (resp.status === 404) return JSON.stringify({ success: false, error: 'Booking not found' });
+      if (resp.status === 400) return JSON.stringify({ success: false, error: 'The requested time slot is not available. Please try a different time.' });
+      return JSON.stringify({ success: false, error: 'Rescheduling failed. Please try again or contact support.' });
+    }
+
+    const data = await resp.json();
+    return JSON.stringify({
+      success: true,
+      message: 'Booking rescheduled successfully',
+      newScheduledAt: data.start_time || data.scheduled_at || newDate,
+    });
+  } catch (err) {
+    console.error('[widget-ai-chat] Reschedule error:', err);
+    return JSON.stringify({ success: false, error: 'Rescheduling failed' });
+  }
+}
+
+async function executeCancelBooking(bookingId: number, reason?: string): Promise<string> {
+  const noddiToken = Deno.env.get('NODDI_API_TOKEN');
+  if (!noddiToken) return JSON.stringify({ error: 'Booking modification not configured' });
+
+  try {
+    const body: any = {};
+    if (reason) body.cancellation_reason = reason;
+
+    const resp = await fetch(`${API_BASE}/v1/bookings/${bookingId}/cancel/`, {
+      method: 'POST',
+      headers: { 'Authorization': `Token ${noddiToken}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const errorBody = await resp.text();
+      console.error('[widget-ai-chat] Cancel failed:', resp.status, errorBody);
+      if (resp.status === 404) return JSON.stringify({ success: false, error: 'Booking not found' });
+      if (resp.status === 400) return JSON.stringify({ success: false, error: 'This booking cannot be cancelled. It may already be completed or cancelled.' });
+      return JSON.stringify({ success: false, error: 'Cancellation failed. Please contact support.' });
+    }
+
+    return JSON.stringify({ success: true, message: 'Booking cancelled successfully' });
+  } catch (err) {
+    console.error('[widget-ai-chat] Cancel error:', err);
+    return JSON.stringify({ success: false, error: 'Cancellation failed' });
   }
 }
 
@@ -289,7 +338,7 @@ function buildSystemPrompt(language: string): string {
     ? 'Respond in Norwegian (bokmål). Match the customer\'s language.'
     : `Respond in the same language as the customer. The widget is set to language code: ${language}.`;
 
-  return `You are Noddi's AI customer assistant. You help customers with questions about Noddi's services (mobile car wash, tire change, tire storage, etc.) and help them look up their bookings.
+  return `You are Noddi's AI customer assistant. You help customers with questions about Noddi's services (mobile car wash, tire change, tire storage, etc.) and help them look up and manage their bookings.
 
 ${langInstruction}
 
@@ -300,12 +349,132 @@ RULES:
 4. Use the search_knowledge_base tool to answer general questions about services, pricing, processes, etc.
 5. Use the lookup_customer tool when the customer provides their phone number or email to find their bookings.
 6. Use get_booking_details for detailed information about a specific booking.
-7. If you cannot answer a question, suggest the customer talk to a human agent or send a message.
-8. Format booking information clearly with dates, services, and status.
-9. Never ask for sensitive information like passwords or payment details.
-10. If the customer seems frustrated or the issue is complex, suggest speaking with a human agent.
-11. Keep responses focused and not too long. Use bullet points for lists.
-12. You can use emojis sparingly to be friendly.`;
+7. For rescheduling: ALWAYS confirm the new date/time with the customer before calling reschedule_booking. Show them what will change.
+8. For cancellations: ALWAYS ask the customer to explicitly confirm they want to cancel. Warn that cancellations may not be reversible.
+9. If you cannot answer a question, suggest the customer talk to a human agent or send a message.
+10. Format booking information clearly with dates, services, and status.
+11. Never ask for sensitive information like passwords or payment details.
+12. If the customer seems frustrated or the issue is complex, suggest speaking with a human agent.
+13. Keep responses focused and not too long. Use bullet points for lists.
+14. You can use emojis sparingly to be friendly.`;
+}
+
+// ========== Tool executor ==========
+
+async function executeTool(
+  toolName: string,
+  args: any,
+  organizationId: string,
+  supabase: any,
+  openaiApiKey: string,
+  visitorPhone?: string,
+  visitorEmail?: string,
+): Promise<string> {
+  switch (toolName) {
+    case 'search_knowledge_base':
+      return executeSearchKnowledge(args.query, organizationId, supabase, openaiApiKey);
+    case 'lookup_customer':
+      return executeLookupCustomer(args.phone || visitorPhone, args.email || visitorEmail);
+    case 'get_booking_details':
+      return executeGetBookingDetails(args.booking_id);
+    case 'reschedule_booking':
+      return executeRescheduleBooking(args.booking_id, args.new_date);
+    case 'cancel_booking':
+      return executeCancelBooking(args.booking_id, args.reason);
+    default:
+      return JSON.stringify({ error: `Unknown tool: ${toolName}` });
+  }
+}
+
+// ========== Persistence helpers ==========
+
+async function getOrCreateConversation(
+  supabase: any,
+  conversationId: string | undefined,
+  organizationId: string,
+  widgetConfigId: string,
+  visitorPhone?: string,
+  visitorEmail?: string,
+  isTest?: boolean,
+): Promise<string | null> {
+  if (isTest) return null; // Don't persist test conversations
+
+  if (conversationId) {
+    // Verify it exists
+    const { data } = await supabase
+      .from('widget_ai_conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .single();
+    if (data) return data.id;
+  }
+
+  // Create new
+  const { data, error } = await supabase
+    .from('widget_ai_conversations')
+    .insert({
+      organization_id: organizationId,
+      widget_config_id: widgetConfigId,
+      visitor_phone: visitorPhone || null,
+      visitor_email: visitorEmail || null,
+      status: 'active',
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('[widget-ai-chat] Failed to create conversation:', error);
+    return null;
+  }
+  return data.id;
+}
+
+async function saveMessage(
+  supabase: any,
+  conversationId: string | null,
+  role: string,
+  content: string,
+  toolsUsed?: string[],
+) {
+  if (!conversationId) return;
+  try {
+    await supabase.from('widget_ai_messages').insert({
+      conversation_id: conversationId,
+      role,
+      content,
+      tools_used: toolsUsed || [],
+    });
+    // Update message count
+    await supabase.rpc('', {}).catch(() => {}); // no-op, we'll use a simpler approach
+    await supabase
+      .from('widget_ai_conversations')
+      .update({ message_count: undefined, updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
+  } catch { /* best effort */ }
+}
+
+async function updateConversationMeta(
+  supabase: any,
+  conversationId: string | null,
+  toolsUsed: string[],
+) {
+  if (!conversationId || toolsUsed.length === 0) return;
+  try {
+    // Append unique tools used
+    const { data: conv } = await supabase
+      .from('widget_ai_conversations')
+      .select('tools_used')
+      .eq('id', conversationId)
+      .single();
+    
+    const existing = conv?.tools_used || [];
+    const merged = [...new Set([...existing, ...toolsUsed])];
+    
+    await supabase
+      .from('widget_ai_conversations')
+      .update({ tools_used: merged })
+      .eq('id', conversationId);
+  } catch { /* best effort */ }
 }
 
 // ========== Main handler ==========
@@ -328,7 +497,6 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[widget-ai-chat] Missing required configuration');
       return new Response(
         JSON.stringify({ error: 'AI chat not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -336,7 +504,7 @@ Deno.serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { widgetKey, messages, visitorPhone, visitorEmail, language = 'no' } = body;
+    const { widgetKey, messages, visitorPhone, visitorEmail, language = 'no', stream = false, test = false, conversationId } = body;
 
     if (!widgetKey || !messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
@@ -345,7 +513,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Rate limit check
     if (isRateLimited(widgetKey)) {
       return new Response(
         JSON.stringify({ error: 'Too many requests. Please wait a moment.' }),
@@ -358,7 +525,7 @@ Deno.serve(async (req) => {
     // Validate widget key and get organization
     const { data: widgetConfig, error: configError } = await supabase
       .from('widget_configs')
-      .select('organization_id, is_active')
+      .select('id, organization_id, is_active')
       .eq('widget_key', widgetKey)
       .eq('is_active', true)
       .single();
@@ -370,39 +537,49 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { organization_id: organizationId } = widgetConfig;
+    const organizationId = widgetConfig.organization_id;
 
-    // Build the conversation with system prompt
+    // Create/get conversation for persistence
+    const dbConversationId = await getOrCreateConversation(
+      supabase, conversationId, organizationId, widgetConfig.id,
+      visitorPhone, visitorEmail, test,
+    );
+
+    // Save user message
+    const lastUserMsg = messages[messages.length - 1];
+    if (lastUserMsg?.role === 'user') {
+      await saveMessage(supabase, dbConversationId, 'user', lastUserMsg.content);
+    }
+
+    // Build conversation with system prompt
     const systemPrompt = buildSystemPrompt(language);
-    const conversationMessages = [
-      { role: 'system' as const, content: systemPrompt },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
+    const conversationMessages: any[] = [
+      { role: 'system', content: systemPrompt },
     ];
 
-    // If visitor provided phone/email, inject it as context
     if (visitorPhone || visitorEmail) {
-      const contextParts: string[] = [];
-      if (visitorPhone) contextParts.push(`phone: ${visitorPhone}`);
-      if (visitorEmail) contextParts.push(`email: ${visitorEmail}`);
-      conversationMessages.splice(1, 0, {
-        role: 'system' as const,
-        content: `The customer has identified themselves with: ${contextParts.join(', ')}. You can use this to look up their account when relevant.`,
+      const parts: string[] = [];
+      if (visitorPhone) parts.push(`phone: ${visitorPhone}`);
+      if (visitorEmail) parts.push(`email: ${visitorEmail}`);
+      conversationMessages.push({
+        role: 'system',
+        content: `The customer has identified themselves with: ${parts.join(', ')}. You can use this to look up their account when relevant.`,
       });
     }
 
-    // Call OpenAI with tool-calling (loop until no more tool calls)
+    conversationMessages.push(...messages.map((m) => ({ role: m.role, content: m.content })));
+
+    // Tool-calling loop (non-streaming phase — resolve all tool calls first)
     let currentMessages = [...conversationMessages];
-    let maxIterations = 5; // Safety limit
+    let maxIterations = 5;
+    const allToolsUsed: string[] = [];
 
     while (maxIterations > 0) {
       maxIterations--;
 
       const chatResp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           messages: currentMessages,
@@ -410,6 +587,7 @@ Deno.serve(async (req) => {
           tool_choice: 'auto',
           temperature: 0.7,
           max_tokens: 1024,
+          stream: false, // Tool-calling phase is always non-streaming
         }),
       });
 
@@ -424,7 +602,6 @@ Deno.serve(async (req) => {
 
       const chatData = await chatResp.json();
       const choice = chatData.choices?.[0];
-
       if (!choice) {
         return new Response(
           JSON.stringify({ error: 'No response from AI' }),
@@ -434,12 +611,21 @@ Deno.serve(async (req) => {
 
       const assistantMessage = choice.message;
 
-      // If no tool calls, return the final text response
+      // If no tool calls, we have the final answer
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+        const reply = assistantMessage.content || 'I apologize, I was unable to generate a response.';
+
+        // Save assistant reply & update conversation meta
+        await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
+        await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
+
+        // If streaming requested and we have the final text, stream it via SSE
+        if (stream) {
+          return streamTextResponse(reply, dbConversationId);
+        }
+
         return new Response(
-          JSON.stringify({
-            reply: assistantMessage.content || 'I apologize, I was unable to generate a response.',
-          }),
+          JSON.stringify({ reply, conversationId: dbConversationId }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
@@ -449,38 +635,27 @@ Deno.serve(async (req) => {
 
       for (const toolCall of assistantMessage.tool_calls) {
         const args = JSON.parse(toolCall.function.arguments);
-        let result: string;
+        allToolsUsed.push(toolCall.function.name);
 
-        switch (toolCall.function.name) {
-          case 'search_knowledge_base':
-            result = await executeSearchKnowledge(args.query, organizationId, supabase, OPENAI_API_KEY);
-            break;
-          case 'lookup_customer':
-            result = await executeLookupCustomer(
-              args.phone || visitorPhone,
-              args.email || visitorEmail,
-            );
-            break;
-          case 'get_booking_details':
-            result = await executeGetBookingDetails(args.booking_id);
-            break;
-          default:
-            result = JSON.stringify({ error: `Unknown tool: ${toolCall.function.name}` });
-        }
+        const result = await executeTool(
+          toolCall.function.name, args, organizationId, supabase, OPENAI_API_KEY,
+          visitorPhone, visitorEmail,
+        );
 
         currentMessages.push({
-          role: 'tool' as const,
+          role: 'tool',
           content: result,
           tool_call_id: toolCall.id,
-        } as any);
+        });
       }
     }
 
-    // If we exhausted iterations, return whatever we have
+    // Exhausted iterations
+    const fallback = 'I apologize, but I need a moment. Could you please try rephrasing your question?';
+    await saveMessage(supabase, dbConversationId, 'assistant', fallback);
+
     return new Response(
-      JSON.stringify({
-        reply: 'I apologize, but I need a moment. Could you please try rephrasing your question?',
-      }),
+      JSON.stringify({ reply: fallback, conversationId: dbConversationId }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (err) {
@@ -491,3 +666,42 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// Stream the final reply text as SSE events
+function streamTextResponse(text: string, conversationId: string | null): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      // Send conversationId first
+      if (conversationId) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'meta', conversationId })}\n\n`));
+      }
+
+      // Stream text in small chunks for a natural typing effect
+      const words = text.split(/(\s+)/);
+      let i = 0;
+      const chunkSize = 3; // Send 3 words at a time
+
+      const interval = setInterval(() => {
+        if (i >= words.length) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+          controller.close();
+          clearInterval(interval);
+          return;
+        }
+        const chunk = words.slice(i, i + chunkSize).join('');
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'token', content: chunk })}\n\n`));
+        i += chunkSize;
+      }, 30);
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+}

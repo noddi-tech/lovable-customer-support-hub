@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DOMPurify from 'dompurify';
-import { sendAiMessage } from '../api';
+import { sendAiMessage, streamAiMessage } from '../api';
 import { getWidgetTranslations } from '../translations';
 
 interface AiChatMessage {
@@ -23,13 +23,13 @@ interface AiChatProps {
 }
 
 const STORAGE_KEY = 'noddi_ai_chat_messages';
+const CONVERSATION_ID_KEY = 'noddi_ai_conversation_id';
 
 function loadMessages(): AiChatMessage[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Only keep messages from the last 24 hours
       const cutoff = Date.now() - 24 * 60 * 60 * 1000;
       return parsed
         .filter((m: any) => new Date(m.timestamp).getTime() > cutoff)
@@ -59,9 +59,11 @@ export const AiChat: React.FC<AiChatProps> = ({
   const [messages, setMessages] = useState<AiChatMessage[]>(loadMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
   const [visitorPhone, setVisitorPhone] = useState(() => localStorage.getItem('noddi_ai_phone') || '');
   const [phoneSkipped, setPhoneSkipped] = useState(() => localStorage.getItem('noddi_ai_phone_skipped') === 'true');
   const [phoneInput, setPhoneInput] = useState('');
+  const [conversationId, setConversationId] = useState<string | null>(() => localStorage.getItem(CONVERSATION_ID_KEY));
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const t = getWidgetTranslations(language);
@@ -69,23 +71,29 @@ export const AiChat: React.FC<AiChatProps> = ({
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, streamingContent]);
 
   // Persist messages
   useEffect(() => {
     saveMessages(messages);
   }, [messages]);
 
+  // Persist conversation ID
+  useEffect(() => {
+    if (conversationId) {
+      localStorage.setItem(CONVERSATION_ID_KEY, conversationId);
+    }
+  }, [conversationId]);
+
   // Show greeting on first load
   useEffect(() => {
     if (messages.length === 0) {
-      const greeting: AiChatMessage = {
+      setMessages([{
         id: 'greeting',
         role: 'assistant',
         content: t.aiGreeting,
         timestamp: new Date(),
-      };
-      setMessages([greeting]);
+      }]);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -103,42 +111,64 @@ export const AiChat: React.FC<AiChatProps> = ({
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    setStreamingContent('');
 
     try {
-      // Build history for the API (exclude greeting)
       const history = [...messages, userMessage]
         .filter((m) => m.id !== 'greeting')
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const reply = await sendAiMessage(
-        widgetKey,
-        history,
-        visitorPhone || undefined,
-        undefined,
-        language,
-      );
+      // Try streaming first
+      let fullReply = '';
+      let gotStream = false;
 
-      const assistantMessage: AiChatMessage = {
-        id: `ai_${Date.now()}`,
-        role: 'assistant',
-        content: reply,
-        timestamp: new Date(),
-      };
+      try {
+        await streamAiMessage(
+          widgetKey,
+          history,
+          visitorPhone || undefined,
+          undefined,
+          language,
+          conversationId || undefined,
+          (token) => {
+            gotStream = true;
+            fullReply += token;
+            setStreamingContent(fullReply);
+          },
+          (meta) => {
+            if (meta.conversationId) setConversationId(meta.conversationId);
+          },
+        );
+      } catch {
+        // Fallback to non-streaming
+        if (!gotStream) {
+          const result = await sendAiMessage(widgetKey, history, visitorPhone || undefined, undefined, language);
+          fullReply = typeof result === 'string' ? result : result.reply;
+          if (result.conversationId) setConversationId(result.conversationId);
+        }
+      }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      if (fullReply) {
+        setMessages((prev) => [...prev, {
+          id: `ai_${Date.now()}`,
+          role: 'assistant',
+          content: fullReply,
+          timestamp: new Date(),
+        }]);
+      }
     } catch (err) {
       console.error('[Noddi Widget] AI chat error:', err);
-      const errorMessage: AiChatMessage = {
+      setMessages((prev) => [...prev, {
         id: `error_${Date.now()}`,
         role: 'assistant',
         content: t.aiError,
         timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      }]);
     }
 
+    setStreamingContent('');
     setIsLoading(false);
-  }, [inputValue, isLoading, messages, widgetKey, visitorPhone, language, t]);
+  }, [inputValue, isLoading, messages, widgetKey, visitorPhone, language, conversationId, t]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -165,17 +195,6 @@ export const AiChat: React.FC<AiChatProps> = ({
       .filter((m) => m.id !== 'greeting')
       .map((m) => `${m.role === 'user' ? 'Customer' : 'AI Assistant'}: ${m.content}`)
       .join('\n\n');
-  };
-
-  const handleClearChat = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    const greeting: AiChatMessage = {
-      id: 'greeting',
-      role: 'assistant',
-      content: t.aiGreeting,
-      timestamp: new Date(),
-    };
-    setMessages([greeting]);
   };
 
   const canEscalate = (agentsOnline && enableChat) || enableContactForm;
@@ -243,7 +262,21 @@ export const AiChat: React.FC<AiChatProps> = ({
           </div>
         ))}
 
-        {isLoading && (
+        {/* Streaming message */}
+        {streamingContent && (
+          <div className="noddi-chat-message noddi-chat-message-agent">
+            <span className="noddi-chat-message-sender">{t.aiAssistant}</span>
+            <div
+              className="noddi-chat-message-bubble"
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(formatAiResponse(streamingContent)),
+              }}
+            />
+          </div>
+        )}
+
+        {/* Typing indicator (only when loading and not streaming yet) */}
+        {isLoading && !streamingContent && (
           <div className="noddi-chat-message noddi-chat-message-agent">
             <div className="noddi-chat-typing">
               <span></span>
@@ -311,13 +344,9 @@ export const AiChat: React.FC<AiChatProps> = ({
 // Simple markdown-like formatting for AI responses
 function formatAiResponse(text: string): string {
   return text
-    // Bold
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Bullet points
     .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
     .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
-    // Fix double-nested ul
     .replace(/<\/ul>\s*<ul>/g, '')
-    // Line breaks
     .replace(/\n/g, '<br/>');
 }

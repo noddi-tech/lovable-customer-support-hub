@@ -7,11 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { 
   PlayCircle, 
   StopCircle, 
-  MessageCircle, 
   Send, 
   Info,
-  ArrowLeft,
-  X
+  Bot,
+  User,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,8 +36,9 @@ interface WidgetTestModeProps {
 interface TestMessage {
   id: string;
   content: string;
-  sender: 'visitor' | 'agent';
+  role: 'user' | 'assistant';
   timestamp: Date;
+  toolsUsed?: string[];
 }
 
 interface TestLogEntry {
@@ -45,304 +46,304 @@ interface TestLogEntry {
   event: string;
   timestamp: Date;
   details?: string;
+  type?: 'info' | 'tool' | 'error' | 'success';
 }
+
+const API_BASE = 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1';
 
 export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
   const [isTestActive, setIsTestActive] = useState(false);
-  const [activeView, setActiveView] = useState<'home' | 'chat'>('home');
   const [messages, setMessages] = useState<TestMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isAgentTyping, setIsAgentTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
   const [testLog, setTestLog] = useState<TestLogEntry[]>([]);
+  const [testPhone, setTestPhone] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isAgentTyping]);
+  }, [messages, isLoading, streamingContent]);
 
-  const addLogEntry = useCallback((event: string, details?: string) => {
+  const addLogEntry = useCallback((event: string, details?: string, type: 'info' | 'tool' | 'error' | 'success' = 'info') => {
     setTestLog(prev => [...prev, {
       id: crypto.randomUUID(),
       event,
       timestamp: new Date(),
       details,
+      type,
     }]);
   }, []);
 
   const startTestSession = () => {
     setIsTestActive(true);
-    setActiveView('home');
-    setMessages([]);
+    setMessages([{
+      id: 'greeting',
+      role: 'assistant',
+      content: "Hi! 👋 I'm Noddi's AI assistant. I can help you with questions about our services, look up your bookings, and more. How can I help you?",
+      timestamp: new Date(),
+    }]);
     setTestLog([]);
-    addLogEntry('Test session started', `Widget: ${config.company_name || 'Widget'}`);
-    toast.success('Test session started', {
-      description: 'Interact with the widget as a visitor would',
-    });
+    addLogEntry('Test session started', `Widget: ${config.company_name || 'Widget'} (${config.widget_key})`, 'success');
   };
 
   const endTestSession = () => {
     setIsTestActive(false);
-    setActiveView('home');
-    addLogEntry('Test session ended');
+    setMessages([]);
+    setStreamingContent('');
+    addLogEntry('Test session ended', undefined, 'info');
     toast.info('Test session ended');
   };
 
-  const handleStartChat = () => {
-    setActiveView('chat');
-    addLogEntry('Chat initiated', 'Visitor started live chat');
-    
-    // Simulate agent connection after a delay
-    setTimeout(() => {
-      addLogEntry('Agent connected', 'Sarah from Support joined the chat');
-      setIsAgentTyping(true);
-      
-      setTimeout(() => {
-        setIsAgentTyping(false);
-        setMessages(prev => [...prev, {
-          id: crypto.randomUUID(),
-          content: "Hi there! I'm Sarah from Support. How can I help you today?",
-          sender: 'agent',
-          timestamp: new Date(),
-        }]);
-        addLogEntry('Agent message received');
-      }, 2000);
-    }, 1500);
-  };
+  const handleSendMessage = async () => {
+    const content = inputValue.trim();
+    if (!content || isLoading) return;
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
-
-    const message: TestMessage = {
+    const userMessage: TestMessage = {
       id: crypto.randomUUID(),
-      content: inputValue.trim(),
-      sender: 'visitor',
+      content,
+      role: 'user',
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, message]);
-    addLogEntry('Visitor message sent', inputValue.trim());
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
+    setIsLoading(true);
+    setStreamingContent('');
+    addLogEntry('User message', content, 'info');
 
-    // Simulate agent typing and response
-    setTimeout(() => {
-      setIsAgentTyping(true);
-      addLogEntry('Agent is typing...');
-      
-      setTimeout(() => {
-        setIsAgentTyping(false);
-        const responses = [
-          "I understand. Let me help you with that.",
-          "Thanks for reaching out! I'll look into this for you.",
-          "Great question! Here's what I can tell you...",
-          "I'd be happy to assist you with that.",
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        
+    try {
+      const history = messages
+        .filter(m => m.id !== 'greeting')
+        .concat(userMessage)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      addLogEntry('Calling AI edge function', 'POST /widget-ai-chat (test: true, stream: true)', 'tool');
+
+      const response = await fetch(`${API_BASE}/widget-ai-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          widgetKey: config.widget_key,
+          messages: history,
+          visitorPhone: testPhone || undefined,
+          language: 'no',
+          test: true,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      let fullReply = '';
+
+      if (contentType.includes('text/event-stream')) {
+        addLogEntry('SSE stream started', undefined, 'success');
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No response body');
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'token') {
+                fullReply += data.content;
+                setStreamingContent(fullReply);
+              } else if (data.type === 'done') {
+                addLogEntry('Stream completed', `${fullReply.length} chars`, 'success');
+              }
+            } catch { /* skip */ }
+          }
+        }
+      } else {
+        const data = await response.json();
+        fullReply = data.reply || '';
+        addLogEntry('Non-streaming response', `${fullReply.length} chars`, 'info');
+      }
+
+      if (fullReply) {
         setMessages(prev => [...prev, {
           id: crypto.randomUUID(),
-          content: randomResponse,
-          sender: 'agent',
+          content: fullReply,
+          role: 'assistant',
           timestamp: new Date(),
         }]);
-        addLogEntry('Agent message received');
-      }, 2000 + Math.random() * 1000);
-    }, 1000);
+        addLogEntry('AI response received', fullReply.slice(0, 100) + (fullReply.length > 100 ? '...' : ''), 'success');
+      }
+    } catch (err: any) {
+      addLogEntry('Error', err.message, 'error');
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        content: `Error: ${err.message}`,
+        role: 'assistant',
+        timestamp: new Date(),
+      }]);
+    }
+
+    setStreamingContent('');
+    setIsLoading(false);
+  };
+
+  const logTypeStyles: Record<string, string> = {
+    info: 'bg-muted/50 border',
+    tool: 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800',
+    error: 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
+    success: 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800',
   };
 
   return (
     <div className="space-y-6">
-      {/* Instructions */}
       <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>Widget Test Mode</AlertTitle>
+        <Sparkles className="h-4 w-4" />
+        <AlertTitle>AI Bot Test Mode</AlertTitle>
         <AlertDescription>
-          Test your widget as a visitor would experience it. Start a test session to simulate 
-          live chat interactions. Messages are simulated and won't appear in your real inbox.
+          Test the AI assistant with real knowledge base queries and booking lookups. 
+          Messages use the <code className="text-xs bg-muted px-1 rounded">test: true</code> flag — conversations are not persisted.
         </AlertDescription>
       </Alert>
 
-      {/* Test Controls */}
       <div className="flex items-center gap-4">
         {!isTestActive ? (
           <Button onClick={startTestSession}>
             <PlayCircle className="h-4 w-4 mr-2" />
-            Start Test Session
+            Start AI Test
           </Button>
         ) : (
           <Button variant="outline" onClick={endTestSession}>
             <StopCircle className="h-4 w-4 mr-2" />
-            End Test Session
+            End Test
           </Button>
         )}
         {isTestActive && (
-          <Badge variant="outline" className="border-green-500 text-green-600">
-            Test Mode Active
-          </Badge>
+          <>
+            <Badge variant="outline" className="border-green-500 text-green-600">
+              AI Test Active
+            </Badge>
+            <div className="flex items-center gap-2 ml-auto">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">Test phone:</label>
+              <Input
+                className="w-40 h-8 text-sm"
+                placeholder="+47..."
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+              />
+            </div>
+          </>
         )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Interactive Widget Preview */}
+        {/* Chat Preview */}
         <div className="border-2 border-dashed rounded-xl p-6 bg-muted/30 flex items-center justify-center min-h-[500px]">
           {isTestActive ? (
             <div 
-              className="bg-background border shadow-2xl rounded-xl w-[340px] overflow-hidden"
-              style={{ 
-                boxShadow: `0 25px 60px -15px ${config.primary_color}50`
-              }}
+              className="bg-background border shadow-2xl rounded-xl w-[360px] overflow-hidden flex flex-col"
+              style={{ boxShadow: `0 25px 60px -15px ${config.primary_color}50`, maxHeight: '520px' }}
             >
               {/* Header */}
-              <div 
-                className="p-4 text-white"
-                style={{ backgroundColor: config.primary_color }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {activeView === 'chat' && (
-                      <button 
-                        onClick={() => setActiveView('home')}
-                        className="hover:opacity-80"
-                      >
-                        <ArrowLeft className="h-5 w-5" />
-                      </button>
-                    )}
-                    {config.logo_url ? (
-                      <img 
-                        src={config.logo_url} 
-                        alt="" 
-                        className="h-8 w-8 rounded-full bg-white/20"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                        <MessageCircle className="h-4 w-4" />
-                      </div>
-                    )}
-                    <span className="font-medium">
-                      {config.company_name || 'Support'}
-                    </span>
-                  </div>
-                  <Badge variant="outline" className="bg-white/20 border-white/30 text-white text-xs">
-                    TEST
-                  </Badge>
+              <div className="p-3 text-white flex items-center justify-between" style={{ backgroundColor: config.primary_color }}>
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  <span className="font-medium text-sm">{config.company_name || 'AI Assistant'}</span>
                 </div>
+                <Badge variant="outline" className="bg-white/20 border-white/30 text-white text-xs">TEST</Badge>
               </div>
 
-              {/* Content */}
-              <div className="p-4">
-                {activeView === 'home' && (
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold">{config.greeting_text}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {config.response_time_text}
-                      </p>
-                    </div>
-
-                    {config.enable_chat && (
-                      <button
-                        onClick={handleStartChat}
-                        className="w-full p-3 rounded-lg border hover:bg-muted/50 text-left flex items-center gap-3 transition-colors"
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ maxHeight: '360px' }}>
+                {messages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex items-start gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        msg.role === 'user' ? 'bg-muted' : ''
+                      }`} style={msg.role === 'assistant' ? { backgroundColor: `${config.primary_color}20` } : {}}>
+                        {msg.role === 'user' ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" style={{ color: config.primary_color }} />}
+                      </div>
+                      <div
+                        className={`px-3 py-2 rounded-xl text-sm ${
+                          msg.role === 'user'
+                            ? 'rounded-br-sm text-white'
+                            : 'rounded-bl-sm bg-muted'
+                        }`}
+                        style={msg.role === 'user' ? { backgroundColor: config.primary_color } : {}}
                       >
-                        <div 
-                          className="h-10 w-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: `${config.primary_color}20` }}
-                        >
-                          <MessageCircle className="h-5 w-5" style={{ color: config.primary_color }} />
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm">Start live chat</div>
-                          <div className="text-xs text-muted-foreground">Talk to us in real-time</div>
-                        </div>
-                      </button>
-                    )}
+                        {msg.content}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {streamingContent && (
+                  <div className="flex justify-start">
+                    <div className="flex items-start gap-2 max-w-[85%]">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${config.primary_color}20` }}>
+                        <Bot className="h-3 w-3" style={{ color: config.primary_color }} />
+                      </div>
+                      <div className="px-3 py-2 rounded-xl rounded-bl-sm bg-muted text-sm">
+                        {streamingContent}
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {activeView === 'chat' && (
-                  <div className="space-y-4">
-                    {/* Messages */}
-                    <div className="h-[280px] overflow-y-auto space-y-3">
-                      {messages.map((msg) => (
-                        <div 
-                          key={msg.id}
-                          className={`flex ${msg.sender === 'visitor' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div 
-                            className={`px-4 py-2 rounded-2xl max-w-[80%] ${
-                              msg.sender === 'visitor' 
-                                ? 'rounded-br-sm text-white'
-                                : 'rounded-bl-sm bg-muted'
-                            }`}
-                            style={msg.sender === 'visitor' ? { backgroundColor: config.primary_color } : {}}
-                          >
-                            {msg.sender === 'agent' && (
-                              <span className="text-xs text-muted-foreground block mb-1">
-                                Support Team
-                              </span>
-                            )}
-                            {msg.content}
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {/* Typing Indicator */}
-                      {isAgentTyping && (
-                        <div className="flex justify-start">
-                          <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-muted">
-                            <div className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.3s]" />
-                              <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.15s]" />
-                              <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input */}
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="Type a message..." 
-                        className="flex-1"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                      />
-                      <Button 
-                        size="icon" 
-                        onClick={handleSendMessage}
-                        style={{ backgroundColor: config.primary_color }}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
+                {isLoading && !streamingContent && (
+                  <div className="flex justify-start">
+                    <div className="px-4 py-3 rounded-xl rounded-bl-sm bg-muted">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.3s]" />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.15s]" />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" />
+                      </div>
                     </div>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
 
-              {/* Footer */}
-              <div className="px-4 py-2 border-t text-center">
-                <span className="text-xs text-muted-foreground">
-                  Powered by Noddi
-                </span>
+              {/* Input */}
+              <div className="p-3 border-t flex gap-2">
+                <Input
+                  placeholder="Ask the AI bot..."
+                  className="flex-1 h-9 text-sm"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                  disabled={isLoading}
+                />
+                <Button
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  style={{ backgroundColor: config.primary_color }}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           ) : (
             <div className="text-center">
-              <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p className="text-muted-foreground">Start a test session to interact with your widget</p>
+              <Bot className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p className="text-muted-foreground">Start an AI test to chat with your bot</p>
             </div>
           )}
         </div>
 
-        {/* Test Session Log */}
+        {/* Session Log */}
         <Card>
           <CardContent className="p-4">
             <h4 className="font-medium mb-4 flex items-center gap-2">
@@ -350,11 +351,11 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
               Session Log
             </h4>
             {testLog.length > 0 ? (
-              <div className="space-y-2 max-h-[420px] overflow-y-auto">
+              <div className="space-y-2 max-h-[440px] overflow-y-auto">
                 {testLog.map((entry) => (
-                  <div 
+                  <div
                     key={entry.id}
-                    className="text-sm p-2 rounded bg-muted/50 border"
+                    className={`text-sm p-2 rounded ${logTypeStyles[entry.type || 'info']}`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{entry.event}</span>
@@ -363,7 +364,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                       </span>
                     </div>
                     {entry.details && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
+                      <p className="text-xs text-muted-foreground mt-1 break-words">
                         {entry.details}
                       </p>
                     )}

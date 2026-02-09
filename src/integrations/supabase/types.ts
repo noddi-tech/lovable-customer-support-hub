@@ -3082,6 +3082,110 @@ export type Database = {
           },
         ]
       }
+      widget_ai_conversations: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          escalated_at: string | null
+          id: string
+          message_count: number
+          organization_id: string
+          resolved_by: string | null
+          status: string
+          tools_used: string[] | null
+          updated_at: string
+          visitor_email: string | null
+          visitor_id: string | null
+          visitor_phone: string | null
+          widget_config_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          escalated_at?: string | null
+          id?: string
+          message_count?: number
+          organization_id: string
+          resolved_by?: string | null
+          status?: string
+          tools_used?: string[] | null
+          updated_at?: string
+          visitor_email?: string | null
+          visitor_id?: string | null
+          visitor_phone?: string | null
+          widget_config_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          escalated_at?: string | null
+          id?: string
+          message_count?: number
+          organization_id?: string
+          resolved_by?: string | null
+          status?: string
+          tools_used?: string[] | null
+          updated_at?: string
+          visitor_email?: string | null
+          visitor_id?: string | null
+          visitor_phone?: string | null
+          widget_config_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_ai_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widget_ai_conversations_widget_config_id_fkey"
+            columns: ["widget_config_id"]
+            isOneToOne: false
+            referencedRelation: "widget_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          intent_detected: string | null
+          role: string
+          tools_used: string[] | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          intent_detected?: string | null
+          role: string
+          tools_used?: string[] | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          intent_detected?: string | null
+          role?: string
+          tools_used?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "widget_ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_chat_sessions: {
         Row: {
           assigned_agent_id: string | null
