@@ -342,7 +342,7 @@ function buildSystemPrompt(language: string): string {
 
 ${langInstruction}
 
-RULES:
+CORE RULES:
 1. Be friendly, helpful, and concise. Use a warm, professional tone.
 2. NEVER invent or fabricate booking data, prices, or service details. Only share information returned by the tools.
 3. When a customer asks about their bookings, ask for their phone number first (it's the primary identifier in Noddi's system).
@@ -354,9 +354,31 @@ RULES:
 9. If you cannot answer a question, suggest the customer talk to a human agent or send a message.
 10. Format booking information clearly with dates, services, and status.
 11. Never ask for sensitive information like passwords or payment details.
-12. If the customer seems frustrated or the issue is complex, suggest speaking with a human agent.
-13. Keep responses focused and not too long. Use bullet points for lists.
-14. You can use emojis sparingly to be friendly.`;
+12. Keep responses focused and not too long. Use bullet points for lists.
+13. You can use emojis sparingly to be friendly.
+
+MULTI-TURN CONTEXT:
+- Remember what the customer has already told you in this conversation (name, phone, booking details).
+- Don't re-ask for information they've already provided.
+- Reference earlier parts of the conversation when relevant ("As we discussed earlier...").
+- Track the customer's emotional state — if they repeat themselves or seem frustrated, acknowledge it and offer escalation.
+
+PROACTIVE SUGGESTIONS:
+- After answering a question, offer a relevant follow-up. Examples:
+  - After showing bookings: "Would you like details on any of these bookings?"
+  - After explaining a service: "Would you like me to look up your account to check availability?"
+  - After a cancellation: "Is there anything else I can help with, or would you like to rebook?"
+- If the customer has upcoming bookings, proactively mention them.
+- If the knowledge base search returns no results, acknowledge the gap honestly: "I don't have specific information about that in my knowledge base."
+
+SMART ESCALATION:
+- Escalate proactively (suggest human agent) when:
+  - The customer asks the same question 3+ times
+  - The customer expresses frustration, anger, or dissatisfaction
+  - The issue involves billing disputes, refunds, or complaints
+  - You've searched the knowledge base and found nothing relevant twice
+  - The customer explicitly asks for a human
+- When escalating, summarize the conversation context for the human agent.`;
 }
 
 // ========== Tool executor ==========
@@ -621,6 +643,13 @@ Deno.serve(async (req) => {
         const savedMessageId = await saveMessage(supabase, dbConversationId, 'assistant', reply, allToolsUsed);
         await updateConversationMeta(supabase, dbConversationId, allToolsUsed);
 
+        // Detect knowledge gaps: if knowledge search was used but returned no results
+        if (allToolsUsed.includes('search_knowledge_base') && !test) {
+          try {
+            await detectKnowledgeGap(supabase, organizationId, dbConversationId, lastUserMsg?.content || '');
+          } catch (e) { console.error('[widget-ai-chat] Gap detection error:', e); }
+        }
+
         // If streaming requested and we have the final text, stream it via SSE
         if (stream) {
           return streamTextResponse(reply, dbConversationId, savedMessageId);
@@ -668,6 +697,47 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// ========== Knowledge gap detection ==========
+
+async function detectKnowledgeGap(
+  supabase: any,
+  organizationId: string,
+  conversationId: string | null,
+  userQuestion: string,
+) {
+  if (!userQuestion || userQuestion.length < 10) return;
+  const trimmed = userQuestion.slice(0, 500);
+
+  // Check if a similar gap already exists
+  const { data: existing } = await supabase
+    .from('knowledge_gaps')
+    .select('id, frequency')
+    .eq('organization_id', organizationId)
+    .eq('status', 'open')
+    .ilike('question', `%${trimmed.slice(0, 60)}%`)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    // Increment frequency
+    await supabase
+      .from('knowledge_gaps')
+      .update({
+        frequency: existing[0].frequency + 1,
+        last_seen_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing[0].id);
+  } else {
+    await supabase.from('knowledge_gaps').insert({
+      organization_id: organizationId,
+      conversation_id: conversationId,
+      question: trimmed,
+      frequency: 1,
+      status: 'open',
+    });
+  }
+}
 
 // Stream the final reply text as SSE events
 function streamTextResponse(text: string, conversationId: string | null, messageId: string | null): Response {
