@@ -862,3 +862,108 @@
 .noddi-chat-new-button:hover {
   opacity: 0.9;
 }
+
+/* ========== AI Chat Styles ========== */
+
+.noddi-ai-phone-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.noddi-ai-phone-label {
+  font-size: 13px;
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.noddi-ai-phone-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.noddi-ai-phone-submit {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.noddi-ai-phone-submit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.noddi-ai-phone-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.noddi-ai-skip-phone {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  align-self: center;
+  padding: 4px;
+}
+
+.noddi-ai-skip-phone:hover {
+  color: #374151;
+}
+
+.noddi-ai-escalation {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  border-top: 1px solid #f3f4f6;
+}
+
+.noddi-ai-escalation-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.noddi-ai-escalation-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+/* AI message formatting */
+.noddi-chat-message-bubble ul {
+  list-style: disc;
+  padding-left: 16px;
+  margin: 4px 0;
+}
+
+.noddi-chat-message-bubble li {
+  margin: 2px 0;
+}
+
+.noddi-chat-message-bubble strong {
+  font-weight: 600;
+}

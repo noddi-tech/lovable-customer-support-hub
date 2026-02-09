@@ -24,7 +24,7 @@ export interface WidgetInitOptions {
   position?: 'bottom-right' | 'bottom-left';  // Override admin config position
 }
 
-export type WidgetView = 'home' | 'contact' | 'search' | 'chat';
+export type WidgetView = 'home' | 'contact' | 'search' | 'chat' | 'ai';
 
 export type ChatSessionStatus = 'waiting' | 'active' | 'ended' | 'abandoned';
 

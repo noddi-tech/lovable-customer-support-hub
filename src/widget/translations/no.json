@@ -49,5 +49,14 @@
   "transcriptSent": "Transkripsjon sendt!",
   "noThanks": "Nei takk",
   "youAreInQueue": "Du er i køen",
-  "agentWillBeWithYou": "En agent vil snart være med deg"
+  "agentWillBeWithYou": "En agent vil snart være med deg",
+  "aiAssistant": "AI-assistent",
+  "aiGreeting": "Hei! 👋 Jeg er Noddis AI-assistent. Jeg kan hjelpe deg med spørsmål om våre tjenester, se opp bestillinger, og mer. Hvordan kan jeg hjelpe?",
+  "aiError": "Beklager, noe gikk galt. Vennligst prøv igjen eller kontakt oss direkte.",
+  "askAnything": "Spør meg om hva som helst...",
+  "talkToHuman": "Snakk med et menneske",
+  "emailConversation": "Send samtalen på e-post",
+  "enterPhone": "Skriv inn telefonnummeret ditt for å se bestillinger",
+  "skipPhone": "Hopp over",
+  "thinking": "Tenker..."
 }

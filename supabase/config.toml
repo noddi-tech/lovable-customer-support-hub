@@ -198,3 +198,6 @@ verify_jwt = false
 
 [functions.extract-knowledge-from-history]
 verify_jwt = true
+
+[functions.widget-ai-chat]
+verify_jwt = false

@@ -184,3 +184,39 @@ export async function updateTypingStatus(sessionId: string, isTyping: boolean): 
     // Silently fail for typing indicators
   }
 }
+
+// ========== AI Chat API ==========
+
+export async function sendAiMessage(
+  widgetKey: string,
+  messages: Array<{ role: string; content: string }>,
+  visitorPhone?: string,
+  visitorEmail?: string,
+  language?: string,
+): Promise<string> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        widgetKey,
+        messages,
+        visitorPhone,
+        visitorEmail,
+        language,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[Noddi Widget] AI chat failed:', errorData.error);
+      throw new Error(errorData.error || 'AI chat failed');
+    }
+
+    const data = await response.json();
+    return data.reply || 'Sorry, I could not generate a response.';
+  } catch (error) {
+    console.error('[Noddi Widget] Error in AI chat:', error);
+    throw error;
+  }
+}

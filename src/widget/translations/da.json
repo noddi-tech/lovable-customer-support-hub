@@ -49,5 +49,14 @@
   "transcriptSent": "Udskrift sendt!",
   "noThanks": "Nej tak",
   "youAreInQueue": "Du er i køen",
-  "agentWillBeWithYou": "En agent vil snart være hos dig"
+  "agentWillBeWithYou": "En agent vil snart være hos dig",
+  "aiAssistant": "AI-assistent",
+  "aiGreeting": "Hej! 👋 Jeg er Noddis AI-assistent. Jeg kan hjælpe dig med spørgsmål om vores tjenester, finde dine bestillinger og mere. Hvordan kan jeg hjælpe?",
+  "aiError": "Beklager, noget gik galt. Prøv venligst igen eller kontakt os direkte.",
+  "askAnything": "Spørg mig om hvad som helst...",
+  "talkToHuman": "Tal med et menneske",
+  "emailConversation": "Send samtalen på e-mail",
+  "enterPhone": "Indtast dit telefonnummer for at se bestillinger",
+  "skipPhone": "Spring over",
+  "thinking": "Tænker..."
 }

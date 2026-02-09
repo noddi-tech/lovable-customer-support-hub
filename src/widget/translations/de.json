@@ -49,5 +49,14 @@
   "transcriptSent": "Transkript gesendet!",
   "noThanks": "Nein danke",
   "youAreInQueue": "Sie sind in der Warteschlange",
-  "agentWillBeWithYou": "Ein Mitarbeiter wird sich gleich um Sie kümmern"
+  "agentWillBeWithYou": "Ein Mitarbeiter wird sich gleich um Sie kümmern",
+  "aiAssistant": "KI-Assistent",
+  "aiGreeting": "Hallo! 👋 Ich bin Noddis KI-Assistent. Ich kann Ihnen bei Fragen zu unseren Diensten helfen, Ihre Buchungen nachschlagen und mehr. Wie kann ich Ihnen helfen?",
+  "aiError": "Entschuldigung, etwas ist schiefgelaufen. Bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt.",
+  "askAnything": "Fragen Sie mich alles...",
+  "talkToHuman": "Mit einem Menschen sprechen",
+  "emailConversation": "Gespräch per E-Mail senden",
+  "enterPhone": "Geben Sie Ihre Telefonnummer ein, um Buchungen nachzuschlagen",
+  "skipPhone": "Überspringen",
+  "thinking": "Denke nach..."
 }

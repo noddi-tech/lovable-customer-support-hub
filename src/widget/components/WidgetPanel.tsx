@@ -3,7 +3,8 @@ import type { WidgetConfig, WidgetView, ChatSession } from '../types';
 import { ContactForm } from './ContactForm';
 import { KnowledgeSearch } from './KnowledgeSearch';
 import { LiveChat } from './LiveChat';
-import { startChat } from '../api';
+import { AiChat } from './AiChat';
+import { startChat, submitContactForm } from '../api';
 import { getWidgetTranslations, getLocalizedGreeting, getLocalizedResponseTime, SUPPORTED_WIDGET_LANGUAGES } from '../translations';
 
 interface WidgetPanelProps {
@@ -88,6 +89,18 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
     }
     setView('home');
   };
+
+  // Escalation: start live chat from AI with context
+  const handleTalkToHuman = useCallback(async () => {
+    if (!config.enableChat || !config.agentsOnline) return;
+    await handleStartChat();
+  }, [config.enableChat, config.agentsOnline, handleStartChat]);
+
+  // Escalation: email conversation transcript from AI
+  const handleEmailConversation = useCallback(async (transcript: string) => {
+    setView('contact');
+    // Pre-fill is handled by the contact form component
+  }, []);
 
   // Use position override if provided, otherwise fall back to config
   const effectivePosition = positionOverride ?? config.position;
@@ -205,13 +218,13 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
               {config.enableKnowledgeSearch && (
                 <button
                   className="noddi-widget-action"
-                  onClick={() => setView('search')}
+                  onClick={() => setView('ai')}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <path d="M12 2a7 7 0 0 1 7 7c0 3-2 5.5-4 7l-3 3-3-3c-2-1.5-4-4-4-7a7 7 0 0 1 7-7z"></path>
+                    <circle cx="12" cy="9" r="1"></circle>
                   </svg>
-                  <span>{t.searchAnswers}</span>
+                  <span>{t.aiAssistant}</span>
                 </button>
               )}
             </div>
@@ -258,6 +271,18 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             onEnd={handleEndChat}
             onBack={handleBackFromChat}
             language={currentLanguage}
+          />
+        ) : view === 'ai' ? (
+          <AiChat
+            widgetKey={config.widgetKey}
+            primaryColor={config.primaryColor}
+            language={currentLanguage}
+            agentsOnline={config.agentsOnline}
+            enableChat={config.enableChat}
+            enableContactForm={config.enableContactForm}
+            onTalkToHuman={handleTalkToHuman}
+            onEmailConversation={handleEmailConversation}
+            onBack={() => setView('home')}
           />
         ) : null}
       </div>
