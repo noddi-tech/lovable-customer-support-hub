@@ -1,59 +1,143 @@
 
-# Fix Tags Not Appearing in Pending Review Dropdown
 
-## Problem Identified
+# Phase 1: Read-Only AI Chatbot for the Widget
 
-The Refresh button in the Import section only invalidates the extraction job and pending entries queries, but **does NOT invalidate the tags query**. When new tags are added to the database, the TagMultiSelect component may still have stale cached data.
+## Summary
 
-## Root Cause
+Replace the current "Search Answers" (FAQ accordion) view with an AI-powered conversational assistant that uses your knowledge base to answer questions and can look up customer bookings via the Noddi API. Read-only for now -- no booking modifications.
 
-Looking at the code:
+When the AI can't answer, the customer can either **talk to a human** (if agents are online) or **email the conversation transcript** (if offline).
 
-```typescript
-// Current Refresh button only invalidates these:
-queryClient.invalidateQueries({ queryKey: ['knowledge-extraction-job', organizationId] });
-queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
+## What Changes
 
-// But NOT the tags query:
-// queryKey: ['knowledge-tags', organizationId]
+### 1. New Edge Function: `widget-ai-chat`
+
+A single new edge function that:
+- Receives customer messages + conversation history
+- Uses OpenAI tool-calling with these read-only tools:
+
+| Tool | What it does |
+|------|-------------|
+| `search_knowledge_base` | Embeds the query, calls `find_similar_responses` RPC, returns top matches |
+| `lookup_customer` | Calls `noddi-customer-lookup` internally -- phone first, email fallback |
+| `get_booking_details` | Calls Noddi API `GET /v1/bookings/{id}/` for a specific booking |
+
+- System prompt enforces Noddi tone of voice, Norwegian/English language matching, and never inventing data
+- Customer identification: asks for phone number first (primary identifier), falls back to email
+- Returns structured responses: `{ reply: string, sources?: [...], bookingCard?: {...} }`
+- Handles streaming via SSE for real-time token delivery
+
+### 2. Widget UI Changes
+
+**WidgetView type**: Add `'ai'` to the union: `'home' | 'contact' | 'search' | 'chat' | 'ai'`
+
+**WidgetPanel.tsx**: 
+- Replace the "Search our help center" button with "AI Assistant" as the primary action
+- When clicked, opens the new `AiChat` component instead of `KnowledgeSearch`
+
+**New component: `AiChat.tsx`**:
+- Chat bubble interface (reuses existing LiveChat styling patterns)
+- Streaming response display with typing indicator
+- Phone number input prompt when AI needs to look up bookings
+- Booking detail cards rendered inline (date, service, vehicle, status)
+- Footer buttons:
+  - "Talk to a human" (visible when `config.agentsOnline && config.enableChat`) -- starts a live chat session with conversation context transferred
+  - "Email this conversation" (visible when agents offline or chat disabled) -- calls existing `widget-submit` with the transcript
+- Conversation stored in localStorage for session persistence
+
+**New API functions in `api.ts`**:
+- `sendAiMessage(widgetKey, messages, visitorPhone?, visitorEmail?)` -- calls the edge function
+- `streamAiChat(...)` -- SSE streaming variant
+
+### 3. Widget Admin: Test Mode
+
+**Enable testing in the admin preview panel** (`/admin/widget`):
+- Add a toggle: "Test AI Bot" that switches the preview widget into AI mode
+- Uses the same edge function but with a `test: true` flag so responses are not persisted
+- Allows you to test knowledge base answers and booking lookups from the admin panel
+
+### 4. Translation Updates
+
+Add new keys to all 10 language JSON files:
+
+| Key | English | Norwegian |
+|-----|---------|-----------|
+| `aiAssistant` | "AI Assistant" | "AI-assistent" |
+| `askAnything` | "Ask me anything" | "Spor meg om hva som helst" |
+| `talkToHuman` | "Talk to a human" | "Snakk med et menneske" |
+| `emailConversation` | "Email this conversation" | "Send samtalen pa e-post" |
+| `enterPhone` | "Enter your phone number to look up bookings" | "Skriv inn telefonnummeret ditt for a se bestillinger" |
+| `thinking` | "Thinking..." | "Tenker..." |
+| `aiGreeting` | "Hi! I'm Noddi's AI assistant..." | "Hei! Jeg er Noddis AI-assistent..." |
+
+### 5. Escalation Flow
+
+```text
+Customer chatting with AI
+         |
+         v
+   Can AI answer?
+    /          \
+  Yes           No
+   |             |
+   v             v
+ Show answer   Show escalation options
+               /                    \
+     Agents online?            Agents offline?
+         |                          |
+         v                          v
+   "Talk to human"          "Email conversation"
+         |                          |
+         v                          v
+   Start live chat            Submit contact form
+   (transfer context)        (with transcript)
 ```
 
-Even though `TagMultiSelect` has `staleTime: 0` and `refetchOnMount: 'always'`, if the component is already mounted and the data was fetched earlier, it won't automatically refetch until the next mount or an explicit invalidation.
+## Technical Details
 
-## Solution
+### Edge Function: `supabase/functions/widget-ai-chat/index.ts`
 
-Add the tags query to the Refresh button's invalidation list so that clicking Refresh also fetches the latest tags.
+- Uses `OPENAI_API_KEY` (already configured as a Supabase secret)
+- Uses `NODDI_API_TOKEN` for booking lookups
+- Tool-calling flow:
+  1. Customer sends message
+  2. OpenAI decides if it needs tools (knowledge search, booking lookup)
+  3. If tool needed: execute it, feed result back to OpenAI
+  4. OpenAI generates final natural language response
+  5. Stream response back to widget
 
-## Changes Required
+### Config.toml Addition
+
+```toml
+[functions.widget-ai-chat]
+verify_jwt = false
+```
+
+### Files to Create
+
+| File | Purpose |
+|------|---------|
+| `supabase/functions/widget-ai-chat/index.ts` | AI chat edge function with tool-calling |
+| `src/widget/components/AiChat.tsx` | Chat UI component for the widget |
+
+### Files to Modify
 
 | File | Change |
 |------|--------|
-| `KnowledgeImportFromHistory.tsx` | Add `knowledge-tags` to the Refresh button's query invalidation |
+| `src/widget/types.ts` | Add `'ai'` to WidgetView, add AI message types |
+| `src/widget/api.ts` | Add `sendAiMessage()` and streaming functions |
+| `src/widget/components/WidgetPanel.tsx` | Add AI view, modify home screen actions |
+| `src/widget/translations/*.json` (10 files) | Add new translation keys |
+| `supabase/config.toml` | Add widget-ai-chat function config |
 
-## Implementation
+### No Database Changes Required
 
-Update the Refresh button onClick handler (around line 351-354):
+Conversation history is maintained client-side in the widget (localStorage + in-memory). No new tables needed for Phase 1.
 
-```typescript
-onClick={() => {
-  queryClient.invalidateQueries({ queryKey: ['knowledge-extraction-job', organizationId] });
-  queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
-  queryClient.invalidateQueries({ queryKey: ['knowledge-tags', organizationId] });
-  queryClient.invalidateQueries({ queryKey: ['knowledge-categories', organizationId] });
-}}
-```
+## What This Does NOT Include (Future Phases)
 
-## Additional Benefit
+- Booking modifications (reschedule, cancel) -- requires confirming Noddi API write endpoints
+- Server-side conversation persistence / analytics tables
+- Auto-learning from AI interactions
+- Thumbs up/down feedback on AI answers
 
-This also ensures that:
-1. Newly created categories appear in the category dropdown
-2. Newly created tags appear in the tag multi-select
-3. Any taxonomy changes made in Settings are immediately reflected in the Import review queue
-
-## Testing
-
-After this fix:
-1. Navigate to Settings and create a new tag
-2. Navigate to Import section
-3. Click Refresh
-4. The new tag should appear in the TagMultiSelect dropdown
