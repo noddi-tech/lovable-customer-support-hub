@@ -97,9 +97,10 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
   }, [config.enableChat, config.agentsOnline, handleStartChat]);
 
   // Escalation: email conversation transcript from AI
-  const handleEmailConversation = useCallback(async (transcript: string) => {
+  const [aiTranscript, setAiTranscript] = useState<string | null>(null);
+  const handleEmailConversation = useCallback((transcript: string) => {
+    setAiTranscript(transcript);
     setView('contact');
-    // Pre-fill is handled by the contact form component
   }, []);
 
   // Use position override if provided, otherwise fall back to config
@@ -243,8 +244,9 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             <ContactForm
               widgetKey={config.widgetKey}
               primaryColor={config.primaryColor}
-              onSuccess={handleContactSuccess}
+              onSuccess={() => { setAiTranscript(null); handleContactSuccess(); }}
               language={currentLanguage}
+              initialMessage={aiTranscript || undefined}
             />
           </div>
         ) : view === 'search' ? (
