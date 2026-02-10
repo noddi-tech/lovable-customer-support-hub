@@ -1,49 +1,21 @@
 
 
-# Fix: "Assigned to Me" Filter Shows No Conversations
+# Fix: Unblock Agent Reply Sending
 
 ## Problem
 
-The sidebar correctly shows **2 assigned conversations** because the database function `get_all_counts` filters by `assigned_to_id = v_profile_id` (the current user's profile ID). However, the conversation list shows **0 results** because the client-side filter in `ConversationListContext.tsx` only checks if a conversation has *any* assignment (`!!conversation.assigned_to`), not whether it's assigned to the **current user**.
-
-Additionally, the RPC `get_conversations_with_session_recovery` fetches all conversations for the organization, so even conversations assigned to other agents would pass through -- but the real issue is that the client-side filter logic is wrong.
-
-## Root Cause
-
-In `ConversationListContext.tsx`, the "assigned" tab filter (appears twice, lines ~373 and ~544) uses:
-
-```typescript
-case "assigned":
-  return !!conversation.assigned_to   // <-- checks ANY assignment
-    && !conversation.is_archived
-    && !isSnoozedActive
-    && !conversation.is_deleted;
-```
-
-This should instead check that `assigned_to.id` matches the current user's **profile ID** (not `auth.uid()`, since `assigned_to_id` references `profiles.id`).
+When an agent sends a reply, inserting into the `messages` table triggers `log_message_insertions`, which tries to insert into `debug_logs`. The `debug_logs` RLS policy requires `manage_users` permission, which most agents lack. This blocks the entire message insert.
 
 ## Fix
 
-### File: `src/contexts/ConversationListContext.tsx`
+Create a migration to drop the debug trigger and its function:
 
-1. **Get the profile from useAuth** -- Change `const { user } = useAuth()` to `const { user, profile } = useAuth()` to access the current user's profile ID.
-
-2. **Update both "assigned" filter cases** (lines ~373 and ~544) to compare against the current user's profile ID:
-
-```typescript
-case "assigned":
-  // Assigned to Me: assigned to current user, not archived, not snoozed, not deleted
-  return !!conversation.assigned_to
-    && conversation.assigned_to.id === profile?.id
-    && !conversation.is_archived
-    && !isSnoozedActive
-    && !conversation.is_deleted;
+```sql
+DROP TRIGGER IF EXISTS log_message_insertions ON public.messages;
+DROP FUNCTION IF EXISTS log_message_insertion();
 ```
 
-### Changes Summary
+## Result
 
-| File | Change |
-|------|--------|
-| `src/contexts/ConversationListContext.tsx` | Destructure `profile` from `useAuth()`, update 2 filter cases to match `assigned_to.id === profile?.id` |
+After this single migration, agents will be able to send replies from the Support page. No client-side code changes needed.
 
-No database changes needed -- the database counts are already correct.
