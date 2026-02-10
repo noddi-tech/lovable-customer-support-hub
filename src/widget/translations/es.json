@@ -58,5 +58,14 @@
   "emailConversation": "Enviar conversación por correo",
   "enterPhone": "Ingresa tu número de teléfono para buscar reservas",
   "skipPhone": "Omitir",
-  "thinking": "Pensando..."
+  "thinking": "Pensando...",
+  "verifyPhone": "Verifica tu número de teléfono",
+  "sendCode": "Enviar código",
+  "enterPin": "Ingresa el código enviado a tu teléfono",
+  "verifyBtn": "Verificar",
+  "phoneVerified": "Teléfono verificado",
+  "invalidPin": "Código inválido, por favor intenta de nuevo",
+  "codeSent": "¡Código enviado!",
+  "resendCode": "Reenviar código",
+  "sendingCode": "Enviando..."
 }

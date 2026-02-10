@@ -58,5 +58,14 @@
   "emailConversation": "Send samtalen på e-post",
   "enterPhone": "Skriv inn telefonnummeret ditt for å se bestillinger",
   "skipPhone": "Hopp over",
-  "thinking": "Tenker..."
+  "thinking": "Tenker...",
+  "verifyPhone": "Verifiser telefonnummeret ditt",
+  "sendCode": "Send kode",
+  "enterPin": "Skriv inn koden sendt til telefonen din",
+  "verifyBtn": "Verifiser",
+  "phoneVerified": "Telefon verifisert",
+  "invalidPin": "Ugyldig kode, vennligst prøv igjen",
+  "codeSent": "Kode sendt!",
+  "resendCode": "Send kode på nytt",
+  "sendingCode": "Sender..."
 }

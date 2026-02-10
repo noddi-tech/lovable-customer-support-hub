@@ -58,5 +58,14 @@
   "emailConversation": "Skicka konversation via e-post",
   "enterPhone": "Ange ditt telefonnummer för att söka bokningar",
   "skipPhone": "Hoppa över",
-  "thinking": "Tänker..."
+  "thinking": "Tänker...",
+  "verifyPhone": "Verifiera ditt telefonnummer",
+  "sendCode": "Skicka kod",
+  "enterPin": "Ange koden som skickades till din telefon",
+  "verifyBtn": "Verifiera",
+  "phoneVerified": "Telefon verifierad",
+  "invalidPin": "Ogiltig kod, försök igen",
+  "codeSent": "Kod skickad!",
+  "resendCode": "Skicka kod igen",
+  "sendingCode": "Skickar..."
 }

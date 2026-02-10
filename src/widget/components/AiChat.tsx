@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DOMPurify from 'dompurify';
-import { sendAiMessage, streamAiMessage, getApiUrl } from '../api';
+import { sendAiMessage, streamAiMessage, sendPhoneVerification, verifyPhonePin } from '../api';
 import { getWidgetTranslations } from '../translations';
 import { AiFeedback } from './AiFeedback';
 
 interface AiChatMessage {
   id: string;
-  serverId?: string; // Server-side message ID for feedback
+  serverId?: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
@@ -26,6 +26,7 @@ interface AiChatProps {
 
 const STORAGE_KEY = 'noddi_ai_chat_messages';
 const CONVERSATION_ID_KEY = 'noddi_ai_conversation_id';
+const VERIFIED_PHONE_KEY = 'noddi_ai_verified_phone';
 
 function loadMessages(): AiChatMessage[] {
   try {
@@ -62,11 +63,21 @@ export const AiChat: React.FC<AiChatProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
-  const [visitorPhone, setVisitorPhone] = useState(() => localStorage.getItem('noddi_ai_phone') || '');
-  const [phoneSkipped, setPhoneSkipped] = useState(() => localStorage.getItem('noddi_ai_phone_skipped') === 'true');
-  const [phoneInput, setPhoneInput] = useState('');
   const [conversationId, setConversationId] = useState<string | null>(() => localStorage.getItem(CONVERSATION_ID_KEY));
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Phone verification state
+  const [verificationStep, setVerificationStep] = useState<'phone' | 'pin' | 'verified'>(() => {
+    const verified = localStorage.getItem(VERIFIED_PHONE_KEY);
+    return verified ? 'verified' : 'phone';
+  });
+  const [phoneInput, setPhoneInput] = useState('');
+  const [pinInput, setPinInput] = useState('');
+  const [verifiedPhone, setVerifiedPhone] = useState(() => localStorage.getItem(VERIFIED_PHONE_KEY) || '');
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [codeSentMessage, setCodeSentMessage] = useState(false);
 
   const t = getWidgetTranslations(language);
 
@@ -99,6 +110,66 @@ export const AiChat: React.FC<AiChatProps> = ({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Phone verification handlers
+  const handleSendCode = useCallback(async () => {
+    const phone = phoneInput.trim();
+    if (!phone || isSendingCode) return;
+
+    setIsSendingCode(true);
+    setVerificationError(null);
+    setCodeSentMessage(false);
+
+    const result = await sendPhoneVerification(widgetKey, phone);
+
+    if (result.success) {
+      setVerificationStep('pin');
+      setCodeSentMessage(true);
+      setTimeout(() => setCodeSentMessage(false), 3000);
+    } else {
+      setVerificationError(result.error || 'Failed to send code');
+    }
+
+    setIsSendingCode(false);
+  }, [phoneInput, isSendingCode, widgetKey]);
+
+  const handleVerifyPin = useCallback(async () => {
+    const pin = pinInput.trim();
+    if (!pin || isVerifying) return;
+
+    setIsVerifying(true);
+    setVerificationError(null);
+
+    const result = await verifyPhonePin(widgetKey, phoneInput.trim(), pin, conversationId || undefined);
+
+    if (result.verified) {
+      const phone = phoneInput.trim();
+      setVerifiedPhone(phone);
+      setVerificationStep('verified');
+      localStorage.setItem(VERIFIED_PHONE_KEY, phone);
+      localStorage.setItem('noddi_ai_phone', phone);
+    } else {
+      const errorMsg = result.attemptsRemaining !== undefined && result.attemptsRemaining <= 0
+        ? result.error || t.invalidPin
+        : t.invalidPin;
+      setVerificationError(errorMsg);
+    }
+
+    setIsVerifying(false);
+  }, [pinInput, isVerifying, widgetKey, phoneInput, conversationId, t]);
+
+  const handleResendCode = useCallback(async () => {
+    setVerificationError(null);
+    setPinInput('');
+    await handleSendCode();
+  }, [handleSendCode]);
+
+  const handleSkipVerification = useCallback(() => {
+    setVerificationStep('verified');
+    localStorage.setItem('noddi_ai_phone_skipped', 'true');
+  }, []);
+
+  const isPhoneVerified = verificationStep === 'verified' && !!verifiedPhone;
+
   const handleSend = useCallback(async () => {
     const content = inputValue.trim();
     if (!content || isLoading) return;
@@ -120,7 +191,6 @@ export const AiChat: React.FC<AiChatProps> = ({
         .filter((m) => m.id !== 'greeting')
         .map((m) => ({ role: m.role, content: m.content }));
 
-      // Try streaming first
       let fullReply = '';
       let gotStream = false;
       let serverMessageId: string | undefined;
@@ -129,7 +199,7 @@ export const AiChat: React.FC<AiChatProps> = ({
         await streamAiMessage(
           widgetKey,
           history,
-          visitorPhone || undefined,
+          verifiedPhone || undefined,
           undefined,
           language,
           conversationId || undefined,
@@ -142,11 +212,11 @@ export const AiChat: React.FC<AiChatProps> = ({
             if (meta.conversationId) setConversationId(meta.conversationId);
             if (meta.messageId) serverMessageId = meta.messageId;
           },
+          isPhoneVerified,
         );
       } catch {
-        // Fallback to non-streaming
         if (!gotStream) {
-          const result = await sendAiMessage(widgetKey, history, visitorPhone || undefined, undefined, language);
+          const result = await sendAiMessage(widgetKey, history, verifiedPhone || undefined, undefined, language);
           fullReply = typeof result === 'string' ? result : result.reply;
           if (result.conversationId) setConversationId(result.conversationId);
           if (result.messageId) serverMessageId = result.messageId;
@@ -174,26 +244,13 @@ export const AiChat: React.FC<AiChatProps> = ({
 
     setStreamingContent('');
     setIsLoading(false);
-  }, [inputValue, isLoading, messages, widgetKey, visitorPhone, language, conversationId, t]);
+  }, [inputValue, isLoading, messages, widgetKey, verifiedPhone, language, conversationId, t, isPhoneVerified]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
-  };
-
-  const handlePhoneSubmit = () => {
-    const phone = phoneInput.trim();
-    if (phone) {
-      setVisitorPhone(phone);
-      localStorage.setItem('noddi_ai_phone', phone);
-    }
-  };
-
-  const handlePhoneSkip = () => {
-    setPhoneSkipped(true);
-    localStorage.setItem('noddi_ai_phone_skipped', 'true');
   };
 
   const buildTranscript = (): string => {
@@ -244,10 +301,10 @@ export const AiChat: React.FC<AiChatProps> = ({
         )}
       </div>
 
-      {/* Phone prompt */}
-      {!visitorPhone && !phoneSkipped && (
+      {/* Phone verification prompt */}
+      {verificationStep === 'phone' && (
         <div className="noddi-ai-phone-prompt">
-          <p className="noddi-ai-phone-label">{t.enterPhone}</p>
+          <p className="noddi-ai-phone-label">{t.verifyPhone}</p>
           <div className="noddi-ai-phone-input-row">
             <input
               type="tel"
@@ -255,20 +312,83 @@ export const AiChat: React.FC<AiChatProps> = ({
               placeholder="+47..."
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handlePhoneSubmit(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSendCode(); }}
             />
             <button
               className="noddi-ai-phone-submit"
-              onClick={handlePhoneSubmit}
+              onClick={handleSendCode}
               style={{ backgroundColor: primaryColor }}
-              disabled={!phoneInput.trim()}
+              disabled={!phoneInput.trim() || isSendingCode}
             >
-              ✓
+              {isSendingCode ? (
+                <svg className="noddi-widget-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+              ) : '→'}
             </button>
           </div>
-          <button className="noddi-ai-skip-phone" onClick={handlePhoneSkip}>
+          {verificationError && (
+            <p className="noddi-verification-error">{verificationError}</p>
+          )}
+          <button className="noddi-ai-skip-phone" onClick={handleSkipVerification}>
             {t.skipPhone}
           </button>
+        </div>
+      )}
+
+      {/* PIN entry step */}
+      {verificationStep === 'pin' && (
+        <div className="noddi-ai-phone-prompt">
+          <p className="noddi-ai-phone-label">{t.enterPin}</p>
+          {codeSentMessage && (
+            <p className="noddi-verification-success">{t.codeSent}</p>
+          )}
+          <div className="noddi-ai-pin-input-row">
+            <input
+              type="text"
+              className="noddi-chat-input noddi-pin-input"
+              placeholder="• • • • • •"
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleVerifyPin(); }}
+              maxLength={6}
+              inputMode="numeric"
+              autoFocus
+            />
+            <button
+              className="noddi-ai-phone-submit"
+              onClick={handleVerifyPin}
+              style={{ backgroundColor: primaryColor }}
+              disabled={pinInput.length < 4 || isVerifying}
+            >
+              {isVerifying ? (
+                <svg className="noddi-widget-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+              ) : '✓'}
+            </button>
+          </div>
+          {verificationError && (
+            <p className="noddi-verification-error">{verificationError}</p>
+          )}
+          <div className="noddi-verification-actions">
+            <button className="noddi-ai-skip-phone" onClick={handleResendCode}>
+              {t.resendCode}
+            </button>
+            <button className="noddi-ai-skip-phone" onClick={() => { setVerificationStep('phone'); setVerificationError(null); setPinInput(''); }}>
+              {t.back}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Verified indicator */}
+      {verificationStep === 'verified' && verifiedPhone && (
+        <div className="noddi-ai-verified-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>{t.phoneVerified}: {verifiedPhone}</span>
         </div>
       )}
 
@@ -318,7 +438,7 @@ export const AiChat: React.FC<AiChatProps> = ({
           </div>
         )}
 
-        {/* Typing indicator (only when loading and not streaming yet) */}
+        {/* Typing indicator */}
         {isLoading && !streamingContent && (
           <div className="noddi-chat-message noddi-chat-message-agent">
             <div className="noddi-chat-typing">

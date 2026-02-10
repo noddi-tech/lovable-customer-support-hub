@@ -3157,6 +3157,7 @@ export type Database = {
           id: string
           message_count: number
           organization_id: string
+          phone_verified: boolean | null
           primary_intent: string | null
           resolved_by: string | null
           resolved_by_ai: boolean | null
@@ -3176,6 +3177,7 @@ export type Database = {
           id?: string
           message_count?: number
           organization_id: string
+          phone_verified?: boolean | null
           primary_intent?: string | null
           resolved_by?: string | null
           resolved_by_ai?: boolean | null
@@ -3195,6 +3197,7 @@ export type Database = {
           id?: string
           message_count?: number
           organization_id?: string
+          phone_verified?: boolean | null
           primary_intent?: string | null
           resolved_by?: string | null
           resolved_by_ai?: boolean | null
