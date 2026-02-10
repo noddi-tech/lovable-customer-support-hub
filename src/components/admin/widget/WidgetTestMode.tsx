@@ -149,6 +149,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                   onTalkToHuman={() => addLogEntry('Escalation: Talk to human', undefined, 'tool')}
                   onEmailConversation={(transcript) => addLogEntry('Escalation: Email conversation', `${transcript.length} chars`, 'tool')}
                   onBack={() => addLogEntry('Back button clicked', undefined, 'info')}
+                  onLogEvent={(event, details, type) => addLogEntry(event, details, type)}
                 />
               </div>
             </div>
