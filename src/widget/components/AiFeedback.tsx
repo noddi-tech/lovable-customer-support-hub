@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getApiUrl } from '../api';
 
 interface AiFeedbackProps {
   messageId: string;
@@ -22,7 +23,7 @@ export const AiFeedback: React.FC<AiFeedbackProps> = ({
     setSubmitted(true);
 
     try {
-      const apiBase = 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1';
+      const apiBase = getApiUrl();
       await fetch(`${apiBase}/widget-ai-feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
