@@ -3401,6 +3401,7 @@ export type Database = {
       }
       widget_configs: {
         Row: {
+          ai_flow_config: Json | null
           auto_send_transcript: boolean | null
           company_name: string | null
           created_at: string | null
@@ -3425,6 +3426,7 @@ export type Database = {
           widget_key: string
         }
         Insert: {
+          ai_flow_config?: Json | null
           auto_send_transcript?: boolean | null
           company_name?: string | null
           created_at?: string | null
@@ -3449,6 +3451,7 @@ export type Database = {
           widget_key?: string
         }
         Update: {
+          ai_flow_config?: Json | null
           auto_send_transcript?: boolean | null
           company_name?: string | null
           created_at?: string | null

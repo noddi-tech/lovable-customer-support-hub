@@ -377,13 +377,64 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
 
 // ========== System prompt ==========
 
-function buildSystemPrompt(language: string, isVerified: boolean): string {
+interface FlowCondition { check: string; if_true: string; if_false: string; }
+interface FlowAction { label: string; enabled: boolean; }
+interface FlowNode { id: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; }
+interface FlowConfig { nodes: FlowNode[]; general_rules: { max_initial_lines: number; never_dump_history: boolean; tone: string; }; }
+
+function buildFlowPrompt(flowConfig: FlowConfig): string {
+  const lines: string[] = [];
+  
+  for (const node of flowConfig.nodes) {
+    lines.push(`\n### ${node.label}`);
+    lines.push(node.instruction);
+    
+    if (node.conditions && node.conditions.length > 0) {
+      for (const cond of node.conditions) {
+        lines.push(`- IF ${cond.check}:`);
+        lines.push(`  → YES: ${cond.if_true}`);
+        lines.push(`  → NO: ${cond.if_false}`);
+      }
+    }
+    
+    if (node.actions && node.actions.length > 0) {
+      const enabled = node.actions.filter(a => a.enabled);
+      if (enabled.length > 0) {
+        for (const action of enabled) {
+          lines.push(`  - "${action.label}"`);
+        }
+      }
+    }
+  }
+
+  const rules = flowConfig.general_rules;
+  lines.push(`\nGENERAL RULES:`);
+  lines.push(`- Tone: ${rules.tone}`);
+  lines.push(`- Keep the initial response to max ${rules.max_initial_lines} lines before presenting choices.`);
+  if (rules.never_dump_history) {
+    lines.push(`- NEVER dump full booking/order history unprompted. Summarize briefly and let the customer choose.`);
+  }
+
+  return lines.join('\n');
+}
+
+function buildSystemPrompt(language: string, isVerified: boolean, flowConfig?: FlowConfig | null): string {
   const langInstruction = language === 'no' || language === 'nb' || language === 'nn'
     ? 'Respond in Norwegian (bokmål). Match the customer\'s language.'
     : `Respond in the same language as the customer. The widget is set to language code: ${language}.`;
 
-  const verificationContext = isVerified
-    ? `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
+  let verificationContext: string;
+
+  if (isVerified) {
+    if (flowConfig && flowConfig.nodes && flowConfig.nodes.length > 0) {
+      // Dynamic flow from config
+      verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
+
+AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
+${buildFlowPrompt(flowConfig)}`;
+    } else {
+      // Hardcoded fallback
+      verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
 
 AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
 1. Greet them by name.
@@ -397,8 +448,11 @@ AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
 5. If the customer wants to book a new service: reference their most recent completed order and ask "Vil du ha noe lignende?" before proceeding.
 6. Do NOT list all previous bookings unless the customer specifically asks for their full booking history.
 7. Keep the initial response short and action-oriented — max 3-4 lines before presenting choices.
-8. NEVER dump a long list of all past orders unprompted. Summarise briefly and let the customer choose what to explore.`
-    : `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form that will appear. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
+8. NEVER dump a long list of all past orders unprompted. Summarise briefly and let the customer choose what to explore.`;
+    }
+  } else {
+    verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form that will appear. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
+  }
 
   return `You are Noddi's AI customer assistant. You help customers with questions about Noddi's services (mobile car wash, tire change, tire storage, etc.) and help them look up and manage their bookings.
 
@@ -613,7 +667,7 @@ Deno.serve(async (req) => {
     // Validate widget key and get organization
     const { data: widgetConfig, error: configError } = await supabase
       .from('widget_configs')
-      .select('id, organization_id, is_active')
+      .select('id, organization_id, is_active, ai_flow_config')
       .eq('widget_key', widgetKey)
       .eq('is_active', true)
       .single();
@@ -640,7 +694,7 @@ Deno.serve(async (req) => {
     }
 
     // Build conversation with system prompt
-    const systemPrompt = buildSystemPrompt(language, isVerified);
+    const systemPrompt = buildSystemPrompt(language, isVerified, widgetConfig.ai_flow_config as FlowConfig | null);
     const conversationMessages: any[] = [
       { role: 'system', content: systemPrompt },
     ];

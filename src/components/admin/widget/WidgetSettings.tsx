@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, TestTube2, Globe, Bot, History, AlertTriangle } from 'lucide-react';
+import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, TestTube2, Globe, Bot, History, AlertTriangle, GitBranch } from 'lucide-react';
 import { WidgetPreview } from './WidgetPreview';
 import { WidgetEmbedCode } from './WidgetEmbedCode';
 import { WidgetAnalytics } from './WidgetAnalytics';
@@ -19,6 +19,7 @@ import { WidgetTranslationEditor } from './WidgetTranslationEditor';
 import { AiAnalyticsDashboard } from './AiAnalyticsDashboard';
 import { AiConversationHistory } from './AiConversationHistory';
 import { KnowledgeGapDetection } from './KnowledgeGapDetection';
+import { AiFlowBuilder } from './AiFlowBuilder';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { SUPPORTED_WIDGET_LANGUAGES } from '@/widget/translations';
@@ -294,10 +295,14 @@ export const WidgetSettings: React.FC = () => {
                     </CardDescription>
                   </div>
                 </div>
-                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+                <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
                   <TabsTrigger value="settings" className="gap-1.5">
                     <Settings className="h-4 w-4" />
                     <span className="hidden lg:inline">Settings</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="flow" className="gap-1.5">
+                    <GitBranch className="h-4 w-4" />
+                    <span className="hidden lg:inline">Flow</span>
                   </TabsTrigger>
                   <TabsTrigger value="preview" className="gap-1.5">
                     <Eye className="h-4 w-4" />
@@ -524,6 +529,11 @@ export const WidgetSettings: React.FC = () => {
                       onCheckedChange={(checked) => handleUpdateWidget({ is_active: checked })}
                     />
                   </div>
+                </TabsContent>
+
+                {/* Flow Tab */}
+                <TabsContent value="flow" className="mt-0">
+                  <AiFlowBuilder widgetId={selectedWidget.id} />
                 </TabsContent>
 
                 {/* Preview Tab */}
