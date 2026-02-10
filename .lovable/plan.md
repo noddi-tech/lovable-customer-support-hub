@@ -1,21 +1,32 @@
 
 
-# Fix: Unblock Agent Reply Sending
+# Fix: AI Chatbot Hardcoded URLs and UX Improvements
 
-## Problem
+## What's Already Working
+The `OPENAI_API_KEY` is configured and available. The AI chatbot edge function (`widget-ai-chat`) should be functional for chat completions and knowledge search embeddings.
 
-When an agent sends a reply, inserting into the `messages` table triggers `log_message_insertions`, which tries to insert into `debug_logs`. The `debug_logs` RLS policy requires `manage_users` permission, which most agents lack. This blocks the entire message insert.
+## Bugs to Fix
 
-## Fix
+### 1. Hardcoded API URL in AiFeedback.tsx
+The feedback component uses a hardcoded Supabase URL instead of the dynamic `getApiUrl()` helper. If the API URL changes, feedback submissions would break silently.
 
-Create a migration to drop the debug trigger and its function:
+**Fix**: Replace the hardcoded string with `getApiUrl()` from `../api`.
 
-```sql
-DROP TRIGGER IF EXISTS log_message_insertions ON public.messages;
-DROP FUNCTION IF EXISTS log_message_insertion();
-```
+### 2. Hardcoded API URL in WidgetTestMode.tsx
+Same issue in the admin test mode component -- hardcoded URL instead of using environment variables.
 
-## Result
+**Fix**: Use `import.meta.env.VITE_SUPABASE_URL` instead of the hardcoded string.
 
-After this single migration, agents will be able to send replies from the Support page. No client-side code changes needed.
+## UX Improvement
+
+### 3. Add "New Conversation" button in AI Chat
+Currently users cannot start a fresh AI conversation without waiting 24 hours or clearing browser storage. A small reset button in the chat header will let users start over.
+
+## Changes Summary
+
+| File | Change |
+|------|--------|
+| `src/widget/components/AiFeedback.tsx` | Replace hardcoded URL with `getApiUrl()` |
+| `src/components/admin/widget/WidgetTestMode.tsx` | Replace hardcoded URL with env variable |
+| `src/widget/components/AiChat.tsx` | Add "New Conversation" button to clear session and start fresh |
 
