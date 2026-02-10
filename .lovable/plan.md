@@ -1,53 +1,42 @@
 
-
-# Fix: AI Directs Users to Wrong Place for Phone Verification
+# Fix: AI Should Accept Phone Numbers Directly in Test Mode
 
 ## Problem
 
-Two issues are causing confusion:
+The Admin Test Mode (WidgetTestMode) is a plain chat interface -- it has no phone verification form. But the system prompt tells the AI "use the phone verification form shown below," which doesn't exist in test mode. The user types their phone number in the chat, and the AI refuses to accept it.
 
-1. **System prompt wording**: When a user is not verified, the AI says "enter your phone number in the widget above." In the actual widget, the phone/OTP input is rendered **inline below the chat messages** -- not "above." In the Admin Test Mode, there is no phone input UI at all, making the instruction nonsensical.
+## Solution
 
-2. **Admin Test Mode missing `isVerified`**: The test mode never sends `isVerified: true` to the edge function, even when a test phone number is provided. This means the AI always treats the admin tester as unverified and refuses to look up customer data.
+Pass the `test` flag into `buildSystemPrompt` and add test-mode-specific instructions that tell the AI to accept phone numbers directly in chat (no SMS verification needed).
 
 ## Changes
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-Update the system prompt verification context (line 391) to remove the misleading "in the widget above" phrasing. Instead, instruct the AI to tell customers they need to verify their phone number using the verification form below the chat. The AI should NOT try to collect the phone number itself via chat -- it should direct users to the dedicated input.
+**1. Update `buildSystemPrompt` signature** to accept a `test` parameter:
 
-**Before:**
-```
-...politely tell them they need to verify their phone number first by entering it in the widget above. Do NOT look up customer data without verification.
-```
-
-**After:**
-```
-...politely tell them they need to verify their phone number first using the phone verification form shown below. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat -- the dedicated form handles this. Do NOT look up customer data without verification.
-```
-
-### File: `src/components/admin/widget/WidgetTestMode.tsx`
-
-Add `isVerified: true` to the request body when a test phone number has been entered. This allows admins to test the full verified experience (booking lookups, account management) without needing to go through SMS verification in test mode.
-
-**Change** (line 126-133): Add `isVerified` and pass the phone as the verified phone:
 ```typescript
-body: JSON.stringify({
-  widgetKey: config.widget_key,
-  messages: history,
-  visitorPhone: testPhone || undefined,
-  language: 'no',
-  test: true,
-  stream: true,
-  isVerified: !!testPhone,
-}),
+function buildSystemPrompt(language: string, isVerified: boolean, isTest: boolean = false): string {
 ```
 
-This means: if an admin has entered a test phone number, the AI treats them as verified and can look up that customer's data directly.
+**2. Add test-mode override for verification context** -- when `isTest` is true AND the user is not yet verified, tell the AI to accept phone numbers directly in the chat and treat them as verified:
 
-## Summary
+```typescript
+const verificationContext = isVerified
+  ? `VERIFICATION STATUS: The customer's phone number has been verified...` // (existing verified text)
+  : isTest
+    ? `VERIFICATION STATUS: This is a TEST session. The customer has not provided a phone number yet. If they provide a phone number in the chat, accept it directly and use the lookup_customer tool with it immediately — no SMS verification is needed in test mode. Be helpful and proceed with account lookup once they share their number.`
+    : `VERIFICATION STATUS: The customer has NOT verified their phone via SMS...` // (existing unverified text)
+```
+
+**3. Pass `test` when calling `buildSystemPrompt`** (around line 633):
+
+```typescript
+const systemPrompt = buildSystemPrompt(language, isVerified, test);
+```
+
+### Summary
 
 | File | Change |
 |------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | Fix system prompt to reference "the form below" instead of "widget above" |
-| `src/components/admin/widget/WidgetTestMode.tsx` | Send `isVerified: true` when test phone is provided |
+| `supabase/functions/widget-ai-chat/index.ts` | Add `isTest` param to `buildSystemPrompt`, add test-mode instructions that accept phone numbers directly in chat |
