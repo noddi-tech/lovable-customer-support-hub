@@ -1,66 +1,77 @@
 
-# Replace Test Mode with Production Widget
+
+# Defer Phone Verification: Show Inline in Chat, Not Locked at Top
 
 ## Problem
 
-The Admin Test Mode currently uses a custom-built chat UI that does NOT match the production widget. It's missing:
-- The phone verification form (phone input + OTP)
-- The verified badge
-- The escalation buttons
-- The widget CSS styling
-- The same message formatting (markdown, DOMPurify)
-
-The user wants the test to be **identical** to what end-users see.
+The phone verification form ("Verifiser telefonnummeret ditt") is rendered as a fixed block at the top of the chat, visible immediately on load. This blocks the conversation view and forces users to deal with verification before they can even ask a question.
 
 ## Solution
 
-Replace the custom chat implementation in `WidgetTestMode` with the actual `AiChat` component from the production widget (`src/widget/components/AiChat.tsx`), wrapped in the widget CSS styles. This ensures 1:1 parity with production.
+Remove the phone/OTP forms from the top of the chat. Instead, show them **inline as chat messages** only when the AI tells the user to verify -- i.e., when the user asks about their account/bookings and the AI responds that verification is needed.
 
-The Session Log panel on the right stays -- it's useful for debugging. But the left side becomes the real widget UI.
+### How It Works
 
-## Changes
+1. The chat starts with **no verification form visible** -- the user can immediately chat with the AI
+2. When the user asks about their bookings/account, the AI responds saying they need to verify their phone
+3. The AI's response triggers the phone form to appear **inline in the chat flow**, as a special message-like element after the AI's message
+4. After entering phone and OTP, the verified badge appears inline too
+5. The conversation continues naturally below
 
-### File: `src/components/admin/widget/WidgetTestMode.tsx`
+### Implementation
 
-**Major rewrite** of the test mode component:
+#### File: `src/widget/components/AiChat.tsx`
 
-1. **Import the real widget components and CSS**:
-   - Import `AiChat` from `@/widget/components/AiChat`
-   - Import `@/widget/styles/widget.css` for widget styling
+1. **Change initial verification step** from `'phone'` to `'idle'` (new state meaning "not yet triggered"):
+   - Add `'idle'` to the verification step type: `'idle' | 'phone' | 'pin' | 'verified'`
+   - Default to `'idle'` instead of `'phone'` (unless already verified from localStorage)
 
-2. **Replace the custom chat UI** (the 360px mock chat window) with:
-   - A container with `noddi-widget-container` and `noddi-widget-panel` classes (so widget CSS applies)
-   - The actual `AiChat` component with the correct props:
-     - `widgetKey`, `primaryColor`, `language` from config
-     - `agentsOnline: false` (test mode, no live agents)
-     - `enableChat: false`, `enableContactForm: false` (focus on AI testing)
-     - `onTalkToHuman`, `onEmailConversation`, `onBack` as no-ops or log entries
+2. **Remove the top-level phone/OTP blocks** (lines 304-460) from their current position above the messages
 
-3. **Remove the custom chat state**: Remove `messages`, `inputValue`, `isLoading`, `streamingContent`, `handleSendMessage`, and all the custom message rendering code. The `AiChat` component handles all of this internally.
+3. **Add a `showVerificationPrompt` state** (boolean, default false) that gets set to `true` when the AI mentions verification is needed
 
-4. **Keep the Session Log** panel and the start/stop controls. Remove the "Test phone" input from the toolbar since the real widget has its own phone verification UI.
+4. **Detect verification trigger**: After receiving an AI response, check if the response content contains verification-related keywords (e.g., "verifiser", "verify your phone", "telefonnummer"). If so, set `showVerificationPrompt = true` and `verificationStep = 'phone'`
 
-5. **Revert the system prompt changes**: Since the test mode now uses the real widget (which HAS the phone form), the system prompt no longer needs special test-mode instructions. Revert `buildSystemPrompt` back to its two-mode form (verified/unverified), removing the `isTest` parameter entirely.
+5. **Render phone/OTP forms inline** inside the messages area (after the last message), only when `showVerificationPrompt` is true and step is `'phone'` or `'pin'`
 
-### File: `supabase/functions/widget-ai-chat/index.ts`
+6. **Keep verified badge inline** -- move it into the messages area too
 
-1. **Remove `isTest` parameter** from `buildSystemPrompt` -- no longer needed since test mode now uses the same UI as production.
+#### File: `supabase/functions/widget-ai-chat/index.ts`
 
-2. **Revert to two-mode prompt**: Keep the verified and unverified verification contexts as they were, referencing "the phone verification form shown below" (which now actually exists in test mode too).
+7. **Update system prompt** (unverified context): Change "using the phone verification form shown below" to "using the phone verification form that will appear" -- since it now appears after the AI's message, not "below" in a fixed position
 
-## What This Achieves
+### Technical Details
 
-- Phone number input with +47 prefix -- identical to production
-- 6-digit OTP input with auto-advance -- identical to production
-- SMS verification flow -- identical to production
-- Verified badge after successful verification
-- AI responses with markdown formatting and DOMPurify
-- Escalation buttons (if applicable)
-- Same CSS styling as the deployed widget
+```
+Before (current):
++---------------------------+
+| [Back]    [New Conv]      |
+| +---------------------+  |
+| | Verifiser telefon..  |  |  <-- Always visible, blocks view
+| | [+47] [________] [->]|  |
+| | [Hopp over]          |  |
+| +---------------------+  |
+| [AI greeting message]    |
+| [User message]           |
+| [AI response]            |
++---------------------------+
 
-## Technical Details
+After (proposed):
++---------------------------+
+| [Back]    [New Conv]      |
+| [AI greeting message]    |
+| [User: "mine bestillinger"]|
+| [AI: "Du må verifisere..."]|
+| +---------------------+  |
+| | Verifiser telefon..  |  |  <-- Appears inline, only when needed
+| | [+47] [________] [->]|  |
+| | [Hopp over]          |  |
+| +---------------------+  |
++---------------------------+
+```
 
 | File | Change |
 |------|--------|
-| `src/components/admin/widget/WidgetTestMode.tsx` | Replace custom chat with real `AiChat` component + widget CSS |
-| `supabase/functions/widget-ai-chat/index.ts` | Remove `isTest` param from `buildSystemPrompt`, revert to verified/unverified only |
+| `src/widget/components/AiChat.tsx` | Add `'idle'` state, move phone/OTP forms inline into messages area, trigger on AI verification response |
+| `supabase/functions/widget-ai-chat/index.ts` | Update prompt text: "form shown below" to "form that will appear" |
+
