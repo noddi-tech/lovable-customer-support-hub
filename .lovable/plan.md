@@ -1,42 +1,39 @@
 
 
-# Fix: Debug and Resolve Noddi Verification 400 Error
+# Fix: Use GET with Query Parameters for Noddi Verification
 
-## Analysis
+## Root Cause
 
-The JSON body being sent is well-formed and includes all 6 required fields. The `widget-verify-phone` function (which calls a similar Noddi endpoint) works fine with the same auth pattern. Two potential root causes remain:
+The working noddi.no site reveals the actual API contract:
 
-1. **Redirect body-loss**: Django APIs commonly redirect between trailing-slash and non-trailing-slash URLs via HTTP 301. When this happens, most HTTP clients (including Deno's fetch) follow the redirect but change POST to GET, **dropping the request body**. The server then receives an empty body and returns a validation error. This could explain the odd `"attr": "body"` error.
+- **Method**: `GET` (not POST)
+- **URL**: `/v1/users/send-phone-number-verification/` (not the `-v2/` variant)
+- **Parameters**: passed as **query parameters** (`?domain=noddi&phone_number=%2B4741354569`)
 
-2. **Missing first-response logging**: We never see the JSON attempt's response -- only the form-encoded retry. The first response could contain different/more useful error details.
+We have been sending POST requests with a JSON body to the wrong endpoint this entire time. That is why every strategy returned `400 "Expected a string" attr: "body"` -- the `-v2/` endpoint expects POST, but may have different auth requirements, while the non-v2 endpoint is a simple GET.
 
 ## Changes
 
 ### File: `supabase/functions/widget-send-verification/index.ts`
 
-1. **Disable automatic redirect following** by adding `redirect: "manual"` to the fetch options. This prevents body loss from silent 301/302 redirects. If a redirect is detected, manually re-issue the POST to the new Location URL with the body intact.
-
-2. **Log the first JSON response** before retrying as form-encoded, so we can see exactly what the API returns for the JSON attempt.
-
-3. **Try the URL without trailing slash** as a fallback, since the redirect between `/send-phone-number-verification-v2/` and `/send-phone-number-verification-v2` could be the issue.
-
-4. **Add a `User-Agent` header** -- some API gateways reject requests without one.
+1. **Change the Noddi API URL** from `/v1/users/send-phone-number-verification-v2/` to `/v1/users/send-phone-number-verification/`
+2. **Change HTTP method** from `POST` to `GET`
+3. **Pass parameters as query string** (`domain` and `phone_number`) instead of a JSON body
+4. **Remove all the retry strategies** (strategies 2-4) since they are no longer needed
+5. **Keep the Authorization header** with the API token
+6. **Keep rate limiting and widget validation** logic unchanged
 
 ### Technical Detail
 
 ```text
-Current flow:
+Before (broken):
   POST /v1/users/send-phone-number-verification-v2/
-    -> possible 301 redirect to non-slash URL
-    -> fetch follows redirect as GET (body dropped)
-    -> API sees empty body -> 400 "Expected a string"
+  Body: { phone_number, domain, ... }
+  -> 400 validation error
 
-Fixed flow:
-  POST /v1/users/send-phone-number-verification-v2/
-    redirect: "manual"
-    -> if 301/302: re-POST to Location header with body
-    -> if 400: log response, retry as form-encoded
-    -> if success: return result
+After (matches working noddi.no):
+  GET /v1/users/send-phone-number-verification/?domain=noddi&phone_number=%2B4741354569
+  -> 200 OK
 ```
 
 ### Deployment
