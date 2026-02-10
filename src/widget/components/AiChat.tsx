@@ -306,14 +306,17 @@ export const AiChat: React.FC<AiChatProps> = ({
         <div className="noddi-ai-phone-prompt">
           <p className="noddi-ai-phone-label">{t.verifyPhone}</p>
           <div className="noddi-ai-phone-input-row">
-            <input
-              type="tel"
-              className="noddi-chat-input"
-              placeholder="+47..."
-              value={phoneInput}
-              onChange={(e) => setPhoneInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSendCode(); }}
-            />
+            <div className="noddi-phone-input-wrapper">
+              <span className="noddi-phone-prefix">+47</span>
+              <input
+                type="tel"
+                className="noddi-phone-input"
+                placeholder="XXX XX XXX"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSendCode(); }}
+              />
+            </div>
             <button
               className="noddi-ai-phone-submit"
               onClick={handleSendCode}
@@ -344,17 +347,91 @@ export const AiChat: React.FC<AiChatProps> = ({
             <p className="noddi-verification-success">{t.codeSent}</p>
           )}
           <div className="noddi-ai-pin-input-row">
-            <input
-              type="text"
-              className="noddi-chat-input noddi-pin-input"
-              placeholder="• • • • • •"
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleVerifyPin(); }}
-              maxLength={6}
-              inputMode="numeric"
-              autoFocus
-            />
+            <div className="noddi-otp-container">
+              <div className="noddi-otp-group">
+                {[0, 1, 2].map((i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    inputMode="numeric"
+                    className="noddi-otp-slot"
+                    maxLength={1}
+                    value={pinInput[i] || ''}
+                    autoFocus={i === 0}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      if (!val) return;
+                      const newPin = pinInput.split('');
+                      newPin[i] = val[0];
+                      const joined = newPin.join('').slice(0, 6);
+                      setPinInput(joined);
+                      // Auto-advance
+                      const next = e.target.nextElementSibling as HTMLInputElement
+                        || e.target.parentElement?.nextElementSibling?.nextElementSibling?.querySelector('input') as HTMLInputElement;
+                      if (next && val) next.focus();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && !pinInput[i]) {
+                        const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
+                          || ((e.target as HTMLElement).parentElement?.previousElementSibling?.previousElementSibling?.querySelector('input:last-child') as HTMLInputElement);
+                        if (prev) prev.focus();
+                      }
+                      if (e.key === 'Enter' && pinInput.length >= 4) handleVerifyPin();
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                      setPinInput(pasted);
+                      // Focus last filled slot
+                      const slots = (e.target as HTMLElement).closest('.noddi-otp-container')?.querySelectorAll('.noddi-otp-slot');
+                      if (slots && slots[Math.min(pasted.length, 5)]) (slots[Math.min(pasted.length, 5)] as HTMLInputElement).focus();
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="noddi-otp-separator">·</div>
+              <div className="noddi-otp-group">
+                {[3, 4, 5].map((i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    inputMode="numeric"
+                    className="noddi-otp-slot"
+                    maxLength={1}
+                    value={pinInput[i] || ''}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      if (!val) return;
+                      const newPin = pinInput.split('');
+                      newPin[i] = val[0];
+                      const joined = newPin.join('').slice(0, 6);
+                      setPinInput(joined);
+                      const next = e.target.nextElementSibling as HTMLInputElement;
+                      if (next && val) next.focus();
+                      // Auto-submit on 6 digits
+                      if (joined.length === 6) {
+                        setTimeout(() => handleVerifyPin(), 100);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && !pinInput[i]) {
+                        const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
+                          || ((e.target as HTMLElement).parentElement?.previousElementSibling?.previousElementSibling?.querySelector('input:last-child') as HTMLInputElement);
+                        if (prev) prev.focus();
+                      }
+                      if (e.key === 'Enter' && pinInput.length >= 4) handleVerifyPin();
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                      setPinInput(pasted);
+                      const slots = (e.target as HTMLElement).closest('.noddi-otp-container')?.querySelectorAll('.noddi-otp-slot');
+                      if (slots && slots[Math.min(pasted.length, 5)]) (slots[Math.min(pasted.length, 5)] as HTMLInputElement).focus();
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
             <button
               className="noddi-ai-phone-submit"
               onClick={handleVerifyPin}

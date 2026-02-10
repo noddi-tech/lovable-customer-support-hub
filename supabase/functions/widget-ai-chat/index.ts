@@ -191,7 +191,8 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
   };
 
   try {
-    let userData: any = null;
+    // Use the customer-lookup-support endpoint (same as noddi-customer-lookup)
+    const lookupUrl = new URL(`${API_BASE}/v1/users/customer-lookup-support/`);
 
     if (phone) {
       let cleanPhone = phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
@@ -199,56 +200,79 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       else if (cleanPhone.startsWith('+47')) { /* already correct */ }
       else if (cleanPhone.startsWith('47') && cleanPhone.length === 10) cleanPhone = '+' + cleanPhone;
       else if (/^\d{8}$/.test(cleanPhone)) cleanPhone = '+47' + cleanPhone;
-      console.log(`[lookup] Looking up phone: ${cleanPhone}`);
-      const resp = await fetch(`${API_BASE}/v1/users/get-by-phone-number/?phone_number=${encodeURIComponent(cleanPhone)}`, { headers });
-      if (resp.ok) {
-        userData = await resp.json();
-      } else {
-        const errText = await resp.text().catch(() => '');
-        console.error(`[lookup] Noddi API error for phone ${cleanPhone}: ${resp.status} ${errText}`);
-      }
+      lookupUrl.searchParams.set('phone', cleanPhone);
+      console.log(`[lookup] Looking up phone via customer-lookup-support: ${cleanPhone}`);
     }
 
-    if (!userData && email) {
-      console.log(`[lookup] Looking up email: ${email}`);
-      const resp = await fetch(`${API_BASE}/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, { headers });
-      if (resp.ok) {
-        userData = await resp.json();
-      } else {
-        const errText = await resp.text().catch(() => '');
-        console.error(`[lookup] Noddi API error for email ${email}: ${resp.status} ${errText}`);
-      }
+    if (email) {
+      lookupUrl.searchParams.set('email', email);
+      console.log(`[lookup] Looking up email via customer-lookup-support: ${email}`);
     }
 
-    if (!userData) return JSON.stringify({ found: false, message: 'No customer found with the provided information.' });
+    const resp = await fetch(lookupUrl.toString(), { headers });
 
-    const userGroupId = userData.user_groups?.[0]?.id;
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      console.error(`[lookup] customer-lookup-support error: ${resp.status} ${errText}`);
+
+      // Check for user_does_not_exist
+      let isNotFound = resp.status === 404;
+      if (resp.status === 400) {
+        try {
+          const errorData = JSON.parse(errText);
+          isNotFound = (errorData?.errors || []).some((err: any) =>
+            err?.code === 'user_does_not_exist' || err?.detail?.includes('does not exist')
+          );
+        } catch { /* ignore parse error */ }
+      }
+
+      if (isNotFound) {
+        return JSON.stringify({ found: false, message: 'No customer found with the provided information.' });
+      }
+      return JSON.stringify({ error: `Customer lookup failed (${resp.status})` });
+    }
+
+    const lookupData = await resp.json();
+    const noddihUser = lookupData.user;
+    const userGroups = lookupData.user_groups || [];
+
+    if (!noddihUser) {
+      return JSON.stringify({ found: false, message: 'No customer found with the provided information.' });
+    }
+
+    const userGroupId = userGroups.find((g: any) => g.is_default_user_group)?.id
+      || userGroups.find((g: any) => g.is_personal)?.id
+      || userGroups[0]?.id;
+
     let bookings: any[] = [];
 
     if (userGroupId) {
-      const resp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/`, { headers });
-      if (resp.ok) {
-        const data = await resp.json();
+      const bResp = await fetch(`${API_BASE}/v1/user-groups/${userGroupId}/bookings-for-customer/`, { headers });
+      if (bResp.ok) {
+        const data = await bResp.json();
         bookings = Array.isArray(data) ? data : (data.results || []);
       } else {
-        const errText = await resp.text().catch(() => '');
-        console.error(`[lookup] Noddi API error for bookings (userGroup ${userGroupId}): ${resp.status} ${errText}`);
+        const errText = await bResp.text().catch(() => '');
+        console.error(`[lookup] Bookings error (userGroup ${userGroupId}): ${bResp.status} ${errText}`);
       }
     }
+
+    const name = `${noddihUser.first_name || ''} ${noddihUser.last_name || ''}`.trim()
+      || noddihUser.name || '';
 
     return JSON.stringify({
       found: true,
       customer: {
-        name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
-        email: userData.email,
-        phone: userData.phone,
-        userId: userData.id,
+        name,
+        email: noddihUser.email,
+        phone: noddihUser.phone,
+        userId: noddihUser.id,
         userGroupId,
       },
       bookings: bookings.slice(0, 10).map((b: any) => ({
         id: b.id,
         status: b.status,
-        scheduledAt: b.start_time || b.scheduled_at,
+        scheduledAt: b.start_time || b.scheduled_at || b.delivery_window_starts_at,
         services: b.order_lines?.map((ol: any) => ol.service_name || ol.name).filter(Boolean) || [],
         address: b.address?.full_address || b.address || null,
         vehicle: b.car ? `${b.car.make || ''} ${b.car.model || ''} (${b.car.license_plate || ''})`.trim() : null,
