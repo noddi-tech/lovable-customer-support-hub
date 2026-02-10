@@ -93,45 +93,29 @@ Deno.serve(async (req) => {
     const requestUrl = `${API_BASE}/v1/users/send-phone-number-verification-v2/`;
     const phoneFinal = String(cleanPhone);
     const domainFinal = String(domain || 'noddi.no');
-    console.log('[widget-send-verification] Sending to:', requestUrl, 'phone:', phoneFinal, 'domain:', domainFinal);
+    const bodyObj = { phone_number: phoneFinal, domain: domainFinal };
+    const bodyStr = JSON.stringify(bodyObj);
+    
+    console.log('[widget-send-verification] URL:', requestUrl);
+    console.log('[widget-send-verification] Body:', bodyStr);
+    console.log('[widget-send-verification] Token length:', NODDI_API_TOKEN.length, 'Token prefix:', NODDI_API_TOKEN.substring(0, 4));
 
-    // Try JSON first
-    const jsonBody = JSON.stringify({ phone_number: phoneFinal, domain: domainFinal });
-    let resp = await fetch(requestUrl, {
+    const resp = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Token ${NODDI_API_TOKEN}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      body: jsonBody,
+      body: bodyStr,
     });
 
-    // If JSON fails with 400 validation error, try form-encoded
-    if (resp.status === 400) {
-      const errText = await resp.text();
-      console.warn('[widget-send-verification] JSON request failed:', resp.status, errText, '- retrying as form data');
-      
-      const formData = new URLSearchParams();
-      formData.set('phone_number', phoneFinal);
-      formData.set('domain', domainFinal);
-      
-      resp = await fetch(requestUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${NODDI_API_TOKEN}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      });
-    }
+    const respText = await resp.text();
+    console.log('[widget-send-verification] Response:', resp.status, respText);
 
     if (!resp.ok) {
-      const errorBody = await resp.text();
-      console.error('[widget-send-verification] Noddi API error:', resp.status, errorBody);
       return new Response(
-        JSON.stringify({ error: 'Failed to send verification code' }),
+        JSON.stringify({ error: 'Failed to send verification code', debug_status: resp.status, debug_body: respText }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
