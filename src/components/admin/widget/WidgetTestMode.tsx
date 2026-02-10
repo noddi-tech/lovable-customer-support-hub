@@ -130,6 +130,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
           language: 'no',
           test: true,
           stream: true,
+          isVerified: !!testPhone,
         }),
       });
 
