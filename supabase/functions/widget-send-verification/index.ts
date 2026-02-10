@@ -6,7 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Rate limiting: max 3 SMS per phone per 10 minutes
 const smsRateMap = new Map<string, { count: number; resetAt: number }>();
 const SMS_RATE_WINDOW_MS = 10 * 60_000;
 const SMS_RATE_MAX = 3;
@@ -23,32 +22,6 @@ function isSmsRateLimited(phone: string): boolean {
 }
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
-
-async function postWithRedirect(url: string, headers: Record<string, string>, body: string): Promise<Response> {
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers,
-    body,
-    redirect: 'manual',
-  });
-
-  // If redirect, re-POST to the new location with body intact
-  if (resp.status === 301 || resp.status === 302 || resp.status === 307 || resp.status === 308) {
-    const location = resp.headers.get('location');
-    if (location) {
-      const redirectUrl = location.startsWith('http') ? location : new URL(location, url).toString();
-      console.log('[widget-send-verification] Following redirect to:', redirectUrl);
-      return await fetch(redirectUrl, {
-        method: 'POST',
-        headers,
-        body,
-        redirect: 'manual',
-      });
-    }
-  }
-
-  return resp;
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -83,7 +56,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate widget key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: widgetConfig } = await supabase
       .from('widget_configs')
@@ -99,14 +71,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Normalize phone
     let cleanPhone = phoneNumber.replace(/\s+/g, '');
     cleanPhone = cleanPhone.replace(/^\+?47/, '');
     cleanPhone = `+47${cleanPhone}`;
 
     console.log('[widget-send-verification] Normalized phone:', cleanPhone);
 
-    // Rate limit
     if (isSmsRateLimited(cleanPhone)) {
       return new Response(
         JSON.stringify({ error: 'Too many verification attempts. Please wait before trying again.' }),
@@ -116,6 +86,9 @@ Deno.serve(async (req) => {
 
     const phoneFinal = String(cleanPhone);
     const domainFinal = String(domain || 'noddi');
+    const requestUrl = `${API_BASE}/v1/users/send-phone-number-verification-v2/`;
+
+    // Strategy 1: JSON with auth (original approach)
     const bodyObj = {
       botd_request_id: "",
       captcha_token: "",
@@ -126,34 +99,63 @@ Deno.serve(async (req) => {
     };
     const bodyStr = JSON.stringify(bodyObj);
 
-    const requestHeaders: Record<string, string> = {
-      'Authorization': `Token ${NODDI_API_TOKEN}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'User-Agent': 'NoddiWidget/1.0',
-    };
-
-    // Try with trailing slash first
-    const urlWithSlash = `${API_BASE}/v1/users/send-phone-number-verification-v2/`;
-    console.log('[widget-send-verification] Attempt 1 - URL:', urlWithSlash, 'Body:', bodyStr);
-
-    let resp = await postWithRedirect(urlWithSlash, requestHeaders, bodyStr);
+    console.log('[widget-send-verification] Strategy 1: JSON with auth. URL:', requestUrl, 'Body:', bodyStr);
+    let resp = await fetch(requestUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${NODDI_API_TOKEN}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+        'User-Agent': 'NoddiWidget/1.0',
+      },
+      body: bodyStr,
+    });
     let respText = await resp.text();
-    console.log('[widget-send-verification] Attempt 1 response:', resp.status, respText);
+    console.log('[widget-send-verification] Strategy 1 response:', resp.status, respText);
 
-    // If 400, try without trailing slash (avoids redirect entirely)
+    // Strategy 2: JSON WITHOUT auth (endpoint might be public)
     if (resp.status === 400) {
-      const urlNoSlash = `${API_BASE}/v1/users/send-phone-number-verification-v2`;
-      console.log('[widget-send-verification] Attempt 2 (no slash) - URL:', urlNoSlash);
-
-      resp = await postWithRedirect(urlNoSlash, requestHeaders, bodyStr);
+      console.log('[widget-send-verification] Strategy 2: JSON without auth');
+      resp = await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'NoddiWidget/1.0',
+        },
+        body: bodyStr,
+      });
       respText = await resp.text();
-      console.log('[widget-send-verification] Attempt 2 response:', resp.status, respText);
+      console.log('[widget-send-verification] Strategy 2 response:', resp.status, respText);
     }
 
-    // If still 400, try form-encoded
+    // Strategy 3: multipart/form-data with auth
     if (resp.status === 400) {
-      console.log('[widget-send-verification] Attempt 3 - form-encoded');
+      console.log('[widget-send-verification] Strategy 3: multipart/form-data');
+      const formData = new FormData();
+      formData.append('phone_number', phoneFinal);
+      formData.append('domain', domainFinal);
+      formData.append('botd_request_id', '');
+      formData.append('captcha_token', '');
+      formData.append('device_fingerprint', '');
+      formData.append('force_send', 'false');
+
+      resp = await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${NODDI_API_TOKEN}`,
+          'Accept': 'application/json',
+          'User-Agent': 'NoddiWidget/1.0',
+        },
+        body: formData,
+      });
+      respText = await resp.text();
+      console.log('[widget-send-verification] Strategy 3 response:', resp.status, respText);
+    }
+
+    // Strategy 4: form-urlencoded with explicit Content-Type
+    if (resp.status === 400) {
+      console.log('[widget-send-verification] Strategy 4: form-urlencoded with Content-Type');
       const formBody = new URLSearchParams();
       formBody.set('phone_number', phoneFinal);
       formBody.set('domain', domainFinal);
@@ -162,12 +164,18 @@ Deno.serve(async (req) => {
       formBody.set('device_fingerprint', '');
       formBody.set('force_send', 'false');
 
-      const formHeaders = { ...requestHeaders };
-      delete formHeaders['Content-Type'];
-
-      resp = await postWithRedirect(urlWithSlash, formHeaders, formBody.toString());
+      resp = await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${NODDI_API_TOKEN}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'NoddiWidget/1.0',
+        },
+        body: formBody.toString(),
+      });
       respText = await resp.text();
-      console.log('[widget-send-verification] Attempt 3 response:', resp.status, respText);
+      console.log('[widget-send-verification] Strategy 4 response:', resp.status, respText);
     }
 
     if (!resp.ok) {
