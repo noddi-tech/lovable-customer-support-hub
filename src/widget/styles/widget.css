@@ -242,6 +242,24 @@
   color: #374151;
 }
 
+.noddi-ai-new-conversation-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.noddi-ai-new-conversation-btn:hover {
+  opacity: 1;
+}
+
 /* Contact Form */
 .noddi-widget-form {
   display: flex;

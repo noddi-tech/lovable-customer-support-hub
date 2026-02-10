@@ -49,7 +49,7 @@ interface TestLogEntry {
   type?: 'info' | 'tool' | 'error' | 'success';
 }
 
-const API_BASE = 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1';
+const API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
   const [isTestActive, setIsTestActive] = useState(false);

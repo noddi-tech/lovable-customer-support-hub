@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DOMPurify from 'dompurify';
-import { sendAiMessage, streamAiMessage } from '../api';
+import { sendAiMessage, streamAiMessage, getApiUrl } from '../api';
 import { getWidgetTranslations } from '../translations';
 import { AiFeedback } from './AiFeedback';
 
@@ -205,15 +205,44 @@ export const AiChat: React.FC<AiChatProps> = ({
 
   const canEscalate = (agentsOnline && enableChat) || enableContactForm;
 
+  const handleNewConversation = useCallback(() => {
+    setMessages([{
+      id: 'greeting',
+      role: 'assistant',
+      content: t.aiGreeting,
+      timestamp: new Date(),
+    }]);
+    setConversationId(null);
+    setStreamingContent('');
+    setInputValue('');
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CONVERSATION_ID_KEY);
+  }, [t]);
+
   return (
     <div className="noddi-widget-chat">
-      {/* Back button */}
-      <button className="noddi-widget-back" onClick={onBack}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        {t.back}
-      </button>
+      {/* Back button + New conversation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button className="noddi-widget-back" onClick={onBack}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          {t.back}
+        </button>
+        {messages.length > 1 && (
+          <button
+            className="noddi-ai-new-conversation-btn"
+            onClick={handleNewConversation}
+            title={t.startNewConversation}
+            style={{ color: primaryColor }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            {t.startNewConversation}
+          </button>
+        )}
+      </div>
 
       {/* Phone prompt */}
       {!visitorPhone && !phoneSkipped && (
