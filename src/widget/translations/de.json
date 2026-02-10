@@ -58,5 +58,14 @@
   "emailConversation": "Gespräch per E-Mail senden",
   "enterPhone": "Geben Sie Ihre Telefonnummer ein, um Buchungen nachzuschlagen",
   "skipPhone": "Überspringen",
-  "thinking": "Denke nach..."
+  "thinking": "Denke nach...",
+  "verifyPhone": "Verifizieren Sie Ihre Telefonnummer",
+  "sendCode": "Code senden",
+  "enterPin": "Geben Sie den an Ihr Telefon gesendeten Code ein",
+  "verifyBtn": "Verifizieren",
+  "phoneVerified": "Telefon verifiziert",
+  "invalidPin": "Ungültiger Code, bitte erneut versuchen",
+  "codeSent": "Code gesendet!",
+  "resendCode": "Code erneut senden",
+  "sendingCode": "Wird gesendet..."
 }

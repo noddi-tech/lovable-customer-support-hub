@@ -58,5 +58,14 @@
   "emailConversation": "Invia conversazione via email",
   "enterPhone": "Inserisci il tuo numero di telefono per cercare prenotazioni",
   "skipPhone": "Salta",
-  "thinking": "Sto pensando..."
+  "thinking": "Sto pensando...",
+  "verifyPhone": "Verifica il tuo numero di telefono",
+  "sendCode": "Invia codice",
+  "enterPin": "Inserisci il codice inviato al tuo telefono",
+  "verifyBtn": "Verifica",
+  "phoneVerified": "Telefono verificato",
+  "invalidPin": "Codice non valido, riprova",
+  "codeSent": "Codice inviato!",
+  "resendCode": "Reinvia codice",
+  "sendingCode": "Invio..."
 }

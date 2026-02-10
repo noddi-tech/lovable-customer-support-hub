@@ -197,13 +197,14 @@ export async function streamAiMessage(
   conversationId?: string,
   onToken?: (token: string) => void,
   onMeta?: (meta: { conversationId?: string; messageId?: string }) => void,
+  isVerified?: boolean,
 ): Promise<void> {
   const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       widgetKey, messages, visitorPhone, visitorEmail, language,
-      stream: true, conversationId,
+      stream: true, conversationId, isVerified,
     }),
   });
 
@@ -251,5 +252,45 @@ export async function streamAiMessage(
         }
       } catch { /* skip invalid JSON */ }
     }
+  }
+}
+
+// ========== Phone Verification ==========
+
+export async function sendPhoneVerification(widgetKey: string, phoneNumber: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-send-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ widgetKey, phoneNumber }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.error || 'Failed to send code' };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('[Noddi Widget] Error sending verification:', error);
+    return { success: false, error: 'Network error' };
+  }
+}
+
+export async function verifyPhonePin(
+  widgetKey: string,
+  phoneNumber: string,
+  pin: string,
+  conversationId?: string,
+): Promise<{ verified: boolean; error?: string; attemptsRemaining?: number }> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-verify-phone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ widgetKey, phoneNumber, pin, conversationId }),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('[Noddi Widget] Error verifying phone:', error);
+    return { verified: false, error: 'Network error' };
   }
 }

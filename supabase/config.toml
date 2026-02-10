@@ -204,3 +204,9 @@ verify_jwt = false
 
 [functions.widget-ai-feedback]
 verify_jwt = false
+
+[functions.widget-send-verification]
+verify_jwt = false
+
+[functions.widget-verify-phone]
+verify_jwt = false

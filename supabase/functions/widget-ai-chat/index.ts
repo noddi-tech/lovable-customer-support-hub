@@ -38,6 +38,7 @@ interface RequestBody {
   test?: boolean;
   stream?: boolean;
   conversationId?: string;
+  isVerified?: boolean;
 }
 
 // ========== Tool definitions for OpenAI ==========
@@ -333,21 +334,31 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
 
 // ========== System prompt ==========
 
-function buildSystemPrompt(language: string): string {
+function buildSystemPrompt(language: string, isVerified: boolean): string {
   const langInstruction = language === 'no' || language === 'nb' || language === 'nn'
     ? 'Respond in Norwegian (bokmål). Match the customer\'s language.'
     : `Respond in the same language as the customer. The widget is set to language code: ${language}.`;
+
+  const verificationContext = isVerified
+    ? `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data. After looking up the customer, proactively:
+1. Check for upcoming orders — ask if they want to change anything (reschedule, cancel, etc.)
+2. Check for wheel storage (dekkhotell) — mention it and ask if they want to manage it
+3. If no upcoming orders, check previous orders and suggest creating a similar new order
+4. Be proactive and helpful — don't wait for the customer to ask about each thing separately.`
+    : `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first by entering it in the widget above. Do NOT look up customer data without verification.`;
 
   return `You are Noddi's AI customer assistant. You help customers with questions about Noddi's services (mobile car wash, tire change, tire storage, etc.) and help them look up and manage their bookings.
 
 ${langInstruction}
 
+${verificationContext}
+
 CORE RULES:
 1. Be friendly, helpful, and concise. Use a warm, professional tone.
 2. NEVER invent or fabricate booking data, prices, or service details. Only share information returned by the tools.
-3. When a customer asks about their bookings, ask for their phone number first (it's the primary identifier in Noddi's system).
+3. When a customer asks about their bookings and their phone is verified, use lookup_customer immediately with their verified phone.
 4. Use the search_knowledge_base tool to answer general questions about services, pricing, processes, etc.
-5. Use the lookup_customer tool when the customer provides their phone number or email to find their bookings.
+5. Use the lookup_customer tool when the customer's phone is verified to find their bookings.
 6. Use get_booking_details for detailed information about a specific booking.
 7. For rescheduling: ALWAYS confirm the new date/time with the customer before calling reschedule_booking. Show them what will change.
 8. For cancellations: ALWAYS ask the customer to explicitly confirm they want to cancel. Warn that cancellations may not be reversible.
@@ -528,7 +539,7 @@ Deno.serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { widgetKey, messages, visitorPhone, visitorEmail, language = 'no', stream = false, test = false, conversationId } = body;
+    const { widgetKey, messages, visitorPhone, visitorEmail, language = 'no', stream = false, test = false, conversationId, isVerified = false } = body;
 
     if (!widgetKey || !messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
@@ -576,7 +587,7 @@ Deno.serve(async (req) => {
     }
 
     // Build conversation with system prompt
-    const systemPrompt = buildSystemPrompt(language);
+    const systemPrompt = buildSystemPrompt(language, isVerified);
     const conversationMessages: any[] = [
       { role: 'system', content: systemPrompt },
     ];

@@ -58,5 +58,14 @@
   "emailConversation": "Gesprek per e-mail verzenden",
   "enterPhone": "Voer je telefoonnummer in om boekingen op te zoeken",
   "skipPhone": "Overslaan",
-  "thinking": "Aan het denken..."
+  "thinking": "Aan het denken...",
+  "verifyPhone": "Verifieer je telefoonnummer",
+  "sendCode": "Code versturen",
+  "enterPin": "Voer de code in die naar je telefoon is gestuurd",
+  "verifyBtn": "Verifiëren",
+  "phoneVerified": "Telefoon geverifieerd",
+  "invalidPin": "Ongeldige code, probeer het opnieuw",
+  "codeSent": "Code verzonden!",
+  "resendCode": "Code opnieuw versturen",
+  "sendingCode": "Verzenden..."
 }

@@ -58,5 +58,14 @@
   "emailConversation": "Email this conversation",
   "enterPhone": "Enter your phone number to look up bookings",
   "skipPhone": "Skip",
-  "thinking": "Thinking..."
+  "thinking": "Thinking...",
+  "verifyPhone": "Verify your phone number",
+  "sendCode": "Send code",
+  "enterPin": "Enter the code sent to your phone",
+  "verifyBtn": "Verify",
+  "phoneVerified": "Phone verified",
+  "invalidPin": "Invalid code, please try again",
+  "codeSent": "Code sent!",
+  "resendCode": "Resend code",
+  "sendingCode": "Sending..."
 }
