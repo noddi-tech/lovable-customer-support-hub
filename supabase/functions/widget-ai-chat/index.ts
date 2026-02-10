@@ -377,7 +377,7 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
 
 // ========== System prompt ==========
 
-function buildSystemPrompt(language: string, isVerified: boolean, isTest: boolean = false): string {
+function buildSystemPrompt(language: string, isVerified: boolean): string {
   const langInstruction = language === 'no' || language === 'nb' || language === 'nn'
     ? 'Respond in Norwegian (bokmål). Match the customer\'s language.'
     : `Respond in the same language as the customer. The widget is set to language code: ${language}.`;
@@ -388,9 +388,7 @@ function buildSystemPrompt(language: string, isVerified: boolean, isTest: boolea
 2. Check for wheel storage (dekkhotell) — mention it and ask if they want to manage it
 3. If no upcoming orders, check previous orders and suggest creating a similar new order
 4. Be proactive and helpful — don't wait for the customer to ask about each thing separately.`
-    : isTest
-      ? `VERIFICATION STATUS: This is a TEST session. The customer has not provided a phone number yet. If they provide a phone number in the chat, accept it directly and use the lookup_customer tool with it immediately — no SMS verification is needed in test mode. Be helpful and proceed with account lookup once they share their number.`
-      : `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form shown below. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
+    : `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form shown below. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
 
   return `You are Noddi's AI customer assistant. You help customers with questions about Noddi's services (mobile car wash, tire change, tire storage, etc.) and help them look up and manage their bookings.
 
@@ -632,7 +630,7 @@ Deno.serve(async (req) => {
     }
 
     // Build conversation with system prompt
-    const systemPrompt = buildSystemPrompt(language, isVerified, test);
+    const systemPrompt = buildSystemPrompt(language, isVerified);
     const conversationMessages: any[] = [
       { role: 'system', content: systemPrompt },
     ];
