@@ -92,8 +92,15 @@ Deno.serve(async (req) => {
     // Call Noddi verification endpoint
     const requestUrl = `${API_BASE}/v1/users/send-phone-number-verification-v2/`;
     const phoneFinal = String(cleanPhone);
-    const domainFinal = String(domain || 'noddi.no');
-    const bodyObj = { phone_number: phoneFinal, domain: domainFinal };
+    const domainFinal = String(domain || 'noddi');
+    const bodyObj = {
+      botd_request_id: null,
+      captcha_token: null,
+      device_fingerprint: null,
+      domain: domainFinal,
+      force_send: false,
+      phone_number: phoneFinal,
+    };
     const bodyStr = JSON.stringify(bodyObj);
     
     console.log('[widget-send-verification] URL:', requestUrl);
@@ -120,7 +127,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const data = await resp.json();
+    let data = {};
+    try { data = JSON.parse(respText); } catch (_) { /* non-JSON response */ }
 
     return new Response(
       JSON.stringify({ success: true, ...data }),
