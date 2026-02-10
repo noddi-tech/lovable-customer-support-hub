@@ -74,6 +74,7 @@ export const AiChat: React.FC<AiChatProps> = ({
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
   const [pinInput, setPinInput] = useState('');
+  const pinRef = useRef('');
   const [verifiedPhone, setVerifiedPhone] = useState(() => localStorage.getItem(VERIFIED_PHONE_KEY) || '');
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [isSendingCode, setIsSendingCode] = useState(false);
@@ -111,6 +112,13 @@ export const AiChat: React.FC<AiChatProps> = ({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-submit PIN when 6 digits entered (uses state, so fires after React update)
+  useEffect(() => {
+    if (pinInput.length === 6 && verificationStep === 'pin' && !isVerifying) {
+      handleVerifyPin(pinInput);
+    }
+  }, [pinInput]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Phone verification handlers
   const handleSendCode = useCallback(async () => {
     const phone = phoneInput.trim();
@@ -133,8 +141,8 @@ export const AiChat: React.FC<AiChatProps> = ({
     setIsSendingCode(false);
   }, [phoneInput, isSendingCode, widgetKey]);
 
-  const handleVerifyPin = useCallback(async () => {
-    const pin = pinInput.trim();
+  const handleVerifyPin = useCallback(async (pinOverride?: string) => {
+    const pin = (pinOverride || pinRef.current).trim();
     if (!pin || isVerifying) return;
 
     setIsVerifying(true);
@@ -148,6 +156,12 @@ export const AiChat: React.FC<AiChatProps> = ({
       setVerificationStep('verified');
       localStorage.setItem(VERIFIED_PHONE_KEY, phone);
       localStorage.setItem('noddi_ai_phone', phone);
+      setIsVerifying(false);
+      // Auto-lookup: send message to trigger AI customer lookup
+      setTimeout(() => {
+        sendMessage('Telefonnummeret mitt er verifisert. Kan du slå opp kontoen min?', phone);
+      }, 500);
+      return;
     } else {
       const errorMsg = result.attemptsRemaining !== undefined && result.attemptsRemaining <= 0
         ? result.error || t.invalidPin
@@ -156,11 +170,12 @@ export const AiChat: React.FC<AiChatProps> = ({
     }
 
     setIsVerifying(false);
-  }, [pinInput, isVerifying, widgetKey, phoneInput, conversationId, t]);
+  }, [isVerifying, widgetKey, phoneInput, conversationId, t]);
 
   const handleResendCode = useCallback(async () => {
     setVerificationError(null);
     setPinInput('');
+    pinRef.current = '';
     await handleSendCode();
   }, [handleSendCode]);
 
@@ -171,9 +186,11 @@ export const AiChat: React.FC<AiChatProps> = ({
 
   const isPhoneVerified = verificationStep === 'verified' && !!verifiedPhone;
 
-  const handleSend = useCallback(async () => {
-    const content = inputValue.trim();
+  const sendMessage = useCallback(async (content: string, phoneOverride?: string) => {
     if (!content || isLoading) return;
+
+    const effectivePhone = phoneOverride || verifiedPhone;
+    const effectiveVerified = !!effectivePhone;
 
     const userMessage: AiChatMessage = {
       id: `user_${Date.now()}`,
@@ -183,7 +200,6 @@ export const AiChat: React.FC<AiChatProps> = ({
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
     setIsLoading(true);
     setStreamingContent('');
 
@@ -200,7 +216,7 @@ export const AiChat: React.FC<AiChatProps> = ({
         await streamAiMessage(
           widgetKey,
           history,
-          verifiedPhone || undefined,
+          effectivePhone || undefined,
           undefined,
           language,
           conversationId || undefined,
@@ -213,11 +229,11 @@ export const AiChat: React.FC<AiChatProps> = ({
             if (meta.conversationId) setConversationId(meta.conversationId);
             if (meta.messageId) serverMessageId = meta.messageId;
           },
-          isPhoneVerified,
+          effectiveVerified,
         );
       } catch {
         if (!gotStream) {
-          const result = await sendAiMessage(widgetKey, history, verifiedPhone || undefined, undefined, language);
+          const result = await sendAiMessage(widgetKey, history, effectivePhone || undefined, undefined, language);
           fullReply = typeof result === 'string' ? result : result.reply;
           if (result.conversationId) setConversationId(result.conversationId);
           if (result.messageId) serverMessageId = result.messageId;
@@ -235,7 +251,7 @@ export const AiChat: React.FC<AiChatProps> = ({
         setMessages((prev) => [...prev, aiMsg]);
 
         // Detect verification trigger in AI response
-        if (!isPhoneVerified && verificationStep === 'idle') {
+        if (!effectiveVerified && verificationStep === 'idle') {
           const lower = fullReply.toLowerCase();
           const verificationKeywords = ['verifiser', 'verify your phone', 'telefonnummer', 'bekreft telefon', 'phone verification', 'verifisere'];
           if (verificationKeywords.some(kw => lower.includes(kw))) {
@@ -256,7 +272,14 @@ export const AiChat: React.FC<AiChatProps> = ({
 
     setStreamingContent('');
     setIsLoading(false);
-  }, [inputValue, isLoading, messages, widgetKey, verifiedPhone, language, conversationId, t, isPhoneVerified]);
+  }, [isLoading, messages, widgetKey, verifiedPhone, language, conversationId, t, verificationStep]);
+
+  const handleSend = useCallback(async () => {
+    const content = inputValue.trim();
+    if (!content) return;
+    setInputValue('');
+    await sendMessage(content);
+  }, [inputValue, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -429,9 +452,10 @@ export const AiChat: React.FC<AiChatProps> = ({
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '');
                         if (!val) return;
-                        const newPin = pinInput.split('');
+                        const newPin = pinRef.current.split('');
                         newPin[i] = val[0];
                         const joined = newPin.join('').slice(0, 6);
+                        pinRef.current = joined;
                         setPinInput(joined);
                         const next = e.target.nextElementSibling as HTMLInputElement
                           || e.target.parentElement?.nextElementSibling?.nextElementSibling?.querySelector('input') as HTMLInputElement;
@@ -468,15 +492,13 @@ export const AiChat: React.FC<AiChatProps> = ({
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '');
                         if (!val) return;
-                        const newPin = pinInput.split('');
+                        const newPin = pinRef.current.split('');
                         newPin[i] = val[0];
                         const joined = newPin.join('').slice(0, 6);
+                        pinRef.current = joined;
                         setPinInput(joined);
                         const next = e.target.nextElementSibling as HTMLInputElement;
                         if (next && val) next.focus();
-                        if (joined.length === 6) {
-                          setTimeout(() => handleVerifyPin(), 100);
-                        }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Backspace' && !pinInput[i]) {
@@ -499,7 +521,7 @@ export const AiChat: React.FC<AiChatProps> = ({
               </div>
               <button
                 className="noddi-ai-phone-submit"
-                onClick={handleVerifyPin}
+                onClick={() => handleVerifyPin()}
                 style={{ backgroundColor: primaryColor }}
                 disabled={pinInput.length < 4 || isVerifying}
               >
@@ -517,7 +539,7 @@ export const AiChat: React.FC<AiChatProps> = ({
               <button className="noddi-ai-skip-phone" onClick={handleResendCode}>
                 {t.resendCode}
               </button>
-              <button className="noddi-ai-skip-phone" onClick={() => { setVerificationStep('phone'); setVerificationError(null); setPinInput(''); }}>
+              <button className="noddi-ai-skip-phone" onClick={() => { setVerificationStep('phone'); setVerificationError(null); setPinInput(''); pinRef.current = ''; }}>
                 {t.back}
               </button>
             </div>
