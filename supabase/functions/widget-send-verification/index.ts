@@ -73,8 +73,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Normalize phone
-    const cleanPhone = phoneNumber.replace(/\s+/g, '').replace(/^(\+?47)?/, '+47');
+    // Normalize phone: remove spaces, ensure +47 prefix (avoid double prefix)
+    let cleanPhone = phoneNumber.replace(/\s+/g, '');
+    // Remove leading +47 or 47 if present, then re-add +47
+    cleanPhone = cleanPhone.replace(/^\+?47/, '');
+    cleanPhone = `+47${cleanPhone}`;
+    
+    console.log('[widget-send-verification] Normalized phone:', cleanPhone);
 
     // Rate limit
     if (isSmsRateLimited(cleanPhone)) {
@@ -85,6 +90,10 @@ Deno.serve(async (req) => {
     }
 
     // Call Noddi verification endpoint
+    const requestBody = JSON.stringify({ phone_number: cleanPhone, domain: domain || 'noddi.no' });
+    console.log('[widget-send-verification] Request URL:', `${API_BASE}/v1/users/send-phone-number-verification-v2/`);
+    console.log('[widget-send-verification] Request body:', requestBody);
+    
     const resp = await fetch(`${API_BASE}/v1/users/send-phone-number-verification-v2/`, {
       method: 'POST',
       headers: {
@@ -92,7 +101,7 @@ Deno.serve(async (req) => {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ phone_number: cleanPhone, domain: domain || 'noddi.no' }),
+      body: requestBody,
     });
 
     if (!resp.ok) {
