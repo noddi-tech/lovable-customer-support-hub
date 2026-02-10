@@ -1031,3 +1031,109 @@
   font-size: 12px;
   color: #15803d;
 }
+
+/* ========== Styled Phone Input (shadcn Input style) ========== */
+
+.noddi-phone-input-wrapper {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.noddi-phone-input-wrapper:focus-within {
+  border-color: #a3a3a3;
+  box-shadow: 0 0 0 2px rgba(163, 163, 163, 0.2);
+}
+
+.noddi-phone-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 0 0 12px;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.noddi-phone-input {
+  flex: 1;
+  height: 100%;
+  padding: 0 12px 0 6px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1f2937;
+  outline: none;
+}
+
+.noddi-phone-input::placeholder {
+  color: #9ca3af;
+}
+
+/* ========== OTP Input (shadcn InputOTP style) ========== */
+
+.noddi-otp-container {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.noddi-otp-group {
+  display: flex;
+  align-items: center;
+}
+
+.noddi-otp-slot {
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #1f2937;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-left: none;
+  outline: none;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.noddi-otp-slot::-webkit-inner-spin-button,
+.noddi-otp-slot::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.noddi-otp-slot:first-child {
+  border-left: 1px solid #e5e7eb;
+  border-radius: 6px 0 0 6px;
+}
+
+.noddi-otp-group:last-child .noddi-otp-slot:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.noddi-otp-slot:focus {
+  z-index: 1;
+  position: relative;
+  border-color: #a3a3a3;
+  box-shadow: 0 0 0 2px rgba(163, 163, 163, 0.2);
+}
+
+.noddi-otp-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: #9ca3af;
+  font-size: 20px;
+}
