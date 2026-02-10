@@ -1,82 +1,167 @@
 
-# Improve Post-Verification AI Flow and Fix Session Log
 
-## Two Issues
+# AI Assistant Flow Builder
 
-### 1. AI dumps all order history instead of guiding the customer
+## Overview
 
-**Root cause**: The system prompt (lines 386-390 in `widget-ai-chat/index.ts`) tells the AI to "proactively check for upcoming orders, wheel storage, previous orders" but gives no guidance on **how to present choices**. Combined with the auto-message "Kan du sla opp kontoen min?", the AI just lists everything it finds.
+Create a new "AI Flow" tab in the widget admin where you can visually configure how the AI assistant behaves at each stage of a customer conversation. Instead of the current hardcoded system prompt, the flow will be stored as a JSON structure in the database and injected into the system prompt dynamically.
 
-**Fix**: Rewrite the verified-user section of the system prompt to instruct the AI to behave as a guided flow:
+## How It Works
 
-1. After `lookup_customer`, identify the customer's **vehicles** from their booking history.
-2. If multiple vehicles: ask "Which car would you like help with?" and list them as options.
-3. Then ask what they want to do: "Book a new service", "Check existing bookings", "Manage wheel storage", etc.
-4. If booking a new service, reference their previous orders and ask "Would you like something similar to your last order?"
-5. Never dump a raw list of all past bookings unprompted.
+The flow builder presents a vertical decision tree with configurable nodes. Each node represents a stage in the conversation, with conditions and actions. The saved flow is stored as JSON on the `widget_configs` table and read by the `widget-ai-chat` edge function to build a dynamic system prompt.
 
-Also update the auto-message sent after verification from the generic "sla opp kontoen min" to something that better triggers the guided flow, e.g.: "Jeg har verifisert telefonnummeret mitt. Hva kan du hjelpe meg med?"
+## Flow Structure
 
-### 2. Session Log is stuck / not updating
+The default flow will mirror the current hardcoded behavior but make it editable:
 
-**Root cause**: The `WidgetTestMode` component passes `addLogEntry` callbacks only for `onTalkToHuman`, `onEmailConversation`, and `onBack`. The `AiChat` component has no `onLogEvent` prop, so there is no mechanism to report messages sent, AI responses received, tool calls, or verification events back to the session log.
-
-**Fix**: 
-- Add an optional `onLogEvent` callback prop to `AiChat`.
-- Call it at key points: message sent, AI response received, verification started/completed, errors.
-- In `WidgetTestMode`, pass `addLogEntry` as the `onLogEvent` handler.
-
-## Changes
-
-### File: `supabase/functions/widget-ai-chat/index.ts`
-
-Update `buildSystemPrompt` for the `isVerified` branch:
-
+```text
+[Customer Opens Widget]
+       |
+       v
+[Unverified] -----> Answer general FAQs from knowledge base
+       |              If account question -> prompt to verify phone
+       v
+[Phone Verified]
+       |
+       v
+[Lookup Customer] 
+       |
+       +-- Has upcoming bookings?
+       |     YES -> Mention briefly, ask if they need help
+       |     NO  -> Skip
+       |
+       +-- Multiple vehicles?
+       |     YES -> Ask "Which car?"
+       |     NO  -> Continue with single vehicle
+       |
+       v
+[Present Action Menu]
+  - Book new service
+  - View my bookings
+  - Modify/cancel booking
+  - Wheel storage (dekkhotell)
+       |
+       v
+[Booking New Service]
+       |
+       +-- Has previous orders?
+             YES -> "Want something similar to your last order?"
+             NO  -> Guide through options
 ```
-VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP.
-You can freely access their account data using lookup_customer.
 
-AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
-1. Greet them by name.
-2. If they have UPCOMING bookings, mention them briefly (date + service) and ask if they need help with any of them.
-3. If they have multiple VEHICLES in their history, ask which car they want help with.
-4. Offer clear action choices:
-   - "Bestille ny service" (book new service)
-   - "Se mine bestillinger" (view bookings)  
-   - "Endre/avbestille en bestilling" (modify/cancel)
-   - "Dekkhotell" (wheel storage)
-5. If booking new: reference their most recent completed order and ask "Vil du ha noe lignende?"
-6. Do NOT list all previous bookings unless the customer specifically asks for their booking history.
-7. Keep the initial response short and action-oriented — max 3-4 lines before presenting choices.
+## Database Change
+
+Add a `ai_flow_config` JSONB column to `widget_configs`:
+
+```sql
+ALTER TABLE widget_configs
+ADD COLUMN IF NOT EXISTS ai_flow_config JSONB DEFAULT NULL;
 ```
 
-### File: `src/widget/components/AiChat.tsx`
+The JSON schema for flow nodes:
 
-1. Add `onLogEvent?: (event: string, details?: string, type?: 'info' | 'tool' | 'error' | 'success') => void` to `AiChatProps`.
-2. Call `onLogEvent` at these points:
-   - User sends a message: `onLogEvent('User message', content, 'info')`
-   - AI response received: `onLogEvent('AI response', first 100 chars, 'success')`
-   - Phone verification sent: `onLogEvent('Verification code sent', phone, 'tool')`
-   - Phone verified: `onLogEvent('Phone verified', phone, 'success')`
-   - Verification error: `onLogEvent('Verification failed', error, 'error')`
-   - Streaming error: `onLogEvent('AI error', error message, 'error')`
-3. Update the auto-message after verification to: `"Jeg har verifisert telefonnummeret mitt. Hva kan du hjelpe meg med?"`
+```json
+{
+  "nodes": [
+    {
+      "id": "post_verification",
+      "label": "After Phone Verification",
+      "instruction": "Greet customer by name. Look up their account.",
+      "conditions": [
+        {
+          "id": "has_upcoming",
+          "check": "Customer has upcoming bookings",
+          "if_true": "Mention upcoming bookings briefly (date + service). Ask if they need help with any.",
+          "if_false": "Skip, don't mention bookings."
+        },
+        {
+          "id": "multiple_vehicles",
+          "check": "Customer has multiple vehicles",
+          "if_true": "Ask which car they want help with before proceeding.",
+          "if_false": "Continue with their single vehicle."
+        }
+      ]
+    },
+    {
+      "id": "action_menu",
+      "label": "Present Action Choices",
+      "instruction": "After greeting, present these options as a short list:",
+      "actions": [
+        { "id": "book_new", "label": "Bestille ny service", "enabled": true },
+        { "id": "view_bookings", "label": "Se mine bestillinger", "enabled": true },
+        { "id": "modify_cancel", "label": "Endre/avbestille", "enabled": true },
+        { "id": "wheel_storage", "label": "Dekkhotell", "enabled": true }
+      ]
+    },
+    {
+      "id": "booking_new",
+      "label": "When Booking New Service",
+      "conditions": [
+        {
+          "id": "has_previous",
+          "check": "Customer has previous completed orders",
+          "if_true": "Reference most recent order and ask: 'Vil du ha noe lignende?'",
+          "if_false": "Guide them through available services."
+        }
+      ]
+    }
+  ],
+  "general_rules": {
+    "max_initial_lines": 4,
+    "never_dump_history": true,
+    "tone": "Friendly, concise, action-oriented"
+  }
+}
+```
 
-### File: `src/components/admin/widget/WidgetTestMode.tsx`
+## New Files
 
-Pass `addLogEntry` as `onLogEvent` to the `AiChat` component:
+### `src/components/admin/widget/AiFlowBuilder.tsx`
 
-```tsx
-<AiChat
-  ...existing props
-  onLogEvent={(event, details, type) => addLogEntry(event, details, type)}
-/>
+A visual flow editor component with:
+- Vertical card-based layout showing each flow node as a card
+- Each node card shows its label, instruction text (editable), and conditions
+- Conditions displayed as "IF ... THEN ... ELSE ..." blocks with editable text fields
+- Action menu node shows toggleable action items (enable/disable with switches)
+- "General Rules" section at the bottom for tone, max lines, and behavior flags
+- Save button that writes the JSON to `widget_configs.ai_flow_config`
+- Reset button to restore defaults
+
+The UI uses existing components: Card, Input, Textarea, Switch, Button, and connecting lines (CSS borders/pseudo-elements) between nodes to create the flowchart feel.
+
+### Changes to Existing Files
+
+**`src/components/admin/widget/WidgetSettings.tsx`**
+- Add a new tab "Flow" (with a GitBranch icon) in the TabsList
+- Render `AiFlowBuilder` in the new tab, passing `selectedWidget` and `handleUpdateWidget`
+
+**`supabase/functions/widget-ai-chat/index.ts`**
+- In `buildSystemPrompt`, read the `ai_flow_config` from the widget config (passed through from the main handler)
+- If `ai_flow_config` exists, dynamically build the verified-user prompt from the flow nodes instead of using the hardcoded text
+- If `ai_flow_config` is null, fall back to the current hardcoded prompt (backward compatible)
+
+**`supabase/functions/widget-ai-chat/index.ts`** (main handler)
+- Fetch `ai_flow_config` alongside other widget config fields
+- Pass it to `buildSystemPrompt`
+
+## Migration
+
+One SQL migration to add the column:
+
+```sql
+ALTER TABLE widget_configs
+ADD COLUMN IF NOT EXISTS ai_flow_config JSONB DEFAULT NULL;
+
+COMMENT ON COLUMN widget_configs.ai_flow_config IS 
+  'JSON configuration for AI assistant conversation flow. When set, overrides default hardcoded flow.';
 ```
 
 ## Summary
 
 | File | Change |
 |------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | Rewrite verified-user system prompt to use guided flow instead of data dump |
-| `src/widget/components/AiChat.tsx` | Add `onLogEvent` prop, call it at key interaction points, update auto-message text |
-| `src/components/admin/widget/WidgetTestMode.tsx` | Wire `addLogEntry` into `onLogEvent` |
+| Migration SQL | Add `ai_flow_config` JSONB column to `widget_configs` |
+| `src/components/admin/widget/AiFlowBuilder.tsx` | New visual flow editor component |
+| `src/components/admin/widget/WidgetSettings.tsx` | Add "Flow" tab, render AiFlowBuilder |
+| `supabase/functions/widget-ai-chat/index.ts` | Read flow config, build dynamic system prompt from it |
+
