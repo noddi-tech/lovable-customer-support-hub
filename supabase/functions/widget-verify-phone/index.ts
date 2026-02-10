@@ -103,8 +103,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Success - reset attempts
+    // Success (HTTP 200/201) - reset attempts
     pinAttemptMap.delete(cleanPhone);
+
+    // Parse response - token/user may be null for new users, but verification still succeeded
+    const respData = await resp.json().catch(() => ({}));
 
     // Update conversation record if provided
     if (conversationId) {
@@ -119,7 +122,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ verified: true }),
+      JSON.stringify({ verified: true, token: respData.token || null }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (err) {

@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { widgetKey, phoneNumber } = await req.json();
+    const { widgetKey, phoneNumber, domain } = await req.json();
 
     if (!widgetKey || !phoneNumber) {
       return new Response(
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ phone_number: cleanPhone }),
+      body: JSON.stringify({ phone_number: cleanPhone, domain: domain || 'noddi.no' }),
     });
 
     if (!resp.ok) {
