@@ -1,42 +1,51 @@
 
+# Fix OTP Input Issues and Add Post-Verification Auto-Lookup
 
-# Fix: Use GET with Query Parameters for Noddi Verification
+## Problem 1: OTP Input Error on First Submit
 
-## Root Cause
+The OTP input has a race condition. When typing digits quickly, each slot's `onChange` does `pinInput.split('')`, sets a character at index `i`, and calls `setPinInput`. But React state updates are asynchronous -- if you type digit 5 and digit 6 quickly, the second onChange may still see the old `pinInput` without digit 5, causing it to be lost.
 
-The working noddi.no site reveals the actual API contract:
+Additionally, the auto-submit (`handleVerifyPin()`) on the 6th digit (line 478) fires via `setTimeout(..., 100)` before the state has settled, potentially sending an incomplete PIN.
 
-- **Method**: `GET` (not POST)
-- **URL**: `/v1/users/send-phone-number-verification/` (not the `-v2/` variant)
-- **Parameters**: passed as **query parameters** (`?domain=noddi&phone_number=%2B4741354569`)
+### Fix
+- Use a `ref` alongside state to track the PIN value synchronously, so each onChange always reads the latest value.
+- Move auto-submit to a `useEffect` that watches `pinInput` length, ensuring it only fires after state has fully updated.
+- Make sure both OTP groups (slots 0-2 and 3-5) use identical logic for cross-group navigation.
 
-We have been sending POST requests with a JSON body to the wrong endpoint this entire time. That is why every strategy returned `400 "Expected a string" attr: "body"` -- the `-v2/` endpoint expects POST, but may have different auth requirements, while the non-v2 endpoint is a simple GET.
+## Problem 2: Post-Verification Auto-Lookup
+
+Currently, after successful phone verification, the widget only shows a "Telefon verifisert" badge. The AI doesn't automatically look up the customer -- it waits for the user to type something.
+
+### Fix
+After verification succeeds in `handleVerifyPin`, automatically send a system-initiated message to the AI (e.g., "Telefonnummeret mitt er verifisert. Kan du slå opp kontoen min?") so the AI immediately calls `lookup_customer` with the verified phone and proactively presents the customer's account data (vehicles, upcoming bookings, etc.).
+
+This aligns with the existing system prompt which says: "After looking up the customer, proactively check for upcoming orders, wheel storage, etc."
 
 ## Changes
 
-### File: `supabase/functions/widget-send-verification/index.ts`
+### File: `src/widget/components/AiChat.tsx`
 
-1. **Change the Noddi API URL** from `/v1/users/send-phone-number-verification-v2/` to `/v1/users/send-phone-number-verification/`
-2. **Change HTTP method** from `POST` to `GET`
-3. **Pass parameters as query string** (`domain` and `phone_number`) instead of a JSON body
-4. **Remove all the retry strategies** (strategies 2-4) since they are no longer needed
-5. **Keep the Authorization header** with the API token
-6. **Keep rate limiting and widget validation** logic unchanged
+1. **Fix OTP race condition**: Add a `pinRef` (useRef) that mirrors `pinInput` synchronously. Each onChange writes to the ref first, then sets state. Auto-submit reads from the ref.
 
-### Technical Detail
+2. **Auto-lookup after verification**: In `handleVerifyPin`, after setting verified state, automatically inject a user message like "Telefonnummeret mitt er verifisert, kan du slå opp kontoen min?" and call the AI send flow. This triggers the AI to use `lookup_customer` with the verified phone and proactively present account data (vehicles, bookings).
+
+3. **Cross-group navigation fix**: Ensure backspace from slot 3 focuses slot 2 (across the separator), and forward from slot 2 focuses slot 3.
+
+### File: `supabase/functions/widget-ai-chat/index.ts`
+
+No changes needed -- the system prompt already instructs the AI to proactively look up and present customer data when verified. The auto-message just triggers this existing behavior.
+
+## Technical Detail
 
 ```text
-Before (broken):
-  POST /v1/users/send-phone-number-verification-v2/
-  Body: { phone_number, domain, ... }
-  -> 400 validation error
+Current post-verification flow:
+  User verifies phone -> Badge shown -> User must type something -> AI looks up account
 
-After (matches working noddi.no):
-  GET /v1/users/send-phone-number-verification/?domain=noddi&phone_number=%2B4741354569
-  -> 200 OK
+New post-verification flow:
+  User verifies phone -> Badge shown -> Auto-message sent -> AI calls lookup_customer 
+  -> AI presents: "Hi [Name]! I found your account. You have [bookings]. Which car would you like to book for?"
 ```
 
-### Deployment
+## Deployment
 
-Redeploy the `widget-send-verification` edge function after the change.
-
+No edge function changes needed. Only the widget component (`AiChat.tsx`) is modified.
