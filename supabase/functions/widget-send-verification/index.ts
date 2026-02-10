@@ -75,8 +75,6 @@ Deno.serve(async (req) => {
     cleanPhone = cleanPhone.replace(/^\+?47/, '');
     cleanPhone = `+47${cleanPhone}`;
 
-    console.log('[widget-send-verification] Normalized phone:', cleanPhone);
-
     if (isSmsRateLimited(cleanPhone)) {
       return new Response(
         JSON.stringify({ error: 'Too many verification attempts. Please wait before trying again.' }),
@@ -84,99 +82,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    const phoneFinal = String(cleanPhone);
     const domainFinal = String(domain || 'noddi');
-    const requestUrl = `${API_BASE}/v1/users/send-phone-number-verification-v2/`;
+    const requestUrl = new URL(`${API_BASE}/v1/users/send-phone-number-verification/`);
+    requestUrl.searchParams.set('domain', domainFinal);
+    requestUrl.searchParams.set('phone_number', cleanPhone);
 
-    // Strategy 1: JSON with auth (original approach)
-    const bodyObj = {
-      botd_request_id: "",
-      captcha_token: "",
-      device_fingerprint: "",
-      domain: domainFinal,
-      force_send: false,
-      phone_number: phoneFinal,
-    };
-    const bodyStr = JSON.stringify(bodyObj);
+    console.log('[widget-send-verification] GET', requestUrl.toString());
 
-    console.log('[widget-send-verification] Strategy 1: JSON with auth. URL:', requestUrl, 'Body:', bodyStr);
-    let resp = await fetch(requestUrl, {
-      method: 'POST',
+    const resp = await fetch(requestUrl.toString(), {
+      method: 'GET',
       headers: {
         'Authorization': `Token ${NODDI_API_TOKEN}`,
         'Accept': 'application/json',
-        'Content-Type': 'application/json; charset=utf-8',
         'User-Agent': 'NoddiWidget/1.0',
       },
-      body: bodyStr,
     });
-    let respText = await resp.text();
-    console.log('[widget-send-verification] Strategy 1 response:', resp.status, respText);
 
-    // Strategy 2: JSON WITHOUT auth (endpoint might be public)
-    if (resp.status === 400) {
-      console.log('[widget-send-verification] Strategy 2: JSON without auth');
-      resp = await fetch(requestUrl, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'User-Agent': 'NoddiWidget/1.0',
-        },
-        body: bodyStr,
-      });
-      respText = await resp.text();
-      console.log('[widget-send-verification] Strategy 2 response:', resp.status, respText);
-    }
-
-    // Strategy 3: multipart/form-data with auth
-    if (resp.status === 400) {
-      console.log('[widget-send-verification] Strategy 3: multipart/form-data');
-      const formData = new FormData();
-      formData.append('phone_number', phoneFinal);
-      formData.append('domain', domainFinal);
-      formData.append('botd_request_id', '');
-      formData.append('captcha_token', '');
-      formData.append('device_fingerprint', '');
-      formData.append('force_send', 'false');
-
-      resp = await fetch(requestUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${NODDI_API_TOKEN}`,
-          'Accept': 'application/json',
-          'User-Agent': 'NoddiWidget/1.0',
-        },
-        body: formData,
-      });
-      respText = await resp.text();
-      console.log('[widget-send-verification] Strategy 3 response:', resp.status, respText);
-    }
-
-    // Strategy 4: form-urlencoded with explicit Content-Type
-    if (resp.status === 400) {
-      console.log('[widget-send-verification] Strategy 4: form-urlencoded with Content-Type');
-      const formBody = new URLSearchParams();
-      formBody.set('phone_number', phoneFinal);
-      formBody.set('domain', domainFinal);
-      formBody.set('botd_request_id', '');
-      formBody.set('captcha_token', '');
-      formBody.set('device_fingerprint', '');
-      formBody.set('force_send', 'false');
-
-      resp = await fetch(requestUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${NODDI_API_TOKEN}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'NoddiWidget/1.0',
-        },
-        body: formBody.toString(),
-      });
-      respText = await resp.text();
-      console.log('[widget-send-verification] Strategy 4 response:', resp.status, respText);
-    }
+    const respText = await resp.text();
+    console.log('[widget-send-verification] Response:', resp.status, respText);
 
     if (!resp.ok) {
       return new Response(
