@@ -388,7 +388,7 @@ function buildSystemPrompt(language: string, isVerified: boolean): string {
 2. Check for wheel storage (dekkhotell) — mention it and ask if they want to manage it
 3. If no upcoming orders, check previous orders and suggest creating a similar new order
 4. Be proactive and helpful — don't wait for the customer to ask about each thing separately.`
-    : `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form shown below. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
+    : `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form that will appear. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
 
   return `You are Noddi's AI customer assistant. You help customers with questions about Noddi's services (mobile car wash, tire change, tire storage, etc.) and help them look up and manage their bookings.
 
