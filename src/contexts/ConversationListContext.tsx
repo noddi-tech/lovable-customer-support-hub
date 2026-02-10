@@ -177,7 +177,7 @@ interface ConversationListProviderProps {
 export const ConversationListProvider = ({ children, selectedTab, selectedInboxId }: ConversationListProviderProps) => {
   const [state, dispatch] = useReducer(conversationListReducer, initialState);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
 
   // Fetch agents for assignment - uses shared hook for consistent caching
@@ -371,8 +371,9 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
               case "assigned":
-                // Assigned to Me: has assignment, not archived, not snoozed, not deleted
+                // Assigned to Me: assigned to current user, not archived, not snoozed, not deleted
                 return !!conversation.assigned_to 
+                  && conversation.assigned_to.id === profile?.id
                   && !conversation.is_archived 
                   && !isSnoozedActive 
                   && !conversation.is_deleted;
@@ -542,8 +543,9 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
               && !isSnoozedActive 
               && !conversation.is_deleted;
           case "assigned":
-            // Assigned to Me: has assignment, not archived, not snoozed, not deleted
+            // Assigned to Me: assigned to current user, not archived, not snoozed, not deleted
             return !!conversation.assigned_to 
+              && conversation.assigned_to.id === profile?.id
               && !conversation.is_archived 
               && !isSnoozedActive 
               && !conversation.is_deleted;
