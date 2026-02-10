@@ -1,64 +1,72 @@
 
 
-# Fix: Customer Lookup Returning "No Customer Found"
+# Fix Customer Lookup + Improve Phone/OTP Input UI
 
-## Problem
+## Two Issues to Solve
 
-The `executeLookupCustomer` function in `widget-ai-chat` silently swallows errors from the Noddi API. When the API returns a non-OK response (400, 404, 500, etc.), the code just skips over it and reports "No customer found" -- giving no indication of what actually went wrong.
+### Issue 1: Customer lookup returns 403 (permission_denied)
 
-Your phone number `+47 41 35 45 69` exists in the system, but the lookup is failing silently.
+The edge function logs reveal the real problem:
 
-## Root Cause
-
-Line 199 of `widget-ai-chat/index.ts`:
-```typescript
-if (resp.ok) userData = await resp.json();
-// If resp is NOT ok, we silently ignore it -- no logging, no error message
+```
+[lookup] Noddi API error for phone +4741354569: 403 {"type": "client_error", "errors": [{"code": "permission_denied", ...}]}
 ```
 
-Additionally, the phone normalization regex may have edge cases. For the input `41354569`, the regex produces `+4741354569` which looks correct, but without error logging we cannot confirm whether the Noddi API is rejecting the request or returning an unexpected format.
+The `widget-ai-chat` function uses `/v1/users/get-by-phone-number/` which the API token does NOT have permission for. Meanwhile, the working `noddi-customer-lookup` function uses a different endpoint: `/v1/users/customer-lookup-support/` -- which the token DOES have access to.
+
+**Fix**: Change `executeLookupCustomer` in `widget-ai-chat/index.ts` to use the same `/v1/users/customer-lookup-support/` endpoint that already works in `noddi-customer-lookup`.
+
+### Issue 2: Improve phone number and PIN input UX
+
+Replace the plain text inputs with proper styled components:
+- **Phone number**: A styled input matching the shadcn Input component design (rounded border, proper focus ring, clean appearance)
+- **PIN/OTP code**: A 6-digit OTP-style input with individual digit boxes, matching the shadcn InputOTP pattern
+
+Since this is a standalone widget (not part of the main app bundle), we cannot import shadcn components directly. Instead, we will replicate the visual style in the widget's own CSS and HTML structure.
 
 ## Changes
 
 ### File: `supabase/functions/widget-ai-chat/index.ts`
 
-**1. Add error logging to `executeLookupCustomer`:**
-
-When the Noddi API returns a non-OK response, log the status code and response body. This will make future debugging much easier.
-
-```typescript
-if (phone) {
-  const cleanPhone = phone.replace(/\s+/g, '').replace(/^(\+?47)?/, '+47');
-  console.log(`[lookup] Looking up phone: ${cleanPhone}`);
-  const resp = await fetch(`${API_BASE}/v1/users/get-by-phone-number/?phone_number=${encodeURIComponent(cleanPhone)}`, { headers });
-  if (resp.ok) {
-    userData = await resp.json();
-  } else {
-    const errText = await resp.text().catch(() => '');
-    console.error(`[lookup] Noddi API error for phone ${cleanPhone}: ${resp.status} ${errText}`);
-  }
-}
+**Change the customer lookup endpoint** from:
+```
+/v1/users/get-by-phone-number/?phone_number=...
+```
+to:
+```
+/v1/users/customer-lookup-support/?phone=...
 ```
 
-**2. Improve phone normalization to handle more formats:**
-
-The current regex `^(\+?47)?` has a subtle issue -- for numbers that already start with `+47`, it works. For bare numbers like `41354569`, it also works. But for numbers like `004741354569` (international dialing), it would fail. Make the normalization more robust:
-
-```typescript
-let cleanPhone = phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
-// Handle various Norwegian phone formats
-if (cleanPhone.startsWith('0047')) cleanPhone = '+47' + cleanPhone.slice(4);
-else if (cleanPhone.startsWith('+47')) { /* already correct */ }
-else if (cleanPhone.startsWith('47') && cleanPhone.length === 10) cleanPhone = '+' + cleanPhone;
-else if (/^\d{8}$/.test(cleanPhone)) cleanPhone = '+47' + cleanPhone;
+Also update the email lookup to use the same endpoint:
+```
+/v1/users/customer-lookup-support/?email=...
 ```
 
-**3. Add similar logging for email lookup and non-OK booking fetch.**
+The response format from `customer-lookup-support` may differ from `get-by-phone-number`. We will parse the response to extract user data and user_group_id, matching how `noddi-customer-lookup` handles it.
+
+### File: `src/widget/components/AiChat.tsx`
+
+**Phone input step**: Replace the plain `<input type="tel">` with a properly styled input that looks like the shadcn Input component -- with rounded corners, border, focus ring, and a country code prefix (+47).
+
+**PIN input step**: Replace the single text input with 6 individual digit boxes (OTP-style), where:
+- Each box accepts exactly one digit
+- Focus auto-advances to the next box on input
+- Backspace moves focus to the previous box
+- The component is built as a simple inline implementation (no external OTP library needed for the widget)
+
+### File: `src/widget/styles/widget.css`
+
+Add CSS styles for:
+- `.noddi-phone-input` -- styled to match shadcn Input (rounded-md, border, focus ring)
+- `.noddi-otp-container` -- flex container for the 6 OTP digit boxes
+- `.noddi-otp-slot` -- individual digit box (centered text, border, focus highlight)
+- `.noddi-otp-separator` -- visual dot separator between groups of 3
 
 ## Summary
 
 | File | Change |
 |------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | Add error logging to customer lookup, improve phone normalization |
+| `supabase/functions/widget-ai-chat/index.ts` | Switch to `/v1/users/customer-lookup-support/` endpoint (fixes 403) |
+| `src/widget/components/AiChat.tsx` | Styled phone input + 6-digit OTP input UI |
+| `src/widget/styles/widget.css` | Add Input and InputOTP-style CSS for the widget |
 
-After deploying, we can check the edge function logs to see the exact Noddi API error and fix accordingly.
