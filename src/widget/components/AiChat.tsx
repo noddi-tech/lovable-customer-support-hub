@@ -22,6 +22,7 @@ interface AiChatProps {
   onTalkToHuman: () => void;
   onEmailConversation: (transcript: string) => void;
   onBack: () => void;
+  onLogEvent?: (event: string, details?: string, type?: 'info' | 'tool' | 'error' | 'success') => void;
 }
 
 const STORAGE_KEY = 'noddi_ai_chat_messages';
@@ -58,6 +59,7 @@ export const AiChat: React.FC<AiChatProps> = ({
   onTalkToHuman,
   onEmailConversation,
   onBack,
+  onLogEvent,
 }) => {
   const [messages, setMessages] = useState<AiChatMessage[]>(loadMessages);
   const [inputValue, setInputValue] = useState('');
@@ -133,13 +135,15 @@ export const AiChat: React.FC<AiChatProps> = ({
     if (result.success) {
       setVerificationStep('pin');
       setCodeSentMessage(true);
+      onLogEvent?.('Verification code sent', phone, 'tool');
       setTimeout(() => setCodeSentMessage(false), 3000);
     } else {
       setVerificationError(result.error || 'Failed to send code');
+      onLogEvent?.('Verification failed', result.error || 'Failed to send code', 'error');
     }
 
     setIsSendingCode(false);
-  }, [phoneInput, isSendingCode, widgetKey]);
+  }, [phoneInput, isSendingCode, widgetKey, onLogEvent]);
 
   const handleVerifyPin = useCallback(async (pinOverride?: string) => {
     const pin = (pinOverride || pinRef.current).trim();
@@ -157,9 +161,10 @@ export const AiChat: React.FC<AiChatProps> = ({
       localStorage.setItem(VERIFIED_PHONE_KEY, phone);
       localStorage.setItem('noddi_ai_phone', phone);
       setIsVerifying(false);
-      // Auto-lookup: send message to trigger AI customer lookup
+      onLogEvent?.('Phone verified', phone, 'success');
+      // Auto-lookup: send message to trigger AI guided flow
       setTimeout(() => {
-        sendMessage('Telefonnummeret mitt er verifisert. Kan du slå opp kontoen min?', phone);
+        sendMessage('Jeg har verifisert telefonnummeret mitt. Hva kan du hjelpe meg med?', phone);
       }, 500);
       return;
     } else {
@@ -167,10 +172,11 @@ export const AiChat: React.FC<AiChatProps> = ({
         ? result.error || t.invalidPin
         : t.invalidPin;
       setVerificationError(errorMsg);
+      onLogEvent?.('Verification failed', errorMsg, 'error');
     }
 
     setIsVerifying(false);
-  }, [isVerifying, widgetKey, phoneInput, conversationId, t]);
+  }, [isVerifying, widgetKey, phoneInput, conversationId, t, onLogEvent]);
 
   const handleResendCode = useCallback(async () => {
     setVerificationError(null);
@@ -202,6 +208,7 @@ export const AiChat: React.FC<AiChatProps> = ({
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
     setStreamingContent('');
+    onLogEvent?.('User message', content.slice(0, 100), 'info');
 
     try {
       const history = [...messages, userMessage]
@@ -238,6 +245,7 @@ export const AiChat: React.FC<AiChatProps> = ({
           if (result.conversationId) setConversationId(result.conversationId);
           if (result.messageId) serverMessageId = result.messageId;
         }
+        onLogEvent?.('AI stream fallback', 'Used non-streaming endpoint', 'info');
       }
 
       if (fullReply) {
@@ -249,6 +257,7 @@ export const AiChat: React.FC<AiChatProps> = ({
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, aiMsg]);
+        onLogEvent?.('AI response', fullReply.slice(0, 100), 'success');
 
         // Detect verification trigger in AI response
         if (!effectiveVerified && verificationStep === 'idle') {
