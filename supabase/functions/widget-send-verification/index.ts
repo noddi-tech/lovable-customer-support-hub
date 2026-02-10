@@ -94,9 +94,9 @@ Deno.serve(async (req) => {
     const phoneFinal = String(cleanPhone);
     const domainFinal = String(domain || 'noddi');
     const bodyObj = {
-      botd_request_id: null,
-      captcha_token: null,
-      device_fingerprint: null,
+      botd_request_id: "",
+      captcha_token: "",
+      device_fingerprint: "",
       domain: domainFinal,
       force_send: false,
       phone_number: phoneFinal,
@@ -107,7 +107,8 @@ Deno.serve(async (req) => {
     console.log('[widget-send-verification] Body:', bodyStr);
     console.log('[widget-send-verification] Token length:', NODDI_API_TOKEN.length, 'Token prefix:', NODDI_API_TOKEN.substring(0, 4));
 
-    const resp = await fetch(requestUrl, {
+    // Try JSON first
+    let resp = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Token ${NODDI_API_TOKEN}`,
@@ -116,6 +117,27 @@ Deno.serve(async (req) => {
       },
       body: bodyStr,
     });
+
+    // If JSON fails with 400, retry as form-encoded
+    if (resp.status === 400) {
+      console.log('[widget-send-verification] JSON body rejected, retrying as form-encoded');
+      const formBody = new URLSearchParams();
+      formBody.set('phone_number', phoneFinal);
+      formBody.set('domain', domainFinal);
+      formBody.set('botd_request_id', '');
+      formBody.set('captcha_token', '');
+      formBody.set('device_fingerprint', '');
+      formBody.set('force_send', 'false');
+
+      resp = await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${NODDI_API_TOKEN}`,
+          'Accept': 'application/json',
+        },
+        body: formBody,
+      });
+    }
 
     const respText = await resp.text();
     console.log('[widget-send-verification] Response:', resp.status, respText);
