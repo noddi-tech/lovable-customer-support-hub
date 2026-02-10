@@ -1,19 +1,18 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { 
   PlayCircle, 
   StopCircle, 
-  Send, 
   Info,
   Bot,
-  User,
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AiChat } from '@/widget/components/AiChat';
+import '@/widget/styles/widget.css';
 
 interface WidgetConfig {
   id: string;
@@ -27,18 +26,11 @@ interface WidgetConfig {
   enable_knowledge_search: boolean;
   logo_url: string | null;
   company_name: string | null;
+  language?: string;
 }
 
 interface WidgetTestModeProps {
   config: WidgetConfig;
-}
-
-interface TestMessage {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
-  toolsUsed?: string[];
 }
 
 interface TestLogEntry {
@@ -49,21 +41,9 @@ interface TestLogEntry {
   type?: 'info' | 'tool' | 'error' | 'success';
 }
 
-const API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
-
 export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
   const [isTestActive, setIsTestActive] = useState(false);
-  const [messages, setMessages] = useState<TestMessage[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [streamingContent, setStreamingContent] = useState('');
   const [testLog, setTestLog] = useState<TestLogEntry[]>([]);
-  const [testPhone, setTestPhone] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading, streamingContent]);
 
   const addLogEntry = useCallback((event: string, details?: string, type: 'info' | 'tool' | 'error' | 'success' = 'info') => {
     setTestLog(prev => [...prev, {
@@ -77,126 +57,14 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
 
   const startTestSession = () => {
     setIsTestActive(true);
-    setMessages([{
-      id: 'greeting',
-      role: 'assistant',
-      content: "Hi! 👋 I'm Noddi's AI assistant. I can help you with questions about our services, look up your bookings, and more. How can I help you?",
-      timestamp: new Date(),
-    }]);
     setTestLog([]);
     addLogEntry('Test session started', `Widget: ${config.company_name || 'Widget'} (${config.widget_key})`, 'success');
   };
 
   const endTestSession = () => {
     setIsTestActive(false);
-    setMessages([]);
-    setStreamingContent('');
     addLogEntry('Test session ended', undefined, 'info');
     toast.info('Test session ended');
-  };
-
-  const handleSendMessage = async () => {
-    const content = inputValue.trim();
-    if (!content || isLoading) return;
-
-    const userMessage: TestMessage = {
-      id: crypto.randomUUID(),
-      content,
-      role: 'user',
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
-    setStreamingContent('');
-    addLogEntry('User message', content, 'info');
-
-    try {
-      const history = messages
-        .filter(m => m.id !== 'greeting')
-        .concat(userMessage)
-        .map(m => ({ role: m.role, content: m.content }));
-
-      addLogEntry('Calling AI edge function', 'POST /widget-ai-chat (test: true, stream: true)', 'tool');
-
-      const response = await fetch(`${API_BASE}/widget-ai-chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          widgetKey: config.widget_key,
-          messages: history,
-          visitorPhone: testPhone || undefined,
-          language: 'no',
-          test: true,
-          stream: true,
-          isVerified: !!testPhone,
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      let fullReply = '';
-
-      if (contentType.includes('text/event-stream')) {
-        addLogEntry('SSE stream started', undefined, 'success');
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error('No response body');
-
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === 'token') {
-                fullReply += data.content;
-                setStreamingContent(fullReply);
-              } else if (data.type === 'done') {
-                addLogEntry('Stream completed', `${fullReply.length} chars`, 'success');
-              }
-            } catch { /* skip */ }
-          }
-        }
-      } else {
-        const data = await response.json();
-        fullReply = data.reply || '';
-        addLogEntry('Non-streaming response', `${fullReply.length} chars`, 'info');
-      }
-
-      if (fullReply) {
-        setMessages(prev => [...prev, {
-          id: crypto.randomUUID(),
-          content: fullReply,
-          role: 'assistant',
-          timestamp: new Date(),
-        }]);
-        addLogEntry('AI response received', fullReply.slice(0, 100) + (fullReply.length > 100 ? '...' : ''), 'success');
-      }
-    } catch (err: any) {
-      addLogEntry('Error', err.message, 'error');
-      setMessages(prev => [...prev, {
-        id: crypto.randomUUID(),
-        content: `Error: ${err.message}`,
-        role: 'assistant',
-        timestamp: new Date(),
-      }]);
-    }
-
-    setStreamingContent('');
-    setIsLoading(false);
   };
 
   const logTypeStyles: Record<string, string> = {
@@ -212,8 +80,8 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
         <Sparkles className="h-4 w-4" />
         <AlertTitle>AI Bot Test Mode</AlertTitle>
         <AlertDescription>
-          Test the AI assistant with real knowledge base queries and booking lookups. 
-          Messages use the <code className="text-xs bg-muted px-1 rounded">test: true</code> flag — conversations are not persisted.
+          Test the AI assistant with the production widget — identical to what end-users see.
+          Phone verification, OTP, and all features work exactly like in production.
         </AlertDescription>
       </Alert>
 
@@ -230,110 +98,58 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
           </Button>
         )}
         {isTestActive && (
-          <>
-            <Badge variant="outline" className="border-green-500 text-green-600">
-              AI Test Active
-            </Badge>
-            <div className="flex items-center gap-2 ml-auto">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">Test phone:</label>
-              <Input
-                className="w-40 h-8 text-sm"
-                placeholder="+47..."
-                value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value)}
-              />
-            </div>
-          </>
+          <Badge variant="outline" className="border-green-500 text-green-600">
+            AI Test Active
+          </Badge>
         )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Chat Preview */}
+        {/* Production Widget Preview */}
         <div className="border-2 border-dashed rounded-xl p-6 bg-muted/30 flex items-center justify-center min-h-[500px]">
           {isTestActive ? (
-            <div 
-              className="bg-background border shadow-2xl rounded-xl w-[360px] overflow-hidden flex flex-col"
-              style={{ boxShadow: `0 25px 60px -15px ${config.primary_color}50`, maxHeight: '520px' }}
+            <div
+              className="noddi-widget-container"
+              style={{ position: 'relative', width: '380px', maxHeight: '560px' }}
             >
-              {/* Header */}
-              <div className="p-3 text-white flex items-center justify-between" style={{ backgroundColor: config.primary_color }}>
-                <div className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  <span className="font-medium text-sm">{config.company_name || 'AI Assistant'}</span>
-                </div>
-                <Badge variant="outline" className="bg-white/20 border-white/30 text-white text-xs">TEST</Badge>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ maxHeight: '360px' }}>
-                {messages.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`flex items-start gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        msg.role === 'user' ? 'bg-muted' : ''
-                      }`} style={msg.role === 'assistant' ? { backgroundColor: `${config.primary_color}20` } : {}}>
-                        {msg.role === 'user' ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" style={{ color: config.primary_color }} />}
-                      </div>
-                      <div
-                        className={`px-3 py-2 rounded-xl text-sm ${
-                          msg.role === 'user'
-                            ? 'rounded-br-sm text-white'
-                            : 'rounded-bl-sm bg-muted'
-                        }`}
-                        style={msg.role === 'user' ? { backgroundColor: config.primary_color } : {}}
-                      >
-                        {msg.content}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {streamingContent && (
-                  <div className="flex justify-start">
-                    <div className="flex items-start gap-2 max-w-[85%]">
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${config.primary_color}20` }}>
-                        <Bot className="h-3 w-3" style={{ color: config.primary_color }} />
-                      </div>
-                      <div className="px-3 py-2 rounded-xl rounded-bl-sm bg-muted text-sm">
-                        {streamingContent}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {isLoading && !streamingContent && (
-                  <div className="flex justify-start">
-                    <div className="px-4 py-3 rounded-xl rounded-bl-sm bg-muted">
-                      <div className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.3s]" />
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:-0.15s]" />
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input */}
-              <div className="p-3 border-t flex gap-2">
-                <Input
-                  placeholder="Ask the AI bot..."
-                  className="flex-1 h-9 text-sm"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                  disabled={isLoading}
-                />
-                <Button
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || isLoading}
+              <div
+                className="noddi-widget-panel"
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  width: '100%',
+                  maxHeight: '560px',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: `0 25px 60px -15px ${config.primary_color}50`,
+                }}
+              >
+                {/* Widget header */}
+                <div
+                  className="noddi-widget-header"
                   style={{ backgroundColor: config.primary_color }}
                 >
-                  <Send className="h-4 w-4" />
-                </Button>
+                  <div className="noddi-widget-header-content">
+                    <div className="noddi-widget-header-text">
+                      <h3 className="noddi-widget-title">{config.company_name || 'AI Assistant'}</h3>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="bg-white/20 border-white/30 text-white text-xs">TEST</Badge>
+                </div>
+
+                {/* Real AiChat component */}
+                <AiChat
+                  widgetKey={config.widget_key}
+                  primaryColor={config.primary_color}
+                  language={config.language || 'no'}
+                  agentsOnline={false}
+                  enableChat={false}
+                  enableContactForm={false}
+                  onTalkToHuman={() => addLogEntry('Escalation: Talk to human', undefined, 'tool')}
+                  onEmailConversation={(transcript) => addLogEntry('Escalation: Email conversation', `${transcript.length} chars`, 'tool')}
+                  onBack={() => addLogEntry('Back button clicked', undefined, 'info')}
+                />
               </div>
             </div>
           ) : (
