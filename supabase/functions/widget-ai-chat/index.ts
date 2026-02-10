@@ -194,14 +194,30 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
     let userData: any = null;
 
     if (phone) {
-      const cleanPhone = phone.replace(/\s+/g, '').replace(/^(\+?47)?/, '+47');
+      let cleanPhone = phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+      if (cleanPhone.startsWith('0047')) cleanPhone = '+47' + cleanPhone.slice(4);
+      else if (cleanPhone.startsWith('+47')) { /* already correct */ }
+      else if (cleanPhone.startsWith('47') && cleanPhone.length === 10) cleanPhone = '+' + cleanPhone;
+      else if (/^\d{8}$/.test(cleanPhone)) cleanPhone = '+47' + cleanPhone;
+      console.log(`[lookup] Looking up phone: ${cleanPhone}`);
       const resp = await fetch(`${API_BASE}/v1/users/get-by-phone-number/?phone_number=${encodeURIComponent(cleanPhone)}`, { headers });
-      if (resp.ok) userData = await resp.json();
+      if (resp.ok) {
+        userData = await resp.json();
+      } else {
+        const errText = await resp.text().catch(() => '');
+        console.error(`[lookup] Noddi API error for phone ${cleanPhone}: ${resp.status} ${errText}`);
+      }
     }
 
     if (!userData && email) {
+      console.log(`[lookup] Looking up email: ${email}`);
       const resp = await fetch(`${API_BASE}/v1/users/get-by-email/?email=${encodeURIComponent(email)}`, { headers });
-      if (resp.ok) userData = await resp.json();
+      if (resp.ok) {
+        userData = await resp.json();
+      } else {
+        const errText = await resp.text().catch(() => '');
+        console.error(`[lookup] Noddi API error for email ${email}: ${resp.status} ${errText}`);
+      }
     }
 
     if (!userData) return JSON.stringify({ found: false, message: 'No customer found with the provided information.' });
@@ -214,6 +230,9 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
       if (resp.ok) {
         const data = await resp.json();
         bookings = Array.isArray(data) ? data : (data.results || []);
+      } else {
+        const errText = await resp.text().catch(() => '');
+        console.error(`[lookup] Noddi API error for bookings (userGroup ${userGroupId}): ${resp.status} ${errText}`);
       }
     }
 
