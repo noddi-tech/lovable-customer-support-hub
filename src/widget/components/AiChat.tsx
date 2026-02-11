@@ -12,6 +12,7 @@ interface AiChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  hidden?: boolean;
 }
 
 interface AiChatProps {
@@ -160,13 +161,16 @@ export const AiChat: React.FC<AiChatProps> = ({
 
   const isPhoneVerified = !!verifiedPhone;
 
-  const sendMessage = useCallback(async (content: string, phoneOverride?: string) => {
+  const sendMessage = useCallback(async (content: string, phoneOverride?: string, options?: { hidden?: boolean }) => {
     if (!content || isLoading) return;
     const effectivePhone = phoneOverride || verifiedPhone;
     const effectiveVerified = !!effectivePhone;
+    const isHidden = options?.hidden ?? false;
 
-    const userMessage: AiChatMessage = { id: `user_${Date.now()}`, role: 'user', content, timestamp: new Date() };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage: AiChatMessage = { id: `user_${Date.now()}`, role: 'user', content, timestamp: new Date(), hidden: isHidden };
+    if (!isHidden) {
+      setMessages((prev) => [...prev, userMessage]);
+    }
     setIsLoading(true);
     setStreamingContent('');
     onLogEvent?.('User message', content.slice(0, 100), 'info');
@@ -230,7 +234,7 @@ export const AiChat: React.FC<AiChatProps> = ({
   const handlePhoneVerified = useCallback((phone: string, blockKey: string) => {
     setVerifiedPhone(phone);
     setUsedBlocks((prev) => new Set(prev).add(blockKey));
-    setTimeout(() => { sendMessage('Jeg har verifisert telefonnummeret mitt. Hva kan du hjelpe meg med?', phone); }, 500);
+    setTimeout(() => { sendMessage('__VERIFIED__', phone, { hidden: true }); }, 500);
   }, [sendMessage]);
 
   const buildTranscript = (): string => {
@@ -267,7 +271,7 @@ export const AiChat: React.FC<AiChatProps> = ({
       </div>
 
       <div className="noddi-chat-messages">
-        {messages.map((message) => {
+        {messages.filter(m => !m.hidden).map((message) => {
           const blocks = message.role === 'assistant'
             ? parseMessageBlocks(message.content)
             : [{ type: 'text' as const, content: message.content }];
