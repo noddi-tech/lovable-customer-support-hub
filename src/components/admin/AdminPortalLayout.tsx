@@ -25,6 +25,7 @@ import {
   Building,
   Shield,
   Brain,
+  Bot,
   Crown,
   Download,
   Activity,
@@ -98,6 +99,11 @@ const AdminSidebar = () => {
       title: 'Knowledge Management',
       url: '/admin/knowledge',
       icon: Brain
+    },
+    {
+      title: 'AI Chatbot',
+      url: '/admin/ai-chatbot',
+      icon: Bot
     },
     {
       title: 'Contact Widget',

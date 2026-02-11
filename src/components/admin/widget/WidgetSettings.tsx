@@ -10,16 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, TestTube2, Globe, Bot, History, AlertTriangle, GitBranch } from 'lucide-react';
+import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, Globe } from 'lucide-react';
 import { WidgetPreview } from './WidgetPreview';
 import { WidgetEmbedCode } from './WidgetEmbedCode';
 import { WidgetAnalytics } from './WidgetAnalytics';
-import { WidgetTestMode } from './WidgetTestMode';
 import { WidgetTranslationEditor } from './WidgetTranslationEditor';
-import { AiAnalyticsDashboard } from './AiAnalyticsDashboard';
-import { AiConversationHistory } from './AiConversationHistory';
-import { KnowledgeGapDetection } from './KnowledgeGapDetection';
-import { AiFlowBuilder } from './AiFlowBuilder';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { SUPPORTED_WIDGET_LANGUAGES } from '@/widget/translations';
@@ -295,38 +290,18 @@ export const WidgetSettings: React.FC = () => {
                     </CardDescription>
                   </div>
                 </div>
-                <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="settings" className="gap-1.5">
                     <Settings className="h-4 w-4" />
                     <span className="hidden lg:inline">Settings</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="flow" className="gap-1.5">
-                    <GitBranch className="h-4 w-4" />
-                    <span className="hidden lg:inline">Flow</span>
                   </TabsTrigger>
                   <TabsTrigger value="preview" className="gap-1.5">
                     <Eye className="h-4 w-4" />
                     <span className="hidden lg:inline">Preview</span>
                   </TabsTrigger>
-                  <TabsTrigger value="test" className="gap-1.5">
-                    <TestTube2 className="h-4 w-4" />
-                    <span className="hidden lg:inline">Test</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="conversations" className="gap-1.5">
-                    <History className="h-4 w-4" />
-                    <span className="hidden lg:inline">Conversations</span>
-                  </TabsTrigger>
                   <TabsTrigger value="analytics" className="gap-1.5">
                     <BarChart3 className="h-4 w-4" />
                     <span className="hidden lg:inline">Analytics</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="ai-analytics" className="gap-1.5">
-                    <Bot className="h-4 w-4" />
-                    <span className="hidden lg:inline">AI</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="gaps" className="gap-1.5">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="hidden lg:inline">Gaps</span>
                   </TabsTrigger>
                   <TabsTrigger value="embed" className="gap-1.5">
                     <Code className="h-4 w-4" />
@@ -531,39 +506,14 @@ export const WidgetSettings: React.FC = () => {
                   </div>
                 </TabsContent>
 
-                {/* Flow Tab */}
-                <TabsContent value="flow" className="mt-0">
-                  <AiFlowBuilder widgetId={selectedWidget.id} />
-                </TabsContent>
-
                 {/* Preview Tab */}
                 <TabsContent value="preview" className="mt-0">
                   <WidgetPreview config={selectedWidget} />
                 </TabsContent>
 
-                {/* Test Mode Tab */}
-                <TabsContent value="test" className="mt-0">
-                  <WidgetTestMode config={selectedWidget} />
-                </TabsContent>
-
                 {/* Analytics Tab */}
                 <TabsContent value="analytics" className="mt-0">
                   <WidgetAnalytics widgetId={selectedWidget.id} />
-                </TabsContent>
-
-                {/* AI Analytics Tab */}
-                <TabsContent value="ai-analytics" className="mt-0">
-                  <AiAnalyticsDashboard organizationId={selectedWidget.organization_id} />
-                </TabsContent>
-
-                {/* Conversation History Tab */}
-                <TabsContent value="conversations" className="mt-0">
-                  <AiConversationHistory organizationId={selectedWidget.organization_id} />
-                </TabsContent>
-
-                {/* Knowledge Gaps Tab */}
-                <TabsContent value="gaps" className="mt-0">
-                  <KnowledgeGapDetection organizationId={selectedWidget.organization_id} />
                 </TabsContent>
 
                 {/* Embed Code Tab */}
