@@ -117,7 +117,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Production Widget Preview */}
-        <div className="border-2 border-dashed rounded-xl p-6 bg-muted/30 flex items-end justify-center min-h-[500px] overflow-hidden relative z-0">
+        <div className="border-2 border-dashed rounded-xl p-4 bg-muted/30 flex items-end justify-center min-h-[620px] overflow-hidden relative z-0">
           {isTestActive ? (
             <div
               className="noddi-widget-container"
