@@ -1,74 +1,131 @@
 
-
-# Fix Node Reordering for Sequential Chains
+# Interactive Chat Components System
 
 ## Problem
-The move up/down buttons don't work because in the tree structure, sequential nodes are nested parent-to-child (each node is the sole child of the one above). Since there are no siblings, the buttons are always disabled.
+The AI chat currently renders everything as plain text. The user wants:
+1. **Phone verification (data collection)** to be triggerable from the flow builder's data_collection node type, not just hardcoded keyword detection
+2. **Action choices** rendered as clickable cards/pills instead of text lists
+3. A **scalable system** so future interactive components can be added easily
 
-For example, the current tree looks like:
-```text
-Initial Greeting
-  children: [
-    Ask for Phone Number
-      children: [
-        Existing Customer?
-          children: [
-            Present Action Choices
-          ]
-      ]
-  ]
+## Solution: Structured Message Blocks
+
+Instead of the AI returning only plain text, introduce a lightweight **block protocol** where the AI response can contain special markers that the widget parses into interactive UI components. The edge function instructs the AI to emit structured markers, and the widget's message renderer detects and renders them as components.
+
+### How It Works
+
+The AI includes special markers in its response text:
+
+```
+Here are your options:
+
+[ACTION_MENU]
+Book new service
+View my bookings
+Cancel a booking
+Wheel storage
+[/ACTION_MENU]
 ```
 
-Each array has exactly 1 element, so `canMoveUp` (index > 0) and `canMoveDown` (index < length - 1) are always false.
+```
+I need to verify your identity first.
 
-## Solution
-Replace the current sibling-only swap logic with chain-aware reordering that swaps a node with its parent (move up) or its first child (move down) in parent-child chains.
+[PHONE_VERIFY]
+```
 
-### How "Swap with Parent" works (Move Up)
-When a node is the only child and user clicks "Move Up":
-1. Find the node and its parent in the tree
-2. Swap their positions: the child takes the parent's place, and the parent becomes the child
-3. Preserve all sub-trees correctly (the moved-up node inherits the parent's position and the parent's other branches stay intact)
+The widget parser splits the message content into segments: text blocks and component blocks. Each segment renders with the appropriate component.
 
-Example: Moving "Present Action Choices" up past "Existing Customer?"
-- Before: Existing Customer? > children > [Present Action Choices]
-- After: Present Action Choices > children > [Existing Customer?]
-- The decision's yes/no branches stay attached to it
+### Block Types (extensible)
 
-### How "Swap with Child" works (Move Down)
-Inverse of the above: the node swaps with its first/only child.
+| Block Marker | Renders As | User Interaction |
+|---|---|---|
+| `[ACTION_MENU]...[/ACTION_MENU]` | Clickable pill/card buttons | Click sends the choice as a user message |
+| `[PHONE_VERIFY]` | Phone input + OTP form | Inline verification flow (existing logic) |
+| *(future)* `[DATE_PICKER]` | Calendar selector | Sends selected date |
+| *(future)* `[CONFIRM]...[/CONFIRM]` | Confirmation card with Yes/No | Sends confirmation |
 
-### Button visibility logic update
-- "Move Up" is enabled when the node either has a sibling above OR is a sole child (can swap with parent)
-- "Move Down" is enabled when the node either has a sibling below OR is a sole child with children (can swap with child)
-- Disabled only at absolute boundaries (root node with no children to swap with, or leaf node)
+### Architecture
 
-## Technical Details
+```text
+AI Response (text with markers)
+        |
+   parseMessageBlocks(content)
+        |
+   Array<MessageBlock>
+    /        |         \
+TextBlock  ActionMenu  PhoneVerify
+  (HTML)   (pills)     (form)
+```
 
-### File: `src/components/admin/widget/AiFlowBuilder.tsx`
+## Detailed Changes
 
-**New helper: `swapWithParent(nodes, nodeId)`**
-- Recursively searches the tree to find the node and its parent
-- When found: detaches the node, places it where the parent was, and makes the parent a child of the node
-- The swapped node inherits the parent's position in its grandparent's array
-- The former parent keeps its own branches (yes_children, no_children, actions) but its `children` array is updated
+### 1. Message Block Parser (new utility)
 
-**New helper: `swapWithChild(nodes, nodeId)`**  
-- Finds the node, takes its first child, swaps their positions
-- The child moves up to the node's position, the node becomes the child's child
+A `parseMessageBlocks` function that splits AI response content into typed blocks:
 
-**Updated: `moveNodeInSiblings` renamed to `moveNode`**
-- First checks if sibling swap is possible (existing logic)
-- If not (sole child), falls back to `swapWithParent` or `swapWithChild` based on direction
+```typescript
+type MessageBlock =
+  | { type: 'text'; content: string }
+  | { type: 'action_menu'; options: string[] }
+  | { type: 'phone_verify' }
 
-**Updated: `FlowNodeRenderer` canMoveUp/canMoveDown logic**
-- `canMoveUp`: true if `idx > 0` OR if the node has a parent (is not root-level first node)
-- `canMoveDown`: true if `idx < length - 1` OR if the node has children to swap with
-- This requires passing additional context (whether node is root-level, whether it has children)
+function parseMessageBlocks(content: string): MessageBlock[]
+```
 
-**Updated: `NodeCard` props**
-- No changes to the visual buttons, just the enabled/disabled state changes based on the new logic
+Scans for `[ACTION_MENU]...[/ACTION_MENU]` and `[PHONE_VERIFY]` markers. Everything outside markers becomes text blocks. This is simple string parsing -- no complex grammar needed.
+
+### 2. AiChat.tsx -- Message Rendering
+
+Replace the single `dangerouslySetInnerHTML` bubble with a block-based renderer:
+
+- Each message's content is passed through `parseMessageBlocks`
+- Text blocks render as before (DOMPurify + formatAiResponse)
+- `action_menu` blocks render as a row of styled pill buttons. Clicking a pill calls `sendMessage(option)` automatically
+- `phone_verify` blocks trigger the existing phone verification UI (move the current inline verification into a component, triggered by the block instead of keyword detection)
+
+**Action Menu Pills**: Styled as rounded buttons with border, using the widget's `primaryColor`. Horizontal wrap layout. On click, the selected option is sent as a user message and the pills become disabled (showing which was selected).
+
+**Phone Verify Block**: The existing phone/OTP form code extracted into a `PhoneVerifyBlock` component, rendered inline when the block is encountered. Replaces the keyword-detection trigger.
+
+### 3. Edge Function -- Prompt Instructions
+
+Update `buildNodePrompt` and the system prompt to instruct the AI to use markers:
+
+- For `action_menu` nodes: tell the AI to wrap choices in `[ACTION_MENU]...[/ACTION_MENU]` markers
+- For `data_collection` nodes with phone fields: tell the AI to include `[PHONE_VERIFY]` marker
+- Add a section to the system prompt explaining available markers and when to use them
+
+Example prompt addition:
+```
+INTERACTIVE COMPONENTS:
+When presenting action choices, wrap them in markers:
+[ACTION_MENU]
+Option 1
+Option 2
+[/ACTION_MENU]
+
+When phone verification is needed, include:
+[PHONE_VERIFY]
+
+The widget will render these as interactive UI elements.
+Do NOT render these markers as plain text -- they are UI instructions.
+```
+
+### 4. Disable State for Used Components
+
+Once a user clicks an action pill or completes verification, that block should become non-interactive (greyed out or show the selection). This prevents re-triggering old choices when scrolling through history.
+
+Track "used" blocks by message ID + block index in component state.
+
+## File Changes
 
 | File | Change |
 |------|--------|
-| `src/components/admin/widget/AiFlowBuilder.tsx` | Replace `moveNodeInSiblings` with chain-aware `moveNode` that handles both sibling swaps and parent-child swaps. Update `canMoveUp`/`canMoveDown` logic in `FlowNodeRenderer`. |
+| `src/widget/components/AiChat.tsx` | Add `parseMessageBlocks`, refactor message rendering to block-based, extract `PhoneVerifyBlock` and `ActionMenuBlock` inline components, remove keyword-detection trigger |
+| `supabase/functions/widget-ai-chat/index.ts` | Update `buildNodePrompt` for action_menu/data_collection to instruct AI to use markers. Add marker documentation to system prompt. |
+
+## Why This Approach
+
+- **Scalable**: Adding a new component means adding a new block type to the parser and a renderer -- no changes to the AI infrastructure
+- **Backward compatible**: Messages without markers render exactly as before
+- **Simple**: String markers are trivial for LLMs to produce reliably, unlike JSON structures mid-stream
+- **Works with streaming**: Markers can be detected as they stream in, rendering components once complete
