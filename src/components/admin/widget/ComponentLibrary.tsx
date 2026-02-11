@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { getAllBlocks, type BlockDefinition, type ApiEndpointConfig } from '@/widget/components/blocks';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -423,7 +424,14 @@ const CreateComponentDialog: React.FC = () => {
             <div className="grid grid-cols-[60px_1fr] gap-3">
               <div>
                 <Label className="text-xs">Icon</Label>
-                <Input value={form.icon} onChange={(e) => setForm(f => ({ ...f, icon: e.target.value }))} className="text-center text-lg" maxLength={2} />
+                <EmojiPicker
+                  onEmojiSelect={(emoji) => setForm(f => ({ ...f, icon: emoji }))}
+                  trigger={
+                    <Button variant="outline" className="h-10 w-10 text-xl p-0">
+                      {form.icon}
+                    </Button>
+                  }
+                />
               </div>
               <div>
                 <Label className="text-xs">Name</Label>
