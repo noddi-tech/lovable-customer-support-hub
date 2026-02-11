@@ -3,6 +3,7 @@ import DOMPurify from 'dompurify';
 import { sendAiMessage, streamAiMessage, sendPhoneVerification, verifyPhonePin } from '../api';
 import { getWidgetTranslations } from '../translations';
 import { AiFeedback } from './AiFeedback';
+import { parseMessageBlocks, MessageBlock } from '../utils/parseMessageBlocks';
 
 interface AiChatMessage {
   id: string;
@@ -49,6 +50,417 @@ function saveMessages(messages: AiChatMessage[]) {
   } catch { /* ignore */ }
 }
 
+// Simple markdown-like formatting for AI responses
+function formatAiResponse(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    .replace(/<\/ul>\s*<ul>/g, '')
+    .replace(/\n/g, '<br/>');
+}
+
+// ========== Inline Block Components ==========
+
+interface ActionMenuBlockProps {
+  options: string[];
+  primaryColor: string;
+  messageId: string;
+  blockIndex: number;
+  usedBlocks: Set<string>;
+  onSelect: (option: string, blockKey: string) => void;
+}
+
+const ActionMenuBlock: React.FC<ActionMenuBlockProps> = ({
+  options,
+  primaryColor,
+  messageId,
+  blockIndex,
+  usedBlocks,
+  onSelect,
+}) => {
+  const blockKey = `${messageId}:${blockIndex}`;
+  const isUsed = usedBlocks.has(blockKey);
+  const selectedOption = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
+
+  return (
+    <div className="noddi-action-menu" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '8px 0' }}>
+      {options.map((option, i) => {
+        const isSelected = selectedOption === option;
+        return (
+          <button
+            key={i}
+            className="noddi-action-pill"
+            disabled={isUsed}
+            onClick={() => onSelect(option, blockKey)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '18px',
+              border: `1.5px solid ${primaryColor}`,
+              background: isSelected ? primaryColor : 'transparent',
+              color: isSelected ? '#fff' : primaryColor,
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: isUsed ? 'default' : 'pointer',
+              opacity: isUsed && !isSelected ? 0.45 : 1,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {option}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+interface PhoneVerifyBlockProps {
+  primaryColor: string;
+  widgetKey: string;
+  conversationId: string | null;
+  language: string;
+  messageId: string;
+  blockIndex: number;
+  usedBlocks: Set<string>;
+  onVerified: (phone: string) => void;
+  onLogEvent?: AiChatProps['onLogEvent'];
+}
+
+const PhoneVerifyBlock: React.FC<PhoneVerifyBlockProps> = ({
+  primaryColor,
+  widgetKey,
+  conversationId,
+  language,
+  messageId,
+  blockIndex,
+  usedBlocks,
+  onVerified,
+  onLogEvent,
+}) => {
+  const blockKey = `${messageId}:${blockIndex}`;
+  const isUsed = usedBlocks.has(blockKey);
+  const t = getWidgetTranslations(language);
+
+  const [step, setStep] = useState<'phone' | 'pin' | 'verified'>('phone');
+  const [phoneInput, setPhoneInput] = useState('');
+  const [pinInput, setPinInput] = useState('');
+  const pinRef = useRef('');
+  const [error, setError] = useState<string | null>(null);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [codeSentMessage, setCodeSentMessage] = useState(false);
+
+  // Check if already verified
+  const alreadyVerified = !!localStorage.getItem(VERIFIED_PHONE_KEY);
+
+  useEffect(() => {
+    if (pinInput.length === 6 && step === 'pin' && !isVerifying) {
+      handleVerifyPin(pinInput);
+    }
+  }, [pinInput]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isUsed || alreadyVerified) {
+    const phone = localStorage.getItem(VERIFIED_PHONE_KEY);
+    if (phone) {
+      return (
+        <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>{t.phoneVerified}: {phone}</span>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  const handleSendCode = async () => {
+    const phone = phoneInput.trim();
+    if (!phone || isSendingCode) return;
+    setIsSendingCode(true);
+    setError(null);
+    setCodeSentMessage(false);
+
+    const result = await sendPhoneVerification(widgetKey, phone);
+    if (result.success) {
+      setStep('pin');
+      setCodeSentMessage(true);
+      onLogEvent?.('Verification code sent', phone, 'tool');
+      setTimeout(() => setCodeSentMessage(false), 3000);
+    } else {
+      setError(result.error || 'Failed to send code');
+      onLogEvent?.('Verification failed', result.error || 'Failed to send code', 'error');
+    }
+    setIsSendingCode(false);
+  };
+
+  const handleVerifyPin = async (pinOverride?: string) => {
+    const pin = (pinOverride || pinRef.current).trim();
+    if (!pin || isVerifying) return;
+    setIsVerifying(true);
+    setError(null);
+
+    const result = await verifyPhonePin(widgetKey, phoneInput.trim(), pin, conversationId || undefined);
+    if (result.verified) {
+      const phone = phoneInput.trim();
+      setStep('verified');
+      localStorage.setItem(VERIFIED_PHONE_KEY, phone);
+      localStorage.setItem('noddi_ai_phone', phone);
+      onLogEvent?.('Phone verified', phone, 'success');
+      onVerified(phone);
+    } else {
+      const errorMsg = result.attemptsRemaining !== undefined && result.attemptsRemaining <= 0
+        ? result.error || t.invalidPin
+        : t.invalidPin;
+      setError(errorMsg);
+      onLogEvent?.('Verification failed', errorMsg, 'error');
+    }
+    setIsVerifying(false);
+  };
+
+  const handleResendCode = async () => {
+    setError(null);
+    setPinInput('');
+    pinRef.current = '';
+    await handleSendCode();
+  };
+
+  if (step === 'verified') {
+    const phone = localStorage.getItem(VERIFIED_PHONE_KEY);
+    return (
+      <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>{t.phoneVerified}: {phone}</span>
+      </div>
+    );
+  }
+
+  if (step === 'phone') {
+    return (
+      <div className="noddi-ai-phone-prompt" style={{ margin: '8px 0' }}>
+        <p className="noddi-ai-phone-label">{t.verifyPhone}</p>
+        <div className="noddi-ai-phone-input-row">
+          <div className="noddi-phone-input-wrapper">
+            <span className="noddi-phone-prefix">+47</span>
+            <input
+              type="tel"
+              className="noddi-phone-input"
+              placeholder="XXX XX XXX"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSendCode(); }}
+            />
+          </div>
+          <button
+            className="noddi-ai-phone-submit"
+            onClick={handleSendCode}
+            style={{ backgroundColor: primaryColor }}
+            disabled={!phoneInput.trim() || isSendingCode}
+          >
+            {isSendingCode ? (
+              <svg className="noddi-widget-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+              </svg>
+            ) : '→'}
+          </button>
+        </div>
+        {error && <p className="noddi-verification-error">{error}</p>}
+      </div>
+    );
+  }
+
+  // step === 'pin'
+  return (
+    <div className="noddi-ai-phone-prompt" style={{ margin: '8px 0' }}>
+      <p className="noddi-ai-phone-label">{t.enterPin}</p>
+      {codeSentMessage && <p className="noddi-verification-success">{t.codeSent}</p>}
+      <div className="noddi-ai-pin-input-row">
+        <div className="noddi-otp-container">
+          <div className="noddi-otp-group">
+            {[0, 1, 2].map((i) => (
+              <input
+                key={i}
+                type="text"
+                inputMode="numeric"
+                className="noddi-otp-slot"
+                maxLength={1}
+                value={pinInput[i] || ''}
+                autoFocus={i === 0}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  if (!val) return;
+                  const newPin = pinRef.current.split('');
+                  newPin[i] = val[0];
+                  const joined = newPin.join('').slice(0, 6);
+                  pinRef.current = joined;
+                  setPinInput(joined);
+                  const next = e.target.nextElementSibling as HTMLInputElement
+                    || e.target.parentElement?.nextElementSibling?.nextElementSibling?.querySelector('input') as HTMLInputElement;
+                  if (next && val) next.focus();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Backspace' && !pinInput[i]) {
+                    const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
+                      || ((e.target as HTMLElement).parentElement?.previousElementSibling?.previousElementSibling?.querySelector('input:last-child') as HTMLInputElement);
+                    if (prev) prev.focus();
+                  }
+                  if (e.key === 'Enter' && pinInput.length >= 4) handleVerifyPin();
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                  setPinInput(pasted);
+                  const slots = (e.target as HTMLElement).closest('.noddi-otp-container')?.querySelectorAll('.noddi-otp-slot');
+                  if (slots && slots[Math.min(pasted.length, 5)]) (slots[Math.min(pasted.length, 5)] as HTMLInputElement).focus();
+                }}
+              />
+            ))}
+          </div>
+          <div className="noddi-otp-separator">·</div>
+          <div className="noddi-otp-group">
+            {[3, 4, 5].map((i) => (
+              <input
+                key={i}
+                type="text"
+                inputMode="numeric"
+                className="noddi-otp-slot"
+                maxLength={1}
+                value={pinInput[i] || ''}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  if (!val) return;
+                  const newPin = pinRef.current.split('');
+                  newPin[i] = val[0];
+                  const joined = newPin.join('').slice(0, 6);
+                  pinRef.current = joined;
+                  setPinInput(joined);
+                  const next = e.target.nextElementSibling as HTMLInputElement;
+                  if (next && val) next.focus();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Backspace' && !pinInput[i]) {
+                    const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
+                      || ((e.target as HTMLElement).parentElement?.previousElementSibling?.previousElementSibling?.querySelector('input:last-child') as HTMLInputElement);
+                    if (prev) prev.focus();
+                  }
+                  if (e.key === 'Enter' && pinInput.length >= 4) handleVerifyPin();
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                  setPinInput(pasted);
+                  const slots = (e.target as HTMLElement).closest('.noddi-otp-container')?.querySelectorAll('.noddi-otp-slot');
+                  if (slots && slots[Math.min(pasted.length, 5)]) (slots[Math.min(pasted.length, 5)] as HTMLInputElement).focus();
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        <button
+          className="noddi-ai-phone-submit"
+          onClick={() => handleVerifyPin()}
+          style={{ backgroundColor: primaryColor }}
+          disabled={pinInput.length < 4 || isVerifying}
+        >
+          {isVerifying ? (
+            <svg className="noddi-widget-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
+          ) : '✓'}
+        </button>
+      </div>
+      {error && <p className="noddi-verification-error">{error}</p>}
+      <div className="noddi-verification-actions">
+        <button className="noddi-ai-skip-phone" onClick={handleResendCode}>
+          {t.resendCode}
+        </button>
+        <button className="noddi-ai-skip-phone" onClick={() => { setStep('phone'); setError(null); setPinInput(''); pinRef.current = ''; }}>
+          {t.back}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ========== Block Renderer ==========
+
+interface MessageBlockRendererProps {
+  blocks: MessageBlock[];
+  messageId: string;
+  primaryColor: string;
+  widgetKey: string;
+  conversationId: string | null;
+  language: string;
+  usedBlocks: Set<string>;
+  onActionSelect: (option: string, blockKey: string) => void;
+  onPhoneVerified: (phone: string, blockKey: string) => void;
+  onLogEvent?: AiChatProps['onLogEvent'];
+}
+
+const MessageBlockRenderer: React.FC<MessageBlockRendererProps> = ({
+  blocks,
+  messageId,
+  primaryColor,
+  widgetKey,
+  conversationId,
+  language,
+  usedBlocks,
+  onActionSelect,
+  onPhoneVerified,
+  onLogEvent,
+}) => {
+  return (
+    <>
+      {blocks.map((block, idx) => {
+        if (block.type === 'text') {
+          return (
+            <div
+              key={idx}
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(formatAiResponse(block.content)),
+              }}
+            />
+          );
+        }
+        if (block.type === 'action_menu') {
+          return (
+            <ActionMenuBlock
+              key={idx}
+              options={block.options}
+              primaryColor={primaryColor}
+              messageId={messageId}
+              blockIndex={idx}
+              usedBlocks={usedBlocks}
+              onSelect={onActionSelect}
+            />
+          );
+        }
+        if (block.type === 'phone_verify') {
+          return (
+            <PhoneVerifyBlock
+              key={idx}
+              primaryColor={primaryColor}
+              widgetKey={widgetKey}
+              conversationId={conversationId}
+              language={language}
+              messageId={messageId}
+              blockIndex={idx}
+              usedBlocks={usedBlocks}
+              onVerified={(phone) => onPhoneVerified(phone, `${messageId}:${idx}`)}
+              onLogEvent={onLogEvent}
+            />
+          );
+        }
+        return null;
+      })}
+    </>
+  );
+};
+
+// ========== Main Component ==========
+
 export const AiChat: React.FC<AiChatProps> = ({
   widgetKey,
   primaryColor,
@@ -68,20 +480,11 @@ export const AiChat: React.FC<AiChatProps> = ({
   const [conversationId, setConversationId] = useState<string | null>(() => localStorage.getItem(CONVERSATION_ID_KEY));
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Phone verification state
-  const [verificationStep, setVerificationStep] = useState<'idle' | 'phone' | 'pin' | 'verified'>(() => {
-    const verified = localStorage.getItem(VERIFIED_PHONE_KEY);
-    return verified ? 'verified' : 'idle';
-  });
-  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
-  const [phoneInput, setPhoneInput] = useState('');
-  const [pinInput, setPinInput] = useState('');
-  const pinRef = useRef('');
+  // Track used interactive blocks (action pills clicked, phone verified)
+  const [usedBlocks, setUsedBlocks] = useState<Set<string>>(new Set());
+
+  // Phone verification state (simplified — now driven by blocks)
   const [verifiedPhone, setVerifiedPhone] = useState(() => localStorage.getItem(VERIFIED_PHONE_KEY) || '');
-  const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [isSendingCode, setIsSendingCode] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [codeSentMessage, setCodeSentMessage] = useState(false);
 
   const t = getWidgetTranslations(language);
 
@@ -114,83 +517,7 @@ export const AiChat: React.FC<AiChatProps> = ({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-submit PIN when 6 digits entered (uses state, so fires after React update)
-  useEffect(() => {
-    if (pinInput.length === 6 && verificationStep === 'pin' && !isVerifying) {
-      handleVerifyPin(pinInput);
-    }
-  }, [pinInput]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Phone verification handlers
-  const handleSendCode = useCallback(async () => {
-    const phone = phoneInput.trim();
-    if (!phone || isSendingCode) return;
-
-    setIsSendingCode(true);
-    setVerificationError(null);
-    setCodeSentMessage(false);
-
-    const result = await sendPhoneVerification(widgetKey, phone);
-
-    if (result.success) {
-      setVerificationStep('pin');
-      setCodeSentMessage(true);
-      onLogEvent?.('Verification code sent', phone, 'tool');
-      setTimeout(() => setCodeSentMessage(false), 3000);
-    } else {
-      setVerificationError(result.error || 'Failed to send code');
-      onLogEvent?.('Verification failed', result.error || 'Failed to send code', 'error');
-    }
-
-    setIsSendingCode(false);
-  }, [phoneInput, isSendingCode, widgetKey, onLogEvent]);
-
-  const handleVerifyPin = useCallback(async (pinOverride?: string) => {
-    const pin = (pinOverride || pinRef.current).trim();
-    if (!pin || isVerifying) return;
-
-    setIsVerifying(true);
-    setVerificationError(null);
-
-    const result = await verifyPhonePin(widgetKey, phoneInput.trim(), pin, conversationId || undefined);
-
-    if (result.verified) {
-      const phone = phoneInput.trim();
-      setVerifiedPhone(phone);
-      setVerificationStep('verified');
-      localStorage.setItem(VERIFIED_PHONE_KEY, phone);
-      localStorage.setItem('noddi_ai_phone', phone);
-      setIsVerifying(false);
-      onLogEvent?.('Phone verified', phone, 'success');
-      // Auto-lookup: send message to trigger AI guided flow
-      setTimeout(() => {
-        sendMessage('Jeg har verifisert telefonnummeret mitt. Hva kan du hjelpe meg med?', phone);
-      }, 500);
-      return;
-    } else {
-      const errorMsg = result.attemptsRemaining !== undefined && result.attemptsRemaining <= 0
-        ? result.error || t.invalidPin
-        : t.invalidPin;
-      setVerificationError(errorMsg);
-      onLogEvent?.('Verification failed', errorMsg, 'error');
-    }
-
-    setIsVerifying(false);
-  }, [isVerifying, widgetKey, phoneInput, conversationId, t, onLogEvent]);
-
-  const handleResendCode = useCallback(async () => {
-    setVerificationError(null);
-    setPinInput('');
-    pinRef.current = '';
-    await handleSendCode();
-  }, [handleSendCode]);
-
-  const handleSkipVerification = useCallback(() => {
-    setVerificationStep('verified');
-    localStorage.setItem('noddi_ai_phone_skipped', 'true');
-  }, []);
-
-  const isPhoneVerified = verificationStep === 'verified' && !!verifiedPhone;
+  const isPhoneVerified = !!verifiedPhone;
 
   const sendMessage = useCallback(async (content: string, phoneOverride?: string) => {
     if (!content || isLoading) return;
@@ -258,16 +585,6 @@ export const AiChat: React.FC<AiChatProps> = ({
         };
         setMessages((prev) => [...prev, aiMsg]);
         onLogEvent?.('AI response', fullReply.slice(0, 100), 'success');
-
-        // Detect verification trigger in AI response
-        if (!effectiveVerified && verificationStep === 'idle') {
-          const lower = fullReply.toLowerCase();
-          const verificationKeywords = ['verifiser', 'verify your phone', 'telefonnummer', 'bekreft telefon', 'phone verification', 'verifisere'];
-          if (verificationKeywords.some(kw => lower.includes(kw))) {
-            setShowVerificationPrompt(true);
-            setVerificationStep('phone');
-          }
-        }
       }
     } catch (err) {
       console.error('[Noddi Widget] AI chat error:', err);
@@ -281,7 +598,7 @@ export const AiChat: React.FC<AiChatProps> = ({
 
     setStreamingContent('');
     setIsLoading(false);
-  }, [isLoading, messages, widgetKey, verifiedPhone, language, conversationId, t, verificationStep]);
+  }, [isLoading, messages, widgetKey, verifiedPhone, language, conversationId, t]);
 
   const handleSend = useCallback(async () => {
     const content = inputValue.trim();
@@ -296,6 +613,21 @@ export const AiChat: React.FC<AiChatProps> = ({
       handleSend();
     }
   };
+
+  const handleActionSelect = useCallback((option: string, blockKey: string) => {
+    localStorage.setItem(`noddi_action_${blockKey}`, option);
+    setUsedBlocks((prev) => new Set(prev).add(blockKey));
+    sendMessage(option);
+  }, [sendMessage]);
+
+  const handlePhoneVerified = useCallback((phone: string, blockKey: string) => {
+    setVerifiedPhone(phone);
+    setUsedBlocks((prev) => new Set(prev).add(blockKey));
+    // Auto-send post-verification message
+    setTimeout(() => {
+      sendMessage('Jeg har verifisert telefonnummeret mitt. Hva kan du hjelpe meg med?', phone);
+    }, 500);
+  }, [sendMessage]);
 
   const buildTranscript = (): string => {
     return messages
@@ -316,6 +648,7 @@ export const AiChat: React.FC<AiChatProps> = ({
     setConversationId(null);
     setStreamingContent('');
     setInputValue('');
+    setUsedBlocks(new Set());
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(CONVERSATION_ID_KEY);
   }, [t]);
@@ -346,36 +679,52 @@ export const AiChat: React.FC<AiChatProps> = ({
       </div>
 
       <div className="noddi-chat-messages">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`noddi-chat-message ${
-              message.role === 'user' ? 'noddi-chat-message-customer' : 'noddi-chat-message-agent'
-            }`}
-          >
-            {message.role === 'assistant' && (
-              <span className="noddi-chat-message-sender">{t.aiAssistant}</span>
-            )}
+        {messages.map((message) => {
+          const blocks = message.role === 'assistant'
+            ? parseMessageBlocks(message.content)
+            : [{ type: 'text' as const, content: message.content }];
+
+          return (
             <div
-              className="noddi-chat-message-bubble"
-              style={message.role === 'user' ? { backgroundColor: primaryColor } : {}}
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(formatAiResponse(message.content)),
-              }}
-            />
-            {message.role === 'assistant' && message.id !== 'greeting' && conversationId && message.serverId && (
-              <AiFeedback
-                messageId={message.serverId}
-                conversationId={conversationId}
-                widgetKey={widgetKey}
-                primaryColor={primaryColor}
-              />
-            )}
-            <span className="noddi-chat-message-time">
-              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        ))}
+              key={message.id}
+              className={`noddi-chat-message ${
+                message.role === 'user' ? 'noddi-chat-message-customer' : 'noddi-chat-message-agent'
+              }`}
+            >
+              {message.role === 'assistant' && (
+                <span className="noddi-chat-message-sender">{t.aiAssistant}</span>
+              )}
+              <div
+                className="noddi-chat-message-bubble"
+                style={message.role === 'user' ? { backgroundColor: primaryColor } : {}}
+              >
+                <MessageBlockRenderer
+                  blocks={blocks}
+                  messageId={message.id}
+                  primaryColor={primaryColor}
+                  widgetKey={widgetKey}
+                  conversationId={conversationId}
+                  language={language}
+                  usedBlocks={usedBlocks}
+                  onActionSelect={handleActionSelect}
+                  onPhoneVerified={handlePhoneVerified}
+                  onLogEvent={onLogEvent}
+                />
+              </div>
+              {message.role === 'assistant' && message.id !== 'greeting' && conversationId && message.serverId && (
+                <AiFeedback
+                  messageId={message.serverId}
+                  conversationId={conversationId}
+                  widgetKey={widgetKey}
+                  primaryColor={primaryColor}
+                />
+              )}
+              <span className="noddi-chat-message-time">
+                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          );
+        })}
 
         {/* Streaming message */}
         {streamingContent && (
@@ -398,170 +747,6 @@ export const AiChat: React.FC<AiChatProps> = ({
               <span></span>
               <span></span>
             </div>
-          </div>
-        )}
-
-        {/* Inline phone verification prompt */}
-        {showVerificationPrompt && verificationStep === 'phone' && (
-          <div className="noddi-ai-phone-prompt" style={{ margin: '8px 0' }}>
-            <p className="noddi-ai-phone-label">{t.verifyPhone}</p>
-            <div className="noddi-ai-phone-input-row">
-              <div className="noddi-phone-input-wrapper">
-                <span className="noddi-phone-prefix">+47</span>
-                <input
-                  type="tel"
-                  className="noddi-phone-input"
-                  placeholder="XXX XX XXX"
-                  value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSendCode(); }}
-                />
-              </div>
-              <button
-                className="noddi-ai-phone-submit"
-                onClick={handleSendCode}
-                style={{ backgroundColor: primaryColor }}
-                disabled={!phoneInput.trim() || isSendingCode}
-              >
-                {isSendingCode ? (
-                  <svg className="noddi-widget-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                  </svg>
-                ) : '→'}
-              </button>
-            </div>
-            {verificationError && (
-              <p className="noddi-verification-error">{verificationError}</p>
-            )}
-            <button className="noddi-ai-skip-phone" onClick={handleSkipVerification}>
-              {t.skipPhone}
-            </button>
-          </div>
-        )}
-
-        {/* Inline PIN entry */}
-        {showVerificationPrompt && verificationStep === 'pin' && (
-          <div className="noddi-ai-phone-prompt" style={{ margin: '8px 0' }}>
-            <p className="noddi-ai-phone-label">{t.enterPin}</p>
-            {codeSentMessage && (
-              <p className="noddi-verification-success">{t.codeSent}</p>
-            )}
-            <div className="noddi-ai-pin-input-row">
-              <div className="noddi-otp-container">
-                <div className="noddi-otp-group">
-                  {[0, 1, 2].map((i) => (
-                    <input
-                      key={i}
-                      type="text"
-                      inputMode="numeric"
-                      className="noddi-otp-slot"
-                      maxLength={1}
-                      value={pinInput[i] || ''}
-                      autoFocus={i === 0}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '');
-                        if (!val) return;
-                        const newPin = pinRef.current.split('');
-                        newPin[i] = val[0];
-                        const joined = newPin.join('').slice(0, 6);
-                        pinRef.current = joined;
-                        setPinInput(joined);
-                        const next = e.target.nextElementSibling as HTMLInputElement
-                          || e.target.parentElement?.nextElementSibling?.nextElementSibling?.querySelector('input') as HTMLInputElement;
-                        if (next && val) next.focus();
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Backspace' && !pinInput[i]) {
-                          const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
-                            || ((e.target as HTMLElement).parentElement?.previousElementSibling?.previousElementSibling?.querySelector('input:last-child') as HTMLInputElement);
-                          if (prev) prev.focus();
-                        }
-                        if (e.key === 'Enter' && pinInput.length >= 4) handleVerifyPin();
-                      }}
-                      onPaste={(e) => {
-                        e.preventDefault();
-                        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-                        setPinInput(pasted);
-                        const slots = (e.target as HTMLElement).closest('.noddi-otp-container')?.querySelectorAll('.noddi-otp-slot');
-                        if (slots && slots[Math.min(pasted.length, 5)]) (slots[Math.min(pasted.length, 5)] as HTMLInputElement).focus();
-                      }}
-                    />
-                  ))}
-                </div>
-                <div className="noddi-otp-separator">·</div>
-                <div className="noddi-otp-group">
-                  {[3, 4, 5].map((i) => (
-                    <input
-                      key={i}
-                      type="text"
-                      inputMode="numeric"
-                      className="noddi-otp-slot"
-                      maxLength={1}
-                      value={pinInput[i] || ''}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '');
-                        if (!val) return;
-                        const newPin = pinRef.current.split('');
-                        newPin[i] = val[0];
-                        const joined = newPin.join('').slice(0, 6);
-                        pinRef.current = joined;
-                        setPinInput(joined);
-                        const next = e.target.nextElementSibling as HTMLInputElement;
-                        if (next && val) next.focus();
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Backspace' && !pinInput[i]) {
-                          const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
-                            || ((e.target as HTMLElement).parentElement?.previousElementSibling?.previousElementSibling?.querySelector('input:last-child') as HTMLInputElement);
-                          if (prev) prev.focus();
-                        }
-                        if (e.key === 'Enter' && pinInput.length >= 4) handleVerifyPin();
-                      }}
-                      onPaste={(e) => {
-                        e.preventDefault();
-                        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-                        setPinInput(pasted);
-                        const slots = (e.target as HTMLElement).closest('.noddi-otp-container')?.querySelectorAll('.noddi-otp-slot');
-                        if (slots && slots[Math.min(pasted.length, 5)]) (slots[Math.min(pasted.length, 5)] as HTMLInputElement).focus();
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <button
-                className="noddi-ai-phone-submit"
-                onClick={() => handleVerifyPin()}
-                style={{ backgroundColor: primaryColor }}
-                disabled={pinInput.length < 4 || isVerifying}
-              >
-                {isVerifying ? (
-                  <svg className="noddi-widget-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                  </svg>
-                ) : '✓'}
-              </button>
-            </div>
-            {verificationError && (
-              <p className="noddi-verification-error">{verificationError}</p>
-            )}
-            <div className="noddi-verification-actions">
-              <button className="noddi-ai-skip-phone" onClick={handleResendCode}>
-                {t.resendCode}
-              </button>
-              <button className="noddi-ai-skip-phone" onClick={() => { setVerificationStep('phone'); setVerificationError(null); setPinInput(''); pinRef.current = ''; }}>
-                {t.back}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Inline verified badge */}
-        {showVerificationPrompt && verificationStep === 'verified' && verifiedPhone && (
-          <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <span>{t.phoneVerified}: {verifiedPhone}</span>
           </div>
         )}
 
@@ -619,13 +804,3 @@ export const AiChat: React.FC<AiChatProps> = ({
     </div>
   );
 };
-
-// Simple markdown-like formatting for AI responses
-function formatAiResponse(text: string): string {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
-    .replace(/<\/ul>\s*<ul>/g, '')
-    .replace(/\n/g, '<br/>');
-}
