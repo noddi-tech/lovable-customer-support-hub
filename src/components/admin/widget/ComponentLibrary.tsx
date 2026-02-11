@@ -10,6 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +29,9 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationStore } from '@/stores/organizationStore';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BookOpen,
   Settings2,
@@ -42,7 +49,79 @@ import {
   Server,
   FileJson,
   Trash2,
+  Loader2,
 } from 'lucide-react';
+
+// ── UI Component options ──
+
+const UI_COMPONENT_OPTIONS = [
+  { value: 'text_input', label: 'Text Input', description: 'Standard text field' },
+  { value: 'email_input', label: 'Email Input', description: 'Email-formatted input' },
+  { value: 'calendar', label: 'Calendar / Date Picker', description: 'Date selection' },
+  { value: 'select', label: 'Dropdown Select', description: 'Single-choice dropdown' },
+  { value: 'checkbox', label: 'Checkbox', description: 'Toggle yes/no' },
+  { value: 'radio', label: 'Radio Group', description: 'Multiple choice, single selection' },
+  { value: 'slider', label: 'Slider', description: 'Numeric range' },
+  { value: 'textarea', label: 'Text Area', description: 'Multi-line text input' },
+  { value: 'custom', label: 'Custom (code only)', description: 'Placeholder for code-defined blocks' },
+];
+
+// ── Preview renderer for custom blocks ──
+
+function renderCustomBlockPreview(uiComponent: string) {
+  switch (uiComponent) {
+    case 'calendar':
+      return <Calendar mode="single" className="rounded-md border pointer-events-none scale-[0.85] origin-top-left" />;
+    case 'text_input':
+      return <Input placeholder="Sample text..." readOnly className="pointer-events-none" />;
+    case 'email_input':
+      return <Input type="email" placeholder="you@example.com" readOnly className="pointer-events-none" />;
+    case 'select':
+      return (
+        <Select>
+          <SelectTrigger className="pointer-events-none"><SelectValue placeholder="Choose option..." /></SelectTrigger>
+        </Select>
+      );
+    case 'checkbox':
+      return (
+        <div className="flex items-center gap-2 pointer-events-none">
+          <Checkbox checked />
+          <Label className="text-xs">Sample option</Label>
+        </div>
+      );
+    case 'radio':
+      return (
+        <RadioGroup defaultValue="a" className="pointer-events-none space-y-1">
+          <div className="flex items-center gap-2"><RadioGroupItem value="a" id="ra" /><Label htmlFor="ra" className="text-xs">Option A</Label></div>
+          <div className="flex items-center gap-2"><RadioGroupItem value="b" id="rb" /><Label htmlFor="rb" className="text-xs">Option B</Label></div>
+        </RadioGroup>
+      );
+    case 'slider':
+      return <Slider defaultValue={[50]} max={100} step={1} className="pointer-events-none" />;
+    case 'textarea':
+      return <Textarea placeholder="Multi-line text..." readOnly rows={2} className="pointer-events-none" />;
+    default:
+      return <p className="text-xs text-muted-foreground italic">Custom component</p>;
+  }
+}
+
+// ── Types for custom DB blocks ──
+
+interface CustomBlockRow {
+  id: string;
+  organization_id: string;
+  type_key: string;
+  label: string;
+  icon: string;
+  description: string | null;
+  marker: string;
+  closing_marker: string | null;
+  field_type: string | null;
+  requires_api: boolean;
+  api_endpoints: any;
+  ui_component: string | null;
+  created_at: string;
+}
 
 // ── Sample data for interactive sandbox ──
 
@@ -154,6 +233,67 @@ const BlockCard: React.FC<{ block: BlockDefinition }> = ({ block }) => {
   );
 };
 
+// ── Custom block card (from DB) ──
+
+const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) => void }> = ({ block, onDelete }) => {
+  return (
+    <Card className="flex flex-col overflow-hidden">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl" role="img" aria-label={block.label}>
+              {block.icon}
+            </span>
+            <CardTitle className="text-base">{block.label}</CardTitle>
+          </div>
+          <div className="flex gap-1.5">
+            <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">Custom</Badge>
+            {block.requires_api && (
+              <Badge variant="outline" className="text-[10px] gap-1">
+                <Zap className="h-3 w-3" /> API
+              </Badge>
+            )}
+          </div>
+        </div>
+        <CardDescription className="text-xs mt-1">
+          {block.description || 'No description'}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex-1 space-y-3 pt-0">
+        <div className="flex flex-wrap gap-1">
+          {block.field_type && (
+            <Badge variant="secondary" className="text-[10px]">
+              field: {block.field_type}
+            </Badge>
+          )}
+          {block.ui_component && block.ui_component !== 'custom' && (
+            <Badge variant="secondary" className="text-[10px]">
+              ui: {UI_COMPONENT_OPTIONS.find(o => o.value === block.ui_component)?.label || block.ui_component}
+            </Badge>
+          )}
+        </div>
+
+        {/* Live preview of the chosen shadcn component */}
+        <div className="rounded-lg border bg-muted/30 p-3 overflow-hidden">
+          <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+            Preview
+          </p>
+          {renderCustomBlockPreview(block.ui_component || 'custom')}
+        </div>
+
+        <div className="flex gap-2">
+          <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{block.marker}</code>
+          <div className="flex-1" />
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => onDelete(block.id)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 // ── API Endpoint detail card ──
 
 const EndpointDetail: React.FC<{ endpoint: ApiEndpointConfig; index: number }> = ({ endpoint, index }) => (
@@ -250,7 +390,6 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
 
       <CollapsibleContent>
         <div className="ml-4 mr-1 mb-3 p-4 rounded-lg border bg-card space-y-4">
-          {/* Marker */}
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Marker Syntax</p>
             <div className="flex items-center gap-2">
@@ -263,7 +402,6 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
             </div>
           </div>
 
-          {/* API Endpoints */}
           {block.apiConfig && block.apiConfig.endpoints.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">API Endpoints</p>
@@ -275,7 +413,6 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
             </div>
           )}
 
-          {/* Field/Node types */}
           <div className="flex gap-6">
             {block.flowMeta.applicableFieldTypes && block.flowMeta.applicableFieldTypes.length > 0 && (
               <div>
@@ -299,7 +436,6 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
             )}
           </div>
 
-          {/* Preview */}
           {PreviewComp && (
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">Preview</p>
@@ -314,6 +450,57 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
   );
 };
 
+// ── Custom block manage row ──
+
+const CustomManageRow: React.FC<{ block: CustomBlockRow; onDelete: (id: string) => void }> = ({ block, onDelete }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <div className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer rounded-lg border mb-1 transition-colors">
+          <span className="text-lg">{block.icon}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{block.label}</p>
+            <p className="text-xs text-muted-foreground truncate">{block.description || 'No description'}</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">Custom</Badge>
+            {block.requires_api && (
+              <Badge variant="outline" className="text-[10px] gap-1">
+                <Zap className="h-3 w-3" /> API
+              </Badge>
+            )}
+            {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </div>
+        </div>
+      </CollapsibleTrigger>
+
+      <CollapsibleContent>
+        <div className="ml-4 mr-1 mb-3 p-4 rounded-lg border bg-card space-y-4">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Marker Syntax</p>
+            <code className="text-xs bg-muted px-2 py-1 rounded font-mono">{block.marker}</code>
+          </div>
+          {block.ui_component && block.ui_component !== 'custom' && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">UI Component Preview</p>
+              <div className="rounded-md border bg-muted/20 p-3 max-w-xs overflow-hidden">
+                {renderCustomBlockPreview(block.ui_component)}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => onDelete(block.id)}>
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </Button>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 // ── Create Component Dialog ──
 
 interface NewBlockForm {
@@ -321,6 +508,7 @@ interface NewBlockForm {
   icon: string;
   description: string;
   fieldType: string;
+  uiComponent: string;
   requiresApi: boolean;
   endpoints: Array<{
     name: string;
@@ -339,18 +527,21 @@ const emptyEndpoint = () => ({
   responseField: '',
 });
 
-const CreateComponentDialog: React.FC = () => {
+const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<NewBlockForm>({
     name: '',
     icon: '🔧',
     description: '',
     fieldType: 'custom',
+    uiComponent: 'text_input',
     requiresApi: false,
     endpoints: [emptyEndpoint()],
   });
 
+  const currentOrganizationId = useOrganizationStore(s => s.currentOrganizationId);
   const typeKey = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   const marker = `[${typeKey.toUpperCase()}]`;
 
@@ -358,13 +549,53 @@ const CreateComponentDialog: React.FC = () => {
 
   const reset = () => {
     setStep(1);
-    setForm({ name: '', icon: '🔧', description: '', fieldType: 'custom', requiresApi: false, endpoints: [emptyEndpoint()] });
+    setForm({ name: '', icon: '🔧', description: '', fieldType: 'custom', uiComponent: 'text_input', requiresApi: false, endpoints: [emptyEndpoint()] });
   };
 
-  const handleSave = () => {
-    toast({ title: 'Component saved', description: `"${form.name}" has been configured. Database persistence coming soon.` });
-    setOpen(false);
-    reset();
+  const handleSave = async () => {
+    if (!currentOrganizationId) {
+      toast({ title: 'Error', description: 'No organization selected.', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const apiEndpoints = form.requiresApi
+        ? form.endpoints.filter(e => e.name).map(ep => ({
+            name: ep.name,
+            edgeFunction: '',
+            externalApi: ep.url,
+            method: ep.method,
+            requestBody: Object.fromEntries(ep.bodyFields.filter(f => f.key).map(f => [f.key, f.type])),
+            responseShape: ep.responseField ? { displayField: ep.responseField } : {},
+            description: ep.name,
+          }))
+        : [];
+
+      const { error } = await supabase.from('widget_block_configs').insert({
+        organization_id: currentOrganizationId,
+        type_key: typeKey,
+        label: form.name,
+        icon: form.icon,
+        description: form.description,
+        marker: marker,
+        closing_marker: `[/${typeKey.toUpperCase()}]`,
+        field_type: form.fieldType,
+        requires_api: form.requiresApi,
+        ui_component: form.uiComponent,
+        api_endpoints: apiEndpoints,
+      } as any);
+
+      if (error) throw error;
+
+      toast({ title: 'Component saved', description: `"${form.name}" has been created.` });
+      setOpen(false);
+      reset();
+      onSaved();
+    } catch (err: any) {
+      toast({ title: 'Save failed', description: err.message || 'Unknown error', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateEndpoint = (idx: number, field: string, value: any) => {
@@ -461,6 +692,22 @@ const CreateComponentDialog: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label className="text-xs">UI Component</Label>
+              <Select value={form.uiComponent} onValueChange={(v) => setForm(f => ({ ...f, uiComponent: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {UI_COMPONENT_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {UI_COMPONENT_OPTIONS.find(o => o.value === form.uiComponent)?.description}
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               <Switch checked={form.requiresApi} onCheckedChange={(v) => setForm(f => ({ ...f, requiresApi: v }))} id="needs-api" />
               <Label htmlFor="needs-api" className="text-sm">Requires API</Label>
@@ -552,6 +799,12 @@ const CreateComponentDialog: React.FC = () => {
               <div className="flex gap-2 text-xs">
                 <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{marker}</code>
                 <Badge variant="secondary" className="text-[10px]">field: {form.fieldType}</Badge>
+                <Badge variant="secondary" className="text-[10px]">ui: {UI_COMPONENT_OPTIONS.find(o => o.value === form.uiComponent)?.label}</Badge>
+              </div>
+              {/* Preview of chosen UI component */}
+              <div className="rounded-md border bg-muted/20 p-3 mt-2 overflow-hidden">
+                <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">Component Preview</p>
+                {renderCustomBlockPreview(form.uiComponent)}
               </div>
               {form.requiresApi && form.endpoints.filter(e => e.name).length > 0 && (
                 <div className="mt-2 space-y-1.5">
@@ -581,7 +834,8 @@ const CreateComponentDialog: React.FC = () => {
               Next <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           ) : (
-            <Button size="sm" onClick={handleSave} disabled={!form.name.trim()}>
+            <Button size="sm" onClick={handleSave} disabled={!form.name.trim() || saving}>
+              {saving && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
               Save Component
             </Button>
           )}
@@ -593,12 +847,21 @@ const CreateComponentDialog: React.FC = () => {
 
 // ── Manage view with expandable rows ──
 
-const ManageView: React.FC<{ blocks: BlockDefinition[] }> = ({ blocks }) => (
+const ManageView: React.FC<{ blocks: BlockDefinition[]; customBlocks: CustomBlockRow[]; onDeleteCustom: (id: string) => void }> = ({ blocks, customBlocks, onDeleteCustom }) => (
   <div className="space-y-1">
+    {customBlocks.length > 0 && (
+      <>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Custom Components</p>
+        {customBlocks.map((block) => (
+          <CustomManageRow key={block.id} block={block} onDelete={onDeleteCustom} />
+        ))}
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-4 mb-2">Built-in Components</p>
+      </>
+    )}
     {blocks.map((block) => (
       <ManageRow key={block.type} block={block} />
     ))}
-    {blocks.length === 0 && (
+    {blocks.length === 0 && customBlocks.length === 0 && (
       <p className="text-sm text-muted-foreground text-center py-8">No components registered.</p>
     )}
   </div>
@@ -608,6 +871,35 @@ const ManageView: React.FC<{ blocks: BlockDefinition[] }> = ({ blocks }) => (
 
 export const ComponentLibrary: React.FC = () => {
   const blocks = getAllBlocks();
+  const currentOrganizationId = useOrganizationStore(s => s.currentOrganizationId);
+  const queryClient = useQueryClient();
+
+  const { data: customBlocks = [], isLoading } = useQuery({
+    queryKey: ['widget-block-configs', currentOrganizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('widget_block_configs')
+        .select('*')
+        .eq('organization_id', currentOrganizationId!);
+      if (error) throw error;
+      return (data || []) as unknown as CustomBlockRow[];
+    },
+    enabled: !!currentOrganizationId,
+  });
+
+  const handleDeleteCustom = async (id: string) => {
+    const { error } = await supabase.from('widget_block_configs').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Deleted' });
+      queryClient.invalidateQueries({ queryKey: ['widget-block-configs', currentOrganizationId] });
+    }
+  };
+
+  const handleSaved = () => {
+    queryClient.invalidateQueries({ queryKey: ['widget-block-configs', currentOrganizationId] });
+  };
 
   return (
     <div className="space-y-4">
@@ -615,10 +907,10 @@ export const ComponentLibrary: React.FC = () => {
         <div>
           <h3 className="text-lg font-semibold">Interactive Block Components</h3>
           <p className="text-sm text-muted-foreground">
-            {blocks.length} components registered — browse, inspect, and test interactive UI blocks.
+            {blocks.length + customBlocks.length} components — browse, inspect, and test interactive UI blocks.
           </p>
         </div>
-        <CreateComponentDialog />
+        <CreateComponentDialog onSaved={handleSaved} />
       </div>
 
       <Tabs defaultValue="library">
@@ -635,15 +927,23 @@ export const ComponentLibrary: React.FC = () => {
 
         <TabsContent value="library">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
+            {customBlocks.map((block) => (
+              <CustomBlockCard key={block.id} block={block} onDelete={handleDeleteCustom} />
+            ))}
             {blocks.map((block) => (
               <BlockCard key={block.type} block={block} />
             ))}
           </div>
+          {isLoading && (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="manage">
           <div className="mt-2">
-            <ManageView blocks={blocks} />
+            <ManageView blocks={blocks} customBlocks={customBlocks} onDeleteCustom={handleDeleteCustom} />
           </div>
         </TabsContent>
       </Tabs>

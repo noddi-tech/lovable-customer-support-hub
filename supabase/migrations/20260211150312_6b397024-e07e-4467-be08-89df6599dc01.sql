@@ -1,0 +1,1 @@
+ALTER TABLE public.widget_block_configs ADD COLUMN ui_component TEXT DEFAULT 'custom';
