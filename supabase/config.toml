@@ -213,3 +213,6 @@ verify_jwt = false
 
 [functions.noddi-address-lookup]
 verify_jwt = false
+
+[functions.noddi-booking-proxy]
+verify_jwt = false
