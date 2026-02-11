@@ -71,7 +71,11 @@ const UI_COMPONENT_OPTIONS = [
 function renderCustomBlockPreview(uiComponent: string) {
   switch (uiComponent) {
     case 'calendar':
-      return <Calendar mode="single" className="rounded-md border pointer-events-none scale-[0.85] origin-top-left" />;
+      return (
+        <div className="h-[260px] overflow-hidden flex items-start justify-center">
+          <Calendar mode="single" className="rounded-md border pointer-events-none" />
+        </div>
+      );
     case 'text_input':
       return <Input placeholder="Sample text..." readOnly className="pointer-events-none" />;
     case 'email_input':
@@ -102,6 +106,58 @@ function renderCustomBlockPreview(uiComponent: string) {
       return <Textarea placeholder="Multi-line text..." readOnly rows={2} className="pointer-events-none" />;
     default:
       return <p className="text-xs text-muted-foreground italic">Custom component</p>;
+  }
+}
+
+// ── Interactive sandbox renderer for custom blocks (with toast feedback) ──
+
+function renderInteractiveCustomBlock(uiComponent: string) {
+  switch (uiComponent) {
+    case 'calendar':
+      return (
+        <Calendar
+          mode="single"
+          className="rounded-md border"
+          onSelect={(date: Date | undefined) => {
+            if (date) toast({ title: 'Action triggered', description: `Selected date: ${date.toLocaleDateString()}` });
+          }}
+        />
+      );
+    case 'text_input':
+      return <Input placeholder="Type something…" onBlur={(e) => { if (e.target.value) toast({ title: 'Action triggered', description: `Value: "${e.target.value}"` }); }} />;
+    case 'email_input':
+      return <Input type="email" placeholder="you@example.com" onBlur={(e) => { if (e.target.value) toast({ title: 'Action triggered', description: `Email: "${e.target.value}"` }); }} />;
+    case 'select':
+      return (
+        <Select onValueChange={(v) => toast({ title: 'Action triggered', description: `Selected: "${v}"` })}>
+          <SelectTrigger><SelectValue placeholder="Choose option..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="option_a">Option A</SelectItem>
+            <SelectItem value="option_b">Option B</SelectItem>
+            <SelectItem value="option_c">Option C</SelectItem>
+          </SelectContent>
+        </Select>
+      );
+    case 'checkbox':
+      return (
+        <div className="flex items-center gap-2">
+          <Checkbox onCheckedChange={(v) => toast({ title: 'Action triggered', description: `Checked: ${v}` })} id="sandbox-cb" />
+          <Label htmlFor="sandbox-cb" className="text-xs">Sample option</Label>
+        </div>
+      );
+    case 'radio':
+      return (
+        <RadioGroup onValueChange={(v) => toast({ title: 'Action triggered', description: `Selected: "${v}"` })} className="space-y-1">
+          <div className="flex items-center gap-2"><RadioGroupItem value="a" id="sra" /><Label htmlFor="sra" className="text-xs">Option A</Label></div>
+          <div className="flex items-center gap-2"><RadioGroupItem value="b" id="srb" /><Label htmlFor="srb" className="text-xs">Option B</Label></div>
+        </RadioGroup>
+      );
+    case 'slider':
+      return <Slider defaultValue={[50]} max={100} step={1} onValueCommit={(v) => toast({ title: 'Action triggered', description: `Value: ${v[0]}` })} />;
+    case 'textarea':
+      return <Textarea placeholder="Multi-line text..." rows={2} onBlur={(e) => { if (e.target.value) toast({ title: 'Action triggered', description: `Value: "${e.target.value}"` }); }} />;
+    default:
+      return <p className="text-xs text-muted-foreground italic">No interactive sandbox for this component type.</p>;
   }
 }
 
@@ -233,9 +289,11 @@ const BlockCard: React.FC<{ block: BlockDefinition }> = ({ block }) => {
   );
 };
 
-// ── Custom block card (from DB) ──
+// ── Custom block card (unified layout matching BlockCard) ──
 
 const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) => void }> = ({ block, onDelete }) => {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="pb-3">
@@ -267,22 +325,36 @@ const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
               field: {block.field_type}
             </Badge>
           )}
-          {block.ui_component && block.ui_component !== 'custom' && (
-            <Badge variant="secondary" className="text-[10px]">
-              ui: {UI_COMPONENT_OPTIONS.find(o => o.value === block.ui_component)?.label || block.ui_component}
-            </Badge>
-          )}
         </div>
 
-        {/* Live preview of the chosen shadcn component */}
-        <div className="rounded-lg border bg-muted/30 p-3 overflow-hidden">
+        {/* Preview section — same wrapper as built-in cards */}
+        <div className="rounded-lg border bg-muted/30 p-3">
           <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
             Preview
           </p>
           {renderCustomBlockPreview(block.ui_component || 'custom')}
         </div>
 
-        <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full gap-1.5"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          {expanded ? 'Close sandbox' : 'Try it'}
+        </Button>
+
+        {expanded && (
+          <div className="rounded-lg border-2 border-dashed border-primary/30 bg-background p-4">
+            <p className="text-[10px] font-medium text-primary mb-3 uppercase tracking-wider">
+              Interactive Sandbox
+            </p>
+            {renderInteractiveCustomBlock(block.ui_component || 'custom')}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
           <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{block.marker}</code>
           <div className="flex-1" />
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => onDelete(block.id)}>
@@ -849,15 +921,9 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
 
 const ManageView: React.FC<{ blocks: BlockDefinition[]; customBlocks: CustomBlockRow[]; onDeleteCustom: (id: string) => void }> = ({ blocks, customBlocks, onDeleteCustom }) => (
   <div className="space-y-1">
-    {customBlocks.length > 0 && (
-      <>
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Custom Components</p>
-        {customBlocks.map((block) => (
-          <CustomManageRow key={block.id} block={block} onDelete={onDeleteCustom} />
-        ))}
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-4 mb-2">Built-in Components</p>
-      </>
-    )}
+    {customBlocks.map((block) => (
+      <CustomManageRow key={block.id} block={block} onDelete={onDeleteCustom} />
+    ))}
     {blocks.map((block) => (
       <ManageRow key={block.type} block={block} />
     ))}
