@@ -11,12 +11,12 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   GitBranch, RotateCcw, Save, Plus, Trash2, X,
   MessageSquare, GitFork, ListChecks, FileInput, PhoneForwarded,
-  Settings2, ChevronRight
+  Settings2, ChevronRight, CornerDownRight
 } from 'lucide-react';
 
 // ── Types ──
 
-type NodeType = 'message' | 'decision' | 'action_menu' | 'data_collection' | 'escalation';
+type NodeType = 'message' | 'decision' | 'action_menu' | 'data_collection' | 'escalation' | 'goto';
 
 interface FlowCondition {
   id: string;
@@ -29,6 +29,7 @@ interface FlowAction {
   id: string;
   label: string;
   enabled: boolean;
+  children?: FlowNode[];
 }
 
 interface DataField {
@@ -50,6 +51,7 @@ interface FlowNode {
   children?: FlowNode[];
   yes_children?: FlowNode[];
   no_children?: FlowNode[];
+  goto_target?: string;
 }
 
 interface GeneralRules {
@@ -73,6 +75,7 @@ const NODE_TYPES: { value: NodeType; label: string; icon: React.ElementType; col
   { value: 'action_menu', label: 'Action Menu', icon: ListChecks, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800', description: 'Present choices to the customer' },
   { value: 'data_collection', label: 'Data Collection', icon: FileInput, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800', description: 'Ask customer for input (phone, email, etc.)' },
   { value: 'escalation', label: 'Escalation', icon: PhoneForwarded, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800', description: 'Hand off to a human agent' },
+  { value: 'goto', label: 'Go To', icon: CornerDownRight, color: 'text-teal-600 dark:text-teal-400', bgColor: 'bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800', description: 'Jump to another node (loop/redirect)' },
 ];
 
 const getNodeMeta = (type: NodeType) => NODE_TYPES.find(n => n.value === type) || NODE_TYPES[0];
@@ -101,10 +104,10 @@ const DEFAULT_FLOW: FlowConfig = {
                 {
                   id: 'node_4', type: 'action_menu', label: 'Present Action Choices', instruction: 'After greeting, present these options:',
                   actions: [
-                    { id: 'a1', label: 'Book new service', enabled: true },
-                    { id: 'a2', label: 'View my bookings', enabled: true },
-                    { id: 'a3', label: 'Modify/cancel booking', enabled: true },
-                    { id: 'a4', label: 'Wheel storage', enabled: true },
+                    { id: 'a1', label: 'Book new service', enabled: true, children: [] },
+                    { id: 'a2', label: 'View my bookings', enabled: true, children: [] },
+                    { id: 'a3', label: 'Modify/cancel booking', enabled: true, children: [] },
+                    { id: 'a4', label: 'Wheel storage', enabled: true, children: [] },
                   ],
                   children: [],
                 },
@@ -127,6 +130,15 @@ function findNodeInTree(nodes: FlowNode[], nodeId: string): FlowNode | null {
       const found = findNodeInTree(node[branch] || [], nodeId);
       if (found) return found;
     }
+    // Also search inside action menu children
+    if (node.actions) {
+      for (const action of node.actions) {
+        if (action.children) {
+          const found = findNodeInTree(action.children, nodeId);
+          if (found) return found;
+        }
+      }
+    }
   }
   return null;
 }
@@ -139,6 +151,10 @@ function updateNodeInTree(nodes: FlowNode[], nodeId: string, updates: Partial<Fl
       children: updateNodeInTree(node.children || [], nodeId, updates),
       yes_children: updateNodeInTree(node.yes_children || [], nodeId, updates),
       no_children: updateNodeInTree(node.no_children || [], nodeId, updates),
+      actions: node.actions?.map(a => ({
+        ...a,
+        children: a.children ? updateNodeInTree(a.children, nodeId, updates) : undefined,
+      })),
     };
   });
 }
@@ -151,6 +167,10 @@ function removeNodeFromTree(nodes: FlowNode[], nodeId: string): FlowNode[] {
       children: removeNodeFromTree(node.children || [], nodeId),
       yes_children: removeNodeFromTree(node.yes_children || [], nodeId),
       no_children: removeNodeFromTree(node.no_children || [], nodeId),
+      actions: node.actions?.map(a => ({
+        ...a,
+        children: a.children ? removeNodeFromTree(a.children, nodeId) : undefined,
+      })),
     }));
 }
 
@@ -164,6 +184,33 @@ function addChildToTree(nodes: FlowNode[], parentId: string, branch: 'children' 
       children: addChildToTree(node.children || [], parentId, branch, newNode),
       yes_children: addChildToTree(node.yes_children || [], parentId, branch, newNode),
       no_children: addChildToTree(node.no_children || [], parentId, branch, newNode),
+      actions: node.actions?.map(a => ({
+        ...a,
+        children: a.children ? addChildToTree(a.children, parentId, branch, newNode) : undefined,
+      })),
+    };
+  });
+}
+
+function addChildToAction(nodes: FlowNode[], actionMenuNodeId: string, actionId: string, newNode: FlowNode): FlowNode[] {
+  return nodes.map(node => {
+    if (node.id === actionMenuNodeId && node.actions) {
+      return {
+        ...node,
+        actions: node.actions.map(a =>
+          a.id === actionId ? { ...a, children: [...(a.children || []), newNode] } : a
+        ),
+      };
+    }
+    return {
+      ...node,
+      children: addChildToAction(node.children || [], actionMenuNodeId, actionId, newNode),
+      yes_children: addChildToAction(node.yes_children || [], actionMenuNodeId, actionId, newNode),
+      no_children: addChildToAction(node.no_children || [], actionMenuNodeId, actionId, newNode),
+      actions: node.actions?.map(a => ({
+        ...a,
+        children: a.children ? addChildToAction(a.children, actionMenuNodeId, actionId, newNode) : undefined,
+      })),
     };
   });
 }
@@ -175,17 +222,37 @@ function countAllNodes(nodes: FlowNode[]): number {
     count += countAllNodes(node.children || []);
     count += countAllNodes(node.yes_children || []);
     count += countAllNodes(node.no_children || []);
+    if (node.actions) {
+      for (const a of node.actions) {
+        count += countAllNodes(a.children || []);
+      }
+    }
   }
   return count;
 }
 
+function collectAllNodes(nodes: FlowNode[]): { id: string; label: string }[] {
+  const result: { id: string; label: string }[] = [];
+  for (const node of nodes) {
+    if (node.type !== 'goto') {
+      result.push({ id: node.id, label: node.label });
+    }
+    result.push(...collectAllNodes(node.children || []));
+    result.push(...collectAllNodes(node.yes_children || []));
+    result.push(...collectAllNodes(node.no_children || []));
+    if (node.actions) {
+      for (const a of node.actions) {
+        result.push(...collectAllNodes(a.children || []));
+      }
+    }
+  }
+  return result;
+}
+
 /** Migrate flat node arrays (old format) into a tree (new format) */
 function migrateToTree(nodes: FlowNode[]): FlowNode[] {
-  // Already tree format if any node has children/yes_children/no_children arrays
   const isTree = nodes.some(n => (n.children && n.children.length > 0) || (n.yes_children && n.yes_children.length > 0) || (n.no_children && n.no_children.length > 0));
   if (isTree) return nodes;
-
-  // Convert flat list to chain
   if (nodes.length === 0) return [];
 
   const chain = [...nodes].reverse().reduce<FlowNode[]>((acc, node) => {
@@ -254,9 +321,32 @@ interface NodeCardProps {
   isSelected: boolean;
   onClick: () => void;
   depth: number;
+  allNodes: FlowNode[];
 }
 
-const NodeCard: React.FC<NodeCardProps> = ({ node, isSelected, onClick, depth }) => {
+const NodeCard: React.FC<NodeCardProps> = ({ node, isSelected, onClick, depth, allNodes }) => {
+  // Goto node renders as a small pill
+  if (node.type === 'goto') {
+    const targetNode = node.goto_target ? findNodeInTree(allNodes, node.goto_target) : null;
+    return (
+      <div
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
+        className={`
+          cursor-pointer group transition-all duration-150 w-[160px]
+          ${isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:ring-1 hover:ring-primary/40'}
+          rounded-full border bg-teal-50 dark:bg-teal-950/40 border-teal-300 dark:border-teal-700 shadow-sm
+        `}
+      >
+        <div className="flex items-center gap-1.5 px-3 py-1.5">
+          <CornerDownRight className="h-3 w-3 text-teal-600 dark:text-teal-400 shrink-0" />
+          <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300 truncate">
+            → {targetNode?.label || 'Select target…'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   const meta = getNodeMeta(node.type);
   const Icon = meta.icon;
   const isDecision = node.type === 'decision';
@@ -308,6 +398,61 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, isSelected, onClick, depth })
   );
 };
 
+// ── Multi-way fork SVG for action menus ──
+
+const ActionMenuFork: React.FC<{ columns: number }> = ({ columns }) => {
+  const colWidth = 200;
+  const gap = 16;
+  const totalWidth = columns * colWidth + (columns - 1) * gap;
+  const center = totalWidth / 2;
+  const height = 50;
+
+  return (
+    <div className="flex flex-col items-center py-1">
+      <svg width={totalWidth} height={height} viewBox={`0 0 ${totalWidth} ${height}`} className="overflow-visible">
+        {Array.from({ length: columns }).map((_, i) => {
+          const colCenter = i * (colWidth + gap) + colWidth / 2;
+          return (
+            <g key={i}>
+              <path
+                d={`M ${center} 0 L ${center} 12 Q ${center} 22 ${colCenter > center ? center + 10 : colCenter < center ? center - 10 : center} 22 L ${colCenter > center ? colCenter - 10 : colCenter < center ? colCenter + 10 : colCenter} 22 Q ${colCenter} 22 ${colCenter} 32 L ${colCenter} 44`}
+                stroke="currentColor" className="text-green-500" strokeWidth="1.5" fill="none"
+              />
+              <polygon points={`${colCenter - 4},40 ${colCenter},48 ${colCenter + 4},40`} className="fill-green-500" />
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
+const ActionMenuMerge: React.FC<{ columns: number }> = ({ columns }) => {
+  const colWidth = 200;
+  const gap = 16;
+  const totalWidth = columns * colWidth + (columns - 1) * gap;
+  const center = totalWidth / 2;
+  const height = 36;
+
+  return (
+    <div className="flex flex-col items-center py-1">
+      <svg width={totalWidth} height={height} viewBox={`0 0 ${totalWidth} ${height}`} className="overflow-visible">
+        {Array.from({ length: columns }).map((_, i) => {
+          const colCenter = i * (colWidth + gap) + colWidth / 2;
+          return (
+            <path
+              key={i}
+              d={`M ${colCenter} 0 L ${colCenter} 8 Q ${colCenter} 16 ${colCenter > center ? colCenter - 10 : colCenter < center ? colCenter + 10 : colCenter} 16 L ${colCenter > center ? center + 10 : colCenter < center ? center - 10 : center} 16 Q ${center} 16 ${center} 24 L ${center} 36`}
+              stroke="currentColor" className="text-border" strokeWidth="1.5" fill="none"
+            />
+          );
+        })}
+        <polygon points={`${center - 4},32 ${center},40 ${center + 4},32`} className="fill-muted-foreground" />
+      </svg>
+    </div>
+  );
+};
+
 // ── Recursive Flow Node Renderer ──
 
 interface FlowNodeRendererProps {
@@ -317,11 +462,13 @@ interface FlowNodeRendererProps {
   selectedNodeId: string | null;
   onSelectNode: (id: string | null) => void;
   onAddChild: (parentId: string | null, branch: 'children' | 'yes_children' | 'no_children', type: NodeType) => void;
+  onAddActionChild: (actionMenuNodeId: string, actionId: string, type: NodeType) => void;
   depth: number;
+  allNodes: FlowNode[];
 }
 
 const FlowNodeRenderer: React.FC<FlowNodeRendererProps> = ({
-  nodes, parentId, branch, selectedNodeId, onSelectNode, onAddChild, depth,
+  nodes, parentId, branch, selectedNodeId, onSelectNode, onAddChild, onAddActionChild, depth, allNodes,
 }) => {
   return (
     <div className="flex flex-col items-center">
@@ -334,6 +481,7 @@ const FlowNodeRenderer: React.FC<FlowNodeRendererProps> = ({
             isSelected={selectedNodeId === node.id}
             onClick={() => onSelectNode(selectedNodeId === node.id ? null : node.id)}
             depth={depth}
+            allNodes={allNodes}
           />
 
           {/* Decision branching */}
@@ -353,33 +501,14 @@ const FlowNodeRenderer: React.FC<FlowNodeRendererProps> = ({
 
               {/* Branch columns */}
               <div className="flex gap-8 items-start">
-                {/* YES branch */}
                 <div className="flex flex-col items-center min-w-[180px]">
                   <div className="w-full rounded-t border-t-2 border-green-500" />
-                  <FlowNodeRenderer
-                    nodes={node.yes_children || []}
-                    parentId={node.id}
-                    branch="yes_children"
-                    selectedNodeId={selectedNodeId}
-                    onSelectNode={onSelectNode}
-                    onAddChild={onAddChild}
-                    depth={depth + 1}
-                  />
+                  <FlowNodeRenderer nodes={node.yes_children || []} parentId={node.id} branch="yes_children" selectedNodeId={selectedNodeId} onSelectNode={onSelectNode} onAddChild={onAddChild} onAddActionChild={onAddActionChild} depth={depth + 1} allNodes={allNodes} />
                   <AddStepButton onAdd={(type) => onAddChild(node.id, 'yes_children', type)} compact={(node.yes_children || []).length === 0} />
                 </div>
-
-                {/* NO branch */}
                 <div className="flex flex-col items-center min-w-[180px]">
                   <div className="w-full rounded-t border-t-2 border-red-500" />
-                  <FlowNodeRenderer
-                    nodes={node.no_children || []}
-                    parentId={node.id}
-                    branch="no_children"
-                    selectedNodeId={selectedNodeId}
-                    onSelectNode={onSelectNode}
-                    onAddChild={onAddChild}
-                    depth={depth + 1}
-                  />
+                  <FlowNodeRenderer nodes={node.no_children || []} parentId={node.id} branch="no_children" selectedNodeId={selectedNodeId} onSelectNode={onSelectNode} onAddChild={onAddChild} onAddActionChild={onAddActionChild} depth={depth + 1} allNodes={allNodes} />
                   <AddStepButton onAdd={(type) => onAddChild(node.id, 'no_children', type)} compact={(node.no_children || []).length === 0} />
                 </div>
               </div>
@@ -395,7 +524,48 @@ const FlowNodeRenderer: React.FC<FlowNodeRendererProps> = ({
             </div>
           )}
 
-          {/* Sequential children (after merge for decisions, or directly for other types) */}
+          {/* Action Menu branching */}
+          {node.type === 'action_menu' && node.actions && (() => {
+            const enabledActions = node.actions.filter(a => a.enabled);
+            const hasAnyBranch = enabledActions.some(a => (a.children || []).length > 0);
+            // Always show fork if there are enabled actions (to allow adding branches)
+            if (enabledActions.length > 0) {
+              return (
+                <div className="flex flex-col items-center">
+                  <ActionMenuFork columns={enabledActions.length} />
+                  <div className="flex gap-4 items-start">
+                    {enabledActions.map(action => (
+                      <div key={action.id} className="flex flex-col items-center min-w-[200px]">
+                        <div className="w-full rounded-t border-t-2 border-green-500" />
+                        <div className="text-[9px] font-semibold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded-b mb-1 truncate max-w-[180px]">
+                          {action.label}
+                        </div>
+                        <FlowNodeRenderer
+                          nodes={action.children || []}
+                          parentId={node.id}
+                          branch="children"
+                          selectedNodeId={selectedNodeId}
+                          onSelectNode={onSelectNode}
+                          onAddChild={onAddChild}
+                          onAddActionChild={onAddActionChild}
+                          depth={depth + 1}
+                          allNodes={allNodes}
+                        />
+                        <AddStepButton
+                          onAdd={(type) => onAddActionChild(node.id, action.id, type)}
+                          compact={(action.children || []).length === 0}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <ActionMenuMerge columns={enabledActions.length} />
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Sequential children */}
           {(node.children && node.children.length > 0) && (
             <div className="flex flex-col items-center">
               <VerticalConnector />
@@ -406,7 +576,9 @@ const FlowNodeRenderer: React.FC<FlowNodeRendererProps> = ({
                 selectedNodeId={selectedNodeId}
                 onSelectNode={onSelectNode}
                 onAddChild={onAddChild}
+                onAddActionChild={onAddActionChild}
                 depth={depth}
+                allNodes={allNodes}
               />
             </div>
           )}
@@ -423,9 +595,10 @@ interface NodeEditorProps {
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<FlowNode>) => void;
   onRemove: (id: string) => void;
+  allNodes: FlowNode[];
 }
 
-const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemove }) => {
+const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemove, allNodes }) => {
   const meta = getNodeMeta(node.type);
   const Icon = meta.icon;
 
@@ -443,7 +616,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
     onUpdate(node.id, { actions: node.actions?.map(a => a.id === actionId ? { ...a, ...updates } : a) });
   };
   const addAction = () => {
-    onUpdate(node.id, { actions: [...(node.actions || []), { id: `action_${Date.now()}`, label: 'New option', enabled: true }] });
+    onUpdate(node.id, { actions: [...(node.actions || []), { id: `action_${Date.now()}`, label: 'New option', enabled: true, children: [] }] });
   };
   const removeAction = (actionId: string) => {
     onUpdate(node.id, { actions: node.actions?.filter(a => a.id !== actionId) });
@@ -458,6 +631,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
   const removeDataField = (fieldId: string) => {
     onUpdate(node.id, { data_fields: node.data_fields?.filter(f => f.id !== fieldId) });
   };
+
+  const gotoTargets = useMemo(() => collectAllNodes(allNodes).filter(n => n.id !== node.id), [allNodes, node.id]);
 
   return (
     <div className="h-full flex flex-col">
@@ -496,10 +671,28 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
           </Select>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Instruction</Label>
-          <Textarea emojiAutocomplete={false} value={node.instruction} onChange={(e) => onUpdate(node.id, { instruction: e.target.value })} className="min-h-[80px] text-sm" />
-        </div>
+        {/* Goto target selector */}
+        {node.type === 'goto' && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Jump to Node</Label>
+            <Select value={node.goto_target || ''} onValueChange={(val) => onUpdate(node.id, { goto_target: val })}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select target node…" /></SelectTrigger>
+              <SelectContent>
+                {gotoTargets.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">The conversation will loop back to this node.</p>
+          </div>
+        )}
+
+        {node.type !== 'goto' && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Instruction</Label>
+            <Textarea emojiAutocomplete={false} value={node.instruction} onChange={(e) => onUpdate(node.id, { instruction: e.target.value })} className="min-h-[80px] text-sm" />
+          </div>
+        )}
 
         {/* Decision: Conditions */}
         {node.type === 'decision' && (
@@ -524,7 +717,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
               <Plus className="h-3 w-3 mr-1" /> Add condition
             </Button>
 
-            {/* Branch info */}
             <div className="rounded-lg bg-muted/30 border p-3 space-y-2">
               <p className="text-[11px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
@@ -547,12 +739,17 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground font-medium">Menu Items</Label>
             {(node.actions || []).map((action) => (
-              <div key={action.id} className="flex items-center gap-3 rounded-lg bg-muted/50 border p-2.5">
-                <Switch checked={action.enabled} onCheckedChange={(checked) => updateAction(action.id, { enabled: checked })} />
-                <Input value={action.label} onChange={(e) => updateAction(action.id, { label: e.target.value })} className="text-sm h-8 flex-1" />
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => removeAction(action.id)}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+              <div key={action.id} className="rounded-lg bg-muted/50 border p-2.5 space-y-1.5">
+                <div className="flex items-center gap-3">
+                  <Switch checked={action.enabled} onCheckedChange={(checked) => updateAction(action.id, { enabled: checked })} />
+                  <Input value={action.label} onChange={(e) => updateAction(action.id, { label: e.target.value })} className="text-sm h-8 flex-1" />
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0" onClick={() => removeAction(action.id)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground pl-12">
+                  {(action.children || []).length} step(s) in branch — edit on canvas
+                </p>
               </div>
             ))}
             <Button variant="ghost" size="sm" className="text-xs" onClick={addAction}>
@@ -639,13 +836,13 @@ export const AiFlowBuilder: React.FC<AiFlowBuilderProps> = ({ widgetId }) => {
       if (data?.ai_flow_config) {
         const loaded = data.ai_flow_config as unknown as FlowConfig;
         if (loaded.nodes) {
-          // Ensure type is set on all nodes
           const ensureType = (nodes: FlowNode[]): FlowNode[] => nodes.map(n => ({
             ...n,
             type: n.type || (n.actions && n.actions.length > 0 ? 'action_menu' : n.conditions && n.conditions.length > 0 ? 'decision' : 'message'),
             children: ensureType(n.children || []),
             yes_children: n.yes_children ? ensureType(n.yes_children) : undefined,
             no_children: n.no_children ? ensureType(n.no_children) : undefined,
+            actions: n.actions?.map(a => ({ ...a, children: a.children ? ensureType(a.children) : [] })),
           }));
           loaded.nodes = ensureType(migrateToTree(loaded.nodes));
         }
@@ -681,14 +878,15 @@ export const AiFlowBuilder: React.FC<AiFlowBuilderProps> = ({ widgetId }) => {
     return {
       id: `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       type,
-      label: `New ${meta.label}`,
+      label: type === 'goto' ? 'Go To' : `New ${meta.label}`,
       instruction: '',
       conditions: type === 'decision' ? [{ id: `cond_${Date.now()}`, check: '' }] : undefined,
-      actions: type === 'action_menu' ? [{ id: `action_${Date.now()}`, label: 'New option', enabled: true }] : undefined,
+      actions: type === 'action_menu' ? [{ id: `action_${Date.now()}`, label: 'New option', enabled: true, children: [] }] : undefined,
       data_fields: type === 'data_collection' ? [{ id: `field_${Date.now()}`, label: '', field_type: 'text' as const, required: true }] : undefined,
-      children: [],
+      children: type === 'goto' ? undefined : [],
       yes_children: type === 'decision' ? [] : undefined,
       no_children: type === 'decision' ? [] : undefined,
+      goto_target: type === 'goto' ? undefined : undefined,
     };
   };
 
@@ -697,9 +895,14 @@ export const AiFlowBuilder: React.FC<AiFlowBuilderProps> = ({ widgetId }) => {
     if (parentId) {
       setFlow(prev => ({ ...prev, nodes: addChildToTree(prev.nodes, parentId, branch, newNode) }));
     } else {
-      // Add to root level
       setFlow(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }));
     }
+    setSelectedNodeId(newNode.id);
+  };
+
+  const handleAddActionChild = (actionMenuNodeId: string, actionId: string, type: NodeType) => {
+    const newNode = createNode(type);
+    setFlow(prev => ({ ...prev, nodes: addChildToAction(prev.nodes, actionMenuNodeId, actionId, newNode) }));
     setSelectedNodeId(newNode.id);
   };
 
@@ -755,13 +958,14 @@ export const AiFlowBuilder: React.FC<AiFlowBuilderProps> = ({ widgetId }) => {
               selectedNodeId={selectedNodeId}
               onSelectNode={setSelectedNodeId}
               onAddChild={handleAddChild}
+              onAddActionChild={handleAddActionChild}
               depth={0}
+              allNodes={flow.nodes}
             />
 
             {/* Root add button */}
             {flow.nodes.length > 0 && flow.nodes[flow.nodes.length - 1].children?.length === 0 && (
               <AddStepButton onAdd={(type) => {
-                // Add as child of last root node
                 const lastRoot = flow.nodes[flow.nodes.length - 1];
                 handleAddChild(lastRoot.id, 'children', type);
               }} />
@@ -787,6 +991,7 @@ export const AiFlowBuilder: React.FC<AiFlowBuilderProps> = ({ widgetId }) => {
               onClose={() => setSelectedNodeId(null)}
               onUpdate={updateNode}
               onRemove={removeNode}
+              allNodes={flow.nodes}
             />
           ) : (
             <div className="flex-1 overflow-y-auto">
