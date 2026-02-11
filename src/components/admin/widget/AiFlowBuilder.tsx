@@ -53,6 +53,7 @@ interface FlowNode {
   yes_children?: FlowNode[];
   no_children?: FlowNode[];
   goto_target?: string;
+  decision_mode?: 'ask_customer' | 'auto_evaluate';
 }
 
 interface GeneralRules {
@@ -663,7 +664,10 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, isSelected, onClick, depth, a
       {node.type === 'decision' && node.conditions && node.conditions.length > 0 && (
         <div className="px-2.5 pb-2 space-y-1">
           <div className="text-[8px] text-amber-700 dark:text-amber-300 truncate">IF: {node.conditions[0].check}</div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-center">
+            {node.decision_mode === 'auto_evaluate' && (
+              <span className="text-[7px] px-1 py-0.5 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-bold uppercase tracking-wide">Auto</span>
+            )}
             <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center gap-0.5 font-semibold">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M4 22H2V11h2"/></svg>
               YES
@@ -985,9 +989,39 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
           </div>
         )}
 
-        {/* Decision: Conditions */}
+        {/* Decision: Mode + Conditions */}
         {node.type === 'decision' && (
           <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground font-medium">Decision Mode</Label>
+              <div className="flex rounded-lg border overflow-hidden">
+                <button
+                  onClick={() => onUpdate(node.id, { decision_mode: 'ask_customer' })}
+                  className={`flex-1 text-xs py-1.5 px-2 font-medium transition-colors ${
+                    (node.decision_mode || 'ask_customer') === 'ask_customer'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  Ask Customer
+                </button>
+                <button
+                  onClick={() => onUpdate(node.id, { decision_mode: 'auto_evaluate' })}
+                  className={`flex-1 text-xs py-1.5 px-2 font-medium transition-colors ${
+                    node.decision_mode === 'auto_evaluate'
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  Auto-Evaluate
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {node.decision_mode === 'auto_evaluate'
+                  ? 'The AI will automatically evaluate this condition based on prior context and take the appropriate branch — no buttons shown to the customer.'
+                  : 'The customer will see YES/NO buttons to answer this question.'}
+              </p>
+            </div>
             <Label className="text-xs text-muted-foreground font-medium">Conditions</Label>
             {(node.conditions || []).map((cond) => (
               <div key={cond.id} className="rounded-lg bg-muted/50 border p-3 space-y-2">
@@ -1098,8 +1132,18 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
           </div>
         )}
 
-        {/* Decision — Customer Preview (registry-driven) */}
+        {/* Decision — Customer Preview (registry-driven) or Auto-Evaluate info */}
         {node.type === 'decision' && (() => {
+          if (node.decision_mode === 'auto_evaluate') {
+            return (
+              <div className="rounded-md bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 p-2.5 space-y-2">
+                <p className="text-[11px] text-violet-700 dark:text-violet-300 font-medium">🤖 Auto-Evaluate</p>
+                <p className="text-[10px] text-violet-600 dark:text-violet-400">
+                  The AI will automatically evaluate this condition based on prior conversation context and take the appropriate branch. No buttons are shown to the customer.
+                </p>
+              </div>
+            );
+          }
           const decisionDef = getBlockForNodeType('decision');
           if (!decisionDef) return null;
           return (

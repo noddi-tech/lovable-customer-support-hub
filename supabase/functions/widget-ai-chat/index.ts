@@ -380,7 +380,7 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
 interface FlowCondition { check: string; if_true?: string; if_false?: string; }
 interface FlowAction { label: string; enabled: boolean; children?: FlowNode[]; }
 interface DataField { label: string; field_type: string; required: boolean; validation_hint?: string; }
-interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; children?: FlowNode[]; yes_children?: FlowNode[]; no_children?: FlowNode[]; goto_target?: string; }
+interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; children?: FlowNode[]; yes_children?: FlowNode[]; no_children?: FlowNode[]; goto_target?: string; decision_mode?: 'ask_customer' | 'auto_evaluate'; }
 interface FlowConfig { nodes: FlowNode[]; general_rules: { max_initial_lines: number; never_dump_history: boolean; tone: string; language_behavior?: string; escalation_threshold?: number; }; }
 
 function findNodeByIdInTree(nodes: FlowNode[], nodeId: string): FlowNode | null {
@@ -471,26 +471,33 @@ function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): s
 
   // Decision conditions with recursive branches
   if (nodeType === 'decision' && node.conditions && node.conditions.length > 0) {
+    const isAutoEvaluate = node.decision_mode === 'auto_evaluate';
     for (const cond of node.conditions) {
-      lines.push(`${indent}- IF ${cond.check}:`);
-      lines.push(`${indent}  Present this as a YES/NO choice to the customer using the marker: [YES_NO]${cond.check}[/YES_NO]`);
+      if (isAutoEvaluate) {
+        lines.push(`${indent}- Evaluate: ${cond.check}`);
+        lines.push(`${indent}  Based on the information you already have from previous steps, determine if this is true or false.`);
+        lines.push(`${indent}  Do NOT ask the customer. Do NOT show YES/NO buttons. Silently follow the appropriate branch.`);
+      } else {
+        lines.push(`${indent}- IF ${cond.check}:`);
+        lines.push(`${indent}  Present this as a YES/NO choice to the customer using the marker: [YES_NO]${cond.check}[/YES_NO]`);
+      }
 
       if (node.yes_children && node.yes_children.length > 0) {
-        lines.push(`${indent}  → YES:`);
+        lines.push(`${indent}  → ${isAutoEvaluate ? 'If TRUE' : 'YES'}:`);
         for (const child of node.yes_children) {
           lines.push(buildNodePrompt(child, depth + 2, allNodes));
         }
       } else if (cond.if_true) {
-        lines.push(`${indent}  → YES: ${cond.if_true}`);
+        lines.push(`${indent}  → ${isAutoEvaluate ? 'If TRUE' : 'YES'}: ${cond.if_true}`);
       }
 
       if (node.no_children && node.no_children.length > 0) {
-        lines.push(`${indent}  → NO:`);
+        lines.push(`${indent}  → ${isAutoEvaluate ? 'If FALSE' : 'NO'}:`);
         for (const child of node.no_children) {
           lines.push(buildNodePrompt(child, depth + 2, allNodes));
         }
       } else if (cond.if_false) {
-        lines.push(`${indent}  → NO: ${cond.if_false}`);
+        lines.push(`${indent}  → ${isAutoEvaluate ? 'If FALSE' : 'NO'}: ${cond.if_false}`);
       }
     }
   }
