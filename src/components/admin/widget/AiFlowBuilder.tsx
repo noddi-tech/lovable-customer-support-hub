@@ -646,15 +646,48 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, isSelected, onClick, depth, a
         </div>
       )}
       {node.type === 'data_collection' && node.data_fields && node.data_fields.length > 0 && (
-        <div className="px-2.5 pb-2 flex flex-wrap gap-0.5">
-          {node.data_fields.map(f => (
-            <span key={f.id} className="text-[8px] px-1 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 truncate max-w-[70px]">{f.label || f.field_type}</span>
-          ))}
+        <div className="px-2.5 pb-2 space-y-1">
+          {node.data_fields.map(f => {
+            const isPhone = f.field_type === 'phone' || f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('telefon');
+            const isEmail = f.field_type === 'email';
+            return (
+              <div key={f.id} className="flex items-center gap-1">
+                {isPhone && (
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 flex items-center gap-0.5 font-semibold">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    Phone + PIN
+                  </span>
+                )}
+                {isEmail && (
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 flex items-center gap-0.5 font-semibold">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    Email Input
+                  </span>
+                )}
+                {!isPhone && !isEmail && (
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 flex items-center gap-0.5 font-semibold">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 6.1H3"/><path d="M21 12.1H3"/><path d="M15.1 18H3"/></svg>
+                    {f.label || f.field_type}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       {node.type === 'decision' && node.conditions && node.conditions.length > 0 && (
-        <div className="px-2.5 pb-2">
+        <div className="px-2.5 pb-2 space-y-1">
           <div className="text-[8px] text-amber-700 dark:text-amber-300 truncate">IF: {node.conditions[0].check}</div>
+          <div className="flex gap-1">
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center gap-0.5 font-semibold">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M4 22H2V11h2"/></svg>
+              YES
+            </span>
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 flex items-center gap-0.5 font-semibold">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15V19a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M20 2h2v11h-2"/></svg>
+              NO
+            </span>
+          </div>
         </div>
       )}
     </div>
@@ -1035,7 +1068,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
         {node.type === 'data_collection' && (
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground font-medium">Fields to Collect</Label>
-            {(node.data_fields || []).map((field) => (
+            {(node.data_fields || []).map((field) => {
+              const isPhone = field.field_type === 'phone' || field.label.toLowerCase().includes('phone') || field.label.toLowerCase().includes('telefon');
+              const isEmail = field.field_type === 'email';
+              return (
               <div key={field.id} className="rounded-lg bg-muted/50 border p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <Input value={field.label} onChange={(e) => updateDataField(field.id, { label: e.target.value })} className="text-sm h-8 flex-1" placeholder="Field label..." />
@@ -1058,21 +1094,89 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
                   </Button>
                 </div>
                 <Input value={field.validation_hint || ''} onChange={(e) => updateDataField(field.id, { validation_hint: e.target.value })} className="text-xs h-7" placeholder="Validation hint..." />
+
+                {/* Component info banner */}
+                {isPhone && (
+                  <div className="rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 p-2.5 space-y-2">
+                    <p className="text-[11px] text-purple-700 dark:text-purple-300 font-medium">📱 Phone + PIN Verification Component</p>
+                    <p className="text-[10px] text-purple-600 dark:text-purple-400">The customer will see a phone number input. After entering their number, they'll receive an SMS with a 6-digit PIN code to verify their identity.</p>
+                    <div className="rounded-md bg-white dark:bg-background border p-2 space-y-1.5">
+                      <p className="text-[9px] text-muted-foreground font-medium">Customer sees:</p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-0 border rounded-md px-2 py-1 text-[10px] bg-muted/30 flex-1">
+                          <span className="text-muted-foreground font-medium mr-1">+47</span>
+                          <span className="text-muted-foreground/50">XXX XX XXX</span>
+                        </div>
+                        <div className="h-6 w-6 rounded-md bg-purple-500 flex items-center justify-center text-white text-[10px] font-bold">→</div>
+                      </div>
+                      <div className="flex items-center gap-1 justify-center">
+                        {[1,2,3].map(i => <div key={i} className="h-5 w-4 rounded border bg-muted/30 flex items-center justify-center text-[8px] text-muted-foreground">•</div>)}
+                        <span className="text-[8px] text-muted-foreground mx-0.5">·</span>
+                        {[4,5,6].map(i => <div key={i} className="h-5 w-4 rounded border bg-muted/30 flex items-center justify-center text-[8px] text-muted-foreground">•</div>)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {isEmail && (
+                  <div className="rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 p-2.5 space-y-2">
+                    <p className="text-[11px] text-purple-700 dark:text-purple-300 font-medium">✉️ Email Input Component</p>
+                    <p className="text-[10px] text-purple-600 dark:text-purple-400">The customer will see an email input field with validation.</p>
+                    <div className="rounded-md bg-white dark:bg-background border p-2">
+                      <p className="text-[9px] text-muted-foreground font-medium mb-1">Customer sees:</p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 border rounded-md px-2 py-1 text-[10px] bg-muted/30 flex-1">
+                          <span className="text-muted-foreground/50">✉</span>
+                          <span className="text-muted-foreground/50">your@email.com</span>
+                        </div>
+                        <div className="h-6 w-6 rounded-md bg-purple-500 flex items-center justify-center text-white text-[10px] font-bold">→</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
             <Button variant="ghost" size="sm" className="text-xs" onClick={addDataField}>
               <Plus className="h-3 w-3 mr-1" /> Add field
             </Button>
           </div>
         )}
 
+        {/* Decision — Customer Preview */}
+        {node.type === 'decision' && (
+          <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-2.5 space-y-2">
+            <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium">👍 YES / NO Buttons Component</p>
+            <p className="text-[10px] text-amber-600 dark:text-amber-400">The customer will see two buttons with thumbs up (YES) and thumbs down (NO) icons.</p>
+            <div className="rounded-md bg-white dark:bg-background border p-2">
+              <p className="text-[9px] text-muted-foreground font-medium mb-1.5">Customer sees:</p>
+              <div className="flex gap-1.5">
+                <div className="flex-1 flex items-center justify-center gap-1 border-2 border-green-400 rounded-lg py-1.5 text-green-600 text-[10px] font-semibold">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M4 22H2V11h2"/></svg>
+                  Yes
+                </div>
+                <div className="flex-1 flex items-center justify-center gap-1 border-2 border-red-400 rounded-lg py-1.5 text-red-600 text-[10px] font-semibold">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15V19a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M20 2h2v11h-2"/></svg>
+                  No
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Escalation hint */}
         {node.type === 'escalation' && (
-          <div className="rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 p-3">
+          <div className="rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 p-3 space-y-2">
             <p className="text-xs text-red-700 dark:text-red-400">
               When this step is reached, the conversation will be escalated to a human agent.
               Use the instruction above to describe the conditions and message shown to the customer.
             </p>
+            <div className="rounded-md bg-white dark:bg-background border p-2">
+              <p className="text-[9px] text-muted-foreground font-medium mb-1">Customer sees:</p>
+              <div className="flex items-center gap-1.5 text-[10px] text-red-600 dark:text-red-400 font-medium">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/></svg>
+                Connecting to agent...
+              </div>
+            </div>
           </div>
         )}
 

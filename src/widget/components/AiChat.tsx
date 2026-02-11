@@ -384,6 +384,252 @@ const PhoneVerifyBlock: React.FC<PhoneVerifyBlockProps> = ({
   );
 };
 
+// ========== New Interactive Block Components ==========
+
+interface YesNoBlockProps {
+  question: string;
+  primaryColor: string;
+  messageId: string;
+  blockIndex: number;
+  usedBlocks: Set<string>;
+  onSelect: (choice: string, blockKey: string) => void;
+}
+
+const YesNoBlock: React.FC<YesNoBlockProps> = ({ question, primaryColor, messageId, blockIndex, usedBlocks, onSelect }) => {
+  const blockKey = `${messageId}:${blockIndex}`;
+  const isUsed = usedBlocks.has(blockKey);
+  const selected = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
+
+  return (
+    <div style={{ margin: '10px 0' }}>
+      {question && <p style={{ fontSize: '13px', marginBottom: '8px', fontWeight: 500 }}>{question}</p>}
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          disabled={isUsed}
+          onClick={() => onSelect('Yes', blockKey)}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '10px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: isUsed ? 'default' : 'pointer',
+            border: '1.5px solid #22c55e',
+            background: selected === 'Yes' ? '#22c55e' : 'transparent',
+            color: selected === 'Yes' ? '#fff' : '#22c55e',
+            opacity: isUsed && selected !== 'Yes' ? 0.4 : 1,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M4 22H2V11h2"/></svg>
+          Yes
+        </button>
+        <button
+          disabled={isUsed}
+          onClick={() => onSelect('No', blockKey)}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '10px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: isUsed ? 'default' : 'pointer',
+            border: '1.5px solid #ef4444',
+            background: selected === 'No' ? '#ef4444' : 'transparent',
+            color: selected === 'No' ? '#fff' : '#ef4444',
+            opacity: isUsed && selected !== 'No' ? 0.4 : 1,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15V19a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M20 2h2v11h-2"/></svg>
+          No
+        </button>
+      </div>
+    </div>
+  );
+};
+
+interface EmailInputBlockProps {
+  primaryColor: string;
+  messageId: string;
+  blockIndex: number;
+  usedBlocks: Set<string>;
+  onSubmit: (value: string, blockKey: string) => void;
+}
+
+const EmailInputBlock: React.FC<EmailInputBlockProps> = ({ primaryColor, messageId, blockIndex, usedBlocks, onSubmit }) => {
+  const blockKey = `${messageId}:${blockIndex}`;
+  const isUsed = usedBlocks.has(blockKey);
+  const [value, setValue] = useState('');
+  const [error, setError] = useState('');
+  const submitted = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
+
+  if (submitted) {
+    return (
+      <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+        <span style={{ fontSize: '12px' }}>{submitted}</span>
+      </div>
+    );
+  }
+
+  const handleSubmit = () => {
+    const trimmed = value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    setError('');
+    onSubmit(trimmed, blockKey);
+  };
+
+  return (
+    <div style={{ margin: '8px 0' }}>
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={value}
+            onChange={(e) => { setValue(e.target.value); setError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+            style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: '8px', border: '1.5px solid #d1d5db', fontSize: '13px', outline: 'none' }}
+          />
+        </div>
+        <button
+          onClick={handleSubmit}
+          disabled={!value.trim()}
+          style={{ backgroundColor: primaryColor, color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: value.trim() ? 'pointer' : 'default', opacity: value.trim() ? 1 : 0.5 }}
+        >→</button>
+      </div>
+      {error && <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '4px' }}>{error}</p>}
+    </div>
+  );
+};
+
+interface TextInputBlockProps {
+  placeholder: string;
+  primaryColor: string;
+  messageId: string;
+  blockIndex: number;
+  usedBlocks: Set<string>;
+  onSubmit: (value: string, blockKey: string) => void;
+}
+
+const TextInputBlock: React.FC<TextInputBlockProps> = ({ placeholder, primaryColor, messageId, blockIndex, usedBlocks, onSubmit }) => {
+  const blockKey = `${messageId}:${blockIndex}`;
+  const isUsed = usedBlocks.has(blockKey);
+  const [value, setValue] = useState('');
+  const submitted = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
+
+  if (submitted) {
+    return (
+      <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+        <span style={{ fontSize: '12px' }}>{submitted}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ margin: '8px 0', display: 'flex', gap: '6px' }}>
+      <input
+        type="text"
+        placeholder={placeholder || 'Type here...'}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter' && value.trim()) onSubmit(value.trim(), blockKey); }}
+        style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #d1d5db', fontSize: '13px', outline: 'none' }}
+      />
+      <button
+        onClick={() => value.trim() && onSubmit(value.trim(), blockKey)}
+        disabled={!value.trim()}
+        style={{ backgroundColor: primaryColor, color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: value.trim() ? 'pointer' : 'default', opacity: value.trim() ? 1 : 0.5 }}
+      >→</button>
+    </div>
+  );
+};
+
+interface RatingBlockProps {
+  primaryColor: string;
+  messageId: string;
+  blockIndex: number;
+  usedBlocks: Set<string>;
+  onSelect: (value: string, blockKey: string) => void;
+}
+
+const RatingBlock: React.FC<RatingBlockProps> = ({ primaryColor, messageId, blockIndex, usedBlocks, onSelect }) => {
+  const blockKey = `${messageId}:${blockIndex}`;
+  const isUsed = usedBlocks.has(blockKey);
+  const selected = isUsed ? parseInt(localStorage.getItem(`noddi_action_${blockKey}`) || '0') : 0;
+  const [hover, setHover] = useState(0);
+
+  return (
+    <div style={{ margin: '10px 0', display: 'flex', gap: '4px', alignItems: 'center' }} onMouseLeave={() => setHover(0)}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          disabled={isUsed}
+          onMouseEnter={() => !isUsed && setHover(star)}
+          onClick={() => onSelect(`Rating: ${star}/5`, blockKey)}
+          style={{ background: 'none', border: 'none', cursor: isUsed ? 'default' : 'pointer', padding: '2px', transition: 'transform 0.1s', transform: (!isUsed && hover === star) ? 'scale(1.2)' : 'scale(1)' }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={(hover || selected) >= star ? '#facc15' : 'none'} stroke={(hover || selected) >= star ? '#facc15' : '#d1d5db'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </button>
+      ))}
+      {selected > 0 && <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '4px' }}>{selected}/5</span>}
+    </div>
+  );
+};
+
+interface ConfirmBlockProps {
+  summary: string;
+  primaryColor: string;
+  messageId: string;
+  blockIndex: number;
+  usedBlocks: Set<string>;
+  onSelect: (choice: string, blockKey: string) => void;
+}
+
+const ConfirmBlock: React.FC<ConfirmBlockProps> = ({ summary, primaryColor, messageId, blockIndex, usedBlocks, onSelect }) => {
+  const blockKey = `${messageId}:${blockIndex}`;
+  const isUsed = usedBlocks.has(blockKey);
+  const selected = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
+
+  return (
+    <div style={{ margin: '10px 0', border: '1.5px solid #e5e7eb', borderRadius: '12px', padding: '14px', background: '#fafafa' }}>
+      <p style={{ fontSize: '13px', marginBottom: '12px', fontWeight: 500 }}>{summary}</p>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          disabled={isUsed}
+          onClick={() => onSelect('Confirmed', blockKey)}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '9px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: isUsed ? 'default' : 'pointer',
+            border: '1.5px solid #22c55e',
+            background: selected === 'Confirmed' ? '#22c55e' : 'transparent',
+            color: selected === 'Confirmed' ? '#fff' : '#22c55e',
+            opacity: isUsed && selected !== 'Confirmed' ? 0.4 : 1,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Confirm
+        </button>
+        <button
+          disabled={isUsed}
+          onClick={() => onSelect('Cancelled', blockKey)}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '9px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: isUsed ? 'default' : 'pointer',
+            border: '1.5px solid #ef4444',
+            background: selected === 'Cancelled' ? '#ef4444' : 'transparent',
+            color: selected === 'Cancelled' ? '#fff' : '#ef4444',
+            opacity: isUsed && selected !== 'Cancelled' ? 0.4 : 1,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // ========== Block Renderer ==========
 
 interface MessageBlockRendererProps {
@@ -450,6 +696,85 @@ const MessageBlockRenderer: React.FC<MessageBlockRendererProps> = ({
               usedBlocks={usedBlocks}
               onVerified={(phone) => onPhoneVerified(phone, `${messageId}:${idx}`)}
               onLogEvent={onLogEvent}
+            />
+          );
+        }
+        if (block.type === 'yes_no') {
+          return (
+            <YesNoBlock
+              key={idx}
+              question={block.question}
+              primaryColor={primaryColor}
+              messageId={messageId}
+              blockIndex={idx}
+              usedBlocks={usedBlocks}
+              onSelect={(choice, bk) => {
+                localStorage.setItem(`noddi_action_${bk}`, choice);
+                onActionSelect(choice, bk);
+              }}
+            />
+          );
+        }
+        if (block.type === 'email_input') {
+          return (
+            <EmailInputBlock
+              key={idx}
+              primaryColor={primaryColor}
+              messageId={messageId}
+              blockIndex={idx}
+              usedBlocks={usedBlocks}
+              onSubmit={(val, bk) => {
+                localStorage.setItem(`noddi_action_${bk}`, val);
+                onActionSelect(val, bk);
+              }}
+            />
+          );
+        }
+        if (block.type === 'text_input') {
+          return (
+            <TextInputBlock
+              key={idx}
+              placeholder={block.placeholder}
+              primaryColor={primaryColor}
+              messageId={messageId}
+              blockIndex={idx}
+              usedBlocks={usedBlocks}
+              onSubmit={(val, bk) => {
+                localStorage.setItem(`noddi_action_${bk}`, val);
+                onActionSelect(val, bk);
+              }}
+            />
+          );
+        }
+        if (block.type === 'rating') {
+          return (
+            <RatingBlock
+              key={idx}
+              primaryColor={primaryColor}
+              messageId={messageId}
+              blockIndex={idx}
+              usedBlocks={usedBlocks}
+              onSelect={(val, bk) => {
+                const num = val.match(/\d/)?.[0] || '0';
+                localStorage.setItem(`noddi_action_${bk}`, num);
+                onActionSelect(val, bk);
+              }}
+            />
+          );
+        }
+        if (block.type === 'confirm') {
+          return (
+            <ConfirmBlock
+              key={idx}
+              summary={block.summary}
+              primaryColor={primaryColor}
+              messageId={messageId}
+              blockIndex={idx}
+              usedBlocks={usedBlocks}
+              onSelect={(choice, bk) => {
+                localStorage.setItem(`noddi_action_${bk}`, choice);
+                onActionSelect(choice, bk);
+              }}
             />
           );
         }
