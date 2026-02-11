@@ -377,57 +377,88 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
 
 // ========== System prompt ==========
 
-interface FlowCondition { check: string; if_true: string; if_false: string; }
+interface FlowCondition { check: string; if_true?: string; if_false?: string; }
 interface FlowAction { label: string; enabled: boolean; }
 interface DataField { label: string; field_type: string; required: boolean; validation_hint?: string; }
-interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; }
+interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; children?: FlowNode[]; yes_children?: FlowNode[]; no_children?: FlowNode[]; }
 interface FlowConfig { nodes: FlowNode[]; general_rules: { max_initial_lines: number; never_dump_history: boolean; tone: string; language_behavior?: string; escalation_threshold?: number; }; }
+
+function buildNodePrompt(node: FlowNode, depth: number): string {
+  const indent = '  '.repeat(depth);
+  const lines: string[] = [];
+  const nodeType = node.type || 'message';
+
+  lines.push(`${indent}### ${node.label}`);
+  if (node.instruction) {
+    lines.push(`${indent}${node.instruction}`);
+  }
+
+  // Data collection fields
+  if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
+    lines.push(`${indent}Required data to collect:`);
+    for (const field of node.data_fields) {
+      const reqText = field.required ? 'required' : 'optional';
+      const hint = field.validation_hint ? `, ${field.validation_hint}` : '';
+      lines.push(`${indent}  - ${field.label} (${field.field_type} format, ${reqText}${hint})`);
+    }
+  }
+
+  // Decision conditions with recursive branches
+  if (nodeType === 'decision' && node.conditions && node.conditions.length > 0) {
+    for (const cond of node.conditions) {
+      lines.push(`${indent}- IF ${cond.check}:`);
+
+      if (node.yes_children && node.yes_children.length > 0) {
+        lines.push(`${indent}  → YES:`);
+        for (const child of node.yes_children) {
+          lines.push(buildNodePrompt(child, depth + 2));
+        }
+      } else if (cond.if_true) {
+        lines.push(`${indent}  → YES: ${cond.if_true}`);
+      }
+
+      if (node.no_children && node.no_children.length > 0) {
+        lines.push(`${indent}  → NO:`);
+        for (const child of node.no_children) {
+          lines.push(buildNodePrompt(child, depth + 2));
+        }
+      } else if (cond.if_false) {
+        lines.push(`${indent}  → NO: ${cond.if_false}`);
+      }
+    }
+  }
+
+  // Action menu
+  if (nodeType === 'action_menu' && node.actions && node.actions.length > 0) {
+    const enabled = node.actions.filter(a => a.enabled);
+    if (enabled.length > 0) {
+      lines.push(`${indent}Present these options:`);
+      for (const action of enabled) {
+        lines.push(`${indent}  - "${action.label}"`);
+      }
+    }
+  }
+
+  // Escalation
+  if (nodeType === 'escalation') {
+    lines.push(`${indent}ACTION: Escalate to a human agent at this point.`);
+  }
+
+  // Sequential children (continuation after this node)
+  if (node.children && node.children.length > 0) {
+    for (const child of node.children) {
+      lines.push(buildNodePrompt(child, depth));
+    }
+  }
+
+  return lines.join('\n');
+}
 
 function buildFlowPrompt(flowConfig: FlowConfig): string {
   const lines: string[] = [];
-  
+
   for (const node of flowConfig.nodes) {
-    const nodeType = node.type || 'message';
-    lines.push(`\n### ${node.label}`);
-    
-    if (node.instruction) {
-      lines.push(node.instruction);
-    }
-
-    // Data collection fields
-    if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
-      lines.push('Required data to collect:');
-      for (const field of node.data_fields) {
-        const reqText = field.required ? 'required' : 'optional';
-        const hint = field.validation_hint ? `, ${field.validation_hint}` : '';
-        lines.push(`  - ${field.label} (${field.field_type} format, ${reqText}${hint})`);
-      }
-    }
-
-    // Decision conditions
-    if ((nodeType === 'decision' || !nodeType) && node.conditions && node.conditions.length > 0) {
-      for (const cond of node.conditions) {
-        lines.push(`- IF ${cond.check}:`);
-        lines.push(`  → YES: ${cond.if_true}`);
-        lines.push(`  → NO: ${cond.if_false}`);
-      }
-    }
-    
-    // Action menu
-    if ((nodeType === 'action_menu' || !nodeType) && node.actions && node.actions.length > 0) {
-      const enabled = node.actions.filter(a => a.enabled);
-      if (enabled.length > 0) {
-        lines.push('Present these options:');
-        for (const action of enabled) {
-          lines.push(`  - "${action.label}"`);
-        }
-      }
-    }
-
-    // Escalation
-    if (nodeType === 'escalation') {
-      lines.push('ACTION: Escalate to a human agent at this point.');
-    }
+    lines.push(buildNodePrompt(node, 0));
   }
 
   const rules = flowConfig.general_rules;
