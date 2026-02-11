@@ -402,6 +402,41 @@ function findNodeByIdInTree(nodes: FlowNode[], nodeId: string): FlowNode | null 
   return null;
 }
 
+// ========== Block Prompts Map (registry-like for edge function) ==========
+
+const BLOCK_PROMPTS: Record<string, {
+  fieldTypes?: string[];
+  nodeTypes?: string[];
+  instruction: (ctx: { fieldLabel?: string; conditionCheck?: string; validationHint?: string }) => string;
+}> = {
+  phone_verify: {
+    fieldTypes: ['phone', 'tel'],
+    instruction: () => `To collect and verify the customer's phone number, include the marker [PHONE_VERIFY] in your response. The widget will render an interactive phone verification form. Do NOT ask for the phone number in text — the form handles it.`,
+  },
+  email_input: {
+    fieldTypes: ['email'],
+    instruction: () => `To collect the customer's email, include the marker [EMAIL_INPUT] in your response. The widget will render an email input field with validation. Do NOT ask for the email in text — the form handles it.`,
+  },
+  text_input: {
+    fieldTypes: ['text'],
+    instruction: (ctx) => {
+      const placeholder = ctx.validationHint || ctx.fieldLabel || 'Enter text';
+      return `To collect "${ctx.fieldLabel || 'text'}", include the marker [TEXT_INPUT]${placeholder}[/TEXT_INPUT] in your response. The widget will render a text input field.`;
+    },
+  },
+  yes_no: {
+    nodeTypes: ['decision'],
+    instruction: (ctx) => `Present this as a YES/NO choice to the customer using the marker: [YES_NO]${ctx.conditionCheck || ''}[/YES_NO]`,
+  },
+};
+
+function getBlockPromptForFieldType(fieldType: string): typeof BLOCK_PROMPTS[string] | undefined {
+  for (const def of Object.values(BLOCK_PROMPTS)) {
+    if (def.fieldTypes?.includes(fieldType)) return def;
+  }
+  return undefined;
+}
+
 function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): string {
   const indent = '  '.repeat(depth);
   const lines: string[] = [];
@@ -419,31 +454,20 @@ function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): s
     lines.push(`${indent}${node.instruction}`);
   }
 
-  // Data collection fields
+  // Data collection fields — use BLOCK_PROMPTS map
   if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
-    // Check if any field is a phone/tel type — if so, instruct AI to emit [PHONE_VERIFY]
-    const hasPhoneField = node.data_fields.some(f =>
-      f.field_type === 'phone' || f.field_type === 'tel' || f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('telefon')
-    );
-    if (hasPhoneField) {
-      lines.push(`${indent}To collect and verify the customer's phone number, include the marker [PHONE_VERIFY] in your response. The widget will render an interactive phone verification form. Do NOT ask for the phone number in text — the form handles it.`);
-    }
     lines.push(`${indent}Required data to collect:`);
     for (const field of node.data_fields) {
       const reqText = field.required ? 'required' : 'optional';
       const hint = field.validation_hint ? `, ${field.validation_hint}` : '';
       lines.push(`${indent}  - ${field.label} (${field.field_type} format, ${reqText}${hint})`);
+
+      const blockPrompt = getBlockPromptForFieldType(field.field_type);
+      if (blockPrompt) {
+        lines.push(`${indent}${blockPrompt.instruction({ fieldLabel: field.label, validationHint: field.validation_hint })}`);
+      }
     }
   }
-
-  // Data collection fields — email and text inputs
-  if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
-    for (const field of node.data_fields) {
-      if (field.field_type === 'email') {
-        lines.push(`${indent}To collect the customer's email, include the marker [EMAIL_INPUT] in your response. The widget will render an email input field with validation. Do NOT ask for the email in text — the form handles it.`);
-      }
-      if (field.field_type === 'text') {
-        const placeholder = field.validation_hint || field.label || 'Enter text';
         lines.push(`${indent}To collect "${field.label}", include the marker [TEXT_INPUT]${placeholder}[/TEXT_INPUT] in your response. The widget will render a text input field.`);
       }
     }
