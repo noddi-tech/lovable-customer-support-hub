@@ -92,10 +92,21 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
             Start AI Test
           </Button>
         ) : (
-          <Button variant="outline" onClick={endTestSession}>
-            <StopCircle className="h-4 w-4 mr-2" />
-            End Test
-          </Button>
+          <>
+            <Button variant="outline" onClick={endTestSession}>
+              <StopCircle className="h-4 w-4 mr-2" />
+              End Test
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => {
+              localStorage.removeItem('noddi_ai_chat_messages');
+              localStorage.removeItem('noddi_ai_conversation_id');
+              localStorage.removeItem('noddi_ai_verified_phone');
+              addLogEntry('Session cleared', 'All widget state reset (messages, phone, conversation)', 'info');
+              toast.info('Widget session cleared — reload the test to start fresh');
+            }}>
+              Clear Session
+            </Button>
+          </>
         )}
         {isTestActive && (
           <Badge variant="outline" className="border-green-500 text-green-600">

@@ -548,11 +548,60 @@ function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): s
   return lines.join('\n');
 }
 
-function buildFlowPrompt(flowConfig: FlowConfig): string {
+function isPhoneRelatedNode(node: FlowNode): boolean {
+  if (node.type === 'data_collection' && node.data_fields) {
+    return node.data_fields.some(f =>
+      f.field_type === 'phone' || f.field_type === 'tel' ||
+      f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('telefon')
+    );
+  }
+  return false;
+}
+
+function isPhoneLinkedDecision(node: FlowNode): boolean {
+  if (node.type !== 'decision' || node.decision_mode !== 'auto_evaluate') return false;
+  if (!node.auto_evaluate_source) return false;
+  const src = node.auto_evaluate_source.toLowerCase();
+  return src.includes('phone') || src.includes('tel') || src.includes('verify') || src.includes('verifiser');
+}
+
+function buildPostVerificationNodes(nodes: FlowNode[], allNodes: FlowNode[]): string {
+  const lines: string[] = [];
+  for (const node of nodes) {
+    if (isPhoneRelatedNode(node)) {
+      // Skip phone collection — already done. Continue with sequential children.
+      if (node.children && node.children.length > 0) {
+        lines.push(buildPostVerificationNodes(node.children, allNodes));
+      }
+      continue;
+    }
+    if (isPhoneLinkedDecision(node)) {
+      // Auto-resolve as TRUE — phone IS verified. Only emit YES branch.
+      if (node.yes_children && node.yes_children.length > 0) {
+        lines.push(buildPostVerificationNodes(node.yes_children, allNodes));
+      }
+      // Also continue with sequential children after the decision
+      if (node.children && node.children.length > 0) {
+        lines.push(buildPostVerificationNodes(node.children, allNodes));
+      }
+      continue;
+    }
+    // Normal node — output as usual
+    lines.push(buildNodePrompt(node, 0, allNodes));
+  }
+  return lines.filter(l => l.trim()).join('\n');
+}
+
+function buildFlowPrompt(flowConfig: FlowConfig, isVerified = false): string {
   const lines: string[] = [];
 
-  for (const node of flowConfig.nodes) {
-    lines.push(buildNodePrompt(node, 0, flowConfig.nodes));
+  if (isVerified) {
+    lines.push('ALREADY COMPLETED: Customer phone has been verified successfully via SMS OTP. Skip phone verification steps.\n');
+    lines.push(buildPostVerificationNodes(flowConfig.nodes, flowConfig.nodes));
+  } else {
+    for (const node of flowConfig.nodes) {
+      lines.push(buildNodePrompt(node, 0, flowConfig.nodes));
+    }
   }
 
   const rules = flowConfig.general_rules;
@@ -657,7 +706,7 @@ function buildSystemPrompt(language: string, isVerified: boolean, flowConfig?: F
       verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
 
 AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
-${buildFlowPrompt(flowConfig)}`;
+${buildFlowPrompt(flowConfig, true)}`;
     } else {
       // Hardcoded fallback
       verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
