@@ -1,25 +1,29 @@
 
 
-# Add Booking Flow Nodes to Flow Config
+# Fix Widget Test Mode UI Issues
 
-## What This Does
+## Problem 1: No horizontal padding on chat messages
+The `.noddi-chat-messages` class in `src/widget/styles/widget.css` (line 701) has `padding: 4px 0`, meaning zero left/right padding. Messages touch the edges.
 
-Executes a single database UPDATE to add the 4 booking nodes to the YES branch and 1 message node to the NO branch of the "Do we deliver?" decision node in the existing flow config.
+**Fix**: Change to `padding: 4px 5px` to add horizontal padding.
 
-## Nodes Added
+## Problem 2: Widget overlaps action buttons
+The widget preview container uses `position: relative` inline, but the `.noddi-widget-panel` CSS class has `position: fixed` (line 48), which causes the widget to float over the page and block "End Test" / "Clear Session" buttons.
 
-**YES branch (after "Do we deliver?" = yes):**
-1. **Enter License Plate** - `license_plate` field type
-2. **Choose Service** - `service` field type  
-3. **Pick Time Slot** - `time_slot` field type
-4. **Confirm Booking** - `booking_summary` field type
+**Fix in `WidgetTestMode.tsx`**:
+- Move the widget preview area below the action buttons row (it already is in the grid, but the panel escapes due to `position: fixed`)
+- The inline `style` on the `.noddi-widget-panel` div already sets `position: relative`, which should override the CSS. However, the CSS `position: fixed` has the same specificity, so we need to ensure the inline style wins. We should verify and also ensure the widget container doesn't have `z-index` issues.
+- Add `z-index: 0` or `position: relative` with `overflow: hidden` on the dashed border container so the widget stays contained within the card.
 
-**NO branch (after "Do we deliver?" = no):**
-1. **No Delivery Available** - message explaining we don't deliver to that address
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `src/widget/styles/widget.css` | Line 701: change `padding: 4px 0` to `padding: 4px 5px` |
+| `src/components/admin/widget/WidgetTestMode.tsx` | Add `overflow: hidden` or `z-index: 0` to the dashed-border preview container, and ensure the widget panel wrapper doesn't escape its bounds |
 
 ## Technical Details
 
-Single `UPDATE` on `widget_configs` table for widget `2f1fab67-4177-4a69-870f-e556ca5219bd`, modifying the `ai_flow_config` JSONB column at path `nodes[0].children[0].actions[0].children[0].yes_children[1].yes_children[1]` (the "Do we deliver?" node) to set its `yes_children` and `no_children` arrays.
-
-No file changes needed -- database-only update.
+1. **widget.css line 701**: `padding: 4px 0` becomes `padding: 4px 5px`
+2. **WidgetTestMode.tsx line 120**: Add `overflow-hidden relative z-0` classes to the dashed border container to contain the widget within the card area, preventing it from overlapping the buttons above
 
