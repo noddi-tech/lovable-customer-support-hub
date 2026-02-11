@@ -9,4 +9,4 @@ import './ConfirmBlock';
 
 // Re-export registry for convenience
 export { getBlock, getAllBlocks, getBlockForFieldType, getBlockForNodeType, registerBlock } from './registry';
-export type { BlockDefinition, BlockComponentProps, FlowPreviewProps } from './registry';
+export type { BlockDefinition, BlockComponentProps, FlowPreviewProps, ApiEndpointConfig } from './registry';
