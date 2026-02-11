@@ -1,126 +1,99 @@
 
 
-# Tree-Based Branching Flow Architecture
+# Multi-Branch Flow Architecture
 
 ## Problem
-Currently, decision nodes store YES/NO outcomes as plain text strings (`if_true: "Verify with PIN"`, `if_false: "Ask what service..."`). There is no way to attach actual sub-flows to branches. The user needs each branch to contain its own chain of nodes -- enabling deeply nested, real conversation trees with potentially 100+ nodes across all branches.
+Currently only Decision nodes can branch (YES/NO). The user needs any node -- especially Action Menu nodes -- to spawn independent sub-flows per choice. For example, "Present Action Choices" should fan out into separate branches for "Create Order", "View Bookings", "Cancel Booking", etc., each with its own full flow chain. Additionally, branches need a way to loop back (e.g., "Anything else?" redirecting to the action menu or ending the conversation).
 
-## Solution: Recursive Tree Structure
+## Solution
 
-Replace the flat `nodes[]` array with a recursive tree where each node can have `children` and decision nodes have named branches (`yes_children`, `no_children`), each containing their own sub-flow of nodes.
+### 1. Action Menu Branches
+Each action item in an Action Menu node gets its own `children` array, turning the action menu into a multi-way fork (not just binary). The `FlowAction` interface gains `children?: FlowNode[]`.
 
-### New Data Model
+```text
+       [Present Action Choices]
+        /      |       \       \
+  Create    View     Cancel   Wheel
+  Order    Bookings  Booking  Storage
+    |        |         |        |
+  [...]    [...]     [...]    [...]
+    |        |         |        |
+    +--------+---------+--------+
+                 |
+         [Anything else?]
+              / \
+           YES   NO
+            |     |
+         (goto   [END]
+         Action
+         Menu)
+```
 
-```json
-{
-  "nodes": [
-    {
-      "id": "node_1",
-      "type": "message",
-      "label": "Initial Greeting",
-      "instruction": "...",
-      "children": [
-        {
-          "id": "node_2",
-          "type": "decision",
-          "label": "Existing Customer?",
-          "instruction": "Check if customer exists",
-          "conditions": [{ "id": "c1", "check": "Customer found" }],
-          "yes_children": [
-            { "id": "node_3", "type": "data_collection", "label": "Verify PIN", "children": [...] }
-          ],
-          "no_children": [
-            { "id": "node_4", "type": "data_collection", "label": "Collect account info", "children": [...] }
-          ],
-          "children": []
-        }
-      ]
-    }
-  ]
+### 2. "Go To" Node Type
+Add a new lightweight node type `goto` that references another node by ID. This enables loops like "go back to Action Menu" or "go to End". On the canvas it renders as a small pill with an arrow icon and the target node's label.
+
+### 3. Data Model Changes
+
+**FlowAction** gets children:
+```typescript
+interface FlowAction {
+  id: string;
+  label: string;
+  enabled: boolean;
+  children?: FlowNode[];  // NEW: sub-flow for this action
 }
 ```
 
-Key changes to `FlowNode`:
-- Add `children?: FlowNode[]` -- sequential nodes that follow this one
-- Add `yes_children?: FlowNode[]` -- sub-flow for YES branch (decision only)
-- Add `no_children?: FlowNode[]` -- sub-flow for NO branch (decision only)
-- Keep `conditions` but remove the `if_true`/`if_false` text fields (replaced by actual child node flows)
-
-### Visual Rendering: Recursive Canvas
-
-The flow canvas becomes a recursive renderer:
-
-```text
-     [Initial Greeting]
-            |
-     <Existing Customer?>
-        /         \
-      YES          NO
-       |            |
-  [Verify PIN]   [Collect Info]
-       |            |
-  [Show Bookings] [Ask Service]
-       |            |
-       +-----+------+
-             |
-      [Action Menu]
-             |
-           (END)
+**New node type** added to `NodeType`:
+```typescript
+type NodeType = 'message' | 'decision' | 'action_menu' | 'data_collection' | 'escalation' | 'goto';
 ```
 
-Each branch renders its own vertical chain of nodes, indented and connected with SVG lines. Branches merge back to the main flow after their sub-chains complete.
+**FlowNode** for goto type:
+```typescript
+// When type === 'goto':
+interface FlowNode {
+  // ...existing fields...
+  goto_target?: string;  // ID of the node to jump to
+}
+```
 
-### Canvas Component Architecture
+### 4. Visual Rendering Changes
 
-1. **`FlowNodeRenderer`** -- A recursive component that renders a single node and its children:
-   - Renders the compact node card
-   - If decision: renders YES branch column (left) and NO branch column (right) side by side, each calling `FlowNodeRenderer` recursively for their children
-   - If not decision: renders `children` sequentially below with connectors
-   - Each branch has its own "Add Step" button at the bottom
+**Action Menu fork**: When an Action Menu node has actions with children, render a multi-way fork similar to the decision fork but with N columns (one per enabled action). Each column shows the action label and its sub-flow below. A merge connector joins all branches back afterward.
 
-2. **`FlowCanvas`** -- The top-level container that renders the root-level nodes via `FlowNodeRenderer`
+**Goto node**: Renders as a small rounded pill (not a full card) with a curved arrow icon and the label of the target node. Color: teal/cyan accent.
 
-3. **`NodeEditor`** -- Updated to show branch management:
-   - For decision nodes: shows the condition check field, and labels for YES/NO branches (the actual branch content is edited by clicking nodes within those branches on the canvas)
-   - Removes the old `if_true`/`if_false` textarea fields
+**Multi-column SVG fork**: The fork connector dynamically calculates width based on the number of action branches, spacing columns evenly. Each column is 200px wide with 16px gaps.
 
-### Interaction Model
+### 5. Tree CRUD Updates
 
-- Click any node (including branch sub-nodes) to edit it in the right panel
-- "Add Step" buttons appear at the end of each branch, allowing you to extend any branch independently
-- Each branch can contain any node type, including nested decisions (creating sub-branches)
-- Drag-and-drop works within a branch (reorder siblings)
-- Delete a node removes it and its children (with confirmation)
+The recursive tree helpers (`findNodeInTree`, `updateNodeInTree`, `removeNodeFromTree`, `addChildToTree`) must also traverse `FlowAction.children` arrays inside action_menu nodes. This is an additional recursion path alongside `children`, `yes_children`, and `no_children`.
 
-### Migration from Flat to Tree
+### 6. Node Editor Updates
 
-On load, if the existing config has a flat `nodes[]` array without `children`, migrate it:
-- Convert sequential nodes into a parent-child chain (node 1's `children` = [node 2], node 2's `children` = [node 3], etc.)
-- Decision nodes with `if_true`/`if_false` text get empty `yes_children`/`no_children` arrays (the text is preserved as the condition's description)
+**Action Menu editor**: Each action item gets an expandable section showing its branch step count and a note to "click on the canvas to edit branch nodes". The existing toggle + label row stays; below it shows "{N} steps in branch".
+
+**Goto editor**: Shows a dropdown selector listing all nodes in the tree (by label) to pick the jump target.
+
+### 7. Edge Function Update
+
+The `buildNodePrompt` recursive function in `widget-ai-chat/index.ts` must handle:
+- Action menu branches: generate "If customer chooses [action label], then: [sub-flow instructions]" blocks
+- Goto nodes: generate "Return to the [target node label] step" instruction
 
 ## File Changes
 
 | File | Change |
 |------|--------|
-| `src/components/admin/widget/AiFlowBuilder.tsx` | Complete rewrite: recursive tree data model, recursive `FlowNodeRenderer` for visual branching, updated `NodeEditor` for branch-aware editing, tree-based CRUD helpers, flat-to-tree migration on load |
-| `supabase/functions/widget-ai-chat/index.ts` | Update `buildFlowPrompt` to recursively traverse the tree structure, generating indented prompt sections for each branch |
+| `src/components/admin/widget/AiFlowBuilder.tsx` | Add `goto` node type, add `children` to `FlowAction`, multi-way fork rendering for action menus, goto node card, updated tree helpers to traverse action children, goto target selector in editor |
+| `supabase/functions/widget-ai-chat/index.ts` | Update `buildNodePrompt` to handle action menu branches and goto references |
 
 ### Technical Details
 
-**Tree CRUD operations:**
-- `addChildNode(parentId, branch, type)` -- adds a node as a child of `parentId` in the specified branch ('children', 'yes_children', or 'no_children')
-- `removeNodeFromTree(nodeId)` -- recursively finds and removes the node from anywhere in the tree
-- `updateNodeInTree(nodeId, updates)` -- recursively finds and updates the node
-- All use a recursive tree traversal helper function
+**Multi-way fork SVG**: Dynamically generate fork paths based on action count. Each path curves from center to its column position. Column width = 200px, total SVG width = columns * 200 + gaps.
 
-**SVG Connectors for branches:**
-- Decision fork connector splits into two columns with YES/NO labels
-- Each column renders its sub-flow vertically
-- A merge connector at the bottom of both columns rejoins the main flow
-- Branch columns are rendered side-by-side in a flex container with adequate spacing
+**Collecting all nodes for goto dropdown**: A helper `collectAllNodes(nodes): {id, label}[]` recursively gathers every node in the tree (including inside action branches) for the goto target selector.
 
-**Edge function prompt generation:**
-- `buildFlowPrompt` becomes recursive: `buildNodePrompt(node, depth)`
-- Each depth level gets indentation in the generated prompt
-- Decision branches generate nested IF/THEN/ELSE blocks with their sub-flow instructions
+**Action branch add step**: Each action column in the canvas gets its own AddStepButton. Adding a child to an action branch uses a new helper `addChildToAction(nodes, actionMenuNodeId, actionId, newNode)` that finds the action menu node, then the specific action, and appends to its children array.
 
