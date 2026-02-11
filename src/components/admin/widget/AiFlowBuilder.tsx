@@ -13,7 +13,7 @@ import {
   MessageSquare, GitFork, ListChecks, FileInput, PhoneForwarded,
   Settings2, ChevronRight, CornerDownRight, ChevronUp, ChevronDown, MoveVertical
 } from 'lucide-react';
-import { getBlockForFieldType, getBlockForNodeType } from '@/widget/components/blocks';
+import { getBlockForFieldType, getBlockForNodeType, getAllBlocks } from '@/widget/components/blocks';
 
 // ── Types ──
 
@@ -36,7 +36,7 @@ interface FlowAction {
 interface DataField {
   id: string;
   label: string;
-  field_type: 'phone' | 'email' | 'text' | 'number' | 'date';
+  field_type: string;
   required: boolean;
   validation_hint?: string;
 }
@@ -1059,14 +1059,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
               <div key={field.id} className="rounded-lg bg-muted/50 border p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <Input value={field.label} onChange={(e) => updateDataField(field.id, { label: e.target.value })} className="text-sm h-8 flex-1" placeholder="Field label..." />
-                  <Select value={field.field_type} onValueChange={(val: DataField['field_type']) => updateDataField(field.id, { field_type: val })}>
-                    <SelectTrigger className="w-[100px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <Select value={field.field_type} onValueChange={(val: string) => updateDataField(field.id, { field_type: val })}>
+                    <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="phone">Phone</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
+                      {getAllBlocks()
+                        .filter(b => b.flowMeta.applicableFieldTypes?.length)
+                        .flatMap(b => b.flowMeta.applicableFieldTypes!.map(ft => (
+                          <SelectItem key={ft} value={ft}>
+                            {b.flowMeta.icon} {ft.charAt(0).toUpperCase() + ft.slice(1)}
+                          </SelectItem>
+                        )))}
                     </SelectContent>
                   </Select>
                   <div className="flex items-center gap-1">
