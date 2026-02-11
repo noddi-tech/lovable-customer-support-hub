@@ -436,10 +436,24 @@ function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): s
     }
   }
 
+  // Data collection fields — email and text inputs
+  if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
+    for (const field of node.data_fields) {
+      if (field.field_type === 'email') {
+        lines.push(`${indent}To collect the customer's email, include the marker [EMAIL_INPUT] in your response. The widget will render an email input field with validation. Do NOT ask for the email in text — the form handles it.`);
+      }
+      if (field.field_type === 'text') {
+        const placeholder = field.validation_hint || field.label || 'Enter text';
+        lines.push(`${indent}To collect "${field.label}", include the marker [TEXT_INPUT]${placeholder}[/TEXT_INPUT] in your response. The widget will render a text input field.`);
+      }
+    }
+  }
+
   // Decision conditions with recursive branches
   if (nodeType === 'decision' && node.conditions && node.conditions.length > 0) {
     for (const cond of node.conditions) {
       lines.push(`${indent}- IF ${cond.check}:`);
+      lines.push(`${indent}  Present this as a YES/NO choice to the customer using the marker: [YES_NO]${cond.check}[/YES_NO]`);
 
       if (node.yes_children && node.yes_children.length > 0) {
         lines.push(`${indent}  → YES:`);
@@ -557,7 +571,18 @@ function buildPreVerificationFlowPrompt(flowConfig: FlowConfig): string | null {
 
       if (nodeType === 'decision' && node.conditions) {
         for (const cond of node.conditions) {
-          lines.push(`- IF ${cond.check}: ${cond.if_true || ''}`);
+          lines.push(`- Present this as a YES/NO choice: [YES_NO]${cond.check}[/YES_NO]`);
+        }
+      }
+
+      if (nodeType === 'data_collection' && node.data_fields) {
+        for (const field of node.data_fields) {
+          if (field.field_type === 'email') {
+            lines.push(`- Collect email using [EMAIL_INPUT]`);
+          }
+          if (field.field_type === 'text') {
+            lines.push(`- Collect "${field.label}" using [TEXT_INPUT]${field.validation_hint || field.label || 'Enter text'}[/TEXT_INPUT]`);
+          }
         }
       }
 
@@ -633,16 +658,36 @@ ${verificationContext}
 
 INTERACTIVE COMPONENTS:
 You can use special markers in your responses that the widget will render as interactive UI elements.
-- To present action choices as clickable buttons, wrap them in markers:
+
+Available markers:
+1. ACTION MENU — present choices as clickable pill buttons:
 [ACTION_MENU]
 Option 1
 Option 2
-Option 3
 [/ACTION_MENU]
-- To trigger phone verification (phone number input + SMS OTP), include:
+
+2. PHONE VERIFY — trigger phone number input + SMS OTP verification:
 [PHONE_VERIFY]
-The widget will render these as interactive components. Do NOT describe them as text — just include the markers and the widget handles the rest.
-Do NOT wrap the markers in code blocks or quotes. They must appear as plain text in your response.
+
+3. YES/NO — present a binary choice with thumbs up/down buttons:
+[YES_NO]Question for the customer?[/YES_NO]
+
+4. EMAIL INPUT — render a validated email input field:
+[EMAIL_INPUT]
+
+5. TEXT INPUT — render a text input field with placeholder:
+[TEXT_INPUT]Enter your name[/TEXT_INPUT]
+
+6. RATING — render a 5-star rating selector:
+[RATING]
+
+7. CONFIRM — render a confirmation card with Confirm/Cancel buttons:
+[CONFIRM]Summary of what will happen[/CONFIRM]
+
+RULES FOR MARKERS:
+- Do NOT describe these as text — just include the markers and the widget handles the rest.
+- Do NOT wrap markers in code blocks, quotes, or backticks. They must appear as plain text.
+- Only use one marker type per response when possible for clarity.
 
 CORE RULES:
 1. Be friendly, helpful, and concise. Use a warm, professional tone.
