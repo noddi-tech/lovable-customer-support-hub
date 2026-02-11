@@ -1,47 +1,105 @@
 
 
-# Unify Custom and Built-in Component Cards
+# Create Address Search Block with Delivery Area Check
 
-## Problems
+## Overview
 
-1. **Calendar card looks different** -- Custom block cards (`CustomBlockCard`) have a raw component preview without the "Customer sees:" wrapper that built-in cards use. They also lack the "Try it" sandbox button.
-2. **No sandbox for custom components** -- There's no way to interact with custom blocks like you can with built-in ones (the "Try it" button that opens an interactive sandbox).
-3. **Unnecessary separation** -- The "Custom Components" vs "Built-in Components" split in both Library and Manage tabs creates visual clutter. All components should appear in one unified list with a small badge if they happen to be custom.
+Add a new interactive block component to the widget's block registry that allows customers to search for their address (using Noddi's address suggestions API) and check whether Noddi delivers to that location. The component will match the combobox-style UI shown in the screenshot -- a dropdown with search, address suggestions, and a clear button.
 
-## Solution
+## How It Works
 
-### A. Unify Card Layout
+1. Customer types an address in the search field
+2. The widget calls a new edge function that proxies to `v1/addresses/suggestions?input=...` on the Noddi API
+3. Suggestions appear in a dropdown (street name, city, country)
+4. Customer selects an address
+5. The edge function calls `v1/addresses/create-from-google-place-id/` with the selected suggestion's `place_id`
+6. The response includes `is_in_delivery_area` -- the block shows a green checkmark or red warning accordingly
+7. The result (address + delivery status) is sent back to the AI conversation as the block action value
 
-Replace the separate `CustomBlockCard` component with a single card layout used for all components. Custom blocks will:
-- Wrap their preview in the same "Customer sees:" / "PREVIEW" container as built-in blocks
-- Have a "Try it" button that opens a sandbox rendering the selected shadcn component interactively (not pointer-events-none)
-- Show a small "Custom" badge in the header (already exists), but otherwise look identical
+## New Files
 
-### B. Remove Separate Sections
+### 1. Edge Function: `supabase/functions/noddi-address-lookup/index.ts`
 
-In both Library grid and Manage tab, remove the "CUSTOM COMPONENTS" / "BUILT-IN COMPONENTS" headers. All components render in one flat list. Custom blocks just have their badge.
+A single edge function with two actions:
 
-### C. Interactive Sandbox for Custom Blocks
+- **`suggestions`** (GET-style): Takes `input` query string, calls `GET {API_BASE}/v1/addresses/suggestions/?input={input}` with `NODDI_API_TOKEN`, returns the list of address suggestions
+- **`resolve`** (POST-style): Takes `place_id`, calls `POST {API_BASE}/v1/addresses/create-from-google-place-id/` with `{ place_id }`, returns the full address object including `is_in_delivery_area`
 
-The "Try it" sandbox for custom blocks will render the chosen UI component in interactive mode (removing `pointer-events-none`). When the user interacts (e.g., picks a date, checks a checkbox), a toast fires showing the selected value -- same pattern as built-in blocks.
+Both use the existing `NODDI_API_TOKEN` and `NODDI_API_BASE` secrets (already configured).
+
+### 2. Block Component: `src/widget/components/blocks/AddressSearchBlock.tsx`
+
+A self-registering block (following the same pattern as `TextInputBlock`, `PhoneVerifyBlock`, etc.):
+
+- **Marker**: `[ADDRESS_SEARCH]` / `[/ADDRESS_SEARCH]`
+- **Type**: `address_search`
+- **UI**: 
+  - A combobox-style input with a map pin icon
+  - Debounced search (300ms) that calls the edge function for suggestions
+  - Dropdown list showing suggestions (street, city, country)
+  - On selection: calls the edge function to resolve the place_id
+  - Shows delivery status result (green check "We deliver here!" or red warning "Outside delivery area")
+  - Clear button to reset
+- **onAction**: Sends a JSON string with `{ address, is_in_delivery_area }` back to the conversation
+
+### 3. Widget API: Add functions to `src/widget/api.ts`
+
+Two new exported functions:
+- `searchAddressSuggestions(widgetKey, input)` -- calls the edge function suggestions action
+- `resolveAddress(widgetKey, placeId)` -- calls the edge function resolve action
+
+### 4. Register in `src/widget/components/blocks/index.ts`
+
+Add `import './AddressSearchBlock';` to trigger self-registration.
 
 ## Technical Details
 
-### File: `src/components/admin/widget/ComponentLibrary.tsx`
+### Edge Function (`supabase/functions/noddi-address-lookup/index.ts`)
 
-**Changes:**
+```typescript
+// Handles two actions:
+// POST { action: "suggestions", input: "slemdalsvingen" }
+//   -> proxies to GET {API_BASE}/v1/addresses/suggestions/?input=slemdalsvingen
+//   -> returns { suggestions: [...] }
+//
+// POST { action: "resolve", place_id: "ChIJ..." }
+//   -> proxies to POST {API_BASE}/v1/addresses/create-from-google-place-id/
+//   -> returns { address: { street_name, city, is_in_delivery_area, ... } }
+```
 
-1. **Delete `CustomBlockCard`** (lines 238-294) -- no longer needed
+Uses existing `NODDI_API_TOKEN` and `NODDI_API_BASE` secrets. CORS headers included. No JWT verification needed (widget-facing).
 
-2. **Modify `CustomBlockCard` rendering in Library grid** (line 930-931) -- replace with the unified card that wraps preview in "Customer sees:" and adds "Try it"
+### Block Component Structure
 
-3. **Create a unified card** that accepts either a `BlockDefinition` or a `CustomBlockRow` and renders both identically:
-   - Same header layout (icon, name, badges)
-   - Same preview section with "Customer sees:" wrapper
-   - Same "Try it" button opening interactive sandbox
-   - For custom blocks, sandbox renders the shadcn component without `pointer-events-none`, with an `onAction` callback that shows a toast
+```typescript
+// AddressSearchBlock.tsx
+// States: idle -> searching -> showing suggestions -> resolving -> result
+// 
+// Result display:
+//   is_in_delivery_area === true  -> green badge "We deliver to {address}!"
+//   is_in_delivery_area === false -> amber badge "Sorry, we don't deliver to {address} yet"
+//
+// Submitted state (after onAction called):
+//   Shows the confirmed address with a checkmark (same pattern as TextInputBlock)
+```
 
-4. **Remove section headers** in `ManageView` (lines 852-859) -- render all rows in a flat list, custom rows first (they already have the "Custom" badge)
+### Preview Component for Flow Builder
 
-5. **Fix calendar preview sizing** -- the calendar currently uses `scale-[0.85] origin-top-left` which makes it look off. Instead, constrain it within a fixed-height container with overflow hidden, same as other previews.
+A small static preview showing the combobox with a map pin icon and "Search address..." placeholder, matching the style of other block previews.
 
+### Config TOML Entry
+
+```toml
+[functions.noddi-address-lookup]
+verify_jwt = false
+```
+
+## Files Summary
+
+| File | Action |
+|------|--------|
+| `supabase/functions/noddi-address-lookup/index.ts` | Create -- edge function proxying Noddi address APIs |
+| `supabase/config.toml` | Edit -- add `verify_jwt = false` for new function |
+| `src/widget/components/blocks/AddressSearchBlock.tsx` | Create -- self-registering block component |
+| `src/widget/components/blocks/index.ts` | Edit -- add import for AddressSearchBlock |
+| `src/widget/api.ts` | Edit -- add `searchAddressSuggestions` and `resolveAddress` functions |
