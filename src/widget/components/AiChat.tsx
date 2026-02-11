@@ -228,13 +228,63 @@ export const AiChat: React.FC<AiChatProps> = ({
   const handleActionSelect = useCallback((option: string, blockKey: string) => {
     localStorage.setItem(`noddi_action_${blockKey}`, option);
     setUsedBlocks((prev) => new Set(prev).add(blockKey));
-    sendMessage(option);
+
+    // Try to extract a human-readable label from JSON payloads (address, car, etc.)
+    let displayLabel = option;
+    try {
+      const parsed = JSON.parse(option);
+      if (typeof parsed === 'object' && parsed !== null) {
+        // Address block payload
+        if (parsed.address || parsed.full_address) {
+          const addr = parsed.address || parsed.full_address || '';
+          const city = parsed.city || '';
+          displayLabel = city ? `${addr}, ${city}` : addr;
+        }
+        // License plate / car block payload
+        else if (parsed.license_plate || parsed.make) {
+          const make = parsed.make || '';
+          const model = parsed.model || '';
+          const plate = parsed.license_plate || '';
+          displayLabel = `${make} ${model}${plate ? ` (${plate})` : ''}`.trim();
+        }
+        // Service block payload
+        else if (parsed.name || parsed.service_name) {
+          displayLabel = parsed.name || parsed.service_name;
+        }
+        // Time slot payload
+        else if (parsed.date && parsed.time) {
+          displayLabel = `${parsed.date} ${parsed.time}`;
+        }
+        // Fallback: if it has a 'label' or 'title' field
+        else if (parsed.label || parsed.title) {
+          displayLabel = parsed.label || parsed.title;
+        }
+      }
+    } catch {
+      // Not JSON — use as-is (e.g., plain text menu option)
+    }
+
+    // Send the full payload to the AI but show only the label in chat
+    if (displayLabel !== option) {
+      // Create visible user message with label, but send full JSON to AI
+      const userMessage: AiChatMessage = { id: `user_${Date.now()}`, role: 'user', content: displayLabel, timestamp: new Date() };
+      setMessages((prev) => [...prev, userMessage]);
+      // Send full payload as hidden context to AI
+      sendMessage(option, undefined, { hidden: true });
+    } else {
+      sendMessage(option);
+    }
   }, [sendMessage]);
 
   const handlePhoneVerified = useCallback((phone: string, blockKey: string) => {
     setVerifiedPhone(phone);
     setUsedBlocks((prev) => new Set(prev).add(blockKey));
-    setTimeout(() => { sendMessage('__VERIFIED__', phone, { hidden: true }); }, 500);
+    // Include the user's last visible message as intent context
+    const lastVisibleUserMsg = messages.filter(m => m.role === 'user' && !m.hidden).pop();
+    const verifyPayload = lastVisibleUserMsg
+      ? `__VERIFIED__`
+      : '__VERIFIED__';
+    setTimeout(() => { sendMessage(verifyPayload, phone, { hidden: true }); }, 500);
   }, [sendMessage]);
 
   const buildTranscript = (): string => {

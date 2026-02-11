@@ -760,6 +760,7 @@ function buildFlowPrompt(flowConfig: FlowConfig, isVerified = false): string {
     const ancestorIds = new Set(phonePath || []);
     
     lines.push('ALREADY COMPLETED: Customer phone has been verified successfully via SMS OTP. The customer is an existing customer (verified). Skip all verification and identity steps.\n');
+    lines.push('IMPORTANT: You have already looked up the customer. If you found bookings in their history, they are an existing customer — do NOT ask them if they have ordered before. Use the data you already have to auto-evaluate any "customer is existing" decisions. If the customer already stated what they want to do, skip the action menu and proceed directly.\n');
     lines.push(buildPostVerificationNodes(flowConfig.nodes, flowConfig.nodes, ancestorIds));
   } else {
     for (const node of flowConfig.nodes) {
@@ -785,67 +786,39 @@ function buildFlowPrompt(flowConfig: FlowConfig, isVerified = false): string {
 }
 
 function buildPreVerificationFlowPrompt(flowConfig: FlowConfig): string | null {
-  const lines: string[] = [];
-  let foundPhoneVerify = false;
+  // Check if there's a phone verification node anywhere in the tree
+  const phonePath = findPathToPhoneNode(flowConfig.nodes);
+  if (!phonePath) return null;
 
-  function walkNodes(nodes: FlowNode[]): boolean {
+  // Collect only intro/greeting messages that appear BEFORE the phone node path
+  const introLines: string[] = [];
+  function collectIntros(nodes: FlowNode[]): void {
     for (const node of nodes) {
       const nodeType = node.type || 'message';
-
-      if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
-        const hasPhoneField = node.data_fields.some(f =>
-          f.field_type === 'phone' || f.field_type === 'tel' || f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('telefon')
-        );
-        if (hasPhoneField) {
-          lines.push(`- To verify the customer's identity, include [PHONE_VERIFY] in your response. The widget will show a phone number input and SMS OTP form.`);
-          foundPhoneVerify = true;
-          return true; // stop traversal — everything after this is post-verification
-        }
-      }
-
+      // Stop if we hit the phone node
+      if (isPhoneRelatedNode(node)) return;
       if (nodeType === 'message' && node.instruction) {
-        lines.push(`- ${node.label}: "${node.instruction}"`);
+        introLines.push(`- ${node.label}: "${node.instruction}"`);
       }
-
-      if (nodeType === 'action_menu' && node.actions) {
-        const enabled = node.actions.filter(a => a.enabled);
-        if (enabled.length > 0) {
-          lines.push(`- Present these choices using [ACTION_MENU]:`);
-          lines.push(`[ACTION_MENU]`);
-          for (const a of enabled) lines.push(a.label);
-          lines.push(`[/ACTION_MENU]`);
-        }
-      }
-
-      if (nodeType === 'decision' && node.conditions) {
-        for (const cond of node.conditions) {
-          lines.push(`- Present this as a YES/NO choice: [YES_NO]${cond.check}[/YES_NO]`);
-        }
-      }
-
-      if (nodeType === 'data_collection' && node.data_fields) {
-        for (const field of node.data_fields) {
-          if (field.field_type === 'email') {
-            lines.push(`- Collect email using [EMAIL_INPUT]`);
-          }
-          if (field.field_type === 'text') {
-            lines.push(`- Collect "${field.label}" using [TEXT_INPUT]${field.validation_hint || field.label || 'Enter text'}[/TEXT_INPUT]`);
-          }
-        }
-      }
-
-      // Recurse into children
+      // Only recurse into children that are on the path to phone
       if (node.children && node.children.length > 0) {
-        if (walkNodes(node.children)) return true;
+        collectIntros(node.children);
       }
     }
-    return false;
   }
+  collectIntros(flowConfig.nodes);
 
-  walkNodes(flowConfig.nodes);
-  if (!foundPhoneVerify) return null;
+  const lines: string[] = [];
+  if (introLines.length > 0) {
+    lines.push(...introLines);
+  }
+  lines.push(`- To verify the customer's identity, include [PHONE_VERIFY] in your response. The widget will show a phone number input and SMS OTP form.`);
 
   return `VERIFICATION STATUS: The customer has NOT verified their phone.
+
+IMPORTANT: Before presenting ANY options, menus, or action choices, you MUST first verify the customer's phone number.
+If the customer states what they want to do (e.g., "I want to book a service"), acknowledge their intent briefly and then immediately ask them to verify their phone number.
+Do NOT show [ACTION_MENU] before verification is complete.
 
 Follow this conversation flow:
 ${lines.join('\n')}
@@ -1212,10 +1185,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Map messages, replacing __VERIFIED__ trigger with a system instruction
-    conversationMessages.push(...messages.map((m) => {
+    // Map messages, replacing __VERIFIED__ trigger with a context-aware system instruction
+    conversationMessages.push(...messages.map((m, idx) => {
       if (m.role === 'user' && m.content === '__VERIFIED__') {
-        return { role: 'user', content: 'I have just verified my phone number. Please look up my account and continue with the next step in the flow.' };
+        // Find the user's last real (non-hidden, non-verified) message to carry their intent
+        let userIntent = '';
+        for (let i = idx - 1; i >= 0; i--) {
+          if (messages[i].role === 'user' && messages[i].content !== '__VERIFIED__') {
+            userIntent = messages[i].content;
+            break;
+          }
+        }
+        const intentContext = userIntent
+          ? ` The customer previously said: "${userIntent}". Continue directly with that intent — do NOT re-ask what they want to do.`
+          : '';
+        return { role: 'user', content: `I have just verified my phone number. Please look up my account and continue with the next step in the flow.${intentContext}` };
       }
       return { role: m.role, content: m.content };
     }));
