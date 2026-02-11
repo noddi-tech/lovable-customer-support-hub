@@ -7,6 +7,10 @@ import './TextInputBlock';
 import './RatingBlock';
 import './ConfirmBlock';
 import './AddressSearchBlock';
+import './LicensePlateBlock';
+import './ServiceSelectBlock';
+import './TimeSlotBlock';
+import './BookingSummaryBlock';
 
 // Re-export registry for convenience
 export { getBlock, getAllBlocks, getBlockForFieldType, getBlockForNodeType, registerBlock } from './registry';

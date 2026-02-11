@@ -116,6 +116,75 @@ const tools = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'lookup_car_by_plate',
+      description: 'Look up car details from a license plate number. Returns car ID, make, model, and year.',
+      parameters: {
+        type: 'object',
+        properties: {
+          license_plate: { type: 'string', description: 'The license plate number (e.g., EC94156)' },
+          country_code: { type: 'string', description: 'ISO-2 country code (default: NO)', default: 'NO' },
+        },
+        required: ['license_plate'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'list_available_services',
+      description: 'List available service types for booking (e.g., tire change, car wash). Returns service slugs and names.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'create_booking_proposal',
+      description: 'Create a booking proposal with an address, car, and service type. Returns a proposal slug used for time slot selection.',
+      parameters: {
+        type: 'object',
+        properties: {
+          address_id: { type: 'number', description: 'The address ID from address lookup' },
+          car_id: { type: 'number', description: 'The car ID from license plate lookup' },
+          type_slug: { type: 'string', description: 'Service type slug (e.g., dekkskift)' },
+        },
+        required: ['address_id', 'car_id', 'type_slug'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_delivery_windows',
+      description: 'Get available delivery time windows for a booking. Returns dates and time slots with prices.',
+      parameters: {
+        type: 'object',
+        properties: {
+          address_id: { type: 'number', description: 'The address ID' },
+          from_date: { type: 'string', description: 'Start date in YYYY-MM-DD format' },
+        },
+        required: ['address_id'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'finalize_booking',
+      description: 'Create and start a booking. Requires the proposal slug and chosen delivery window ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          booking_proposal_slug: { type: 'string', description: 'The booking proposal slug' },
+          delivery_window_id: { type: 'number', description: 'The chosen delivery window ID' },
+        },
+        required: ['booking_proposal_slug', 'delivery_window_id'],
+      },
+    },
+  },
 ];
 
 // ========== Tool execution functions ==========
@@ -375,6 +444,25 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
   }
 }
 
+// ========== Booking proxy helper ==========
+
+async function executeBookingProxy(payload: Record<string, any>): Promise<string> {
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/noddi-booking-proxy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok) return JSON.stringify({ error: data.error || 'Booking proxy call failed' });
+    return JSON.stringify(data);
+  } catch (err) {
+    console.error('[widget-ai-chat] Booking proxy error:', err);
+    return JSON.stringify({ error: 'Booking proxy call failed' });
+  }
+}
+
 // ========== System prompt ==========
 
 interface FlowCondition { check: string; if_true?: string; if_false?: string; }
@@ -427,6 +515,26 @@ const BLOCK_PROMPTS: Record<string, {
   yes_no: {
     nodeTypes: ['decision'],
     instruction: (ctx) => `Present this as a YES/NO choice to the customer using the marker: [YES_NO]${ctx.conditionCheck || ''}[/YES_NO]`,
+  },
+  address_search: {
+    fieldTypes: ['address'],
+    instruction: () => `To collect the customer's address, include the marker [ADDRESS_SEARCH]Search address...[/ADDRESS_SEARCH] in your response. The widget will render an interactive address search with delivery area validation. Do NOT ask for the address in text.`,
+  },
+  license_plate: {
+    fieldTypes: ['license_plate'],
+    instruction: () => `To collect the customer's license plate, include the marker [LICENSE_PLATE][/LICENSE_PLATE] in your response. The widget will render a license plate input that looks up the car automatically. Do NOT ask for the plate number in text.`,
+  },
+  service_select: {
+    fieldTypes: ['service'],
+    instruction: () => `To let the customer choose a service, include the marker [SERVICE_SELECT][/SERVICE_SELECT] in your response. The widget will fetch and display available services as clickable cards. Do NOT list services in text.`,
+  },
+  time_slot: {
+    fieldTypes: ['time_slot'],
+    instruction: (ctx) => `To let the customer pick a time slot, include the marker [TIME_SLOT]address_id::proposal_slug[/TIME_SLOT] in your response. Replace address_id and proposal_slug with the actual values from previous steps. The widget will show date chips and available time windows.`,
+  },
+  booking_summary: {
+    fieldTypes: ['booking_summary'],
+    instruction: () => `To show the booking summary and let the customer confirm, include the marker [BOOKING_SUMMARY]{"address":"...","car":"...","service":"...","date":"...","time":"...","price":"...","proposal_slug":"...","delivery_window_id":...}[/BOOKING_SUMMARY] in your response. Fill in all fields from the data collected in previous steps. The widget will show a summary card with Confirm/Cancel buttons.`,
   },
 };
 
@@ -824,10 +932,26 @@ Option 2
 7. CONFIRM — render a confirmation card with Confirm/Cancel buttons:
 [CONFIRM]Summary of what will happen[/CONFIRM]
 
+8. ADDRESS SEARCH — render an interactive address search with delivery area check:
+[ADDRESS_SEARCH]Search address...[/ADDRESS_SEARCH]
+
+9. LICENSE PLATE — render a license plate input that looks up the car:
+[LICENSE_PLATE][/LICENSE_PLATE]
+
+10. SERVICE SELECT — fetch and display available services as selectable cards:
+[SERVICE_SELECT][/SERVICE_SELECT]
+
+11. TIME SLOT — show date picker and available time slots. Replace address_id and proposal_slug with actual values:
+[TIME_SLOT]123::my-proposal-slug[/TIME_SLOT]
+
+12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. Include all booking data as JSON:
+[BOOKING_SUMMARY]{"address":"Holtet 45","car":"Tesla Model 3","service":"Dekkskift","date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","proposal_slug":"...","delivery_window_id":123}[/BOOKING_SUMMARY]
+
 RULES FOR MARKERS:
 - Do NOT describe these as text — just include the markers and the widget handles the rest.
 - Do NOT wrap markers in code blocks, quotes, or backticks. They must appear as plain text.
 - Only use one marker type per response when possible for clarity.
+- For booking flow: use the data returned from each step to fill in the next marker. The AI tools (lookup_car_by_plate, create_booking_proposal, etc.) can help orchestrate data between steps.
 
 CORE RULES:
 1. Be friendly, helpful, and concise. Use a warm, professional tone.
@@ -890,6 +1014,16 @@ async function executeTool(
       return executeRescheduleBooking(args.booking_id, args.new_date);
     case 'cancel_booking':
       return executeCancelBooking(args.booking_id, args.reason);
+    case 'lookup_car_by_plate':
+      return executeBookingProxy({ action: 'lookup_car', country_code: args.country_code || 'NO', license_plate: args.license_plate });
+    case 'list_available_services':
+      return executeBookingProxy({ action: 'list_services' });
+    case 'create_booking_proposal':
+      return executeBookingProxy({ action: 'create_proposal', address_id: args.address_id, car_id: args.car_id, type_slug: args.type_slug });
+    case 'get_delivery_windows':
+      return executeBookingProxy({ action: 'delivery_windows', address_id: args.address_id, from_date: args.from_date });
+    case 'finalize_booking':
+      return executeBookingProxy({ action: 'create_booking', booking_proposal_slug: args.booking_proposal_slug, delivery_window_id: args.delivery_window_id });
     default:
       return JSON.stringify({ error: `Unknown tool: ${toolName}` });
   }
