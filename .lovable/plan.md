@@ -1,94 +1,74 @@
 
 
-# Node Reordering in Flow Builder
+# Fix Node Reordering for Sequential Chains
 
 ## Problem
-Nodes within the flow tree cannot be moved or reordered. Once placed, a node is stuck in its position. The user needs to rearrange nodes — for example, moving "Present Action Choices" above "Ask for Phone Number" within the same parent branch.
+The move up/down buttons don't work because in the tree structure, sequential nodes are nested parent-to-child (each node is the sole child of the one above). Since there are no siblings, the buttons are always disabled.
+
+For example, the current tree looks like:
+```text
+Initial Greeting
+  children: [
+    Ask for Phone Number
+      children: [
+        Existing Customer?
+          children: [
+            Present Action Choices
+          ]
+      ]
+  ]
+```
+
+Each array has exactly 1 element, so `canMoveUp` (index > 0) and `canMoveDown` (index < length - 1) are always false.
 
 ## Solution
-Add move up/down buttons on each node card, plus a "Move to" option in the node editor to relocate nodes between branches. This covers both simple reordering (siblings) and cross-branch moves.
+Replace the current sibling-only swap logic with chain-aware reordering that swaps a node with its parent (move up) or its first child (move down) in parent-child chains.
 
-### 1. Move Up/Down Buttons on Node Cards
-Each node card gets small arrow buttons (top-right corner, visible on hover) to swap position with its sibling above or below within the same parent array. This handles the most common case: reordering steps within a sequence.
+### How "Swap with Parent" works (Move Up)
+When a node is the only child and user clicks "Move Up":
+1. Find the node and its parent in the tree
+2. Swap their positions: the child takes the parent's place, and the parent becomes the child
+3. Preserve all sub-trees correctly (the moved-up node inherits the parent's position and the parent's other branches stay intact)
 
-### 2. "Move to Branch" in Node Editor
-The node editor panel gets a "Move Node" section with a dropdown listing all possible parent locations (root, or any node's children/yes_children/no_children/action children). Selecting a target detaches the node (and its sub-tree) from its current location and appends it to the chosen branch.
+Example: Moving "Present Action Choices" up past "Existing Customer?"
+- Before: Existing Customer? > children > [Present Action Choices]
+- After: Present Action Choices > children > [Existing Customer?]
+- The decision's yes/no branches stay attached to it
 
-### 3. Tree Helper Functions
+### How "Swap with Child" works (Move Down)
+Inverse of the above: the node swaps with its first/only child.
 
-New helpers needed:
-
-- `moveNodeInArray(nodes, nodeId, direction)` -- swaps a node with its neighbor in a sibling array (up = -1, down = +1). Recursively searches the tree to find which array contains the node, then performs the swap.
-
-- `detachNodeFromTree(nodes, nodeId)` -- removes a node from wherever it sits in the tree and returns both the updated tree and the detached node (preserving its children).
-
-- `collectBranchTargets(nodes)` -- gathers all possible drop targets: `{parentId, branch, label}` tuples for the "Move to" dropdown.
-
-### 4. Visual Design
-
-The move buttons appear as small semi-transparent arrows in the top-right of each NodeCard, visible on hover:
-
-```text
-+---------------------------+
-| [icon] Node Label   [^][v]|
-| Node Type                 |
-+---------------------------+
-```
-
-- Up arrow disabled if node is first sibling
-- Down arrow disabled if node is last sibling
-- Buttons are 16x16px, ghost style, muted color
-
-### 5. Node Editor "Move Node" Section
-
-Below the existing fields in the NodeEditor, add a collapsible section:
-
-```text
-Move Node
-[Select destination branch...  v]
-  - Root (top level)
-  - Initial Greeting > children
-  - Existing Customer? > YES branch
-  - Existing Customer? > NO branch
-  - Present Action Choices > Book new service
-  - Present Action Choices > View my bookings
-  ...
-[Move]
-```
-
-This enables cross-branch moves like moving a node from the YES branch to the NO branch or from one action's sub-flow to another.
+### Button visibility logic update
+- "Move Up" is enabled when the node either has a sibling above OR is a sole child (can swap with parent)
+- "Move Down" is enabled when the node either has a sibling below OR is a sole child with children (can swap with child)
+- Disabled only at absolute boundaries (root node with no children to swap with, or leaf node)
 
 ## Technical Details
 
-### `moveNodeInSiblings` helper
-Recursively traverses the tree. For each array (`children`, `yes_children`, `no_children`, `action.children`), checks if the node is in that array. If found, swaps it with index +/- 1 and returns the updated tree.
+### File: `src/components/admin/widget/AiFlowBuilder.tsx`
 
-### `detachNodeFromTree` helper
-Similar to `removeNodeFromTree` but returns the removed node alongside the updated tree, so it can be reattached elsewhere.
+**New helper: `swapWithParent(nodes, nodeId)`**
+- Recursively searches the tree to find the node and its parent
+- When found: detaches the node, places it where the parent was, and makes the parent a child of the node
+- The swapped node inherits the parent's position in its grandparent's array
+- The former parent keeps its own branches (yes_children, no_children, actions) but its `children` array is updated
 
-### `collectBranchTargets` helper
-Walks the entire tree and for each node collects:
-- `{parentId: node.id, branch: 'children', label: "NodeLabel > children"}`
-- For decisions: also `yes_children` and `no_children`
-- For action menus: each action's children as `{parentId: node.id, actionId: action.id, label: "NodeLabel > ActionLabel"}`
-- Plus a root entry: `{parentId: null, branch: 'children', label: "Root (top level)"}`
+**New helper: `swapWithChild(nodes, nodeId)`**  
+- Finds the node, takes its first child, swaps their positions
+- The child moves up to the node's position, the node becomes the child's child
 
-### NodeCard changes
-- Add `onMoveUp` and `onMoveDown` optional callbacks
-- Show chevron-up and chevron-down buttons on hover (not on goto pill nodes)
-- Disabled state when at boundary of sibling list
+**Updated: `moveNodeInSiblings` renamed to `moveNode`**
+- First checks if sibling swap is possible (existing logic)
+- If not (sole child), falls back to `swapWithParent` or `swapWithChild` based on direction
 
-### FlowNodeRenderer changes
-- Pass `onMoveUp(nodeId)` and `onMoveDown(nodeId)` through to each NodeCard
-- Track sibling index to determine if up/down should be disabled
+**Updated: `FlowNodeRenderer` canMoveUp/canMoveDown logic**
+- `canMoveUp`: true if `idx > 0` OR if the node has a parent (is not root-level first node)
+- `canMoveDown`: true if `idx < length - 1` OR if the node has children to swap with
+- This requires passing additional context (whether node is root-level, whether it has children)
 
-### NodeEditor changes
-- Add "Move Node" section with dropdown + button
-- `onMoveToTarget(nodeId, targetParentId, targetBranch, targetActionId?)` callback
-
-## File Changes
+**Updated: `NodeCard` props**
+- No changes to the visual buttons, just the enabled/disabled state changes based on the new logic
 
 | File | Change |
 |------|--------|
-| `src/components/admin/widget/AiFlowBuilder.tsx` | Add `moveNodeInSiblings`, `detachNodeFromTree`, `collectBranchTargets` helpers. Update `NodeCard` with move arrows. Update `FlowNodeRenderer` to pass move callbacks. Update `NodeEditor` with "Move Node" section. Wire up move handlers in main `AiFlowBuilder` component. |
-
+| `src/components/admin/widget/AiFlowBuilder.tsx` | Replace `moveNodeInSiblings` with chain-aware `moveNode` that handles both sibling swaps and parent-child swaps. Update `canMoveUp`/`canMoveDown` logic in `FlowNodeRenderer`. |
