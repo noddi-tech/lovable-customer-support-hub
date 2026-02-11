@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, GitBranch, TestTube2, History, BarChart3, AlertTriangle, Bot, MessageCircle } from 'lucide-react';
+import { RefreshCw, GitBranch, TestTube2, History, BarChart3, AlertTriangle, Bot, MessageCircle, Puzzle } from 'lucide-react';
 import { AiFlowBuilder } from '@/components/admin/widget/AiFlowBuilder';
 import { WidgetTestMode } from '@/components/admin/widget/WidgetTestMode';
 import { AiConversationHistory } from '@/components/admin/widget/AiConversationHistory';
 import { AiAnalyticsDashboard } from '@/components/admin/widget/AiAnalyticsDashboard';
 import { KnowledgeGapDetection } from '@/components/admin/widget/KnowledgeGapDetection';
+import { ComponentLibrary } from '@/components/admin/widget/ComponentLibrary';
 
 interface WidgetConfig {
   id: string;
@@ -148,7 +149,11 @@ export const AiChatbotSettings: React.FC = () => {
                     </CardDescription>
                   </div>
                 </div>
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-6">
+                  <TabsTrigger value="components" className="gap-1.5">
+                    <Puzzle className="h-4 w-4" />
+                    <span className="hidden lg:inline">Components</span>
+                  </TabsTrigger>
                   <TabsTrigger value="flow" className="gap-1.5">
                     <GitBranch className="h-4 w-4" />
                     <span className="hidden lg:inline">Flow</span>
@@ -173,6 +178,10 @@ export const AiChatbotSettings: React.FC = () => {
               </CardHeader>
 
               <CardContent className="pt-6">
+                <TabsContent value="components" className="mt-0">
+                  <ComponentLibrary />
+                </TabsContent>
+
                 <TabsContent value="flow" className="mt-0">
                   <AiFlowBuilder widgetId={selectedWidget.id} />
                 </TabsContent>
