@@ -565,27 +565,78 @@ function isPhoneLinkedDecision(node: FlowNode): boolean {
   return src.includes('phone') || src.includes('tel') || src.includes('verify') || src.includes('verifiser');
 }
 
-function buildPostVerificationNodes(nodes: FlowNode[], allNodes: FlowNode[]): string {
+/**
+ * Find the path of node IDs from root to a phone-related node.
+ * Returns the set of node IDs that are ancestors of the phone verification step.
+ */
+function findPathToPhoneNode(nodes: FlowNode[], path: string[] = []): string[] | null {
+  for (const node of nodes) {
+    const currentPath = [...path, node.id];
+
+    // Found it!
+    if (isPhoneRelatedNode(node)) return currentPath;
+
+    // Check children/branches recursively
+    for (const branch of ['children', 'yes_children', 'no_children'] as const) {
+      const branchNodes = (node as any)[branch] as FlowNode[] | undefined;
+      if (branchNodes && branchNodes.length > 0) {
+        const found = findPathToPhoneNode(branchNodes, currentPath);
+        if (found) return found;
+      }
+    }
+
+    // Check action menu children
+    if (node.actions) {
+      for (const a of node.actions) {
+        if (a.children) {
+          const found = findPathToPhoneNode(a.children, currentPath);
+          if (found) return found;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Build prompt for post-verification flow, skipping all nodes on the path
+ * to the phone verification node and auto-resolving their decisions as TRUE.
+ */
+function buildPostVerificationNodes(nodes: FlowNode[], allNodes: FlowNode[], ancestorIds: Set<string>): string {
   const lines: string[] = [];
   for (const node of nodes) {
+    // Skip phone collection nodes entirely, but continue with their children
     if (isPhoneRelatedNode(node)) {
-      // Skip phone collection — already done. Continue with sequential children.
       if (node.children && node.children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.children, allNodes));
+        lines.push(buildPostVerificationNodes(node.children, allNodes, ancestorIds));
       }
       continue;
     }
+
+    // Skip phone-linked auto-evaluate decisions — auto-resolve as TRUE
     if (isPhoneLinkedDecision(node)) {
-      // Auto-resolve as TRUE — phone IS verified. Only emit YES branch.
       if (node.yes_children && node.yes_children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.yes_children, allNodes));
+        lines.push(buildPostVerificationNodes(node.yes_children, allNodes, ancestorIds));
       }
-      // Also continue with sequential children after the decision
       if (node.children && node.children.length > 0) {
-        lines.push(buildPostVerificationNodes(node.children, allNodes));
+        lines.push(buildPostVerificationNodes(node.children, allNodes, ancestorIds));
       }
       continue;
     }
+
+    // If this node is an ancestor of the phone node (on the path), auto-resolve as TRUE
+    if (ancestorIds.has(node.id) && node.type === 'decision') {
+      // Take the YES branch automatically since verification succeeded
+      if (node.yes_children && node.yes_children.length > 0) {
+        lines.push(buildPostVerificationNodes(node.yes_children, allNodes, ancestorIds));
+      }
+      // Also process sequential children after the decision
+      if (node.children && node.children.length > 0) {
+        lines.push(buildPostVerificationNodes(node.children, allNodes, ancestorIds));
+      }
+      continue;
+    }
+
     // Normal node — output as usual
     lines.push(buildNodePrompt(node, 0, allNodes));
   }
@@ -596,8 +647,12 @@ function buildFlowPrompt(flowConfig: FlowConfig, isVerified = false): string {
   const lines: string[] = [];
 
   if (isVerified) {
-    lines.push('ALREADY COMPLETED: Customer phone has been verified successfully via SMS OTP. Skip phone verification steps.\n');
-    lines.push(buildPostVerificationNodes(flowConfig.nodes, flowConfig.nodes));
+    // Find the path to the phone verification node and build ancestor set
+    const phonePath = findPathToPhoneNode(flowConfig.nodes);
+    const ancestorIds = new Set(phonePath || []);
+    
+    lines.push('ALREADY COMPLETED: Customer phone has been verified successfully via SMS OTP. The customer is an existing customer (verified). Skip all verification and identity steps.\n');
+    lines.push(buildPostVerificationNodes(flowConfig.nodes, flowConfig.nodes, ancestorIds));
   } else {
     for (const node of flowConfig.nodes) {
       lines.push(buildNodePrompt(node, 0, flowConfig.nodes));
@@ -1023,7 +1078,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    conversationMessages.push(...messages.map((m) => ({ role: m.role, content: m.content })));
+    // Map messages, replacing __VERIFIED__ trigger with a system instruction
+    conversationMessages.push(...messages.map((m) => {
+      if (m.role === 'user' && m.content === '__VERIFIED__') {
+        return { role: 'user', content: 'I have just verified my phone number. Please look up my account and continue with the next step in the flow.' };
+      }
+      return { role: m.role, content: m.content };
+    }));
 
     // Tool-calling loop (non-streaming phase — resolve all tool calls first)
     let currentMessages = [...conversationMessages];
