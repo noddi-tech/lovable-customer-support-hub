@@ -1,131 +1,47 @@
 
 
-# Fix Component Creator: Database Persistence, UI Visibility, and Shadcn Component Selection
+# Unify Custom and Built-in Component Cards
 
 ## Problems
 
-1. **"Database persistence coming soon"** -- the Save button only shows a toast and does nothing. Created components vanish immediately because they are never written to the `widget_block_configs` table or loaded back.
-2. **No way to choose a UI component** -- user wants to pick from available shadcn components (Calendar, Input, Select, etc.) as the rendering element for custom blocks.
+1. **Calendar card looks different** -- Custom block cards (`CustomBlockCard`) have a raw component preview without the "Customer sees:" wrapper that built-in cards use. They also lack the "Try it" sandbox button.
+2. **No sandbox for custom components** -- There's no way to interact with custom blocks like you can with built-in ones (the "Try it" button that opens an interactive sandbox).
+3. **Unnecessary separation** -- The "Custom Components" vs "Built-in Components" split in both Library and Manage tabs creates visual clutter. All components should appear in one unified list with a small badge if they happen to be custom.
 
 ## Solution
 
-### 1. Persist to Supabase on Save
+### A. Unify Card Layout
 
-Replace the placeholder `handleSave` with a real Supabase insert into `widget_block_configs`:
+Replace the separate `CustomBlockCard` component with a single card layout used for all components. Custom blocks will:
+- Wrap their preview in the same "Customer sees:" / "PREVIEW" container as built-in blocks
+- Have a "Try it" button that opens a sandbox rendering the selected shadcn component interactively (not pointer-events-none)
+- Show a small "Custom" badge in the header (already exists), but otherwise look identical
 
-```text
-handleSave:
-  1. Get currentOrganizationId from organizationStore
-  2. Insert into widget_block_configs with all form fields
-  3. Invalidate a react-query cache key so the list refreshes
-  4. Close dialog and reset form
-```
+### B. Remove Separate Sections
 
-### 2. Load Custom Blocks and Display Them
+In both Library grid and Manage tab, remove the "CUSTOM COMPONENTS" / "BUILT-IN COMPONENTS" headers. All components render in one flat list. Custom blocks just have their badge.
 
-Add a `useQuery` hook in the main `ComponentLibrary` component to fetch rows from `widget_block_configs` for the current organization. Merge them with the code-defined `getAllBlocks()` results so they appear in both the Library grid and the Manage table.
+### C. Interactive Sandbox for Custom Blocks
 
-Custom blocks will render with a "Custom" badge to distinguish them from built-in registry blocks. They will also have a Delete button in the Manage view.
-
-### 3. Add Shadcn Component Selector (Step 1 of Creator)
-
-Add a new "UI Component" dropdown in Step 1 of the Create dialog. Options:
-
-| Value | Label | Description |
-|-------|-------|-------------|
-| `text_input` | Text Input | Standard text field |
-| `email_input` | Email Input | Email-formatted input |
-| `calendar` | Calendar / Date Picker | Date selection with calendar popup |
-| `select` | Dropdown Select | Single-choice dropdown |
-| `checkbox` | Checkbox | Toggle yes/no |
-| `radio` | Radio Group | Multiple choice, single selection |
-| `slider` | Slider | Numeric range |
-| `textarea` | Text Area | Multi-line text input |
-| `custom` | Custom (code only) | Placeholder for code-defined blocks |
-
-This value is stored in a new `ui_component` field on the form and saved to the database (added to the `widget_block_configs` table as a column, or stored inside `api_endpoints` JSON -- using the simpler approach of adding it as a column).
-
-### 4. Preview Custom Blocks in Library
-
-For custom blocks loaded from the database, the Library card will render a live preview of the selected shadcn component (e.g., show an actual `Calendar` component for date picker blocks, an `Input` for text input blocks).
-
-## File Changes
-
-| File | Change |
-|------|--------|
-| `src/components/admin/widget/ComponentLibrary.tsx` | Wire up real Supabase save, add useQuery to load custom blocks, add UI component selector dropdown, render custom block previews, add delete functionality |
-| `supabase/migrations/[timestamp].sql` | Add `ui_component TEXT DEFAULT 'custom'` column to `widget_block_configs` |
+The "Try it" sandbox for custom blocks will render the chosen UI component in interactive mode (removing `pointer-events-none`). When the user interacts (e.g., picks a date, checks a checkbox), a toast fires showing the selected value -- same pattern as built-in blocks.
 
 ## Technical Details
 
-### Supabase Insert (in handleSave)
+### File: `src/components/admin/widget/ComponentLibrary.tsx`
 
-```typescript
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
+**Changes:**
 
-const handleSave = async () => {
-  const { currentOrganizationId } = useOrganizationStore.getState();
-  const { error } = await supabase.from('widget_block_configs').insert({
-    organization_id: currentOrganizationId,
-    type_key: typeKey,
-    label: form.name,
-    icon: form.icon,
-    description: form.description,
-    marker: `[${typeKey.toUpperCase()}]`,
-    closing_marker: `[/${typeKey.toUpperCase()}]`,
-    field_type: form.fieldType,
-    requires_api: form.requiresApi,
-    ui_component: form.uiComponent,
-    api_endpoints: form.requiresApi ? form.endpoints.map(...) : [],
-  });
-  // Handle error or success, invalidate query, close dialog
-};
-```
+1. **Delete `CustomBlockCard`** (lines 238-294) -- no longer needed
 
-### Loading Custom Blocks
+2. **Modify `CustomBlockCard` rendering in Library grid** (line 930-931) -- replace with the unified card that wraps preview in "Customer sees:" and adds "Try it"
 
-```typescript
-const { data: customBlocks } = useQuery({
-  queryKey: ['widget-block-configs', currentOrganizationId],
-  queryFn: () => supabase
-    .from('widget_block_configs')
-    .select('*')
-    .eq('organization_id', currentOrganizationId),
-  enabled: !!currentOrganizationId,
-});
-```
+3. **Create a unified card** that accepts either a `BlockDefinition` or a `CustomBlockRow` and renders both identically:
+   - Same header layout (icon, name, badges)
+   - Same preview section with "Customer sees:" wrapper
+   - Same "Try it" button opening interactive sandbox
+   - For custom blocks, sandbox renders the shadcn component without `pointer-events-none`, with an `onAction` callback that shows a toast
 
-### UI Component Selector
+4. **Remove section headers** in `ManageView` (lines 852-859) -- render all rows in a flat list, custom rows first (they already have the "Custom" badge)
 
-A new `Select` dropdown in Step 1, between "Field Type" and "Requires API":
-
-```text
-UI Component: [Calendar v]
-  - Text Input
-  - Email Input
-  - Calendar / Date Picker
-  - Dropdown Select
-  - Checkbox
-  - Radio Group
-  - Slider
-  - Text Area
-  - Custom (code only)
-```
-
-### Custom Block Card Preview
-
-Maps the `ui_component` value to a real shadcn component rendered in the Library card sandbox:
-
-```typescript
-function renderCustomBlockPreview(uiComponent: string) {
-  switch (uiComponent) {
-    case 'calendar': return <Calendar mode="single" className="rounded-md border" />;
-    case 'text_input': return <Input placeholder="Sample text..." />;
-    case 'select': return <Select>...</Select>;
-    case 'checkbox': return <Checkbox />;
-    // etc.
-  }
-}
-```
+5. **Fix calendar preview sizing** -- the calendar currently uses `scale-[0.85] origin-top-left` which makes it look off. Instead, constrain it within a fixed-height container with overflow hidden, same as other previews.
 
