@@ -294,3 +294,52 @@ export async function verifyPhonePin(
     return { verified: false, error: 'Network error' };
   }
 }
+
+// ========== Address Search ==========
+
+export interface AddressSuggestion {
+  place_id: string;
+  main_text?: string;
+  secondary_text?: string;
+  description?: string;
+}
+
+export interface ResolvedAddress {
+  id: number;
+  street_name: string;
+  street_number?: string;
+  city: string;
+  zip_code: string;
+  country_code: string;
+  country_name: string;
+  is_in_delivery_area: boolean;
+  latitude?: number;
+  longitude?: number;
+}
+
+export async function searchAddressSuggestions(widgetKey: string, input: string): Promise<AddressSuggestion[]> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/noddi-address-lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'suggestions', input }),
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.suggestions || [];
+  } catch (error) {
+    console.error('[Noddi Widget] Error searching addresses:', error);
+    return [];
+  }
+}
+
+export async function resolveAddress(widgetKey: string, placeId: string): Promise<ResolvedAddress> {
+  const response = await fetch(`${apiBaseUrl}/noddi-address-lookup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'resolve', place_id: placeId }),
+  });
+  if (!response.ok) throw new Error('Failed to resolve address');
+  const data = await response.json();
+  return data.address;
+}

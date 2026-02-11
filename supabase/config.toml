@@ -210,3 +210,6 @@ verify_jwt = false
 
 [functions.widget-verify-phone]
 verify_jwt = false
+
+[functions.noddi-address-lookup]
+verify_jwt = false
