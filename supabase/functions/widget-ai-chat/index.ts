@@ -378,15 +378,41 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
 // ========== System prompt ==========
 
 interface FlowCondition { check: string; if_true?: string; if_false?: string; }
-interface FlowAction { label: string; enabled: boolean; }
+interface FlowAction { label: string; enabled: boolean; children?: FlowNode[]; }
 interface DataField { label: string; field_type: string; required: boolean; validation_hint?: string; }
-interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; children?: FlowNode[]; yes_children?: FlowNode[]; no_children?: FlowNode[]; }
+interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; children?: FlowNode[]; yes_children?: FlowNode[]; no_children?: FlowNode[]; goto_target?: string; }
 interface FlowConfig { nodes: FlowNode[]; general_rules: { max_initial_lines: number; never_dump_history: boolean; tone: string; language_behavior?: string; escalation_threshold?: number; }; }
 
-function buildNodePrompt(node: FlowNode, depth: number): string {
+function findNodeByIdInTree(nodes: FlowNode[], nodeId: string): FlowNode | null {
+  for (const node of nodes) {
+    if (node.id === nodeId) return node;
+    for (const branch of ['children', 'yes_children', 'no_children'] as const) {
+      const found = findNodeByIdInTree((node as any)[branch] || [], nodeId);
+      if (found) return found;
+    }
+    if (node.actions) {
+      for (const a of node.actions) {
+        if (a.children) {
+          const found = findNodeByIdInTree(a.children, nodeId);
+          if (found) return found;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): string {
   const indent = '  '.repeat(depth);
   const lines: string[] = [];
   const nodeType = node.type || 'message';
+
+  // Goto node
+  if (nodeType === 'goto') {
+    const targetNode = node.goto_target ? findNodeByIdInTree(allNodes, node.goto_target) : null;
+    lines.push(`${indent}→ Return to the "${targetNode?.label || 'unknown'}" step.`);
+    return lines.join('\n');
+  }
 
   lines.push(`${indent}### ${node.label}`);
   if (node.instruction) {
@@ -411,7 +437,7 @@ function buildNodePrompt(node: FlowNode, depth: number): string {
       if (node.yes_children && node.yes_children.length > 0) {
         lines.push(`${indent}  → YES:`);
         for (const child of node.yes_children) {
-          lines.push(buildNodePrompt(child, depth + 2));
+          lines.push(buildNodePrompt(child, depth + 2, allNodes));
         }
       } else if (cond.if_true) {
         lines.push(`${indent}  → YES: ${cond.if_true}`);
@@ -420,7 +446,7 @@ function buildNodePrompt(node: FlowNode, depth: number): string {
       if (node.no_children && node.no_children.length > 0) {
         lines.push(`${indent}  → NO:`);
         for (const child of node.no_children) {
-          lines.push(buildNodePrompt(child, depth + 2));
+          lines.push(buildNodePrompt(child, depth + 2, allNodes));
         }
       } else if (cond.if_false) {
         lines.push(`${indent}  → NO: ${cond.if_false}`);
@@ -428,13 +454,20 @@ function buildNodePrompt(node: FlowNode, depth: number): string {
     }
   }
 
-  // Action menu
+  // Action menu with branch support
   if (nodeType === 'action_menu' && node.actions && node.actions.length > 0) {
     const enabled = node.actions.filter(a => a.enabled);
     if (enabled.length > 0) {
       lines.push(`${indent}Present these options:`);
       for (const action of enabled) {
-        lines.push(`${indent}  - "${action.label}"`);
+        if (action.children && action.children.length > 0) {
+          lines.push(`${indent}  If customer chooses "${action.label}", then:`);
+          for (const child of action.children) {
+            lines.push(buildNodePrompt(child, depth + 2, allNodes));
+          }
+        } else {
+          lines.push(`${indent}  - "${action.label}"`);
+        }
       }
     }
   }
@@ -447,7 +480,7 @@ function buildNodePrompt(node: FlowNode, depth: number): string {
   // Sequential children (continuation after this node)
   if (node.children && node.children.length > 0) {
     for (const child of node.children) {
-      lines.push(buildNodePrompt(child, depth));
+      lines.push(buildNodePrompt(child, depth, allNodes));
     }
   }
 
@@ -458,7 +491,7 @@ function buildFlowPrompt(flowConfig: FlowConfig): string {
   const lines: string[] = [];
 
   for (const node of flowConfig.nodes) {
-    lines.push(buildNodePrompt(node, 0));
+    lines.push(buildNodePrompt(node, 0, flowConfig.nodes));
   }
 
   const rules = flowConfig.general_rules;
