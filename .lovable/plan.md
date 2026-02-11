@@ -1,55 +1,63 @@
 
 
-# Fix Flow Continuation After Phone Verification
+# Fix Post-Verification Flow: Skip Completed Steps and Remove Ghost Message
 
 ## Problems
 
-### 1. Test mode remembers verified phone
-The "Start new conversation" button (`handleNewConversation`) clears messages and conversation ID but does NOT clear `noddi_ai_verified_phone` from localStorage. So when you restart a test, the phone is still verified and the AI skips the verification step entirely.
+### 1. Ghost message "Jeg har verifisert telefonnummeret mitt..."
+After phone verification succeeds, the widget auto-sends this as a visible customer message (line 233 in AiChat.tsx). The user didn't type it -- it's confusing and clutters the chat. It should be sent as a hidden/system message that triggers the AI but doesn't appear in the chat bubble.
 
-### 2. Flow prompt includes already-completed steps
-When `isVerified=true`, `buildFlowPrompt` outputs the ENTIRE flow tree -- including the phone verification data collection node and the "Did the customer verify?" auto-evaluate decision. The AI receives contradictory instructions: the system prompt says "phone is verified" but the flow says "collect phone number" and "evaluate if verified." The AI doesn't know to skip past these steps to the address collection.
+### 2. Flow doesn't skip to address step after verification
+The current skip logic (`buildPostVerificationNodes`) only recognizes two kinds of nodes to skip:
+- Data collection nodes with phone fields
+- Auto-evaluate decisions with phone-related source keywords
+
+But looking at the actual flow tree, the structure is:
+
+```text
+"New Decision: customer is existing" (regular decision, NOT auto-evaluate)
+  YES branch:
+    "Verify customer data" (phone collection -- should skip)
+      "Did the customer verify?" (auto-evaluate, phone-linked -- should auto-resolve YES)
+        YES branch:
+          "Get address" (this is where the AI should continue)
+```
+
+The "customer is existing" decision is the FIRST node. The skip logic encounters it, doesn't recognize it as phone-related, and outputs it normally with YES/NO buttons. That's why the AI asks "Har du bestilt for?" instead of jumping to the address step.
+
+The fix: when `isVerified=true`, the system needs to trace the path from the root down to the phone verification node. Every decision node along that path should be auto-resolved as TRUE (because verification already happened, meaning the customer went through the YES branches to get there). Only nodes AFTER the phone verification chain should be emitted in the prompt.
 
 ## Solution
 
-### Change 1: Clear verified phone on new conversation (AiChat.tsx)
+### Change 1: Make the post-verification trigger invisible (AiChat.tsx)
 
-In the `handleNewConversation` callback (line ~242), also clear the verified phone state:
+Change line 233 so the auto-sent message after verification is hidden from the chat UI but still sent to the AI. Instead of adding a visible user message, send it as a system-level trigger:
 
 ```typescript
-const handleNewConversation = useCallback(() => {
-  setMessages([...]);
-  setConversationId(null);
-  setVerifiedPhone('');  // ADD THIS
-  localStorage.removeItem(VERIFIED_PHONE_KEY);  // ADD THIS
-  // ... rest unchanged
-}, [t]);
+// Before (visible user message):
+sendMessage('Jeg har verifisert telefonnummeret mitt...', phone);
+
+// After (hidden trigger -- message sent to AI but not shown in chat):
+sendMessage('__VERIFIED__', phone, { hidden: true });
 ```
 
-### Change 2: Skip completed nodes in post-verification flow prompt (edge function)
+The `sendMessage` function will still send the message to the edge function, but the message won't be rendered in the chat. The edge function already knows verification status from the `verifiedPhone` parameter, so the message content doesn't matter -- it just needs to trigger the AI to respond.
 
-In `buildFlowPrompt` (or `buildSystemPrompt`), when `isVerified=true`, skip over:
-- Data collection nodes that contain phone/tel fields (already done)
-- Auto-evaluate decision nodes whose `auto_evaluate_source` references a phone field (already resolved -- phone IS verified)
+### Change 2: Smarter flow skipping -- trace path to phone node (edge function)
 
-Instead of skipping silently, inject a context line like:
-```
-ALREADY COMPLETED: Phone verification was successful. Skip directly to the next step.
-```
+Replace the current `buildPostVerificationNodes` with a two-phase approach:
 
-Then continue outputting the YES branch of the auto-evaluate decision (the address step), skipping the NO branch entirely.
+**Phase 1: Find the path to the phone verification node.** Walk the entire tree and record which nodes are "on the path" to the phone collection node. This includes all ancestor decisions that lead to the YES branch containing the phone node.
 
-**Implementation in `supabase/functions/widget-ai-chat/index.ts`:**
+**Phase 2: Build a filtered prompt.** When outputting nodes:
+- Skip data collection nodes with phone fields (already done)
+- Skip auto-evaluate decisions linked to phone (already done)
+- Auto-resolve as TRUE any decision node that is an ancestor of the phone node (the "customer is existing" decision falls into this category -- we take its YES branch automatically)
+- Output everything else normally
 
-Add a new function `buildPostVerificationFlowPrompt(flowConfig)` that:
-1. Walks the node tree
-2. When it encounters a data_collection node with a phone field, marks it as completed and skips it
-3. When it encounters an auto-evaluate decision node linked to that phone field, automatically resolves it as TRUE and only emits the YES branch children
-4. Continues outputting all remaining nodes normally (address collection, next decisions, etc.)
-
-This way the AI receives a clean flow starting from the address step:
-```
-ALREADY COMPLETED: Customer phone verified successfully.
+This means the AI receives a prompt like:
+```text
+ALREADY COMPLETED: Customer phone verified. Customer is existing (verified).
 
 ### Get address
 Required data to collect:
@@ -58,18 +66,25 @@ Required data to collect:
 
 ### Do we deliver?
   Evaluate: Do we deliver to this address?
-  Check the result of the "Address Search" step...
+  ...
 ```
 
-### Change 3: Add "Clear Session" to test mode (WidgetTestMode.tsx)
+### Change 3: Handle the hidden message in the edge function
 
-Add a button to the test mode UI that clears all widget localStorage (verified phone, messages, conversation ID) so admins can re-test the full flow from scratch without ending and restarting the test.
+Update the edge function to recognize the `__VERIFIED__` trigger message and treat it as a system instruction rather than a customer question. When this trigger is received, the AI should proceed with the post-verification flow (look up customer, then follow the remaining flow steps).
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/widget/components/AiChat.tsx` | Clear `verifiedPhone` and localStorage key in `handleNewConversation` |
-| `supabase/functions/widget-ai-chat/index.ts` | Add smart flow-skipping logic in post-verification prompt to skip phone nodes and auto-resolve phone-linked decisions, outputting only the continuation (address step onwards) |
-| `src/components/admin/widget/WidgetTestMode.tsx` | Add "Clear Session" button that resets all widget localStorage |
+| `src/widget/components/AiChat.tsx` | Make post-verification auto-message hidden (not rendered in chat bubbles). Add `hidden` flag support to messages. |
+| `supabase/functions/widget-ai-chat/index.ts` | Replace `buildPostVerificationNodes` with path-tracing logic that auto-resolves ALL decisions between root and phone node. Handle `__VERIFIED__` trigger message. |
+
+## Expected Result
+
+After these changes:
+1. Phone verification completes -- no ghost message appears in chat
+2. AI automatically looks up the customer and skips directly to the address collection step
+3. The "customer is existing" decision is never shown to verified customers
+4. The full flow (address -> do we deliver? -> etc.) continues as designed
 
