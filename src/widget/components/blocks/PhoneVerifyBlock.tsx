@@ -233,6 +233,28 @@ registerBlock({
   parseContent: () => ({}),
   component: PhoneVerifyBlock,
   requiresApi: true,
+  apiConfig: {
+    endpoints: [
+      {
+        name: 'Send Verification Code',
+        edgeFunction: 'widget-send-verification',
+        externalApi: 'GET /v1/users/send-phone-number-verification/',
+        method: 'GET',
+        requestBody: { widgetKey: 'string', phoneNumber: 'string', domain: 'string' },
+        responseShape: { success: 'boolean' },
+        description: 'Sends an SMS with a 6-digit PIN to the provided phone number via the Noddi API.',
+      },
+      {
+        name: 'Verify PIN',
+        edgeFunction: 'widget-verify-phone',
+        externalApi: 'POST /v1/users/verify-phone-number/',
+        method: 'POST',
+        requestBody: { widgetKey: 'string', phoneNumber: 'string', pin: 'string', conversationId: 'string' },
+        responseShape: { verified: 'boolean', token: 'string?', attemptsRemaining: 'number?' },
+        description: 'Verifies the PIN code entered by the customer against the Noddi API.',
+      },
+    ],
+  },
   flowMeta: {
     label: 'Phone + PIN Verification',
     icon: '📱',

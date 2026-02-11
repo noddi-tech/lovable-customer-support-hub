@@ -21,6 +21,16 @@ export interface FlowPreviewProps {
   primaryColor?: string;
 }
 
+export interface ApiEndpointConfig {
+  name: string;
+  edgeFunction: string;
+  externalApi?: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  requestBody?: Record<string, string>;
+  responseShape?: Record<string, string>;
+  description: string;
+}
+
 export interface BlockDefinition {
   type: string;
   marker: string;
@@ -30,9 +40,13 @@ export interface BlockDefinition {
   component: React.FC<BlockComponentProps>;
   requiresApi?: boolean;
 
+  apiConfig?: {
+    endpoints: ApiEndpointConfig[];
+  };
+
   flowMeta: {
     label: string;
-    icon: string; // emoji for simplicity
+    icon: string;
     description: string;
     applicableFieldTypes?: string[];
     applicableNodeTypes?: string[];

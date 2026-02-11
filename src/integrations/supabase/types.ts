@@ -3323,6 +3323,65 @@ export type Database = {
           },
         ]
       }
+      widget_block_configs: {
+        Row: {
+          api_endpoints: Json
+          closing_marker: string | null
+          created_at: string
+          created_by_id: string | null
+          description: string | null
+          field_type: string | null
+          icon: string
+          id: string
+          label: string
+          marker: string
+          organization_id: string
+          requires_api: boolean
+          type_key: string
+          updated_at: string
+        }
+        Insert: {
+          api_endpoints?: Json
+          closing_marker?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          description?: string | null
+          field_type?: string | null
+          icon?: string
+          id?: string
+          label: string
+          marker: string
+          organization_id: string
+          requires_api?: boolean
+          type_key: string
+          updated_at?: string
+        }
+        Update: {
+          api_endpoints?: Json
+          closing_marker?: string | null
+          created_at?: string
+          created_by_id?: string | null
+          description?: string | null
+          field_type?: string | null
+          icon?: string
+          id?: string
+          label?: string
+          marker?: string
+          organization_id?: string
+          requires_api?: boolean
+          type_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_block_configs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_chat_sessions: {
         Row: {
           assigned_agent_id: string | null
