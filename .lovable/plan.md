@@ -1,131 +1,72 @@
 
-# Interactive Chat Components System
+
+# Use Flow Builder for Pre-Verification Phase
 
 ## Problem
-The AI chat currently renders everything as plain text. The user wants:
-1. **Phone verification (data collection)** to be triggerable from the flow builder's data_collection node type, not just hardcoded keyword detection
-2. **Action choices** rendered as clickable cards/pills instead of text lists
-3. A **scalable system** so future interactive components can be added easily
+The flow builder's Data Collection node (with phone field) has no effect on the actual chat behavior. The entire pre-verification flow is hardcoded in the edge function's system prompt. The flow config is only applied AFTER the user is already verified, making the Data Collection node useless for triggering phone verification.
 
-## Solution: Structured Message Blocks
+## Solution
+Split the flow into two phases -- **pre-verification** and **post-verification** -- and use the flow config for BOTH. The edge function will traverse the flow tree to find data_collection nodes with phone fields and use them to build the pre-verification prompt, including the `[PHONE_VERIFY]` marker instruction.
 
-Instead of the AI returning only plain text, introduce a lightweight **block protocol** where the AI response can contain special markers that the widget parses into interactive UI components. The edge function instructs the AI to emit structured markers, and the widget's message renderer detects and renders them as components.
+### How it works
 
-### How It Works
+1. **Scan the flow tree** for the pre-verification phase: walk the nodes sequentially until hitting a data_collection node with a phone field. These nodes (greeting, phone collection) form the "pre-verification flow."
 
-The AI includes special markers in its response text:
+2. **Build pre-verification prompt from flow config**: Instead of the hardcoded "tell them to verify" message, generate instructions from the actual flow nodes (e.g., "First greet the customer with: [greeting instruction]. Then trigger phone verification by including [PHONE_VERIFY].")
+
+3. **Post-verification uses remaining flow**: After verification, the flow continues from where phone verification left off (the nodes after the data_collection node).
+
+### Changes to `buildSystemPrompt`
+
+When `isVerified` is **false** and a flow config exists:
+- Call a new `buildPreVerificationFlowPrompt(flowConfig)` that extracts the greeting/intro nodes and the phone verification node
+- Generate natural instructions like: "Follow this flow: 1) Greet the customer. 2) When they need account access, include [PHONE_VERIFY] to trigger verification."
+- Fall back to the existing hardcoded prompt if no flow config or no phone data_collection node exists
+
+When `isVerified` is **true**: no changes -- continues using `buildFlowPrompt` as before.
+
+### New helper: `buildPreVerificationFlowPrompt(flowConfig)`
+
+Walks the flow tree top-down through `children` arrays, collecting nodes until it hits a `data_collection` node with a phone field. Generates prompt instructions for each node:
+- `message` nodes: include their instruction text
+- `action_menu` nodes: wrap choices in `[ACTION_MENU]` markers
+- `data_collection` with phone: emit `[PHONE_VERIFY]` instruction
+- `decision` nodes: include branching logic
+
+This way the admin's configured greeting and conversation opener are used even before verification.
+
+## Technical Details
+
+### File: `supabase/functions/widget-ai-chat/index.ts`
+
+**New function: `buildPreVerificationFlowPrompt(flowConfig: FlowConfig): string`**
+- Traverses the flow tree nodes
+- For each node, generates prompt text similar to `buildNodePrompt` but tailored for the unverified context
+- When encountering a data_collection node with phone field type, adds the `[PHONE_VERIFY]` marker instruction
+- Returns the assembled prompt string
+
+**Modified: `buildSystemPrompt`**
+- In the `else` (not verified) branch: check if `flowConfig` has nodes
+- If yes, call `buildPreVerificationFlowPrompt(flowConfig)` and use it as the verification context
+- If no flow config, fall back to the existing hardcoded message
+
+### Example generated pre-verification prompt
+
+From a flow with: Greeting -> Data Collection (phone) -> Decision (existing customer?) -> Action Menu
 
 ```
-Here are your options:
+VERIFICATION STATUS: The customer has NOT verified their phone.
 
-[ACTION_MENU]
-Book new service
-View my bookings
-Cancel a booking
-Wheel storage
-[/ACTION_MENU]
+Follow this conversation flow:
+1. Greet the customer: "Ask for phone number to verify customer and proceed with booking"
+2. To verify the customer's identity, include [PHONE_VERIFY] in your response. The widget will show a phone number input and SMS OTP form.
+3. You can answer general questions using search_knowledge_base while waiting for verification.
+4. Do NOT look up customer data or share account details without verification.
 ```
-
-```
-I need to verify your identity first.
-
-[PHONE_VERIFY]
-```
-
-The widget parser splits the message content into segments: text blocks and component blocks. Each segment renders with the appropriate component.
-
-### Block Types (extensible)
-
-| Block Marker | Renders As | User Interaction |
-|---|---|---|
-| `[ACTION_MENU]...[/ACTION_MENU]` | Clickable pill/card buttons | Click sends the choice as a user message |
-| `[PHONE_VERIFY]` | Phone input + OTP form | Inline verification flow (existing logic) |
-| *(future)* `[DATE_PICKER]` | Calendar selector | Sends selected date |
-| *(future)* `[CONFIRM]...[/CONFIRM]` | Confirmation card with Yes/No | Sends confirmation |
-
-### Architecture
-
-```text
-AI Response (text with markers)
-        |
-   parseMessageBlocks(content)
-        |
-   Array<MessageBlock>
-    /        |         \
-TextBlock  ActionMenu  PhoneVerify
-  (HTML)   (pills)     (form)
-```
-
-## Detailed Changes
-
-### 1. Message Block Parser (new utility)
-
-A `parseMessageBlocks` function that splits AI response content into typed blocks:
-
-```typescript
-type MessageBlock =
-  | { type: 'text'; content: string }
-  | { type: 'action_menu'; options: string[] }
-  | { type: 'phone_verify' }
-
-function parseMessageBlocks(content: string): MessageBlock[]
-```
-
-Scans for `[ACTION_MENU]...[/ACTION_MENU]` and `[PHONE_VERIFY]` markers. Everything outside markers becomes text blocks. This is simple string parsing -- no complex grammar needed.
-
-### 2. AiChat.tsx -- Message Rendering
-
-Replace the single `dangerouslySetInnerHTML` bubble with a block-based renderer:
-
-- Each message's content is passed through `parseMessageBlocks`
-- Text blocks render as before (DOMPurify + formatAiResponse)
-- `action_menu` blocks render as a row of styled pill buttons. Clicking a pill calls `sendMessage(option)` automatically
-- `phone_verify` blocks trigger the existing phone verification UI (move the current inline verification into a component, triggered by the block instead of keyword detection)
-
-**Action Menu Pills**: Styled as rounded buttons with border, using the widget's `primaryColor`. Horizontal wrap layout. On click, the selected option is sent as a user message and the pills become disabled (showing which was selected).
-
-**Phone Verify Block**: The existing phone/OTP form code extracted into a `PhoneVerifyBlock` component, rendered inline when the block is encountered. Replaces the keyword-detection trigger.
-
-### 3. Edge Function -- Prompt Instructions
-
-Update `buildNodePrompt` and the system prompt to instruct the AI to use markers:
-
-- For `action_menu` nodes: tell the AI to wrap choices in `[ACTION_MENU]...[/ACTION_MENU]` markers
-- For `data_collection` nodes with phone fields: tell the AI to include `[PHONE_VERIFY]` marker
-- Add a section to the system prompt explaining available markers and when to use them
-
-Example prompt addition:
-```
-INTERACTIVE COMPONENTS:
-When presenting action choices, wrap them in markers:
-[ACTION_MENU]
-Option 1
-Option 2
-[/ACTION_MENU]
-
-When phone verification is needed, include:
-[PHONE_VERIFY]
-
-The widget will render these as interactive UI elements.
-Do NOT render these markers as plain text -- they are UI instructions.
-```
-
-### 4. Disable State for Used Components
-
-Once a user clicks an action pill or completes verification, that block should become non-interactive (greyed out or show the selection). This prevents re-triggering old choices when scrolling through history.
-
-Track "used" blocks by message ID + block index in component state.
 
 ## File Changes
 
 | File | Change |
 |------|--------|
-| `src/widget/components/AiChat.tsx` | Add `parseMessageBlocks`, refactor message rendering to block-based, extract `PhoneVerifyBlock` and `ActionMenuBlock` inline components, remove keyword-detection trigger |
-| `supabase/functions/widget-ai-chat/index.ts` | Update `buildNodePrompt` for action_menu/data_collection to instruct AI to use markers. Add marker documentation to system prompt. |
+| `supabase/functions/widget-ai-chat/index.ts` | Add `buildPreVerificationFlowPrompt` helper. Update unverified branch in `buildSystemPrompt` to use flow config when available. |
 
-## Why This Approach
-
-- **Scalable**: Adding a new component means adding a new block type to the parser and a renderer -- no changes to the AI infrastructure
-- **Backward compatible**: Messages without markers render exactly as before
-- **Simple**: String markers are trivial for LLMs to produce reliably, unlike JSON structures mid-stream
-- **Works with streaming**: Markers can be detected as they stream in, rendering components once complete
