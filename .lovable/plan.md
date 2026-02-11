@@ -1,141 +1,162 @@
 
-# Comprehensive Interactive Component System for AI Chat Widget
+
+# Component Registry Architecture for Flow Builder
 
 ## Problem
 
-The current system has two major gaps:
+The Flow Builder has three critical issues:
 
-1. **Flow Builder UX is opaque**: When an admin adds a "Data Collection" node with a phone field, there's no visual indication that this will trigger a phone+PIN verification component in the widget. The field type dropdown (`phone`, `email`, `text`, etc.) doesn't communicate what interactive UI the customer will see. The admin has to guess.
+1. **Hardcoded previews**: Changing a field type dropdown from "Phone" to "Text" still shows "Phone + PIN Verification" because the preview logic checks `field.label.toLowerCase().includes('phone')` regardless of the selected `field_type`. The preview doesn't react to the dropdown.
 
-2. **Widget component library is minimal**: Only two interactive blocks exist (`[ACTION_MENU]` and `[PHONE_VERIFY]`). There's no `[YES_NO]` for decisions, no `[EMAIL_INPUT]`, no `[RATING]`, no `[CONFIRM]`. The system needs to be scalable so new components can be added without rewriting the architecture.
+2. **No component library**: Admins have to know what each field type does by guessing. There's no visual catalog of available interactive components they can browse and understand before adding them.
 
-## Solution Overview
+3. **Not scalable**: Adding a new component requires editing 4+ files with hardcoded if/else blocks. The inline block components in AiChat.tsx (1131 lines) are monolithic.
 
-### Part 1: Expand the Block Protocol (new marker types)
+## Solution
 
-Add these new interactive block types to the marker system:
+### A. Component Registry (`src/widget/components/blocks/registry.ts`)
 
-| Marker | Widget Renders | Use Case |
-|---|---|---|
-| `[YES_NO]question text[/YES_NO]` | Two buttons: thumbs-up YES / thumbs-down NO | Decision nodes |
-| `[EMAIL_INPUT]` | Styled email input with validation | Data collection (email) |
-| `[TEXT_INPUT]placeholder[/TEXT_INPUT]` | Styled text input | Data collection (text) |
-| `[RATING]` | 5-star or emoji rating row | Feedback collection |
-| `[CONFIRM]summary text[/CONFIRM]` | Confirmation card with Accept/Decline buttons | Before destructive actions |
+A single source of truth that defines every interactive component with:
 
-### Part 2: Enrich Flow Builder Node Cards with Visual Previews
+- **Marker parsing rules** (tag, closing tag, content parser)
+- **React component** reference for the widget
+- **Flow Builder metadata** (label, icon, description, mini-preview)
+- **Prompt instruction** for the LLM
+- **API flag** for components needing backend calls
 
-The Node Cards on the flow canvas should visually preview what the customer will see:
-
-- **Data Collection (phone)**: Show a mini phone input + PIN icon preview on the card, with a badge "Phone Verify Component"
-- **Data Collection (email)**: Show a mini email input preview with envelope icon
-- **Decision nodes**: Show mini YES/NO buttons (thumb up/down icons) on the card
-- **Action Menu**: Already shows pill previews (keep as-is)
-- **Escalation**: Show a "handoff to agent" badge
-
-The Node Editor sidebar should also show a "Customer sees:" preview section that renders a miniature version of the interactive component.
-
-### Part 3: Upgrade Node Editor with Component-Aware Configuration
-
-When the admin selects a `data_collection` node with a `phone` field type, the editor should show:
-- An info banner: "This will render a phone verification form with SMS PIN code in the chat"
-- A visual preview of the PhoneVerifyBlock component
-- Configuration options specific to phone verification (e.g., country code prefix)
-
-For `decision` nodes:
-- An info banner: "The customer will see YES/NO buttons with thumbs up/down icons"
-- Visual preview of the YES_NO buttons
-
-### Part 4: Update Edge Function Prompt Generation
-
-Update `buildNodePrompt` and `buildPreVerificationFlowPrompt` to emit the new markers:
-- Decision nodes: instruct AI to use `[YES_NO]question[/YES_NO]`
-- Data collection (email): instruct AI to use `[EMAIL_INPUT]`
-- Data collection (text): instruct AI to use `[TEXT_INPUT]placeholder[/TEXT_INPUT]`
-
-Update the system prompt's INTERACTIVE COMPONENTS section to document all available markers.
-
-## Detailed File Changes
-
-### File 1: `src/widget/utils/parseMessageBlocks.ts`
-
-Extend `MessageBlock` type and parser to handle new markers:
-
-```typescript
-export type MessageBlock =
-  | { type: 'text'; content: string }
-  | { type: 'action_menu'; options: string[] }
-  | { type: 'phone_verify' }
-  | { type: 'yes_no'; question: string }
-  | { type: 'email_input' }
-  | { type: 'text_input'; placeholder: string }
-  | { type: 'rating' }
-  | { type: 'confirm'; summary: string };
+```text
+registry.ts
+  |
+  +-- defines BlockDefinition interface
+  +-- exports registerBlock(), getBlock(), getAllBlocks()
+  +-- exports getBlockForFieldType(), getBlockForNodeType()
 ```
 
-Add detection for `[YES_NO]...[/YES_NO]`, `[EMAIL_INPUT]`, `[TEXT_INPUT]...[/TEXT_INPUT]`, `[RATING]`, `[CONFIRM]...[/CONFIRM]` in the parser loop.
+### B. Extract Each Block into Its Own File
 
-### File 2: `src/widget/components/AiChat.tsx`
+Move all inline components from AiChat.tsx into individual files:
 
-Add new inline block components:
+```text
+src/widget/components/blocks/
+  registry.ts
+  ActionMenuBlock.tsx    (existing, extracted)
+  PhoneVerifyBlock.tsx   (existing, extracted + self-registers)
+  YesNoBlock.tsx         (existing, extracted)
+  EmailInputBlock.tsx    (existing, extracted)
+  TextInputBlock.tsx     (existing, extracted)
+  RatingBlock.tsx        (existing, extracted)
+  ConfirmBlock.tsx       (existing, extracted)
+  index.ts              (imports all blocks to trigger registration)
+```
 
-- **YesNoBlock**: Two large buttons side by side. YES button with thumbs-up icon (green tint), NO button with thumbs-down icon (red tint). On click, sends "Yes" or "No" as user message and disables both buttons, highlighting the chosen one.
+Each file exports the component AND calls `registerBlock()` with its metadata. This makes adding a new component a single-file operation.
 
-- **EmailInputBlock**: Styled email input field with envelope icon and submit button. Validates email format before sending. On submit, sends email as user message and shows confirmed state.
+### C. Dynamic Parser (parseMessageBlocks.ts)
 
-- **TextInputBlock**: Generic text input with the provided placeholder. Submit button sends text as user message.
+Instead of a hardcoded MARKERS array, the parser builds its marker list from the registry:
 
-- **RatingBlock**: Row of 5 star (or smiley) buttons. Clicking sends "Rating: X/5" as user message. Locked after selection.
+```typescript
+import { getAllBlocks } from '../components/blocks/registry';
 
-- **ConfirmBlock**: Card showing summary text with two buttons: "Confirm" (green, check icon) and "Cancel" (red, X icon). Sends the choice as user message.
+const MARKERS = getAllBlocks().map(def => ({
+  tag: def.marker,
+  hasClosing: !!def.closingMarker,
+  closingTag: def.closingMarker,
+  parse: (inner) => ({ type: def.type, ...def.parseContent(inner) }),
+}));
+```
 
-Update `MessageBlockRenderer` to route new block types to their components.
+### D. Simplified AiChat.tsx Renderer
 
-### File 3: `src/components/admin/widget/AiFlowBuilder.tsx`
+Replace the ~200-line if/else `MessageBlockRenderer` with a registry-driven loop:
 
-**NodeCard preview enhancements** (lines ~648-660):
+```typescript
+const def = getBlock(block.type);
+if (!def) return null;
+return <def.component {...standardProps} data={block} />;
+```
 
-For `data_collection` nodes, show component-specific badges:
-- Phone field: purple badge with phone icon + "Phone + PIN Verification"
-- Email field: purple badge with mail icon + "Email Input"
-- Text field: purple badge with text icon + "Text Input"
-- Date field: purple badge with calendar icon + "Date Picker"
+This drops AiChat.tsx from ~1131 lines to ~600 lines.
 
-For `decision` nodes (lines ~655-658):
-- Replace the plain text "IF: ..." preview with mini YES/NO button pills (thumb up/down icons)
+### E. Registry-Driven Flow Builder Previews
 
-**NodeEditor component preview section** (after the field configuration, ~line 1035-1067):
+The NodeCard badges and NodeEditor "Customer Sees" section will use registry metadata instead of hardcoded checks:
 
-Add a "Customer Preview" section inside the editor that shows a visual approximation of what the customer will see in the chat for each component type:
-- Phone: miniature phone input mockup with "+47" prefix and PIN dots
-- Email: miniature email input mockup
-- Decision: YES/NO button preview with thumbs icons
-- Action Menu: already has pill preview
-- Escalation: "Agent handoff" visual
+**NodeCard** (data_collection nodes):
+```typescript
+const blockDef = getBlockForFieldType(field.field_type);
+// Renders: blockDef.flowMeta.icon + blockDef.flowMeta.label
+```
 
-Add info banners per field type explaining the component behavior:
-- Phone: "The customer will see a phone number input. After entering their number, they'll receive an SMS with a 6-digit PIN code to verify their identity."
-- Email: "The customer will see an email input field with validation."
-- Decision YES/NO: "The customer will see two buttons with thumbs up (YES) and thumbs down (NO) icons."
+**NodeEditor** (data_collection fields):
+```typescript
+const blockDef = getBlockForFieldType(field.field_type);
+// Shows: blockDef.flowMeta.description (info banner)
+// Shows: blockDef.flowMeta.previewComponent (mini mockup)
+```
 
-### File 4: `supabase/functions/widget-ai-chat/index.ts`
+This means changing the dropdown from "Phone" to "Text" instantly swaps the preview, badge, and description. No hardcoded if/else.
 
-**Update `buildNodePrompt`**:
-- For `decision` nodes: add instruction to emit `[YES_NO]question text[/YES_NO]` where the question is derived from the condition's `check` field
-- For `data_collection` with email fields: instruct AI to emit `[EMAIL_INPUT]`
-- For `data_collection` with text fields: instruct AI to emit `[TEXT_INPUT]placeholder[/TEXT_INPUT]`
+### F. Edge Function Prompt Map
 
-**Update system prompt INTERACTIVE COMPONENTS section** (~line 634-645):
-Add documentation for all new markers so the AI knows when and how to use them.
+A `BLOCK_PROMPTS` lookup in the edge function replaces hardcoded if/else in `buildNodePrompt`:
 
-**Update `buildPreVerificationFlowPrompt`**:
-Add handling for decision nodes to emit `[YES_NO]` instructions in the pre-verification phase.
+```typescript
+const BLOCK_PROMPTS = {
+  phone_verify: { fieldTypes: ['phone'], instruction: () => 'Include [PHONE_VERIFY]...' },
+  email_input:  { fieldTypes: ['email'], instruction: () => 'Include [EMAIL_INPUT]...' },
+  text_input:   { fieldTypes: ['text'],  instruction: ({ label }) => `Include [TEXT_INPUT]${label}[/TEXT_INPUT]...` },
+  yes_no:       { nodeTypes: ['decision'], instruction: ({ check }) => `Include [YES_NO]${check}[/YES_NO]...` },
+};
+```
 
-## Summary of Files
+## BlockDefinition Interface
+
+```typescript
+interface BlockDefinition {
+  type: string;                    // 'phone_verify', 'yes_no', etc.
+  marker: string;                  // '[PHONE_VERIFY]'
+  closingMarker?: string;          // '[/YES_NO]' or undefined for self-closing
+  parseContent: (inner: string) => Record<string, any>;
+
+  component: React.FC<BlockComponentProps>;
+  requiresApi?: boolean;
+
+  flowMeta: {
+    label: string;                 // "Phone + PIN Verification"
+    description: string;           // Info banner text
+    applicableFieldTypes?: string[];  // ['phone']
+    applicableNodeTypes?: string[];   // ['decision']
+    previewComponent?: React.FC;      // Mini mockup for NodeEditor
+  };
+
+  promptInstruction: (ctx: any) => string;
+}
+```
+
+## How Adding a New Component Works (After This Refactor)
+
+1. Create `src/widget/components/blocks/DatePickerBlock.tsx`
+2. Write the React component
+3. Call `registerBlock({ type: 'date_picker', marker: '[DATE_PICKER]', flowMeta: { applicableFieldTypes: ['date'], ... }, ... })`
+4. Add one entry to `BLOCK_PROMPTS` in the edge function
+5. Done -- parser, widget renderer, flow builder previews, and prompt generation all work automatically
+
+## File Changes Summary
 
 | File | Change |
-|---|---|
-| `src/widget/utils/parseMessageBlocks.ts` | Add 5 new block types to the type and parser |
-| `src/widget/components/AiChat.tsx` | Add YesNoBlock, EmailInputBlock, TextInputBlock, RatingBlock, ConfirmBlock components; update MessageBlockRenderer |
-| `src/components/admin/widget/AiFlowBuilder.tsx` | Add component-specific badges on NodeCard, add "Customer Preview" section in NodeEditor with info banners per field type |
-| `supabase/functions/widget-ai-chat/index.ts` | Update buildNodePrompt, buildPreVerificationFlowPrompt, and system prompt for new markers |
+|------|--------|
+| `src/widget/components/blocks/registry.ts` | New: BlockDefinition interface, registration functions, shared BlockComponentProps type |
+| `src/widget/components/blocks/ActionMenuBlock.tsx` | New: Extracted from AiChat.tsx, self-registers |
+| `src/widget/components/blocks/PhoneVerifyBlock.tsx` | New: Extracted from AiChat.tsx, self-registers with flowMeta including mini phone preview |
+| `src/widget/components/blocks/YesNoBlock.tsx` | New: Extracted, self-registers with flowMeta for decision nodes |
+| `src/widget/components/blocks/EmailInputBlock.tsx` | New: Extracted, self-registers for email field type |
+| `src/widget/components/blocks/TextInputBlock.tsx` | New: Extracted, self-registers for text field type |
+| `src/widget/components/blocks/RatingBlock.tsx` | New: Extracted, self-registers |
+| `src/widget/components/blocks/ConfirmBlock.tsx` | New: Extracted, self-registers |
+| `src/widget/components/blocks/index.ts` | New: Imports all block files to trigger registration |
+| `src/widget/components/AiChat.tsx` | Refactored: Remove ~500 lines of inline components, use registry-based MessageBlockRenderer |
+| `src/widget/utils/parseMessageBlocks.ts` | Refactored: Build MARKERS dynamically from registry |
+| `src/components/admin/widget/AiFlowBuilder.tsx` | Refactored: Replace hardcoded NodeCard badges and NodeEditor previews with registry lookups |
+| `supabase/functions/widget-ai-chat/index.ts` | Refactored: Use BLOCK_PROMPTS map in buildNodePrompt instead of hardcoded if/else |
+
