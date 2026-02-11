@@ -31,6 +31,7 @@ import Settings from "./pages/Settings";
 import NotificationsPage from "./pages/NotificationsPage";
 import AdminDesignComponentsPage from "./pages/AdminDesignComponentsPage";
 import KnowledgeManagement from "./pages/KnowledgeManagement";
+import { AiChatbotSettings } from "./components/admin/AiChatbotSettings";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminEmailTemplates from "./pages/SuperAdminEmailTemplates";
 import OrganizationManagement from "./pages/OrganizationManagement";
@@ -172,6 +173,7 @@ const AppContent = () => {
       <Route path="/admin/health" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/import" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/ai-chatbot" element={<ProtectedRoute><AdminRoute><AiChatbotSettings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/widget" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       
       {/* ========== SUPER ADMIN ========== */}
