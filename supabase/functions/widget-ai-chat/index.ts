@@ -522,6 +522,67 @@ function buildFlowPrompt(flowConfig: FlowConfig): string {
   return lines.join('\n');
 }
 
+function buildPreVerificationFlowPrompt(flowConfig: FlowConfig): string | null {
+  const lines: string[] = [];
+  let foundPhoneVerify = false;
+
+  function walkNodes(nodes: FlowNode[]): boolean {
+    for (const node of nodes) {
+      const nodeType = node.type || 'message';
+
+      if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
+        const hasPhoneField = node.data_fields.some(f =>
+          f.field_type === 'phone' || f.field_type === 'tel' || f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('telefon')
+        );
+        if (hasPhoneField) {
+          lines.push(`- To verify the customer's identity, include [PHONE_VERIFY] in your response. The widget will show a phone number input and SMS OTP form.`);
+          foundPhoneVerify = true;
+          return true; // stop traversal — everything after this is post-verification
+        }
+      }
+
+      if (nodeType === 'message' && node.instruction) {
+        lines.push(`- ${node.label}: "${node.instruction}"`);
+      }
+
+      if (nodeType === 'action_menu' && node.actions) {
+        const enabled = node.actions.filter(a => a.enabled);
+        if (enabled.length > 0) {
+          lines.push(`- Present these choices using [ACTION_MENU]:`);
+          lines.push(`[ACTION_MENU]`);
+          for (const a of enabled) lines.push(a.label);
+          lines.push(`[/ACTION_MENU]`);
+        }
+      }
+
+      if (nodeType === 'decision' && node.conditions) {
+        for (const cond of node.conditions) {
+          lines.push(`- IF ${cond.check}: ${cond.if_true || ''}`);
+        }
+      }
+
+      // Recurse into children
+      if (node.children && node.children.length > 0) {
+        if (walkNodes(node.children)) return true;
+      }
+    }
+    return false;
+  }
+
+  walkNodes(flowConfig.nodes);
+  if (!foundPhoneVerify) return null;
+
+  return `VERIFICATION STATUS: The customer has NOT verified their phone.
+
+Follow this conversation flow:
+${lines.join('\n')}
+
+Additional rules:
+- You can answer general questions using search_knowledge_base while waiting for verification.
+- Do NOT look up customer data or share account details without verification.
+- Do NOT ask for the phone number in text — the [PHONE_VERIFY] form handles it.`;
+}
+
 function buildSystemPrompt(language: string, isVerified: boolean, flowConfig?: FlowConfig | null): string {
   const langInstruction = language === 'no' || language === 'nb' || language === 'nn'
     ? 'Respond in Norwegian (bokmål). Match the customer\'s language.'
@@ -555,7 +616,13 @@ AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
 8. NEVER dump a long list of all past orders unprompted. Summarise briefly and let the customer choose what to explore.`;
     }
   } else {
-    verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form that will appear. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
+    // Try to use flow config for pre-verification phase
+    const flowPreVerification = flowConfig ? buildPreVerificationFlowPrompt(flowConfig) : null;
+    if (flowPreVerification) {
+      verificationContext = flowPreVerification;
+    } else {
+      verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone via SMS. You can answer general questions about Noddi services using the knowledge base. However, if they ask about their specific bookings, account, or want to make changes, politely tell them they need to verify their phone number first using the phone verification form that will appear. The form will ask for their phone number and send an SMS code. Do NOT try to collect the phone number in the chat — the dedicated form handles this. Do NOT look up customer data without verification.`;
+    }
   }
 
   return `You are Noddi's AI customer assistant. You help customers with questions about Noddi's services (mobile car wash, tire change, tire storage, etc.) and help them look up and manage their bookings.
