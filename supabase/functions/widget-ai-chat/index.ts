@@ -468,10 +468,6 @@ function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): s
       }
     }
   }
-        lines.push(`${indent}To collect "${field.label}", include the marker [TEXT_INPUT]${placeholder}[/TEXT_INPUT] in your response. The widget will render a text input field.`);
-      }
-    }
-  }
 
   // Decision conditions with recursive branches
   if (nodeType === 'decision' && node.conditions && node.conditions.length > 0) {
