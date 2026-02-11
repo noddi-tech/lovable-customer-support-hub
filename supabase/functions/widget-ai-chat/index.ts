@@ -421,6 +421,13 @@ function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): s
 
   // Data collection fields
   if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
+    // Check if any field is a phone/tel type — if so, instruct AI to emit [PHONE_VERIFY]
+    const hasPhoneField = node.data_fields.some(f =>
+      f.field_type === 'phone' || f.field_type === 'tel' || f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('telefon')
+    );
+    if (hasPhoneField) {
+      lines.push(`${indent}To collect and verify the customer's phone number, include the marker [PHONE_VERIFY] in your response. The widget will render an interactive phone verification form. Do NOT ask for the phone number in text — the form handles it.`);
+    }
     lines.push(`${indent}Required data to collect:`);
     for (const field of node.data_fields) {
       const reqText = field.required ? 'required' : 'optional';
@@ -458,15 +465,19 @@ function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): s
   if (nodeType === 'action_menu' && node.actions && node.actions.length > 0) {
     const enabled = node.actions.filter(a => a.enabled);
     if (enabled.length > 0) {
-      lines.push(`${indent}Present these options:`);
+      lines.push(`${indent}Present these options using the [ACTION_MENU] marker so they render as clickable buttons:`);
+      lines.push(`${indent}[ACTION_MENU]`);
+      for (const action of enabled) {
+        lines.push(`${indent}${action.label}`);
+      }
+      lines.push(`${indent}[/ACTION_MENU]`);
+      // Add branch instructions after the menu
       for (const action of enabled) {
         if (action.children && action.children.length > 0) {
-          lines.push(`${indent}  If customer chooses "${action.label}", then:`);
+          lines.push(`${indent}If customer chooses "${action.label}", then:`);
           for (const child of action.children) {
-            lines.push(buildNodePrompt(child, depth + 2, allNodes));
+            lines.push(buildNodePrompt(child, depth + 1, allNodes));
           }
-        } else {
-          lines.push(`${indent}  - "${action.label}"`);
         }
       }
     }
@@ -552,6 +563,19 @@ AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
 ${langInstruction}
 
 ${verificationContext}
+
+INTERACTIVE COMPONENTS:
+You can use special markers in your responses that the widget will render as interactive UI elements.
+- To present action choices as clickable buttons, wrap them in markers:
+[ACTION_MENU]
+Option 1
+Option 2
+Option 3
+[/ACTION_MENU]
+- To trigger phone verification (phone number input + SMS OTP), include:
+[PHONE_VERIFY]
+The widget will render these as interactive components. Do NOT describe them as text — just include the markers and the widget handles the rest.
+Do NOT wrap the markers in code blocks or quotes. They must appear as plain text in your response.
 
 CORE RULES:
 1. Be friendly, helpful, and concise. Use a warm, professional tone.
