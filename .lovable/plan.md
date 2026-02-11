@@ -1,53 +1,48 @@
 
-
-# Fix Address Search Block Sandbox: Enable Interactive Testing
+# Make Field Types Dynamic from Component Registry
 
 ## Problem
 
-When you click "Try it" on the Address Search block, the input renders but nothing happens when you type. This is because the sandbox doesn't pass `widgetKey` to the component, and the component skips all API calls when `widgetKey` is missing (`if (!widgetKey) return`).
+The "Fields to Collect" dropdown in the Data Collection node editor has a hardcoded list of 5 field types (Phone, Email, Text, Number, Date). The Address Search block registers with `applicableFieldTypes: ['address']`, but "address" isn't in the dropdown -- so you can never select it.
 
 ## Solution
 
-Two changes:
+Make the dropdown dynamically populated from the block registry instead of being hardcoded. Any block that declares `applicableFieldTypes` will automatically appear as an option.
 
-### 1. Pass `widgetKey` in sandbox mode
+## Changes
 
-In `ComponentLibrary.tsx`, the sandbox renders `<block.component>` without `widgetKey`. Adding `widgetKey="sandbox"` will allow the Address Search block to make real API calls to the edge function (the edge function doesn't validate widget keys -- it just proxies to Noddi's API).
+### File: `src/components/admin/widget/AiFlowBuilder.tsx`
 
-This is a one-line change in the `BlockCard` component where the sandbox renders:
+**1. Update the `DataField` type (line 39)**
 
+Change from:
+```typescript
+field_type: 'phone' | 'email' | 'text' | 'number' | 'date';
 ```
-<block.component
-  primaryColor="hsl(var(--primary))"
-  messageId="sandbox-preview"
-  blockIndex={0}
-  usedBlocks={new Set()}
-  widgetKey="sandbox"          // <-- add this
-  onAction={...}
-  data={getSampleData(block.type)}
-/>
+To:
+```typescript
+field_type: string;
 ```
 
-### 2. Add sample data for `address_search`
+This allows any registry-defined field type.
 
-In `getSampleData`, add an entry for the address search block:
+**2. Replace the hardcoded Select options (lines 1064-1070)**
 
+Instead of 5 hardcoded `SelectItem`s, dynamically generate them from the registry using `getAllBlocks()`:
+
+```typescript
+{getAllBlocks()
+  .filter(b => b.flowMeta.applicableFieldTypes?.length)
+  .map(b => b.flowMeta.applicableFieldTypes!.map(ft => (
+    <SelectItem key={ft} value={ft}>
+      {b.flowMeta.icon} {ft.charAt(0).toUpperCase() + ft.slice(1)}
+    </SelectItem>
+  ))).flat()
+}
 ```
-case 'address_search':
-  return { placeholder: 'Search your address...' };
-```
 
-## Files Changed
+This will show: Phone, Email, Text, Address -- and any future blocks automatically.
 
-| File | Change |
-|------|--------|
-| `src/components/admin/widget/ComponentLibrary.tsx` | Add `widgetKey="sandbox"` to the sandbox `block.component` render (~line 272). Add `address_search` case in `getSampleData`. |
+**3. Ensure imports**
 
-## Result
-
-After this fix, typing in the Address Search sandbox will:
-1. Call the `noddi-address-lookup` edge function for real suggestions
-2. Show the dropdown with matching addresses
-3. On selection, resolve the address and show the delivery area result
-4. Fire a toast with the action value
-
+`getAllBlocks` needs to be imported alongside the existing `getBlockForFieldType` and `getBlockForNodeType`.
