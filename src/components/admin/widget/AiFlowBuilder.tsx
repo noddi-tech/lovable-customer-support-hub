@@ -54,6 +54,7 @@ interface FlowNode {
   no_children?: FlowNode[];
   goto_target?: string;
   decision_mode?: 'ask_customer' | 'auto_evaluate';
+  auto_evaluate_source?: string;
 }
 
 interface GeneralRules {
@@ -437,6 +438,41 @@ interface BranchTarget {
   label: string;
 }
 
+/** Collect all data collection fields from nodes that appear BEFORE a target node in the tree */
+function collectPriorDataFields(nodes: FlowNode[], targetNodeId: string): { nodeId: string; nodeLabel: string; fieldType: string; fieldLabel: string }[] {
+  const results: { nodeId: string; nodeLabel: string; fieldType: string; fieldLabel: string }[] = [];
+  let found = false;
+
+  function walk(nodeList: FlowNode[]) {
+    for (const node of nodeList) {
+      if (found) return;
+      if (node.id === targetNodeId) { found = true; return; }
+      // Collect data fields from data_collection nodes
+      if (node.type === 'data_collection' && node.data_fields) {
+        for (const field of node.data_fields) {
+          results.push({ nodeId: node.id, nodeLabel: node.label, fieldType: field.field_type, fieldLabel: field.label });
+        }
+      }
+      // Walk children in order: children first, then yes/no branches
+      walk(node.children || []);
+      if (found) return;
+      walk(node.yes_children || []);
+      if (found) return;
+      walk(node.no_children || []);
+      if (found) return;
+      if (node.actions) {
+        for (const action of node.actions) {
+          walk(action.children || []);
+          if (found) return;
+        }
+      }
+    }
+  }
+
+  walk(nodes);
+  return results;
+}
+
 function collectBranchTargets(nodes: FlowNode[], excludeNodeId?: string): BranchTarget[] {
   const targets: BranchTarget[] = [{ parentId: null, branch: 'children', label: 'Root (top level)' }];
 
@@ -663,11 +699,15 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, isSelected, onClick, depth, a
       )}
       {node.type === 'decision' && node.conditions && node.conditions.length > 0 && (
         <div className="px-2.5 pb-2 space-y-1">
+          {node.decision_mode === 'auto_evaluate' && (
+            <div className="flex items-center gap-1 mb-0.5">
+              <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-violet-200 dark:bg-violet-800 text-violet-800 dark:text-violet-200 font-bold uppercase tracking-wider flex items-center gap-0.5">
+                ⚡ Auto-Evaluate
+              </span>
+            </div>
+          )}
           <div className="text-[8px] text-amber-700 dark:text-amber-300 truncate">IF: {node.conditions[0].check}</div>
           <div className="flex gap-1 items-center">
-            {node.decision_mode === 'auto_evaluate' && (
-              <span className="text-[7px] px-1 py-0.5 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-bold uppercase tracking-wide">Auto</span>
-            )}
             <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center gap-0.5 font-semibold">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M4 22H2V11h2"/></svg>
               YES
@@ -1022,6 +1062,36 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ node, onClose, onUpdate, onRemo
                   : 'The customer will see YES/NO buttons to answer this question.'}
               </p>
             </div>
+
+            {/* Evaluate Based On selector — only for auto_evaluate */}
+            {node.decision_mode === 'auto_evaluate' && (() => {
+              const priorFields = collectPriorDataFields(allNodes, node.id);
+              return (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground font-medium">Evaluate Based On</Label>
+                  <Select
+                    value={node.auto_evaluate_source || ''}
+                    onValueChange={(val) => onUpdate(node.id, { auto_evaluate_source: val })}
+                  >
+                    <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select source field…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general_context">General context (no specific field)</SelectItem>
+                      {priorFields.map((pf) => (
+                        <SelectItem key={`${pf.nodeId}-${pf.fieldType}`} value={`${pf.nodeId}::${pf.fieldType}::${pf.fieldLabel}`}>
+                          {pf.fieldLabel} ({pf.nodeLabel})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    <span className="font-semibold text-green-600 dark:text-green-400">YES</span> = success / verified / positive
+                    {' · '}
+                    <span className="font-semibold text-red-600 dark:text-red-400">NO</span> = failure / not found / negative
+                  </p>
+                </div>
+              );
+            })()}
+
             <Label className="text-xs text-muted-foreground font-medium">Conditions</Label>
             {(node.conditions || []).map((cond) => (
               <div key={cond.id} className="rounded-lg bg-muted/50 border p-3 space-y-2">

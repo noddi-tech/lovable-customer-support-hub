@@ -380,7 +380,7 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
 interface FlowCondition { check: string; if_true?: string; if_false?: string; }
 interface FlowAction { label: string; enabled: boolean; children?: FlowNode[]; }
 interface DataField { label: string; field_type: string; required: boolean; validation_hint?: string; }
-interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; children?: FlowNode[]; yes_children?: FlowNode[]; no_children?: FlowNode[]; goto_target?: string; decision_mode?: 'ask_customer' | 'auto_evaluate'; }
+interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; children?: FlowNode[]; yes_children?: FlowNode[]; no_children?: FlowNode[]; goto_target?: string; decision_mode?: 'ask_customer' | 'auto_evaluate'; auto_evaluate_source?: string; }
 interface FlowConfig { nodes: FlowNode[]; general_rules: { max_initial_lines: number; never_dump_history: boolean; tone: string; language_behavior?: string; escalation_threshold?: number; }; }
 
 function findNodeByIdInTree(nodes: FlowNode[], nodeId: string): FlowNode | null {
@@ -475,8 +475,17 @@ function buildNodePrompt(node: FlowNode, depth: number, allNodes: FlowNode[]): s
     for (const cond of node.conditions) {
       if (isAutoEvaluate) {
         lines.push(`${indent}- Evaluate: ${cond.check}`);
-        lines.push(`${indent}  Based on the information you already have from previous steps, determine if this is true or false.`);
-        lines.push(`${indent}  Do NOT ask the customer. Do NOT show YES/NO buttons. Silently follow the appropriate branch.`);
+        if (node.auto_evaluate_source && node.auto_evaluate_source !== 'general_context') {
+          // Parse source reference: "nodeId::fieldType::fieldLabel"
+          const sourceParts = node.auto_evaluate_source.split('::');
+          const sourceLabel = sourceParts[2] || sourceParts[1] || node.auto_evaluate_source;
+          lines.push(`${indent}  Check the result/outcome of the "${sourceLabel}" step.`);
+          lines.push(`${indent}  If that step was successful/verified/positive → follow the TRUE branch.`);
+          lines.push(`${indent}  If that step failed/was not verified/negative → follow the FALSE branch.`);
+        } else {
+          lines.push(`${indent}  Based on the information you already have from previous steps, determine if this is true or false.`);
+        }
+        lines.push(`${indent}  Do NOT ask the customer. Do NOT show YES/NO buttons. Decide automatically and silently continue down the appropriate branch.`);
       } else {
         lines.push(`${indent}- IF ${cond.check}:`);
         lines.push(`${indent}  Present this as a YES/NO choice to the customer using the marker: [YES_NO]${cond.check}[/YES_NO]`);
