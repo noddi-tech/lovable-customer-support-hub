@@ -3338,6 +3338,7 @@ export type Database = {
           organization_id: string
           requires_api: boolean
           type_key: string
+          ui_component: string | null
           updated_at: string
         }
         Insert: {
@@ -3354,6 +3355,7 @@ export type Database = {
           organization_id: string
           requires_api?: boolean
           type_key: string
+          ui_component?: string | null
           updated_at?: string
         }
         Update: {
@@ -3370,6 +3372,7 @@ export type Database = {
           organization_id?: string
           requires_api?: boolean
           type_key?: string
+          ui_component?: string | null
           updated_at?: string
         }
         Relationships: [
