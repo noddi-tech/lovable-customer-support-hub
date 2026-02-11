@@ -1,13 +1,10 @@
+import { getAllBlocks } from '../components/blocks';
+
 export type MessageBlock =
   | { type: 'text'; content: string }
-  | { type: 'action_menu'; options: string[] }
-  | { type: 'phone_verify' }
-  | { type: 'yes_no'; question: string }
-  | { type: 'email_input' }
-  | { type: 'text_input'; placeholder: string }
-  | { type: 'rating' }
-  | { type: 'confirm'; summary: string };
+  | { type: string; [key: string]: any };
 
+// Build MARKERS dynamically from the block registry
 interface MarkerDef {
   tag: string;
   hasClosing: boolean;
@@ -15,30 +12,14 @@ interface MarkerDef {
   parse: (inner: string) => MessageBlock;
 }
 
-const MARKERS: MarkerDef[] = [
-  { tag: '[PHONE_VERIFY]', hasClosing: false, parse: () => ({ type: 'phone_verify' }) },
-  { tag: '[EMAIL_INPUT]', hasClosing: false, parse: () => ({ type: 'email_input' }) },
-  { tag: '[RATING]', hasClosing: false, parse: () => ({ type: 'rating' }) },
-  {
-    tag: '[ACTION_MENU]', hasClosing: true, closingTag: '[/ACTION_MENU]',
-    parse: (inner) => {
-      const options = inner.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      return { type: 'action_menu', options };
-    },
-  },
-  {
-    tag: '[YES_NO]', hasClosing: true, closingTag: '[/YES_NO]',
-    parse: (inner) => ({ type: 'yes_no', question: inner.trim() }),
-  },
-  {
-    tag: '[TEXT_INPUT]', hasClosing: true, closingTag: '[/TEXT_INPUT]',
-    parse: (inner) => ({ type: 'text_input', placeholder: inner.trim() }),
-  },
-  {
-    tag: '[CONFIRM]', hasClosing: true, closingTag: '[/CONFIRM]',
-    parse: (inner) => ({ type: 'confirm', summary: inner.trim() }),
-  },
-];
+function buildMarkers(): MarkerDef[] {
+  return getAllBlocks().map(def => ({
+    tag: def.marker,
+    hasClosing: !!def.closingMarker,
+    closingTag: def.closingMarker,
+    parse: (inner: string) => ({ type: def.type, ...def.parseContent(inner) }),
+  }));
+}
 
 /**
  * Parses AI response content into typed blocks.
@@ -46,6 +27,7 @@ const MARKERS: MarkerDef[] = [
  * Everything outside markers becomes text blocks.
  */
 export function parseMessageBlocks(content: string): MessageBlock[] {
+  const MARKERS = buildMarkers();
   const blocks: MessageBlock[] = [];
   let remaining = content;
 
@@ -87,7 +69,7 @@ export function parseMessageBlocks(content: string): MessageBlock[] {
       const block = earliest.marker.parse(inner);
       // Only push if the block has meaningful content (or is always valid)
       if (block.type === 'action_menu') {
-        if ((block as any).options.length > 0) blocks.push(block);
+        if ((block as any).options?.length > 0) blocks.push(block);
       } else {
         blocks.push(block);
       }
