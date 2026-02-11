@@ -197,6 +197,8 @@ function getSampleData(type: string): Record<string, any> {
       return {};
     case 'rating':
       return { maxStars: 5 };
+    case 'address_search':
+      return { placeholder: 'Search your address...' };
     default:
       return {};
   }
@@ -274,6 +276,7 @@ const BlockCard: React.FC<{ block: BlockDefinition }> = ({ block }) => {
               messageId="sandbox-preview"
               blockIndex={0}
               usedBlocks={new Set()}
+              widgetKey="sandbox"
               onAction={(val, key) => {
                 toast({
                   title: 'Action triggered',
