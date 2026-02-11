@@ -274,6 +274,135 @@ function moveNodeInSiblings(nodes: FlowNode[], nodeId: string, direction: -1 | 1
   }));
 }
 
+/** Swap a node with its parent in a chain (move up through parent-child nesting) */
+function swapWithParent(nodes: FlowNode[], nodeId: string): FlowNode[] {
+  // Search each branch array for a node whose children/yes_children/no_children contain nodeId
+  function swapInArray(arr: FlowNode[]): { result: FlowNode[]; swapped: boolean } {
+    for (let i = 0; i < arr.length; i++) {
+      const parent = arr[i];
+      // Check children
+      const childIdx = (parent.children || []).findIndex(c => c.id === nodeId);
+      if (childIdx !== -1) {
+        const child = parent.children![childIdx];
+        // Swap: child takes parent's place, parent becomes child's child
+        const newParent = { ...parent, children: [...parent.children!.slice(0, childIdx), ...parent.children!.slice(childIdx + 1)] };
+        const newChild = { ...child, children: [...(child.children || []), newParent] };
+        const newArr = [...arr];
+        newArr[i] = newChild;
+        return { result: newArr, swapped: true };
+      }
+      // Recurse into children
+      for (const branch of ['children', 'yes_children', 'no_children'] as const) {
+        const branchArr = parent[branch] || [];
+        const sub = swapInArray(branchArr);
+        if (sub.swapped) {
+          return { result: arr.map((n, j) => j === i ? { ...n, [branch]: sub.result } : n), swapped: true };
+        }
+      }
+      // Recurse into action children
+      if (parent.actions) {
+        for (let ai = 0; ai < parent.actions.length; ai++) {
+          const action = parent.actions[ai];
+          if (action.children) {
+            const sub = swapInArray(action.children);
+            if (sub.swapped) {
+              const newActions = parent.actions.map((a, j) => j === ai ? { ...a, children: sub.result } : a);
+              return { result: arr.map((n, j) => j === i ? { ...n, actions: newActions } : n), swapped: true };
+            }
+          }
+        }
+      }
+    }
+    return { result: arr, swapped: false };
+  }
+
+  return swapInArray(nodes).result;
+}
+
+/** Swap a node with its first child (move down through parent-child nesting) */
+function swapWithChild(nodes: FlowNode[], nodeId: string): FlowNode[] {
+  function swapInArray(arr: FlowNode[]): { result: FlowNode[]; swapped: boolean } {
+    for (let i = 0; i < arr.length; i++) {
+      const node = arr[i];
+      if (node.id === nodeId && node.children && node.children.length > 0) {
+        const firstChild = node.children[0];
+        const remainingChildren = node.children.slice(1);
+        // Swap: firstChild takes node's place, node becomes firstChild's child
+        const newNode = { ...node, children: remainingChildren };
+        const newChild = { ...firstChild, children: [...(firstChild.children || []), newNode] };
+        const newArr = [...arr];
+        newArr[i] = newChild;
+        return { result: newArr, swapped: true };
+      }
+      // Recurse
+      for (const branch of ['children', 'yes_children', 'no_children'] as const) {
+        const branchArr = node[branch] || [];
+        const sub = swapInArray(branchArr);
+        if (sub.swapped) {
+          return { result: arr.map((n, j) => j === i ? { ...n, [branch]: sub.result } : n), swapped: true };
+        }
+      }
+      if (node.actions) {
+        for (let ai = 0; ai < node.actions.length; ai++) {
+          const action = node.actions[ai];
+          if (action.children) {
+            const sub = swapInArray(action.children);
+            if (sub.swapped) {
+              const newActions = node.actions.map((a, j) => j === ai ? { ...a, children: sub.result } : a);
+              return { result: arr.map((n, j) => j === i ? { ...n, actions: newActions } : n), swapped: true };
+            }
+          }
+        }
+      }
+    }
+    return { result: arr, swapped: false };
+  }
+
+  return swapInArray(nodes).result;
+}
+
+/** Chain-aware move: tries sibling swap first, falls back to parent/child swap */
+function moveNode(nodes: FlowNode[], nodeId: string, direction: -1 | 1): FlowNode[] {
+  const siblingInfo = getSiblingInfo(nodes, nodeId);
+  if (siblingInfo && siblingInfo.total > 1) {
+    // Can do sibling swap
+    const targetIdx = siblingInfo.index + direction;
+    if (targetIdx >= 0 && targetIdx < siblingInfo.total) {
+      return moveNodeInSiblings(nodes, nodeId, direction);
+    }
+  }
+  // Fall back to chain swap
+  if (direction === -1) {
+    return swapWithParent(nodes, nodeId);
+  } else {
+    return swapWithChild(nodes, nodeId);
+  }
+}
+
+/** Check if a node can move up (has sibling above OR has a parent to swap with) */
+function canNodeMoveUp(nodes: FlowNode[], nodeId: string): boolean {
+  const info = getSiblingInfo(nodes, nodeId);
+  if (!info) return false;
+  if (info.index > 0) return true;
+  // Check if it has a parent (i.e., it's not at the root level, or even at root there's a parent concept)
+  // If it's the sole child, it can swap with parent — unless it's at root level index 0
+  return !isRootNode(nodes, nodeId);
+}
+
+/** Check if a node can move down (has sibling below OR has children to swap with) */
+function canNodeMoveDown(nodes: FlowNode[], nodeId: string): boolean {
+  const info = getSiblingInfo(nodes, nodeId);
+  if (!info) return false;
+  if (info.index < info.total - 1) return true;
+  // Check if node has children to swap with
+  const node = findNodeInTree(nodes, nodeId);
+  return !!(node && node.children && node.children.length > 0);
+}
+
+function isRootNode(nodes: FlowNode[], nodeId: string): boolean {
+  return nodes.some(n => n.id === nodeId);
+}
+
 function detachNodeFromTree(nodes: FlowNode[], nodeId: string): { updatedTree: FlowNode[]; detachedNode: FlowNode | null } {
   let detached: FlowNode | null = null;
 
@@ -619,8 +748,8 @@ const FlowNodeRenderer: React.FC<FlowNodeRendererProps> = ({
             allNodes={allNodes}
             onMoveUp={() => onMoveNode(node.id, -1)}
             onMoveDown={() => onMoveNode(node.id, 1)}
-            canMoveUp={idx > 0}
-            canMoveDown={idx < nodes.length - 1}
+            canMoveUp={canNodeMoveUp(allNodes, node.id)}
+            canMoveDown={canNodeMoveDown(allNodes, node.id)}
           />
 
           {/* Decision branching */}
@@ -1089,7 +1218,7 @@ export const AiFlowBuilder: React.FC<AiFlowBuilderProps> = ({ widgetId }) => {
   };
 
   const handleMoveNode = (nodeId: string, direction: -1 | 1) => {
-    setFlow(prev => ({ ...prev, nodes: moveNodeInSiblings(prev.nodes, nodeId, direction) }));
+    setFlow(prev => ({ ...prev, nodes: moveNode(prev.nodes, nodeId, direction) }));
   };
 
   const handleMoveToTarget = (nodeId: string, target: BranchTarget) => {
