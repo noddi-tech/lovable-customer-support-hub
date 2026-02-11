@@ -1,103 +1,75 @@
 
 
-# Fix Decision Node: Auto-Evaluate UX + Outcome-Based Branching
+# Fix Flow Continuation After Phone Verification
 
-## Issues Identified
+## Problems
 
-### 1. Auto badge not visible
-The "Auto" badge code exists and works, but only shows after you click a Decision node and manually toggle to "Auto-Evaluate" in the editor. The nodes in your screenshot are still in the default "Ask Customer" mode. This is a discoverability problem -- when you first create a decision that should auto-evaluate, there's no hint that the option exists.
+### 1. Test mode remembers verified phone
+The "Start new conversation" button (`handleNewConversation`) clears messages and conversation ID but does NOT clear `noddi_ai_verified_phone` from localStorage. So when you restart a test, the phone is still verified and the AI skips the verification step entirely.
 
-### 2. No way to steer what happens after an outcome
-This is the core problem. Right now the auto-evaluate mode just tells the AI to "figure it out from context." But you need **explicit links** between a previous step's result and the decision's branching. For example: "If Phone Verification succeeded (PIN verified) -> YES branch, else -> NO branch."
+### 2. Flow prompt includes already-completed steps
+When `isVerified=true`, `buildFlowPrompt` outputs the ENTIRE flow tree -- including the phone verification data collection node and the "Did the customer verify?" auto-evaluate decision. The AI receives contradictory instructions: the system prompt says "phone is verified" but the flow says "collect phone number" and "evaluate if verified." The AI doesn't know to skip past these steps to the address collection.
 
-### 3. Fields disappeared
-Looking at your saved flow data, the fields ARE still saved in the database. However, the old default flow nodes (Ask for Phone Number, Existing Customer?) are stuck at the bottom of the canvas because they're nested inside the action menu's `children` array alongside your new nodes. This makes the flow look broken. This is a data issue from the initial default flow structure -- those orphan nodes need to be removed manually by clicking them and deleting.
+## Solution
 
----
+### Change 1: Clear verified phone on new conversation (AiChat.tsx)
 
-## Plan
+In the `handleNewConversation` callback (line ~242), also clear the verified phone state:
 
-### Change 1: Add "Evaluate Based On" selector to auto-evaluate decisions
-
-When a Decision node is set to "Auto-Evaluate", show a new dropdown: **"Evaluate based on"** that lists all Data Collection fields from nodes that come BEFORE the decision in the tree. This creates an explicit link.
-
-**File: `src/components/admin/widget/AiFlowBuilder.tsx`**
-
-- Add `auto_evaluate_source?: string` to `FlowNode` interface (stores the field type or node ID to reference)
-- Add a helper `collectPriorDataFields(nodes, targetNodeId)` that walks the tree and returns all data fields from nodes that appear before the decision
-- In the Decision editor section (after the mode toggle, around line 1024), when `auto_evaluate` is selected, render:
-  - A Select dropdown listing prior data collection fields (e.g., "Phone + PIN Verification from 'Ask for Phone Number'", "Address from 'Collect Address'")
-  - Hint text explaining: "The AI will check the result of this field and branch YES (success) or NO (failure)"
-
-UI in the editor when auto-evaluate is selected:
-
-```text
-Decision Mode
-  [Ask Customer]  [Auto-Evaluate*]
-
-  Evaluate based on:
-  [ Phone + PIN Verification (Ask for Phone Number) v ]
-
-  The AI will check the outcome of this field.
-  YES branch = success/verified | NO branch = failure/not found
+```typescript
+const handleNewConversation = useCallback(() => {
+  setMessages([...]);
+  setConversationId(null);
+  setVerifiedPhone('');  // ADD THIS
+  localStorage.removeItem(VERIFIED_PHONE_KEY);  // ADD THIS
+  // ... rest unchanged
+}, [t]);
 ```
 
-### Change 2: Update prompt generation for explicit outcome references
+### Change 2: Skip completed nodes in post-verification flow prompt (edge function)
 
-**File: `supabase/functions/widget-ai-chat/index.ts`**
+In `buildFlowPrompt` (or `buildSystemPrompt`), when `isVerified=true`, skip over:
+- Data collection nodes that contain phone/tel fields (already done)
+- Auto-evaluate decision nodes whose `auto_evaluate_source` references a phone field (already resolved -- phone IS verified)
 
-Update the auto-evaluate prompt section (around line 476) to include the specific source reference:
-
-Current:
+Instead of skipping silently, inject a context line like:
 ```
-- Evaluate: {condition}
-  Based on the information you already have...
-```
-
-New (when source is specified):
-```
-- Evaluate: {condition}
-  Check the result/outcome of the "{source_label}" step.
-  If that step was successful/verified/positive -> follow the TRUE branch.
-  If that step failed/was not verified/negative -> follow the FALSE branch.
-  Do NOT ask the customer. Decide automatically and silently continue.
+ALREADY COMPLETED: Phone verification was successful. Skip directly to the next step.
 ```
 
-### Change 3: Improve auto badge visibility on canvas
+Then continue outputting the YES branch of the auto-evaluate decision (the address step), skipping the NO branch entirely.
 
-**File: `src/components/admin/widget/AiFlowBuilder.tsx`**
+**Implementation in `supabase/functions/widget-ai-chat/index.ts`:**
 
-The badge already exists at line 668 but is small. Make it more prominent:
-- Move it above the YES/NO row instead of inline
-- Use a slightly larger font and distinct icon (brain/zap icon)
+Add a new function `buildPostVerificationFlowPrompt(flowConfig)` that:
+1. Walks the node tree
+2. When it encounters a data_collection node with a phone field, marks it as completed and skips it
+3. When it encounters an auto-evaluate decision node linked to that phone field, automatically resolves it as TRUE and only emits the YES branch children
+4. Continues outputting all remaining nodes normally (address collection, next decisions, etc.)
 
-### Change 4: Add `auto_evaluate_source` to edge function types
+This way the AI receives a clean flow starting from the address step:
+```
+ALREADY COMPLETED: Customer phone verified successfully.
 
-**File: `supabase/functions/widget-ai-chat/index.ts`**
+### Get address
+Required data to collect:
+  - Address (address format, required)
+  Use [ADDRESS_SEARCH] to collect the address.
 
-Add `auto_evaluate_source?: string` to the `FlowNode` interface in the edge function so the prompt builder can reference it.
+### Do we deliver?
+  Evaluate: Do we deliver to this address?
+  Check the result of the "Address Search" step...
+```
 
----
+### Change 3: Add "Clear Session" to test mode (WidgetTestMode.tsx)
+
+Add a button to the test mode UI that clears all widget localStorage (verified phone, messages, conversation ID) so admins can re-test the full flow from scratch without ending and restarting the test.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/admin/widget/AiFlowBuilder.tsx` | Add `auto_evaluate_source` to FlowNode, add prior-fields collector helper, add "Evaluate based on" dropdown in decision editor, improve auto badge styling |
-| `supabase/functions/widget-ai-chat/index.ts` | Add `auto_evaluate_source` to FlowNode, update prompt generation to reference specific source field/step |
-
-## Result
-
-After this change, the flow you're building will work like:
-
-1. **Data Collection: Ask for Phone** (collects phone, triggers PIN verification)
-2. **Decision: Customer verified?** -- set to Auto-Evaluate, source = "Phone + PIN Verification"
-   - The AI automatically checks if the PIN was verified
-   - YES -> proceed to address step
-   - NO -> go to retry/create account step
-3. **Data Collection: Address Search** (collects address, checks delivery area)
-4. **Decision: Do we deliver?** -- set to Auto-Evaluate, source = "Address Search"
-   - The AI automatically checks `is_in_delivery_area`
-   - YES -> proceed to booking
-   - NO -> show alternative options
+| `src/widget/components/AiChat.tsx` | Clear `verifiedPhone` and localStorage key in `handleNewConversation` |
+| `supabase/functions/widget-ai-chat/index.ts` | Add smart flow-skipping logic in post-verification prompt to skip phone nodes and auto-resolve phone-linked decisions, outputting only the continuation (address step onwards) |
+| `src/components/admin/widget/WidgetTestMode.tsx` | Add "Clear Session" button that resets all widget localStorage |
 
