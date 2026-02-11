@@ -1,162 +1,110 @@
 
 
-# Component Registry Architecture for Flow Builder
+# Component Library Tab in AI Chatbot Flow Builder
 
-## Problem
+## Overview
 
-The Flow Builder has three critical issues:
+Add a **"Components" tab** (with a puzzle-piece icon) to the existing 5-tab layout in the AI Chatbot settings page. This tab will have two sub-views:
 
-1. **Hardcoded previews**: Changing a field type dropdown from "Phone" to "Text" still shows "Phone + PIN Verification" because the preview logic checks `field.label.toLowerCase().includes('phone')` regardless of the selected `field_type`. The preview doesn't react to the dropdown.
+1. **Library** -- Browse all registered interactive blocks with live previews and sample interaction testing
+2. **Manage** -- View component details, see their registry metadata, understand what each component does and how it connects to the flow
 
-2. **No component library**: Admins have to know what each field type does by guessing. There's no visual catalog of available interactive components they can browse and understand before adding them.
+The tab reads everything dynamically from the block registry -- zero hardcoded component lists.
 
-3. **Not scalable**: Adding a new component requires editing 4+ files with hardcoded if/else blocks. The inline block components in AiChat.tsx (1131 lines) are monolithic.
+## UI Design
 
-## Solution
+### Tab Bar Change
 
-### A. Component Registry (`src/widget/components/blocks/registry.ts`)
-
-A single source of truth that defines every interactive component with:
-
-- **Marker parsing rules** (tag, closing tag, content parser)
-- **React component** reference for the widget
-- **Flow Builder metadata** (label, icon, description, mini-preview)
-- **Prompt instruction** for the LLM
-- **API flag** for components needing backend calls
+The current 5 tabs (Flow, Test, Conversations, Analytics, Gaps) become 6 tabs:
 
 ```text
-registry.ts
-  |
-  +-- defines BlockDefinition interface
-  +-- exports registerBlock(), getBlock(), getAllBlocks()
-  +-- exports getBlockForFieldType(), getBlockForNodeType()
+[Components]  [Flow]  [Test]  [Conversations]  [Analytics]  [Gaps]
+     |
+     +-- Sub-tabs: [Library]  [Manage]
 ```
 
-### B. Extract Each Block into Its Own File
+Components tab goes first since it's the starting point for understanding available blocks.
 
-Move all inline components from AiChat.tsx into individual files:
+### Library Sub-View
 
-```text
-src/widget/components/blocks/
-  registry.ts
-  ActionMenuBlock.tsx    (existing, extracted)
-  PhoneVerifyBlock.tsx   (existing, extracted + self-registers)
-  YesNoBlock.tsx         (existing, extracted)
-  EmailInputBlock.tsx    (existing, extracted)
-  TextInputBlock.tsx     (existing, extracted)
-  RatingBlock.tsx        (existing, extracted)
-  ConfirmBlock.tsx       (existing, extracted)
-  index.ts              (imports all blocks to trigger registration)
-```
+A grid of cards, one per registered block. Each card shows:
+- Icon + Label (from `flowMeta`)
+- Description text
+- "Requires API" badge (if `requiresApi: true`)
+- Applicable field types / node types as tags
+- **Live Preview**: The actual `previewComponent` rendered
+- **Try It** button: Expands the card to show an interactive sandbox where the real widget component renders with mock props (dummy `onAction`, dummy `usedBlocks`, sample `data`)
 
-Each file exports the component AND calls `registerBlock()` with its metadata. This makes adding a new component a single-file operation.
+### Manage Sub-View
 
-### C. Dynamic Parser (parseMessageBlocks.ts)
+A table/list of all registered blocks with columns:
+- Icon + Name
+- Type (marker syntax, e.g. `[YES_NO]...[/YES_NO]`)
+- Requires API (yes/no)
+- Applicable Field Types
+- Applicable Node Types
+- Has Preview (yes/no)
 
-Instead of a hardcoded MARKERS array, the parser builds its marker list from the registry:
+This gives admins a full inventory view. Each row is expandable to show the full description, marker syntax, and preview.
+
+## Technical Implementation
+
+### File 1: `src/components/admin/widget/ComponentLibrary.tsx` (NEW)
+
+A new component with two sub-tabs (Library / Manage):
 
 ```typescript
-import { getAllBlocks } from '../components/blocks/registry';
+import { getAllBlocks, BlockDefinition } from '@/widget/components/blocks';
 
-const MARKERS = getAllBlocks().map(def => ({
-  tag: def.marker,
-  hasClosing: !!def.closingMarker,
-  closingTag: def.closingMarker,
-  parse: (inner) => ({ type: def.type, ...def.parseContent(inner) }),
-}));
-```
+const ComponentLibrary: React.FC = () => {
+  const blocks = getAllBlocks(); // Dynamic from registry
+  const [subTab, setSubTab] = useState<'library' | 'manage'>('library');
+  const [expandedBlock, setExpandedBlock] = useState<string | null>(null);
 
-### D. Simplified AiChat.tsx Renderer
-
-Replace the ~200-line if/else `MessageBlockRenderer` with a registry-driven loop:
-
-```typescript
-const def = getBlock(block.type);
-if (!def) return null;
-return <def.component {...standardProps} data={block} />;
-```
-
-This drops AiChat.tsx from ~1131 lines to ~600 lines.
-
-### E. Registry-Driven Flow Builder Previews
-
-The NodeCard badges and NodeEditor "Customer Sees" section will use registry metadata instead of hardcoded checks:
-
-**NodeCard** (data_collection nodes):
-```typescript
-const blockDef = getBlockForFieldType(field.field_type);
-// Renders: blockDef.flowMeta.icon + blockDef.flowMeta.label
-```
-
-**NodeEditor** (data_collection fields):
-```typescript
-const blockDef = getBlockForFieldType(field.field_type);
-// Shows: blockDef.flowMeta.description (info banner)
-// Shows: blockDef.flowMeta.previewComponent (mini mockup)
-```
-
-This means changing the dropdown from "Phone" to "Text" instantly swaps the preview, badge, and description. No hardcoded if/else.
-
-### F. Edge Function Prompt Map
-
-A `BLOCK_PROMPTS` lookup in the edge function replaces hardcoded if/else in `buildNodePrompt`:
-
-```typescript
-const BLOCK_PROMPTS = {
-  phone_verify: { fieldTypes: ['phone'], instruction: () => 'Include [PHONE_VERIFY]...' },
-  email_input:  { fieldTypes: ['email'], instruction: () => 'Include [EMAIL_INPUT]...' },
-  text_input:   { fieldTypes: ['text'],  instruction: ({ label }) => `Include [TEXT_INPUT]${label}[/TEXT_INPUT]...` },
-  yes_no:       { nodeTypes: ['decision'], instruction: ({ check }) => `Include [YES_NO]${check}[/YES_NO]...` },
+  // Library: grid of cards with previews and interactive sandbox
+  // Manage: table view with metadata
 };
 ```
 
-## BlockDefinition Interface
+**Library card interactive sandbox**: When "Try It" is clicked, renders the actual block component with mock props:
 
 ```typescript
-interface BlockDefinition {
-  type: string;                    // 'phone_verify', 'yes_no', etc.
-  marker: string;                  // '[PHONE_VERIFY]'
-  closingMarker?: string;          // '[/YES_NO]' or undefined for self-closing
-  parseContent: (inner: string) => Record<string, any>;
-
-  component: React.FC<BlockComponentProps>;
-  requiresApi?: boolean;
-
-  flowMeta: {
-    label: string;                 // "Phone + PIN Verification"
-    description: string;           // Info banner text
-    applicableFieldTypes?: string[];  // ['phone']
-    applicableNodeTypes?: string[];   // ['decision']
-    previewComponent?: React.FC;      // Mini mockup for NodeEditor
-  };
-
-  promptInstruction: (ctx: any) => string;
-}
+<block.component
+  primaryColor="#7c3aed"
+  messageId="preview-sandbox"
+  blockIndex={0}
+  usedBlocks={new Set()}       // Empty = interactive
+  onAction={(val, key) => {
+    toast.info(`Action: "${val}" (key: ${key})`);
+  }}
+  data={getSampleData(block.type)}  // Pre-defined sample data per type
+/>
 ```
 
-## How Adding a New Component Works (After This Refactor)
+`getSampleData` returns appropriate mock data:
+- `action_menu`: `{ options: ['Option A', 'Option B', 'Option C'] }`
+- `yes_no`: `{ question: 'Was this helpful?' }`
+- `confirm`: `{ summary: 'Cancel your booking for March 15?' }`
+- `text_input`: `{ placeholder: 'Enter your name...' }`
+- Others: `{}`
 
-1. Create `src/widget/components/blocks/DatePickerBlock.tsx`
-2. Write the React component
-3. Call `registerBlock({ type: 'date_picker', marker: '[DATE_PICKER]', flowMeta: { applicableFieldTypes: ['date'], ... }, ... })`
-4. Add one entry to `BLOCK_PROMPTS` in the edge function
-5. Done -- parser, widget renderer, flow builder previews, and prompt generation all work automatically
+### File 2: `src/components/admin/AiChatbotSettings.tsx` (MODIFIED)
+
+- Import `ComponentLibrary`
+- Add `Puzzle` icon from lucide-react
+- Change `grid-cols-5` to `grid-cols-6` in TabsList
+- Add new `TabsTrigger` for "Components" and corresponding `TabsContent`
+- The Components tab does NOT need `widgetId` -- it shows the global component registry
+
+### File 3: `src/components/admin/widget/index.ts` (MODIFIED)
+
+Add export for `ComponentLibrary`.
 
 ## File Changes Summary
 
 | File | Change |
 |------|--------|
-| `src/widget/components/blocks/registry.ts` | New: BlockDefinition interface, registration functions, shared BlockComponentProps type |
-| `src/widget/components/blocks/ActionMenuBlock.tsx` | New: Extracted from AiChat.tsx, self-registers |
-| `src/widget/components/blocks/PhoneVerifyBlock.tsx` | New: Extracted from AiChat.tsx, self-registers with flowMeta including mini phone preview |
-| `src/widget/components/blocks/YesNoBlock.tsx` | New: Extracted, self-registers with flowMeta for decision nodes |
-| `src/widget/components/blocks/EmailInputBlock.tsx` | New: Extracted, self-registers for email field type |
-| `src/widget/components/blocks/TextInputBlock.tsx` | New: Extracted, self-registers for text field type |
-| `src/widget/components/blocks/RatingBlock.tsx` | New: Extracted, self-registers |
-| `src/widget/components/blocks/ConfirmBlock.tsx` | New: Extracted, self-registers |
-| `src/widget/components/blocks/index.ts` | New: Imports all block files to trigger registration |
-| `src/widget/components/AiChat.tsx` | Refactored: Remove ~500 lines of inline components, use registry-based MessageBlockRenderer |
-| `src/widget/utils/parseMessageBlocks.ts` | Refactored: Build MARKERS dynamically from registry |
-| `src/components/admin/widget/AiFlowBuilder.tsx` | Refactored: Replace hardcoded NodeCard badges and NodeEditor previews with registry lookups |
-| `supabase/functions/widget-ai-chat/index.ts` | Refactored: Use BLOCK_PROMPTS map in buildNodePrompt instead of hardcoded if/else |
+| `src/components/admin/widget/ComponentLibrary.tsx` | **New**: Component Library with Library (card grid + interactive sandbox) and Manage (table view) sub-tabs |
+| `src/components/admin/AiChatbotSettings.tsx` | **Modified**: Add 6th "Components" tab with Puzzle icon |
+| `src/components/admin/widget/index.ts` | **Modified**: Export ComponentLibrary |
 
