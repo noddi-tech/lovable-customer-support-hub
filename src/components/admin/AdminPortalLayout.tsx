@@ -37,6 +37,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { Heading } from '@/components/ui/heading';
+import { cn } from '@/lib/utils';
 
 interface AdminPortalLayoutProps {
   children: React.ReactNode;
@@ -298,6 +299,16 @@ const AdminSidebar = () => {
   );
 };
 
+const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const isFullWidth = location.pathname === '/admin/ai-chatbot';
+  return (
+    <div className={cn("py-6", isFullWidth ? "px-4" : "px-8 max-w-7xl mx-auto")}>
+      {children}
+    </div>
+  );
+};
+
 export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
 
@@ -334,9 +345,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
           {/* Content area with proper pane scrolling */}
           <PaneColumn className="flex-1 min-h-0">
             <PaneScroll className="h-full">
-              <div className="px-8 py-6 max-w-7xl mx-auto">
-                {children}
-              </div>
+              <LayoutContent>{children}</LayoutContent>
             </PaneScroll>
           </PaneColumn>
         </main>

@@ -88,9 +88,9 @@ export const AiChatbotSettings: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-4">
         {/* Widget Selector Sidebar */}
-        <Card className="w-[280px] shrink-0">
+        <Card className="w-[220px] shrink-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
