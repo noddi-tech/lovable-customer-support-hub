@@ -245,8 +245,10 @@ export const AiChat: React.FC<AiChatProps> = ({
     setStreamingContent('');
     setInputValue('');
     setUsedBlocks(new Set());
+    setVerifiedPhone('');
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(CONVERSATION_ID_KEY);
+    localStorage.removeItem(VERIFIED_PHONE_KEY);
   }, [t]);
 
   return (
