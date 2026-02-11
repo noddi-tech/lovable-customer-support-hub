@@ -379,17 +379,33 @@ async function executeCancelBooking(bookingId: number, reason?: string): Promise
 
 interface FlowCondition { check: string; if_true: string; if_false: string; }
 interface FlowAction { label: string; enabled: boolean; }
-interface FlowNode { id: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; }
-interface FlowConfig { nodes: FlowNode[]; general_rules: { max_initial_lines: number; never_dump_history: boolean; tone: string; }; }
+interface DataField { label: string; field_type: string; required: boolean; validation_hint?: string; }
+interface FlowNode { id: string; type?: string; label: string; instruction: string; conditions?: FlowCondition[]; actions?: FlowAction[]; data_fields?: DataField[]; }
+interface FlowConfig { nodes: FlowNode[]; general_rules: { max_initial_lines: number; never_dump_history: boolean; tone: string; language_behavior?: string; escalation_threshold?: number; }; }
 
 function buildFlowPrompt(flowConfig: FlowConfig): string {
   const lines: string[] = [];
   
   for (const node of flowConfig.nodes) {
+    const nodeType = node.type || 'message';
     lines.push(`\n### ${node.label}`);
-    lines.push(node.instruction);
     
-    if (node.conditions && node.conditions.length > 0) {
+    if (node.instruction) {
+      lines.push(node.instruction);
+    }
+
+    // Data collection fields
+    if (nodeType === 'data_collection' && node.data_fields && node.data_fields.length > 0) {
+      lines.push('Required data to collect:');
+      for (const field of node.data_fields) {
+        const reqText = field.required ? 'required' : 'optional';
+        const hint = field.validation_hint ? `, ${field.validation_hint}` : '';
+        lines.push(`  - ${field.label} (${field.field_type} format, ${reqText}${hint})`);
+      }
+    }
+
+    // Decision conditions
+    if ((nodeType === 'decision' || !nodeType) && node.conditions && node.conditions.length > 0) {
       for (const cond of node.conditions) {
         lines.push(`- IF ${cond.check}:`);
         lines.push(`  → YES: ${cond.if_true}`);
@@ -397,13 +413,20 @@ function buildFlowPrompt(flowConfig: FlowConfig): string {
       }
     }
     
-    if (node.actions && node.actions.length > 0) {
+    // Action menu
+    if ((nodeType === 'action_menu' || !nodeType) && node.actions && node.actions.length > 0) {
       const enabled = node.actions.filter(a => a.enabled);
       if (enabled.length > 0) {
+        lines.push('Present these options:');
         for (const action of enabled) {
           lines.push(`  - "${action.label}"`);
         }
       }
+    }
+
+    // Escalation
+    if (nodeType === 'escalation') {
+      lines.push('ACTION: Escalate to a human agent at this point.');
     }
   }
 
@@ -413,6 +436,12 @@ function buildFlowPrompt(flowConfig: FlowConfig): string {
   lines.push(`- Keep the initial response to max ${rules.max_initial_lines} lines before presenting choices.`);
   if (rules.never_dump_history) {
     lines.push(`- NEVER dump full booking/order history unprompted. Summarize briefly and let the customer choose.`);
+  }
+  if (rules.language_behavior) {
+    lines.push(`- Language: ${rules.language_behavior}`);
+  }
+  if (rules.escalation_threshold) {
+    lines.push(`- If the customer seems stuck or frustrated after ${rules.escalation_threshold} unanswered turns, offer to connect them with a human agent.`);
   }
 
   return lines.join('\n');

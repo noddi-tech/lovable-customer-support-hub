@@ -21,6 +21,7 @@ import { EmailIntegrationWizard } from './EmailIntegrationWizard';
 import { IntegrationSettings } from './IntegrationSettings';
 import { AdminDashboard } from './AdminDashboard';
 import { WidgetSettings } from './widget';
+import { AiChatbotSettings as AiChatbotSettingsContent } from './AiChatbotSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
@@ -117,6 +118,9 @@ export const AdminPortal = () => {
 
       case 'widget':
         return <WidgetSettings />;
+
+      case 'ai-chatbot':
+        return <AiChatbotSettingsContent />;
         
       default:
         return <AdminDashboard />;

@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Heading } from '@/components/ui/heading';
 import { RefreshCw, GitBranch, TestTube2, History, BarChart3, AlertTriangle, Bot, MessageCircle } from 'lucide-react';
 import { AiFlowBuilder } from '@/components/admin/widget/AiFlowBuilder';
 import { WidgetTestMode } from '@/components/admin/widget/WidgetTestMode';
@@ -80,10 +79,10 @@ export const AiChatbotSettings: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <Heading level={2} className="flex items-center gap-2">
+        <h2 className="text-2xl font-semibold flex items-center gap-2">
           <Bot className="h-6 w-6" />
           AI Chatbot
-        </Heading>
+        </h2>
         <p className="text-muted-foreground mt-1">
           Configure, test, and monitor your AI assistant's conversation flow and performance
         </p>

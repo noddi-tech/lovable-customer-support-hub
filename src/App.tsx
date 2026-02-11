@@ -173,7 +173,7 @@ const AppContent = () => {
       <Route path="/admin/health" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/import" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/knowledge" element={<ProtectedRoute><AdminRoute><KnowledgeManagement /></AdminRoute></ProtectedRoute>} />
-      <Route path="/admin/ai-chatbot" element={<ProtectedRoute><AdminRoute><AiChatbotSettings /></AdminRoute></ProtectedRoute>} />
+      <Route path="/admin/ai-chatbot" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       <Route path="/admin/widget" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
       
       {/* ========== SUPER ADMIN ========== */}
