@@ -22,6 +22,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
   const addressId = data.address_id ? Number(data.address_id) : null;
   const carIds: number[] = data.car_ids ? (Array.isArray(data.car_ids) ? data.car_ids.map(Number) : [Number(data.car_ids)]) : [];
+  const licensePlate: string | null = data.license_plate || null;
 
   const [firstDate, setFirstDate] = useState<string | null>(null);
   const [windows, setWindows] = useState<any[]>([]);
@@ -42,11 +43,14 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
         }).then(r => r.json());
 
         // Step 1: Fetch available sales items for this address + car
-        const itemsData = await postJson({
+        const itemsPayload: any = {
           action: 'available_items',
           address_id: addressId,
-          car_ids: carIds,
-        });
+        };
+        // Noddi API requires license_plates, not car_ids
+        if (licensePlate) itemsPayload.license_plates = [licensePlate];
+        else if (carIds.length > 0) itemsPayload.car_ids = carIds;
+        const itemsData = await postJson(itemsPayload);
 
         // Extract sales item IDs from the response
         let salesItemIds: number[] = [];
@@ -206,6 +210,7 @@ registerBlock({
       return {
         address_id: parsed.address_id || '',
         car_ids: parsed.car_ids || parsed.cars || [],
+        license_plate: parsed.license_plate || '',
       };
     } catch {}
     // Fallback: split on ::
