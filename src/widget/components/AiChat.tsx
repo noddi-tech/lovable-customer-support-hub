@@ -162,15 +162,14 @@ export const AiChat: React.FC<AiChatProps> = ({
   const isPhoneVerified = !!verifiedPhone;
 
   const sendMessage = useCallback(async (content: string, phoneOverride?: string, options?: { hidden?: boolean }) => {
-    if (!content || isLoading) return;
+    if (!content) return;
+    if (isLoading && !options?.hidden) return;  // Only block visible user input while loading
     const effectivePhone = phoneOverride || verifiedPhone;
     const effectiveVerified = !!effectivePhone;
     const isHidden = options?.hidden ?? false;
 
     const userMessage: AiChatMessage = { id: `user_${Date.now()}`, role: 'user', content, timestamp: new Date(), hidden: isHidden };
-    if (!isHidden) {
-      setMessages((prev) => [...prev, userMessage]);
-    }
+    setMessages((prev) => [...prev, userMessage]);  // Always add to state for history; hidden messages are filtered from UI
     setIsLoading(true);
     setStreamingContent('');
     onLogEvent?.('User message', content.slice(0, 100), 'info');
