@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
 import { getApiUrl } from '../../api';
 
@@ -21,22 +21,17 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
   const submitted = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
 
   const addressId = data.address_id;
-  const proposalSlug = data.proposal_slug;
 
-  const [dates, setDates] = useState<string[]>([]);
+  const [firstDate, setFirstDate] = useState<string | null>(null);
   const [windows, setWindows] = useState<any[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState('');
-  const dateScrollRef = useRef<HTMLDivElement>(null);
 
-  // Load earliest date + initial windows
   useEffect(() => {
     if (!addressId) { setError('Missing address'); setLoading(false); return; }
     (async () => {
       try {
-        // Get earliest date
+        // 1. Get earliest date
         const edResp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -45,62 +40,64 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
         const edData = await edResp.json();
         const earliest = edData.earliest_date || edData.date || new Date().toISOString().slice(0, 10);
 
-        // Generate 14 dates from earliest
-        const dateList: string[] = [];
-        const start = new Date(earliest + 'T00:00:00');
-        for (let i = 0; i < 14; i++) {
-          const d = new Date(start);
-          d.setDate(d.getDate() + i);
-          dateList.push(d.toISOString().slice(0, 10));
+        // 2. Compute to_date (earliest + 14 days)
+        const startD = new Date(earliest + 'T00:00:00');
+        const endD = new Date(startD);
+        endD.setDate(endD.getDate() + 14);
+        const toDate = endD.toISOString().slice(0, 10);
+
+        // 3. Fetch all delivery windows in range
+        const payload: any = {
+          action: 'delivery_windows',
+          address_id: addressId,
+          from_date: earliest,
+          to_date: toDate,
+        };
+        if (data.selected_sales_item_ids) {
+          payload.selected_sales_item_ids = data.selected_sales_item_ids;
         }
-        setDates(dateList);
-        setSelectedDate(dateList[0]);
-        await loadWindows(dateList[0]);
+        const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const wData = await resp.json();
+        const allWindows: any[] = Array.isArray(wData) ? wData : wData.results || wData.windows || [];
+
+        // 4. Group by date, find first date with slots
+        const byDate: Record<string, any[]> = {};
+        for (const w of allWindows) {
+          const wDate = (w.start_time || w.starts_at || '').slice(0, 10);
+          if (!wDate) continue;
+          if (!byDate[wDate]) byDate[wDate] = [];
+          byDate[wDate].push(w);
+        }
+        const sortedDates = Object.keys(byDate).sort();
+        if (sortedDates.length > 0) {
+          setFirstDate(sortedDates[0]);
+          setWindows(byDate[sortedDates[0]]);
+        } else {
+          setFirstDate(null);
+          setWindows([]);
+        }
       } catch {
-        setError('Failed to load dates');
+        setError('Failed to load available times');
       }
       setLoading(false);
     })();
   }, [addressId]);
 
-  const loadWindows = async (date: string) => {
-    setLoadingSlots(true);
-    try {
-      const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delivery_windows', address_id: addressId, from_date: date }),
-      });
-      const data = await resp.json();
-      const allWindows = Array.isArray(data) ? data : data.results || data.windows || [];
-      // Filter to selected date
-      const filtered = allWindows.filter((w: any) => {
-        const wDate = (w.start_time || w.starts_at || '').slice(0, 10);
-        return wDate === date;
-      });
-      setWindows(filtered.length > 0 ? filtered : allWindows.slice(0, 8));
-    } catch {
-      setWindows([]);
-    }
-    setLoadingSlots(false);
-  };
-
-  const handleDateSelect = (date: string) => {
-    setSelectedDate(date);
-    loadWindows(date);
-  };
-
   const handleSlotSelect = (window: any) => {
     const payload = JSON.stringify({
       delivery_window_id: window.id,
-      date: selectedDate,
+      date: firstDate,
       start_time: window.start_time || window.starts_at,
       end_time: window.end_time || window.ends_at,
       price: window.price || window.total_price,
     });
     localStorage.setItem(`noddi_action_${blockKey}`, payload);
     onAction(payload, blockKey);
-    onLogEvent?.('time_slot_selected', `${selectedDate} ${formatTime(window.start_time || window.starts_at)}`, 'success');
+    onLogEvent?.('time_slot_selected', `${firstDate} ${formatTime(window.start_time || window.starts_at)}`, 'success');
   };
 
   if (submitted) {
@@ -129,71 +126,39 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
     return <div style={{ margin: '8px 0', color: '#ef4444', fontSize: '12px' }}>{error}</div>;
   }
 
+  if (!firstDate || windows.length === 0) {
+    return <div style={{ margin: '8px 0', fontSize: '12px', color: '#9ca3af' }}>No available times in the next 2 weeks</div>;
+  }
+
   return (
     <div style={{ margin: '8px 0' }}>
-      {/* Date chips */}
-      <div ref={dateScrollRef} style={{
-        display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '8px',
-        scrollbarWidth: 'none', msOverflowStyle: 'none',
-      }}>
-        {dates.map((d) => {
-          const isSelected = d === selectedDate;
-          const label = formatDate(d);
+      <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+        First available: {formatDate(firstDate)}
+      </div>
+      <div style={{ display: 'grid', gap: '4px', gridTemplateColumns: '1fr 1fr' }}>
+        {windows.map((w, i) => {
+          const start = formatTime(w.start_time || w.starts_at || '');
+          const end = formatTime(w.end_time || w.ends_at || '');
+          const price = w.price || w.total_price;
           return (
             <button
-              key={d}
-              onClick={() => handleDateSelect(d)}
+              key={w.id || i}
+              onClick={() => handleSlotSelect(w)}
               disabled={isUsed}
               style={{
-                padding: '6px 10px', borderRadius: '16px', fontSize: '11px', fontWeight: 600,
-                whiteSpace: 'nowrap', border: '1.5px solid',
-                borderColor: isSelected ? primaryColor : '#e5e7eb',
-                background: isSelected ? primaryColor : '#fff',
-                color: isSelected ? '#fff' : '#374151',
-                cursor: isUsed ? 'default' : 'pointer',
-                flexShrink: 0,
+                padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #e5e7eb',
+                background: '#fff', cursor: isUsed ? 'default' : 'pointer',
+                textAlign: 'left', fontSize: '12px', transition: 'border-color 0.15s',
               }}
+              onMouseEnter={(e) => { if (!isUsed) (e.currentTarget as HTMLElement).style.borderColor = primaryColor; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; }}
             >
-              {label}
+              <div style={{ fontWeight: 600 }}>{start}–{end}</div>
+              {price !== undefined && <div style={{ color: '#6b7280', fontSize: '11px' }}>{price} kr</div>}
             </button>
           );
         })}
       </div>
-
-      {/* Time slots */}
-      {loadingSlots ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#9ca3af', padding: '8px 0' }}>
-          <div style={{ width: 14, height: 14, border: '2px solid #d1d5db', borderTopColor: primaryColor, borderRadius: '50%', animation: 'noddi-spin 0.6s linear infinite' }} />
-          Loading slots...
-        </div>
-      ) : windows.length === 0 ? (
-        <div style={{ fontSize: '12px', color: '#9ca3af', padding: '8px 0' }}>No available slots for this date</div>
-      ) : (
-        <div style={{ display: 'grid', gap: '4px', gridTemplateColumns: '1fr 1fr' }}>
-          {windows.map((w, i) => {
-            const start = formatTime(w.start_time || w.starts_at || '');
-            const end = formatTime(w.end_time || w.ends_at || '');
-            const price = w.price || w.total_price;
-            return (
-              <button
-                key={w.id || i}
-                onClick={() => handleSlotSelect(w)}
-                disabled={isUsed}
-                style={{
-                  padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #e5e7eb',
-                  background: '#fff', cursor: isUsed ? 'default' : 'pointer',
-                  textAlign: 'left', fontSize: '12px', transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={(e) => { if (!isUsed) (e.currentTarget as HTMLElement).style.borderColor = primaryColor; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; }}
-              >
-                <div style={{ fontWeight: 600 }}>{start}–{end}</div>
-                {price !== undefined && <div style={{ color: '#6b7280', fontSize: '11px' }}>{price} kr</div>}
-              </button>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 };
@@ -201,11 +166,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 const TimeSlotPreview: React.FC<FlowPreviewProps> = () => (
   <div className="rounded-md bg-white dark:bg-background border p-2">
     <p className="text-[9px] text-muted-foreground font-medium mb-1">Customer sees:</p>
-    <div className="flex gap-1 mb-1">
-      <div className="bg-primary/80 text-primary-foreground rounded-full px-2 py-0.5 text-[8px] font-semibold">Mon 12</div>
-      <div className="border rounded-full px-2 py-0.5 text-[8px]">Tue 13</div>
-      <div className="border rounded-full px-2 py-0.5 text-[8px]">Wed 14</div>
-    </div>
+    <p className="text-[8px] font-semibold mb-1">First available: Wed 12 Feb</p>
     <div className="grid grid-cols-2 gap-1">
       <div className="border rounded-md px-1.5 py-1 text-[8px]">08:00–12:00</div>
       <div className="border rounded-md px-1.5 py-1 text-[8px]">12:00–16:00</div>
@@ -218,7 +179,6 @@ registerBlock({
   marker: '[TIME_SLOT]',
   closingMarker: '[/TIME_SLOT]',
   parseContent: (inner) => {
-    // Parse "address_id::proposal_slug" from inner content
     const parts = inner.trim().split('::');
     return {
       address_id: parts[0] || '',
@@ -243,16 +203,16 @@ registerBlock({
         edgeFunction: 'noddi-booking-proxy',
         externalApi: 'GET /v1/delivery-windows/for-new-booking/',
         method: 'POST',
-        requestBody: { action: 'delivery_windows', address_id: 'number', from_date: 'string' },
+        requestBody: { action: 'delivery_windows', address_id: 'number', from_date: 'string', to_date: 'string' },
         responseShape: { windows: '{ id, start_time, end_time, price }[]' },
-        description: 'Get available time slots for a date and address',
+        description: 'Get available time slots for a date range and address',
       },
     ],
   },
   flowMeta: {
     label: 'Time Slot Picker',
     icon: '📅',
-    description: 'Customer selects a date and time slot for their booking.',
+    description: 'Customer selects a time slot from the first available date.',
     applicableFieldTypes: ['time_slot'],
     previewComponent: TimeSlotPreview,
   },
