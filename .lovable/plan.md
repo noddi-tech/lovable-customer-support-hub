@@ -1,74 +1,74 @@
 
 
-# Fix: `delivery_window_id: 0` flows through entire pipeline
+# Root Cause: `delivery_window_id` is Never Captured
 
-## Problem
+## The Real Problem
 
-The logs show `delivery_window_id: 0` reaching the proxy. Here's why -- three layers all fail to catch it:
+All previous fixes (localStorage recovery, server-side patching, truthiness checks) were treating symptoms. The actual bug is much simpler:
 
-1. **AI outputs `delivery_window_id: 0`** in its `[BOOKING_SUMMARY]` JSON (it doesn't know the real ID)
-2. **Server-side `patchBookingSummary`** tries to recover it from conversation messages but either doesn't find the time slot message or the scan fails silently
-3. **Frontend `BookingSummaryBlock`** passes `0` through because the recent `!= null` check was intended to preserve valid values, but `0` is never a valid delivery window ID
-4. **Frontend localStorage recovery** runs (since `!0` is truthy) but apparently doesn't find the TimeSlotBlock entry -- likely because the `noddi_action_` key format or JSON structure doesn't match expectations
+The Noddi API's `/v1/delivery-windows/for-new-booking/` response returns window objects that **do not have a field called `id`**. The field is likely called `pk`, `delivery_window_id`, or something else. 
 
-## Solution
-
-### Change 1: Revert `!= null` check (BookingSummaryBlock.tsx, line 30)
-
-Change back to truthiness check so `0` is ignored and triggers recovery:
-
+In `TimeSlotBlock.tsx` line 120, the code does:
 ```
-// Before (broken):
-if (data.delivery_window_id != null) bookingPayload.delivery_window_id = data.delivery_window_id;
-
-// After (fixed):
-if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id;
+delivery_window_id: window.id,   // <-- window.id is undefined!
 ```
 
-### Change 2: Add guard after localStorage recovery (BookingSummaryBlock.tsx)
+Since `undefined` values are silently dropped by `JSON.stringify`, the user message sent to the AI contains only `{ date, start_time, end_time }` with no delivery window ID at all. This is exactly what your log screenshot shows.
 
-After the localStorage scan, if `delivery_window_id` is still missing, show a user-friendly error and abort instead of sending a doomed request:
+Every downstream recovery mechanism fails because the ID was never captured in the first place -- there's nothing to recover.
+
+## Evidence
+
+Your second screenshot shows the user message payload:
+```
+{"date":"2026-02-16","start_time":"2026-02-16T08:00:00Z","end_time":"2026-02-16T11:00:00Z"}
+```
+No `delivery_window_id` field at all -- confirming it was `undefined` at capture time.
+
+## Fix
+
+### Change 1: Fix ID extraction in TimeSlotBlock (the actual fix)
+
+**File: `src/widget/components/blocks/TimeSlotBlock.tsx`**
+
+Update `handleSlotSelect` to try multiple possible field names from the Noddi API response:
 
 ```typescript
-if (!bookingPayload.delivery_window_id) {
-  setError('Could not determine your selected time slot. Please go back and select a time slot again.');
-  setConfirming(false);
-  onLogEvent?.('booking_delivery_window_missing', '', 'error');
-  return;
+const handleSlotSelect = (window: any) => {
+    const currentDate = sortedDates[selectedIdx];
+    const windowId = window.id || window.pk || window.delivery_window_id 
+                     || window.delivery_window?.id;
+    const payload = JSON.stringify({
+      delivery_window_id: windowId,
+      date: currentDate,
+      start_time: window.start_time || window.starts_at,
+      end_time: window.end_time || window.ends_at,
+      price: window.price || window.total_price,
+    });
+    // ...
+};
+```
+
+Also update the button `key` prop on line 199 from `w.id || i` to `w.id || w.pk || w.delivery_window_id || i`.
+
+### Change 2: Add diagnostic logging (temporary)
+
+Add a `console.log` of the first window object received from the API so we can confirm the exact field name Noddi uses. This will appear in the browser console and help verify the fix:
+
+```typescript
+if (flatWindows.length > 0) {
+  console.log('[TimeSlotBlock] Sample window object keys:', Object.keys(flatWindows[0]), flatWindows[0]);
 }
 ```
 
-### Change 3: Add logging to localStorage recovery (BookingSummaryBlock.tsx)
+### Change 3: Keep existing safety nets
 
-Log what keys are found during the scan so we can diagnose why recovery fails:
-
-```typescript
-if (!bookingPayload.delivery_window_id) {
-  onLogEvent?.('booking_delivery_window_recovery', '', 'info');
-  const actionKeys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith('noddi_action_')) actionKeys.push(key!);
-    // ... existing scan logic
-  }
-  onLogEvent?.('booking_recovery_keys_found', actionKeys.join(','), 'info');
-}
-```
-
-### Change 4: Fix server-side scan in `patchBookingSummary` (widget-ai-chat/index.ts, line 308)
-
-The scan at line 308 checks `!summaryData.delivery_window_id` which is `!0 === true`, so it runs. But we should also check for `0` explicitly and overwrite it:
-
-```typescript
-if (!summaryData.delivery_window_id || summaryData.delivery_window_id === 0) {
-```
-
-This ensures `0` is treated as "missing" on the server side too.
+The existing recovery mechanisms in `BookingSummaryBlock.tsx` and `widget-ai-chat/index.ts` remain as safety nets, but once this fix is in place, they should rarely be needed since the ID will be properly captured at the source.
 
 ## Summary
 
-- Revert `!= null` to truthiness check (line 30) -- `0` is never a valid ID
-- Add final guard with user-friendly error when recovery fails
-- Add diagnostic logging to recovery scan
-- Fix server-side `patchBookingSummary` to treat `0` as missing
-- Redeploy `widget-ai-chat` edge function after server-side fix
+- The core bug is a field name mismatch: `window.id` vs whatever Noddi actually calls it (`pk`, `delivery_window_id`, etc.)
+- Fix the extraction to try multiple field names
+- Add temporary logging to confirm the exact field name
+- All existing recovery code stays as fallback protection
+
