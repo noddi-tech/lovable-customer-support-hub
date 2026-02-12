@@ -305,7 +305,7 @@ async function patchBookingSummary(reply: string, messages: any[], visitorPhone?
   }
 
   // Extract delivery_window_id from user action messages (time slot selection)
-  if (!summaryData.delivery_window_id) {
+  if (!summaryData.delivery_window_id || summaryData.delivery_window_id === 0) {
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
       if (msg.role === 'user' && typeof msg.content === 'string') {
