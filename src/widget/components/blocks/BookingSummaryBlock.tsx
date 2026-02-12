@@ -19,10 +19,13 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
     onLogEvent?.('booking_confirm_started', '', 'info');
 
     try {
-      // Create booking via shopping cart
+      // Create booking via Noddi API
       const bookingPayload: any = { action: 'create_booking' };
       if (data.address_id) bookingPayload.address_id = data.address_id;
-      if (data.car_id) bookingPayload.car_id = data.car_id;
+      if (data.user_id) bookingPayload.user_id = data.user_id;
+      if (data.user_group_id) bookingPayload.user_group_id = data.user_group_id;
+      if (data.license_plate) bookingPayload.license_plate = data.license_plate;
+      if (data.country_code) bookingPayload.country_code = data.country_code || 'NO';
       if (data.sales_item_ids) bookingPayload.sales_item_ids = data.sales_item_ids;
       if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id;
 

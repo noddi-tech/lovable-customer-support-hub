@@ -365,6 +365,19 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
           license_plate: b.car.license_plate_number || b.car.license_plate || '',
         });
       }
+      // Handle cars array (some Noddi bookings use plural)
+      if (Array.isArray(b.cars)) {
+        for (const car of b.cars) {
+          if (car?.id && !storedCars.has(car.id)) {
+            storedCars.set(car.id, {
+              id: car.id,
+              make: car.make || '',
+              model: car.model || '',
+              license_plate: car.license_plate_number || car.license_plate || '',
+            });
+          }
+        }
+      }
     }
 
     return JSON.stringify({
@@ -985,11 +998,12 @@ Option 2
 7. CONFIRM — render a confirmation card with Confirm/Cancel buttons:
 [CONFIRM]Summary of what will happen[/CONFIRM]
 
-8. ADDRESS SEARCH — render an interactive address picker with search:
-When you need to collect an address, output ONLY the marker — no introductory text, no list of addresses, no "Here are your addresses".
-With stored addresses: [ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, 1368 Oslo", "zip_code": "1368", "city": "Oslo"}]}[/ADDRESS_SEARCH]
+8. ADDRESS SEARCH — render an interactive address picker:
+Output ONLY this marker and NOTHING else in the message. No text before it, no text after it, no list of addresses, no "Here are your addresses", no describing what will happen.
+WRONG: "Her er adressene dine:\n- Holtet 45\n- Majorstuen 12\n\n[ADDRESS_SEARCH]..."
+CORRECT (entire message is just the marker): [ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, 1368 Oslo", "zip_code": "1368", "city": "Oslo"}]}[/ADDRESS_SEARCH]
 Without stored addresses: [ADDRESS_SEARCH][/ADDRESS_SEARCH]
-The component handles everything — showing stored addresses as selectable options AND a search field for new addresses.
+The component handles everything — showing stored addresses as clickable pills AND a search field for new addresses. Your response must contain ONLY the marker.
 
 9. LICENSE PLATE — render a license plate input with car lookup:
 When you need to collect a car, output ONLY the marker on a single line with NO line breaks inside.
@@ -1005,8 +1019,8 @@ NEVER list services or categories as plain text. ALWAYS use this marker. The wid
 [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
 IMPORTANT: Extract sales_item_id from the customer's service selection message ({"sales_item_id": XXXX}).
 
-12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. Include all booking data as JSON:
-[BOOKING_SUMMARY]{"address":"Holtet 45","car":"Tesla Model 3","service":"Dekkskift","date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","proposal_slug":"...","delivery_window_id":123}[/BOOKING_SUMMARY]
+12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. You MUST include user_id, user_group_id, license_plate, country_code from the customer lookup. After the customer selects a time slot, go DIRECTLY to this marker — do NOT show a separate text confirmation asking "does this look correct". The BOOKING_SUMMARY card IS the confirmation step.
+[BOOKING_SUMMARY]{"address":"Holtet 45","address_id":2860,"car":"Tesla Model 3","license_plate":"EC94156","country_code":"NO","user_id":12345,"user_group_id":6789,"service":"Dekkskift","sales_item_ids":[60282],"date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","delivery_window_id":123}[/BOOKING_SUMMARY]
 
 RULES FOR MARKERS:
 - NEVER list addresses, license plates, cars, or services as numbered text. ALWAYS use the corresponding interactive marker.
