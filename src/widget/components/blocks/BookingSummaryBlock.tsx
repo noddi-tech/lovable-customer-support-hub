@@ -27,7 +27,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       if (data.license_plate) bookingPayload.license_plate = data.license_plate;
       if (data.country_code) bookingPayload.country_code = data.country_code || 'NO';
       if (data.sales_item_ids) bookingPayload.sales_item_ids = data.sales_item_ids;
-      if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id;
+      if (data.delivery_window_id != null) bookingPayload.delivery_window_id = data.delivery_window_id;
       if (data.delivery_window_start) bookingPayload.delivery_window_start = data.delivery_window_start;
       if (data.delivery_window_end) bookingPayload.delivery_window_end = data.delivery_window_end;
 
@@ -53,6 +53,30 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
             }
           } catch (lookupErr) {
             console.warn('Customer re-lookup failed:', lookupErr);
+          }
+        }
+      }
+
+      // Recover delivery_window_id from TimeSlotBlock's localStorage if missing
+      if (!bookingPayload.delivery_window_id) {
+        onLogEvent?.('booking_delivery_window_recovery', '', 'info');
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('noddi_action_') && key !== `noddi_action_${blockKey}`) {
+            try {
+              const val = JSON.parse(localStorage.getItem(key) || '');
+              if (val.delivery_window_id) {
+                bookingPayload.delivery_window_id = val.delivery_window_id;
+                if (!bookingPayload.delivery_window_start && val.start_time) {
+                  bookingPayload.delivery_window_start = val.start_time;
+                }
+                if (!bookingPayload.delivery_window_end && val.end_time) {
+                  bookingPayload.delivery_window_end = val.end_time;
+                }
+                onLogEvent?.('booking_delivery_window_recovered', `window_id=${val.delivery_window_id}`, 'success');
+                break;
+              }
+            } catch { /* not relevant JSON */ }
           }
         }
       }
