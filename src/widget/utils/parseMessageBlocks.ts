@@ -29,7 +29,21 @@ function buildMarkers(): MarkerDef[] {
 export function parseMessageBlocks(content: string): MessageBlock[] {
   const MARKERS = buildMarkers();
   const blocks: MessageBlock[] = [];
-  let remaining = content;
+
+  // Pre-process: collapse newlines/whitespace between opening and closing marker tags
+  // This handles cases where the AI inserts line breaks inside markers
+  let normalized = content;
+  for (const marker of MARKERS) {
+    if (marker.hasClosing && marker.closingTag) {
+      // Match: [TAG]...content...\n\s*[/TAG] -> [TAG]...content...[/TAG]
+      const openEscaped = marker.tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const closeEscaped = marker.closingTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`(${openEscaped}(?:.|\\n)*?)\\s*\\n\\s*(${closeEscaped})`, 'g');
+      normalized = normalized.replace(re, '$1$2');
+    }
+  }
+
+  let remaining = normalized;
 
   while (remaining.length > 0) {
     // Find earliest marker
