@@ -236,9 +236,7 @@ export const AiChat: React.FC<AiChatProps> = ({
       if (typeof parsed === 'object' && parsed !== null) {
         // Address block payload
         if (parsed.address || parsed.full_address) {
-          const addr = parsed.address || parsed.full_address || '';
-          const city = parsed.city || '';
-          displayLabel = city ? `${addr}, ${city}` : addr;
+          displayLabel = parsed.full_address || parsed.address || '';
         }
         // License plate / car block payload
         else if (parsed.license_plate || parsed.make) {
