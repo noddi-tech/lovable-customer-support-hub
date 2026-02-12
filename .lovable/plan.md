@@ -1,54 +1,30 @@
 
 
-# Fix Remaining AI Chatbot Issues
+# Show Only the First Available Date with Slots
 
-Three issues persist after previous fixes. Here's the root cause analysis and fix for each.
+## Problem
+The TimeSlotBlock currently generates 14 date chips starting from the earliest date and shows them all -- but many dates have no available slots, leading to a confusing "No available slots for this date" experience (as shown in the screenshot).
 
----
+## Solution
+Instead of showing 14 date chips, fetch delivery windows for a wide date range (e.g., 14 days) in a single API call, then automatically find and display only the **first date that has available slots**. No date chips at all -- just show the available time slots for that date with a header like "Wed 12 Feb".
 
-## Issue 1: Still asks "Har du bestilt gjennom Noddi for?" after verification
+## Changes
 
-**Root Cause**: The `buildFlowPrompt` post-verification instructions on line 772-773 tell the AI to auto-evaluate "existing customer" decisions, but this is just a text instruction the AI can ignore. The actual flow tree still contains the decision node, and the AI follows it literally.
+### `src/widget/components/blocks/TimeSlotBlock.tsx`
 
-**Fix** (`supabase/functions/widget-ai-chat/index.ts`):
-- In the `__VERIFIED__` replacement (line 1209-1212), add a stronger instruction: explicitly state that the customer lookup result determines "existing customer" status and the AI must NEVER ask this question.
-- In `buildPostVerificationNodes`, detect decision nodes that check "existing"/"customer" and auto-resolve them in the prompt text instead of presenting as YES/NO.
-- Make the post-verification system prompt more forceful: "You ALREADY KNOW if the customer is existing from the lookup_customer result. If the result contains bookings, they are existing. NEVER ask the customer if they have ordered before."
+1. **Remove the date chip UI entirely** -- no more horizontal scrollable date list
+2. **Fetch a 14-day range in one call**: Use `from_date` (earliest) and `to_date` (earliest + 14 days) to get all windows at once
+3. **Group windows by date**, find the first date with at least one slot
+4. **Display that date's slots directly** with a simple date header (e.g., "First available: Wed 12 Feb")
+5. If no slots found in the 14-day range, show a "No available times in the next 2 weeks" message
 
----
+### Technical Detail
 
-## Issue 2: Address payload displayed as user message with duplicate city
+The `loadWindows` call currently only sends `from_date`. We'll also send `to_date` (earliest + 14 days) and `selected_sales_item_ids` (from `data`) to get accurate availability. The response windows will be grouped by their `start_time` date, and the first non-empty group becomes the displayed date.
 
-**Root Cause**: The `handleActionSelect` label extraction (lines 238-241) creates `displayLabel = "addr, city"`. But if `parsed.address` already contains the city (e.g., "Slemdalsvingen 65, Oslo"), the result becomes "Slemdalsvingen 65, Oslo, Oslo".
-
-Additionally, `sendMessage` on line 273 sends the full JSON as a hidden message, which correctly goes to the AI -- but looking at the screenshot, the address bubble says "Slemdalsvingen 65, Oslo, Oslo" (with duplicate city), meaning the label extraction is running but producing a bad label.
-
-**Fix** (`src/widget/components/AiChat.tsx`):
-- Fix the address label extraction to avoid city duplication: if `parsed.address` already contains the city name, don't append it again.
-- Simplify: just use `parsed.full_address || parsed.address` as the display label without appending city.
-
----
-
-## Issue 3: `[LICENSE_PLATE]` shown as raw text instead of rendering the component
-
-**Root Cause**: The AI is emitting `[LICENSE_PLATE]` without the closing `[/LICENSE_PLATE]` tag. Looking at the screenshot, the text shows literally `[LICENSE_PLATE]` with no closing tag. The parser in `parseMessageBlocks.ts` (lines 60-65) checks for the closing tag -- if `closeIdx === -1` (closing tag not found), it treats the remaining text as plain text, so the marker is displayed literally.
-
-The system prompt (line 922) shows `[LICENSE_PLATE][/LICENSE_PLATE]` -- the tags are back-to-back with no content. The AI may be omitting the closing tag because it thinks it's self-closing or because it only remembers the opening tag.
-
-**Fix** (`supabase/functions/widget-ai-chat/index.ts`):
-- Change the LicensePlateBlock registration to be self-closing (no closing marker needed), OR
-- Strengthen the system prompt instruction to emphasize the closing tag is REQUIRED.
-- Safest approach: make the parser handle `[LICENSE_PLATE]` as self-closing when no closing tag is found, similar to `[PHONE_VERIFY]` and `[EMAIL_INPUT]` which don't require closing tags.
-
-The cleanest fix is to change LicensePlateBlock's registration to not require a closing marker since it doesn't use inner content anyway.
-
----
-
-## Technical Summary
-
-| File | Change |
-|------|--------|
-| `supabase/functions/widget-ai-chat/index.ts` | Strengthen post-verification prompt to never ask "ordered before?". Update `[LICENSE_PLATE]` instruction to use self-closing format. |
-| `src/widget/components/AiChat.tsx` | Fix address label to avoid duplicate city (use `full_address` or `address` directly without appending city). |
-| `src/widget/components/blocks/LicensePlateBlock.tsx` | Remove `closingMarker` from registration so it works as self-closing like `[PHONE_VERIFY]`. Update `parseContent` accordingly. |
+**Simplified component flow:**
+1. Fetch earliest_date
+2. Fetch delivery_windows with from_date=earliest, to_date=earliest+14
+3. Group by date, pick first date with slots
+4. Render: date header + slot grid (no date chips)
 
