@@ -204,13 +204,27 @@ Deno.serve(async (req) => {
 
       // ========== Create Booking (Shopping Cart) ==========
       case "create_booking": {
-        const { ...payload } = body;
-        delete payload.action;
+        const { action: _a, car_id, sales_item_ids, address_id, delivery_window_id, ...rest } = body;
+
+        // Noddi API expects { address: <id>, cars: [{ id: <car_id>, sales_items: [{ id: <item_id> }] }], delivery_window: <id> }
+        const cartPayload: any = {
+          ...rest,
+          address: address_id,
+          delivery_window: delivery_window_id,
+          cars: [
+            {
+              id: car_id,
+              sales_items: (sales_item_ids || []).map((id: number) => ({ id })),
+            },
+          ],
+        };
+
+        console.log("Create booking payload:", JSON.stringify(cartPayload));
 
         const res = await fetch(`${API_BASE}/v1/bookings/shopping-cart-for-new-booking/`, {
           method: "POST",
           headers,
-          body: JSON.stringify(payload),
+          body: JSON.stringify(cartPayload),
         });
         if (!res.ok) {
           const text = await res.text();
