@@ -1,44 +1,37 @@
 
 
-# Fix: Missing `user_id`, `user_group_id`, and `delivery_window_id` in booking payload
+# Fix: Server-side inject missing booking IDs into BOOKING_SUMMARY
 
-## Root Cause
+## Problem
+The AI model (gpt-4o-mini) consistently omits `user_id`, `user_group_id`, and sometimes `delivery_window_id` from the BOOKING_SUMMARY JSON, despite explicit prompt instructions. Prompt engineering alone is unreliable for ensuring these fields are present.
 
-The proxy code is correct -- it maps `user_id` to `user`, `user_group_id` to `user_group`, etc. The problem is upstream: **the AI is not including these fields in the BOOKING_SUMMARY JSON** it generates.
+## Solution
+Add a **post-processing step** in `widget-ai-chat/index.ts` that scans the AI's final reply for `[BOOKING_SUMMARY]...[/BOOKING_SUMMARY]` markers and injects missing IDs by extracting them from the tool call history in the conversation.
 
-The edge function logs prove this. The latest payload sent to Noddi:
-```json
-{"address_id":2860,"delivery_window":{"starts_at":"...","ends_at":"..."},"cars":[...]}
-```
-Notice: `user`, `user_group`, and `delivery_window.delivery_window` are all absent because `user_id`, `user_group_id`, and `delivery_window_id` were never sent by the frontend.
+The tool call results already contain:
+- `lookup_customer` result has `customer.userId` and `customer.userGroupId`
+- The selected time slot data (from user action messages) has the `delivery_window_id`
 
-## Two-Part Fix
+## Technical Details
 
-### 1. Edge function: Add validation before calling Noddi API
-**File**: `supabase/functions/noddi-booking-proxy/index.ts`
+### File: `supabase/functions/widget-ai-chat/index.ts`
 
-Add early validation in the `create_booking` case that returns a clear 400 error if required fields are missing, instead of forwarding an incomplete payload to Noddi and getting a cryptic 502.
+1. **Add a helper function** `patchBookingSummary(reply, toolMessages)`:
+   - Parse the `[BOOKING_SUMMARY]{...}[/BOOKING_SUMMARY]` JSON from the reply
+   - Scan `toolMessages` for `lookup_customer` results to extract `userId` and `userGroupId`
+   - If `user_id` or `user_group_id` are missing in the JSON, inject them
+   - Return the patched reply string
 
-```
-if (!user_id || !user_group_id || !delivery_window_id) {
-  return jsonResponse({
-    error: "Missing required fields",
-    missing: {
-      user_id: !user_id,
-      user_group_id: !user_group_id,
-      delivery_window_id: !delivery_window_id,
-    }
-  }, 400);
-}
-```
+2. **Call it before returning the final reply** (around line 1378):
+   - After the tool-calling loop completes and we have the final `reply` text
+   - Apply `patchBookingSummary(reply, currentMessages)` to ensure the fields are present
+   - This happens before streaming or returning the JSON response
 
-### 2. AI Prompt: Strengthen instructions for BOOKING_SUMMARY
-**File**: `supabase/functions/widget-ai-chat/index.ts`
-
-Update the `booking_summary` block instruction to be more explicit that `user_id` and `user_group_id` come from the `lookup_customer` result (`customer.userId` and `customer.userGroupId`), and `delivery_window_id` comes from the selected time slot's `id` field. Add a "NEVER omit these fields" warning.
-
-Also update the hardcoded flow instructions (around line 1025-1032) to reinforce this.
+### Why this approach?
+- The lookup_customer tool result is already in `currentMessages` as a tool response
+- This is a deterministic fix -- no reliance on the AI model remembering values
+- Zero impact on the rest of the flow; only activates when BOOKING_SUMMARY marker is detected
+- The `delivery_window_id` typically comes from the user's time slot selection action, which is harder to extract server-side, but we can at least guarantee `user_id` and `user_group_id`
 
 ### Deployment
-- Redeploy `noddi-booking-proxy` and `widget-ai-chat`
-
+- Redeploy `widget-ai-chat`
