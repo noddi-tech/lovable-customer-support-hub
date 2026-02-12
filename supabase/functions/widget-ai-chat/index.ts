@@ -540,7 +540,7 @@ const BLOCK_PROMPTS: Record<string, {
   },
   time_slot: {
     fieldTypes: ['time_slot'],
-    instruction: (ctx) => `To let the customer pick a time slot, include the marker [TIME_SLOT]address_id::proposal_slug[/TIME_SLOT] in your response. Replace address_id and proposal_slug with the actual values from previous steps. The widget will show date chips and available time windows.`,
+    instruction: (ctx) => `To let the customer pick a time slot, include the marker [TIME_SLOT]{numeric_address_id}::{service_slug}[/TIME_SLOT] in your response. CRITICAL: You MUST use the actual numeric address_id (e.g. 12345) from the address selection step and the service slug from the service selection step. Example: [TIME_SLOT]48291::dekkskift[/TIME_SLOT]. NEVER use placeholder text like "address_id" — always use the real number from the conversation context.`,
   },
   booking_summary: {
     fieldTypes: ['booking_summary'],
