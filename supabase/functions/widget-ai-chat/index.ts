@@ -571,19 +571,19 @@ const BLOCK_PROMPTS: Record<string, {
   },
   address_search: {
     fieldTypes: ['address'],
-    instruction: () => `To collect the customer's address, include the marker [ADDRESS_SEARCH]...[/ADDRESS_SEARCH] in your response.
-If the customer has stored_addresses from lookup_customer, pass them as JSON so the widget shows quick-select buttons:
+    instruction: () => `Your ENTIRE response must be ONLY the [ADDRESS_SEARCH] marker. No greeting, no description, no list of addresses before or after it.
+If the customer has stored_addresses from lookup_customer, pass them as JSON:
 [ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, Oslo", "zip_code": "1169", "city": "Oslo"}]}[/ADDRESS_SEARCH]
-If no stored addresses, use: [ADDRESS_SEARCH]Search address...[/ADDRESS_SEARCH]
-The widget will render an interactive address search with delivery area validation. Do NOT ask for the address in text.`,
+If no stored addresses, use: [ADDRESS_SEARCH][/ADDRESS_SEARCH]
+The widget handles everything — showing stored addresses as clickable pills AND a search field. Do NOT add any text.`,
   },
   license_plate: {
     fieldTypes: ['license_plate'],
-    instruction: () => `To collect the customer's license plate, include the marker [LICENSE_PLATE]...[/LICENSE_PLATE] in your response.
-If the customer has stored_cars from lookup_customer, pass them as JSON so the widget shows quick-select buttons:
+    instruction: () => `Your ENTIRE response must be ONLY the [LICENSE_PLATE] marker. No description, no explanation before or after it.
+If the customer has stored_cars from lookup_customer, pass them as JSON:
 [LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
 If no stored cars, use: [LICENSE_PLATE][/LICENSE_PLATE]
-The widget renders an interactive license plate input with country selector and car lookup. NEVER ask for the plate number as plain text — ALWAYS use the [LICENSE_PLATE] marker.`,
+The closing tag MUST be [/LICENSE_PLATE] (with forward slash). NEVER use [LICENSE_PLATE] as closing tag.`,
   },
   service_select: {
     fieldTypes: ['service'],
@@ -952,7 +952,9 @@ AFTER LOOKING UP THE CUSTOMER, follow this guided flow:
 6. Do NOT list all previous bookings unless the customer specifically asks for their full booking history.
 7. Keep the initial response short and action-oriented — max 3-4 lines before presenting choices.
 8. NEVER dump a long list of all past orders unprompted. Summarise briefly and let the customer choose what to explore.
-9. IMPORTANT: If the customer has stored_addresses or stored_cars from the lookup, you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers as JSON so the widget shows quick-select pill buttons. See the marker instructions for the exact format.`;
+9. IMPORTANT: If the customer has stored_addresses or stored_cars from the lookup, you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers as JSON so the widget shows quick-select pill buttons. See the marker instructions for the exact format.
+10. When it's time to collect an address, your ENTIRE message must be ONLY the [ADDRESS_SEARCH] marker. Do not greet, do not describe, do not list addresses. Just the marker.
+11. When it's time to collect a license plate, your ENTIRE message must be ONLY the [LICENSE_PLATE] marker. Do not describe, do not explain. Just the marker.`;
     }
   } else {
     // Try to use flow config for pre-verification phase
@@ -1006,10 +1008,11 @@ Without stored addresses: [ADDRESS_SEARCH][/ADDRESS_SEARCH]
 The component handles everything — showing stored addresses as clickable pills AND a search field for new addresses. Your response must contain ONLY the marker.
 
 9. LICENSE PLATE — render a license plate input with car lookup:
-When you need to collect a car, output ONLY the marker on a single line with NO line breaks inside.
-With stored cars: [LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
+Output ONLY the marker. The closing tag MUST be [/LICENSE_PLATE] (with a forward slash /).
+CORRECT: [LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
+WRONG: [LICENSE_PLATE]{"stored":[...]}[LICENSE_PLATE]  ← WRONG! Missing the / in closing tag!
 Without stored cars: [LICENSE_PLATE][/LICENSE_PLATE]
-The component handles everything. Do NOT add any text describing the marker itself.
+Your ENTIRE message must be ONLY the marker. No description, no explanation before or after it.
 
 10. SERVICE SELECT — fetch and display available sales items with prices. Include address_id AND license_plate:
 [SERVICE_SELECT]{"address_id": 2860, "license_plate": "EC94156"}[/SERVICE_SELECT]

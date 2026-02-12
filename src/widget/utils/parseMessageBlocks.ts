@@ -43,6 +43,20 @@ export function parseMessageBlocks(content: string): MessageBlock[] {
     }
   }
 
+  // Fix common AI mistake: [TAG]content[TAG] -> [TAG]content[/TAG]
+  // Only activates when correct closing tag is absent AND opening tag appears 2+ times
+  for (const marker of MARKERS) {
+    if (marker.hasClosing && marker.closingTag) {
+      if (!normalized.includes(marker.closingTag) && 
+          normalized.split(marker.tag).length > 2) {
+        const lastIdx = normalized.lastIndexOf(marker.tag);
+        normalized = normalized.substring(0, lastIdx) + 
+                     marker.closingTag + 
+                     normalized.substring(lastIdx + marker.tag.length);
+      }
+    }
+  }
+
   let remaining = normalized;
 
   while (remaining.length > 0) {
