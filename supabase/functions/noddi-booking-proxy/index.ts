@@ -40,14 +40,22 @@ Deno.serve(async (req) => {
       case "list_services": {
         const { address_id } = body;
         if (!address_id) {
-          return jsonResponse({ error: "address_id required" }, 400);
+          // Return fallback services when address_id is missing instead of erroring
+          console.warn("list_services called without address_id, returning fallback");
+          return jsonResponse({
+            services: [
+              { slug: "dekkskift", name: "Dekkskift", description: "Bytte av dekk" },
+              { slug: "bilvask", name: "Bilvask", description: "Utvendig og innvendig vask" },
+              { slug: "dekkhotell", name: "Dekkhotell", description: "Lagring av dekk" },
+            ],
+            fallback: true,
+          });
         }
         const url = `${API_BASE}/v1/sales-item-booking-categories/for-new-booking/?address_id=${encodeURIComponent(address_id)}`;
         const res = await fetch(url, { headers });
         if (!res.ok) {
           const text = await res.text();
           console.error("List services error:", res.status, text);
-          // Fallback to known services
           console.warn("list_services endpoint failed, using fallback services");
           return jsonResponse({
             services: [
