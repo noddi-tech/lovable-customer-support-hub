@@ -986,13 +986,20 @@ Option 2
 [CONFIRM]Summary of what will happen[/CONFIRM]
 
 8. ADDRESS SEARCH — render an interactive address search with delivery area check:
-[ADDRESS_SEARCH]Search address...[/ADDRESS_SEARCH]
+If the customer has stored_addresses from lookup_customer, pass them as JSON:
+[ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, 1368 Oslo", "zip_code": "1368", "city": "Oslo"}]}[/ADDRESS_SEARCH]
+If no stored addresses: [ADDRESS_SEARCH][/ADDRESS_SEARCH]
+NEVER list addresses as plain text. ALWAYS use this marker.
 
-9. LICENSE PLATE — render a license plate input that looks up the car (self-closing, NO closing tag needed):
-[LICENSE_PLATE]
+9. LICENSE PLATE — render a license plate input with car lookup:
+If the customer has stored_cars from lookup_customer, pass them as JSON:
+[LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
+If no stored cars: [LICENSE_PLATE][/LICENSE_PLATE]
+NEVER list license plates or cars as plain text. ALWAYS use this marker.
 
 10. SERVICE SELECT — fetch and display available sales items with prices. Include address_id AND license_plate:
 [SERVICE_SELECT]{"address_id": 2860, "license_plate": "EC94156"}[/SERVICE_SELECT]
+NEVER list services or categories as plain text. ALWAYS use this marker. The widget fetches and displays them automatically.
 
 11. TIME SLOT — show available time slots. Include address_id, car_ids, license_plate, AND sales_item_id from the service selection:
 [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156", "sales_item_id": 60282}[/TIME_SLOT]
@@ -1002,6 +1009,7 @@ IMPORTANT: Extract sales_item_id from the customer's service selection message (
 [BOOKING_SUMMARY]{"address":"Holtet 45","car":"Tesla Model 3","service":"Dekkskift","date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","proposal_slug":"...","delivery_window_id":123}[/BOOKING_SUMMARY]
 
 RULES FOR MARKERS:
+- NEVER list addresses, license plates, cars, or services as numbered text. ALWAYS use the corresponding interactive marker.
 - Do NOT describe these as text — just include the markers and the widget handles the rest.
 - Do NOT wrap markers in code blocks, quotes, or backticks. They must appear as plain text.
 - Only use one marker type per response when possible for clarity.
