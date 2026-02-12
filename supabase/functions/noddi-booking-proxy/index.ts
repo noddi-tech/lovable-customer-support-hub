@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
       case "create_booking": {
         const { action: _a, address_id, user_id, user_group_id,
                 license_plate, country_code, sales_item_ids,
-                delivery_window_id, ...rest } = body;
+                delivery_window_id, delivery_window_start, delivery_window_end, ...rest } = body;
 
         // Noddi API expects: address, user, user_group, delivery_window ({id: int}),
         // cars: [{ license_plate: {country_code, number}, selected_sales_item_ids: [int] }]
@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
           address_id,
           user_id,
           user_group_id,
-          delivery_window: { id: delivery_window_id },
+          delivery_window: { id: delivery_window_id, starts_at: delivery_window_start, ends_at: delivery_window_end },
           cars: [
             {
               license_plate: {
