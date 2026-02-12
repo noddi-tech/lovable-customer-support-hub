@@ -951,12 +951,12 @@ Option 2
 9. LICENSE PLATE — render a license plate input that looks up the car (self-closing, NO closing tag needed):
 [LICENSE_PLATE]
 
-10. SERVICE SELECT — fetch and display available services as selectable cards:
-[SERVICE_SELECT][/SERVICE_SELECT]
+10. SERVICE SELECT — fetch and display available services as selectable cards. Include address_id so the widget fetches location-specific services:
+[SERVICE_SELECT]{"address_id": 2860}[/SERVICE_SELECT]
 
-11. TIME SLOT — show available time slots. Emit JSON with address_id, car_ids, and selected_sales_item_ids from the conversation. Example:
-[TIME_SLOT]{"address_id": 2860, "car_ids": [555], "selected_sales_item_ids": [42]}[/TIME_SLOT]
-IMPORTANT: Extract ALL IDs from the actual conversation data — address_id from address step, car_ids from license plate step, selected_sales_item_ids from service selection step.
+11. TIME SLOT — show available time slots. The widget auto-fetches available items, so you only need address_id and car_ids:
+[TIME_SLOT]{"address_id": 2860, "car_ids": [555]}[/TIME_SLOT]
+IMPORTANT: Extract address_id from address step and car_ids from license plate step. You do NOT need selected_sales_item_ids — the widget resolves them automatically.
 
 12. BOOKING SUMMARY — show a booking summary card with confirm/cancel. Include all booking data as JSON:
 [BOOKING_SUMMARY]{"address":"Holtet 45","car":"Tesla Model 3","service":"Dekkskift","date":"Mon 12 Feb","time":"08:00-12:00","price":"599 kr","proposal_slug":"...","delivery_window_id":123}[/BOOKING_SUMMARY]
