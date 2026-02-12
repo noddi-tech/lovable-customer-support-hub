@@ -96,6 +96,10 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
           }
         }
 
+        if (flatWindows.length > 0) {
+          console.log('[TimeSlotBlock] Sample window object keys:', Object.keys(flatWindows[0]), flatWindows[0]);
+        }
+
         const byDate: Record<string, any[]> = {};
         for (const w of flatWindows) {
           const wDate = w.date || (w.starts_at || '').slice(0, 10);
@@ -116,8 +120,9 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
 
   const handleSlotSelect = (window: any) => {
     const currentDate = sortedDates[selectedIdx];
+    const windowId = window.id || window.pk || window.delivery_window_id || window.delivery_window?.id;
     const payload = JSON.stringify({
-      delivery_window_id: window.id,
+      delivery_window_id: windowId,
       date: currentDate,
       start_time: window.start_time || window.starts_at,
       end_time: window.end_time || window.ends_at,
@@ -196,7 +201,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
           const price = w.price || w.total_price;
           return (
             <button
-              key={w.id || i}
+              key={w.id || w.pk || w.delivery_window_id || i}
               onClick={() => handleSlotSelect(w)}
               disabled={isUsed}
               style={{
