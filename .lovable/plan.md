@@ -1,30 +1,28 @@
 
 
-# Show Only the First Available Date with Slots
+# Fix: AI Not Emitting `[LICENSE_PLATE]` Marker
 
 ## Problem
-The TimeSlotBlock currently generates 14 date chips starting from the earliest date and shows them all -- but many dates have no available slots, leading to a confusing "No available slots for this date" experience (as shown in the screenshot).
+The AI is asking for the license plate in plain text ("Vennligst skriv inn registreringsnummeret ditt") instead of emitting the `[LICENSE_PLATE]` marker that renders the interactive component. This happens because the flow-level instruction (BLOCK_PROMPTS) still tells the AI to use `[LICENSE_PLATE][/LICENSE_PLATE]` with a closing tag, contradicting the general prompt which says it's self-closing. The conflicting instructions confuse the AI into skipping the marker entirely.
 
-## Solution
-Instead of showing 14 date chips, fetch delivery windows for a wide date range (e.g., 14 days) in a single API call, then automatically find and display only the **first date that has available slots**. No date chips at all -- just show the available time slots for that date with a header like "Wed 12 Feb".
+## Fix
 
-## Changes
+### 1. `supabase/functions/widget-ai-chat/index.ts` (line 535)
 
-### `src/widget/components/blocks/TimeSlotBlock.tsx`
+Update the `license_plate` block prompt instruction to match the self-closing format and be more forceful:
 
-1. **Remove the date chip UI entirely** -- no more horizontal scrollable date list
-2. **Fetch a 14-day range in one call**: Use `from_date` (earliest) and `to_date` (earliest + 14 days) to get all windows at once
-3. **Group windows by date**, find the first date with at least one slot
-4. **Display that date's slots directly** with a simple date header (e.g., "First available: Wed 12 Feb")
-5. If no slots found in the 14-day range, show a "No available times in the next 2 weeks" message
+**Before:**
+```
+instruction: () => `To collect the customer's license plate, include the marker [LICENSE_PLATE][/LICENSE_PLATE] in your response. The widget will render a license plate input that looks up the car automatically. Do NOT ask for the plate number in text.`,
+```
 
-### Technical Detail
+**After:**
+```
+instruction: () => `To collect the customer's license plate, include EXACTLY this marker in your response: [LICENSE_PLATE]
+This is self-closing — do NOT add a closing tag. The widget renders an interactive license plate input with country selector and car lookup. NEVER ask for the plate number as plain text — ALWAYS use the [LICENSE_PLATE] marker.`,
+```
 
-The `loadWindows` call currently only sends `from_date`. We'll also send `to_date` (earliest + 14 days) and `selected_sales_item_ids` (from `data`) to get accurate availability. The response windows will be grouped by their `start_time` date, and the first non-empty group becomes the displayed date.
+### 2. Redeploy `widget-ai-chat`
 
-**Simplified component flow:**
-1. Fetch earliest_date
-2. Fetch delivery_windows with from_date=earliest, to_date=earliest+14
-3. Group by date, pick first date with slots
-4. Render: date header + slot grid (no date chips)
+Deploy the updated edge function so the corrected instruction takes effect.
 
