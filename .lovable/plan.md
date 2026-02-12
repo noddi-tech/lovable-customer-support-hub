@@ -1,55 +1,74 @@
 
 
-# Fix: Missing `delivery_window_id` in Booking Flow
+# Fix: `delivery_window_id: 0` flows through entire pipeline
 
-## Root Cause
+## Problem
 
-The error `"missing":{"delivery_window_id":true}` happens because of two compounding issues:
+The logs show `delivery_window_id: 0` reaching the proxy. Here's why -- three layers all fail to catch it:
 
-1. **Server-side**: `patchBookingSummary` in `widget-ai-chat` scans conversation messages for the time slot selection but extracts `delivery_window_id: 0` (likely the AI never received the real ID, or the message format didn't match).
-
-2. **Frontend**: In `BookingSummaryBlock.tsx`, the line `if (data.delivery_window_id)` treats `0` as falsy, so even a `0` value gets dropped from the payload. More importantly, when the AI fails to include the real `delivery_window_id`, there's no frontend fallback to recover it.
+1. **AI outputs `delivery_window_id: 0`** in its `[BOOKING_SUMMARY]` JSON (it doesn't know the real ID)
+2. **Server-side `patchBookingSummary`** tries to recover it from conversation messages but either doesn't find the time slot message or the scan fails silently
+3. **Frontend `BookingSummaryBlock`** passes `0` through because the recent `!= null` check was intended to preserve valid values, but `0` is never a valid delivery window ID
+4. **Frontend localStorage recovery** runs (since `!0` is truthy) but apparently doesn't find the TimeSlotBlock entry -- likely because the `noddi_action_` key format or JSON structure doesn't match expectations
 
 ## Solution
 
-Add a frontend fallback in `BookingSummaryBlock.tsx` that extracts the `delivery_window_id` from the TimeSlotBlock's localStorage entry when it's missing from the AI data. The TimeSlotBlock already saves `delivery_window_id` to `localStorage` under a key like `noddi_action_{messageId}:{blockIndex}`.
+### Change 1: Revert `!= null` check (BookingSummaryBlock.tsx, line 30)
 
-### Changes
-
-**File: `src/widget/components/blocks/BookingSummaryBlock.tsx`**
-
-In `handleConfirm()`, after the customer re-lookup block, add a delivery window recovery block:
+Change back to truthiness check so `0` is ignored and triggers recovery:
 
 ```
-// After customer re-lookup, recover delivery_window_id if missing
+// Before (broken):
+if (data.delivery_window_id != null) bookingPayload.delivery_window_id = data.delivery_window_id;
+
+// After (fixed):
+if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id;
+```
+
+### Change 2: Add guard after localStorage recovery (BookingSummaryBlock.tsx)
+
+After the localStorage scan, if `delivery_window_id` is still missing, show a user-friendly error and abort instead of sending a doomed request:
+
+```typescript
 if (!bookingPayload.delivery_window_id) {
-  // Scan localStorage for any time slot selection
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith('noddi_action_') && key !== `noddi_action_${blockKey}`) {
-      try {
-        const val = JSON.parse(localStorage.getItem(key) || '');
-        if (val.delivery_window_id) {
-          bookingPayload.delivery_window_id = val.delivery_window_id;
-          // Also grab start/end times if missing
-          if (!bookingPayload.delivery_window_start && val.start_time) {
-            bookingPayload.delivery_window_start = val.start_time;
-          }
-          if (!bookingPayload.delivery_window_end && val.end_time) {
-            bookingPayload.delivery_window_end = val.end_time;
-          }
-          break;
-        }
-      } catch { /* not relevant JSON */ }
-    }
-  }
+  setError('Could not determine your selected time slot. Please go back and select a time slot again.');
+  setConfirming(false);
+  onLogEvent?.('booking_delivery_window_missing', '', 'error');
+  return;
 }
 ```
 
-Also fix the truthy check -- change `if (data.delivery_window_id)` to `if (data.delivery_window_id != null)` so that a value of `0` (while unlikely for a real ID) doesn't get silently dropped.
+### Change 3: Add logging to localStorage recovery (BookingSummaryBlock.tsx)
 
-### Summary of changes
+Log what keys are found during the scan so we can diagnose why recovery fails:
 
-- `BookingSummaryBlock.tsx`: Add localStorage scan fallback for `delivery_window_id` recovery from TimeSlotBlock's stored selection
-- `BookingSummaryBlock.tsx`: Fix `if (data.delivery_window_id)` to use `!= null` check instead of truthiness, preventing `0` from being dropped
+```typescript
+if (!bookingPayload.delivery_window_id) {
+  onLogEvent?.('booking_delivery_window_recovery', '', 'info');
+  const actionKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith('noddi_action_')) actionKeys.push(key!);
+    // ... existing scan logic
+  }
+  onLogEvent?.('booking_recovery_keys_found', actionKeys.join(','), 'info');
+}
+```
 
+### Change 4: Fix server-side scan in `patchBookingSummary` (widget-ai-chat/index.ts, line 308)
+
+The scan at line 308 checks `!summaryData.delivery_window_id` which is `!0 === true`, so it runs. But we should also check for `0` explicitly and overwrite it:
+
+```typescript
+if (!summaryData.delivery_window_id || summaryData.delivery_window_id === 0) {
+```
+
+This ensures `0` is treated as "missing" on the server side too.
+
+## Summary
+
+- Revert `!= null` to truthiness check (line 30) -- `0` is never a valid ID
+- Add final guard with user-friendly error when recovery fails
+- Add diagnostic logging to recovery scan
+- Fix server-side `patchBookingSummary` to treat `0` as missing
+- Redeploy `widget-ai-chat` edge function after server-side fix
