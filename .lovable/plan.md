@@ -1,23 +1,38 @@
 
 
-# Fix: BookingSummaryBlock not forwarding delivery_window timestamps
+# Fix: Noddi API field name mismatches causing booking creation failure
 
 ## Problem
 
-The proxy and AI prompt now support `delivery_window_start` and `delivery_window_end`, but the `BookingSummaryBlock.tsx` component only forwards `delivery_window_id` (line 30). The `starts_at` and `ends_at` values from the AI's JSON are silently dropped, so the Noddi API still receives `{"id": 1}` without timestamps.
+The Noddi API POST `/v1/bookings/` expects specific field names that differ from what the proxy currently sends. The error reveals 3 issues:
 
-## Fix
+1. **`user`** is required -- proxy sends `user_id` but API expects `user` (integer)
+2. **`user_group`** is required -- proxy sends `user_group_id` but API expects `user_group` (integer)  
+3. **`delivery_window.delivery_window`** is required -- the API expects the delivery window ID in a nested field called `delivery_window` inside the `delivery_window` object (i.e., `{"delivery_window": {"delivery_window": 679, "starts_at": "...", "ends_at": "..."}}`)
 
-**File**: `src/widget/components/blocks/BookingSummaryBlock.tsx` (after line 30)
+Additionally, the AI sometimes omits `user_id`, `user_group_id`, and `delivery_window_id` from the BOOKING_SUMMARY JSON entirely.
 
-Add two lines to forward the timestamps:
+## Changes
+
+### 1. Edge function: `supabase/functions/noddi-booking-proxy/index.ts`
+
+Update the `cartPayload` construction in the `create_booking` case to use the correct Noddi API field names:
 
 ```typescript
-if (data.delivery_window_start) bookingPayload.delivery_window_start = data.delivery_window_start;
-if (data.delivery_window_end) bookingPayload.delivery_window_end = data.delivery_window_end;
+const cartPayload: any = {
+  ...rest,
+  address: address_id,          // was address_id
+  user: user_id,                // was user_id
+  user_group: user_group_id,    // was user_group_id
+  delivery_window: {
+    delivery_window: delivery_window_id,  // was "id"
+    starts_at: delivery_window_start,
+    ends_at: delivery_window_end,
+  },
+  cars: [ ... ],
+};
 ```
 
-No other files need changes -- the proxy and AI prompt are already correct.
+### 2. Redeploy `noddi-booking-proxy`
 
-## Deployment
-- No edge function redeployment needed; this is a frontend-only fix.
+No other file changes needed -- the AI prompt and frontend component are already correct.
