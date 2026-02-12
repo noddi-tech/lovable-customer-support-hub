@@ -1,58 +1,63 @@
 
-# Fix: AI Writing Addresses and Services as Plain Text Instead of Interactive Blocks
 
-## Root Cause
+# Fix: Address Listing as Text + LICENSE_PLATE Raw Text Rendering
 
-The system prompt in `widget-ai-chat/index.ts` has **three conflicting/incomplete sections** that cause the AI to fall back to plain text lists instead of using interactive markers:
+## Problems
 
-1. **INTERACTIVE COMPONENTS section (lines 988-992)**: This is the AI's primary reference for marker syntax. It shows `[ADDRESS_SEARCH]Search address...[/ADDRESS_SEARCH]` without explaining how to pass stored addresses as JSON. It also still says LICENSE_PLATE is "self-closing, NO closing tag needed" -- contradicting the earlier fix.
+1. **AI lists addresses as text before the interactive marker**: The AI writes "Her er adressene dine:" followed by bullet points, then separately shows the ADDRESS_SEARCH component. The prompt needs to explicitly forbid any introductory text about addresses.
 
-2. **Hardcoded fallback (line 942)**: Says "you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers" but the INTERACTIVE COMPONENTS section (which the AI actually reads for syntax) doesn't show the JSON format for stored data.
-
-3. **Services**: The AI calls `list_available_services` tool, gets text results, and writes them as a numbered list instead of using `[SERVICE_SELECT]`. Nothing in the system prompt forbids listing services as text or strongly mandates using the marker.
+2. **LICENSE_PLATE marker renders as raw text**: The AI is outputting `[LICENSE_PLATE]{"stored":[]}` followed by `[/LICENSE_PLATE]` but it appears as literal text in the chat. Root cause: the AI may be wrapping the marker in markdown formatting (backticks, code block) or adding newlines/spaces that prevent parsing.
 
 ## Changes
 
-**File: `supabase/functions/widget-ai-chat/index.ts`**
+### Change 1: Strengthen prompt instructions (widget-ai-chat/index.ts)
 
-### Change 1: Fix ADDRESS_SEARCH marker docs (lines 988-989)
-Update the INTERACTIVE COMPONENTS section to show the stored addresses JSON format:
+Update the INTERACTIVE COMPONENTS section (~lines 988-998):
 
+**ADDRESS_SEARCH (line 988-992)** - Replace with:
 ```
-8. ADDRESS SEARCH - render an interactive address search with delivery area check:
-If the customer has stored_addresses from lookup_customer, pass them as JSON:
-[ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, 1368 Oslo", "zip_code": "1368", "city": "Oslo"}]}[/ADDRESS_SEARCH]
-If no stored addresses: [ADDRESS_SEARCH][/ADDRESS_SEARCH]
-NEVER list addresses as plain text. ALWAYS use this marker.
+8. ADDRESS SEARCH - render an interactive address picker with search:
+When you need to collect an address, output ONLY the marker - no introductory text, no list of addresses, no "Here are your addresses".
+With stored addresses: [ADDRESS_SEARCH]{"stored": [{"id": 2860, "label": "Holtet 45, 1368 Oslo", "zip_code": "1368", "city": "Oslo"}]}[/ADDRESS_SEARCH]
+Without stored addresses: [ADDRESS_SEARCH][/ADDRESS_SEARCH]
+The component handles everything - showing stored addresses as selectable options AND a search field for new addresses.
 ```
 
-### Change 2: Fix LICENSE_PLATE marker docs (lines 991-992)
-Remove the "self-closing" instruction. Update to show stored cars JSON format:
-
+**LICENSE_PLATE (lines 994-998)** - Replace with:
 ```
 9. LICENSE PLATE - render a license plate input with car lookup:
-If the customer has stored_cars from lookup_customer, pass them as JSON:
-[LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
-If no stored cars: [LICENSE_PLATE][/LICENSE_PLATE]
-NEVER list license plates or cars as plain text. ALWAYS use this marker.
+When you need to collect a car, output ONLY the marker on a single line with NO line breaks inside.
+With stored cars: [LICENSE_PLATE]{"stored": [{"id": 13888, "make": "Tesla", "model": "Model Y", "plate": "EC94156"}]}[/LICENSE_PLATE]
+Without stored cars: [LICENSE_PLATE][/LICENSE_PLATE]
+The component handles everything. Do NOT add any text describing the marker itself.
 ```
 
-### Change 3: Fix SERVICE_SELECT marker docs (lines 994-995)
-Add a stronger instruction to never list services as text:
+### Change 2: Add explicit anti-pattern rules (RULES FOR MARKERS section, ~line 1011)
 
+Add these rules:
 ```
-10. SERVICE SELECT - fetch and display available sales items with prices. Include address_id AND license_plate:
-[SERVICE_SELECT]{"address_id": 2860, "license_plate": "EC94156"}[/SERVICE_SELECT]
-NEVER list services or categories as plain text. ALWAYS use this marker. The widget fetches and displays them automatically.
+- When outputting ADDRESS_SEARCH, LICENSE_PLATE, or SERVICE_SELECT markers: output the marker DIRECTLY with no preceding description of addresses, cars, or services. Do NOT say "Here are your addresses" or "Enter your license plate" before the marker.
+- Each marker must be on a single continuous line with NO line breaks between the opening tag, content, and closing tag.
+- Example of WRONG format (line breaks inside marker):
+  [LICENSE_PLATE]{"stored":[]}
+  [/LICENSE_PLATE]
+- Example of CORRECT format (single line):
+  [LICENSE_PLATE]{"stored":[]}[/LICENSE_PLATE]
 ```
 
-### Change 4: Add a global rule (around line 1004, RULES FOR MARKERS section)
-Add a hard rule:
+### Change 3: Frontend resilience - handle newlines in markers (parseMessageBlocks.ts)
 
+Add a pre-processing step to normalize the content before parsing, collapsing any newlines between opening and closing marker tags. This prevents the parser from failing when the AI inserts line breaks inside markers:
+
+```typescript
+// Before parsing, collapse newlines between marker tags
+// e.g. "[LICENSE_PLATE]{"stored":[]}\n[/LICENSE_PLATE]" -> "[LICENSE_PLATE]{"stored":[]}[/LICENSE_PLATE]"
 ```
-- NEVER list addresses, license plates, cars, or services as numbered text. ALWAYS use the corresponding interactive marker.
-```
+
+This adds a regex replacement for each registered block that has a closing marker, removing whitespace/newlines between the opening tag content and closing tag.
 
 ## Deployment
 
-Redeploy `widget-ai-chat` edge function. No frontend changes needed.
+- Redeploy `widget-ai-chat` edge function
+- No other deployment needed (frontend change auto-deploys)
+
