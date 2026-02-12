@@ -65,7 +65,9 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
 
       const label = `${address.street_name} ${address.street_number || ''}, ${address.city}`.trim();
       const payload = JSON.stringify({
+        address_id: address.id,
         address: label,
+        full_address: label,
         is_in_delivery_area: address.is_in_delivery_area,
         zip_code: address.zip_code,
         city: address.city,

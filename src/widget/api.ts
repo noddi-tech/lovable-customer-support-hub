@@ -305,7 +305,8 @@ export interface AddressSuggestion {
 }
 
 export interface ResolvedAddress {
-  id: number;
+  id?: number;
+  full_address?: string;
   street_name: string;
   street_number?: string;
   city: string;
