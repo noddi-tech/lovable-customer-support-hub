@@ -21,6 +21,8 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
   const submitted = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
 
   const addressId = data.address_id ? Number(data.address_id) : null;
+  const carIds: number[] = data.car_ids ? (Array.isArray(data.car_ids) ? data.car_ids.map(Number) : [Number(data.car_ids)]) : [];
+  const salesItemIds: number[] = data.selected_sales_item_ids ? (Array.isArray(data.selected_sales_item_ids) ? data.selected_sales_item_ids.map(Number) : [Number(data.selected_sales_item_ids)]) : [];
 
   const [firstDate, setFirstDate] = useState<string | null>(null);
   const [windows, setWindows] = useState<any[]>([]);
@@ -32,10 +34,12 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
     (async () => {
       try {
         // 1. Get earliest date
+        const earliestPayload: any = { action: 'earliest_date', address_id: addressId };
+        if (carIds.length > 0) earliestPayload.cars = carIds;
         const edResp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'earliest_date', address_id: addressId }),
+          body: JSON.stringify(earliestPayload),
         });
         const edData = await edResp.json();
         const earliest = edData.earliest_date || edData.date || new Date().toISOString().slice(0, 10);
@@ -53,8 +57,8 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
           from_date: earliest,
           to_date: toDate,
         };
-        if (data.selected_sales_item_ids) {
-          payload.selected_sales_item_ids = data.selected_sales_item_ids;
+        if (salesItemIds.length > 0) {
+          payload.selected_sales_item_ids = salesItemIds;
         }
         const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
           method: 'POST',
@@ -185,6 +189,8 @@ registerBlock({
       return {
         address_id: parsed.address_id || '',
         proposal_slug: parsed.service_slug || parsed.proposal_slug || '',
+        car_ids: parsed.car_ids || parsed.cars || [],
+        selected_sales_item_ids: parsed.selected_sales_item_ids || [],
       };
     } catch {}
     // Fallback: split on ::
@@ -192,6 +198,8 @@ registerBlock({
     return {
       address_id: parts[0] || '',
       proposal_slug: parts[1] || '',
+      car_ids: [],
+      selected_sales_item_ids: [],
     };
   },
   component: TimeSlotBlock,
