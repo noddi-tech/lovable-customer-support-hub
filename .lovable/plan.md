@@ -1,66 +1,92 @@
 
-# Fix: Booking Flow — Missing Required API Fields
 
-## Root Cause (from actual Noddi API error logs)
+# Fix: Hidden Messages Lost from AI Conversation History
 
-Two **validation errors** from the Noddi API:
+## Root Cause Analysis
 
-1. **`earliest_date`**: `"cars: This field is required"` — the `cars` array is mandatory, the proxy currently treats it as optional
-2. **`delivery_windows`**: `"This list may not be empty." attr: "selected_sales_item_ids"` — requires a non-empty list of sales item IDs
+### Issue 1: "Missing address" error in TimeSlotBlock
 
-The fundamental issue: **ServiceSelectBlock** returns `{type_slug: "dekkskift", service_name: "Dekkskift"}` — it has NO numeric sales item IDs. The AI prompt tells the LLM to extract `selected_sales_item_ids` from the service payload, but that data doesn't exist. So the AI either omits it or makes up a number.
+The `handleActionSelect` change to send all block actions as `hidden: true` broke the AI's ability to see previous selections. Here is what happens:
+
+1. User selects address -> `sendMessage(addressJSON, undefined, { hidden: true })` is called
+2. Because `isHidden` is true, the message is **NOT added to `messages` state** (line 171-173 in AiChat.tsx)
+3. The AI receives the address payload in that single request and responds with the next step (license plate)
+4. When the car is looked up -> `sendMessage(carJSON, undefined, { hidden: true })` is called
+5. Again, this message is **NOT added to `messages` state**
+6. The AI builds `history` from `messages` state (line 179) -- but the address and car payloads are missing from it
+7. The AI cannot extract `address_id` or `car_ids` because it never saw them in previous messages
+8. It emits `[TIME_SLOT]{"address_id": 0, "car_ids": [0]}` or similar
+9. TimeSlotBlock sees `address_id = 0`, which `Number(0)` evaluates to falsy -> "Missing address"
+
+### Issue 2: "Chat jumped out" when selecting car
+
+The `sendMessage` function has an `isLoading` guard on line 165: `if (!content || isLoading) return`. If the AI is still streaming a response when the user interacts with the LicensePlateBlock (which can happen since lookup is async), the subsequent `sendMessage` call is silently dropped. The car data never reaches the AI.
 
 ## Solution
 
-### 1. TimeSlotBlock: Auto-fetch `available_items` before querying windows
+### Fix 1: Add hidden messages to state (but don't render them)
 
-Since the service selection only provides a slug (not sales item IDs), the TimeSlotBlock must resolve them by calling the existing `available_items` proxy action first.
+Hidden messages must be stored in `messages` state so they appear in future conversation history. The `hidden` flag already exists on the message type -- we just need to add them to state while not rendering them in the UI.
 
-**Flow inside TimeSlotBlock:**
+In `sendMessage` (AiChat.tsx line 170-173), change:
 ```text
-Step 1: Call available_items(address_id, car_ids) --> get sales item IDs
-Step 2: Call earliest_date(address_id, cars) --> get first date  
-Step 3: Call delivery_windows(address_id, from_date, to_date, selected_sales_item_ids) --> get slots
+BEFORE:
+  const userMessage = { ..., hidden: isHidden };
+  if (!isHidden) {
+    setMessages((prev) => [...prev, userMessage]);
+  }
+
+AFTER:
+  const userMessage = { ..., hidden: isHidden };
+  setMessages((prev) => [...prev, userMessage]);  // Always add to state
 ```
 
-Changes to `src/widget/components/blocks/TimeSlotBlock.tsx`:
-- After mount, call `available_items` with `address_id` and `car_ids` to get the list of available sales items
-- Use the returned item IDs as `selected_sales_item_ids` for the delivery windows call
-- Always send `cars` (required) in the `earliest_date` call — if empty, show an error instead of making a failing request
+The rendering code already filters visible messages, so hidden messages won't show as bubbles.
 
-### 2. Simplify the TIME_SLOT marker (no more `selected_sales_item_ids`)
+### Fix 2: Don't drop messages when loading
 
-Since the component now auto-fetches sales items, the AI only needs to provide `address_id` and `car_ids` in the marker. Remove `selected_sales_item_ids` from the prompt instruction to stop the AI from hallucinating IDs.
+Remove or relax the `isLoading` guard for hidden messages so block selections are never silently dropped. Queue the message to be sent after the current stream completes if needed.
 
-Changes to `supabase/functions/widget-ai-chat/index.ts`:
-- Update the `time_slot` block prompt to only require `address_id` and `car_ids`
-- New format: `[TIME_SLOT]{"address_id": 2860, "car_ids": [555]}[/TIME_SLOT]`
+In `sendMessage` (AiChat.tsx line 165), change:
+```text
+BEFORE:
+  if (!content || isLoading) return;
 
-### 3. ServiceSelectBlock: Pass `address_id` for real services
+AFTER:
+  if (!content) return;
+  if (isLoading && !options?.hidden) return;  // Only block visible user input while loading
+```
 
-Currently calls `list_services` without `address_id`, always getting fallback data.
+For hidden messages sent while loading, we need to at minimum add them to state so they appear in the next history. We can skip the AI call if loading and let the next interaction pick them up.
 
-Changes to `src/widget/components/blocks/ServiceSelectBlock.tsx`:
-- Update `parseContent` to extract `address_id` from the marker content (support both JSON and plain number)
-- Accept `address_id` from `data` prop and include it in the `list_services` API call
-- Update the `service_select` prompt instruction to include address_id: `[SERVICE_SELECT]{"address_id": 2860}[/SERVICE_SELECT]`
+### Fix 3: Verify message rendering filters hidden messages
 
-Changes to `supabase/functions/widget-ai-chat/index.ts`:
-- Update the `service_select` block prompt to instruct the AI to include address_id
+Check that the message rendering loop in AiChat.tsx filters out `hidden` messages so they don't appear as bubbles.
 
-### 4. Proxy: Make `cars` required in earliest_date
+### Fix 4: Fix the SERVICE_SELECT marker instruction inconsistency
 
-Changes to `supabase/functions/noddi-booking-proxy/index.ts`:
-- In the `earliest_date` case, always include `cars` in the payload (even if empty array) since the API requires it
-- Return a clear error if `cars` is missing
+In the system prompt (line 954-955), the SERVICE_SELECT example does NOT include address_id:
+```
+[SERVICE_SELECT][/SERVICE_SELECT]
+```
+But the BLOCK_PROMPTS instruction (line 540-543) does require it. Update the system prompt example to match:
+```
+[SERVICE_SELECT]{"address_id": 2860}[/SERVICE_SELECT]
+```
+
+Also, the TIME_SLOT system prompt example on line 957-958 still mentions `selected_sales_item_ids` which contradicts the BLOCK_PROMPTS instruction on line 560 that says "You do NOT need selected_sales_item_ids". Remove it from the example.
 
 ## Files to Change
 
-1. `src/widget/components/blocks/TimeSlotBlock.tsx` — Add `available_items` fetch step; remove dependency on `selected_sales_item_ids` from marker; require `car_ids`
-2. `src/widget/components/blocks/ServiceSelectBlock.tsx` — Accept `address_id` from parsed data; pass to API call
-3. `supabase/functions/widget-ai-chat/index.ts` — Simplify `time_slot` prompt (remove `selected_sales_item_ids`); update `service_select` prompt (add `address_id`)
-4. `supabase/functions/noddi-booking-proxy/index.ts` — Make `cars` always included in `earliest_date` payload
+1. **`src/widget/components/AiChat.tsx`**
+   - Always add messages (including hidden) to `messages` state
+   - Allow hidden messages through even when `isLoading` is true
+   - Verify rendering filters hidden messages from display
+
+2. **`supabase/functions/widget-ai-chat/index.ts`**
+   - Fix SERVICE_SELECT example in system prompt (add address_id)
+   - Fix TIME_SLOT example in system prompt (remove selected_sales_item_ids)
 
 ## Deployment
 
-Edge functions `widget-ai-chat` and `noddi-booking-proxy` will need redeployment.
+Edge function `widget-ai-chat` needs redeployment after prompt fix.
