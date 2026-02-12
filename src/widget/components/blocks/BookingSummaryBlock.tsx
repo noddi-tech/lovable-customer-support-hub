@@ -19,7 +19,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
     onLogEvent?.('booking_confirm_started', '', 'info');
 
     try {
-      // Create booking via Noddi API
+      // Build booking payload
       const bookingPayload: any = { action: 'create_booking' };
       if (data.address_id) bookingPayload.address_id = data.address_id;
       if (data.user_id) bookingPayload.user_id = data.user_id;
@@ -30,6 +30,32 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id;
       if (data.delivery_window_start) bookingPayload.delivery_window_start = data.delivery_window_start;
       if (data.delivery_window_end) bookingPayload.delivery_window_end = data.delivery_window_end;
+
+      // Re-lookup customer IDs if missing
+      if (!bookingPayload.user_id || !bookingPayload.user_group_id) {
+        const phone = localStorage.getItem('noddi_ai_verified_phone');
+        if (phone) {
+          onLogEvent?.('booking_customer_relookup', phone, 'info');
+          try {
+            const lookupResp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'lookup_customer', phone }),
+            });
+            const lookupData = await lookupResp.json();
+            if (lookupData.customer) {
+              if (!bookingPayload.user_id && lookupData.customer.userId) {
+                bookingPayload.user_id = lookupData.customer.userId;
+              }
+              if (!bookingPayload.user_group_id && lookupData.customer.userGroupId) {
+                bookingPayload.user_group_id = lookupData.customer.userGroupId;
+              }
+            }
+          } catch (lookupErr) {
+            console.warn('Customer re-lookup failed:', lookupErr);
+          }
+        }
+      }
 
       const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
         method: 'POST',

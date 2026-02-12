@@ -255,6 +255,39 @@ Deno.serve(async (req) => {
         return jsonResponse({ booking });
       }
 
+      // ========== Customer Lookup ==========
+      case "lookup_customer": {
+        const { phone, email } = body;
+        if (!phone && !email) {
+          return jsonResponse({ error: "phone or email required" }, 400);
+        }
+        const params = new URLSearchParams();
+        if (phone) params.set("phone", phone);
+        if (email) params.set("email", email);
+        const url = `${API_BASE}/v1/users/customer-lookup-support/?${params.toString()}`;
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("Customer lookup error:", res.status, text);
+          return jsonResponse({ error: "Customer not found" }, res.status >= 400 && res.status < 500 ? res.status : 502);
+        }
+        const data = await res.json();
+        // Extract user_id and user_group_id from response
+        const results = Array.isArray(data) ? data : data.results || [data];
+        if (results.length === 0) {
+          return jsonResponse({ error: "Customer not found" }, 404);
+        }
+        const user = results[0];
+        const userGroupId = user.user_group?.id || user.user_group_id || null;
+        return jsonResponse({
+          customer: {
+            userId: user.id || user.user_id,
+            userGroupId,
+            name: user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.name || null,
+          }
+        });
+      }
+
       default:
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
