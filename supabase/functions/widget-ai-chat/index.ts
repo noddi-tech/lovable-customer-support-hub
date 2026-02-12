@@ -339,6 +339,29 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
     const name = `${noddihUser.first_name || ''} ${noddihUser.last_name || ''}`.trim()
       || noddihUser.name || '';
 
+    // Extract unique stored addresses and cars from bookings
+    const storedAddresses = new Map<number, any>();
+    const storedCars = new Map<number, any>();
+    for (const b of bookings) {
+      if (b.address?.id) {
+        storedAddresses.set(b.address.id, {
+          id: b.address.id,
+          full_address: b.address.full_address || b.address.street_name || '',
+          street: b.address.street_name || '',
+          city: b.address.city || '',
+          zip: b.address.zip_code || '',
+        });
+      }
+      if (b.car?.id) {
+        storedCars.set(b.car.id, {
+          id: b.car.id,
+          make: b.car.make || '',
+          model: b.car.model || '',
+          license_plate: b.car.license_plate_number || b.car.license_plate || '',
+        });
+      }
+    }
+
     return JSON.stringify({
       found: true,
       customer: {
@@ -348,6 +371,8 @@ async function executeLookupCustomer(phone?: string, email?: string): Promise<st
         userId: noddihUser.id,
         userGroupId,
       },
+      stored_addresses: Array.from(storedAddresses.values()),
+      stored_cars: Array.from(storedCars.values()),
       bookings: bookings.slice(0, 10).map((b: any) => ({
         id: b.id,
         status: b.status,

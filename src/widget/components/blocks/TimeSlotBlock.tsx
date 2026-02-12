@@ -50,10 +50,10 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
             address_id: addressId,
             license_plates: [licensePlate],
           });
-          const raw = Array.isArray(itemsData) ? itemsData : itemsData.results || [];
-          for (const cat of raw) {
-            for (const item of (cat.sales_items || [])) {
-              if (item.id) salesItemIds.push(Number(item.id));
+          const cars = itemsData.cars || [];
+          for (const car of cars) {
+            for (const item of (car.sales_items || [])) {
+              if (item.sales_item_id) salesItemIds.push(Number(item.sales_item_id));
             }
           }
         }

@@ -10,6 +10,14 @@ const CATEGORY_ICONS: Record<string, string> = {
   polering: '✨',
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  wheel_services: 'Dekktjenester',
+  stone_chip_repair: 'Reparasjon av steinsprutskader',
+  car_wash: 'Bilvask',
+  tyre_hotel: 'Dekkhotell',
+  polering: 'Polering',
+};
+
 function getCategoryIcon(type: string): string {
   return CATEGORY_ICONS[type] || '🛠️';
 }
@@ -60,21 +68,18 @@ const ServiceSelectBlock: React.FC<BlockComponentProps> = ({
           }),
         });
         const respData = await resp.json();
-        // Noddi returns array of category groups with nested sales_items
-        const raw = Array.isArray(respData) ? respData : respData.results || [];
+        // Noddi returns { cars: [{ sales_items: [...] }] }
+        const cars = respData.cars || [];
         const salesItems: SalesItem[] = [];
-        for (const category of raw) {
-          const catType = category.booking_category_type || category.type || '';
-          const catName = category.booking_category_name || category.name || '';
-          const categoryItems = category.sales_items || [];
-          for (const item of categoryItems) {
+        for (const car of cars) {
+          for (const item of (car.sales_items || [])) {
             salesItems.push({
-              id: item.id,
+              id: item.sales_item_id || item.id,
               name: item.name || '',
               short_description: item.short_description || '',
-              price: item.unit_price != null ? item.unit_price : item.price,
-              category_type: catType,
-              category_name: catName,
+              price: item.gross_price?.amount != null ? item.gross_price.amount : (item.unit_price != null ? item.unit_price : item.price),
+              category_type: item.booking_category_type || '',
+              category_name: CATEGORY_LABELS[item.booking_category_type] || item.booking_category_type || '',
             });
           }
         }
