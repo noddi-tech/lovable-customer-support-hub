@@ -28,6 +28,8 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       if (data.country_code) bookingPayload.country_code = data.country_code || 'NO';
       if (data.sales_item_ids) bookingPayload.sales_item_ids = data.sales_item_ids;
       if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id;
+      if (data.delivery_window_start) bookingPayload.delivery_window_start = data.delivery_window_start;
+      if (data.delivery_window_end) bookingPayload.delivery_window_end = data.delivery_window_end;
 
       const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
         method: 'POST',
