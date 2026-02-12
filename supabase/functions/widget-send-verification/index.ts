@@ -102,9 +102,13 @@ Deno.serve(async (req) => {
     console.log('[widget-send-verification] Response:', resp.status, respText);
 
     if (!resp.ok) {
+      const isClientError = resp.status >= 400 && resp.status < 500;
+      const userMessage = isClientError
+        ? 'Dette telefonnummeret kunne ikke verifiseres. Vennligst sjekk nummeret og prøv igjen.'
+        : 'Failed to send verification code';
       return new Response(
-        JSON.stringify({ error: 'Failed to send verification code', debug_status: resp.status, debug_body: respText }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: userMessage, debug_status: resp.status, debug_body: respText }),
+        { status: isClientError ? resp.status : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
