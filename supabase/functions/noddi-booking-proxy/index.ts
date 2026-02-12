@@ -87,12 +87,14 @@ Deno.serve(async (req) => {
 
       // ========== Available Items for Booking ==========
       case "available_items": {
-        const { address_id: aiAddr, car_ids, sales_item_category_id } = body;
+        const { address_id: aiAddr, car_ids, license_plates, sales_item_category_id } = body;
         if (!aiAddr) {
           return jsonResponse({ error: "address_id required" }, 400);
         }
         const payload: any = { address_id: aiAddr };
-        if (car_ids) payload.car_ids = car_ids;
+        // Noddi API requires license_plates; fall back to car_ids for backward compat
+        if (license_plates) payload.license_plates = Array.isArray(license_plates) ? license_plates : [license_plates];
+        else if (car_ids) payload.car_ids = car_ids;
         if (sales_item_category_id) payload.sales_item_category_id = sales_item_category_id;
 
         const res = await fetch(`${API_BASE}/v1/sales-items/initial-available-for-booking/`, {
@@ -115,7 +117,9 @@ Deno.serve(async (req) => {
         if (!cars || !Array.isArray(cars) || cars.length === 0) {
           return jsonResponse({ error: "cars array is required and must not be empty" }, 400);
         }
-        const edPayload: any = { address_id: eAddr, cars };
+        // Noddi expects cars as objects: [{id: 13888}], not plain integers [13888]
+        const carsForApi = cars.map((c: any) => typeof c === 'number' ? { id: c } : c);
+        const edPayload: any = { address_id: eAddr, cars: carsForApi };
         const res = await fetch(`${API_BASE}/v1/delivery-windows/earliest-date/`, {
           method: "POST",
           headers,

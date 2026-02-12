@@ -545,7 +545,7 @@ The widget will fetch and display available services for that location as clicka
   time_slot: {
     fieldTypes: ['time_slot'],
     instruction: () => `IMMEDIATELY after the customer selects a service, you MUST include this marker in your response using JSON format:
-[TIME_SLOT]{"address_id": <number>, "car_ids": [<number>]}[/TIME_SLOT]
+[TIME_SLOT]{"address_id": <number>, "car_ids": [<number>], "license_plate": "<string>"}[/TIME_SLOT]
 
 The widget handles ALL data fetching automatically — it will resolve available sales items, earliest date, and delivery windows.
 DO NOT say "please wait", "let me check", "let me fetch", or anything similar — just emit the marker RIGHT AWAY.
@@ -553,11 +553,12 @@ DO NOT say "please wait", "let me check", "let me fetch", or anything similar �
 CRITICAL RULES:
 1. address_id = the numeric "address_id" integer from the address JSON payload the CUSTOMER sent earlier. Look for {"address_id": XXXX, ...} in a previous user message.
 2. car_ids = array containing the numeric "id" from the car lookup JSON the customer sent (from the LICENSE_PLATE step). Look for {"id": XXXX, ...} in a previous user message.
-3. Example: if address had {"address_id": 2860} and car had {"id": 555}, emit:
-   [TIME_SLOT]{"address_id": 2860, "car_ids": [555]}[/TIME_SLOT]
-4. NEVER use made-up numbers — ALWAYS extract real IDs from the conversation.
-5. If any required ID is missing, ask the customer to complete that step first.
-6. You do NOT need selected_sales_item_ids — the widget fetches them automatically.`,
+3. license_plate = the license plate string from the LICENSE_PLATE step. Look for the plate number in a previous user message (e.g., "EC94156").
+4. Example: if address had {"address_id": 2860}, car had {"id": 555}, and plate was "EC94156", emit:
+   [TIME_SLOT]{"address_id": 2860, "car_ids": [555], "license_plate": "EC94156"}[/TIME_SLOT]
+5. NEVER use made-up numbers — ALWAYS extract real IDs from the conversation.
+6. If any required ID is missing, ask the customer to complete that step first.
+7. You do NOT need selected_sales_item_ids — the widget fetches them automatically.`,
   },
   booking_summary: {
     fieldTypes: ['booking_summary'],
