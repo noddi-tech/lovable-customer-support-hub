@@ -540,7 +540,14 @@ const BLOCK_PROMPTS: Record<string, {
   },
   time_slot: {
     fieldTypes: ['time_slot'],
-    instruction: (ctx) => `To let the customer pick a time slot, include the marker [TIME_SLOT]{numeric_address_id}::{service_slug}[/TIME_SLOT] in your response. CRITICAL: You MUST use the actual numeric address_id (e.g. 12345) from the address selection step and the service slug from the service selection step. Example: [TIME_SLOT]48291::dekkskift[/TIME_SLOT]. NEVER use placeholder text like "address_id" — always use the real number from the conversation context.`,
+    instruction: (ctx) => `To let the customer pick a time slot, include the marker [TIME_SLOT]<address_id_number>::<service_slug>[/TIME_SLOT].
+CRITICAL RULES for TIME_SLOT:
+1. The first value MUST be the numeric "address_id" integer from the address selection JSON payload (e.g. the "address_id" field, NOT the "address" or "full_address" string).
+2. Look for the JSON object in the conversation that contains "address_id": <number> — use THAT number.
+3. The second value after :: is the service slug (e.g. "dekkskift").
+4. CORRECT example: [TIME_SLOT]48291::dekkskift[/TIME_SLOT] where 48291 is from {"address_id":48291,"address":"Slemdalsvingen 65, Oslo",...}
+5. WRONG examples: [TIME_SLOT]Slemdalsvingen 65::dekkskift[/TIME_SLOT] or [TIME_SLOT]address_id::dekkskift[/TIME_SLOT]
+6. If you cannot find a numeric address_id in the conversation history, ask the customer to select their address first.`,
   },
   booking_summary: {
     fieldTypes: ['booking_summary'],
